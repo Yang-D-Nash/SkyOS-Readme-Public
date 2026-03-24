@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import FirebaseAuth
-import FirebaseFirestore
 
 @MainActor
 class RegistrationViewModel: ObservableObject {
@@ -23,6 +21,11 @@ class RegistrationViewModel: ObservableObject {
     @Published var toastMessage = ""
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .info
+    private let authService: AuthServicing
+
+    init(authService: AuthServicing = FirebaseAuthService()) {
+        self.authService = authService
+    }
 
     var isRegistrationButtonDisabled: Bool {
         email.isEmpty || password.isEmpty || confirmPassword.isEmpty || password != confirmPassword || isLoading
@@ -38,20 +41,12 @@ class RegistrationViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            let result = try await Auth.auth().createUser(withEmail: email, password: password)
-            let userId = result.user.uid
-            print("Dev Registrierung erfolgreich, UID: \(userId)")
-
-            let newUser = User(
-                id: nil,
-                email: email,
+            try await authService.register(
                 username: username,
+                email: email,
                 whatsApp: whatsapp,
-                registrationDate: Date(),
-                isAdmin: false
+                password: password
             )
-
-            try Firestore.firestore().collection("users").document(userId).setData(from: newUser)
             showUserToast("Registrierung erfolgreich!", style: .success)
             isLoading = false
             return true

@@ -1,0 +1,91 @@
+package com.skydown.android.ui.screen
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.ToastHost
+import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.viewmodel.LoginViewModel
+
+@Composable
+fun LoginScreen(
+    onClose: () -> Unit,
+    onOpenRegistration: () -> Unit,
+    viewModel: LoginViewModel = viewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        SkydownCard {
+            Text(
+                text = "Willkommen bei Skydown",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "Melden Sie sich an, um exklusive Inhalte zu sehen.",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            OutlinedTextField(
+                value = uiState.email,
+                onValueChange = viewModel::updateEmail,
+                label = { Text("E-Mail-Adresse") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+            )
+            OutlinedTextField(
+                value = uiState.password,
+                onValueChange = viewModel::updatePassword,
+                label = { Text("Passwort") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+            )
+            Button(
+                onClick = { viewModel.signIn(onClose) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                enabled = !uiState.isLoading,
+            ) {
+                Text(if (uiState.isLoading) "Anmelden..." else "Anmelden")
+            }
+            TextButton(
+                onClick = onOpenRegistration,
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                Text("Noch kein Konto? Registrieren")
+            }
+        }
+
+        ToastHost(
+            message = uiState.errorMessage,
+            type = ToastType.Error,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}

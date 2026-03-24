@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 import MessageUI
 
 struct SettingsView: View {
@@ -191,8 +190,7 @@ struct SettingsView: View {
                         primaryButton: .destructive(Text("Konto löschen")) {
                             Task {
                                 do {
-                                    try await Auth.auth().currentUser?.delete()
-                                    authManager.userSession = nil
+                                    try await authManager.deleteAccount()
                                     showToastMessage("Konto erfolgreich gelöscht", style: .success)
                                 } catch {
                                     showToastMessage("Fehler beim Löschen: \(error.localizedDescription)", style: .error)

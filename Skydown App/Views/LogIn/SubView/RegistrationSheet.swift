@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct RegistrationSheet: View {
     @Environment(\.dismiss) var dismiss

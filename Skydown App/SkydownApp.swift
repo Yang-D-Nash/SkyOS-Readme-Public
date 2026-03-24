@@ -6,21 +6,20 @@
 //
 import SwiftUI
 import FirebaseCore
-import FirebaseAuth
 import AVKit
 
 @main
 struct SkydownApp: App {
+    @StateObject private var services = AppServices()
+
     init() {
         FirebaseApp.configure()
     }
 
-    @StateObject var authManager = AuthManager()
-
     var body: some Scene {
         WindowGroup {
             LaunchScreenView()
-            .environmentObject(authManager)
+                .environmentObject(services.authManager)
         }
     }
 }

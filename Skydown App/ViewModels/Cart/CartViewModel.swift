@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseFirestore
 
 @MainActor
 class CartViewModel: ObservableObject {
@@ -18,10 +17,14 @@ class CartViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .success
 
     private let authManager: AuthManager
-    private let firestore = Firestore.firestore()
+    private let orderService: OrderServicing
 
-    init(authManager: AuthManager) {
+    init(
+        authManager: AuthManager,
+        orderService: OrderServicing = FirebaseOrderService()
+    ) {
         self.authManager = authManager
+        self.orderService = orderService
         self.userEmail = authManager.userSession?.email ?? ""
 
         Task { [weak self] in
@@ -58,21 +61,8 @@ class CartViewModel: ObservableObject {
             return false
         }
 
-        let orderItems = items.map { [
-            "name": $0.item.name,
-            "quantity": $0.quantity,
-            "size": $0.size]
-        }
-
-        let orderData: [String: Any] = [
-            "userEmail": email,
-            "items": orderItems,
-            "isCompleted": false,
-            "timestamp": Timestamp()
-        ]
-
         do {
-            try await firestore.collection("orders").addDocument(data: orderData)
+            try await orderService.submitOrder(userEmail: email, items: items)
             clearCart()
             showUserToast("Bestellung erfolgreich abgeschickt!", style: .success)
             return true

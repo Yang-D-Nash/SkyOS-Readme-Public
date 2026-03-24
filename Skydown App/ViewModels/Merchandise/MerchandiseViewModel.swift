@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import FirebaseFirestore
-import FirebaseAuth
 
 @MainActor
 class MerchandiseViewModel: ObservableObject {
@@ -20,11 +18,16 @@ class MerchandiseViewModel: ObservableObject {
     @Published var toastMessage = ""
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .info
+    private let merchandiseService: MerchandiseServicing
+    private let authService: AuthServicing
+    private var stopObservingItems: (() -> Void)?
 
-    private var firestoreMerch = Firestore.firestore()
-    private var listenerRegistration: ListenerRegistration?
-
-    init() {
+    init(
+        merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
+        authService: AuthServicing = FirebaseAuthService()
+    ) {
+        self.merchandiseService = merchandiseService
+        self.authService = authService
         Task { await fetchCurrentUser() }
     }
 
@@ -32,39 +35,29 @@ class MerchandiseViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        listenerRegistration?.remove()
+        stopObservingItems?()
 
-        listenerRegistration = firestoreMerch.collection("merchandise").addSnapshotListener { [weak self] querySnapshot, error in
-            guard let self = self else { return }
+        stopObservingItems = merchandiseService.observeItems { [weak self] result in
+            guard let self else { return }
             self.isLoading = false
 
-            if let error = error {
+            switch result {
+            case .success(let items):
+                self.merchandiseItems = items
+                if items.isEmpty {
+                    self.showUserToast("Keine Artikel gefunden.", style: .error)
+                }
+            case .failure(let error):
                 print("Dev Fehler fetchData:", error.localizedDescription)
                 self.showUserToast("Fehler beim Laden der Artikel: \(error.localizedDescription)", style: .error)
                 self.merchandiseItems = []
-                return
             }
-
-            guard let documents = querySnapshot?.documents else {
-                self.showUserToast("Keine Artikel gefunden.", style: .error)
-                self.merchandiseItems = []
-                return
-            }
-
-            self.merchandiseItems = documents.compactMap { doc in
-                try? doc.data(as: MerchandiseItem.self)
-            }.sorted { $0.name < $1.name }
         }
     }
 
     func fetchCurrentUser() async {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-
         do {
-            let snapshot = try await firestoreMerch.collection("users").document(uid).getDocument()
-            if let user = try? snapshot.data(as: User.self) {
-                self.currentUser = user
-            }
+            currentUser = try await authService.fetchCurrentUser()
         } catch {
             print("Dev Fehler fetchCurrentUser:", error.localizedDescription)
             showUserToast("Fehler beim Laden des Benutzers: \(error.localizedDescription)", style: .error)
@@ -78,7 +71,7 @@ class MerchandiseViewModel: ObservableObject {
         }
 
         do {
-            _ = try firestoreMerch.collection("merchandise").addDocument(from: item)
+            try await merchandiseService.addItem(item)
             showUserToast("Artikel hinzugefügt: \(item.name)", style: .success)
         } catch {
             print("Dev Fehler addMerchandise:", error.localizedDescription)
@@ -98,9 +91,7 @@ class MerchandiseViewModel: ObservableObject {
         }
 
         do {
-            try await firestoreMerch.collection("merchandise").document(id).updateData([
-                "price": newPrice
-            ])
+            try await merchandiseService.updatePrice(itemID: id, newPrice: newPrice)
             showUserToast("Preis aktualisiert: \(item.name)", style: .success)
         } catch {
             print("Dev Fehler updateMerchandisePrice:", error.localizedDescription)
@@ -120,7 +111,7 @@ class MerchandiseViewModel: ObservableObject {
         }
 
         do {
-            try await firestoreMerch.collection("merchandise").document(id).delete()
+            try await merchandiseService.deleteItem(itemID: id)
             showUserToast("Artikel gelöscht: \(item.name)", style: .success)
         } catch {
             print("Dev Fehler deleteItem:", error.localizedDescription)
@@ -135,6 +126,6 @@ class MerchandiseViewModel: ObservableObject {
     }
 
     deinit {
-        listenerRegistration?.remove()
+        stopObservingItems?()
     }
 }

@@ -1,0 +1,38 @@
+package com.skydown.shared.service
+
+import com.skydown.shared.model.CartItem
+import com.skydown.shared.model.Order
+import com.skydown.shared.repository.OrderRepository
+
+class OrderService(
+    private val repository: OrderRepository,
+) {
+    suspend fun loadOrders(): Result<List<Order>> = repository.loadOrders()
+
+    suspend fun submitOrder(userEmail: String, items: List<CartItem>): Result<Unit> {
+        if (items.isEmpty()) {
+            return Result.failure(IllegalArgumentException("Warenkorb ist leer."))
+        }
+        if (userEmail.isBlank()) {
+            return Result.failure(IllegalArgumentException("Benutzer nicht angemeldet."))
+        }
+
+        return repository.submitOrder(userEmail, items)
+    }
+
+    suspend fun toggleCompleted(orderId: String, isCompleted: Boolean): Result<Unit> {
+        if (orderId.isBlank()) {
+            return Result.failure(IllegalArgumentException("Bestellung hat keine gueltige ID."))
+        }
+
+        return repository.toggleCompleted(orderId, isCompleted)
+    }
+
+    suspend fun deleteOrder(orderId: String): Result<Unit> {
+        if (orderId.isBlank()) {
+            return Result.failure(IllegalArgumentException("Bestellung hat keine gueltige ID."))
+        }
+
+        return repository.deleteOrder(orderId)
+    }
+}

@@ -5,7 +5,6 @@
 //  Created by Yang D. Nash on 24.07.25.
 //
 import SwiftUI
-import FirebaseAuth
 
 struct LoginView: View {
     @Environment(\.dismiss) private var dismiss

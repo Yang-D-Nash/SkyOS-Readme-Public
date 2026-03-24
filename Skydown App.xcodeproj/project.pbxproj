@@ -434,7 +434,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-";
+				PRODUCT_BUNDLE_IDENTIFIER = com.skydown.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -466,7 +466,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-";
+				PRODUCT_BUNDLE_IDENTIFIER = com.skydown.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -488,7 +488,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-Tests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.skydown.iosTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -507,7 +507,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-Tests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.skydown.iosTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -524,7 +524,7 @@
 				DEVELOPMENT_TEAM = F3BNLG6L7P;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-UITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.skydown.iosUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -541,7 +541,7 @@
 				DEVELOPMENT_TEAM = F3BNLG6L7P;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-UITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.skydown.iosUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;

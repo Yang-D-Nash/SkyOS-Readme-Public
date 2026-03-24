@@ -11,14 +11,7 @@ struct MainTabView: View {
     @AppStorage("colorScheme") private var colorScheme: String = "dark"
     @Environment(\.colorScheme) private var systemColorScheme
 
-    @StateObject private var authManager = AuthManager()
-    @StateObject private var cartVM: CartViewModel
-
-    init() {
-        let authManager = AuthManager()
-        _cartVM = StateObject(wrappedValue: CartViewModel(authManager: authManager))
-        _authManager = StateObject(wrappedValue: authManager)
-    }
+    @StateObject private var services = AppServices()
 
     private var currentScheme: ColorScheme {
         colorScheme == "dark" ? .dark : .light
@@ -41,8 +34,8 @@ struct MainTabView: View {
         .accentColor(AppColors.accent(for: currentScheme))
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
         .preferredColorScheme(currentScheme)
-        .environmentObject(authManager)
-        .environmentObject(cartVM)
+        .environmentObject(services.authManager)
+        .environmentObject(services.cartViewModel)
     }
 }
 

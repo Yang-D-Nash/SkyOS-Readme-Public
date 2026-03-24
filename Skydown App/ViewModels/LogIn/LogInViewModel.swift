@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseAuth
 
 @MainActor
 class LoginViewModel: ObservableObject {
@@ -19,6 +18,11 @@ class LoginViewModel: ObservableObject {
     @Published var toastMessage = ""
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .info
+    private let authService: AuthServicing
+
+    init(authService: AuthServicing = FirebaseAuthService()) {
+        self.authService = authService
+    }
 
     var isSignInButtonDisabled: Bool {
         email.isEmpty || password.isEmpty || isLoading
@@ -34,8 +38,7 @@ class LoginViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            let authResult = try await Auth.auth().signIn(withEmail: email, password: password)
-            print("Dev Anmeldung erfolgreich: \(authResult.user.uid)")
+            try await authService.signIn(email: email, password: password)
             isAuthenticated = true
             showUserToast("Anmeldung erfolgreich!", style: .success)
         } catch {

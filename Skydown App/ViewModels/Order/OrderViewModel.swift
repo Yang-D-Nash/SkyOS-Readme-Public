@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import FirebaseFirestore
-import FirebaseAuth
 
 @MainActor
 class OrderViewModel: ObservableObject {
@@ -18,44 +16,38 @@ class OrderViewModel: ObservableObject {
     @Published var toastMessage = ""
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .info
+    private let orderService: OrderServicing
+    private var stopObservingOrders: (() -> Void)?
 
-    private var firestore = Firestore.firestore()
-    private var listener: ListenerRegistration?
-
-    init() {
+    init(orderService: OrderServicing = FirebaseOrderService()) {
+        self.orderService = orderService
         fetchOrders()
     }
 
     func fetchOrders() {
         isLoading = true
-        listener?.remove()
+        stopObservingOrders?()
 
-        listener = firestore.collection("orders")
-            .order(by: "timestamp", descending: true)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let self = self else { return }
-                self.isLoading = false
+        stopObservingOrders = orderService.observeOrders { [weak self] result in
+            guard let self else { return }
+            self.isLoading = false
 
-                if let error = error {
-                    print("Dev Fehler fetchOrders:", error.localizedDescription)
-                    self.showUserToast("Fehler beim Laden: \(error.localizedDescription)", style: .error)
-                    self.orders = []
-                    return
-                }
-
-                self.orders = snapshot?.documents.compactMap { doc in
-                    try? doc.data(as: Order.self)
-                } ?? []
+            switch result {
+            case .success(let orders):
+                self.orders = orders
+            case .failure(let error):
+                print("Dev Fehler fetchOrders:", error.localizedDescription)
+                self.showUserToast("Fehler beim Laden: \(error.localizedDescription)", style: .error)
+                self.orders = []
             }
+        }
     }
 
     func toggleCompleted(for order: Order) async {
         guard let id = order.id else { return }
 
         do {
-            try await firestore.collection("orders").document(id).updateData([
-                "isCompleted": !order.isCompleted
-            ])
+            try await orderService.toggleCompleted(orderID: id, isCompleted: order.isCompleted)
             let msg = order.isCompleted ? "Markiert als offen" : "Markiert als erledigt"
             showUserToast(msg, style: .success)
         } catch {
@@ -70,7 +62,7 @@ class OrderViewModel: ObservableObject {
         guard let id = order.id else { return }
 
         do {
-            try await firestore.collection("orders").document(id).delete()
+            try await orderService.deleteOrder(orderID: id)
             showUserToast("Bestellung gelöscht", style: .success)
         } catch {
             print("Dev Fehler deleteOrder:", error.localizedDescription)
@@ -87,6 +79,6 @@ class OrderViewModel: ObservableObject {
     }
 
     deinit {
-        listener?.remove()
+        stopObservingOrders?()
     }
 }

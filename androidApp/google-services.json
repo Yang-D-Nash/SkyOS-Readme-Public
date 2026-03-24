@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1069068117600",
+    "project_id": "skydown-a6add",
+    "storage_bucket": "skydown-a6add.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1069068117600:android:f9034388ea0bf75be84505",
+        "android_client_info": {
+          "package_name": "com.skydown.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWgIx-ZOvlrXr0Jk-xoDG07ppTUlIabmg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

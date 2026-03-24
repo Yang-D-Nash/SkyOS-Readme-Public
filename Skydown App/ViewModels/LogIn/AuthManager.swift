@@ -6,58 +6,39 @@
 //
 
 import Foundation
-import FirebaseAuth
-import FirebaseFirestore
 
 @MainActor
 class AuthManager: ObservableObject {
     @Published var userSession: User?
+    private let authService: AuthServicing
+    private var authStateCancellation: (() -> Void)?
 
-    private var handle: AuthStateDidChangeListenerHandle?
-
-    init() {
+    init(authService: AuthServicing = FirebaseAuthService()) {
+        self.authService = authService
         observeAuthState()
     }
 
     deinit {
-        if let handle = handle {
-            Auth.auth().removeStateDidChangeListener(handle)
-        }
+        authStateCancellation?()
     }
 
     private func observeAuthState() {
-        handle = Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
-            Task { @MainActor in
-                if let firebaseUser = firebaseUser {
-                    await self?.fetchUserData(uid: firebaseUser.uid)
-                } else {
-                    self?.userSession = nil
-                }
-            }
-        }
-    }
-
-    func fetchUserData(uid: String) async {
-        let docRef = Firestore.firestore().collection("users").document(uid)
-        do {
-            let snapshot = try await docRef.getDocument()
-            guard snapshot.exists else {
-                self.userSession = nil
-                return
-            }
-            let user = try snapshot.data(as: User.self)
-            self.userSession = user
-        } catch {
-            print("Fehler beim Laden/Decodieren des Users: \(error.localizedDescription)")
+        authStateCancellation = authService.observeAuthState { [weak self] user in
+            self?.userSession = user
         }
     }
 
     func signOut() async {
         do {
-            try Auth.auth().signOut()
+            try authService.signOut()
             userSession = nil
         } catch {
             print("Fehler beim Abmelden: \(error.localizedDescription)")
         }
+    }
+
+    func deleteAccount() async throws {
+        try await authService.deleteCurrentAccount()
+        userSession = nil
     }
 }
