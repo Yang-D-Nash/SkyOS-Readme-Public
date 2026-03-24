@@ -1,0 +1,642 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		905588F72E31911F002FD576 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 905588F62E31911F002FD576 /* FirebaseAuth */; };
+		905588F92E31911F002FD576 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 905588F82E31911F002FD576 /* FirebaseCore */; };
+		905588FB2E31911F002FD576 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 905588FA2E31911F002FD576 /* FirebaseDatabase */; };
+		905588FD2E31911F002FD576 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 905588FC2E31911F002FD576 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		907EC6AF2E31628D00BF5234 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 907EC6992E31628C00BF5234 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 907EC6A02E31628C00BF5234;
+			remoteInfo = "Skydown App";
+		};
+		907EC6B92E31628D00BF5234 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 907EC6992E31628C00BF5234 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 907EC6A02E31628C00BF5234;
+			remoteInfo = "Skydown App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		907EC6A12E31628C00BF5234 /* Skydown App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Skydown App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		907EC6AE2E31628D00BF5234 /* Skydown AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Skydown AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		907EC6B82E31628D00BF5234 /* Skydown AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Skydown AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		907EC6A32E31628C00BF5234 /* Skydown App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Skydown App";
+			sourceTree = "<group>";
+		};
+		907EC6B12E31628D00BF5234 /* Skydown AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Skydown AppTests";
+			sourceTree = "<group>";
+		};
+		907EC6BB2E31628D00BF5234 /* Skydown AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Skydown AppUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		907EC69E2E31628C00BF5234 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				905588FB2E31911F002FD576 /* FirebaseDatabase in Frameworks */,
+				905588FD2E31911F002FD576 /* FirebaseFirestore in Frameworks */,
+				905588F92E31911F002FD576 /* FirebaseCore in Frameworks */,
+				905588F72E31911F002FD576 /* FirebaseAuth in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		907EC6AB2E31628D00BF5234 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		907EC6B52E31628D00BF5234 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		907EC6982E31628C00BF5234 = {
+			isa = PBXGroup;
+			children = (
+				907EC6A32E31628C00BF5234 /* Skydown App */,
+				907EC6B12E31628D00BF5234 /* Skydown AppTests */,
+				907EC6BB2E31628D00BF5234 /* Skydown AppUITests */,
+				907EC6A22E31628C00BF5234 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		907EC6A22E31628C00BF5234 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				907EC6A12E31628C00BF5234 /* Skydown App.app */,
+				907EC6AE2E31628D00BF5234 /* Skydown AppTests.xctest */,
+				907EC6B82E31628D00BF5234 /* Skydown AppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		907EC6A02E31628C00BF5234 /* Skydown App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 907EC6C22E31628D00BF5234 /* Build configuration list for PBXNativeTarget "Skydown App" */;
+			buildPhases = (
+				907EC69D2E31628C00BF5234 /* Sources */,
+				907EC69E2E31628C00BF5234 /* Frameworks */,
+				907EC69F2E31628C00BF5234 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9002FB622E4B5C7600495723 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				907EC6A32E31628C00BF5234 /* Skydown App */,
+			);
+			name = "Skydown App";
+			packageProductDependencies = (
+				905588F62E31911F002FD576 /* FirebaseAuth */,
+				905588F82E31911F002FD576 /* FirebaseCore */,
+				905588FA2E31911F002FD576 /* FirebaseDatabase */,
+				905588FC2E31911F002FD576 /* FirebaseFirestore */,
+			);
+			productName = "Skydown App";
+			productReference = 907EC6A12E31628C00BF5234 /* Skydown App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		907EC6AD2E31628D00BF5234 /* Skydown AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 907EC6C52E31628D00BF5234 /* Build configuration list for PBXNativeTarget "Skydown AppTests" */;
+			buildPhases = (
+				907EC6AA2E31628D00BF5234 /* Sources */,
+				907EC6AB2E31628D00BF5234 /* Frameworks */,
+				907EC6AC2E31628D00BF5234 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				907EC6B02E31628D00BF5234 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				907EC6B12E31628D00BF5234 /* Skydown AppTests */,
+			);
+			name = "Skydown AppTests";
+			packageProductDependencies = (
+			);
+			productName = "Skydown AppTests";
+			productReference = 907EC6AE2E31628D00BF5234 /* Skydown AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		907EC6B72E31628D00BF5234 /* Skydown AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 907EC6C82E31628D00BF5234 /* Build configuration list for PBXNativeTarget "Skydown AppUITests" */;
+			buildPhases = (
+				907EC6B42E31628D00BF5234 /* Sources */,
+				907EC6B52E31628D00BF5234 /* Frameworks */,
+				907EC6B62E31628D00BF5234 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				907EC6BA2E31628D00BF5234 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				907EC6BB2E31628D00BF5234 /* Skydown AppUITests */,
+			);
+			name = "Skydown AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "Skydown AppUITests";
+			productReference = 907EC6B82E31628D00BF5234 /* Skydown AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		907EC6992E31628C00BF5234 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					907EC6A02E31628C00BF5234 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					907EC6AD2E31628D00BF5234 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 907EC6A02E31628C00BF5234;
+					};
+					907EC6B72E31628D00BF5234 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 907EC6A02E31628C00BF5234;
+					};
+				};
+			};
+			buildConfigurationList = 907EC69C2E31628C00BF5234 /* Build configuration list for PBXProject "Skydown App" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 907EC6982E31628C00BF5234;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				9002FB602E4B5C7000495723 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 907EC6A22E31628C00BF5234 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				907EC6A02E31628C00BF5234 /* Skydown App */,
+				907EC6AD2E31628D00BF5234 /* Skydown AppTests */,
+				907EC6B72E31628D00BF5234 /* Skydown AppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		907EC69F2E31628C00BF5234 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		907EC6AC2E31628D00BF5234 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		907EC6B62E31628D00BF5234 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		907EC69D2E31628C00BF5234 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		907EC6AA2E31628D00BF5234 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		907EC6B42E31628D00BF5234 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9002FB622E4B5C7600495723 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 9002FB612E4B5C7600495723 /* SwiftLintBuildToolPlugin */;
+		};
+		907EC6B02E31628D00BF5234 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 907EC6A02E31628C00BF5234 /* Skydown App */;
+			targetProxy = 907EC6AF2E31628D00BF5234 /* PBXContainerItemProxy */;
+		};
+		907EC6BA2E31628D00BF5234 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 907EC6A02E31628C00BF5234 /* Skydown App */;
+			targetProxy = 907EC6B92E31628D00BF5234 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		907EC6C02E31628D00BF5234 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		907EC6C12E31628D00BF5234 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		907EC6C32E31628D00BF5234 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		907EC6C42E31628D00BF5234 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		907EC6C62E31628D00BF5234 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skydown App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Skydown App";
+			};
+			name = Debug;
+		};
+		907EC6C72E31628D00BF5234 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skydown App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Skydown App";
+			};
+			name = Release;
+		};
+		907EC6C92E31628D00BF5234 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Skydown App";
+			};
+			name = Debug;
+		};
+		907EC6CA2E31628D00BF5234 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F3BNLG6L7P;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.syntax-institut.Abschlussprojekt-Ngoc-Anh-Nguyen--Skydown-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Skydown App";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		907EC69C2E31628C00BF5234 /* Build configuration list for PBXProject "Skydown App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				907EC6C02E31628D00BF5234 /* Debug */,
+				907EC6C12E31628D00BF5234 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		907EC6C22E31628D00BF5234 /* Build configuration list for PBXNativeTarget "Skydown App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				907EC6C32E31628D00BF5234 /* Debug */,
+				907EC6C42E31628D00BF5234 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		907EC6C52E31628D00BF5234 /* Build configuration list for PBXNativeTarget "Skydown AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				907EC6C62E31628D00BF5234 /* Debug */,
+				907EC6C72E31628D00BF5234 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		907EC6C82E31628D00BF5234 /* Build configuration list for PBXNativeTarget "Skydown AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				907EC6C92E31628D00BF5234 /* Debug */,
+				907EC6CA2E31628D00BF5234 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9002FB602E4B5C7000495723 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.59.1;
+			};
+		};
+		905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9002FB612E4B5C7600495723 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9002FB602E4B5C7000495723 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		905588F62E31911F002FD576 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		905588F82E31911F002FD576 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		905588FA2E31911F002FD576 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		905588FC2E31911F002FD576 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 907EC6992E31628C00BF5234 /* Project object */;
+}
