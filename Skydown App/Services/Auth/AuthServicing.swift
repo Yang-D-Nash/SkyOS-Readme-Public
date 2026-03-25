@@ -49,8 +49,8 @@ final class FirebaseAuthService: AuthServicing {
             guard let self else { return }
 
             Task {
-                if let uid = firebaseUser?.uid {
-                    let user = try? await self.fetchUser(uid: uid)
+                if let firebaseUser {
+                    let user = await self.currentSessionUser(for: firebaseUser)
                     await onChange(user)
                 } else {
                     await onChange(nil)
@@ -92,12 +92,17 @@ final class FirebaseAuthService: AuthServicing {
     }
 
     func register(username: String, email: String, whatsApp: String, password: String) async throws {
-        let result = try await auth.createUser(withEmail: email, password: password)
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedUsername = Self.sanitizedUsername(
+            username,
+            fallbackEmail: normalizedEmail
+        )
+        let result = try await auth.createUser(withEmail: normalizedEmail, password: password)
         let newUser = User(
             id: nil,
-            email: email,
-            username: username,
-            whatsApp: whatsApp,
+            email: normalizedEmail,
+            username: normalizedUsername,
+            whatsApp: whatsApp.trimmedNilIfEmpty,
             registrationDate: Date(),
             isAdmin: false
         )
@@ -119,19 +124,35 @@ final class FirebaseAuthService: AuthServicing {
             return nil
         }
 
-        return try await fetchUser(uid: uid)
+        if let user = try await fetchUser(uid: uid) {
+            return user
+        }
+
+        return auth.currentUser.map { $0.toAppUser() }
     }
 
     private func fetchUser(uid: String) async throws -> User? {
         let snapshot = try await firestore.collection("users").document(uid).getDocument()
+        let authUser = auth.currentUser
         guard snapshot.exists else {
+            if let authUser, authUser.uid == uid {
+                try? await createUserDocumentIfNeeded(for: authUser)
+                return authUser.toAppUser()
+            }
+
             return nil
         }
-        let data = snapshot.data() ?? [:]
-        let authUser = auth.currentUser
 
-        let email = data["email"] as? String ?? authUser?.email ?? ""
-        let username = data["username"] as? String ?? authUser?.displayName ?? email.components(separatedBy: "@").first ?? "Skydown User"
+        let data = snapshot.data() ?? [:]
+
+        let email = (data["email"] as? String)?.trimmedNilIfEmpty
+            ?? authUser?.email?.trimmedNilIfEmpty
+            ?? ""
+        let username = Self.sanitizedUsername(
+            data["username"] as? String,
+            authUserDisplayName: authUser?.displayName,
+            fallbackEmail: email
+        )
         let whatsApp = data["whatsApp"] as? String
         let isAdmin = data["isAdmin"] as? Bool ?? false
 
@@ -150,7 +171,7 @@ final class FirebaseAuthService: AuthServicing {
             id: snapshot.documentID,
             email: email,
             username: username,
-            whatsApp: whatsApp,
+            whatsApp: whatsApp?.trimmedNilIfEmpty,
             registrationDate: registrationDate,
             isAdmin: isAdmin
         )
@@ -162,8 +183,12 @@ final class FirebaseAuthService: AuthServicing {
 
         guard !snapshot.exists else { return }
 
-        let email = authUser.email ?? ""
-        let username = authUser.displayName ?? email.components(separatedBy: "@").first ?? "Skydown User"
+        let email = authUser.email?.trimmedNilIfEmpty ?? ""
+        let username = Self.sanitizedUsername(
+            authUser.displayName,
+            authUserDisplayName: authUser.displayName,
+            fallbackEmail: email
+        )
         let newUser = User(
             id: nil,
             email: email,
@@ -174,6 +199,25 @@ final class FirebaseAuthService: AuthServicing {
         )
 
         try documentReference.setData(from: newUser)
+    }
+
+    private func currentSessionUser(for firebaseUser: FirebaseAuth.User) async -> User {
+        do {
+            return try await fetchUser(uid: firebaseUser.uid) ?? firebaseUser.toAppUser()
+        } catch {
+            return firebaseUser.toAppUser()
+        }
+    }
+
+    fileprivate static func sanitizedUsername(
+        _ username: String?,
+        authUserDisplayName: String? = nil,
+        fallbackEmail: String
+    ) -> String {
+        username?.trimmedNilIfEmpty
+            ?? authUserDisplayName?.trimmedNilIfEmpty
+            ?? fallbackEmail.split(separator: "@").first.map(String.init)?.trimmedNilIfEmpty
+            ?? "Skydown User"
     }
 
     private func topViewController() -> UIViewController? {
@@ -189,5 +233,30 @@ final class FirebaseAuthService: AuthServicing {
         }
 
         return topController
+    }
+}
+
+private extension FirebaseAuth.User {
+    func toAppUser(isAdmin: Bool = false) -> User {
+        let fallbackEmail = email?.trimmedNilIfEmpty ?? ""
+        return User(
+            id: uid,
+            email: fallbackEmail,
+            username: FirebaseAuthService.sanitizedUsername(
+                displayName,
+                authUserDisplayName: displayName,
+                fallbackEmail: fallbackEmail
+            ),
+            whatsApp: nil,
+            registrationDate: metadata.creationDate ?? .now,
+            isAdmin: isAdmin
+        )
+    }
+}
+
+private extension String {
+    var trimmedNilIfEmpty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 }

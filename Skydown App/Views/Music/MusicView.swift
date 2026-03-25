@@ -13,7 +13,7 @@ struct MusicView: View {
     @State private var selectedArtist = "Yang D. Nash"
     @Environment(\.colorScheme) private var colorScheme
 
-    let artists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
+    let artists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
 
     var body: some View {
         NavigationStack {

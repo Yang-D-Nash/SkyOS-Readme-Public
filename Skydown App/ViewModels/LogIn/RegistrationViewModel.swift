@@ -28,10 +28,20 @@ class RegistrationViewModel: ObservableObject {
     }
 
     var isRegistrationButtonDisabled: Bool {
-        email.isEmpty || password.isEmpty || confirmPassword.isEmpty || password != confirmPassword || isLoading
+        username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || password.isEmpty
+            || confirmPassword.isEmpty
+            || password != confirmPassword
+            || isLoading
     }
 
     func registerUser() async -> Bool {
+        guard !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            showUserToast("Bitte einen Benutzernamen angeben.", style: .error)
+            return false
+        }
+
         guard password == confirmPassword else {
             showUserToast("Passwörter stimmen nicht überein.", style: .error)
             return false
@@ -42,8 +52,8 @@ class RegistrationViewModel: ObservableObject {
 
         do {
             try await authService.register(
-                username: username,
-                email: email,
+                username: username.trimmingCharacters(in: .whitespacesAndNewlines),
+                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                 whatsApp: whatsapp,
                 password: password
             )
@@ -54,6 +64,24 @@ class RegistrationViewModel: ObservableObject {
             print("Dev Fehler bei Registrierung oder Firestore: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
             showUserToast("Fehler bei der Registrierung: \(error.localizedDescription)", style: .error)
+            isLoading = false
+            return false
+        }
+    }
+
+    func signInWithGoogle() async -> Bool {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            try await authService.signInWithGoogle()
+            showUserToast("Google-Anmeldung erfolgreich!", style: .success)
+            isLoading = false
+            return true
+        } catch {
+            print("Dev Fehler bei Google-Anmeldung: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+            showUserToast("Fehler bei Google-Anmeldung: \(error.localizedDescription)", style: .error)
             isLoading = false
             return false
         }

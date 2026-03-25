@@ -46,6 +46,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             "MAVE": "0GXymtRaIk2ngbXSkcHtsp",
             "JANNO": "7hpiHzP9aLLb5liDLxtwhM",
             "TANGAJOE007": "0OA5dgpVdwzI8K82m8FPxN",
+            "Toprack941": "4CoozMQ3B3I20day60N7QA",
         ]
     }
 

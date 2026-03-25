@@ -57,6 +57,30 @@ struct RegistrationSheet: View {
                 }
                 .disabled(viewModel.isRegistrationButtonDisabled)
                 .listRowBackground(AppColors.primaryBackground(for: colorScheme))
+
+                Section {
+                    Button {
+                        Task {
+                            if await viewModel.signInWithGoogle() {
+                                dismiss()
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label("Mit Google registrieren", systemImage: "globe")
+                                .font(.headline)
+                            Spacer()
+                        }
+                    }
+                    .disabled(viewModel.isLoading)
+                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
+
+                    Text("Beim ersten Google-Login wird dein Konto automatisch angelegt.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .listRowBackground(AppColors.primaryBackground(for: colorScheme))
+                }
             }
             .navigationTitle("Neues Konto")
             .navigationBarTitleDisplayMode(.inline)

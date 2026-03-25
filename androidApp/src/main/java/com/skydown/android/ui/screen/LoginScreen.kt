@@ -28,13 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.GoogleSignInManager
+import com.skydown.android.ui.component.GoogleAuthButton
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.viewmodel.LoginViewModel
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.CommonStatusCodes
-import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 
 @Composable
 fun LoginScreen(
@@ -116,7 +115,9 @@ fun LoginScreen(
             ) {
                 Text(if (uiState.isLoading) "Anmelden..." else "Anmelden")
             }
-            Button(
+            GoogleAuthButton(
+                text = if (uiState.isGoogleLoading) "Google wird gestartet..." else "Mit Google anmelden",
+                isLoading = uiState.isGoogleLoading,
                 onClick = {
                     viewModel.beginGoogleSignIn()
                     googleClient.signOut().addOnCompleteListener {
@@ -124,12 +125,15 @@ fun LoginScreen(
                     }
                 },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(top = 12.dp),
                 enabled = !uiState.isLoading && !uiState.isGoogleLoading,
-            ) {
-                Text(if (uiState.isGoogleLoading) "Google wird gestartet..." else "Mit Google anmelden")
-            }
+            )
+            Text(
+                text = "Google oeffnet direkt den nativen Konto-Dialog auf Android.",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 8.dp),
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -150,21 +154,5 @@ fun LoginScreen(
             type = ToastType.Error,
             modifier = Modifier.padding(top = 12.dp),
         )
-    }
-}
-
-private fun ApiException.toReadableGoogleMessage(): String {
-    return when (statusCode) {
-        GoogleSignInStatusCodes.SIGN_IN_CANCELLED,
-        CommonStatusCodes.CANCELED -> "Google-Anmeldung wurde abgebrochen."
-        CommonStatusCodes.NETWORK_ERROR -> "Netzwerkfehler bei Google-Anmeldung. Bitte erneut versuchen."
-        CommonStatusCodes.DEVELOPER_ERROR -> {
-            "Google-Anmeldung ist fuer Android noch nicht korrekt konfiguriert. " +
-                "In Firebase fehlt sehr wahrscheinlich die Android-SHA-1/SHA-256 fuer com.skydown.android."
-        }
-        GoogleSignInStatusCodes.SIGN_IN_CURRENTLY_IN_PROGRESS -> "Google-Anmeldung laeuft bereits."
-        GoogleSignInStatusCodes.SIGN_IN_FAILED -> "Google-Anmeldung ist fehlgeschlagen."
-        CommonStatusCodes.INTERNAL_ERROR -> "Interner Google-Fehler. Bitte App neu starten."
-        else -> "Google-Anmeldung fehlgeschlagen: ${localizedMessage ?: statusCode}"
     }
 }

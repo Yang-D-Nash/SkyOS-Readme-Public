@@ -20,7 +20,7 @@ class AndroidAuthRepository(
     override suspend fun currentUser(): User? {
         val authUser = auth.currentUser ?: return null
         val snapshot = firestore.collection("users").document(authUser.uid).get().await()
-        return (snapshot.toSharedUser() ?: authUser.toSharedUser())
+        return (snapshot.toSharedUser(authUser) ?: authUser.toSharedUser())
             .also(AppSessionStore::update)
     }
 
@@ -93,34 +93,6 @@ class AndroidAuthRepository(
 
         documentReference.set(user).await()
     }
-}
-
-private fun com.google.firebase.auth.FirebaseUser.toSharedUser(): User {
-    val fallbackEmail = email.orEmpty()
-    return User(
-        id = uid,
-        email = fallbackEmail,
-        username = displayName ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" },
-        whatsApp = null,
-        registrationDateEpochMillis = metadata?.creationTimestamp ?: System.currentTimeMillis(),
-        isAdmin = false,
-    )
-}
-
-private fun com.google.firebase.firestore.DocumentSnapshot.toSharedUser(): User? {
-    val data = data ?: return null
-    val email = (data["email"] as? String)?.takeIf { it.isNotBlank() } ?: return null
-    val username = (data["username"] as? String)?.takeIf { it.isNotBlank() } ?: return null
-    return User(
-        id = id,
-        email = email,
-        username = username,
-        whatsApp = data["whatsApp"] as? String,
-        registrationDateEpochMillis = (data["registrationDateEpochMillis"] as? Number)?.toLong()
-            ?: (data["registrationDate"] as? com.google.firebase.Timestamp)?.toDate()?.time
-            ?: System.currentTimeMillis(),
-        isAdmin = data["isAdmin"] as? Boolean ?: false,
-    )
 }
 
 private fun Throwable.toReadableAuthError(): Throwable {

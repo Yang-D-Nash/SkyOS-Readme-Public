@@ -32,7 +32,7 @@ class AndroidMerchandiseRepository(
     override suspend fun currentUser(): Result<User?> {
         return runCatching {
             val uid = auth.currentUser?.uid ?: return@runCatching null
-            firestore.collection("users").document(uid).get().await().toSharedUser()
+            firestore.collection("users").document(uid).get().await().toSharedUser(auth.currentUser)
         }
     }
 
@@ -125,19 +125,5 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSharedMerchandiseIt
             ?: (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String }
             ?: emptyList(),
         available = data["available"] as? Boolean ?: true,
-    )
-}
-
-private fun com.google.firebase.firestore.DocumentSnapshot.toSharedUser(): User? {
-    val data = data ?: return null
-    return User(
-        id = id,
-        email = data["email"] as? String ?: return null,
-        username = data["username"] as? String ?: return null,
-        whatsApp = data["whatsApp"] as? String,
-        registrationDateEpochMillis = (data["registrationDateEpochMillis"] as? Number)?.toLong()
-            ?: (data["registrationDate"] as? com.google.firebase.Timestamp)?.toDate()?.time
-            ?: System.currentTimeMillis(),
-        isAdmin = data["isAdmin"] as? Boolean ?: false,
     )
 }

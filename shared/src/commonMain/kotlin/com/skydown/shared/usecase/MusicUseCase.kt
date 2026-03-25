@@ -9,6 +9,7 @@ object MusicUseCase {
         "MAVE" to "0GXymtRaIk2ngbXSkcHtsp",
         "JANNO" to "7hpiHzP9aLLb5liDLxtwhM",
         "TANGAJOE007" to "0OA5dgpVdwzI8K82m8FPxN",
+        "Toprack941" to "4CoozMQ3B3I20day60N7QA",
     )
 
     fun filterArtistTracks(artist: String, tracks: List<Track>): List<Track> {

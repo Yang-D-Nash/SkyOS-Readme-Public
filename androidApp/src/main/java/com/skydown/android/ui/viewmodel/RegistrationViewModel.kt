@@ -60,4 +60,35 @@ class RegistrationViewModel : ViewModel() {
             }
         }
     }
+
+    fun beginGoogleSignIn() {
+        _uiState.update { it.copy(isGoogleLoading = true, errorMessage = null) }
+    }
+
+    fun signInWithGoogle(idToken: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            val result = authService.signInWithGoogle(idToken)
+
+            if (result.isSuccess) {
+                _uiState.update { it.copy(isGoogleLoading = false) }
+                onSuccess()
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isGoogleLoading = false,
+                        errorMessage = result.exceptionOrNull()?.message,
+                    )
+                }
+            }
+        }
+    }
+
+    fun onGoogleSignInCancelled(message: String = "Google-Anmeldung wurde abgebrochen.") {
+        _uiState.update {
+            it.copy(
+                isGoogleLoading = false,
+                errorMessage = message,
+            )
+        }
+    }
 }
