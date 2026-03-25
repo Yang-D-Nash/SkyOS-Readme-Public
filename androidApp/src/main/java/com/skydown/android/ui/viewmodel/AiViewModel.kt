@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.google.firebase.ai.type.FinishReason
+import com.google.firebase.ai.type.PromptBlockedException
+import com.google.firebase.ai.type.ResponseStoppedException
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
 import com.skydown.android.ui.model.AiUiState
@@ -92,15 +95,20 @@ class AiViewModel : ViewModel() {
                 )
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
+                val partialText = responseBuffer.toString().trim()
+                val assistantText = assistantMessageText(
+                    error = error,
+                    partialText = partialText,
+                )
                 updateAssistantMessage(
                     messageId = assistantMessage.id,
-                    text = "Skydown AI konnte gerade nicht antworten. Pruef Firebase AI Logic und versuch es erneut.",
+                    text = assistantText,
                     isStreaming = false,
                 )
                 _uiState.update {
                     it.copy(
                         isSending = false,
-                        errorMessage = error.message ?: "Skydown AI konnte gerade nicht gestartet werden.",
+                        errorMessage = userFacingErrorMessage(error),
                     )
                 }
             }
@@ -158,4 +166,50 @@ class AiViewModel : ViewModel() {
         Nutzeranfrage:
         $userPrompt
     """.trimIndent()
+
+    private fun assistantMessageText(
+        error: Throwable,
+        partialText: String,
+    ): String {
+        if (partialText.isNotBlank()) {
+            return buildString {
+                append(partialText)
+                append("\n\n")
+                append(userFacingErrorMessage(error))
+            }
+        }
+
+        return when (error) {
+            is PromptBlockedException -> {
+                error.response?.promptFeedback?.blockReasonMessage
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Die Anfrage wurde von Firebase AI blockiert. Versuch bitte eine neutralere Formulierung."
+            }
+            else -> userFacingErrorMessage(error)
+        }
+    }
+
+    private fun userFacingErrorMessage(error: Throwable): String = when (error) {
+        is ResponseStoppedException -> finishReasonMessage(
+            error.response?.candidates?.firstOrNull()?.finishReason,
+        )
+        is PromptBlockedException -> {
+            error.response?.promptFeedback?.blockReasonMessage
+                ?.takeIf { it.isNotBlank() }
+                ?: "Die Anfrage wurde von Firebase AI blockiert."
+        }
+        else -> error.message ?: "Skydown AI konnte gerade nicht gestartet werden."
+    }
+
+    private fun finishReasonMessage(reason: FinishReason?): String = when (reason) {
+        FinishReason.MAX_TOKENS -> "Die Antwort wurde wegen des Antwortlimits gekuerzt."
+        FinishReason.SAFETY,
+        FinishReason.PROHIBITED_CONTENT,
+        FinishReason.BLOCKLIST,
+        FinishReason.SPII
+        -> "Firebase AI hat die Antwort aus Sicherheitsgruenden gestoppt."
+        FinishReason.RECITATION -> "Firebase AI hat die Antwort wegen Zitat-Schutz gestoppt."
+        FinishReason.MALFORMED_FUNCTION_CALL -> "Firebase AI hat eine unvollstaendige Tool-Antwort erzeugt."
+        else -> "Firebase AI hat die Antwort vorzeitig beendet."
+    }
 }

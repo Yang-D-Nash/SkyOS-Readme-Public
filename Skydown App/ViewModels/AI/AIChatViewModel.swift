@@ -68,9 +68,9 @@ final class AIChatViewModel: ObservableObject {
         draft = ""
         isSending = true
 
+        var responseBuffer = ""
         Task {
             do {
-                var responseBuffer = ""
                 let responseStream = try chat.sendMessageStream(buildPrompt(for: trimmedPrompt))
 
                 for try await chunk in responseStream {
@@ -92,13 +92,18 @@ final class AIChatViewModel: ObservableObject {
                 )
                 isSending = false
             } catch {
+                let partialText = responseBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+                let assistantText = assistantMessageText(
+                    for: error,
+                    partialText: partialText
+                )
                 updateAssistantMessage(
                     id: assistantID,
-                    text: "Skydown AI konnte gerade nicht antworten. Pruef Firebase AI Logic und versuch es erneut.",
+                    text: assistantText,
                     isStreaming: false
                 )
                 isSending = false
-                showUserToast(error.localizedDescription, style: .error)
+                showUserToast(userFacingErrorMessage(for: error), style: .error)
             }
         }
     }
@@ -136,5 +141,50 @@ final class AIChatViewModel: ObservableObject {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+
+    private func assistantMessageText(for error: Error, partialText: String) -> String {
+        if !partialText.isEmpty {
+            return "\(partialText)\n\n\(userFacingErrorMessage(for: error))"
+        }
+
+        if case let GenerateContentError.promptBlocked(response) = error {
+            return response.promptFeedback?.blockReasonMessage
+                ?? "Die Anfrage wurde von Firebase AI blockiert. Versuch bitte eine neutralere Formulierung."
+        }
+
+        return userFacingErrorMessage(for: error)
+    }
+
+    private func userFacingErrorMessage(for error: Error) -> String {
+        if case let GenerateContentError.responseStoppedEarly(reason, _) = error {
+            return finishReasonMessage(for: reason)
+        }
+
+        if case let GenerateContentError.promptBlocked(response) = error {
+            return response.promptFeedback?.blockReasonMessage
+                ?? "Die Anfrage wurde von Firebase AI blockiert."
+        }
+
+        if case let GenerateContentError.internalError(underlying) = error {
+            return underlying.localizedDescription
+        }
+
+        return error.localizedDescription
+    }
+
+    private func finishReasonMessage(for reason: FinishReason) -> String {
+        switch reason {
+        case .maxTokens:
+            return "Die Antwort wurde wegen des Antwortlimits gekuerzt."
+        case .safety, .prohibitedContent, .blocklist, .spii:
+            return "Firebase AI hat die Antwort aus Sicherheitsgruenden gestoppt."
+        case .recitation:
+            return "Firebase AI hat die Antwort wegen Zitat-Schutz gestoppt."
+        case .malformedFunctionCall:
+            return "Firebase AI hat eine unvollstaendige Tool-Antwort erzeugt."
+        default:
+            return "Firebase AI hat die Antwort vorzeitig beendet."
+        }
     }
 }

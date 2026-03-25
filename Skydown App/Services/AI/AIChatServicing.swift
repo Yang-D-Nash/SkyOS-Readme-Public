@@ -9,8 +9,8 @@ struct FirebaseAIChatService: AIChatServicing {
     func makeChat() -> Chat {
         let config = GenerationConfig(
             candidateCount: 1,
-            maxOutputTokens: 220,
-            thinkingConfig: ThinkingConfig(thinkingBudget: 256)
+            maxOutputTokens: 512,
+            thinkingConfig: ThinkingConfig(thinkingBudget: 0)
         )
 
         return FirebaseAI
