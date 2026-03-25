@@ -20,7 +20,9 @@ struct SkydownApp: App {
     var body: some Scene {
         WindowGroup {
             LaunchScreenView()
+                .environmentObject(services)
                 .environmentObject(services.authManager)
+                .environmentObject(services.cartViewModel)
                 .onOpenURL { url in
                     GIDSignIn.sharedInstance.handle(url)
                 }

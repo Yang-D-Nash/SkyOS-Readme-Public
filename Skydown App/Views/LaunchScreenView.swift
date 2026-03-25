@@ -58,6 +58,10 @@ struct LaunchScreenView: View {
 }
 
 #Preview {
+    let services = AppServices()
+
     LaunchScreenView()
-        .environmentObject(AuthManager())
+        .environmentObject(services)
+        .environmentObject(services.authManager)
+        .environmentObject(services.cartViewModel)
 }

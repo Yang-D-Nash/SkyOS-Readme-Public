@@ -6,17 +6,33 @@
 //
 
 import SwiftUI
-import FirebaseFirestore
 
 struct ShopView: View {
-    @StateObject private var viewModel = MerchandiseViewModel()
+    @ObservedObject private var authManager: AuthManager
+    @StateObject private var viewModel: MerchandiseViewModel
     @State private var showingAddSheet = false
     @State private var editingItem: MerchandiseItem?
     @State private var selectedItem: MerchandiseItem?
     @State private var itemToDelete: MerchandiseItem?
-    @State private var showDeleteToast = false
 
     @Environment(\.colorScheme) private var environmentColorScheme
+
+    init(
+        authManager: AuthManager,
+        merchandiseService: MerchandiseServicing = FirebaseMerchandiseService()
+    ) {
+        _authManager = ObservedObject(wrappedValue: authManager)
+        _viewModel = StateObject(
+            wrappedValue: MerchandiseViewModel(
+                merchandiseService: merchandiseService,
+                authManager: authManager
+            )
+        )
+    }
+
+    private var isAdmin: Bool {
+        authManager.userSession?.isAdmin == true
+    }
 
     var body: some View {
         NavigationStack {
@@ -25,12 +41,25 @@ struct ShopView: View {
                     ProgressView("Artikel werden geladen...")
                         .tint(AppColors.accent(for: environmentColorScheme))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if !viewModel.merchandiseItems.isEmpty {
+                } else {
                     List {
+                        if isAdmin {
+                            AdminMerchSection(
+                                colorScheme: environmentColorScheme,
+                                onAdd: { showingAddSheet = true }
+                            )
+                        }
+
+                        if viewModel.merchandiseItems.isEmpty {
+                            Text("Keine Artikel gefunden.")
+                                .foregroundColor(AppColors.secondaryText(for: environmentColorScheme))
+                                .listRowBackground(AppColors.primaryBackground(for: environmentColorScheme))
+                        }
+
                         ForEach(viewModel.merchandiseItems) { item in
                             MerchandiseRowView(
                                 item: item,
-                                isAdmin: viewModel.currentUser?.isAdmin == true,
+                                isAdmin: isAdmin,
                                 environmentColorScheme: environmentColorScheme,
                                 onTap: { selectedItem = $0 },
                                 onEdit: { editingItem = $0 },
@@ -40,45 +69,24 @@ struct ShopView: View {
                     }
                     .listStyle(.plain)
                     .background(AppColors.primaryBackground(for: environmentColorScheme))
-                } else {
-                    Text("Keine Artikel gefunden.")
-                        .foregroundColor(AppColors.secondaryText(for: environmentColorScheme))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .navigationTitle("Skydown Merch")
             .background(AppColors.primaryBackground(for: environmentColorScheme).edgesIgnoringSafeArea(.all))
-            .toolbar {
-                if viewModel.currentUser?.isAdmin == true {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            showingAddSheet = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .foregroundColor(AppColors.accent(for: environmentColorScheme))
-                                .accessibilityLabel("Neuen Artikel hinzufügen")
-                        }
-                    }
-                }
-            }
             .task {
                 viewModel.fetchData()
             }
             .sheet(isPresented: $showingAddSheet) {
-                NavigationStack {
-                    MerchEditView(viewModel: viewModel)
-                        .presentationDetents([.medium, .large])
-                        .presentationDragIndicator(.visible)
-                        .background(AppColors.primaryBackground(for: environmentColorScheme))
-                }
+                MerchEditView(viewModel: viewModel)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .background(AppColors.primaryBackground(for: environmentColorScheme))
             }
             .sheet(item: $editingItem) { item in
-                NavigationStack {
-                    MerchEditView(viewModel: viewModel, merchandiseItem: item)
-                        .presentationDetents([.medium, .large])
-                        .presentationDragIndicator(.visible)
-                        .background(AppColors.primaryBackground(for: environmentColorScheme))
-                }
+                MerchEditView(viewModel: viewModel, merchandiseItem: item)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .background(AppColors.primaryBackground(for: environmentColorScheme))
             }
             .sheet(item: $selectedItem) { item in
                 NavigationStack {
@@ -99,7 +107,6 @@ struct ShopView: View {
                         Task {
                             await viewModel.deleteItem(item)
                             itemToDelete = nil
-                            withAnimation { showDeleteToast = true }
                         }
                     }
                 }
@@ -108,11 +115,44 @@ struct ShopView: View {
                 }
             }
         }
-        .fancyToast(isPresented: $showDeleteToast,
-                    message: "Artikel gelöscht",
-                    style: .error)
+        .fancyToast(isPresented: $viewModel.showToast,
+                    message: viewModel.toastMessage,
+                    style: viewModel.toastStyle)
     }
 }
+
+private struct AdminMerchSection: View {
+    let colorScheme: ColorScheme
+    let onAdd: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Admin")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Artikel können hier direkt angelegt werden. Bilder werden wie auf Android direkt aus der Fotomediathek hochgeladen.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Button(action: onAdd) {
+                Label("Artikel hinzufügen", systemImage: "photo.badge.plus")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accent(for: colorScheme))
+        }
+        .padding(.vertical, 8)
+        .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
+    }
+}
+
 #Preview {
-    ShopView()
+    let services = AppServices()
+
+    ShopView(
+        authManager: services.authManager,
+        merchandiseService: services.merchandiseService
+    )
 }

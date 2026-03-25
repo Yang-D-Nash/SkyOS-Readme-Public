@@ -8,27 +8,29 @@
 import Foundation
 
 @MainActor
-class MerchandiseViewModel: ObservableObject {
+final class MerchandiseViewModel: ObservableObject {
     @Published var merchandiseItems: [MerchandiseItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var currentUser: User?
 
     // Toast
     @Published var toastMessage = ""
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .info
     private let merchandiseService: MerchandiseServicing
-    private let authService: AuthServicing
+    private let authManager: AuthManager
     private var stopObservingItems: (() -> Void)?
+
+    private var canManageMerchandise: Bool {
+        authManager.userSession?.isAdmin == true
+    }
 
     init(
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
-        authService: AuthServicing = FirebaseAuthService()
+        authManager: AuthManager
     ) {
         self.merchandiseService = merchandiseService
-        self.authService = authService
-        Task { await fetchCurrentUser() }
+        self.authManager = authManager
     }
 
     func fetchData() {
@@ -55,17 +57,8 @@ class MerchandiseViewModel: ObservableObject {
         }
     }
 
-    func fetchCurrentUser() async {
-        do {
-            currentUser = try await authService.fetchCurrentUser()
-        } catch {
-            print("Dev Fehler fetchCurrentUser:", error.localizedDescription)
-            showUserToast("Fehler beim Laden des Benutzers: \(error.localizedDescription)", style: .error)
-        }
-    }
-
     func addMerchandise(_ item: MerchandiseItem, imageDataList: [Data]) async -> Bool {
-        guard currentUser?.isAdmin == true else {
+        guard canManageMerchandise else {
             showUserToast("Nur Admins dürfen Artikel hinzufügen.", style: .error)
             return false
         }
@@ -86,7 +79,7 @@ class MerchandiseViewModel: ObservableObject {
     }
 
     func updateMerchandisePrice(_ item: MerchandiseItem, newPrice: Double) async -> Bool {
-        guard currentUser?.isAdmin == true else {
+        guard canManageMerchandise else {
             showUserToast("Nur Admins dürfen Artikel bearbeiten.", style: .error)
             return false
         }
@@ -108,7 +101,7 @@ class MerchandiseViewModel: ObservableObject {
     }
 
     func deleteItem(_ item: MerchandiseItem) async {
-        guard currentUser?.isAdmin == true else {
+        guard canManageMerchandise else {
             showUserToast("Nur Admins dürfen Artikel löschen.", style: .error)
             return
         }

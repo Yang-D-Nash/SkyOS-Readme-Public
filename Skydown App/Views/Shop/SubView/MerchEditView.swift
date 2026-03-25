@@ -237,8 +237,12 @@ struct MerchEditView: View {
         imageURLs: ["https://via.placeholder.com/150"],
         available: true
     )
-    
-    let viewModel = MerchandiseViewModel()
+
+    let services = AppServices()
+    let viewModel = MerchandiseViewModel(
+        merchandiseService: services.merchandiseService,
+        authManager: services.authManager
+    )
 
     NavigationStack {
         MerchEditView(viewModel: viewModel, merchandiseItem: sampleItem)

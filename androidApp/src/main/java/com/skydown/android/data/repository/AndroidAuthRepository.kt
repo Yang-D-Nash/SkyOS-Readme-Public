@@ -18,13 +18,8 @@ class AndroidAuthRepository(
     override suspend fun currentUser(): User? {
         val authUser = auth.currentUser ?: return null
         val snapshot = firestore.collection("users").document(authUser.uid).get().await()
-        val user = snapshot.toSharedUser() ?: authUser.toSharedUser()
-
-        if (!snapshot.exists() && user != null) {
-            firestore.collection("users").document(authUser.uid).set(user).await()
-        }
-
-        return user?.also(AppSessionStore::update)
+        return (snapshot.toSharedUser() ?: authUser.toSharedUser())
+            .also(AppSessionStore::update)
     }
 
     override suspend fun signIn(input: LoginInput): Result<User> {
@@ -89,10 +84,12 @@ private fun com.google.firebase.auth.FirebaseUser.toSharedUser(): User {
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toSharedUser(): User? {
     val data = data ?: return null
+    val email = (data["email"] as? String)?.takeIf { it.isNotBlank() } ?: return null
+    val username = (data["username"] as? String)?.takeIf { it.isNotBlank() } ?: return null
     return User(
         id = id,
-        email = data["email"] as? String ?: return null,
-        username = data["username"] as? String ?: return null,
+        email = email,
+        username = username,
         whatsApp = data["whatsApp"] as? String,
         registrationDateEpochMillis = (data["registrationDateEpochMillis"] as? Number)?.toLong()
             ?: (data["registrationDate"] as? com.google.firebase.Timestamp)?.toDate()?.time

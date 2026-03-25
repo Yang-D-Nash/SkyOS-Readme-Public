@@ -8,18 +8,31 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @AppStorage("colorScheme") private var colorScheme: String = "dark"
+    @AppStorage("colorScheme") private var colorScheme: String = "system"
     @Environment(\.colorScheme) private var systemColorScheme
+    @EnvironmentObject private var services: AppServices
 
-    @StateObject private var services = AppServices()
+    private var preferredScheme: ColorScheme? {
+        switch colorScheme {
+        case "light":
+            return .light
+        case "dark":
+            return .dark
+        default:
+            return nil
+        }
+    }
 
     private var currentScheme: ColorScheme {
-        colorScheme == "dark" ? .dark : .light
+        preferredScheme ?? systemColorScheme
     }
 
     var body: some View {
         TabView {
-            ShopView()
+            ShopView(
+                authManager: services.authManager,
+                merchandiseService: services.merchandiseService
+            )
                 .tabItem { Label("Shop", systemImage: "cart.fill") }
 
             MusicView()
@@ -33,12 +46,15 @@ struct MainTabView: View {
         }
         .accentColor(AppColors.accent(for: currentScheme))
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
-        .preferredColorScheme(currentScheme)
-        .environmentObject(services.authManager)
-        .environmentObject(services.cartViewModel)
+        .preferredColorScheme(preferredScheme)
     }
 }
 
 #Preview {
+    let services = AppServices()
+
     MainTabView()
+        .environmentObject(services)
+        .environmentObject(services.authManager)
+        .environmentObject(services.cartViewModel)
 }

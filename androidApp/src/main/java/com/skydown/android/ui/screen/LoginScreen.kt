@@ -4,11 +4,15 @@ import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -71,10 +75,13 @@ fun LoginScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(20.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SkydownCard {
             Text(
@@ -124,11 +131,18 @@ fun LoginScreen(
             ) {
                 Text(if (uiState.isGoogleLoading) "Google wird gestartet..." else "Mit Google anmelden")
             }
-            TextButton(
-                onClick = onOpenRegistration,
-                modifier = Modifier.padding(top = 8.dp),
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Noch kein Konto? Registrieren")
+                TextButton(onClick = onOpenRegistration) {
+                    Text("Noch kein Konto? Registrieren")
+                }
+                TextButton(onClick = onClose) {
+                    Text("Schliessen")
+                }
             }
         }
 

@@ -8,11 +8,13 @@ import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +43,8 @@ fun SkydownApp() {
     var showIntro by remember { mutableStateOf(true) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
     var showOrders by remember { mutableStateOf(false) }
+    val authSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val ordersSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val destinations = listOf(
         BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingCart, contentDescription = null) }),
         BottomDestination("music", "Musik", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
@@ -108,6 +112,8 @@ fun SkydownApp() {
     authSheet?.let { sheet ->
         ModalBottomSheet(
             onDismissRequest = { authSheet = null },
+            sheetState = authSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
             when (sheet) {
                 AuthSheet.Login -> LoginScreen(
@@ -124,6 +130,8 @@ fun SkydownApp() {
     if (showOrders) {
         ModalBottomSheet(
             onDismissRequest = { showOrders = false },
+            sheetState = ordersSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
             OrderScreen(
                 onClose = { showOrders = false },
