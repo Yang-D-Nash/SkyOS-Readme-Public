@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -66,6 +67,7 @@ fun ShopScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<MerchandiseItem?>(null) }
+    var itemPendingDelete by remember { mutableStateOf<MerchandiseItem?>(null) }
 
     LaunchedEffect(uiState.toastMessage) {
         if (!uiState.toastMessage.isNullOrBlank()) {
@@ -108,6 +110,16 @@ fun ShopScreen(
                 MerchandiseCard(
                     item = item,
                     onTap = viewModel::selectItem,
+                    onEdit = if (uiState.isAdmin) {
+                        { editingItem = it }
+                    } else {
+                        null
+                    },
+                    onDelete = if (uiState.isAdmin) {
+                        { itemPendingDelete = it }
+                    } else {
+                        null
+                    },
                 )
             }
         }
@@ -161,7 +173,32 @@ fun ShopScreen(
                     viewModel.dismissSelectedItem()
                     editingItem = item
                 },
-                onDelete = { viewModel.deleteItem(item) },
+                onDelete = { itemPendingDelete = item },
+            )
+        }
+
+        itemPendingDelete?.let { item ->
+            AlertDialog(
+                onDismissRequest = { itemPendingDelete = null },
+                title = { Text("Artikel loeschen?") },
+                text = {
+                    Text("Der Artikel \"${item.name}\" wird dauerhaft entfernt.")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteItem(item)
+                            itemPendingDelete = null
+                        },
+                    ) {
+                        Text("Loeschen")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { itemPendingDelete = null }) {
+                        Text("Abbrechen")
+                    }
+                },
             )
         }
 
@@ -194,7 +231,7 @@ private fun AdminSection(onAddClick: () -> Unit) {
     SkydownCard {
         SectionHeader("Admin")
         Text(
-            text = "Artikel koennen hier direkt angelegt, bearbeitet und geloescht werden. Bilder kommen ueber den nativen Android Photo Picker.",
+            text = "Artikel koennen hier direkt angelegt, bearbeitet und geloescht werden. Die Admin-Aktionen sitzen jetzt sichtbar auf jeder Produktkarte.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )

@@ -141,7 +141,7 @@ private struct AdminMerchSection: View {
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Zum Bearbeiten einfach auf einen Artikel tippen oder in der Liste wischen.")
+            Text("Bearbeiten und Löschen geht jetzt direkt über sichtbare Buttons unter jedem Artikel.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
