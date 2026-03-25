@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -51,8 +52,8 @@ fun SkydownApp() {
         BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingCart, contentDescription = null) }),
         BottomDestination("music", "Musik", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
         BottomDestination("ai", "AI", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }),
-        BottomDestination("cart", "Warenkorb", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
-        BottomDestination("settings", "Einstellungen", { Icon(Icons.Default.Settings, contentDescription = null) }),
+        BottomDestination("cart", "Korb", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
+        BottomDestination("settings", "Mehr", { Icon(Icons.Default.Settings, contentDescription = null) }),
     )
 
     if (showIntro) {
@@ -79,7 +80,14 @@ fun SkydownApp() {
                                 }
                             },
                             icon = destination.icon,
-                            label = { Text(destination.label) },
+                            label = {
+                                Text(
+                                    text = destination.label,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            alwaysShowLabel = false,
                         )
                     }
                 }
