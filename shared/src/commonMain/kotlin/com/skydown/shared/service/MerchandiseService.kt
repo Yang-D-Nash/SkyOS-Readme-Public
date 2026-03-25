@@ -20,6 +20,26 @@ class MerchandiseService(
         return repository.addItem(item, imageDataList)
     }
 
+    suspend fun updateItem(
+        item: MerchandiseItem,
+        imageDataList: List<ByteArray> = emptyList(),
+    ): Result<Unit> {
+        val currentUser = repository.currentUser().getOrNull()
+        if (currentUser?.isAdmin != true) {
+            return Result.failure(IllegalAccessException("Nur Admins duerfen Artikel bearbeiten."))
+        }
+
+        if (item.id.isNullOrBlank()) {
+            return Result.failure(IllegalArgumentException("Artikel hat keine gueltige ID."))
+        }
+
+        if (item.name.isBlank() || item.description.isBlank()) {
+            return Result.failure(IllegalArgumentException("Bitte Name und Beschreibung angeben."))
+        }
+
+        return repository.updateItem(item, imageDataList)
+    }
+
     suspend fun updatePrice(itemId: String, newPrice: Double): Result<Unit> {
         val currentUser = repository.currentUser().getOrNull()
         if (currentUser?.isAdmin != true) {

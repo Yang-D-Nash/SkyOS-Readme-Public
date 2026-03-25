@@ -18,6 +18,13 @@ class FakeMerchandiseRepository : MerchandiseRepository {
         return Result.success(Unit)
     }
 
+    override suspend fun updateItem(item: MerchandiseItem, imageDataList: List<ByteArray>): Result<Unit> {
+        items = items.map { existingItem ->
+            if (existingItem.id == item.id) item else existingItem
+        }
+        return Result.success(Unit)
+    }
+
     override suspend fun updatePrice(itemId: String, newPrice: Double): Result<Unit> {
         items = items.map { item ->
             if (item.id == itemId) item.copy(price = newPrice) else item

@@ -38,19 +38,31 @@ class AndroidMerchandiseRepository(
 
     override suspend fun addItem(item: MerchandiseItem, imageDataList: List<ByteArray>): Result<Unit> {
         return runCatching {
-            val imageUrls = imageDataList.map { imageData ->
-                val imageReference = storage.reference.child("merchandise/${UUID.randomUUID()}.jpg")
-                val metadata = StorageMetadata.Builder()
-                    .setContentType("image/jpeg")
-                    .build()
-
-                imageReference.putBytes(imageData, metadata).await()
-                imageReference.downloadUrl.await().toString()
-            }
-
+            val imageUrls = uploadImages(imageDataList)
             firestore.collection("merchandise")
-                .add(item.copy(id = null, imageUrls = imageUrls))
+                .add(merchandisePayload(item = item, imageUrls = imageUrls))
                 .await()
+        }
+    }
+
+    override suspend fun updateItem(item: MerchandiseItem, imageDataList: List<ByteArray>): Result<Unit> {
+        return runCatching {
+            val itemId = item.id ?: error("Artikel hat keine gueltige ID.")
+            val documentReference = firestore.collection("merchandise").document(itemId)
+            val replacementImageUrls = if (imageDataList.isNotEmpty()) {
+                uploadImages(imageDataList)
+            } else {
+                null
+            }
+            val updatedImageUrls = replacementImageUrls ?: item.imageUrls
+
+            documentReference
+                .set(merchandisePayload(item = item, imageUrls = updatedImageUrls))
+                .await()
+
+            if (replacementImageUrls != null) {
+                deleteImages(item.imageUrls)
+            }
         }
     }
 
@@ -62,8 +74,43 @@ class AndroidMerchandiseRepository(
 
     override suspend fun deleteItem(itemId: String): Result<Unit> {
         return runCatching {
-            firestore.collection("merchandise").document(itemId).delete().await()
+            val documentReference = firestore.collection("merchandise").document(itemId)
+            val snapshot = documentReference.get().await()
+            val imageUrls = snapshot.toSharedMerchandiseItem()?.imageUrls.orEmpty()
+            documentReference.delete().await()
+            deleteImages(imageUrls)
         }
+    }
+
+    private suspend fun uploadImages(imageDataList: List<ByteArray>): List<String> {
+        return imageDataList.map { imageData ->
+            val imageReference = storage.reference.child("merchandise/${UUID.randomUUID()}.jpg")
+            val metadata = StorageMetadata.Builder()
+                .setContentType("image/jpeg")
+                .build()
+
+            imageReference.putBytes(imageData, metadata).await()
+            imageReference.downloadUrl.await().toString()
+        }
+    }
+
+    private suspend fun deleteImages(imageUrls: List<String>) {
+        imageUrls.forEach { imageUrl ->
+            runCatching {
+                storage.getReferenceFromUrl(imageUrl).delete().await()
+            }
+        }
+    }
+
+    private fun merchandisePayload(item: MerchandiseItem, imageUrls: List<String>): Map<String, Any> {
+        return mapOf(
+            "name" to item.name,
+            "price" to item.price,
+            "description" to item.description,
+            "imageUrls" to imageUrls,
+            "imageURLs" to imageUrls,
+            "available" to item.available,
+        )
     }
 }
 

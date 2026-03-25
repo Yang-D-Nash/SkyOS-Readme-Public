@@ -61,7 +61,13 @@ struct ShopView: View {
                                 item: item,
                                 isAdmin: isAdmin,
                                 environmentColorScheme: environmentColorScheme,
-                                onTap: { selectedItem = $0 },
+                                onTap: {
+                                    if isAdmin {
+                                        editingItem = $0
+                                    } else {
+                                        selectedItem = $0
+                                    }
+                                },
                                 onEdit: { editingItem = $0 },
                                 onDelete: { itemToDelete = $0 }
                             )
@@ -133,6 +139,10 @@ private struct AdminMerchSection: View {
 
             Text("Artikel können hier direkt angelegt werden. Bilder werden wie auf Android direkt aus der Fotomediathek hochgeladen.")
                 .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text("Zum Bearbeiten einfach auf einen Artikel tippen oder in der Liste wischen.")
+                .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             Button(action: onAdd) {

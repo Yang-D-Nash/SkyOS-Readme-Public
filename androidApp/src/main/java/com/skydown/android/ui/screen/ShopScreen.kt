@@ -65,6 +65,7 @@ fun ShopScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
+    var editingItem by remember { mutableStateOf<MerchandiseItem?>(null) }
 
     LaunchedEffect(uiState.toastMessage) {
         if (!uiState.toastMessage.isNullOrBlank()) {
@@ -112,8 +113,9 @@ fun ShopScreen(
         }
 
         if (showAddSheet) {
-            AddMerchandiseSheet(
+            MerchandiseEditorSheet(
                 isSaving = uiState.isSaving,
+                initialItem = null,
                 onDismiss = { showAddSheet = false },
                 onSave = { name, description, price, available, imageDataList ->
                     viewModel.addItem(
@@ -129,13 +131,36 @@ fun ShopScreen(
             )
         }
 
+        editingItem?.let { item ->
+            MerchandiseEditorSheet(
+                isSaving = uiState.isSaving,
+                initialItem = item,
+                onDismiss = { editingItem = null },
+                onSave = { name, description, price, available, imageDataList ->
+                    viewModel.updateItem(
+                        item = item,
+                        name = name,
+                        description = description,
+                        priceInput = price,
+                        available = available,
+                        imageDataList = imageDataList,
+                    ) {
+                        editingItem = null
+                    }
+                },
+            )
+        }
+
         uiState.selectedItem?.let { item ->
             MerchandiseDetailSheet(
                 item = item,
                 isAdmin = uiState.isAdmin,
                 isSaving = uiState.isSaving,
                 onDismiss = viewModel::dismissSelectedItem,
-                onUpdatePrice = { newPrice -> viewModel.updatePrice(item, newPrice) },
+                onEdit = {
+                    viewModel.dismissSelectedItem()
+                    editingItem = item
+                },
                 onDelete = { viewModel.deleteItem(item) },
             )
         }
@@ -169,7 +194,7 @@ private fun AdminSection(onAddClick: () -> Unit) {
     SkydownCard {
         SectionHeader("Admin")
         Text(
-            text = "Artikel koennen hier direkt angelegt werden. Bilder kommen ueber den nativen Android Photo Picker.",
+            text = "Artikel koennen hier direkt angelegt, bearbeitet und geloescht werden. Bilder kommen ueber den nativen Android Photo Picker.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -202,18 +227,20 @@ private fun LoginSection(errorMessage: String, onOpenLogin: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddMerchandiseSheet(
+private fun MerchandiseEditorSheet(
     isSaving: Boolean,
+    initialItem: MerchandiseItem?,
     onDismiss: () -> Unit,
     onSave: (String, String, String, Boolean, List<ByteArray>) -> Unit,
 ) {
     val context = LocalContext.current
-    var name by rememberSaveable { mutableStateOf("") }
-    var description by rememberSaveable { mutableStateOf("") }
-    var price by rememberSaveable { mutableStateOf("") }
-    var available by rememberSaveable { mutableStateOf(true) }
-    var localError by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedUris = remember { mutableStateListOf<Uri>() }
+    var name by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.name.orEmpty()) }
+    var description by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.description.orEmpty()) }
+    var price by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.price?.toString().orEmpty()) }
+    var available by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.available ?: true) }
+    var localError by rememberSaveable(initialItem?.id) { mutableStateOf<String?>(null) }
+    val selectedUris = remember(initialItem?.id) { mutableStateListOf<Uri>() }
+    val existingImageUrls = initialItem?.imageUrls.orEmpty()
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(10),
     ) { uris ->
@@ -232,7 +259,7 @@ private fun AddMerchandiseSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Artikel hinzufuegen",
+                text = if (initialItem == null) "Artikel hinzufuegen" else "Artikel bearbeiten",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -278,7 +305,7 @@ private fun AddMerchandiseSheet(
                     )
                 },
             ) {
-                Text("Bilder auswaehlen")
+                Text(if (initialItem == null) "Bilder auswaehlen" else "Bilder ersetzen")
             }
 
             if (selectedUris.isNotEmpty()) {
@@ -288,6 +315,27 @@ private fun AddMerchandiseSheet(
                     items(selectedUris, key = { it.toString() }) { uri ->
                         AsyncImage(
                             model = uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(110.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+                }
+                if (initialItem != null) {
+                    Text(
+                        text = "Die neu ausgewaehlten Bilder ersetzen beim Speichern die bestehende Galerie.",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                }
+            } else if (existingImageUrls.isNotEmpty()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(existingImageUrls, key = { it }) { imageUrl ->
+                        AsyncImage(
+                            model = imageUrl,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(110.dp)
@@ -325,7 +373,7 @@ private fun AddMerchandiseSheet(
                         val imageDataList = selectedUris.mapNotNull { uri ->
                             context.readBytes(uri)
                         }
-                        if (imageDataList.isEmpty()) {
+                        if (imageDataList.isEmpty() && existingImageUrls.isEmpty()) {
                             localError = "Bitte mindestens ein Bild auswaehlen."
                         } else {
                             localError = null
@@ -348,11 +396,9 @@ private fun MerchandiseDetailSheet(
     isAdmin: Boolean,
     isSaving: Boolean,
     onDismiss: () -> Unit,
-    onUpdatePrice: (String) -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var editedPrice by remember(item.id) { mutableStateOf(item.price.toString()) }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -371,6 +417,21 @@ private fun MerchandiseDetailSheet(
             Text(
                 text = item.description,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            )
+            Text(
+                text = "${item.price} EUR",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = if (item.available) "Verfuegbar" else "Nicht verfuegbar",
+                color = if (item.available) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
             )
 
             if (item.imageUrls.isNotEmpty()) {
@@ -391,29 +452,23 @@ private fun MerchandiseDetailSheet(
 
             if (isAdmin) {
                 HorizontalDivider()
-                OutlinedTextField(
-                    value = editedPrice,
-                    onValueChange = { editedPrice = it },
-                    label = { Text("Preis") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
+                    TextButton(
+                        onClick = onEdit,
+                        enabled = !isSaving,
+                    ) {
+                        Text("Bearbeiten")
+                    }
                     TextButton(
                         onClick = onDelete,
                         enabled = !isSaving,
                     ) {
                         Text("Loeschen")
                     }
-                    Button(
-                        onClick = { onUpdatePrice(editedPrice) },
-                        enabled = !isSaving,
-                    ) {
-                        Text("Preis speichern")
-                    }
+                    Button(onClick = onDismiss) { Text("Schliessen") }
                 }
             } else {
                 TextButton(onClick = onDismiss) {

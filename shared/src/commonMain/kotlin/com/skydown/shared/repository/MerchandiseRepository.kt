@@ -7,6 +7,7 @@ interface MerchandiseRepository {
     suspend fun loadItems(): Result<List<MerchandiseItem>>
     suspend fun currentUser(): Result<User?>
     suspend fun addItem(item: MerchandiseItem, imageDataList: List<ByteArray> = emptyList()): Result<Unit>
+    suspend fun updateItem(item: MerchandiseItem, imageDataList: List<ByteArray> = emptyList()): Result<Unit>
     suspend fun updatePrice(itemId: String, newPrice: Double): Result<Unit>
     suspend fun deleteItem(itemId: String): Result<Unit>
 }

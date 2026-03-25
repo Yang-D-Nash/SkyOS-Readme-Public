@@ -28,9 +28,10 @@ struct MerchEditView: View {
 
     private var isFormValid: Bool {
         guard Double(price) != nil else { return false }
-        guard merchandiseItem != nil || !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        guard merchandiseItem != nil || !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        guard merchandiseItem != nil || !selectedImageData.isEmpty else { return false }
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        let hasExistingImages = !(merchandiseItem?.imageURLs.isEmpty ?? true)
+        guard hasExistingImages || !selectedImageData.isEmpty else { return false }
         return !isLoadingImages && !isSaving
     }
 
@@ -39,13 +40,11 @@ struct MerchEditView: View {
             Form {
                 Section("Name") {
                     TextField("Name", text: $name)
-                        .disabled(merchandiseItem != nil)
                         .foregroundColor(AppColors.text(for: environmentColorScheme))
                 }
 
                 Section("Beschreibung") {
                     TextField("Beschreibung", text: $description)
-                        .disabled(merchandiseItem != nil)
                         .foregroundColor(AppColors.text(for: environmentColorScheme))
                 }
 
@@ -57,11 +56,10 @@ struct MerchEditView: View {
 
                 Section("Verfügbarkeit") {
                     Toggle("Verfügbar", isOn: $available)
-                        .disabled(merchandiseItem != nil)
                         .tint(AppColors.accent(for: environmentColorScheme))
                 }
 
-                Section(merchandiseItem == nil ? "Bilder" : "Bestehende Bilder") {
+                Section(merchandiseItem == nil ? "Bilder" : "Bilder") {
                     if let merchandiseItem {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
@@ -83,46 +81,54 @@ struct MerchEditView: View {
                             }
                             .padding(.vertical, 4)
                         }
-                    } else {
-                        PhotosPicker(
-                            selection: $selectedPhotoItems,
-                            maxSelectionCount: 10,
-                            matching: .images
-                        ) {
-                            Label("Bilder auswählen", systemImage: "photo.on.rectangle.angled")
-                                .foregroundColor(AppColors.accent(for: environmentColorScheme))
-                        }
+                    }
 
-                        if isLoadingImages {
-                            ProgressView("Bilder werden geladen ...")
-                                .font(.footnote)
-                        }
+                    PhotosPicker(
+                        selection: $selectedPhotoItems,
+                        maxSelectionCount: 10,
+                        matching: .images
+                    ) {
+                        Label(
+                            merchandiseItem == nil ? "Bilder auswählen" : "Bilder ersetzen",
+                            systemImage: "photo.on.rectangle.angled"
+                        )
+                        .foregroundColor(AppColors.accent(for: environmentColorScheme))
+                    }
 
-                        if !selectedPreviewImages.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(Array(selectedPreviewImages.enumerated()), id: \.offset) { _, image in
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(width: 110, height: 110)
-                                            .clipped()
-                                            .cornerRadius(10)
-                                    }
+                    if isLoadingImages {
+                        ProgressView("Bilder werden geladen ...")
+                            .font(.footnote)
+                    }
+
+                    if !selectedPreviewImages.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(Array(selectedPreviewImages.enumerated()), id: \.offset) { _, image in
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 110, height: 110)
+                                        .clipped()
+                                        .cornerRadius(10)
                                 }
-                                .padding(.vertical, 4)
                             }
-                        } else {
-                            Text("Wähle mindestens ein Bild aus deiner Fotomediathek aus.")
+                            .padding(.vertical, 4)
+                        }
+                        if merchandiseItem != nil {
+                            Text("Neue Bilder ersetzen beim Speichern die bestehende Galerie.")
                                 .font(.footnote)
                                 .foregroundColor(.gray)
                         }
+                    } else if merchandiseItem == nil {
+                        Text("Wähle mindestens ein Bild aus deiner Fotomediathek aus.")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                    }
 
-                        if selectedPhotoItems.isEmpty && validationMessage == "Bitte mindestens ein Bild auswählen." {
-                            Text("Bitte mindestens ein Bild auswählen.")
+                    if selectedPhotoItems.isEmpty && validationMessage == "Bitte mindestens ein Bild auswählen." {
+                        Text("Bitte mindestens ein Bild auswählen.")
                             .font(.footnote)
                             .foregroundColor(.red)
-                        }
                     }
                 }
 
@@ -134,7 +140,7 @@ struct MerchEditView: View {
                     }
                 }
             }
-            .navigationTitle(merchandiseItem == nil ? "Artikel hinzufügen" : "Preis bearbeiten")
+            .navigationTitle(merchandiseItem == nil ? "Artikel hinzufügen" : "Artikel bearbeiten")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Speichern") {
@@ -145,7 +151,15 @@ struct MerchEditView: View {
                             defer { isSaving = false }
 
                             if let item = merchandiseItem {
-                                let didSave = await viewModel.updateMerchandisePrice(item, newPrice: priceValue)
+                                let updatedItem = MerchandiseItem(
+                                    id: item.id,
+                                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    price: priceValue,
+                                    description: description.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    imageURLs: item.imageURLs,
+                                    available: available
+                                )
+                                let didSave = await viewModel.updateMerchandise(updatedItem, imageDataList: selectedImageData)
                                 if didSave {
                                     dismiss()
                                 }
@@ -194,8 +208,6 @@ struct MerchEditView: View {
 
     @MainActor
     private func loadSelectedImages() async {
-        guard merchandiseItem == nil else { return }
-
         if selectedPhotoItems.isEmpty {
             selectedImageData = []
             selectedPreviewImages = []

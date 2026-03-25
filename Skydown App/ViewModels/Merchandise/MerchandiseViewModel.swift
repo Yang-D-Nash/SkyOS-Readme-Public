@@ -100,6 +100,28 @@ final class MerchandiseViewModel: ObservableObject {
         }
     }
 
+    func updateMerchandise(_ item: MerchandiseItem, imageDataList: [Data]) async -> Bool {
+        guard canManageMerchandise else {
+            showUserToast("Nur Admins dürfen Artikel bearbeiten.", style: .error)
+            return false
+        }
+
+        guard item.id != nil else {
+            showUserToast("Artikel hat keine gültige ID.", style: .error)
+            return false
+        }
+
+        do {
+            try await merchandiseService.updateItem(item, imageDataList: imageDataList)
+            showUserToast("Artikel aktualisiert: \(item.name)", style: .success)
+            return true
+        } catch {
+            print("Dev Fehler updateMerchandise:", error.localizedDescription)
+            showUserToast("Update fehlgeschlagen: \(error.localizedDescription)", style: .error)
+            return false
+        }
+    }
+
     func deleteItem(_ item: MerchandiseItem) async {
         guard canManageMerchandise else {
             showUserToast("Nur Admins dürfen Artikel löschen.", style: .error)

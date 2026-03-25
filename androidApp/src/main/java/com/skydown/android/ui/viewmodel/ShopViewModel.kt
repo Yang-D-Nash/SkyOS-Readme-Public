@@ -112,6 +112,64 @@ class ShopViewModel : ViewModel() {
         }
     }
 
+    fun updateItem(
+        item: MerchandiseItem,
+        name: String,
+        description: String,
+        priceInput: String,
+        available: Boolean,
+        imageDataList: List<ByteArray>,
+        onSuccess: () -> Unit,
+    ) {
+        val trimmedName = name.trim()
+        val trimmedDescription = description.trim()
+        val price = priceInput.toDoubleOrNull()
+        if (trimmedName.isBlank() || trimmedDescription.isBlank() || price == null) {
+            _uiState.update {
+                it.copy(
+                    toastMessage = "Bitte Name, Beschreibung und einen gueltigen Preis angeben.",
+                    isErrorToast = true,
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+
+            val result = merchandiseService.updateItem(
+                item = item.copy(
+                    name = trimmedName,
+                    description = trimmedDescription,
+                    price = price,
+                    available = available,
+                ),
+                imageDataList = imageDataList,
+            )
+
+            if (result.isSuccess) {
+                refreshState()
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        toastMessage = "Artikel aktualisiert.",
+                        isErrorToast = false,
+                        selectedItem = null,
+                    )
+                }
+                onSuccess()
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        toastMessage = result.exceptionOrNull()?.message ?: "Artikel konnte nicht aktualisiert werden.",
+                        isErrorToast = true,
+                    )
+                }
+            }
+        }
+    }
+
     fun updatePrice(item: MerchandiseItem, priceInput: String) {
         val itemId = item.id.orEmpty()
         val newPrice = priceInput.toDoubleOrNull()
