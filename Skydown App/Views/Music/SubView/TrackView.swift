@@ -10,6 +10,7 @@ import SwiftUI
 struct TrackView: View {
     let track: Track
     @ObservedObject var audioManager: AudioPlayerManager
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -49,6 +50,16 @@ struct TrackView: View {
                         .foregroundColor(.blue)
                     }
                     .padding(.top, 4)
+                } else if let externalURL = track.externalURL,
+                          let url = URL(string: externalURL) {
+                    Button {
+                        openURL(url)
+                    } label: {
+                        Label("In Spotify", systemImage: "arrow.up.forward.circle.fill")
+                            .labelStyle(.titleAndIcon)
+                            .foregroundColor(.green)
+                    }
+                    .padding(.top, 4)
                 }
             }
         }
@@ -61,10 +72,13 @@ struct TrackView: View {
     let sampleTrack = Track(
         trackId: 1,
         artistId: 123,
+        spotifyArtistID: "sample-artist-id",
+        artistName: "Skydown",
         trackName: "Beispiel Song",
         collectionName: "Beispiel Album",
         artworkUrl100: "https://via.placeholder.com/100",
         previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        externalURL: "https://open.spotify.com",
         wrapperType: "track"
     )
     

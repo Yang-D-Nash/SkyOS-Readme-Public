@@ -64,38 +64,46 @@ class MerchandiseViewModel: ObservableObject {
         }
     }
 
-    func addMerchandise(_ item: MerchandiseItem) async {
+    func addMerchandise(_ item: MerchandiseItem, imageDataList: [Data]) async -> Bool {
         guard currentUser?.isAdmin == true else {
             showUserToast("Nur Admins dürfen Artikel hinzufügen.", style: .error)
-            return
+            return false
         }
 
         do {
-            try await merchandiseService.addItem(item)
+            let imageURLs = try await merchandiseService.uploadImages(imageDataList)
+            var itemToSave = item
+            itemToSave.imageURLs = imageURLs
+
+            try await merchandiseService.addItem(itemToSave)
             showUserToast("Artikel hinzugefügt: \(item.name)", style: .success)
+            return true
         } catch {
             print("Dev Fehler addMerchandise:", error.localizedDescription)
             showUserToast("Fehler beim Hinzufügen des Artikels: \(error.localizedDescription)", style: .error)
+            return false
         }
     }
 
-    func updateMerchandisePrice(_ item: MerchandiseItem, newPrice: Double) async {
+    func updateMerchandisePrice(_ item: MerchandiseItem, newPrice: Double) async -> Bool {
         guard currentUser?.isAdmin == true else {
             showUserToast("Nur Admins dürfen Artikel bearbeiten.", style: .error)
-            return
+            return false
         }
 
         guard let id = item.id else {
             showUserToast("Artikel hat keine gültige ID.", style: .error)
-            return
+            return false
         }
 
         do {
             try await merchandiseService.updatePrice(itemID: id, newPrice: newPrice)
             showUserToast("Preis aktualisiert: \(item.name)", style: .success)
+            return true
         } catch {
             print("Dev Fehler updateMerchandisePrice:", error.localizedDescription)
             showUserToast("Update fehlgeschlagen: \(error.localizedDescription)", style: .error)
+            return false
         }
     }
 

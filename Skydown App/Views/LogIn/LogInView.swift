@@ -67,6 +67,23 @@ struct LoginView: View {
                 .opacity(viewModel.isSignInButtonDisabled ? 0.6 : 1.0)
                 .disabled(viewModel.isSignInButtonDisabled)
                 .padding(.horizontal)
+
+                Button {
+                    Task { await viewModel.signInWithGoogle() }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "globe")
+                        Text("Mit Google anmelden")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .cornerRadius(10)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                }
+                .disabled(viewModel.isLoading)
+                .padding(.horizontal)
                 
                 Button {
                     showingRegistrationSheet = true

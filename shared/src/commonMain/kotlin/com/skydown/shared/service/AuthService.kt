@@ -20,6 +20,14 @@ class AuthService(
         return repository.signIn(input)
     }
 
+    suspend fun signInWithGoogle(idToken: String): Result<User> {
+        if (idToken.isBlank()) {
+            return Result.failure(IllegalArgumentException("Google-Anmeldung konnte nicht gestartet werden."))
+        }
+
+        return repository.signInWithGoogle(idToken)
+    }
+
     suspend fun register(input: RegistrationInput): Result<User> {
         val validationError = AuthValidation.validateRegistration(input)
         if (validationError != null) {

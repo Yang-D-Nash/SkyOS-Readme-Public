@@ -11,8 +11,9 @@ struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
     @State private var selectedArtist = "Yang D. Nash"
+    @Environment(\.colorScheme) private var colorScheme
 
-    let artists = ["Yang D. Nash", "ThaDude"]
+    let artists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
 
     var body: some View {
         NavigationStack {
@@ -25,8 +26,40 @@ struct MusicView: View {
                 .pickerStyle(.segmented)
                 .padding()
 
+                if !viewModel.isSpotifyConnected {
+                    Button {
+                        Task {
+                            await viewModel.connectSpotify()
+                            if viewModel.isSpotifyConnected {
+                                await viewModel.fetchTracks(for: selectedArtist)
+                            }
+                        }
+                    } label: {
+                        if viewModel.isConnectingSpotify {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Label("Spotify verbinden", systemImage: "music.note")
+                                .font(.headline)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppColors.accent(for: colorScheme))
+                    .cornerRadius(12)
+                    .foregroundColor(.white)
+                    .padding(.horizontal)
+                }
+
                 Group {
-                    if viewModel.tracks.isEmpty {
+                    if !viewModel.isSpotifyConnected {
+                        Spacer()
+                        Text("Verbinde Spotify, um Tracks fuer den ausgewaehlten Artist zu laden.")
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        Spacer()
+                    } else if viewModel.tracks.isEmpty {
                         if viewModel.showToast {
                             Spacer()
                         } else {
@@ -45,7 +78,9 @@ struct MusicView: View {
             .navigationTitle("Skydown Music")
             .task(id: selectedArtist) {
                 audioManager.stop()
-                await viewModel.fetchTracks(for: selectedArtist)
+                if viewModel.isSpotifyConnected {
+                    await viewModel.fetchTracks(for: selectedArtist)
+                }
             }
         }
         .fancyToast(isPresented: $viewModel.showToast, message: viewModel.toastMessage, style: viewModel.toastStyle)

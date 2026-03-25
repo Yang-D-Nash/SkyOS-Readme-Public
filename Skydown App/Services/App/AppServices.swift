@@ -14,7 +14,7 @@ final class AppServices: ObservableObject {
         authService: AuthServicing = FirebaseAuthService(),
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
         orderService: OrderServicing = FirebaseOrderService(),
-        musicService: MusicServicing = ITunesMusicService()
+        musicService: MusicServicing = SpotifyMusicService()
     ) {
         self.authService = authService
         self.merchandiseService = merchandiseService

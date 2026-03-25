@@ -51,6 +51,24 @@ class LoginViewModel: ObservableObject {
         isLoading = false
     }
 
+    func signInWithGoogle() async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            try await authService.signInWithGoogle()
+            isAuthenticated = true
+            showUserToast("Google-Anmeldung erfolgreich!", style: .success)
+        } catch {
+            print("Dev Fehler bei Google-Anmeldung: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+            isAuthenticated = false
+            showUserToast("Fehler bei Google-Anmeldung: \(error.localizedDescription)", style: .error)
+        }
+
+        isLoading = false
+    }
+
     private func showUserToast(_ message: String, style: ToastStyle) {
         toastMessage = message
         toastStyle = style

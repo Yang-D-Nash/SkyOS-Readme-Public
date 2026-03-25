@@ -26,6 +26,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.skydown.android.ui.screen.CartScreen
+import com.skydown.android.ui.screen.IntroScreen
 import com.skydown.android.ui.screen.LoginScreen
 import com.skydown.android.ui.screen.MusicScreen
 import com.skydown.android.ui.screen.OrderScreen
@@ -37,6 +38,7 @@ import com.skydown.android.ui.screen.ShopScreen
 @Composable
 fun SkydownApp() {
     val navController = rememberNavController()
+    var showIntro by remember { mutableStateOf(true) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
     var showOrders by remember { mutableStateOf(false) }
     val destinations = listOf(
@@ -46,49 +48,59 @@ fun SkydownApp() {
         BottomDestination("settings", "Einstellungen", { Icon(Icons.Default.Settings, contentDescription = null) }),
     )
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
+    if (showIntro) {
+        IntroScreen(
+            onFinished = { showIntro = false },
+        )
+    } else {
+        Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navBackStackEntry?.destination
 
-                destinations.forEach { destination ->
-                    NavigationBarItem(
-                        selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true,
-                        onClick = {
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                    destinations.forEach { destination ->
+                        NavigationBarItem(
+                            selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true,
+                            onClick = {
+                                navController.navigate(destination.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = destination.icon,
-                        label = { Text(destination.label) },
-                    )
+                            },
+                            icon = destination.icon,
+                            label = { Text(destination.label) },
+                        )
+                    }
                 }
             }
-        },
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = "shop",
-            modifier = Modifier.padding(innerPadding),
-        ) {
-            composable("shop") { ShopScreen() }
-            composable("music") { MusicScreen() }
-            composable("cart") {
-                CartScreen(
-                    onOpenLogin = { authSheet = AuthSheet.Login },
-                )
-            }
-            composable("settings") {
-                SettingsScreen(
-                    onOpenLogin = { authSheet = AuthSheet.Login },
-                    onOpenRegistration = { authSheet = AuthSheet.Registration },
-                    onOpenOrders = { showOrders = true },
-                )
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = "shop",
+                modifier = Modifier.padding(innerPadding),
+            ) {
+                composable("shop") {
+                    ShopScreen(
+                        onOpenLogin = { authSheet = AuthSheet.Login },
+                    )
+                }
+                composable("music") { MusicScreen() }
+                composable("cart") {
+                    CartScreen(
+                        onOpenLogin = { authSheet = AuthSheet.Login },
+                    )
+                }
+                composable("settings") {
+                    SettingsScreen(
+                        onOpenLogin = { authSheet = AuthSheet.Login },
+                        onOpenRegistration = { authSheet = AuthSheet.Registration },
+                        onOpenOrders = { showOrders = true },
+                    )
+                }
             }
         }
     }

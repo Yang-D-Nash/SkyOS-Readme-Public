@@ -8,13 +8,16 @@ class MerchandiseService(
 ) {
     suspend fun loadItems(): Result<List<MerchandiseItem>> = repository.loadItems()
 
-    suspend fun addItem(item: MerchandiseItem): Result<Unit> {
+    suspend fun addItem(
+        item: MerchandiseItem,
+        imageDataList: List<ByteArray> = emptyList(),
+    ): Result<Unit> {
         val currentUser = repository.currentUser().getOrNull()
         if (currentUser?.isAdmin != true) {
             return Result.failure(IllegalAccessException("Nur Admins duerfen Artikel hinzufuegen."))
         }
 
-        return repository.addItem(item)
+        return repository.addItem(item, imageDataList)
     }
 
     suspend fun updatePrice(itemId: String, newPrice: Double): Result<Unit> {

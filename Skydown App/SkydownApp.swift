@@ -7,6 +7,7 @@
 import SwiftUI
 import FirebaseCore
 import AVKit
+import GoogleSignIn
 
 @main
 struct SkydownApp: App {
@@ -20,6 +21,9 @@ struct SkydownApp: App {
         WindowGroup {
             LaunchScreenView()
                 .environmentObject(services.authManager)
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
     }
 }

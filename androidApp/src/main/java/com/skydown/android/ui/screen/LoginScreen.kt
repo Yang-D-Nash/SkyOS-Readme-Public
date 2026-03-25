@@ -1,5 +1,8 @@
 package com.skydown.android.ui.screen
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,15 +16,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.GoogleSignInManager
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.viewmodel.LoginViewModel
+import com.google.android.gms.common.api.ApiException
 
 @Composable
 fun LoginScreen(
@@ -30,6 +37,37 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val googleClient = remember(context) { GoogleSignInManager.client(context) }
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) {
+            googleClient.signOut()
+            viewModel.onGoogleSignInCancelled()
+            return@rememberLauncherForActivityResult
+        }
+
+        try {
+            val account = GoogleSignInManager.accountFromIntent(result.data)
+            val idToken = account.idToken
+
+            if (idToken.isNullOrBlank()) {
+                googleClient.signOut()
+                viewModel.onGoogleSignInCancelled("Google-Anmeldung hat kein gueltiges Token geliefert.")
+            } else {
+                viewModel.signInWithGoogle(idToken, onClose)
+            }
+        } catch (exception: ApiException) {
+            googleClient.signOut()
+            viewModel.onGoogleSignInCancelled(
+                "Google-Anmeldung fehlgeschlagen: ${exception.localizedMessage ?: exception.statusCode}",
+            )
+        } catch (exception: IllegalStateException) {
+            googleClient.signOut()
+            viewModel.onGoogleSignInCancelled(exception.message ?: "Google-Anmeldung fehlgeschlagen.")
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -70,9 +108,21 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
-                enabled = !uiState.isLoading,
+                enabled = !uiState.isLoading && !uiState.isGoogleLoading,
             ) {
                 Text(if (uiState.isLoading) "Anmelden..." else "Anmelden")
+            }
+            Button(
+                onClick = {
+                    viewModel.beginGoogleSignIn()
+                    googleSignInLauncher.launch(googleClient.signInIntent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                enabled = !uiState.isLoading && !uiState.isGoogleLoading,
+            ) {
+                Text(if (uiState.isGoogleLoading) "Google wird gestartet..." else "Mit Google anmelden")
             }
             TextButton(
                 onClick = onOpenRegistration,

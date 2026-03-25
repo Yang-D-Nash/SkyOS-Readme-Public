@@ -18,6 +18,15 @@ class FakeAuthRepository : AuthRepository {
         return Result.success(currentUser!!)
     }
 
+    override suspend fun signInWithGoogle(idToken: String): Result<User> {
+        currentUser = sampleUser().copy(
+            email = "google.user@skydown.app",
+            username = "Google User",
+        )
+        AppSessionStore.update(currentUser)
+        return Result.success(currentUser!!)
+    }
+
     override suspend fun register(input: RegistrationInput): Result<User> {
         currentUser = sampleUser().copy(
             email = input.email,

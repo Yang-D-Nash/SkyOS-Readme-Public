@@ -7,6 +7,7 @@ import com.skydown.shared.model.User
 interface AuthRepository {
     suspend fun currentUser(): User?
     suspend fun signIn(input: LoginInput): Result<User>
+    suspend fun signInWithGoogle(idToken: String): Result<User>
     suspend fun register(input: RegistrationInput): Result<User>
     suspend fun signOut(): Result<Unit>
 }

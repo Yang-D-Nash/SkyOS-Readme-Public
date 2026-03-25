@@ -12,7 +12,12 @@
           "package_name": "com.skydown.android"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1069068117600-eko4qr00llq6eecq5a3itubtpia58opp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDWgIx-ZOvlrXr0Jk-xoDG07ppTUlIabmg"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1069068117600-eko4qr00llq6eecq5a3itubtpia58opp.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1069068117600-v0v2265j6kmrdc08fq3nk0vh29tnbsik.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.skydown.ios"
+              }
+            }
+          ]
         }
       }
     }

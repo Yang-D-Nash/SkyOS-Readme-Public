@@ -21,12 +21,22 @@ final class FirebaseOrderService: OrderServicing {
             .addSnapshotListener { snapshot, error in
                 Task { @MainActor in
                     if let error {
-                        onChange(.failure(error))
+                        let nsError = error as NSError
+                        if nsError.domain == FirestoreErrorDomain,
+                           nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
+                            onChange(.failure(NSError(
+                                domain: "Firestore",
+                                code: FirestoreErrorCode.permissionDenied.rawValue,
+                                userInfo: [NSLocalizedDescriptionKey: "Keine Berechtigung zum Laden der Bestellungen. Prüfe isAdmin und die Firestore Rules."]
+                            )))
+                        } else {
+                            onChange(.failure(error))
+                        }
                         return
                     }
 
                     let orders = snapshot?.documents.compactMap { document in
-                        try? document.data(as: Order.self)
+                        self.mapOrder(document: document)
                     } ?? []
 
                     onChange(.success(orders))
@@ -65,5 +75,44 @@ final class FirebaseOrderService: OrderServicing {
 
     func deleteOrder(orderID: String) async throws {
         try await firestore.collection("orders").document(orderID).delete()
+    }
+
+    private func mapOrder(document: QueryDocumentSnapshot) -> Order? {
+        let data = document.data()
+        guard let userEmail = data["userEmail"] as? String else {
+            return nil
+        }
+
+        let isCompleted = data["isCompleted"] as? Bool ?? false
+
+        let timestamp: Date
+        if let firestoreTimestamp = data["timestamp"] as? Timestamp {
+            timestamp = firestoreTimestamp.dateValue()
+        } else if let date = data["timestamp"] as? Date {
+            timestamp = date
+        } else {
+            timestamp = .now
+        }
+
+        let itemsData = data["items"] as? [[String: Any]] ?? []
+        let items: [OrderItem] = itemsData.compactMap { itemData -> OrderItem? in
+            guard let name = itemData["name"] as? String else {
+                return nil
+            }
+
+            return OrderItem(
+                name: name,
+                quantity: itemData["quantity"] as? Int ?? 1,
+                size: itemData["size"] as? String
+            )
+        }
+
+        return Order(
+            id: document.documentID,
+            userEmail: userEmail,
+            items: items,
+            isCompleted: isCompleted,
+            timestamp: timestamp
+        )
     }
 }

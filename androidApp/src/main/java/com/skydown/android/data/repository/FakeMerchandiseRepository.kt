@@ -13,7 +13,7 @@ class FakeMerchandiseRepository : MerchandiseRepository {
 
     override suspend fun currentUser(): Result<User?> = Result.success(sampleUser())
 
-    override suspend fun addItem(item: MerchandiseItem): Result<Unit> {
+    override suspend fun addItem(item: MerchandiseItem, imageDataList: List<ByteArray>): Result<Unit> {
         items = items + item
         return Result.success(Unit)
     }

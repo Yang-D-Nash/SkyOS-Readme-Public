@@ -3,7 +3,10 @@ package com.skydown.android.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.ui.model.MusicUiState
+import com.skydown.shared.model.Track
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,26 +19,63 @@ class MusicViewModel : ViewModel() {
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
 
     init {
-        selectArtist("Yang D. Nash")
+        viewModelScope.launch {
+            SpotifyAuthManager.isConnected.collectLatest { connected ->
+                _uiState.update { it.copy(isSpotifyConnected = connected) }
+                if (connected && _uiState.value.tracks.isEmpty()) {
+                    selectArtist(_uiState.value.selectedArtist)
+                }
+            }
+        }
     }
 
     fun selectArtist(artist: String) {
         viewModelScope.launch {
+            if (!_uiState.value.isSpotifyConnected) {
+                _uiState.update {
+                    it.copy(
+                        selectedArtist = artist,
+                        tracks = emptyList(),
+                        currentlyPlayingId = null,
+                        currentPreviewUrl = null,
+                    )
+                }
+                return@launch
+            }
+
             val tracks = musicService.fetchTracks(artist).getOrDefault(emptyList())
             _uiState.update {
                 it.copy(
                     selectedArtist = artist,
                     tracks = tracks,
                     currentlyPlayingId = null,
+                    currentPreviewUrl = null,
                 )
             }
         }
     }
 
-    fun togglePreview(trackId: Int) {
+    fun togglePreview(track: Track) {
+        _uiState.update {
+            if (it.currentlyPlayingId == track.trackId) {
+                it.copy(
+                    currentlyPlayingId = null,
+                    currentPreviewUrl = null,
+                )
+            } else {
+                it.copy(
+                    currentlyPlayingId = track.trackId,
+                    currentPreviewUrl = track.previewUrl,
+                )
+            }
+        }
+    }
+
+    fun stopPreview() {
         _uiState.update {
             it.copy(
-                currentlyPlayingId = if (it.currentlyPlayingId == trackId) null else trackId,
+                currentlyPlayingId = null,
+                currentPreviewUrl = null,
             )
         }
     }
