@@ -104,9 +104,11 @@ final class FirebaseAuthService: AuthServicing {
             fallbackEmail: normalizedEmail
         )
         let result = try await auth.createUser(withEmail: normalizedEmail, password: password)
+        try await refreshAuthToken(for: result.user)
+        let registeredEmail = result.user.email?.trimmedNilIfEmpty ?? normalizedEmail
         let newUser = User(
             id: nil,
-            email: normalizedEmail,
+            email: registeredEmail,
             username: normalizedUsername,
             whatsApp: whatsApp.trimmedNilIfEmpty,
             registrationDate: Date(),
@@ -192,6 +194,7 @@ final class FirebaseAuthService: AuthServicing {
         )
 
         guard snapshot.exists else {
+            try await refreshAuthToken(for: authUser)
             let newUser = User(
                 id: nil,
                 email: email,
@@ -201,7 +204,7 @@ final class FirebaseAuthService: AuthServicing {
                 isAdmin: false
             )
 
-            try await documentReference.setData(from: newUser)
+            try documentReference.setData(from: newUser)
             return
         }
 
@@ -217,6 +220,7 @@ final class FirebaseAuthService: AuthServicing {
         }
 
         if !repairFields.isEmpty {
+            try await refreshAuthToken(for: authUser)
             try await documentReference.setData(repairFields, merge: true)
         }
     }
@@ -227,6 +231,18 @@ final class FirebaseAuthService: AuthServicing {
             return try await fetchUser(uid: firebaseUser.uid) ?? firebaseUser.toAppUser()
         } catch {
             return firebaseUser.toAppUser()
+        }
+    }
+
+    private func refreshAuthToken(for authUser: FirebaseAuth.User) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            authUser.getIDTokenForcingRefresh(true) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
         }
     }
 

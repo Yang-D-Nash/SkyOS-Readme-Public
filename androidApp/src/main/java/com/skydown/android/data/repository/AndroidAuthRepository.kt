@@ -48,15 +48,18 @@ class AndroidAuthRepository(
     override suspend fun register(input: RegistrationInput): Result<User> {
         return runCatching {
             val authResult = auth.createUserWithEmailAndPassword(input.email, input.password).await()
+            val firebaseUser = authResult.user ?: error("Benutzer konnte nicht erstellt werden.")
+            refreshAuthToken(firebaseUser)
+            val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() } ?: input.email.trim()
             val user = User(
-                id = authResult.user?.uid,
-                email = input.email,
+                id = firebaseUser.uid,
+                email = registeredEmail,
                 username = input.username,
                 whatsApp = input.whatsApp.ifBlank { null },
                 registrationDateEpochMillis = System.currentTimeMillis(),
                 isAdmin = false,
             )
-            firestore.collection("users").document(authResult.user?.uid.orEmpty()).set(user).await()
+            firestore.collection("users").document(firebaseUser.uid).set(user).await()
             AppSessionStore.update(user)
             user
         }.recoverCatching { error ->
@@ -82,6 +85,7 @@ class AndroidAuthRepository(
         val resolvedUsername = resolvedUsername(authUser, preferredUsername)
 
         if (!snapshot.exists()) {
+            refreshAuthToken(authUser)
             val fallbackEmail = authUser.email.orEmpty()
             val user = User(
                 id = authUser.uid,
@@ -109,6 +113,7 @@ class AndroidAuthRepository(
         }
 
         if (updates.isNotEmpty()) {
+            refreshAuthToken(authUser)
             documentReference.update(updates).await()
             return documentReference.get().await().toSharedUser(authUser)
                 ?: fallbackUser.copy(username = resolvedUsername)
@@ -116,6 +121,10 @@ class AndroidAuthRepository(
 
         return snapshot.toSharedUser(authUser) ?: fallbackUser.copy(username = resolvedUsername)
     }
+}
+
+private suspend fun refreshAuthToken(authUser: FirebaseUser) {
+    authUser.getIdToken(true).await()
 }
 
 private fun resolvedUsername(
