@@ -8,6 +8,7 @@ protocol MusicServicing {
     var debugConfigurationDescription: String { get }
     var lastAuthorizationURLString: String? { get }
     func connect() async throws
+    func disconnect()
     func fetchTracks(for artist: String) async throws -> [Track]
 }
 
@@ -142,6 +143,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         _ = try await validAccessToken(forceRefresh: false, allowInteractiveAuth: true)
     }
 
+    func disconnect() {
+        userDefaults.removeObject(forKey: tokenStorageKey)
+        authorizationURLString = nil
+    }
+
     func fetchTracks(for artist: String) async throws -> [Track] {
         let accessToken = try await validAccessToken(forceRefresh: false, allowInteractiveAuth: false)
         let artistID = Constants.artistIDs[artist]
@@ -251,7 +257,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "code_challenge", value: codeChallenge),
             URLQueryItem(name: "state", value: state),
-            URLQueryItem(name: "show_dialog", value: "false"),
+            URLQueryItem(name: "show_dialog", value: "true"),
         ]
 
         guard let url = components?.url else {

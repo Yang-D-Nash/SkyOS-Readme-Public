@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Sync
@@ -108,7 +109,14 @@ fun MusicScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             item {
-                MusicHeroCard(uiState = uiState)
+                MusicHeroCard(
+                    uiState = uiState,
+                    onDisconnect = {
+                        player.stop()
+                        player.clearMediaItems()
+                        viewModel.disconnectSpotify()
+                    },
+                )
             }
 
             item {
@@ -189,6 +197,7 @@ fun MusicScreen(
 @Composable
 private fun MusicHeroCard(
     uiState: com.skydown.android.ui.model.MusicUiState,
+    onDisconnect: () -> Unit,
 ) {
     SkydownCard(
         contentPadding = PaddingValues(20.dp),
@@ -248,6 +257,24 @@ private fun MusicHeroCard(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 16.dp),
         )
+
+        if (uiState.isSpotifyConnected) {
+            Button(
+                onClick = onDisconnect,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = null,
+                )
+                Text(
+                    text = "Spotify trennen",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
     }
 }
 

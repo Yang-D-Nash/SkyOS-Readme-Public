@@ -3,6 +3,7 @@ import SwiftUI
 struct AIView: View {
     @StateObject private var viewModel: AIChatViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @FocusState private var isComposerFocused: Bool
 
     init(aiChatService: AIChatServicing = FirebaseAIChatService()) {
         _viewModel = StateObject(
@@ -42,10 +43,17 @@ struct AIView: View {
                 .background(backgroundGradient.ignoresSafeArea())
                 .navigationTitle("Skydown AI")
                 .scrollIndicators(.hidden)
-                .safeAreaInset(edge: .bottom) {
+                .scrollDismissesKeyboard(.interactively)
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        isComposerFocused = false
+                    }
+                )
+                .safeAreaInset(edge: .bottom, spacing: 0) {
                     AIComposerBar(
                         colorScheme: colorScheme,
                         draft: $viewModel.draft,
+                        isFocused: $isComposerFocused,
                         isSending: viewModel.isSending,
                         onReset: viewModel.resetConversation,
                         onSend: viewModel.sendDraft
@@ -55,6 +63,14 @@ struct AIView: View {
                     withAnimation(.easeOut(duration: 0.25)) {
                         proxy.scrollTo("chat-end", anchor: .bottom)
                     }
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Fertig") {
+                    isComposerFocused = false
                 }
             }
         }
@@ -260,6 +276,7 @@ private struct AIMessageBubble: View {
 private struct AIComposerBar: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
+    let isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onReset: () -> Void
     let onSend: () -> Void
@@ -279,18 +296,34 @@ private struct AIComposerBar: View {
 
                 Spacer()
 
-                Button(action: onReset) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(width: 42, height: 42)
-                        .background(
-                            Circle()
-                                .fill(AppColors.primaryBackground(for: colorScheme))
-                        )
+                HStack(spacing: 8) {
+                    if isFocused.wrappedValue {
+                        Button(action: { isFocused.wrappedValue = false }) {
+                            Image(systemName: "keyboard.chevron.compact.down")
+                                .font(.headline)
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .frame(width: 42, height: 42)
+                                .background(
+                                    Circle()
+                                        .fill(AppColors.primaryBackground(for: colorScheme))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button(action: onReset) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .frame(width: 42, height: 42)
+                            .background(
+                                Circle()
+                                    .fill(AppColors.primaryBackground(for: colorScheme))
+                            )
+                    }
+                    .disabled(isSending)
                 }
                 .buttonStyle(.plain)
-                .disabled(isSending)
             }
 
             TextField(
@@ -299,6 +332,7 @@ private struct AIComposerBar: View {
                 axis: .vertical
             )
             .lineLimit(3...5)
+            .focused(isFocused)
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
             .background(
@@ -314,7 +348,10 @@ private struct AIComposerBar: View {
 
                 Spacer()
 
-                Button(action: onSend) {
+                Button(action: {
+                    isFocused.wrappedValue = false
+                    onSend()
+                }) {
                     Label("Senden", systemImage: "arrow.up.circle.fill")
                         .font(.headline)
                         .foregroundColor(.white)

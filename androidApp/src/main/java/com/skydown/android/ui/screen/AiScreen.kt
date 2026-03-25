@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,9 +24,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
@@ -46,6 +48,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,6 +68,14 @@ fun AiScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val dismissKeyboard: () -> Unit = {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        Unit
+    }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
@@ -85,8 +97,15 @@ fun AiScreen(
                 draft = uiState.draft,
                 isSending = uiState.isSending,
                 onDraftChanged = viewModel::updateDraft,
-                onSend = viewModel::sendDraft,
-                onReset = viewModel::resetConversation,
+                onSend = {
+                    viewModel.sendDraft()
+                    dismissKeyboard()
+                },
+                onReset = {
+                    dismissKeyboard()
+                    viewModel.resetConversation()
+                },
+                onDismissKeyboard = dismissKeyboard,
             )
         },
     ) { innerPadding ->
@@ -307,12 +326,14 @@ private fun AiComposerBar(
     onDraftChanged: (String) -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
+    onDismissKeyboard: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
             .navigationBarsPadding()
+            .imePadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         SkydownCard {
@@ -336,14 +357,24 @@ private fun AiComposerBar(
                     )
                 }
 
-                IconButton(
-                    onClick = onReset,
-                    enabled = !isSending,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Chat zuruecksetzen",
-                    )
+                Row {
+                    IconButton(
+                        onClick = onDismissKeyboard,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Tastatur schliessen",
+                        )
+                    }
+                    IconButton(
+                        onClick = onReset,
+                        enabled = !isSending,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Chat zuruecksetzen",
+                        )
+                    }
                 }
             }
 
@@ -376,16 +407,16 @@ private fun AiComposerBar(
                     textAlign = TextAlign.End,
                 )
 
-                FilledIconButton(
-                    onClick = onSend,
-                    enabled = draft.isNotBlank() && !isSending,
-                    modifier = Modifier.padding(start = 12.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Senden",
-                    )
-                }
+                    FilledIconButton(
+                        onClick = onSend,
+                        enabled = draft.isNotBlank() && !isSending,
+                        modifier = Modifier.padding(start = 12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Senden",
+                        )
+                    }
             }
         }
     }

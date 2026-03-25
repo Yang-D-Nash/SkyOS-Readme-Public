@@ -49,6 +49,25 @@ struct MusicView: View {
                     .cornerRadius(12)
                     .foregroundColor(.white)
                     .padding(.horizontal)
+                } else {
+                    Button(role: .destructive) {
+                        audioManager.stop()
+                        viewModel.disconnectSpotify()
+                    } label: {
+                        Label("Spotify trennen", systemImage: "rectangle.portrait.and.arrow.right")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.22), lineWidth: 1)
+                    )
+                    .cornerRadius(12)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .padding(.horizontal)
                 }
 
                 Group {

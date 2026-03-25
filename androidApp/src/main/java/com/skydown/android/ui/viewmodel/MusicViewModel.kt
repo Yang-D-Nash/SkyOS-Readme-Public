@@ -124,4 +124,8 @@ class MusicViewModel : ViewModel() {
             )
         }
     }
+
+    fun disconnectSpotify() {
+        SpotifyAuthManager.disconnect()
+    }
 }

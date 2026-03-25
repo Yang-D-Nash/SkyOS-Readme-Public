@@ -55,7 +55,7 @@ object SpotifyAuthManager {
             .appendQueryParameter("code_challenge_method", "S256")
             .appendQueryParameter("code_challenge", challenge)
             .appendQueryParameter("state", state)
-            .appendQueryParameter("show_dialog", "false")
+            .appendQueryParameter("show_dialog", "true")
             .build()
     }
 
@@ -85,6 +85,18 @@ object SpotifyAuthManager {
             saveTokenResponse(tokenResponse)
             tokenResponse.accessToken
         }.getOrNull()
+    }
+
+    fun disconnect() {
+        preferences()
+            .edit()
+            .remove(keyAccessToken)
+            .remove(keyRefreshToken)
+            .remove(keyExpiry)
+            .remove(keyState)
+            .remove(keyVerifier)
+            .apply()
+        _isConnected.value = false
     }
 
     private suspend fun exchangeCodeForToken(code: String, verifier: String): TokenResponse {

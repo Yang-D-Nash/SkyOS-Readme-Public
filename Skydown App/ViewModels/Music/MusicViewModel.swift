@@ -44,6 +44,13 @@ class MusicViewModel: ObservableObject {
         isConnectingSpotify = false
     }
 
+    func disconnectSpotify() {
+        musicService.disconnect()
+        isSpotifyConnected = false
+        tracks = []
+        showUserToast("Spotify getrennt", style: .info)
+    }
+
     func fetchTracks(for artist: String) async {
         isSpotifyConnected = musicService.isConnected
         guard isSpotifyConnected else {
