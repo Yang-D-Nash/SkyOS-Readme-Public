@@ -72,10 +72,11 @@ class RegistrationViewModel: ObservableObject {
     func signInWithGoogle() async -> Bool {
         isLoading = true
         errorMessage = nil
+        let preferredUsername = username.trimmingCharacters(in: .whitespacesAndNewlines).trimmedNilIfEmpty
 
         do {
-            try await authService.signInWithGoogle()
-            showUserToast("Google-Anmeldung erfolgreich!", style: .success)
+            try await authService.signInWithGoogle(preferredUsername: preferredUsername)
+            showUserToast("Google-Registrierung erfolgreich!", style: .success)
             isLoading = false
             return true
         } catch {
@@ -91,5 +92,12 @@ class RegistrationViewModel: ObservableObject {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+}
+
+private extension String {
+    var trimmedNilIfEmpty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 }

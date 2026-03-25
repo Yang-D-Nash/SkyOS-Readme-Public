@@ -80,6 +80,11 @@ struct RegistrationSheet: View {
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .listRowBackground(AppColors.primaryBackground(for: colorScheme))
+
+                    Text("Wenn du oben einen Benutzernamen einträgst, wird er für dein Profil übernommen.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .listRowBackground(AppColors.primaryBackground(for: colorScheme))
                 }
             }
             .navigationTitle("Neues Konto")

@@ -20,12 +20,15 @@ class AuthService(
         return repository.signIn(input)
     }
 
-    suspend fun signInWithGoogle(idToken: String): Result<User> {
+    suspend fun signInWithGoogle(idToken: String, preferredUsername: String? = null): Result<User> {
         if (idToken.isBlank()) {
             return Result.failure(IllegalArgumentException("Google-Anmeldung konnte nicht gestartet werden."))
         }
 
-        return repository.signInWithGoogle(idToken)
+        return repository.signInWithGoogle(
+            idToken = idToken,
+            preferredUsername = preferredUsername?.trim()?.ifBlank { null },
+        )
     }
 
     suspend fun register(input: RegistrationInput): Result<User> {

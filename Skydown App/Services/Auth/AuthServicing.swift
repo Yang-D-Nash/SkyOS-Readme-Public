@@ -8,11 +8,17 @@ import UIKit
 protocol AuthServicing {
     func observeAuthState(_ onChange: @escaping @MainActor (User?) -> Void) -> () -> Void
     func signIn(email: String, password: String) async throws
-    func signInWithGoogle() async throws
+    func signInWithGoogle(preferredUsername: String?) async throws
     func register(username: String, email: String, whatsApp: String, password: String) async throws
     func signOut() throws
     func deleteCurrentAccount() async throws
     func fetchCurrentUser() async throws -> User?
+}
+
+extension AuthServicing {
+    func signInWithGoogle() async throws {
+        try await signInWithGoogle(preferredUsername: nil)
+    }
 }
 
 enum AuthServiceError: LocalizedError {
@@ -67,7 +73,7 @@ final class FirebaseAuthService: AuthServicing {
         _ = try await auth.signIn(withEmail: email, password: password)
     }
 
-    func signInWithGoogle() async throws {
+    func signInWithGoogle(preferredUsername: String? = nil) async throws {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             throw AuthServiceError.missingGoogleClientID
         }
@@ -88,7 +94,7 @@ final class FirebaseAuthService: AuthServicing {
             accessToken: result.user.accessToken.tokenString
         )
         let authResult = try await auth.signIn(with: credential)
-        try await createUserDocumentIfNeeded(for: authResult.user)
+        try await syncUserDocument(for: authResult.user, preferredUsername: preferredUsername)
     }
 
     func register(username: String, email: String, whatsApp: String, password: String) async throws {
@@ -120,15 +126,10 @@ final class FirebaseAuthService: AuthServicing {
     }
 
     func fetchCurrentUser() async throws -> User? {
-        guard let uid = auth.currentUser?.uid else {
+        guard let currentAuthUser = auth.currentUser else {
             return nil
         }
-
-        if let user = try await fetchUser(uid: uid) {
-            return user
-        }
-
-        return auth.currentUser.map { $0.toAppUser() }
+        return await currentSessionUser(for: currentAuthUser)
     }
 
     private func fetchUser(uid: String) async throws -> User? {
@@ -136,7 +137,7 @@ final class FirebaseAuthService: AuthServicing {
         let authUser = auth.currentUser
         guard snapshot.exists else {
             if let authUser, authUser.uid == uid {
-                try? await createUserDocumentIfNeeded(for: authUser)
+                try? await syncUserDocument(for: authUser)
                 return authUser.toAppUser()
             }
 
@@ -177,32 +178,52 @@ final class FirebaseAuthService: AuthServicing {
         )
     }
 
-    private func createUserDocumentIfNeeded(for authUser: FirebaseAuth.User) async throws {
+    private func syncUserDocument(
+        for authUser: FirebaseAuth.User,
+        preferredUsername: String? = nil
+    ) async throws {
         let documentReference = firestore.collection("users").document(authUser.uid)
         let snapshot = try await documentReference.getDocument()
-
-        guard !snapshot.exists else { return }
-
         let email = authUser.email?.trimmedNilIfEmpty ?? ""
         let username = Self.sanitizedUsername(
-            authUser.displayName,
+            preferredUsername,
             authUserDisplayName: authUser.displayName,
             fallbackEmail: email
         )
-        let newUser = User(
-            id: nil,
-            email: email,
-            username: username,
-            whatsApp: nil,
-            registrationDate: authUser.metadata.creationDate ?? .now,
-            isAdmin: false
-        )
 
-        try documentReference.setData(from: newUser)
+        guard snapshot.exists else {
+            let newUser = User(
+                id: nil,
+                email: email,
+                username: username,
+                whatsApp: nil,
+                registrationDate: authUser.metadata.creationDate ?? .now,
+                isAdmin: false
+            )
+
+            try await documentReference.setData(from: newUser)
+            return
+        }
+
+        let data = snapshot.data() ?? [:]
+        var repairFields: [String: Any] = [:]
+
+        if (data["username"] as? String)?.trimmedNilIfEmpty == nil {
+            repairFields["username"] = username
+        }
+
+        if data["registrationDate"] == nil && data["registrationDateEpochMillis"] == nil {
+            repairFields["registrationDate"] = authUser.metadata.creationDate ?? Date()
+        }
+
+        if !repairFields.isEmpty {
+            try await documentReference.setData(repairFields, merge: true)
+        }
     }
 
     private func currentSessionUser(for firebaseUser: FirebaseAuth.User) async -> User {
         do {
+            try await syncUserDocument(for: firebaseUser)
             return try await fetchUser(uid: firebaseUser.uid) ?? firebaseUser.toAppUser()
         } catch {
             return firebaseUser.toAppUser()

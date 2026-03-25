@@ -66,8 +66,12 @@ class RegistrationViewModel : ViewModel() {
     }
 
     fun signInWithGoogle(idToken: String, onSuccess: () -> Unit) {
+        val preferredUsername = _uiState.value.username.trim().ifBlank { null }
         viewModelScope.launch {
-            val result = authService.signInWithGoogle(idToken)
+            val result = authService.signInWithGoogle(
+                idToken = idToken,
+                preferredUsername = preferredUsername,
+            )
 
             if (result.isSuccess) {
                 _uiState.update { it.copy(isGoogleLoading = false) }

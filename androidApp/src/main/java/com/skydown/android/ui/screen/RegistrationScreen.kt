@@ -146,6 +146,12 @@ fun RegistrationScreen(
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 8.dp),
             )
+            Text(
+                text = "Wenn du oben einen Benutzernamen eintraegst, wird er fuer dein Profil uebernommen.",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
             TextButton(
                 onClick = onClose,
                 modifier = Modifier.padding(top = 8.dp),
