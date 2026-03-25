@@ -40,6 +40,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         static let tokenURL = "https://accounts.spotify.com/api/token"
         static let apiBaseURL = "https://api.spotify.com/v1"
         static let callbackScheme = "skydown"
+        static let searchPageSize = 10
+        static let searchMaxResults = 50
+        static let artistAlbumsPageSize = 10
+        static let artistAlbumsMaxResults = 100
+        static let albumTracksPageSize = 50
         static let artistIDs: [String: String] = [
             "Yang D. Nash": "63Sh0kQAWW3ZWn2aKDksbo",
             "ThaDude": "0Jmb7DXFkKxxRjqD70vi0e",
@@ -64,12 +69,71 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         }
     }
 
+    private struct SpotifyErrorResponse: Decodable {
+        let error: String?
+        let errorDescription: String?
+
+        enum CodingKeys: String, CodingKey {
+            case error
+            case errorDescription = "error_description"
+        }
+    }
+
+    private struct SpotifyHTTPError: LocalizedError {
+        let statusCode: Int
+        let payload: String
+
+        var errorDescription: String? {
+            "Spotify API Fehler \(statusCode): \(payload)"
+        }
+    }
+
     private struct SpotifySearchResponse: Decodable {
         let tracks: SpotifyTracks
     }
 
     private struct SpotifyTracks: Decodable {
         let items: [SpotifyTrack]
+    }
+
+    private struct SpotifyArtistAlbumsResponse: Decodable {
+        let items: [SpotifyArtistAlbum]
+    }
+
+    private struct SpotifyArtistAlbum: Decodable {
+        let id: String
+        let name: String
+        let images: [SpotifyImage]
+        let totalTracks: Int
+        let releaseDate: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case name
+            case images
+            case totalTracks = "total_tracks"
+            case releaseDate = "release_date"
+        }
+    }
+
+    private struct SpotifyAlbumTracksResponse: Decodable {
+        let items: [SpotifyAlbumTrack]
+    }
+
+    private struct SpotifyAlbumTrack: Decodable {
+        let id: String
+        let name: String
+        let previewURL: String?
+        let artists: [SpotifyArtist]
+        let externalURLs: [String: String]
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case name
+            case previewURL = "preview_url"
+            case artists
+            case externalURLs = "external_urls"
+        }
     }
 
     private struct SpotifyTrack: Decodable {
@@ -152,38 +216,52 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     func fetchTracks(for artist: String) async throws -> [Track] {
         let accessToken = try await validAccessToken(forceRefresh: false, allowInteractiveAuth: false)
         let artistID = Constants.artistIDs[artist]
-        let query = "artist:\(artist)"
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? artist
-        let urlString = "\(Constants.apiBaseURL)/search?q=\(query)&type=track&limit=50"
-
-        guard let url = URL(string: urlString) else {
-            throw URLError(.badURL)
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        let (data, urlResponse) = try await session.data(for: request)
-        if let httpResponse = urlResponse as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-            let payload = String(data: data, encoding: .utf8) ?? "<empty>"
-            print("Spotify Search Error:", httpResponse.statusCode, payload)
-            throw NSError(
-                domain: "SpotifyMusicService",
-                code: httpResponse.statusCode,
-                userInfo: [NSLocalizedDescriptionKey: "Spotify API Fehler \(httpResponse.statusCode): \(payload)"]
+        if let artistID {
+            let directTracks = try await fetchKnownArtistTracks(
+                accessToken: accessToken,
+                artist: artist,
+                artistID: artistID
             )
+            if !directTracks.isEmpty {
+                return directTracks
+            }
         }
-        let searchResponse = try decoder.decode(SpotifySearchResponse.self, from: data)
 
-        let mappedTracks = searchResponse.tracks.items.map { item in
-            let primaryArtistID = item.artists.first?.id
-            let primaryArtistName = item.artists.first?.name
+        let searchQueries = searchQueries(for: artist)
+        var lastError: Error?
+        var searchItems: [SpotifyTrack] = []
+
+        for (index, query) in searchQueries.enumerated() {
+            do {
+                searchItems = try await performSearch(query: query, accessToken: accessToken)
+                lastError = nil
+                break
+            } catch let error as SpotifyHTTPError where error.statusCode == 400 && index < searchQueries.count - 1 {
+                print("Spotify Search Retry:", error.statusCode, error.payload)
+                lastError = error
+                continue
+            } catch {
+                throw error
+            }
+        }
+
+        guard !searchItems.isEmpty || lastError == nil else {
+            throw lastError ?? SpotifyAuthError.missingToken
+        }
+
+        let mappedTracks = searchItems.map { item in
+            let matchingArtist: SpotifyArtist?
+            if let artistID {
+                matchingArtist = item.artists.first(where: { $0.id == artistID })
+            } else {
+                matchingArtist = item.artists.first
+            }
             let artworkURL = item.album.images.first?.url
             return Track(
                 trackId: abs(item.id.hashValue),
-                artistId: abs((primaryArtistID ?? item.id).hashValue),
-                spotifyArtistID: primaryArtistID,
-                artistName: primaryArtistName,
+                artistId: abs((matchingArtist?.id ?? item.artists.first?.id ?? item.id).hashValue),
+                spotifyArtistID: matchingArtist?.id ?? item.artists.first?.id,
+                artistName: matchingArtist?.name ?? item.artists.first?.name,
                 trackName: item.name,
                 collectionName: item.album.name,
                 artworkUrl100: artworkURL,
@@ -201,6 +279,101 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         }
     }
 
+    private func fetchKnownArtistTracks(
+        accessToken: String,
+        artist: String,
+        artistID: String
+    ) async throws -> [Track] {
+        let albums = try await fetchArtistAlbums(
+            accessToken: accessToken,
+            artistID: artistID
+        ).sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
+
+        var orderedTrackIDs: [String] = []
+        var tracksByID: [String: Track] = [:]
+
+        for album in albums {
+            let albumTracks = try await fetchAlbumTracks(
+                accessToken: accessToken,
+                album: album,
+                artistID: artistID
+            )
+
+            for item in albumTracks where tracksByID[item.id] == nil {
+                let matchingArtist = item.artists.first(where: { $0.id == artistID })
+                orderedTrackIDs.append(item.id)
+                tracksByID[item.id] = Track(
+                    trackId: abs(item.id.hashValue),
+                    artistId: abs(artistID.hashValue),
+                    spotifyArtistID: artistID,
+                    artistName: matchingArtist?.name ?? artist,
+                    trackName: item.name,
+                    collectionName: album.name,
+                    artworkUrl100: album.images.first?.url,
+                    previewUrl: item.previewURL,
+                    externalURL: item.externalURLs["spotify"],
+                    wrapperType: "track"
+                )
+            }
+        }
+
+        return orderedTrackIDs.compactMap { tracksByID[$0] }
+    }
+
+    private func fetchArtistAlbums(
+        accessToken: String,
+        artistID: String
+    ) async throws -> [SpotifyArtistAlbum] {
+        var albumsByID: [String: SpotifyArtistAlbum] = [:]
+        var albumOrder: [String] = []
+
+        for offset in stride(from: 0, to: Constants.artistAlbumsMaxResults, by: Constants.artistAlbumsPageSize) {
+            let data = try await performGetRequest(
+                url: try artistAlbumsURL(for: artistID, offset: offset),
+                accessToken: accessToken
+            )
+            let page = try decoder.decode(SpotifyArtistAlbumsResponse.self, from: data).items
+
+            for album in page where albumsByID[album.id] == nil {
+                albumOrder.append(album.id)
+                albumsByID[album.id] = album
+            }
+
+            if page.count < Constants.artistAlbumsPageSize {
+                break
+            }
+        }
+
+        return albumOrder.compactMap { albumsByID[$0] }
+    }
+
+    private func fetchAlbumTracks(
+        accessToken: String,
+        album: SpotifyArtistAlbum,
+        artistID: String
+    ) async throws -> [SpotifyAlbumTrack] {
+        guard album.totalTracks > 0 else { return [] }
+
+        var tracks: [SpotifyAlbumTrack] = []
+
+        for offset in stride(from: 0, to: album.totalTracks, by: Constants.albumTracksPageSize) {
+            let data = try await performGetRequest(
+                url: try albumTracksURL(for: album.id, offset: offset),
+                accessToken: accessToken
+            )
+            let page = try decoder.decode(SpotifyAlbumTracksResponse.self, from: data).items
+            tracks.append(contentsOf: page.filter { track in
+                track.artists.contains(where: { $0.id == artistID })
+            })
+
+            if page.count < Constants.albumTracksPageSize {
+                break
+            }
+        }
+
+        return tracks
+    }
+
     private func validAccessToken(
         forceRefresh: Bool,
         allowInteractiveAuth: Bool
@@ -210,9 +383,19 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         }
 
         if let refreshToken = loadStoredToken()?.refreshToken {
-            let refreshed = try await refreshAccessToken(using: refreshToken)
-            saveStoredToken(refreshed)
-            return refreshed.accessToken
+            do {
+                let refreshed = try await refreshAccessToken(using: refreshToken)
+                saveStoredToken(refreshed)
+                return refreshed.accessToken
+            } catch {
+                disconnect()
+                if allowInteractiveAuth {
+                    let authorized = try await authorizeWithPKCE()
+                    saveStoredToken(authorized)
+                    return authorized.accessToken
+                }
+                throw SpotifyAuthError.missingToken
+            }
         }
 
         guard allowInteractiveAuth else {
@@ -292,41 +475,46 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func exchangeCodeForToken(code: String, verifier: String) async throws -> StoredToken {
-        var request = URLRequest(url: URL(string: Constants.tokenURL)!)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = formBody([
+        try await performTokenRequest([
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": Constants.redirectURI,
             "client_id": Constants.clientID,
             "code_verifier": verifier,
         ])
-
-        let (data, _) = try await session.data(for: request)
-        let tokenResponse = try decoder.decode(SpotifyTokenResponse.self, from: data)
-        return StoredToken(
-            accessToken: tokenResponse.accessToken,
-            refreshToken: tokenResponse.refreshToken,
-            expirationDate: Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
-        )
     }
 
     private func refreshAccessToken(using refreshToken: String) async throws -> StoredToken {
-        var request = URLRequest(url: URL(string: Constants.tokenURL)!)
-        request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = formBody([
+        try await performTokenRequest([
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
             "client_id": Constants.clientID,
-        ])
+        ], fallbackRefreshToken: refreshToken)
+    }
 
-        let (data, _) = try await session.data(for: request)
+    private func performTokenRequest(
+        _ parameters: [String: String],
+        fallbackRefreshToken: String? = nil
+    ) async throws -> StoredToken {
+        var request = URLRequest(url: URL(string: Constants.tokenURL)!)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = formBody(parameters)
+
+        let (data, response) = try await session.data(for: request)
+        if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+            let apiError = try? decoder.decode(SpotifyErrorResponse.self, from: data)
+            let payload = apiError?.errorDescription
+                ?? String(data: data, encoding: .utf8)
+                ?? "<empty>"
+            throw SpotifyHTTPError(statusCode: httpResponse.statusCode, payload: payload)
+        }
+
         let tokenResponse = try decoder.decode(SpotifyTokenResponse.self, from: data)
         return StoredToken(
             accessToken: tokenResponse.accessToken,
-            refreshToken: tokenResponse.refreshToken ?? refreshToken,
+            refreshToken: tokenResponse.refreshToken ?? fallbackRefreshToken,
             expirationDate: Date().addingTimeInterval(TimeInterval(tokenResponse.expiresIn))
         )
     }
@@ -334,11 +522,110 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     private func formBody(_ values: [String: String]) -> Data? {
         let body = values
             .map { key, value in
-                let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
-                return "\(key)=\(encodedValue)"
+                "\(key.percentEncodedFormValue())=\(value.percentEncodedFormValue())"
             }
             .joined(separator: "&")
         return body.data(using: .utf8)
+    }
+
+    private func searchURL(forQuery query: String, offset: Int) throws -> URL {
+        guard var components = URLComponents(string: "\(Constants.apiBaseURL)/search") else {
+            throw URLError(.badURL)
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "type", value: "track"),
+            URLQueryItem(name: "limit", value: "\(Constants.searchPageSize)"),
+            URLQueryItem(name: "offset", value: "\(offset)"),
+        ]
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
+    private func artistAlbumsURL(for artistID: String, offset: Int) throws -> URL {
+        guard var components = URLComponents(string: "\(Constants.apiBaseURL)/artists/\(artistID)/albums") else {
+            throw URLError(.badURL)
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "include_groups", value: "album,single,appears_on,compilation"),
+            URLQueryItem(name: "limit", value: "\(Constants.artistAlbumsPageSize)"),
+            URLQueryItem(name: "offset", value: "\(offset)")
+        ]
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
+    private func albumTracksURL(for albumID: String, offset: Int) throws -> URL {
+        guard var components = URLComponents(string: "\(Constants.apiBaseURL)/albums/\(albumID)/tracks") else {
+            throw URLError(.badURL)
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "limit", value: "\(Constants.albumTracksPageSize)"),
+            URLQueryItem(name: "offset", value: "\(offset)")
+        ]
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
+    private func searchQueries(for artist: String) -> [String] {
+        [
+            "artist:\"\(artist)\"",
+            artist,
+        ]
+    }
+
+    private func performSearch(query: String, accessToken: String) async throws -> [SpotifyTrack] {
+        var items: [SpotifyTrack] = []
+
+        for offset in stride(from: 0, to: Constants.searchMaxResults, by: Constants.searchPageSize) {
+            let data = try await performSearchRequest(
+                query: query,
+                accessToken: accessToken,
+                offset: offset
+            )
+            let page = try decoder.decode(SpotifySearchResponse.self, from: data).tracks.items
+            items.append(contentsOf: page)
+
+            if page.count < Constants.searchPageSize {
+                break
+            }
+        }
+
+        return items
+    }
+
+    private func performSearchRequest(query: String, accessToken: String, offset: Int) async throws -> Data {
+        let url = try searchURL(forQuery: query, offset: offset)
+
+        return try await performGetRequest(url: url, accessToken: accessToken)
+    }
+
+    private func performGetRequest(url: URL, accessToken: String) async throws -> Data {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, urlResponse) = try await session.data(for: request)
+        if let httpResponse = urlResponse as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+            let payload = String(data: data, encoding: .utf8) ?? "<empty>"
+            print("Spotify Search Error:", httpResponse.statusCode, payload)
+            throw SpotifyHTTPError(statusCode: httpResponse.statusCode, payload: payload)
+        }
+
+        return data
     }
 
     private func randomVerifier() -> String {
@@ -368,5 +655,13 @@ private extension Data {
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
+    }
+}
+
+private extension String {
+    func percentEncodedFormValue() -> String {
+        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._*"))
+        return addingPercentEncoding(withAllowedCharacters: allowedCharacters)?
+            .replacingOccurrences(of: "%20", with: "+") ?? self
     }
 }
