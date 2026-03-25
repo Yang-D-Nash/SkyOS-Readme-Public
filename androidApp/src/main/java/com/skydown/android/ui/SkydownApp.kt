@@ -1,5 +1,8 @@
 package com.skydown.android.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -16,6 +19,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -48,16 +53,18 @@ fun SkydownApp() {
     var showIntro by remember { mutableStateOf(true) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
     var showOrders by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
     val authSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val ordersSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val moreSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val destinations = listOf(
         BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingCart, contentDescription = null) }),
         BottomDestination("music", "Musik", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
         BottomDestination("ai", "AI", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }),
         BottomDestination("agent", "Agent", { Icon(Icons.Default.Bolt, contentDescription = null) }),
-        BottomDestination("cart", "Korb", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
-        BottomDestination("settings", "Mehr", { Icon(Icons.Default.Settings, contentDescription = null) }),
+        BottomDestination("more", "Mehr", { Icon(Icons.Default.Settings, contentDescription = null) }),
     )
+    val moreRoutes = setOf("cart", "settings")
 
     if (showIntro) {
         IntroScreen(
@@ -72,14 +79,22 @@ fun SkydownApp() {
 
                     destinations.forEach { destination ->
                         NavigationBarItem(
-                            selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true,
+                            selected = if (destination.route == "more") {
+                                currentDestination?.hierarchy?.any { it.route in moreRoutes } == true
+                            } else {
+                                currentDestination?.hierarchy?.any { it.route == destination.route } == true
+                            },
                             onClick = {
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                                if (destination.route == "more") {
+                                    showMoreMenu = true
+                                } else {
+                                    navController.navigate(destination.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
                             },
                             icon = destination.icon,
@@ -125,6 +140,37 @@ fun SkydownApp() {
         }
     }
 
+    if (showMoreMenu) {
+        ModalBottomSheet(
+            onDismissRequest = { showMoreMenu = false },
+            sheetState = moreSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            MoreMenuSheet(
+                onOpenCart = {
+                    showMoreMenu = false
+                    navController.navigate("cart") {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onOpenSettings = {
+                    showMoreMenu = false
+                    navController.navigate("settings") {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
+        }
+    }
+
     authSheet?.let { sheet ->
         ModalBottomSheet(
             onDismissRequest = { authSheet = null },
@@ -161,6 +207,49 @@ private data class BottomDestination(
     val label: String,
     val icon: @Composable () -> Unit,
 )
+
+@Composable
+private fun MoreMenuSheet(
+    onOpenCart: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Mehr",
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            text = "Korb und Einstellungen liegen auf Android hier, damit die Bottom Navigation bei 5 Haupttabs sauber bleibt.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+        TextButton(
+            onClick = onOpenCart,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Default.ShoppingBag,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 10.dp),
+            )
+            Text("Warenkorb")
+        }
+        TextButton(
+            onClick = onOpenSettings,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 10.dp),
+            )
+            Text("Einstellungen")
+        }
+    }
+}
 
 private enum class AuthSheet {
     Login,
