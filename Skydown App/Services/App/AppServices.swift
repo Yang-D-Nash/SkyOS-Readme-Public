@@ -4,6 +4,7 @@ import Foundation
 final class AppServices: ObservableObject {
     let authService: AuthServicing
     let aiChatService: AIChatServicing
+    let agentChatService: AgentChatServicing
     let featureFlags: FeatureFlagsService
     let merchandiseService: MerchandiseServicing
     let orderService: OrderServicing
@@ -15,12 +16,14 @@ final class AppServices: ObservableObject {
     init(
         authService: AuthServicing = FirebaseAuthService(),
         aiChatService: AIChatServicing = FirebaseAIChatService(),
+        agentChatService: AgentChatServicing = FirebaseFunctionsAgentService(),
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
         orderService: OrderServicing = FirebaseOrderService(),
         musicService: MusicServicing = SpotifyMusicService()
     ) {
         self.authService = authService
         self.aiChatService = aiChatService
+        self.agentChatService = agentChatService
         self.featureFlags = FeatureFlagsService()
         self.merchandiseService = merchandiseService
         self.orderService = orderService

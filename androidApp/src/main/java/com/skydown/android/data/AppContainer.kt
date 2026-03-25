@@ -22,6 +22,7 @@ object AppContainer {
     private const val useFirebaseRepositories = true
 
     val aiChatClient: AiChatClient by lazy { AiChatClient() }
+    val agentClient: AgentClient by lazy { AgentClient() }
 
     val authRepository: AuthRepository by lazy {
         if (useFirebaseRepositories) AndroidAuthRepository() else FakeAuthRepository()

@@ -78,6 +78,7 @@ dependencies {
     implementation("com.google.firebase:firebase-ai")
     implementation("com.google.firebase:firebase-config")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-functions")
     implementation("com.google.firebase:firebase-storage")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")

@@ -15,6 +15,7 @@
 		90C0B6B52E7C0E6C00112233 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 90C0B6B42E7C0E6C00112233 /* GoogleSignIn */; };
 		90D1A0012F0A100100112233 /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 90D1A0022F0A100100112233 /* FirebaseAI */; };
 		90E2B0012F1B100100112233 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 90E2B0022F1B100100112233 /* FirebaseRemoteConfig */; };
+		90F3D0012F2C100100112233 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 90F3D0022F2C100100112233 /* FirebaseFunctions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +65,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				90D1A0012F0A100100112233 /* FirebaseAI in Frameworks */,
+				90F3D0012F2C100100112233 /* FirebaseFunctions in Frameworks */,
 				90E2B0012F1B100100112233 /* FirebaseRemoteConfig in Frameworks */,
 				905588FB2E31911F002FD576 /* FirebaseDatabase in Frameworks */,
 				905588FD2E31911F002FD576 /* FirebaseFirestore in Frameworks */,
@@ -133,6 +135,7 @@
 			name = "Skydown App";
 			packageProductDependencies = (
 				90D1A0022F0A100100112233 /* FirebaseAI */,
+				90F3D0022F2C100100112233 /* FirebaseFunctions */,
 				90E2B0022F1B100100112233 /* FirebaseRemoteConfig */,
 				905588F62E31911F002FD576 /* FirebaseAuth */,
 				905588F82E31911F002FD576 /* FirebaseCore */,
@@ -670,6 +673,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseRemoteConfig;
+		};
+		90F3D0022F2C100100112233 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -3,6 +3,7 @@ package com.skydown.android.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
@@ -29,6 +30,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.skydown.android.ui.screen.AgentScreen
 import com.skydown.android.ui.screen.CartScreen
 import com.skydown.android.ui.screen.AiScreen
 import com.skydown.android.ui.screen.IntroScreen
@@ -52,6 +54,7 @@ fun SkydownApp() {
         BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingCart, contentDescription = null) }),
         BottomDestination("music", "Musik", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
         BottomDestination("ai", "AI", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }),
+        BottomDestination("agent", "Agent", { Icon(Icons.Default.Bolt, contentDescription = null) }),
         BottomDestination("cart", "Korb", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
         BottomDestination("settings", "Mehr", { Icon(Icons.Default.Settings, contentDescription = null) }),
     )
@@ -105,6 +108,7 @@ fun SkydownApp() {
                 }
                 composable("music") { MusicScreen() }
                 composable("ai") { AiScreen() }
+                composable("agent") { AgentScreen() }
                 composable("cart") {
                     CartScreen(
                         onOpenLogin = { authSheet = AuthSheet.Login },

@@ -44,6 +44,12 @@ struct MainTabView: View {
             )
                 .tabItem { Label("AI", systemImage: "sparkles") }
 
+            AgentView(
+                agentChatService: services.agentChatService,
+                featureFlags: services.featureFlags
+            )
+                .tabItem { Label("Agent", systemImage: "bolt.fill") }
+
             CartView()
                 .tabItem { Label("Warenkorb", systemImage: "bag.fill") }
 
