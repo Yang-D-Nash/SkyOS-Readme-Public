@@ -15,4 +15,6 @@ data class MusicUiState(
     val currentlyPlayingId: Int? = null,
     val currentPreviewUrl: String? = null,
     val isSpotifyConnected: Boolean = false,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
 )

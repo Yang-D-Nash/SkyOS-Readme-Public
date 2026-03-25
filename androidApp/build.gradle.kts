@@ -55,7 +55,7 @@ android {
 
 dependencies {
     implementation(project(":shared"))
-    implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+    implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
 
     val composeBom = platform("androidx.compose:compose-bom:2026.02.01")
     implementation(composeBom)
@@ -75,6 +75,7 @@ dependencies {
     implementation("com.google.android.material:material:1.13.0")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-ai")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")

@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class AppServices: ObservableObject {
     let authService: AuthServicing
+    let aiChatService: AIChatServicing
     let merchandiseService: MerchandiseServicing
     let orderService: OrderServicing
     let musicService: MusicServicing
@@ -12,11 +13,13 @@ final class AppServices: ObservableObject {
 
     init(
         authService: AuthServicing = FirebaseAuthService(),
+        aiChatService: AIChatServicing = FirebaseAIChatService(),
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
         orderService: OrderServicing = FirebaseOrderService(),
         musicService: MusicServicing = SpotifyMusicService()
     ) {
         self.authService = authService
+        self.aiChatService = aiChatService
         self.merchandiseService = merchandiseService
         self.orderService = orderService
         self.musicService = musicService

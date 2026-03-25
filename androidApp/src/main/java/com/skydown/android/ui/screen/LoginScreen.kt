@@ -33,6 +33,8 @@ import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.viewmodel.LoginViewModel
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 
 @Composable
 fun LoginScreen(
@@ -64,12 +66,7 @@ fun LoginScreen(
             }
         } catch (exception: ApiException) {
             googleClient.signOut()
-            viewModel.onGoogleSignInCancelled(
-                "Google-Anmeldung fehlgeschlagen: ${exception.localizedMessage ?: exception.statusCode}",
-            )
-        } catch (exception: IllegalStateException) {
-            googleClient.signOut()
-            viewModel.onGoogleSignInCancelled(exception.message ?: "Google-Anmeldung fehlgeschlagen.")
+            viewModel.onGoogleSignInCancelled(exception.toReadableGoogleMessage())
         }
     }
 
@@ -122,7 +119,9 @@ fun LoginScreen(
             Button(
                 onClick = {
                     viewModel.beginGoogleSignIn()
-                    googleSignInLauncher.launch(googleClient.signInIntent)
+                    googleClient.signOut().addOnCompleteListener {
+                        googleSignInLauncher.launch(googleClient.signInIntent)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -151,5 +150,21 @@ fun LoginScreen(
             type = ToastType.Error,
             modifier = Modifier.padding(top = 12.dp),
         )
+    }
+}
+
+private fun ApiException.toReadableGoogleMessage(): String {
+    return when (statusCode) {
+        GoogleSignInStatusCodes.SIGN_IN_CANCELLED,
+        CommonStatusCodes.CANCELED -> "Google-Anmeldung wurde abgebrochen."
+        CommonStatusCodes.NETWORK_ERROR -> "Netzwerkfehler bei Google-Anmeldung. Bitte erneut versuchen."
+        CommonStatusCodes.DEVELOPER_ERROR -> {
+            "Google-Anmeldung ist fuer Android noch nicht korrekt konfiguriert. " +
+                "In Firebase fehlt sehr wahrscheinlich die Android-SHA-1/SHA-256 fuer com.skydown.android."
+        }
+        GoogleSignInStatusCodes.SIGN_IN_CURRENTLY_IN_PROGRESS -> "Google-Anmeldung laeuft bereits."
+        GoogleSignInStatusCodes.SIGN_IN_FAILED -> "Google-Anmeldung ist fehlgeschlagen."
+        CommonStatusCodes.INTERNAL_ERROR -> "Interner Google-Fehler. Bitte App neu starten."
+        else -> "Google-Anmeldung fehlgeschlagen: ${localizedMessage ?: statusCode}"
     }
 }

@@ -3,7 +3,6 @@ package com.skydown.android.ui.component
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,18 +11,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.PauseCircle
-import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -36,6 +38,8 @@ fun TrackRow(
     onPlayToggle: () -> Unit,
 ) {
     val context = LocalContext.current
+    val hasPreview = !track.previewUrl.isNullOrBlank()
+    val hasExternalLink = !track.externalUrl.isNullOrBlank()
 
     SkydownCard(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
@@ -56,8 +60,15 @@ fun TrackRow(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                track.artistName?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 Text(
                     text = track.trackName,
                     style = MaterialTheme.typography.titleMedium,
@@ -71,49 +82,75 @@ fun TrackRow(
                     )
                 }
 
-                if (track.previewUrl != null) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .clickable(onClick = onPlayToggle)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = if (isPlaying) "Pause" else "Preview",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
+                Text(
+                    text = if (hasPreview) {
+                        "30 Sekunden Preview direkt in der App."
+                    } else {
+                        "Kein Preview verfugbar. Track kann in Spotify geoffnet werden."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (hasPreview) {
+                        FilledTonalButton(
+                            onClick = onPlayToggle,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = if (isPlaying) "Pause" else "Preview",
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
                     }
-                } else if (track.externalUrl != null) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .clickable {
+
+                    if (hasExternalLink) {
+                        OutlinedButton(
+                            onClick = {
                                 context.startActivity(
                                     Intent(Intent.ACTION_VIEW, Uri.parse(track.externalUrl)),
                                 )
-                            }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            @Suppress("DEPRECATION")
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = "Spotify",
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
+                }
+
+                if (!hasPreview && !hasExternalLink) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(MaterialTheme.colorScheme.surface)
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.OpenInNew,
+                            imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         )
                         Text(
-                            text = "In Spotify",
-                            color = MaterialTheme.colorScheme.primary,
+                            text = "Aktuell keine Vorschau verfugbar",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }

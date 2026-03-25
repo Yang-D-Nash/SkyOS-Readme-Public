@@ -21,7 +21,23 @@ class MusicViewModel : ViewModel() {
     init {
         viewModelScope.launch {
             SpotifyAuthManager.isConnected.collectLatest { connected ->
-                _uiState.update { it.copy(isSpotifyConnected = connected) }
+                _uiState.update {
+                    if (connected) {
+                        it.copy(
+                            isSpotifyConnected = true,
+                            errorMessage = null,
+                        )
+                    } else {
+                        it.copy(
+                            isSpotifyConnected = false,
+                            isLoading = false,
+                            tracks = emptyList(),
+                            currentlyPlayingId = null,
+                            currentPreviewUrl = null,
+                            errorMessage = null,
+                        )
+                    }
+                }
                 if (connected && _uiState.value.tracks.isEmpty()) {
                     selectArtist(_uiState.value.selectedArtist)
                 }
@@ -35,23 +51,52 @@ class MusicViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         selectedArtist = artist,
+                        isLoading = false,
                         tracks = emptyList(),
                         currentlyPlayingId = null,
                         currentPreviewUrl = null,
+                        errorMessage = null,
                     )
                 }
                 return@launch
             }
 
-            val tracks = musicService.fetchTracks(artist).getOrDefault(emptyList())
             _uiState.update {
                 it.copy(
                     selectedArtist = artist,
-                    tracks = tracks,
+                    isLoading = true,
+                    tracks = emptyList(),
                     currentlyPlayingId = null,
                     currentPreviewUrl = null,
+                    errorMessage = null,
                 )
             }
+
+            musicService.fetchTracks(artist)
+                .onSuccess { tracks ->
+                    _uiState.update {
+                        it.copy(
+                            selectedArtist = artist,
+                            isLoading = false,
+                            tracks = tracks,
+                            currentlyPlayingId = null,
+                            currentPreviewUrl = null,
+                            errorMessage = null,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            selectedArtist = artist,
+                            isLoading = false,
+                            tracks = emptyList(),
+                            currentlyPlayingId = null,
+                            currentPreviewUrl = null,
+                            errorMessage = error.message ?: "Spotify konnte gerade nicht geladen werden.",
+                        )
+                    }
+                }
         }
     }
 

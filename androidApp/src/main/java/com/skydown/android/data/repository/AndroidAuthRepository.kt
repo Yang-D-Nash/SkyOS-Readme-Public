@@ -1,9 +1,11 @@
 package com.skydown.android.data.repository
 
 import com.skydown.android.data.AppSessionStore
+import com.skydown.android.data.GoogleSignInManager
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.RegistrationInput
@@ -35,8 +37,10 @@ class AndroidAuthRepository(
     override suspend fun signInWithGoogle(idToken: String): Result<User> {
         return runCatching {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
-            auth.signInWithCredential(credential).await()
-            (currentUser() ?: error("Benutzer konnte nicht geladen werden."))
+            val authResult = auth.signInWithCredential(credential).await()
+            val firebaseUser = authResult.user ?: error("Google-Benutzer konnte nicht geladen werden.")
+            createUserDocumentIfNeeded(firebaseUser)
+            (currentUser() ?: firebaseUser.toSharedUser())
                 .also(AppSessionStore::update)
         }.recoverCatching { error ->
             throw error.toReadableAuthError()
@@ -64,9 +68,30 @@ class AndroidAuthRepository(
 
     override suspend fun signOut(): Result<Unit> {
         return runCatching {
+            GoogleSignInManager.client(auth.app.applicationContext).signOut().await()
             auth.signOut()
             AppSessionStore.update(null)
         }
+    }
+
+    private suspend fun createUserDocumentIfNeeded(authUser: FirebaseUser) {
+        val documentReference = firestore.collection("users").document(authUser.uid)
+        val snapshot = documentReference.get().await()
+
+        if (snapshot.exists()) return
+
+        val fallbackEmail = authUser.email.orEmpty()
+        val user = User(
+            id = authUser.uid,
+            email = fallbackEmail,
+            username = authUser.displayName
+                ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" },
+            whatsApp = null,
+            registrationDateEpochMillis = authUser.metadata?.creationTimestamp ?: System.currentTimeMillis(),
+            isAdmin = false,
+        )
+
+        documentReference.set(user).await()
     }
 }
 
@@ -106,6 +131,8 @@ private fun Throwable.toReadableAuthError(): Throwable {
             "ERROR_USER_NOT_FOUND" -> "Kein Benutzer mit dieser E-Mail gefunden."
             "ERROR_USER_DISABLED" -> "Dieses Konto wurde deaktiviert."
             "ERROR_EMAIL_ALREADY_IN_USE" -> "Diese E-Mail wird bereits verwendet."
+            "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" -> "Diese E-Mail ist bereits mit einer anderen Anmeldemethode verknuepft."
+            "ERROR_CREDENTIAL_ALREADY_IN_USE" -> "Das Google-Konto wird bereits von einem anderen Benutzer verwendet."
             "ERROR_WEAK_PASSWORD" -> "Das Passwort ist zu schwach."
             else -> null
         }

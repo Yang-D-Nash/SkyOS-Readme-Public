@@ -1,6 +1,7 @@
 package com.skydown.android.data
 
 import android.content.Context
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -19,6 +20,6 @@ object GoogleSignInManager {
 
     fun accountFromIntent(data: android.content.Intent?): GoogleSignInAccount {
         val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-        return task.result ?: error("Google-Anmeldung wurde abgebrochen.")
+        return task.getResult(ApiException::class.java)
     }
 }

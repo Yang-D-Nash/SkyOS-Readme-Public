@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
 object AppContainer {
     private const val useFirebaseRepositories = true
 
+    val aiChatClient: AiChatClient by lazy { AiChatClient() }
+
     val authRepository: AuthRepository by lazy {
         if (useFirebaseRepositories) AndroidAuthRepository() else FakeAuthRepository()
     }

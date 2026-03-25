@@ -38,6 +38,9 @@ struct MainTabView: View {
             MusicView()
                 .tabItem { Label("Musik", systemImage: "music.note.list") }
 
+            AIView(aiChatService: services.aiChatService)
+                .tabItem { Label("AI", systemImage: "sparkles") }
+
             CartView()
                 .tabItem { Label("Warenkorb", systemImage: "bag.fill") }
 
