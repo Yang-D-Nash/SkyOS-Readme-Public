@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1069068117600-ca7q2bg4e1jtke6qj77jjiv5l7l7vfsh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skydown.android",
+            "certificate_hash": "f164b2ae4edf589a31cec1455161ce2c667918b2"
+          }
+        },
+        {
           "client_id": "1069068117600-eko4qr00llq6eecq5a3itubtpia58opp.apps.googleusercontent.com",
           "client_type": 3
         }

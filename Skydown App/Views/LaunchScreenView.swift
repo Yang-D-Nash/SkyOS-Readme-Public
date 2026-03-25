@@ -24,16 +24,21 @@ struct LaunchScreenView: View {
                         Color.black
                             .ignoresSafeArea()
 
-                        VideoPlayer(player: player)
-                            .aspectRatio(contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                            }
-                            .shadow(color: .black.opacity(0.32), radius: 24, y: 12)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 24)
+                        GeometryReader { proxy in
+                            VideoPlayer(player: player)
+                                .frame(
+                                    width: proxy.size.width - 12,
+                                    height: proxy.size.height - 24
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                }
+                                .shadow(color: .black.opacity(0.32), radius: 24, y: 12)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 12)
+                        }
                     }
                     .onAppear {
                         configureIntroAudioSession()
