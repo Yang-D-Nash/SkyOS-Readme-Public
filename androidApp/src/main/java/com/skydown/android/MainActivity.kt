@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppearancePreferences
+import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.ui.SkydownApp
 import com.skydown.android.ui.theme.AppearanceMode
@@ -23,9 +24,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppearancePreferences.initialize(applicationContext)
+        AppFeatureFlagsStore.initialize()
         SpotifyAuthManager.initialize(applicationContext)
         handleSpotifyRedirect(intent?.data)
         volumeControlStream = AudioManager.STREAM_MUSIC
+        lifecycleScope.launch {
+            AppFeatureFlagsStore.refresh()
+        }
         setContent {
             val appearanceMode by AppearancePreferences.appearanceMode.collectAsStateWithLifecycle()
             val darkTheme = when (appearanceMode) {

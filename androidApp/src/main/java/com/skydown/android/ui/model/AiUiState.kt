@@ -9,6 +9,7 @@ data class AiUiState(
     ),
     val draft: String = "",
     val isSending: Boolean = false,
+    val isAiEnabled: Boolean = true,
     val errorMessage: String? = null,
     val quickPrompts: List<String> = listOf(
         "Schreib eine Instagram Caption fuer einen neuen Skydown Release.",

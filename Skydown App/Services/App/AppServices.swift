@@ -4,6 +4,7 @@ import Foundation
 final class AppServices: ObservableObject {
     let authService: AuthServicing
     let aiChatService: AIChatServicing
+    let featureFlags: FeatureFlagsService
     let merchandiseService: MerchandiseServicing
     let orderService: OrderServicing
     let musicService: MusicServicing
@@ -20,6 +21,7 @@ final class AppServices: ObservableObject {
     ) {
         self.authService = authService
         self.aiChatService = aiChatService
+        self.featureFlags = FeatureFlagsService()
         self.merchandiseService = merchandiseService
         self.orderService = orderService
         self.musicService = musicService

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -78,9 +79,13 @@ fun AiScreen(
     }
 
     LaunchedEffect(uiState.messages.size) {
-        if (uiState.messages.isNotEmpty()) {
+        if (uiState.isAiEnabled && uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.lastIndex + 2)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshAvailability()
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -93,20 +98,22 @@ fun AiScreen(
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
-            AiComposerBar(
-                draft = uiState.draft,
-                isSending = uiState.isSending,
-                onDraftChanged = viewModel::updateDraft,
-                onSend = {
-                    viewModel.sendDraft()
-                    dismissKeyboard()
-                },
-                onReset = {
-                    dismissKeyboard()
-                    viewModel.resetConversation()
-                },
-                onDismissKeyboard = dismissKeyboard,
-            )
+            if (uiState.isAiEnabled) {
+                AiComposerBar(
+                    draft = uiState.draft,
+                    isSending = uiState.isSending,
+                    onDraftChanged = viewModel::updateDraft,
+                    onSend = {
+                        viewModel.sendDraft()
+                        dismissKeyboard()
+                    },
+                    onReset = {
+                        dismissKeyboard()
+                        viewModel.resetConversation()
+                    },
+                    onDismissKeyboard = dismissKeyboard,
+                )
+            }
         },
     ) { innerPadding ->
         Box(
@@ -131,22 +138,38 @@ fun AiScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    AiHeroCard()
-                }
-
-                item {
-                    QuickPromptCard(
-                        prompts = uiState.quickPrompts,
-                        onPromptSelected = viewModel::sendPrompt,
+                    AiHeroCard(
+                        badges = if (uiState.isAiEnabled) {
+                            listOf("Gemini 2.5 Flash-Lite", "Fair Use")
+                        } else {
+                            listOf("Gemini 2.5 Flash-Lite", "Temporarily Off")
+                        },
                     )
                 }
 
-                items(uiState.messages, key = { it.id }) { message ->
-                    AiMessageBubble(message = message)
-                }
+                if (uiState.isAiEnabled) {
+                    item {
+                        AiFairUseCard()
+                    }
 
-                item {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    item {
+                        QuickPromptCard(
+                            prompts = uiState.quickPrompts,
+                            onPromptSelected = viewModel::sendPrompt,
+                        )
+                    }
+
+                    items(uiState.messages, key = { it.id }) { message ->
+                        AiMessageBubble(message = message)
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+                } else {
+                    item {
+                        AiDisabledCard()
+                    }
                 }
             }
 
@@ -155,14 +178,16 @@ fun AiScreen(
                 type = ToastType.Error,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 104.dp),
+                    .padding(bottom = if (uiState.isAiEnabled) 104.dp else 32.dp),
             )
         }
     }
 }
 
 @Composable
-private fun AiHeroCard() {
+private fun AiHeroCard(
+    badges: List<String>,
+) {
     SkydownCard(contentPadding = PaddingValues(20.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -203,9 +228,105 @@ private fun AiHeroCard() {
             modifier = Modifier.padding(top = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiBadge("Gemini 2.5 Flash")
-            AiBadge("Creator Mode")
+            badges.forEach { badge ->
+                AiBadge(badge)
+            }
         }
+    }
+}
+
+@Composable
+private fun AiFairUseCard() {
+    SkydownCard {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "AI mit Fair Use",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Kostenschutz aktiv",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        Text(
+            text = "Alle koennen die AI nutzen. Damit die Kosten im Rahmen bleiben, laeuft sie auf Flash-Lite und mit bewusst knapperen Antworten.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+            modifier = Modifier.padding(top = 14.dp),
+        )
+
+        Text(
+            text = "Den echten Kostenschutz machen wir zusaetzlich ueber Budget-Alerts, AI-Monitoring und App Check im Firebase-/Google-Cloud-Projekt.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}
+
+@Composable
+private fun AiDisabledCard() {
+    SkydownCard {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "AI ist pausiert",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Remote Switch aktiv",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        Text(
+            text = "Die AI wurde gerade zentral in Firebase deaktiviert. Sobald `ai_enabled` wieder auf `true` steht, ist sie ohne App-Update wieder da.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+            modifier = Modifier.padding(top = 14.dp),
+        )
     }
 }
 

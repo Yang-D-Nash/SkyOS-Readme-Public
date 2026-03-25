@@ -2,13 +2,18 @@ import SwiftUI
 
 struct AIView: View {
     @StateObject private var viewModel: AIChatViewModel
+    @ObservedObject private var featureFlags: FeatureFlagsService
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
 
-    init(aiChatService: AIChatServicing = FirebaseAIChatService()) {
+    init(
+        aiChatService: AIChatServicing = FirebaseAIChatService(),
+        featureFlags: FeatureFlagsService
+    ) {
         _viewModel = StateObject(
             wrappedValue: AIChatViewModel(service: aiChatService)
         )
+        _featureFlags = ObservedObject(wrappedValue: featureFlags)
     }
 
     var body: some View {
@@ -16,32 +21,41 @@ struct AIView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
-                        AIHeroCard(colorScheme: colorScheme)
-
-                        AIQuickPromptCard(
+                        AIHeroCard(
                             colorScheme: colorScheme,
-                            prompts: viewModel.quickPrompts,
-                            onPromptSelected: viewModel.sendPrompt
+                            badges: featureFlags.isAIEnabled
+                                ? ["Gemini 2.5 Flash-Lite", "Fair Use"]
+                                : ["Gemini 2.5 Flash-Lite", "Temporarily Off"]
                         )
 
-                        ForEach(viewModel.messages) { message in
-                            AIMessageBubble(
-                                message: message,
-                                colorScheme: colorScheme
-                            )
-                            .id(message.id)
-                        }
+                        if featureFlags.isAIEnabled {
+                            AIFairUseCard(colorScheme: colorScheme)
 
-                        Color.clear
-                            .frame(height: 4)
-                            .id("chat-end")
+                            AIQuickPromptCard(
+                                colorScheme: colorScheme,
+                                prompts: viewModel.quickPrompts,
+                                onPromptSelected: viewModel.sendPrompt
+                            )
+
+                            ForEach(viewModel.messages) { message in
+                                AIMessageBubble(
+                                    message: message,
+                                    colorScheme: colorScheme
+                                )
+                                .id(message.id)
+                            }
+
+                            Color.clear
+                                .frame(height: 4)
+                                .id("chat-end")
+                        } else {
+                            AIDisabledCard(colorScheme: colorScheme)
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 12)
                 }
-                .background(backgroundGradient.ignoresSafeArea())
-                .navigationTitle("Skydown AI")
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
                 .simultaneousGesture(
@@ -50,21 +64,30 @@ struct AIView: View {
                     }
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    AIComposerBar(
-                        colorScheme: colorScheme,
-                        draft: $viewModel.draft,
-                        isFocused: $isComposerFocused,
-                        isSending: viewModel.isSending,
-                        onReset: viewModel.resetConversation,
-                        onSend: viewModel.sendDraft
-                    )
-                }
-                .onChange(of: viewModel.messages.count) { _, _ in
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        proxy.scrollTo("chat-end", anchor: .bottom)
+                    if featureFlags.isAIEnabled {
+                        AIComposerBar(
+                            colorScheme: colorScheme,
+                            draft: $viewModel.draft,
+                            isFocused: $isComposerFocused,
+                            isSending: viewModel.isSending,
+                            onReset: viewModel.resetConversation,
+                            onSend: viewModel.sendDraft
+                        )
                     }
                 }
+                .onChange(of: viewModel.messages.count) { _, _ in
+                    if featureFlags.isAIEnabled {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo("chat-end", anchor: .bottom)
+                        }
+                    }
+                }
+                .task {
+                    await featureFlags.refresh()
+                }
             }
+            .background(backgroundGradient.ignoresSafeArea())
+            .navigationTitle("Skydown AI")
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -97,6 +120,7 @@ struct AIView: View {
 
 private struct AIHeroCard: View {
     let colorScheme: ColorScheme
+    let badges: [String]
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
@@ -131,8 +155,9 @@ private struct AIHeroCard: View {
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: 10) {
-                AIBadge(text: "Gemini 2.5 Flash", colorScheme: colorScheme)
-                AIBadge(text: "Creator Mode", colorScheme: colorScheme)
+                ForEach(badges, id: \.self) { badge in
+                    AIBadge(text: badge, colorScheme: colorScheme)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 18)
@@ -148,6 +173,90 @@ private struct AIHeroCard: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+}
+
+private struct AIFairUseCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.14))
+                        .frame(width: 50, height: 50)
+
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AI mit Fair Use")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Kostenschutz aktiv")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+            }
+
+            Text("Alle koennen die AI nutzen. Damit die Kosten im Rahmen bleiben, laeuft sie auf dem guenstigeren Flash-Lite-Modell und mit bewusst knapperen Antworten.")
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text("Fuer echten Schutz brauchen wir zusaetzlich Budget-Alerts, AI-Monitoring und App Check im Firebase-/Google-Cloud-Projekt.")
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(18)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct AIDisabledCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.14))
+                        .frame(width: 50, height: 50)
+
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AI ist pausiert")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Remote Switch aktiv")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+            }
+
+            Text("Die AI wurde gerade zentral in Firebase deaktiviert. Sobald `ai_enabled` wieder auf `true` steht, ist sie ohne App-Update wieder da.")
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(18)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -410,5 +519,8 @@ private struct AIBadge: View {
 #Preview {
     let services = AppServices()
 
-    AIView(aiChatService: services.aiChatService)
+    AIView(
+        aiChatService: services.aiChatService,
+        featureFlags: services.featureFlags
+    )
 }

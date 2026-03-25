@@ -3,6 +3,7 @@ package com.skydown.android.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
 import com.skydown.android.ui.model.AiUiState
@@ -20,6 +21,14 @@ class AiViewModel : ViewModel() {
 
     private var chat = aiChatClient.createChat()
 
+    init {
+        viewModelScope.launch {
+            AppContainer.aiEnabled.collect { isEnabled ->
+                _uiState.update { it.copy(isAiEnabled = isEnabled) }
+            }
+        }
+    }
+
     fun updateDraft(draft: String) {
         _uiState.update { it.copy(draft = draft) }
     }
@@ -30,6 +39,12 @@ class AiViewModel : ViewModel() {
 
     fun sendPrompt(prompt: String) {
         val trimmedPrompt = prompt.trim()
+        if (!_uiState.value.isAiEnabled) {
+            _uiState.update {
+                it.copy(errorMessage = "Skydown AI ist gerade deaktiviert.")
+            }
+            return
+        }
         if (trimmedPrompt.isBlank() || _uiState.value.isSending) return
 
         val userMessage = AiMessage(
@@ -95,7 +110,16 @@ class AiViewModel : ViewModel() {
     fun resetConversation() {
         chat = aiChatClient.createChat()
         _uiState.update { currentState ->
-            AiUiState(draft = currentState.draft)
+            AiUiState(
+                draft = currentState.draft,
+                isAiEnabled = currentState.isAiEnabled,
+            )
+        }
+    }
+
+    fun refreshAvailability() {
+        viewModelScope.launch {
+            AppFeatureFlagsStore.refresh()
         }
     }
 

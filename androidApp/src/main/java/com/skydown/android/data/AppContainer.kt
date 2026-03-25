@@ -44,6 +44,7 @@ object AppContainer {
     val orderService: OrderService by lazy { OrderService(orderRepository) }
     val musicService: MusicService by lazy { MusicService(musicRepository) }
     val currentUser: StateFlow<com.skydown.shared.model.User?> = AppSessionStore.currentUser
+    val aiEnabled: StateFlow<Boolean> = AppFeatureFlagsStore.isAiEnabled
 
     suspend fun refreshCurrentUser() {
         AppSessionStore.update(authService.currentUser())

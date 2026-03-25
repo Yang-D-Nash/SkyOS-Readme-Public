@@ -38,7 +38,10 @@ struct MainTabView: View {
             MusicView()
                 .tabItem { Label("Musik", systemImage: "music.note.list") }
 
-            AIView(aiChatService: services.aiChatService)
+            AIView(
+                aiChatService: services.aiChatService,
+                featureFlags: services.featureFlags
+            )
                 .tabItem { Label("AI", systemImage: "sparkles") }
 
             CartView()
