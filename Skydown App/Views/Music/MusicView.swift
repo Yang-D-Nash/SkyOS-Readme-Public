@@ -500,7 +500,7 @@ private struct NicmaProducerView: View {
                         .font(.largeTitle.bold())
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Mixing, Mastering und Recording mit klarer Preisliste. Der Beat Hub lebt separat, damit Uploads und Hoerproben ihren eigenen Raum haben.")
+                    Text("Mixing, Mastering und Recording mit klarer Preisliste, direktem Kontakt und sauberem Producer-Fokus.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -595,43 +595,6 @@ private struct NicmaProducerView: View {
                     RoundedRectangle(cornerRadius: 24)
                         .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
                 )
-
-                NavigationLink {
-                    BeatHubView()
-                } label: {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Beat Hub")
-                            .font(.headline)
-                            .foregroundColor(AppColors.text(for: colorScheme))
-
-                        Text("Uploads, Hoerproben und Freigaben laufen in einem eigenen Bereich, damit Producing und Beat-Library nicht ineinander verschwimmen.")
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                        HStack {
-                            Text("Zum Beat Hub")
-                                .font(.headline)
-                                .foregroundColor(AppColors.accent(for: colorScheme))
-
-                            Spacer()
-
-                            Image(systemName: "arrow.right.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(AppColors.accent(for: colorScheme))
-                        }
-                    }
-                    .padding(18)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(AppColors.cardBackground(for: colorScheme))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)

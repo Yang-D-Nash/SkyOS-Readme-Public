@@ -39,9 +39,11 @@ class NicmaBeatUploadService(
                     return@addSnapshotListener
                 }
 
-                val beats = snapshot?.documents.orEmpty().mapNotNull { document ->
-                    mapBeat(document as? QueryDocumentSnapshot ?: return@mapNotNull null)
-                }
+                val beats = snapshot?.documents.orEmpty()
+                    .mapNotNull { document ->
+                        mapBeat(document as? QueryDocumentSnapshot ?: return@mapNotNull null)
+                    }
+                    .sortedByDescending { beat -> beat.createdAtMillis }
                 onChange(Result.success(beats))
             }
 
@@ -187,6 +189,5 @@ class NicmaBeatUploadService(
 
         return baseCollection
             .whereEqualTo("isPublic", true)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
     }
 }

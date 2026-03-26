@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,7 +46,6 @@ import com.skydown.android.ui.component.SkydownCard
 @Composable
 fun NicmaProducerScreen(
     onBack: () -> Unit,
-    onOpenBeatHub: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
@@ -63,7 +61,7 @@ fun NicmaProducerScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Producing, Preise und direkter Weg in den Beat Hub.",
+                            text = "Producing, Preise und direkter Kontakt.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -122,10 +120,6 @@ fun NicmaProducerScreen(
                         onOpenInstagram = { openNicmaInstagram(context) },
                     )
                 }
-
-                item {
-                    NicmaBeatHubCalloutCard(onOpenBeatHub = onOpenBeatHub)
-                }
             }
         }
     }
@@ -148,7 +142,7 @@ private fun NicmaHeroCard() {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Mixing, Mastering und Recording sind hier als klare Producer-Seite gebuendelt. Beat-Uploads und Hoerproben laufen bewusst separat im Beat Hub.",
+                    text = "Mixing, Mastering und Recording sind hier als klare Producer-Seite gebuendelt, mit direktem Kontakt und transparenter Preisliste.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -278,72 +272,6 @@ private fun NicmaContactCard(
 }
 
 @Composable
-private fun NicmaBeatHubCalloutCard(
-    onOpenBeatHub: () -> Unit,
-) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SectionHeader("Beat Hub")
-                Text(
-                    text = "Eigener Bereich fuer Uploads, Preview-Playback und Admin-Freigaben. So bleibt die Producer-Seite fokussiert und die Beat-Library fuer andere User wirklich nutzbar.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                )
-            }
-        }
-
-        Button(
-            onClick = onOpenBeatHub,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            shape = RoundedCornerShape(18.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            Text("Beat Hub oeffnen")
-        }
-
-        OutlinedButton(
-            onClick = onOpenBeatHub,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-            )
-            Text(
-                text = "Beats hochladen und hoeren",
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-    }
-}
-
-@Composable
 private fun NicmaBadge(text: String) {
     Row(
         modifier = Modifier
@@ -388,13 +316,8 @@ private fun openNicmaEmail(context: Context) {
 }
 
 private fun openNicmaInstagram(context: Context) {
-    val intent = Intent(
-        Intent.ACTION_VIEW,
-        Uri.parse("https://www.instagram.com/nicma.music/"),
+    openExternalLink(
+        context = context,
+        url = "https://www.instagram.com/nicma.music/",
     )
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
-        Toast.makeText(context, "Kein Browser gefunden.", Toast.LENGTH_SHORT).show()
-    }
 }

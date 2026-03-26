@@ -1,7 +1,6 @@
 package com.skydown.android.ui.screen
 
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -78,7 +77,6 @@ fun MusicScreen(
     if (activeDestination == musicDestinationNicmaProducer) {
         NicmaProducerScreen(
             onBack = { activeDestination = null },
-            onOpenBeatHub = { activeDestination = musicDestinationBeatHub },
         )
         return
     }
@@ -881,17 +879,5 @@ private fun MusicBadge(
             style = MaterialTheme.typography.labelLarge,
             color = contentColor,
         )
-    }
-}
-
-private fun openExternalLink(
-    context: android.content.Context,
-    url: String,
-) {
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
-        Toast.makeText(context, "Kein Browser gefunden.", Toast.LENGTH_SHORT).show()
     }
 }

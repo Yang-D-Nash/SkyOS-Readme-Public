@@ -155,6 +155,9 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
 
                     let beats = snapshot?.documents.compactMap { document in
                         self?.mapBeat(document: document)
+                    }
+                    .sorted { left, right in
+                        left.createdAt > right.createdAt
                     } ?? []
                     onChange(.success(beats))
                 }
@@ -267,7 +270,6 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
 
         return baseCollection
             .whereField("isPublic", isEqualTo: true)
-            .order(by: "createdAt", descending: true)
     }
 
     private func mapBeat(document: QueryDocumentSnapshot) -> NicmaBeatHubItem? {
