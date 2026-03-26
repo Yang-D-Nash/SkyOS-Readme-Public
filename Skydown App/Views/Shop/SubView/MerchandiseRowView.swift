@@ -37,31 +37,20 @@ struct MerchandiseRowView: View {
                     Button(role: .destructive) {
                         onDelete(item)
                     } label: {
-                        Label("Löschen", systemImage: "trash")
+                        Label("Loeschen", systemImage: "trash")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                 }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
             }
         }
-        .listRowBackground(AppColors.secondaryBackground(for: environmentColorScheme))
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            if isAdmin {
-                Button {
-                    onEdit(item)
-                } label: {
-                    Label("Bearbeiten", systemImage: "pencil")
-                }
-                .tint(.blue)
-
-                Button(role: .destructive) {
-                    onDelete(item)
-                } label: {
-                    Label("Löschen", systemImage: "trash")
-                }
-            }
-        }
+        .padding(16)
+        .background(AppColors.cardBackground(for: environmentColorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: environmentColorScheme).opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .shadow(color: .black.opacity(environmentColorScheme == .dark ? 0.18 : 0.06), radius: 12, y: 8)
     }
 }

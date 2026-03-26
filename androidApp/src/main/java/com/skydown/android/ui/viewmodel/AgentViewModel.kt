@@ -41,7 +41,7 @@ class AgentViewModel : ViewModel() {
         val trimmedPrompt = prompt.trim()
         if (!_uiState.value.isAgentEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Skydown Agent ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der Skydown x 22 Agent ist gerade deaktiviert.")
             }
             return
         }
@@ -153,20 +153,20 @@ class AgentViewModel : ViewModel() {
         is FirebaseFunctionsException -> when (error.code) {
             FirebaseFunctionsException.Code.NOT_FOUND,
             FirebaseFunctionsException.Code.UNIMPLEMENTED,
-            -> "Der Genkit-Agent ist im Firebase-Projekt noch nicht live."
-            FirebaseFunctionsException.Code.UNAVAILABLE -> "Skydown Agent ist gerade nicht erreichbar."
-            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Skydown Agent hat zu lange fuer die Antwort gebraucht."
-            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> "Skydown Agent ist gerade ausgelastet."
-            FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Agent-Anfrage war ungueltig."
-            FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Die Anfrage an den Agenten konnte nicht verifiziert werden."
-            else -> error.message ?: "Skydown Agent konnte gerade nicht antworten."
+            -> "Der Skydown x 22 Agent ist fuer diese Funktion gerade noch nicht verfuegbar."
+            FirebaseFunctionsException.Code.UNAVAILABLE -> "Der Skydown x 22 Agent ist gerade nicht erreichbar."
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Der Skydown x 22 Agent hat zu lange fuer die Antwort gebraucht."
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> "Der Skydown x 22 Agent ist gerade ausgelastet."
+            FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
+            FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
+            else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
         }
 
-        else -> error.message ?: "Skydown Agent konnte gerade nicht antworten."
+        else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
     }
 
     private companion object {
         const val INTRO_MESSAGE =
-            "Ich bin Skydown Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
+            "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
     }
 }

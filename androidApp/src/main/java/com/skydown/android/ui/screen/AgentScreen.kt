@@ -28,14 +28,17 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,9 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,12 +64,14 @@ import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.viewmodel.AgentViewModel
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentScreen(
     viewModel: AgentViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.isAgentEnabled && uiState.messages.isNotEmpty()) {
@@ -84,7 +91,31 @@ fun AgentScreen(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Agent",
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                actions = {
+                    Icon(
+                        imageVector = Icons.Default.Bolt,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(end = 16.dp),
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                ),
+                scrollBehavior = scrollBehavior,
+            )
+        },
         bottomBar = {
             if (uiState.isAgentEnabled) {
                 AgentComposerBar(
@@ -115,24 +146,18 @@ fun AgentScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
-                    AgentHeroCard(
-                        badges = if (uiState.isAgentEnabled) {
-                            listOf("Genkit Flow", "Server-side", "Workflow Beta")
-                        } else {
-                            listOf("Genkit Flow", "Temporarily Off", "Workflow Beta")
-                        },
-                    )
-                }
-
-                item {
-                    AgentExplainCard()
+                    AgentOverviewCard(isEnabled = uiState.isAgentEnabled)
                 }
 
                 if (uiState.isAgentEnabled) {
+                    item {
+                        AgentExplainCard()
+                    }
+
                     item {
                         AgentQuickPromptCard(
                             prompts = uiState.quickPrompts,
@@ -145,7 +170,7 @@ fun AgentScreen(
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
                 } else {
                     item {
@@ -159,42 +184,26 @@ fun AgentScreen(
                 type = ToastType.Error,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = if (uiState.isAgentEnabled) 104.dp else 32.dp),
+                    .padding(bottom = if (uiState.isAgentEnabled) 92.dp else 28.dp),
             )
         }
     }
 }
 
 @Composable
-private fun AgentHeroCard(
-    badges: List<String>,
+private fun AgentOverviewCard(
+    isEnabled: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(20.dp)) {
+    SkydownCard {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Skydown Agent",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Der Agent laeuft ueber Cloud Functions und Genkit, damit Regeln, Prompting und Beobachtung zentral bleiben.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                )
-            }
-
             Box(
                 modifier = Modifier
-                    .size(58.dp)
+                    .size(54.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
+                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -203,14 +212,26 @@ private fun AgentHeroCard(
                     tint = MaterialTheme.colorScheme.tertiary,
                 )
             }
-        }
 
-        Row(
-            modifier = Modifier.padding(top = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            badges.forEach { badge ->
-                AgentBadge(badge)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Skydown x 22 Agent",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Der Agent ist fuer Briefings, Launch-Plaene, Freigaben und naechste Schritte gedacht und fuehlt sich jetzt wie ein klarer X22 Workflow-Bereich an.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                )
+                Text(
+                    text = if (isEnabled) "X22 Agent aktiv" else "X22 Agent pausiert",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
             }
         }
     }
@@ -219,12 +240,16 @@ private fun AgentHeroCard(
 @Composable
 private fun AgentExplainCard() {
     SkydownCard {
-        SectionHeader("Wofuer der Agent gedacht ist")
         Text(
-            text = "Hier geht es weniger um lose Ideen und mehr um umsetzbare Briefings, Launch-Plaene, naechste Schritte und spaetere serverseitige Flows.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-            modifier = Modifier.padding(top = 8.dp),
+            text = "Wofuer der X22 Agent gedacht ist",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "Hier geht es weniger um lose Ideen und mehr um konkrete Briefings, Struktur, Planung und naechste Schritte fuer die Skydown x 22 App.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+            modifier = Modifier.padding(top = 10.dp),
         )
     }
 }
@@ -252,12 +277,12 @@ private fun AgentDisabledCard() {
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Agent ist pausiert",
+                    text = "X22 Agent pausiert",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Remote Switch aktiv",
+                    text = "Voruebergehend nicht verfuegbar",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
@@ -265,7 +290,7 @@ private fun AgentDisabledCard() {
         }
 
         Text(
-            text = "Der Agent haengt aktuell am gleichen zentralen AI-Schalter. Sobald `ai_enabled` wieder auf `true` steht, ist auch der Genkit-Weg wieder offen.",
+            text = "Der Skydown x 22 Agent ist im Moment pausiert. Versuch es spaeter erneut, dann steht er wieder zur Verfuegung.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
             modifier = Modifier.padding(top = 14.dp),
@@ -278,30 +303,36 @@ private fun AgentQuickPromptCard(
     prompts: List<String>,
     onPromptSelected: (String) -> Unit,
 ) {
-    SkydownCard {
-        SectionHeader("Schnell starten")
-        Text(
-            text = "Die Vorschlaege schicken direkt eine workflow-orientierte Anfrage an den Agenten.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
+    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+        SectionHeader("Agent starten")
         LazyRow(
-            contentPadding = PaddingValues(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(end = 4.dp),
         ) {
-            items(prompts, key = { it }) { prompt ->
-                AssistChip(
+            items(prompts) { prompt ->
+                OutlinedButton(
                     onClick = { onPromptSelected(prompt) },
-                    label = {
-                        Text(
-                            text = prompt,
-                            maxLines = 2,
-                        )
-                    },
-                )
+                    modifier = Modifier.widthIn(min = 190.dp, max = 236.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text(
+                        text = prompt,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
         }
+
+        Text(
+            text = "Die Vorschlaege schicken direkt eine workflow-orientierte Anfrage an den Skydown x 22 Agent.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            modifier = Modifier.padding(top = 10.dp),
+        )
     }
 }
 
@@ -323,7 +354,7 @@ private fun AgentMessageBubble(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 340.dp)
+                .widthIn(max = 320.dp)
                 .clip(bubbleShape)
                 .background(
                     if (isUser) {
@@ -342,10 +373,10 @@ private fun AgentMessageBubble(
                         )
                     },
                 )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             Text(
-                text = if (isUser) "Du" else "Skydown Agent",
+                text = if (isUser) "Du" else "X22 Agent",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
@@ -362,7 +393,7 @@ private fun AgentMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "Agent baut gerade die Antwort...",
+                        text = "X22 Agent plant gerade...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -370,7 +401,7 @@ private fun AgentMessageBubble(
             } else {
                 Text(
                     text = message.text,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = if (isUser) {
                         MaterialTheme.colorScheme.onPrimary
                     } else {
@@ -397,9 +428,9 @@ private fun AgentComposerBar(
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        SkydownCard {
+        SkydownCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -409,14 +440,9 @@ private fun AgentComposerBar(
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
-                        text = "Agent-Aufgabe",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "X22 Aufgabe",
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = "Klare Ziele, Rollen und naechste Schritte funktionieren hier am besten.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     )
                 }
 
@@ -424,6 +450,7 @@ private fun AgentComposerBar(
                     IconButton(
                         onClick = onReset,
                         enabled = !isSending,
+                        modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -438,12 +465,12 @@ private fun AgentComposerBar(
                 onValueChange = onDraftChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 10.dp),
                 placeholder = {
-                    Text("Zum Beispiel: Bau mir ein Release-Briefing fuer Freitag auf.")
+                    Text("Zum Beispiel: Release-Briefing fuer den naechsten Skydown x 22 Freitag.")
                 },
-                minLines = 3,
-                maxLines = 5,
+                minLines = 1,
+                maxLines = 3,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onSend() }),
             )
@@ -451,12 +478,12 @@ private fun AgentComposerBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (isSending) "Skydown Agent plant..." else "Bereit fuer den Workflow",
+                    text = if (isSending) "X22 Agent plant..." else "Bereit fuer X22 Workflow",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     textAlign = TextAlign.End,
@@ -465,7 +492,9 @@ private fun AgentComposerBar(
                 FilledIconButton(
                     onClick = onSend,
                     enabled = draft.isNotBlank() && !isSending,
-                    modifier = Modifier.padding(start = 12.dp),
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                        .size(42.dp),
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
@@ -474,24 +503,5 @@ private fun AgentComposerBar(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AgentBadge(
-    text: String,
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.tertiary,
-        )
     }
 }

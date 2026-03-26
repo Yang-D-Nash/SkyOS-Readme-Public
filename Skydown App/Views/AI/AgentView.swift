@@ -24,8 +24,8 @@ struct AgentView: View {
                         AgentHeroCard(
                             colorScheme: colorScheme,
                             badges: featureFlags.isAIEnabled
-                                ? ["Genkit Flow", "Server-side", "Workflow Beta"]
-                                : ["Genkit Flow", "Temporarily Off", "Workflow Beta"]
+                                ? ["X22 Agent", "Workflow"]
+                                : ["X22 Agent", "Kurz pausiert"]
                         )
 
                         AgentExplainCard(colorScheme: colorScheme)
@@ -87,7 +87,7 @@ struct AgentView: View {
                 }
             }
             .background(backgroundGradient.ignoresSafeArea())
-            .navigationTitle("Skydown Agent")
+            .navigationTitle("Agent")
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -125,12 +125,12 @@ private struct AgentHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Skydown Agent")
+                Text("Skydown x 22 Agent")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Der Agent laeuft ueber Cloud Functions und Genkit, damit Regeln, Prompting und Beobachtung zentral bleiben.")
+                Text("Der Agent ist fuer Briefings, Release-Plaene, Freigaben und naechste Schritte da, damit Skydown x 22 von der Idee bis zum Launch klar gefuehrt wird.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -181,11 +181,11 @@ private struct AgentExplainCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Wofuer der Agent gedacht ist")
+            Text("Wofuer der X22 Agent gedacht ist")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier geht es weniger um lose Ideen und mehr um umsetzbare Briefings, Launch-Plaene, naechste Schritte und spaetere serverseitige Flows.")
+            Text("Hier geht es weniger um lose Ideen und mehr um umsetzbare Briefings, Launch-Plaene, naechste Schritte und klare Launch-Ablaufe fuer Skydown x 22.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -215,17 +215,17 @@ private struct AgentDisabledCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Agent ist pausiert")
+                    Text("X22 Agent pausiert")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Remote Switch aktiv")
+                    Text("Voruebergehend nicht verfuegbar")
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.accentMystic(for: colorScheme))
                 }
             }
 
-            Text("Der Agent haengt aktuell am gleichen zentralen AI-Schalter. Sobald `ai_enabled` wieder auf `true` steht, ist auch der Genkit-Weg wieder offen.")
+            Text("Der Skydown x 22 Agent ist im Moment pausiert. Versuch es spaeter erneut, dann ist er wieder fuer Briefings und Planung bereit.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -246,11 +246,11 @@ private struct AgentQuickPromptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Schnell starten")
+            Text("Agent starten")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Die Vorschlaege schicken direkt eine workflow-orientierte Anfrage an den Agenten.")
+            Text("Die Vorschlaege schicken direkt eine workflow-orientierte Anfrage an den X22 Agent.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -298,7 +298,7 @@ private struct AgentMessageBubble: View {
             if isUser { Spacer(minLength: 48) }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(isUser ? "Du" : "Skydown Agent")
+                Text(isUser ? "Du" : "X22 Agent")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accentMystic(for: colorScheme))
 
@@ -307,7 +307,7 @@ private struct AgentMessageBubble: View {
                         ProgressView()
                             .tint(AppColors.accentMystic(for: colorScheme))
 
-                        Text("Agent baut gerade die Antwort...")
+                        Text("X22 Agent plant gerade...")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -373,11 +373,11 @@ private struct AgentComposerBar: View {
         VStack(spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Agent-Aufgabe")
+                    Text("X22 Aufgabe")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Klare Ziele, Rollen und naechste Schritte funktionieren hier am besten.")
+                    Text("Klare Ziele, Rollen und naechste Schritte funktionieren fuer Skydown x 22 hier am besten.")
                         .font(.caption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -415,7 +415,7 @@ private struct AgentComposerBar: View {
             }
 
             TextField(
-                "Zum Beispiel: Bau mir ein Release-Briefing fuer Freitag auf.",
+                "Zum Beispiel: Bau mir ein Release-Briefing fuer den naechsten Skydown x 22 Freitag auf.",
                 text: $draft,
                 axis: .vertical
             )
@@ -430,7 +430,7 @@ private struct AgentComposerBar: View {
             .foregroundColor(AppColors.text(for: colorScheme))
 
             HStack {
-                Text(isSending ? "Skydown Agent plant..." : "Bereit fuer den Workflow")
+                Text(isSending ? "X22 Agent plant..." : "Bereit fuer X22 Workflow")
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

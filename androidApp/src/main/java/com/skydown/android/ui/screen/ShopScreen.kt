@@ -21,16 +21,28 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,9 +54,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -54,6 +70,7 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.model.ShopUiState
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
 import kotlinx.coroutines.delay
@@ -65,6 +82,7 @@ fun ShopScreen(
     viewModel: ShopViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<MerchandiseItem?>(null) }
     var itemPendingDelete by remember { mutableStateOf<MerchandiseItem?>(null) }
@@ -76,177 +94,271 @@ fun ShopScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            item {
-                ShopHeader()
-            }
-
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Shop",
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "Drops, Produktdetails und Admin-Werkzeuge an einem Ort.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = viewModel::refresh) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Shop aktualisieren",
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                ),
+                scrollBehavior = scrollBehavior,
+            )
+        },
+        floatingActionButton = {
             if (uiState.isAdmin) {
-                item {
-                    AdminSection(onAddClick = { showAddSheet = true })
+                FloatingActionButton(
+                    onClick = { showAddSheet = true },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Artikel hinzufuegen",
+                    )
                 }
             }
-
-            val errorMessage = uiState.errorMessage
-            if (errorMessage != null && !uiState.isLoggedIn) {
+        },
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.07f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
+                            MaterialTheme.colorScheme.background,
+                        ),
+                    ),
+                ),
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = innerPadding.calculateTopPadding() + 8.dp,
+                    end = 16.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 item {
-                    LoginSection(
-                        errorMessage = errorMessage,
-                        onOpenLogin = onOpenLogin
+                    ShopOverviewCard(uiState = uiState)
+                }
+
+                val errorMessage = uiState.errorMessage
+                if (errorMessage != null && !uiState.isLoggedIn) {
+                    item {
+                        LoginSection(
+                            errorMessage = errorMessage,
+                            onOpenLogin = onOpenLogin,
+                        )
+                    }
+                }
+
+                items(uiState.items, key = { it.id.orEmpty() }) { item ->
+                    MerchandiseCard(
+                        item = item,
+                        onTap = viewModel::selectItem,
+                        onEdit = if (uiState.isAdmin) {
+                            { editingItem = it }
+                        } else {
+                            null
+                        },
+                        onDelete = if (uiState.isAdmin) {
+                            { itemPendingDelete = it }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
 
-            items(uiState.items, key = { it.id.orEmpty() }) { item ->
-                MerchandiseCard(
+            if (showAddSheet) {
+                MerchandiseEditorSheet(
+                    isSaving = uiState.isSaving,
+                    initialItem = null,
+                    onDismiss = { showAddSheet = false },
+                    onSave = { name, description, price, available, imageDataList ->
+                        viewModel.addItem(
+                            name = name,
+                            description = description,
+                            priceInput = price,
+                            available = available,
+                            imageDataList = imageDataList,
+                        ) {
+                            showAddSheet = false
+                        }
+                    },
+                )
+            }
+
+            editingItem?.let { item ->
+                MerchandiseEditorSheet(
+                    isSaving = uiState.isSaving,
+                    initialItem = item,
+                    onDismiss = { editingItem = null },
+                    onSave = { name, description, price, available, imageDataList ->
+                        viewModel.updateItem(
+                            item = item,
+                            name = name,
+                            description = description,
+                            priceInput = price,
+                            available = available,
+                            imageDataList = imageDataList,
+                        ) {
+                            editingItem = null
+                        }
+                    },
+                )
+            }
+
+            uiState.selectedItem?.let { item ->
+                MerchandiseDetailSheet(
                     item = item,
-                    onTap = viewModel::selectItem,
-                    onEdit = if (uiState.isAdmin) {
-                        { editingItem = it }
-                    } else {
-                        null
+                    isAdmin = uiState.isAdmin,
+                    isSaving = uiState.isSaving,
+                    onDismiss = viewModel::dismissSelectedItem,
+                    onEdit = {
+                        viewModel.dismissSelectedItem()
+                        editingItem = item
                     },
-                    onDelete = if (uiState.isAdmin) {
-                        { itemPendingDelete = it }
-                    } else {
-                        null
+                    onDelete = { itemPendingDelete = item },
+                )
+            }
+
+            itemPendingDelete?.let { item ->
+                AlertDialog(
+                    onDismissRequest = { itemPendingDelete = null },
+                    title = { Text("Artikel loeschen?") },
+                    text = {
+                        Text("Der Artikel \"${item.name}\" wird dauerhaft entfernt.")
                     },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                viewModel.deleteItem(item)
+                                itemPendingDelete = null
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("Loeschen")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { itemPendingDelete = null }) {
+                            Text("Abbrechen")
+                        }
+                    },
+                )
+            }
+
+            ToastHost(
+                message = uiState.toastMessage ?: uiState.errorMessage,
+                type = if (uiState.isErrorToast || uiState.errorMessage != null) ToastType.Error else ToastType.Success,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShopOverviewCard(
+    uiState: ShopUiState,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "Skydown Merch",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Der Shop folgt jetzt derselben klaren Android-Struktur wie Music, Bot und Agent: ruhige Sections, schnellere Orientierung und direkter Zugriff auf Produkte.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingBag,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
         }
 
-        if (showAddSheet) {
-            MerchandiseEditorSheet(
-                isSaving = uiState.isSaving,
-                initialItem = null,
-                onDismiss = { showAddSheet = false },
-                onSave = { name, description, price, available, imageDataList ->
-                    viewModel.addItem(
-                        name = name,
-                        description = description,
-                        priceInput = price,
-                        available = available,
-                        imageDataList = imageDataList,
-                    ) {
-                        showAddSheet = false
-                    }
-                },
-            )
-        }
-
-        editingItem?.let { item ->
-            MerchandiseEditorSheet(
-                isSaving = uiState.isSaving,
-                initialItem = item,
-                onDismiss = { editingItem = null },
-                onSave = { name, description, price, available, imageDataList ->
-                    viewModel.updateItem(
-                        item = item,
-                        name = name,
-                        description = description,
-                        priceInput = price,
-                        available = available,
-                        imageDataList = imageDataList,
-                    ) {
-                        editingItem = null
-                    }
-                },
-            )
-        }
-
-        uiState.selectedItem?.let { item ->
-            MerchandiseDetailSheet(
-                item = item,
-                isAdmin = uiState.isAdmin,
-                isSaving = uiState.isSaving,
-                onDismiss = viewModel::dismissSelectedItem,
-                onEdit = {
-                    viewModel.dismissSelectedItem()
-                    editingItem = item
-                },
-                onDelete = { itemPendingDelete = item },
-            )
-        }
-
-        itemPendingDelete?.let { item ->
-            AlertDialog(
-                onDismissRequest = { itemPendingDelete = null },
-                title = { Text("Artikel loeschen?") },
-                text = {
-                    Text("Der Artikel \"${item.name}\" wird dauerhaft entfernt.")
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.deleteItem(item)
-                            itemPendingDelete = null
-                        },
-                    ) {
-                        Text("Loeschen")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { itemPendingDelete = null }) {
-                        Text("Abbrechen")
-                    }
-                },
-            )
-        }
-
-        ToastHost(
-            message = uiState.toastMessage ?: uiState.errorMessage,
-            type = if (uiState.isErrorToast || uiState.errorMessage != null) ToastType.Error else ToastType.Success,
-            modifier = Modifier.padding(bottom = 12.dp),
-        )
-    }
-}
-
-@Composable
-private fun ShopHeader() {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = "Skydown Merch",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = "Dieselbe Shop-Struktur wie auf iOS: grosse Produktkarten, Galerie und direkter Zugriff auf den Artikel.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-        )
-    }
-}
-
-@Composable
-private fun AdminSection(onAddClick: () -> Unit) {
-    SkydownCard {
-        SectionHeader("Admin")
-        Text(
-            text = "Artikel koennen hier direkt angelegt, bearbeitet und geloescht werden. Die Admin-Aktionen sitzen jetzt sichtbar auf jeder Produktkarte.",
-            modifier = Modifier.padding(top = 8.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        )
-        Button(
-            onClick = onAddClick,
-            modifier = Modifier.padding(top = 12.dp),
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Artikel hinzufuegen")
+            ShopBadge(
+                text = "${uiState.items.size} Produkte",
+                icon = Icons.Default.ShoppingBag,
+                isActive = uiState.items.isNotEmpty(),
+            )
+            ShopBadge(
+                text = if (uiState.isLoggedIn) "Konto aktiv" else "Gast",
+                icon = if (uiState.isLoggedIn) Icons.Default.CheckCircle else Icons.Default.Sync,
+                isActive = uiState.isLoggedIn,
+            )
+            if (uiState.isAdmin) {
+                ShopBadge(
+                    text = "Admin",
+                    icon = Icons.Default.CheckCircle,
+                    isActive = true,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun LoginSection(errorMessage: String, onOpenLogin: () -> Unit) {
-    SkydownCard {
+private fun LoginSection(
+    errorMessage: String,
+    onOpenLogin: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Anmeldung")
         Text(
             text = errorMessage,
@@ -255,7 +367,10 @@ private fun LoginSection(errorMessage: String, onOpenLogin: () -> Unit) {
         )
         Button(
             onClick = onOpenLogin,
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
+            shape = RoundedCornerShape(18.dp),
         ) {
             Text("Anmelden")
         }
@@ -287,7 +402,7 @@ private fun MerchandiseEditorSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
     ) {
         Column(
             modifier = Modifier
@@ -341,14 +456,13 @@ private fun MerchandiseEditorSheet(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
+                shape = RoundedCornerShape(18.dp),
             ) {
                 Text(if (initialItem == null) "Bilder auswaehlen" else "Bilder ersetzen")
             }
 
             if (selectedUris.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(selectedUris, key = { it.toString() }) { uri ->
                         AsyncImage(
                             model = uri,
@@ -367,9 +481,7 @@ private fun MerchandiseEditorSheet(
                     )
                 }
             } else if (existingImageUrls.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(existingImageUrls, key = { it }) { imageUrl ->
                         AsyncImage(
                             model = imageUrl,
@@ -397,7 +509,7 @@ private fun MerchandiseEditorSheet(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
             ) {
                 TextButton(
                     onClick = onDismiss,
@@ -418,6 +530,7 @@ private fun MerchandiseEditorSheet(
                         }
                     },
                     enabled = !isSaving,
+                    shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(if (isSaving) "Speichern ..." else "Speichern")
                 }
@@ -438,7 +551,7 @@ private fun MerchandiseDetailSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
     ) {
         Column(
             modifier = Modifier
@@ -491,7 +604,7 @@ private fun MerchandiseDetailSheet(
                 HorizontalDivider()
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 ) {
                     TextButton(
                         onClick = onEdit,
@@ -505,14 +618,61 @@ private fun MerchandiseDetailSheet(
                     ) {
                         Text("Loeschen")
                     }
-                    Button(onClick = onDismiss) { Text("Schliessen") }
+                    Button(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text("Schliessen")
+                    }
                 }
             } else {
-                TextButton(onClick = onDismiss) {
+                Button(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(18.dp),
+                ) {
                     Text("Schliessen")
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ShopBadge(
+    text: String,
+    icon: ImageVector,
+    isActive: Boolean,
+) {
+    val backgroundColor = if (isActive) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
+    }
+    val contentColor = if (isActive) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(backgroundColor)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = text,
+            color = contentColor,
+            style = MaterialTheme.typography.labelLarge,
+        )
     }
 }
 

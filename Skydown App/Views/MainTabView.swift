@@ -42,7 +42,7 @@ struct MainTabView: View {
                 aiChatService: services.aiChatService,
                 featureFlags: services.featureFlags
             )
-                .tabItem { Label("AI", systemImage: "sparkles") }
+                .tabItem { Label("Bot", systemImage: "sparkles") }
 
             AgentView(
                 agentChatService: services.agentChatService,

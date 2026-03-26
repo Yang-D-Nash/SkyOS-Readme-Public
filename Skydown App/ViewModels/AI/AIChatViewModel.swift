@@ -30,7 +30,7 @@ final class AIChatViewModel: ObservableObject {
     @Published var messages: [AIChatMessage] = [
         AIChatMessage(
             role: .assistant,
-            text: "Ich bin Skydown AI. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten."
+            text: "Ich bin der Skydown x 22 Bot. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten."
         )
     ]
     @Published var draft = ""
@@ -40,10 +40,10 @@ final class AIChatViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
 
     let quickPrompts = [
-        "Schreib eine Instagram Caption fuer einen neuen Skydown Release.",
-        "Gib mir drei Merch-Ideen fuer den naechsten Drop.",
-        "Formuliere eine kurze Presseankuendigung fuer einen Artist-Launch.",
-        "Brainstorme eine Hook fuer einen Song-Teaser auf TikTok."
+        "Schreib eine Instagram Caption fuer einen neuen Skydown x 22 Release.",
+        "Gib mir drei Merch-Ideen fuer den naechsten Skydown x 22 Drop.",
+        "Formuliere eine kurze Presseankuendigung fuer einen Skydown x 22 Artist-Launch.",
+        "Brainstorme eine Hook fuer einen Skydown x 22 Song-Teaser auf TikTok."
     ]
 
     private let service: AIChatServicing
@@ -113,7 +113,7 @@ final class AIChatViewModel: ObservableObject {
         messages = [
             AIChatMessage(
                 role: .assistant,
-                text: "Ich bin Skydown AI. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten."
+                text: "Ich bin der Skydown x 22 Bot. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten."
             )
         ]
     }
@@ -127,7 +127,7 @@ final class AIChatViewModel: ObservableObject {
     // Keep responses concise, creative and grounded in the Skydown app context.
     private func buildPrompt(for userPrompt: String) -> String {
         """
-        Du bist Skydown AI, der kreative Assistent fuer die Skydown App.
+        Du bist der Skydown x 22 Bot, der kreative Assistent fuer die Skydown x 22 App.
         Antworte auf Deutsch, direkt, modern und hilfreich.
         Wenn sinnvoll, liefere kompakte Listen, Hooks, Captions oder kurze Konzepte.
         Bleib markentauglich und kreativ statt generisch.
@@ -150,7 +150,7 @@ final class AIChatViewModel: ObservableObject {
 
         if case let GenerateContentError.promptBlocked(response) = error {
             return response.promptFeedback?.blockReasonMessage
-                ?? "Die Anfrage wurde von Firebase AI blockiert. Versuch bitte eine neutralere Formulierung."
+                ?? "Die Anfrage konnte so nicht verarbeitet werden. Versuch es etwas neutraler oder konkreter."
         }
 
         return userFacingErrorMessage(for: error)
@@ -163,14 +163,14 @@ final class AIChatViewModel: ObservableObject {
 
         if case let GenerateContentError.promptBlocked(response) = error {
             return response.promptFeedback?.blockReasonMessage
-                ?? "Die Anfrage wurde von Firebase AI blockiert."
+                ?? "Die Anfrage konnte so nicht verarbeitet werden."
         }
 
-        if case let GenerateContentError.internalError(underlying) = error {
-            return underlying.localizedDescription
+        if case GenerateContentError.internalError = error {
+            return "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
         }
 
-        return error.localizedDescription
+        return "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
     }
 
     private func finishReasonMessage(for reason: FinishReason) -> String {
@@ -178,13 +178,13 @@ final class AIChatViewModel: ObservableObject {
         case .maxTokens:
             return "Die Antwort wurde wegen des Antwortlimits gekuerzt."
         case .safety, .prohibitedContent, .blocklist, .spii:
-            return "Firebase AI hat die Antwort aus Sicherheitsgruenden gestoppt."
+            return "Die Antwort wurde aus Sicherheitsgruenden gestoppt."
         case .recitation:
-            return "Firebase AI hat die Antwort wegen Zitat-Schutz gestoppt."
+            return "Die Antwort wurde wegen Zitat-Schutz gestoppt."
         case .malformedFunctionCall:
-            return "Firebase AI hat eine unvollstaendige Tool-Antwort erzeugt."
+            return "Die Antwort konnte nicht sauber abgeschlossen werden. Versuch es bitte noch einmal."
         default:
-            return "Firebase AI hat die Antwort vorzeitig beendet."
+            return "Die Antwort wurde vorzeitig beendet."
         }
     }
 }

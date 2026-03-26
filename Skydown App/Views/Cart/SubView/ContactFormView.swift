@@ -42,42 +42,132 @@ struct ContactFormView: View {
     }
     
     var body: some View {
-        Form {
-            Section {
-                MerchandiseItemView(item: item)
-                    .listRowBackground(AppColors.cardBackground(for: colorScheme))
-            } header: {
-                Text("Artikel auswählen")
-            }
-            
-            Section {
-                Picker("Größe", selection: $selectedSize) {
-                    ForEach(availableSizes, id: \.self) { Text($0) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ContactHeroCard(
+                    colorScheme: colorScheme,
+                    itemName: item.name,
+                    price: item.price,
+                    isLoggedIn: authManager.userSession != nil
+                )
+
+                ContactSectionCard(title: "Produkt", colorScheme: colorScheme) {
+                    MerchandiseItemView(item: item)
                 }
-                
-                Picker("Anzahl", selection: $selectedQuantity) {
-                    ForEach(availableQuantities, id: \.self) { Text("\($0)") }
+
+                ContactSectionCard(title: "Größe", colorScheme: colorScheme) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
+                        ForEach(availableSizes, id: \.self) { size in
+                            Button {
+                                selectedSize = size
+                            } label: {
+                                Text(size)
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            }
+                            .buttonStyle(.plain)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(
+                                        selectedSize == size
+                                        ? AppColors.accent(for: colorScheme)
+                                        : AppColors.secondaryBackground(for: colorScheme)
+                                    )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(
+                                        selectedSize == size
+                                        ? AppColors.accent(for: colorScheme)
+                                        : AppColors.accent(for: colorScheme).opacity(0.14),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .foregroundColor(selectedSize == size ? .white : AppColors.text(for: colorScheme))
+                        }
+                    }
                 }
-            } header: {
-                Text("Deine Bestellung")
+
+                ContactSectionCard(title: "Anzahl", colorScheme: colorScheme) {
+                    HStack(spacing: 14) {
+                        Button {
+                            if selectedQuantity > 1 { selectedQuantity -= 1 }
+                        } label: {
+                            Image(systemName: "minus")
+                                .font(.headline)
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .background(AppColors.secondaryBackground(for: colorScheme))
+                        .clipShape(Circle())
+
+                        VStack(spacing: 4) {
+                            Text("\(selectedQuantity)")
+                                .font(.title2.weight(.bold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+
+                            Text("Stück")
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        Button {
+                            if selectedQuantity < availableQuantities.count { selectedQuantity += 1 }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.headline)
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .background(AppColors.secondaryBackground(for: colorScheme))
+                        .clipShape(Circle())
+                    }
+                }
+
+                if authManager.userSession == nil {
+                    ContactSectionCard(title: "Hinweis", colorScheme: colorScheme) {
+                        Text("Zum Hinzufügen in den Warenkorb brauchst du ein Konto. Danach bleibt der Flow direkt in der App.")
+                            .font(.body)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
             }
-            
-            Section {
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 28)
+        }
+        .scrollIndicators(.hidden)
+        .background(backgroundGradient.ignoresSafeArea())
+        .navigationTitle("Artikel")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 10) {
+                Divider()
+                    .overlay(AppColors.accent(for: colorScheme).opacity(0.12))
+
                 Button(authManager.userSession != nil ? "In Warenkorb legen" : "Account erforderlich") {
                     if authManager.userSession != nil {
                         alertType = .confirm
                     }
                 }
-                .disabled(!isFormValid || authManager.userSession == nil)
+                .font(.headline)
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background((isFormValid && authManager.userSession != nil) ? AppColors.accent(for: colorScheme) : .gray)
+                .padding(.vertical, 14)
+                .background(
+                    (isFormValid && authManager.userSession != nil)
+                    ? AppColors.accent(for: colorScheme)
+                    : Color.gray
+                )
                 .foregroundColor(.white)
-                .cornerRadius(10)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .disabled(!isFormValid || authManager.userSession == nil)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
             }
+            .background(AppColors.cardBackground(for: colorScheme).opacity(0.98))
         }
-        .navigationTitle("Kontaktformular")
-        .navigationBarTitleDisplayMode(.inline)
         .alert(item: $alertType) { _ in
             Alert(
                 title: Text("Artikel in Warenkorb legen"),
@@ -87,6 +177,19 @@ struct ContactFormView: View {
             )
         }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
+    }
+
+    private var backgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                AppColors.primaryBackground(for: colorScheme),
+                AppColors.accent(for: colorScheme).opacity(0.14),
+                AppColors.accentMystic(for: colorScheme).opacity(0.10),
+                AppColors.primaryBackground(for: colorScheme)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 #Preview {
@@ -105,5 +208,99 @@ struct ContactFormView: View {
         ContactFormView(item: sampleItem)
             .environmentObject(authManager)
             .environmentObject(cartVM)
+    }
+}
+
+private struct ContactHeroCard: View {
+    let colorScheme: ColorScheme
+    let itemName: String
+    let price: Double
+    let isLoggedIn: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(itemName)
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text("Wähle Größe und Menge in einem kompakteren, fingerfreundlichen Sheet statt im alten Formular-Look.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(AppColors.accent(for: colorScheme).opacity(0.16))
+                    .frame(width: 58, height: 58)
+
+                Image(systemName: "bag.badge.plus")
+                    .font(.title2)
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+            }
+        }
+        .padding(20)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 26)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 26))
+        .overlay(alignment: .bottomLeading) {
+            HStack(spacing: 10) {
+                ContactBadge(text: String(format: "EUR %.2f", price), colorScheme: colorScheme)
+                ContactBadge(text: isLoggedIn ? "Konto aktiv" : "Login nötig", colorScheme: colorScheme)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 18)
+        }
+    }
+}
+
+private struct ContactSectionCard<Content: View>: View {
+    let title: String
+    let colorScheme: ColorScheme
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            content
+        }
+        .padding(18)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct ContactBadge: View {
+    let text: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(AppColors.accent(for: colorScheme).opacity(0.12))
+            .foregroundColor(AppColors.accent(for: colorScheme))
+            .clipShape(Capsule())
     }
 }

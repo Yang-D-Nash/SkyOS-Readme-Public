@@ -24,8 +24,8 @@ struct AIView: View {
                         AIHeroCard(
                             colorScheme: colorScheme,
                             badges: featureFlags.isAIEnabled
-                                ? ["Gemini 2.5 Flash-Lite", "Fair Use"]
-                                : ["Gemini 2.5 Flash-Lite", "Temporarily Off"]
+                                ? ["X22 Bot", "Creative Assist"]
+                                : ["X22 Bot", "Kurz pausiert"]
                         )
 
                         if featureFlags.isAIEnabled {
@@ -87,7 +87,7 @@ struct AIView: View {
                 }
             }
             .background(backgroundGradient.ignoresSafeArea())
-            .navigationTitle("Skydown AI")
+            .navigationTitle("Bot")
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -125,12 +125,12 @@ private struct AIHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Skydown AI")
+                Text("Skydown x 22 Bot")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Entwickle Hooks, Captions, Release-Texte und Kampagnenideen direkt im Look der App.")
+                Text("Entwickle Hooks, Captions, Release-Texte und Kampagnenideen direkt im Look der Skydown x 22 App.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -192,21 +192,21 @@ private struct AIFairUseCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("AI mit Fair Use")
+                    Text("X22 Bot fuer schnelle Ideen")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Kostenschutz aktiv")
+                    Text("Kompakt und direkt")
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
             }
 
-            Text("Alle koennen die AI nutzen. Damit die Kosten im Rahmen bleiben, laeuft sie auf dem guenstigeren Flash-Lite-Modell und mit bewusst knapperen Antworten.")
+            Text("Der X22 Bot ist fuer schnelle kreative Entwuerfe gedacht, damit Hooks, Captions und Kampagnenideen sofort weitergehen.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Fuer echten Schutz brauchen wir zusaetzlich Budget-Alerts, AI-Monitoring und App Check im Firebase-/Google-Cloud-Projekt.")
+            Text("Je nach Auslastung koennen Antworten kuerzer ausfallen, damit der Bereich stabil und flott bleibt.")
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -236,17 +236,17 @@ private struct AIDisabledCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("AI ist pausiert")
+                    Text("X22 Bot pausiert")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Remote Switch aktiv")
+                    Text("Voruebergehend nicht verfuegbar")
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
             }
 
-            Text("Die AI wurde gerade zentral in Firebase deaktiviert. Sobald `ai_enabled` wieder auf `true` steht, ist sie ohne App-Update wieder da.")
+            Text("Der Skydown x 22 Bot ist im Moment pausiert. Versuch es spaeter erneut, dann ist er wieder wie gewohnt bereit.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -267,11 +267,11 @@ private struct AIQuickPromptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Schnell starten")
+            Text("Bot starten")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Die Vorschlaege schicken direkt eine kreative Anfrage an die AI.")
+            Text("Die Vorschlaege schicken direkt eine kreative Anfrage an den X22 Bot.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -319,7 +319,7 @@ private struct AIMessageBubble: View {
             if isUser { Spacer(minLength: 48) }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(isUser ? "Du" : "Skydown AI")
+                Text(isUser ? "Du" : "X22 Bot")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accent(for: colorScheme))
 
@@ -328,7 +328,7 @@ private struct AIMessageBubble: View {
                         ProgressView()
                             .tint(AppColors.accent(for: colorScheme))
 
-                        Text("Antwort wird geschrieben...")
+                        Text("X22 Bot antwortet gerade...")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -394,11 +394,11 @@ private struct AIComposerBar: View {
         VStack(spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Prompt")
+                    Text("Bot-Prompt")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Kurz, klar und kreativ funktioniert hier am besten.")
+                    Text("Kurz, klar und markentreu funktioniert hier am besten.")
                         .font(.caption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -436,7 +436,7 @@ private struct AIComposerBar: View {
             }
 
             TextField(
-                "Zum Beispiel: Schreib einen starken Teaser fuer den naechsten Drop.",
+                "Zum Beispiel: Schreib einen starken Teaser fuer den naechsten Skydown x 22 Drop.",
                 text: $draft,
                 axis: .vertical
             )
@@ -451,7 +451,7 @@ private struct AIComposerBar: View {
             .foregroundColor(AppColors.text(for: colorScheme))
 
             HStack {
-                Text(isSending ? "Skydown AI antwortet..." : "Bereit fuer Ideen")
+                Text(isSending ? "X22 Bot antwortet..." : "Bereit fuer X22 Ideen")
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

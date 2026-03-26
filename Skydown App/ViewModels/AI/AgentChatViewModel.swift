@@ -30,7 +30,7 @@ final class AgentChatViewModel: ObservableObject {
     @Published var messages: [AgentChatMessage] = [
         AgentChatMessage(
             role: .assistant,
-            text: "Ich bin Skydown Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
+            text: "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
         )
     ]
     @Published var draft = ""
@@ -40,10 +40,10 @@ final class AgentChatViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
 
     let quickPrompts = [
-        "Mach mir einen 7-Tage-Release-Plan fuer einen neuen Track.",
-        "Baue mir ein kurzes Briefing fuer einen TikTok-Teaser.",
-        "Strukturiere die naechsten Schritte fuer einen Merchandise-Drop.",
-        "Erstell mir einen kleinen Launch-Plan mit Content, Timing und To-dos."
+        "Mach mir einen 7-Tage-Release-Plan fuer einen neuen Skydown x 22 Track.",
+        "Baue mir ein kurzes Briefing fuer einen Skydown x 22 TikTok-Teaser.",
+        "Strukturiere die naechsten Schritte fuer einen Skydown x 22 Merchandise-Drop.",
+        "Erstell mir einen kleinen Skydown x 22 Launch-Plan mit Content, Timing und To-dos."
     ]
 
     private let service: AgentChatServicing
@@ -105,7 +105,7 @@ final class AgentChatViewModel: ObservableObject {
         messages = [
             AgentChatMessage(
                 role: .assistant,
-                text: "Ich bin Skydown Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
+                text: "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
             )
         ]
     }
@@ -140,23 +140,23 @@ final class AgentChatViewModel: ObservableObject {
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
             case .notFound, .unimplemented:
-                return "Der Genkit-Agent ist im Firebase-Projekt noch nicht live."
+                return "Der Skydown x 22 Agent ist fuer diesen Bereich gerade noch nicht verfuegbar."
             case .unavailable:
-                return "Skydown Agent ist gerade nicht erreichbar."
+                return "Der Skydown x 22 Agent ist gerade nicht erreichbar."
             case .deadlineExceeded:
-                return "Skydown Agent hat zu lange fuer die Antwort gebraucht."
+                return "Der Skydown x 22 Agent hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
-                return "Skydown Agent ist gerade ausgelastet."
+                return "Der Skydown x 22 Agent ist gerade ausgelastet."
             case .invalidArgument:
-                return "Die Agent-Anfrage war ungueltig."
+                return "Die Anfrage konnte so nicht verarbeitet werden."
             case .unauthenticated:
-                return "Die Anfrage an den Agenten konnte nicht verifiziert werden."
+                return "Bitte melde dich erneut an und versuch es noch einmal."
             default:
                 break
             }
         }
 
-        return error.localizedDescription
+        return "Der Skydown x 22 Agent konnte gerade nicht antworten."
     }
 }
 
@@ -164,7 +164,7 @@ private extension Array where Element == AgentChatMessage {
     func filterNotIntroMessage() -> [AgentChatMessage] {
         filter { message in
             !(message.role == .assistant &&
-              message.text == "Ich bin Skydown Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten.")
+              message.text == "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten.")
         }
     }
 }

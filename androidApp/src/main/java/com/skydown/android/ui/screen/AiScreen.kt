@@ -29,15 +29,18 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,11 +49,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -63,12 +68,14 @@ import com.skydown.android.ui.model.AiMessageRole
 import com.skydown.android.ui.viewmodel.AiViewModel
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiScreen(
     viewModel: AiViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -96,7 +103,31 @@ fun AiScreen(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Bot",
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                actions = {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 16.dp),
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                ),
+                scrollBehavior = scrollBehavior,
+            )
+        },
         bottomBar = {
             if (uiState.isAiEnabled) {
                 AiComposerBar(
@@ -134,17 +165,11 @@ fun AiScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
-                    AiHeroCard(
-                        badges = if (uiState.isAiEnabled) {
-                            listOf("Gemini 2.5 Flash-Lite", "Fair Use")
-                        } else {
-                            listOf("Gemini 2.5 Flash-Lite", "Temporarily Off")
-                        },
-                    )
+                    AiOverviewCard(isEnabled = uiState.isAiEnabled)
                 }
 
                 if (uiState.isAiEnabled) {
@@ -164,7 +189,7 @@ fun AiScreen(
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
                 } else {
                     item {
@@ -178,42 +203,26 @@ fun AiScreen(
                 type = ToastType.Error,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = if (uiState.isAiEnabled) 104.dp else 32.dp),
+                    .padding(bottom = if (uiState.isAiEnabled) 92.dp else 28.dp),
             )
         }
     }
 }
 
 @Composable
-private fun AiHeroCard(
-    badges: List<String>,
+private fun AiOverviewCard(
+    isEnabled: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(20.dp)) {
+    SkydownCard {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Skydown AI",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Entwickle Hooks, Captions, Release-Texte und Kampagnenideen direkt im Look der App.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                )
-            }
-
             Box(
                 modifier = Modifier
-                    .size(58.dp)
+                    .size(54.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -222,14 +231,26 @@ private fun AiHeroCard(
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
-        }
 
-        Row(
-            modifier = Modifier.padding(top = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            badges.forEach { badge ->
-                AiBadge(badge)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Skydown x 22 Bot",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Der Bot ist der schnelle Kreativbereich fuer Hooks, Captions, Release-Texte und Ideen im Look der Skydown x 22 App.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                )
+                Text(
+                    text = if (isEnabled) "X22 Bot aktiv" else "X22 Bot pausiert",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -258,12 +279,12 @@ private fun AiFairUseCard() {
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "AI mit Fair Use",
+                    text = "X22 Bot",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Kostenschutz aktiv",
+                    text = "Schnell fuer Ideen und erste Entwuerfe",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -271,14 +292,14 @@ private fun AiFairUseCard() {
         }
 
         Text(
-            text = "Alle koennen die AI nutzen. Damit die Kosten im Rahmen bleiben, laeuft sie auf Flash-Lite und mit bewusst knapperen Antworten.",
+            text = "Der Skydown x 22 Bot ist fuer schnelle Entwuerfe optimiert, damit Hooks, Captions und Konzepte direkt weitergehen.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
             modifier = Modifier.padding(top = 14.dp),
         )
 
         Text(
-            text = "Den echten Kostenschutz machen wir zusaetzlich ueber Budget-Alerts, AI-Monitoring und App Check im Firebase-/Google-Cloud-Projekt.",
+            text = "Je nach Auslastung koennen Antworten kuerzer ausfallen, damit alles stabil und schnell bleibt.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 12.dp),
@@ -309,12 +330,12 @@ private fun AiDisabledCard() {
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "AI ist pausiert",
+                    text = "X22 Bot pausiert",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Remote Switch aktiv",
+                    text = "Voruebergehend nicht verfuegbar",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -322,7 +343,7 @@ private fun AiDisabledCard() {
         }
 
         Text(
-            text = "Die AI wurde gerade zentral in Firebase deaktiviert. Sobald `ai_enabled` wieder auf `true` steht, ist sie ohne App-Update wieder da.",
+            text = "Der Skydown x 22 Bot ist im Moment pausiert. Versuch es spaeter erneut, dann ist er wieder wie gewohnt verfuegbar.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
             modifier = Modifier.padding(top = 14.dp),
@@ -335,30 +356,36 @@ private fun QuickPromptCard(
     prompts: List<String>,
     onPromptSelected: (String) -> Unit,
 ) {
-    SkydownCard {
-        SectionHeader("Schnell starten")
-        Text(
-            text = "Die Vorschlaege schicken direkt eine kreative Anfrage an die AI.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
+    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+        SectionHeader("Bot starten")
         LazyRow(
-            contentPadding = PaddingValues(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(end = 4.dp),
         ) {
-            items(prompts, key = { it }) { prompt ->
-                AssistChip(
+            items(prompts) { prompt ->
+                OutlinedButton(
                     onClick = { onPromptSelected(prompt) },
-                    label = {
-                        Text(
-                            text = prompt,
-                            maxLines = 2,
-                        )
-                    },
-                )
+                    modifier = Modifier.widthIn(min = 190.dp, max = 236.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text(
+                        text = prompt,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
         }
+
+        Text(
+            text = "Die Vorschlaege schicken direkt eine kreative Anfrage an den Skydown x 22 Bot.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            modifier = Modifier.padding(top = 10.dp),
+        )
     }
 }
 
@@ -380,7 +407,7 @@ private fun AiMessageBubble(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 340.dp)
+                .widthIn(max = 320.dp)
                 .clip(bubbleShape)
                 .background(
                     if (isUser) {
@@ -399,10 +426,10 @@ private fun AiMessageBubble(
                         )
                     },
                 )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             Text(
-                text = if (isUser) "Du" else "Skydown AI",
+                text = if (isUser) "Du" else "X22 Bot",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
@@ -419,7 +446,7 @@ private fun AiMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "Antwort wird geschrieben...",
+                        text = "X22 Bot antwortet gerade...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -427,7 +454,7 @@ private fun AiMessageBubble(
             } else {
                 Text(
                     text = message.text,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = if (isUser) {
                         MaterialTheme.colorScheme.onPrimary
                     } else {
@@ -455,9 +482,9 @@ private fun AiComposerBar(
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        SkydownCard {
+        SkydownCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -467,20 +494,16 @@ private fun AiComposerBar(
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
-                        text = "Prompt",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Bot-Prompt",
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = "Kurz, klar und kreativ funktioniert hier am besten.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     )
                 }
 
                 Row {
                     IconButton(
                         onClick = onDismissKeyboard,
+                        modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
@@ -490,6 +513,7 @@ private fun AiComposerBar(
                     IconButton(
                         onClick = onReset,
                         enabled = !isSending,
+                        modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -504,12 +528,12 @@ private fun AiComposerBar(
                 onValueChange = onDraftChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 10.dp),
                 placeholder = {
-                    Text("Zum Beispiel: Schreib einen starken Teaser fuer den naechsten Drop.")
+                    Text("Zum Beispiel: Starker Teaser fuer den naechsten Skydown x 22 Drop.")
                 },
-                minLines = 3,
-                maxLines = 5,
+                minLines = 1,
+                maxLines = 3,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onSend() }),
             )
@@ -517,12 +541,12 @@ private fun AiComposerBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (isSending) "Skydown AI antwortet..." else "Bereit fuer Ideen",
+                    text = if (isSending) "X22 Bot antwortet..." else "Bereit fuer X22 Ideen",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     textAlign = TextAlign.End,
@@ -531,7 +555,9 @@ private fun AiComposerBar(
                     FilledIconButton(
                         onClick = onSend,
                         enabled = draft.isNotBlank() && !isSending,
-                        modifier = Modifier.padding(start = 12.dp),
+                        modifier = Modifier
+                            .padding(start = 10.dp)
+                            .size(42.dp),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
@@ -540,24 +566,5 @@ private fun AiComposerBar(
                     }
             }
         }
-    }
-}
-
-@Composable
-private fun AiBadge(
-    text: String,
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-        )
     }
 }

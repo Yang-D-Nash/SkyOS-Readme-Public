@@ -35,6 +35,6 @@ class AgentClient {
             is Map<*, *> -> data["reply"] as? String
             else -> null
         }?.takeIf { it.isNotBlank() }
-            ?: error("Skydown Agent hat keine Antwort geliefert.")
+            ?: error("Der Skydown x 22 Agent hat keine Antwort geliefert.")
     }
 }

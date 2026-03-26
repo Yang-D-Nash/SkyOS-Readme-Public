@@ -4,7 +4,7 @@ data class AiUiState(
     val messages: List<AiMessage> = listOf(
         AiMessage(
             role = AiMessageRole.Assistant,
-            text = "Ich bin Skydown AI. Frag mich nach Captions, Release-Ideen, Merch-Texten oder schnellen Konzepten.",
+            text = "Ich bin der Skydown x 22 Bot. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten.",
         ),
     ),
     val draft: String = "",
@@ -12,9 +12,9 @@ data class AiUiState(
     val isAiEnabled: Boolean = true,
     val errorMessage: String? = null,
     val quickPrompts: List<String> = listOf(
-        "Schreib eine Instagram Caption fuer einen neuen Skydown Release.",
-        "Gib mir drei Merch-Ideen fuer den naechsten Drop.",
-        "Formuliere eine kurze Presseankundigung fuer einen Artist-Launch.",
-        "Brainstorme eine Hook fuer einen Song-Teaser auf TikTok.",
+        "Schreib eine Instagram Caption fuer einen neuen Skydown x 22 Release.",
+        "Gib mir drei Merch-Ideen fuer den naechsten Skydown x 22 Drop.",
+        "Formuliere eine kurze Presseankundigung fuer einen Skydown x 22 Artist-Launch.",
+        "Brainstorme eine Hook fuer einen Skydown x 22 Song-Teaser auf TikTok.",
     ),
 )

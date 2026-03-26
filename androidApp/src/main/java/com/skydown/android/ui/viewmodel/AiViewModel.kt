@@ -44,7 +44,7 @@ class AiViewModel : ViewModel() {
         val trimmedPrompt = prompt.trim()
         if (!_uiState.value.isAiEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Skydown AI ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der Skydown x 22 Bot ist gerade deaktiviert.")
             }
             return
         }
@@ -158,7 +158,7 @@ class AiViewModel : ViewModel() {
 
     // Keep the assistant grounded in the app and in concise creator-focused output.
     private fun buildPrompt(userPrompt: String): String = """
-        Du bist Skydown AI, der kreative Assistent fuer die Skydown App.
+        Du bist der Skydown x 22 Bot, der kreative Assistent fuer die Skydown x 22 App.
         Antworte auf Deutsch, direkt, modern und hilfreich.
         Wenn sinnvoll, liefere kompakte Listen, Hooks, Captions oder kurze Konzepte.
         Bleib markentauglich und kreativ statt generisch.
@@ -183,7 +183,7 @@ class AiViewModel : ViewModel() {
             is PromptBlockedException -> {
                 error.response?.promptFeedback?.blockReasonMessage
                     ?.takeIf { it.isNotBlank() }
-                    ?: "Die Anfrage wurde von Firebase AI blockiert. Versuch bitte eine neutralere Formulierung."
+                    ?: "Die Anfrage konnte so nicht verarbeitet werden. Versuch es etwas neutraler oder konkreter."
             }
             else -> userFacingErrorMessage(error)
         }
@@ -196,9 +196,9 @@ class AiViewModel : ViewModel() {
         is PromptBlockedException -> {
             error.response?.promptFeedback?.blockReasonMessage
                 ?.takeIf { it.isNotBlank() }
-                ?: "Die Anfrage wurde von Firebase AI blockiert."
+                ?: "Die Anfrage konnte so nicht verarbeitet werden."
         }
-        else -> error.message ?: "Skydown AI konnte gerade nicht gestartet werden."
+        else -> "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
     }
 
     private fun finishReasonMessage(reason: FinishReason?): String = when (reason) {
@@ -207,9 +207,9 @@ class AiViewModel : ViewModel() {
         FinishReason.PROHIBITED_CONTENT,
         FinishReason.BLOCKLIST,
         FinishReason.SPII
-        -> "Firebase AI hat die Antwort aus Sicherheitsgruenden gestoppt."
-        FinishReason.RECITATION -> "Firebase AI hat die Antwort wegen Zitat-Schutz gestoppt."
-        FinishReason.MALFORMED_FUNCTION_CALL -> "Firebase AI hat eine unvollstaendige Tool-Antwort erzeugt."
-        else -> "Firebase AI hat die Antwort vorzeitig beendet."
+        -> "Die Antwort wurde aus Sicherheitsgruenden gestoppt."
+        FinishReason.RECITATION -> "Die Antwort wurde wegen Zitat-Schutz gestoppt."
+        FinishReason.MALFORMED_FUNCTION_CALL -> "Die Antwort konnte nicht sauber abgeschlossen werden. Versuch es bitte noch einmal."
+        else -> "Die Antwort wurde vorzeitig beendet."
     }
 }

@@ -10,86 +10,63 @@ import SwiftUI
 struct OrderView: View {
     @StateObject private var viewModel = OrderViewModel()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @State private var orderToDelete: Order?
     @State private var showingDeleteAlert = false
 
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoading {
-                    ProgressView("Bestellungen werden geladen...")
-                } else if viewModel.orders.isEmpty {
-                    Text("Keine Bestellungen vorhanden.")
-                        .foregroundColor(.secondary)
-                } else {
-                    List {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    OrdersHeroCard(
+                        colorScheme: colorScheme,
+                        orderCount: viewModel.orders.count,
+                        completedCount: viewModel.orders.filter { $0.isCompleted }.count
+                    )
+
+                    if viewModel.isLoading {
+                        OrdersSectionCard(title: "Synchronisierung", colorScheme: colorScheme) {
+                            ProgressView("Bestellungen werden geladen...")
+                                .tint(AppColors.accent(for: colorScheme))
+                        }
+                    } else if viewModel.orders.isEmpty {
+                        OrdersSectionCard(title: "Keine Bestellungen", colorScheme: colorScheme) {
+                            Text("Sobald Orders eingehen, erscheinen sie hier direkt als Karten statt in einer Standardliste.")
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+                    } else {
                         ForEach(viewModel.orders) { order in
-                            VStack(alignment: .leading, spacing: 6) {
-
-                                // --- Header: User + Status ---
-                                HStack {
-                                    Text(order.userEmail)
-                                        .font(.headline)
-                                    Spacer()
-                                    Button {
-                                        Task { await viewModel.toggleCompleted(for: order) }
-                                    } label: {
-                                        Image(systemName: order.isCompleted ? "checkmark.square.fill" : "square")
-                                            .foregroundColor(order.isCompleted ? .green : .gray)
-                                            .font(.title2)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-
-                                // --- Items ---
-                                ForEach(order.items) { item in
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(item.name)
-                                                .font(.subheadline)
-
-                                            if let size = item.size, !size.isEmpty {
-                                                Text("Größe: \(size)")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                        }
-
-                                        Spacer()
-
-                                        Text("x\(item.quantity)")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-
-                                // --- Timestamp ---
-                                Text(order.timestamp, style: .date)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(.vertical, 6)
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
+                            OrdersOrderCard(
+                                order: order,
+                                colorScheme: colorScheme,
+                                onToggleCompleted: {
+                                    Task { await viewModel.toggleCompleted(for: order) }
+                                },
+                                onDelete: {
                                     orderToDelete = order
                                     showingDeleteAlert = true
-                                } label: {
-                                    Label("Löschen", systemImage: "trash")
                                 }
-
-                                Button {
-                                    Task { await viewModel.toggleCompleted(for: order) }
-                                } label: {
-                                    Label("Erledigt", systemImage: "checkmark")
-                                }
-                                .tint(.green)
-                            }
+                            )
                         }
                     }
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 28)
+            .scrollIndicators(.hidden)
+            .refreshable {
+                viewModel.fetchOrders()
+            }
+            .background(backgroundGradient.ignoresSafeArea())
             .navigationTitle("Bestellungen")
-            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Fertig") {
+                        dismiss()
+                    }
+                }
+            }
             .alert("Bestellung löschen?", isPresented: $showingDeleteAlert, actions: {
                 Button("Abbrechen", role: .cancel) {}
                 Button("Löschen", role: .destructive) {
@@ -106,8 +83,183 @@ struct OrderView: View {
                     message: viewModel.toastMessage,
                     style: viewModel.toastStyle)
     }
+
+    private var backgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                AppColors.primaryBackground(for: colorScheme),
+                AppColors.accent(for: colorScheme).opacity(0.14),
+                AppColors.accentMystic(for: colorScheme).opacity(0.10),
+                AppColors.primaryBackground(for: colorScheme)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
 }
 
 #Preview {
     OrderView()
+}
+
+private struct OrdersHeroCard: View {
+    let colorScheme: ColorScheme
+    let orderCount: Int
+    let completedCount: Int
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Order Queue")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text("Admin-Bestellungen wirken jetzt wie ein echter Arbeitsbereich statt wie eine Standardliste.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
+                    .frame(width: 58, height: 58)
+
+                Image(systemName: "shippingbox.fill")
+                    .font(.title2)
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            }
+        }
+        .padding(20)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 26)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 26))
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
+        .overlay(alignment: .bottomLeading) {
+            HStack(spacing: 10) {
+                OrdersBadge(text: "\(orderCount) Orders", colorScheme: colorScheme)
+                OrdersBadge(text: "\(completedCount) erledigt", colorScheme: colorScheme)
+                OrdersBadge(text: "\(max(orderCount - completedCount, 0)) offen", colorScheme: colorScheme)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 18)
+        }
+    }
+}
+
+private struct OrdersSectionCard<Content: View>: View {
+    let title: String
+    let colorScheme: ColorScheme
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            content
+        }
+        .padding(18)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct OrdersOrderCard: View {
+    let order: Order
+    let colorScheme: ColorScheme
+    let onToggleCompleted: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        OrdersSectionCard(title: order.userEmail, colorScheme: colorScheme) {
+            HStack {
+                OrdersBadge(
+                    text: order.isCompleted ? "Erledigt" : "Offen",
+                    colorScheme: colorScheme
+                )
+                Spacer()
+                Text(order.timestamp, style: .date)
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            VStack(spacing: 10) {
+                ForEach(order.items) { item in
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.name)
+                                .font(.headline)
+                                .foregroundColor(AppColors.text(for: colorScheme))
+
+                            if let size = item.size, !size.isEmpty {
+                                Text("Größe: \(size)")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
+                        }
+
+                        Spacer()
+
+                        Text("x\(item.quantity)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                    .padding(14)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
+            }
+
+            HStack(spacing: 10) {
+                Button(action: onToggleCompleted) {
+                    Label(
+                        order.isCompleted ? "Als offen markieren" : "Als erledigt markieren",
+                        systemImage: order.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle.fill"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accent(for: colorScheme))
+
+                Button(role: .destructive, action: onDelete) {
+                    Label("Löschen", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+}
+
+private struct OrdersBadge: View {
+    let text: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(AppColors.accent(for: colorScheme).opacity(0.12))
+            .foregroundColor(AppColors.accent(for: colorScheme))
+            .clipShape(Capsule())
+    }
 }
