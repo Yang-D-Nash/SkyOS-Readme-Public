@@ -29,36 +29,60 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            ShopView(
-                authManager: services.authManager,
-                merchandiseService: services.merchandiseService
-            )
+            DeferredView {
+                ShopView(
+                    authManager: services.authManager,
+                    merchandiseService: services.merchandiseService
+                )
+            }
                 .tabItem { Label("Shop", systemImage: "cart.fill") }
 
-            MusicView()
+            DeferredView {
+                MusicView()
+            }
                 .tabItem { Label("Musik", systemImage: "music.note.list") }
 
-            AIView(
-                aiChatService: services.aiChatService,
-                featureFlags: services.featureFlags
-            )
+            DeferredView {
+                AIView(
+                    aiChatService: services.aiChatService,
+                    featureFlags: services.featureFlags
+                )
+            }
                 .tabItem { Label("Bot", systemImage: "sparkles") }
 
-            AgentView(
-                agentChatService: services.agentChatService,
-                featureFlags: services.featureFlags
-            )
+            DeferredView {
+                AgentView(
+                    agentChatService: services.agentChatService,
+                    featureFlags: services.featureFlags
+                )
+            }
                 .tabItem { Label("Agent", systemImage: "bolt.fill") }
 
-            CartView()
+            DeferredView {
+                CartView()
+            }
                 .tabItem { Label("Warenkorb", systemImage: "bag.fill") }
 
-            SettingsView(colorScheme: $colorScheme)
+            DeferredView {
+                SettingsView(colorScheme: $colorScheme)
+            }
                 .tabItem { Label("Einstellungen", systemImage: "gearshape.fill") }
         }
         .accentColor(AppColors.accent(for: currentScheme))
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
         .preferredColorScheme(preferredScheme)
+    }
+}
+
+private struct DeferredView<Content: View>: View {
+    private let content: () -> Content
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        content()
     }
 }
 

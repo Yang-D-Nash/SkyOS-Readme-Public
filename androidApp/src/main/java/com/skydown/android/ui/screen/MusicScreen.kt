@@ -1,6 +1,8 @@
 package com.skydown.android.ui.screen
 
 import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -136,7 +138,7 @@ fun MusicScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Previews in der App, volle Songs direkt in Spotify.",
+                            text = "Previews in der App, komplette Wiedergabe nur mit Spotify Premium.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             maxLines = 1,
@@ -212,18 +214,6 @@ fun MusicScreen(
                 }
 
                 item {
-                    NicmaProducerEntryCard(
-                        onOpen = { activeDestination = musicDestinationNicmaProducer },
-                    )
-                }
-
-                item {
-                    BeatHubEntryCard(
-                        onOpen = { activeDestination = musicDestinationBeatHub },
-                    )
-                }
-
-                item {
                     when {
                         !uiState.isSpotifyConnected -> {
                             SpotifyConnectCard(
@@ -285,6 +275,25 @@ fun MusicScreen(
                             onPlayToggle = { viewModel.togglePreview(track) },
                         )
                     }
+                }
+
+                item {
+                    InstagramHubCard(
+                        selectedArtist = uiState.selectedArtist,
+                        onOpenLink = { url -> openExternalLink(context, url) },
+                    )
+                }
+
+                item {
+                    NicmaProducerEntryCard(
+                        onOpen = { activeDestination = musicDestinationNicmaProducer },
+                    )
+                }
+
+                item {
+                    BeatHubEntryCard(
+                        onOpen = { activeDestination = musicDestinationBeatHub },
+                    )
                 }
             }
         }
@@ -361,6 +370,37 @@ private fun NicmaProducerEntryCard(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Text("NICMA MUSIC oeffnen")
+        }
+    }
+}
+
+@Composable
+private fun InstagramHubCard(
+    selectedArtist: String,
+    onOpenLink: (String) -> Unit,
+) {
+    val links = selectedMusicInstagramLinks(selectedArtist)
+
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Instagram")
+        Text(
+            text = "Mehr Vibe direkt ueber den aktuellen Artist, 22 und Skydown.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+
+        Column(
+            modifier = Modifier.padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            links.forEach { link ->
+                InstagramLinkButton(
+                    title = link.title,
+                    subtitle = link.subtitle,
+                    onClick = { onOpenLink(link.url) },
+                )
+            }
         }
     }
 }
@@ -642,7 +682,7 @@ private fun SpotifyConnectCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Spotify")
         Text(
-            text = "Verbinde Spotify einmalig. Danach laden wir Songs von $selectedArtist und oeffnen komplette Tracks direkt in der Spotify-App.",
+            text = "Verbinde Spotify einmalig. Danach laden wir Songs von $selectedArtist. Previews laufen in der App, die komplette Wiedergabe in Spotify braucht Premium.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
@@ -662,6 +702,37 @@ private fun SpotifyConnectCard(
             Text(
                 text = "Spotify verbinden",
                 modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun InstagramLinkButton(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             )
         }
     }
@@ -714,6 +785,63 @@ private fun MusicStatusCard(
     }
 }
 
+private data class MusicInstagramLink(
+    val title: String,
+    val subtitle: String,
+    val url: String,
+)
+
+private val artistInstagramLinks = mapOf(
+    "Yang D. Nash" to MusicInstagramLink(
+        title = "Yang D. Nash",
+        subtitle = "@y.d.nash • Artist aktuell ausgewaehlt",
+        url = "https://www.instagram.com/y.d.nash/",
+    ),
+    "MAVE" to MusicInstagramLink(
+        title = "MAVE",
+        subtitle = "@mave__official • Artist aktuell ausgewaehlt",
+        url = "https://www.instagram.com/mave__official/",
+    ),
+    "ThaDude" to MusicInstagramLink(
+        title = "ThaDude",
+        subtitle = "@thadude_offizielle • Artist aktuell ausgewaehlt",
+        url = "https://www.instagram.com/thadude_offizielle/",
+    ),
+    "Toprack941" to MusicInstagramLink(
+        title = "Toprack941",
+        subtitle = "@toprack_941 • Artist aktuell ausgewaehlt",
+        url = "https://www.instagram.com/toprack_941/",
+    ),
+    "TANGAJOE007" to MusicInstagramLink(
+        title = "TANGAJOE007",
+        subtitle = "@tangajoe007 • Artist aktuell ausgewaehlt",
+        url = "https://www.instagram.com/tangajoe007/",
+    ),
+    "JANNO" to MusicInstagramLink(
+        title = "JANNO",
+        subtitle = "@janno_official_ • Artist aktuell ausgewaehlt",
+        url = "https://www.instagram.com/janno_official_/",
+    ),
+)
+
+private val zweizweiInstagramLink = MusicInstagramLink(
+    title = "22 Music",
+    subtitle = "@zweizwei_music • Skydown x 22 Universe",
+    url = "https://www.instagram.com/zweizwei_music/",
+)
+
+private val skydownInstagramLink = MusicInstagramLink(
+    title = "Skydown Entertainment",
+    subtitle = "@skydown_entertainment • Label und Releases",
+    url = "https://www.instagram.com/skydown_entertainment/",
+)
+
+private fun selectedMusicInstagramLinks(selectedArtist: String): List<MusicInstagramLink> = listOfNotNull(
+    artistInstagramLinks[selectedArtist],
+    skydownInstagramLink,
+    zweizweiInstagramLink,
+)
+
 private const val musicDestinationNicmaProducer = "nicma_producer"
 private const val musicDestinationBeatHub = "beat_hub"
 
@@ -753,5 +881,17 @@ private fun MusicBadge(
             style = MaterialTheme.typography.labelLarge,
             color = contentColor,
         )
+    }
+}
+
+private fun openExternalLink(
+    context: android.content.Context,
+    url: String,
+) {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+    if (intent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(intent)
+    } else {
+        Toast.makeText(context, "Kein Browser gefunden.", Toast.LENGTH_SHORT).show()
     }
 }

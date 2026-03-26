@@ -78,7 +78,7 @@ struct TrackView: View {
                             TrackTag(text: "In-App Preview", isAccent: false)
                         }
                         if track.externalURL != nil {
-                            TrackTag(text: "Spotify", isAccent: false)
+                            TrackTag(text: "Spotify Premium", isAccent: false)
                         }
                     }
                 }
@@ -106,7 +106,7 @@ struct TrackView: View {
                     Button {
                         openSpotifyTrack()
                     } label: {
-                        Label("In Spotify", systemImage: "arrow.up.forward.circle.fill")
+                        Label("Spotify Premium", systemImage: "arrow.up.forward.circle.fill")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)

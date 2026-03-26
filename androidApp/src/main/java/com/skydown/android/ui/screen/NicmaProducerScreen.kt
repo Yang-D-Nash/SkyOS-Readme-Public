@@ -119,6 +119,7 @@ fun NicmaProducerScreen(
                 item {
                     NicmaContactCard(
                         onContact = { openNicmaEmail(context) },
+                        onOpenInstagram = { openNicmaInstagram(context) },
                     )
                 }
 
@@ -235,6 +236,7 @@ private fun NicmaPriceRow(
 @Composable
 private fun NicmaContactCard(
     onContact: () -> Unit,
+    onOpenInstagram: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Kontakt")
@@ -256,8 +258,18 @@ private fun NicmaContactCard(
             Text("NICMA MUSIC anfragen")
         }
 
+        OutlinedButton(
+            onClick = onOpenInstagram,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("NICMA MUSIC auf Instagram")
+        }
+
         Text(
-            text = "Mail: nicoheine@me.com",
+            text = "Mail: nicoheine@me.com • Instagram: @nicma.music",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 12.dp),
@@ -372,5 +384,17 @@ private fun openNicmaEmail(context: Context) {
         context.startActivity(intent)
     } else {
         Toast.makeText(context, "Keine Mail-App gefunden.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun openNicmaInstagram(context: Context) {
+    val intent = Intent(
+        Intent.ACTION_VIEW,
+        Uri.parse("https://www.instagram.com/nicma.music/"),
+    )
+    if (intent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(intent)
+    } else {
+        Toast.makeText(context, "Kein Browser gefunden.", Toast.LENGTH_SHORT).show()
     }
 }

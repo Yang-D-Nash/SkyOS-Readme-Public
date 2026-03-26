@@ -47,11 +47,10 @@ final class AIChatViewModel: ObservableObject {
     ]
 
     private let service: AIChatServicing
-    private var chat: Chat
+    private var chat: Chat?
 
     init(service: AIChatServicing = FirebaseAIChatService()) {
         self.service = service
-        self.chat = service.makeChat()
     }
 
     func sendDraft() {
@@ -71,6 +70,7 @@ final class AIChatViewModel: ObservableObject {
         var responseBuffer = ""
         Task {
             do {
+                let chat = activeChat()
                 let responseStream = try chat.sendMessageStream(buildPrompt(for: trimmedPrompt))
 
                 for try await chunk in responseStream {
@@ -109,13 +109,23 @@ final class AIChatViewModel: ObservableObject {
     }
 
     func resetConversation() {
-        chat = service.makeChat()
+        chat = nil
         messages = [
             AIChatMessage(
                 role: .assistant,
                 text: "Ich bin der Skydown x 22 Bot. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten."
             )
         ]
+    }
+
+    private func activeChat() -> Chat {
+        if let chat {
+            return chat
+        }
+
+        let newChat = service.makeChat()
+        chat = newChat
+        return newChat
     }
 
     private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool) {

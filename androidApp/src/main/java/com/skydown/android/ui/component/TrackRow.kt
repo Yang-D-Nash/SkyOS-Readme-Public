@@ -119,11 +119,11 @@ fun TrackRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
-                        text = when {
-                            hasPreview && hasExternalLink -> "Preview in der App, voller Song in Spotify."
+                        Text(
+                            text = when {
+                            hasPreview && hasExternalLink -> "Preview in der App, voller Song nur mit Spotify Premium."
                             hasPreview -> "Preview direkt in der App."
-                            hasExternalLink -> "Nur voller Song in Spotify."
+                            hasExternalLink -> "Voller Song nur mit Spotify Premium."
                             else -> "Aktuell kein Spotify-Link verfuegbar."
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -153,7 +153,7 @@ fun TrackRow(
                         }
                         if (hasExternalLink) {
                             TrackPill(
-                                text = "Spotify",
+                                text = "Spotify Premium",
                                 isHighlighted = false,
                             )
                         }
@@ -191,7 +191,7 @@ fun TrackRow(
                                     contentDescription = null,
                                 )
                                 Text(
-                                    text = "Spotify",
+                                    text = "Spotify Premium",
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }

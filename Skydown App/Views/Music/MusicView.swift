@@ -17,6 +17,14 @@ struct MusicView: View {
 
     let artists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
 
+    private var instagramDestinations: [MusicInstagramDestination] {
+        [
+            artistInstagramDestinations[selectedArtist],
+            skydownMusicInstagramDestination,
+            zweizweiInstagramDestination,
+        ].compactMap { $0 }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -29,7 +37,7 @@ struct MusicView: View {
                             .font(.title3.weight(.semibold))
                             .foregroundColor(AppColors.text(for: colorScheme))
 
-                        Text("Waehle einen Artist, hoere eine Preview in der App und oeffne den kompletten Song direkt in Spotify.")
+                        Text("Waehle einen Artist, hoere eine Preview in der App und oeffne die komplette Wiedergabe mit Spotify Premium.")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -118,27 +126,13 @@ struct MusicView: View {
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                     )
 
-                    NavigationLink {
-                        NicmaProducerView()
-                    } label: {
-                        NicmaProducerSpotlightCard(colorScheme: colorScheme)
-                    }
-                    .buttonStyle(.plain)
-
-                    NavigationLink {
-                        BeatHubView()
-                    } label: {
-                        BeatHubSpotlightCard(colorScheme: colorScheme)
-                    }
-                    .buttonStyle(.plain)
-
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Spotify")
                             .font(.headline)
 
                         Text(
                             viewModel.isSpotifyConnected
-                            ? "Spotify ist verbunden. Du kannst Previews testen und volle Songs direkt in Spotify oeffnen."
+                            ? "Spotify ist verbunden. Du kannst Previews testen, die komplette Wiedergabe in Spotify braucht aber Premium."
                             : "Verbinde Spotify, damit wir Songs fuer den aktuellen Artist laden koennen."
                         )
                         .font(.subheadline)
@@ -203,7 +197,7 @@ struct MusicView: View {
                             .font(.headline)
 
                         if !viewModel.isSpotifyConnected {
-                            Text("Verbinde Spotify, um Tracks fuer den ausgewaehlten Artist zu laden.")
+                            Text("Verbinde Spotify, um Tracks fuer den ausgewaehlten Artist zu laden. Fuer die komplette Wiedergabe in Spotify wird Premium benoetigt.")
                                 .font(.subheadline)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         } else if viewModel.tracks.isEmpty {
@@ -235,6 +229,26 @@ struct MusicView: View {
                         RoundedRectangle(cornerRadius: 24)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                     )
+
+                    MusicInstagramHubCard(
+                        selectedArtist: selectedArtist,
+                        destinations: instagramDestinations,
+                        colorScheme: colorScheme
+                    )
+
+                    NavigationLink {
+                        NicmaProducerView()
+                    } label: {
+                        NicmaProducerSpotlightCard(colorScheme: colorScheme)
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        BeatHubView()
+                    } label: {
+                        BeatHubSpotlightCard(colorScheme: colorScheme)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
@@ -410,6 +424,68 @@ private struct BeatHubSpotlightCard: View {
     }
 }
 
+private struct MusicInstagramHubCard: View {
+    let selectedArtist: String
+    let destinations: [MusicInstagramDestination]
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Instagram")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Hol dir mehr Vibe direkt ueber den aktuellen Artist, 22 und Skydown.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            ForEach(destinations) { destination in
+                if let url = destination.url {
+                    Link(destination: url) {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(destination.title)
+                                    .font(.headline)
+                                    .foregroundColor(AppColors.text(for: colorScheme))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Text(destination.subtitle(selectedArtist: selectedArtist))
+                                    .font(.subheadline)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+
+                            Image(systemName: "arrow.up.forward.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(AppColors.accent(for: colorScheme))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppColors.secondaryBackground(for: colorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+    }
+}
+
 private struct NicmaProducerView: View {
     @Environment(\.colorScheme) private var colorScheme
     private var inquiryMailURL: URL? {
@@ -486,6 +562,22 @@ private struct NicmaProducerView: View {
                         }
                         .foregroundColor(.white)
                         .background(AppColors.accentMystic(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+
+                    if let instagramURL = nicmaInstagramDestination.url {
+                        Link(destination: instagramURL) {
+                            Label("NICMA MUSIC auf Instagram", systemImage: "camera.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .background(AppColors.secondaryBackground(for: colorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
 
@@ -1021,6 +1113,99 @@ private struct NicmaProducerPackage: Identifiable {
     let detail: String
     let price: String
 }
+
+private struct MusicInstagramDestination: Identifiable {
+    let id: String
+    let title: String
+    let handle: String
+    let urlString: String
+    let helper: String?
+
+    var url: URL? {
+        URL(string: urlString)
+    }
+
+    func subtitle(selectedArtist: String) -> String {
+        if let helper {
+            return "\(handle) • \(helper)"
+        }
+
+        if title == selectedArtist {
+            return "\(handle) • Artist aktuell auswaehlt"
+        }
+
+        return handle
+    }
+}
+
+private let artistInstagramDestinations: [String: MusicInstagramDestination] = [
+    "Yang D. Nash": MusicInstagramDestination(
+        id: "artist_yang_d_nash",
+        title: "Yang D. Nash",
+        handle: "@y.d.nash",
+        urlString: "https://www.instagram.com/y.d.nash/",
+        helper: "Artist aktuell ausgewaehlt"
+    ),
+    "MAVE": MusicInstagramDestination(
+        id: "artist_mave",
+        title: "MAVE",
+        handle: "@mave__official",
+        urlString: "https://www.instagram.com/mave__official/",
+        helper: "Artist aktuell ausgewaehlt"
+    ),
+    "ThaDude": MusicInstagramDestination(
+        id: "artist_thadude",
+        title: "ThaDude",
+        handle: "@thadude_offizielle",
+        urlString: "https://www.instagram.com/thadude_offizielle/",
+        helper: "Artist aktuell ausgewaehlt"
+    ),
+    "Toprack941": MusicInstagramDestination(
+        id: "artist_toprack941",
+        title: "Toprack941",
+        handle: "@toprack_941",
+        urlString: "https://www.instagram.com/toprack_941/",
+        helper: "Artist aktuell ausgewaehlt"
+    ),
+    "TANGAJOE007": MusicInstagramDestination(
+        id: "artist_tangajoe007",
+        title: "TANGAJOE007",
+        handle: "@tangajoe007",
+        urlString: "https://www.instagram.com/tangajoe007/",
+        helper: "Artist aktuell ausgewaehlt"
+    ),
+    "JANNO": MusicInstagramDestination(
+        id: "artist_janno",
+        title: "JANNO",
+        handle: "@janno_official_",
+        urlString: "https://www.instagram.com/janno_official_/",
+        helper: "Artist aktuell ausgewaehlt"
+    ),
+]
+
+private let zweizweiInstagramDestination = MusicInstagramDestination(
+    id: "brand_22_music",
+    title: "22 Music",
+    handle: "@zweizwei_music",
+    urlString: "https://www.instagram.com/zweizwei_music/",
+    helper: "Skydown x 22 Universe"
+)
+
+private let skydownMusicInstagramDestination = MusicInstagramDestination(
+    id: "brand_skydown",
+    title: "Skydown Entertainment",
+    handle: "@skydown_entertainment",
+    urlString: "https://www.instagram.com/skydown_entertainment/",
+    helper: "Label und Releases"
+)
+
+private let nicmaInstagramDestination = MusicInstagramDestination(
+    id: "brand_nicma_music",
+    title: "NICMA MUSIC",
+    handle: "@nicma.music",
+    urlString: "https://www.instagram.com/nicma.music/",
+    helper: "Producer und Studio"
+)
 
 private let nicmaProducerPackages: [NicmaProducerPackage] = [
     NicmaProducerPackage(
