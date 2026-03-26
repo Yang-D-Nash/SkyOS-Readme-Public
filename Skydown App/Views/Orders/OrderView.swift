@@ -115,7 +115,7 @@ private struct OrdersHeroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Admin-Bestellungen wirken jetzt wie ein echter Arbeitsbereich statt wie eine Standardliste.")
+                Text("Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Bestellungen wie einen echten Admin-Workspace bearbeiten kannst.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -188,17 +188,91 @@ private struct OrdersOrderCard: View {
     let onToggleCompleted: () -> Void
     let onDelete: () -> Void
 
+    private var title: String {
+        if let customerName = order.customerName, !customerName.isEmpty {
+            return customerName
+        }
+        return order.userEmail
+    }
+
+    private var contactEmail: String {
+        if let customerEmail = order.customerEmail, !customerEmail.isEmpty {
+            return customerEmail
+        }
+        return order.userEmail
+    }
+
+    private var whatsApp: String? {
+        guard let whatsApp = order.whatsApp, !whatsApp.isEmpty else { return nil }
+        return whatsApp
+    }
+
+    private var message: String? {
+        guard let message = order.message, !message.isEmpty else { return nil }
+        return message
+    }
+
+    private var totalItems: Int {
+        order.items.reduce(0) { partialResult, item in
+            partialResult + item.quantity
+        }
+    }
+
     var body: some View {
-        OrdersSectionCard(title: order.userEmail, colorScheme: colorScheme) {
+        OrdersSectionCard(title: title, colorScheme: colorScheme) {
             HStack {
                 OrdersBadge(
                     text: order.isCompleted ? "Erledigt" : "Offen",
+                    colorScheme: colorScheme
+                )
+                OrdersBadge(
+                    text: "\(totalItems) Teile",
                     colorScheme: colorScheme
                 )
                 Spacer()
                 Text(order.timestamp, style: .date)
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                OrderMetaBlock(
+                    label: "Kontakt",
+                    value: contactEmail,
+                    colorScheme: colorScheme
+                )
+
+                if let whatsApp {
+                    OrderMetaBlock(
+                        label: "WhatsApp",
+                        value: whatsApp,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if order.userEmail != contactEmail {
+                    OrderMetaBlock(
+                        label: "Login-Mail",
+                        value: order.userEmail,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let message {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Nachricht")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        Text(message)
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
             }
 
             VStack(spacing: 10) {
@@ -231,7 +305,7 @@ private struct OrdersOrderCard: View {
             HStack(spacing: 10) {
                 Button(action: onToggleCompleted) {
                     Label(
-                        order.isCompleted ? "Als offen markieren" : "Als erledigt markieren",
+                        order.isCompleted ? "Wieder öffnen" : "Als erledigt markieren",
                         systemImage: order.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle.fill"
                     )
                     .frame(maxWidth: .infinity)
@@ -246,6 +320,30 @@ private struct OrdersOrderCard: View {
                 .buttonStyle(.bordered)
             }
         }
+    }
+}
+
+private struct OrderMetaBlock: View {
+    let label: String
+    let value: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Spacer()
+
+            Text(value)
+                .font(.subheadline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(14)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 

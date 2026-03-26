@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -195,7 +196,7 @@ private fun OrdersOverviewCard(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Die Bestellverwaltung folgt jetzt demselben modernen Karten- und Statussystem wie der Rest der Android-App.",
+                text = "Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Orders ohne Umwege bearbeiten kannst.",
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -213,6 +214,12 @@ private fun OrderCard(
     onToggleCompleted: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val title = order.customerName?.takeIf { it.isNotBlank() } ?: order.userEmail
+    val contactEmail = order.customerEmail?.takeIf { it.isNotBlank() } ?: order.userEmail
+    val whatsApp = order.whatsApp?.takeIf { it.isNotBlank() }
+    val message = order.message?.takeIf { it.isNotBlank() }
+    val totalItems = order.items.sumOf { it.quantity }
+
     SkydownCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -224,19 +231,82 @@ private fun OrderCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = order.userEmail,
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-                OrderStatusPill(
-                    text = if (order.isCompleted) "Erledigt" else "Offen",
-                    isAccent = order.isCompleted,
+                Text(
+                    text = contactEmail,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
             }
             Text(
                 text = formatOrderDate(order.timestampEpochMillis),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             )
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OrderStatusPill(
+                text = if (order.isCompleted) "Erledigt" else "Offen",
+                isAccent = order.isCompleted,
+            )
+            OrderStatusPill(
+                text = "$totalItems Teile",
+                isAccent = false,
+            )
+        }
+
+        Column(
+            modifier = Modifier.padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            OrderMetaRow(
+                label = "Kontakt",
+                value = contactEmail,
+            )
+
+            whatsApp?.let { value ->
+                OrderMetaRow(
+                    label = "WhatsApp",
+                    value = value,
+                )
+            }
+
+            if (order.userEmail != contactEmail) {
+                OrderMetaRow(
+                    label = "Login-Mail",
+                    value = order.userEmail,
+                )
+            }
+
+            message?.let { value ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            RoundedCornerShape(18.dp),
+                        )
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = "Nachricht",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
 
         Column(
@@ -289,7 +359,7 @@ private fun OrderCard(
                     contentDescription = null,
                 )
                 Text(
-                    text = if (order.isCompleted) "Als offen markieren" else "Als erledigt markieren",
+                    text = if (order.isCompleted) "Wieder oeffnen" else "Als erledigt markieren",
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
@@ -300,6 +370,36 @@ private fun OrderCard(
                 Text("Loeschen")
             }
         }
+    }
+}
+
+@Composable
+private fun OrderMetaRow(
+    label: String,
+    value: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
