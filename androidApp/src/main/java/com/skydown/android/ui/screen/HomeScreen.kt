@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -49,6 +48,7 @@ import com.skydown.android.ui.viewmodel.HomeViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    onOpenCart: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(),
 ) {
@@ -61,22 +61,16 @@ fun HomeScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Home",
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Skydown x 22, neueste Highlights und der Einstieg in die App.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Text(
+                        text = "Home",
+                        fontWeight = FontWeight.Bold,
+                    )
                 },
                 actions = {
-                    AppTopBarSessionActions(onOpenSettings = onOpenSettings) {
+                    AppTopBarSessionActions(
+                        onOpenCart = onOpenCart,
+                        onOpenSettings = onOpenSettings,
+                    ) {
                         IconButton(onClick = viewModel::refresh) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
@@ -154,7 +148,7 @@ private fun HomeHeroCard() {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Skydown Entertainment kommt aus dem Hip Hop, entsteht 2026 und kollaboriert mit 22 aus Hamburg. Musik, Videos und digitale Tools laufen hier zusammen.",
+                    text = "Hip Hop, Music, Video.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -196,7 +190,7 @@ private fun HomeLatestReleaseCard(
 
         if (track == null) {
             Text(
-                text = uiState.homeTrackMessage ?: "Der neueste Song erscheint hier, sobald Spotify verbunden ist.",
+                text = uiState.homeTrackMessage ?: "Neuer Song erscheint hier.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 8.dp),
@@ -265,12 +259,12 @@ private fun HomeLatestVideoCard(
     uiState: HomeUiState,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Neuestes Video")
+        SectionHeader("Video Highlight")
         val video = uiState.featuredVideo
 
         if (video == null) {
             Text(
-                text = uiState.homeVideoMessage ?: "Sobald ein neues Video live ist, erscheint es hier.",
+                text = uiState.homeVideoMessage ?: "Neues Video erscheint hier.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 8.dp),
@@ -327,7 +321,7 @@ private fun HomeLatestVideoCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             HomeBadge(text = "Videography", icon = Icons.Default.Movie, isActive = true)
-            HomeBadge(text = "Neuester Visual", icon = Icons.Default.CheckCircle, isActive = false)
+            HomeBadge(text = "Home Auswahl", icon = Icons.Default.CheckCircle, isActive = false)
         }
     }
 }
@@ -336,15 +330,8 @@ private fun HomeLatestVideoCard(
 private fun HomeStoryCard() {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Worum Es Geht")
-        Text(
-            text = "Wir machen Musik und Videos. Yang D. Nash ist der Kern der ganzen Sache und gleichzeitig der Entwickler der App.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
-
         Row(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier.padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             HomeBadge(text = "Yang D. Nash", icon = Icons.Default.Person, isActive = true)

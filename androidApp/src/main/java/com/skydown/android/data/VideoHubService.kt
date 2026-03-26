@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QueryDocumentSnapshot
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.skydown.android.ui.model.SelectedVideoFile
@@ -43,7 +44,10 @@ class VideoHubService(
                     .mapNotNull { document ->
                         mapVideo(document as? QueryDocumentSnapshot ?: return@mapNotNull null)
                     }
-                    .sortedByDescending { video -> video.createdAtMillis }
+                    .sortedWith(
+                        compareByDescending<VideoHubItem> { it.isHomeFeatured }
+                            .thenByDescending { it.createdAtMillis },
+                    )
 
                 onChange(Result.success(videos))
             }
@@ -77,6 +81,29 @@ class VideoHubService(
             .document(video.id)
             .delete()
             .await()
+    }
+
+    suspend fun setHomeFeaturedVideo(video: VideoHubItem?) {
+        val collection = firestore.collection(collectionName)
+        val currentFeatured = collection
+            .whereEqualTo("isHomeFeatured", true)
+            .get()
+            .await()
+
+        val batch = firestore.batch()
+        currentFeatured.documents.forEach { document ->
+            batch.update(document.reference, "isHomeFeatured", false)
+        }
+
+        video?.let {
+            batch.set(
+                collection.document(it.id),
+                mapOf("isHomeFeatured" to true),
+                SetOptions.merge(),
+            )
+        }
+
+        batch.commit().await()
     }
 
     private suspend fun uploadSingleFile(
@@ -128,6 +155,7 @@ class VideoHubService(
                 "uploaderEmail" to (currentUser?.email ?: request.email),
                 "uploaderID" to (currentUser?.id.orEmpty()),
                 "isPublic" to true,
+                "isHomeFeatured" to false,
                 "createdAt" to FieldValue.serverTimestamp(),
             ),
         ).await()
@@ -160,6 +188,7 @@ class VideoHubService(
             mimeType = data["mimeType"] as? String ?: "application/octet-stream",
             storagePath = data["storagePath"] as? String ?: "",
             isPublic = data["isPublic"] as? Boolean ?: true,
+            isHomeFeatured = data["isHomeFeatured"] as? Boolean ?: false,
             createdAtMillis = createdAtMillis,
         )
     }

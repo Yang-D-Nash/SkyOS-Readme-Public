@@ -1,5 +1,7 @@
 package com.skydown.android.ui.screen
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +28,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +36,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -44,12 +46,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalFocusManager
@@ -63,8 +70,10 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
+import com.skydown.android.ui.model.AiVisualPrompt
 import com.skydown.android.ui.viewmodel.AiViewModel
 import kotlinx.coroutines.delay
 
@@ -141,8 +150,10 @@ fun AiScreen(
             if (uiState.isAiEnabled) {
                 AiComposerBar(
                     draft = uiState.draft,
+                    composerMode = uiState.composerMode,
                     isSending = uiState.isSending,
                     onDraftChanged = viewModel::updateDraft,
+                    onComposerModeChange = viewModel::updateComposerMode,
                     onSend = {
                         viewModel.sendDraft()
                         dismissKeyboard()
@@ -183,13 +194,16 @@ fun AiScreen(
 
                 if (uiState.isAiEnabled) {
                     item {
-                        AiFairUseCard()
-                    }
-
-                    item {
                         QuickPromptCard(
                             prompts = uiState.quickPrompts,
                             onPromptSelected = viewModel::sendPrompt,
+                        )
+                    }
+
+                    item {
+                        VisualPromptCard(
+                            prompts = uiState.visualPrompts,
+                            onPromptSelected = viewModel::generateVisual,
                         )
                     }
 
@@ -251,68 +265,12 @@ private fun AiOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Der Bot ist fuer schnelle Kreativhilfe da: Hooks, Captions, Claims und erste Texte. Wenn du Struktur oder To-dos brauchst, nimm den Agent.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-                )
-                Text(
                     text = if (isEnabled) "X22 Bot aktiv" else "X22 Bot pausiert",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun AiFairUseCard() {
-    SkydownCard {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "X22 Bot",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Schnell fuer Ideen und erste Entwuerfe",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
-        Text(
-            text = "Der Skydown x 22 Bot ist dein schneller Kreativmodus. Nutze ihn fuer einzelne Ideen, Captions, Hooks oder kurze Texte, nicht fuer komplette Ablaufplaene.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-            modifier = Modifier.padding(top = 14.dp),
-        )
-
-        Text(
-            text = "Wenn du Briefings, Timings, Freigaben oder naechste Schritte brauchst, ist der Agent der passendere Bereich.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-            modifier = Modifier.padding(top = 12.dp),
-        )
     }
 }
 
@@ -351,12 +309,6 @@ private fun AiDisabledCard() {
             }
         }
 
-        Text(
-            text = "Der Skydown x 22 Bot ist im Moment pausiert. Versuch es spaeter erneut, dann ist er wieder wie gewohnt verfuegbar.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-            modifier = Modifier.padding(top = 14.dp),
-        )
     }
 }
 
@@ -388,13 +340,37 @@ private fun QuickPromptCard(
                 }
             }
         }
+    }
+}
 
-        Text(
-            text = "Hier landen kurze Kreativ-Requests. Fuer Launch-Plaene und Struktur ist der Agent gedacht.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+@Composable
+private fun VisualPromptCard(
+    prompts: List<AiVisualPrompt>,
+    onPromptSelected: (String) -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+        SectionHeader("Visuals")
+        LazyRow(
             modifier = Modifier.padding(top = 10.dp),
-        )
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(end = 4.dp),
+        ) {
+            items(prompts, key = { it.label }) { prompt ->
+                OutlinedButton(
+                    onClick = { onPromptSelected(prompt.prompt) },
+                    modifier = Modifier.widthIn(min = 156.dp, max = 190.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text(
+                        text = prompt.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -471,20 +447,44 @@ private fun AiMessageBubble(
                     },
                     modifier = Modifier.padding(top = 8.dp),
                 )
+
+                val generatedBitmap = remember(message.imageBytes) {
+                    message.imageBytes?.let { bytes ->
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    }
+                }
+
+                if (generatedBitmap != null) {
+                    Image(
+                        bitmap = generatedBitmap.asImageBitmap(),
+                        contentDescription = "Generiertes Visual",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp)
+                            .height(220.dp)
+                            .clip(RoundedCornerShape(18.dp)),
+                    )
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AiComposerBar(
     draft: String,
+    composerMode: AiComposerMode,
     isSending: Boolean,
     onDraftChanged: (String) -> Unit,
+    onComposerModeChange: (AiComposerMode) -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
     onDismissKeyboard: () -> Unit,
 ) {
+    var showComposer by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -496,83 +496,122 @@ private fun AiComposerBar(
         SkydownCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
+                OutlinedButton(
+                    onClick = { showComposer = true },
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    Text(
-                        text = "Bot-Prompt",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                    Text(if (draft.isBlank()) "Bot Prompt" else "Prompt weiter")
+                }
+
+                IconButton(
+                    onClick = onReset,
+                    enabled = !isSending,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Chat zuruecksetzen",
                     )
                 }
-
-                Row {
-                    IconButton(
-                        onClick = onDismissKeyboard,
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Tastatur schliessen",
-                        )
-                    }
-                    IconButton(
-                        onClick = onReset,
-                        enabled = !isSending,
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Chat zuruecksetzen",
-                        )
-                    }
-                }
             }
+        }
+    }
 
-            OutlinedTextField(
-                value = draft,
-                onValueChange = onDraftChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                placeholder = {
-                    Text("Zum Beispiel: Starker Teaser fuer den naechsten Skydown x 22 Drop.")
-                },
-                minLines = 1,
-                maxLines = 3,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { onSend() }),
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+    if (showComposer) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                onDismissKeyboard()
+                showComposer = false
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            SkydownCard(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(18.dp),
             ) {
                 Text(
-                    text = if (isSending) "X22 Bot antwortet..." else "Bereit fuer X22 Ideen",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-                    textAlign = TextAlign.End,
+                    text = if (composerMode == AiComposerMode.Text) "Bot Prompt" else "Visual Prompt",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                 )
 
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = { onComposerModeChange(AiComposerMode.Text) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text("Text")
+                    }
+
+                    OutlinedButton(
+                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text("Visual")
+                    }
+                }
+
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = onDraftChanged,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    placeholder = {
+                        Text(
+                            if (composerMode == AiComposerMode.Text) {
+                                "Zum Beispiel: Teaser fuer den naechsten Drop."
+                            } else {
+                                "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
+                            },
+                        )
+                    },
+                    minLines = 4,
+                    maxLines = 8,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            onSend()
+                            onDismissKeyboard()
+                            showComposer = false
+                        },
+                    ),
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     FilledIconButton(
-                        onClick = onSend,
+                        onClick = {
+                            onSend()
+                            onDismissKeyboard()
+                            showComposer = false
+                        },
                         enabled = draft.isNotBlank() && !isSending,
-                        modifier = Modifier
-                            .padding(start = 10.dp)
-                            .size(42.dp),
+                        modifier = Modifier.size(42.dp),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Senden",
+                            contentDescription = if (composerMode == AiComposerMode.Text) "Senden" else "Visual generieren",
                         )
                     }
+                }
             }
         }
     }

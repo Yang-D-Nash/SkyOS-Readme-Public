@@ -49,7 +49,7 @@ class HomeViewModel : ViewModel() {
                         null
                     },
                     homeVideoMessage = if (latestVideo == null) {
-                        "Sobald das erste oeffentliche Video live ist, taucht es hier direkt auf."
+                        "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
                     } else {
                         null
                     },
@@ -76,6 +76,17 @@ class HomeViewModel : ViewModel() {
     }
 
     private suspend fun loadLatestVideo(): FeaturedVideoHighlight? {
+        val featuredSnapshot = firestore.collection("videographyHub")
+            .whereEqualTo("isPublic", true)
+            .whereEqualTo("isHomeFeatured", true)
+            .limit(1)
+            .get()
+            .await()
+
+        featuredSnapshot.documents.firstOrNull()
+            ?.let(::mapFeaturedVideo)
+            ?.let { return it }
+
         val snapshot = firestore.collection("videographyHub")
             .whereEqualTo("isPublic", true)
             .limit(12)
@@ -83,24 +94,30 @@ class HomeViewModel : ViewModel() {
             .await()
 
         val latestDocument = snapshot.documents
-            .sortedByDescending { document ->
-                when (val createdAt = document.get("createdAt")) {
-                    is Timestamp -> createdAt.toDate().time
-                    is java.util.Date -> createdAt.time
-                    is Number -> createdAt.toLong()
-                    else -> 0L
-                }
-            }
+            .sortedByDescending(::documentTimestamp)
             .firstOrNull()
             ?: return null
 
-        val title = latestDocument.getString("title").orEmpty()
+        return mapFeaturedVideo(latestDocument)
+    }
+
+    private fun mapFeaturedVideo(document: com.google.firebase.firestore.DocumentSnapshot): FeaturedVideoHighlight? {
+        val title = document.getString("title").orEmpty()
         if (title.isBlank()) return null
 
         return FeaturedVideoHighlight(
             title = title,
-            projectName = latestDocument.getString("projectName").orEmpty().ifBlank { "Skydown Visual" },
-            notes = latestDocument.getString("notes").orEmpty(),
+            projectName = document.getString("projectName").orEmpty().ifBlank { "Skydown Visual" },
+            notes = document.getString("notes").orEmpty(),
         )
+    }
+
+    private fun documentTimestamp(document: com.google.firebase.firestore.DocumentSnapshot): Long {
+        return when (val createdAt = document.get("createdAt")) {
+            is Timestamp -> createdAt.toDate().time
+            is java.util.Date -> createdAt.time
+            is Number -> createdAt.toLong()
+            else -> 0L
+        }
     }
 }

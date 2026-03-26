@@ -15,6 +15,7 @@ struct MusicView: View {
     @StateObject private var audioManager = AudioPlayerManager()
     @State private var selectedArtist = "Yang D. Nash"
     @Environment(\.colorScheme) private var colorScheme
+    let onOpenCart: () -> Void = {}
     let onOpenSettings: () -> Void = {}
 
     let artists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
@@ -266,7 +267,10 @@ struct MusicView: View {
             .navigationTitle("Skydown Music")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    AppSessionToolbarActions(onOpenSettings: onOpenSettings)
+                    AppSessionToolbarActions(
+                        onOpenCart: onOpenCart,
+                        onOpenSettings: onOpenSettings
+                    )
                 }
             }
             .task(id: selectedArtist) {
@@ -685,7 +689,7 @@ private struct NicmaProducerView: View {
     }
 }
 
-private struct VideoHubView: View {
+struct VideoHubView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = SkydownVideoHubViewModel()
@@ -705,7 +709,7 @@ private struct VideoHubView: View {
                         .foregroundColor(AppColors.text(for: colorScheme))
 
                     Text(viewModel.isAdmin
-                         ? "Hier landen Reels, Clips, Sessions und Visuals. Als Admin kannst du Videos direkt in Firebase Storage hochladen und sofort im Hub pruefen."
+                         ? "Hier landen Reels, Clips, Sessions und Visuals. Als Admin kannst du Videos hochladen und eins direkt fuer Home auswaehlen."
                          : "Hier laufen die oeffentlichen Videos von Skydown x 22. Uploads und Pflege bleiben im Admin-Bereich.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -927,6 +931,11 @@ private struct VideoHubView: View {
                                 colorScheme: colorScheme,
                                 onSelect: { playbackManager.load(video: video) },
                                 onPlayToggle: { playbackManager.togglePlayback(for: video) },
+                                onToggleHomeFeatured: {
+                                    Task {
+                                        await viewModel.toggleHomeFeatured(video)
+                                    }
+                                },
                                 onDelete: {
                                     Task {
                                         await viewModel.deleteVideo(video)
@@ -1239,6 +1248,7 @@ private struct VideoHubLibraryRow: View {
     let colorScheme: ColorScheme
     let onSelect: () -> Void
     let onPlayToggle: () -> Void
+    let onToggleHomeFeatured: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -1274,6 +1284,9 @@ private struct VideoHubLibraryRow: View {
 
             HStack(spacing: 8) {
                 MusicBadge(text: video.isPublic ? "Live" : "Hidden", isAccent: video.isPublic)
+                if video.isHomeFeatured {
+                    MusicBadge(text: "Home", isAccent: true)
+                }
                 MusicBadge(text: video.fileName, isAccent: false)
             }
 
@@ -1291,10 +1304,19 @@ private struct VideoHubLibraryRow: View {
                 .buttonStyle(.borderedProminent)
                 .tint(AppColors.accent(for: colorScheme))
                 .disabled(!video.isPlayable)
+            }
 
-                if isAdmin {
+            if isAdmin {
+                HStack(spacing: 10) {
+                    Button(action: onToggleHomeFeatured) {
+                        Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+
                     Button(role: .destructive, action: onDelete) {
-                        Image(systemName: "trash")
+                        Label("Loeschen", systemImage: "trash")
+                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
                 }

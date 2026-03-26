@@ -53,7 +53,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,6 +70,7 @@ import com.skydown.android.ui.viewmodel.MusicViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicScreen(
+    onOpenCart: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: MusicViewModel = viewModel(),
 ) {
@@ -94,6 +94,8 @@ fun MusicScreen(
     if (activeDestination == musicDestinationVideoHub) {
         VideoHubScreen(
             onBack = { activeDestination = null },
+            onOpenCart = onOpenCart,
+            onOpenSettings = onOpenSettings,
         )
         return
     }
@@ -140,22 +142,16 @@ fun MusicScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Music",
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Previews in der App, komplette Wiedergabe nur mit Spotify Premium.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Text(
+                        text = "Music",
+                        fontWeight = FontWeight.Bold,
+                    )
                 },
                 actions = {
-                    AppTopBarSessionActions(onOpenSettings = onOpenSettings) {
+                    AppTopBarSessionActions(
+                        onOpenCart = onOpenCart,
+                        onOpenSettings = onOpenSettings,
+                    ) {
                         if (uiState.isSpotifyConnected) {
                             IconButton(
                                 onClick = {
@@ -589,7 +585,7 @@ private fun MusicOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Android folgt jetzt derselben klaren Music-Logik wie iOS: Artist auswaehlen, Preview testen und volle Wiedergabe nur mit Spotify Premium fortsetzen.",
+                    text = "Preview in App. Full track mit Spotify Premium.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -626,13 +622,6 @@ private fun MusicOverviewCard(
             )
         }
 
-        Text(
-            text = "Artist aktiv: ${uiState.selectedArtist}",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-
         if (uiState.isSpotifyConnected) {
             OutlinedButton(
                 onClick = onDisconnect,
@@ -661,15 +650,8 @@ private fun ArtistPickerCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Artists")
-        Text(
-            text = "Die Artists stehen auf Android jetzt ebenfalls ruhig untereinander statt als unklare Schnellwahl.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
-
         Column(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier.padding(top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             artists.forEach { artist ->
@@ -772,7 +754,7 @@ private fun SpotifyConnectCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Spotify")
         Text(
-            text = "Verbinde Spotify einmalig. Danach laden wir Songs von $selectedArtist. Previews laufen in der App, die komplette Wiedergabe in Spotify braucht Premium.",
+            text = "Previews in App. Voller Track mit Spotify Premium.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),

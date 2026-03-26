@@ -4,7 +4,7 @@ data class AgentUiState(
     val messages: List<AgentMessage> = listOf(
         AgentMessage(
             role = AgentMessageRole.Assistant,
-            text = "Ich bin der Skydown x 22 Agent. Ich bin fuer Struktur, Briefings, To-dos und Release-Plaene da. Wenn du nur schnelle Ideen oder Captions brauchst, nimm den Bot.",
+            text = "Ich bin der Skydown x 22 Agent. Ich baue dir Briefings, Release-Plaene, Content-Strukturen, Checklisten und naechste Schritte. Fuer schnelle Hooks oder Captions nimm den Bot.",
         ),
     ),
     val draft: String = "",
@@ -12,9 +12,9 @@ data class AgentUiState(
     val isAgentEnabled: Boolean = true,
     val errorMessage: String? = null,
     val quickPrompts: List<String> = listOf(
-        "Mach mir einen klaren 7-Tage-Release-Plan fuer einen neuen Skydown x 22 Track.",
-        "Baue mir ein kurzes Briefing mit Ziel, Content und Format fuer einen TikTok-Teaser.",
-        "Strukturiere die naechsten Schritte fuer einen Merchandise-Drop in To-dos.",
-        "Erstell mir einen kleinen Launch-Plan mit Content, Timing und Abfolge.",
+        "Baue mir einen 7-Tage-Release-Plan mit Assets, Deadlines und Ownern.",
+        "Mach ein Video-Briefing mit Ziel, Shotlist, Deliverables und Risiken.",
+        "Strukturiere einen Merch-Drop in To-dos, Reihenfolge und Checkliste.",
+        "Erstelle einen Content-Plan fuer TikTok, Reels und Story mit Timing.",
     ),
 )

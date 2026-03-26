@@ -66,7 +66,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -88,6 +87,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ShopScreen(
     onOpenLogin: () -> Unit = {},
+    onOpenCart: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: ShopViewModel = viewModel(),
 ) {
@@ -110,22 +110,16 @@ fun ShopScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Shop",
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Drops, Produktdetails und Admin-Werkzeuge an einem Ort.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Text(
+                        text = "Shop",
+                        fontWeight = FontWeight.Bold,
+                    )
                 },
                 actions = {
-                    AppTopBarSessionActions(onOpenSettings = onOpenSettings) {
+                    AppTopBarSessionActions(
+                        onOpenCart = onOpenCart,
+                        onOpenSettings = onOpenSettings,
+                    ) {
                         IconButton(onClick = viewModel::refresh) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
@@ -319,7 +313,7 @@ private fun ShopOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Der Shop folgt jetzt derselben klaren Android-Struktur wie Music, Bot und Agent: ruhige Sections, schnellere Orientierung und direkter Zugriff auf Produkte.",
+                    text = "Merch & Drops.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )

@@ -34,6 +34,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +43,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -164,10 +168,6 @@ fun AgentScreen(
 
                 if (uiState.isAgentEnabled) {
                     item {
-                        AgentExplainCard()
-                    }
-
-                    item {
                         AgentQuickPromptCard(
                             prompts = uiState.quickPrompts,
                             onPromptSelected = viewModel::sendPrompt,
@@ -232,41 +232,12 @@ private fun AgentOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Der Agent ist fuer Struktur da: Briefings, Release-Plaene, Freigaben und To-dos. Fuer schnelle Ideen, Hooks oder Captions ist der Bot besser.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-                )
-                Text(
                     text = if (isEnabled) "X22 Agent aktiv" else "X22 Agent pausiert",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun AgentExplainCard() {
-    SkydownCard {
-        Text(
-            text = "Wofuer der X22 Agent gedacht ist",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = "Hier geht es weniger um lose Ideen und mehr um konkrete Briefings, Struktur, Planung und naechste Schritte fuer die Skydown x 22 App.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-            modifier = Modifier.padding(top = 10.dp),
-        )
-
-        Text(
-            text = "Kurz gesagt: Bot = kreativ und schnell. Agent = strukturiert und umsetzungsnah.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-            modifier = Modifier.padding(top = 10.dp),
-        )
     }
 }
 
@@ -305,12 +276,6 @@ private fun AgentDisabledCard() {
             }
         }
 
-        Text(
-            text = "Der Skydown x 22 Agent ist im Moment pausiert. Versuch es spaeter erneut, dann steht er wieder zur Verfuegung.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-            modifier = Modifier.padding(top = 14.dp),
-        )
     }
 }
 
@@ -343,12 +308,6 @@ private fun AgentQuickPromptCard(
             }
         }
 
-        Text(
-            text = "Diese Vorschlaege sind fuer Planung, Ablauf und Umsetzung gedacht. Fuer reine Ideen nimm den Bot.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-            modifier = Modifier.padding(top = 10.dp),
-        )
     }
 }
 
@@ -430,6 +389,7 @@ private fun AgentMessageBubble(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AgentComposerBar(
     draft: String,
@@ -438,6 +398,8 @@ private fun AgentComposerBar(
     onSend: () -> Unit,
     onReset: () -> Unit,
 ) {
+    var showComposer by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -449,73 +411,87 @@ private fun AgentComposerBar(
         SkydownCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
+                OutlinedButton(
+                    onClick = { showComposer = true },
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    Text(
-                        text = "X22 Aufgabe",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    Text(if (draft.isBlank()) "Aufgabe" else "Aufgabe weiter")
                 }
 
-                Row {
-                    IconButton(
-                        onClick = onReset,
-                        enabled = !isSending,
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Agent zuruecksetzen",
-                        )
-                    }
-                }
-            }
-
-            androidx.compose.material3.OutlinedTextField(
-                value = draft,
-                onValueChange = onDraftChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                placeholder = {
-                    Text("Zum Beispiel: Release-Briefing fuer den naechsten Skydown x 22 Freitag.")
-                },
-                minLines = 1,
-                maxLines = 3,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { onSend() }),
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = if (isSending) "X22 Agent plant..." else "Bereit fuer X22 Workflow",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-                    textAlign = TextAlign.End,
-                )
-
-                FilledIconButton(
-                    onClick = onSend,
-                    enabled = draft.isNotBlank() && !isSending,
-                    modifier = Modifier
-                        .padding(start = 10.dp)
-                        .size(42.dp),
+                IconButton(
+                    onClick = onReset,
+                    enabled = !isSending,
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Senden",
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Agent zuruecksetzen",
                     )
+                }
+            }
+        }
+    }
+
+    if (showComposer) {
+        ModalBottomSheet(
+            onDismissRequest = { showComposer = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            SkydownCard(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(18.dp),
+            ) {
+                Text(
+                    text = "X22 Aufgabe",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                androidx.compose.material3.OutlinedTextField(
+                    value = draft,
+                    onValueChange = onDraftChanged,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    placeholder = {
+                        Text("Zum Beispiel: Release-Briefing fuer Freitag.")
+                    },
+                    minLines = 4,
+                    maxLines = 8,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            onSend()
+                            showComposer = false
+                        },
+                    ),
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    FilledIconButton(
+                        onClick = {
+                            onSend()
+                            showComposer = false
+                        },
+                        enabled = draft.isNotBlank() && !isSending,
+                        modifier = Modifier.size(42.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Senden",
+                        )
+                    }
                 }
             }
         }

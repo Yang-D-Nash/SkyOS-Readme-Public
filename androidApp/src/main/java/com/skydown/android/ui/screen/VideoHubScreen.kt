@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
@@ -59,6 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
@@ -74,7 +76,9 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoHubScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
+    onOpenCart: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: VideoHubViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -140,13 +144,23 @@ fun VideoHubScreen(
                         )
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Zurueck",
-                        )
+                actions = {
+                    AppTopBarSessionActions(
+                        onOpenCart = onOpenCart,
+                        onOpenSettings = onOpenSettings,
+                    )
+                },
+                navigationIcon = if (onBack != null) {
+                    {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Zurueck",
+                            )
+                        }
                     }
+                } else {
+                    {}
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
@@ -227,6 +241,7 @@ fun VideoHubScreen(
                         uiState = uiState,
                         selectedVideoId = selectedVideoId,
                         onSelectVideo = { video -> selectedVideoId = video.id },
+                        onToggleHomeFeatured = viewModel::toggleHomeFeatured,
                         onDeleteVideo = viewModel::deleteVideo,
                     )
                 }
@@ -579,6 +594,7 @@ private fun VideoLibraryCard(
     uiState: com.skydown.android.ui.model.VideoHubUiState,
     selectedVideoId: String?,
     onSelectVideo: (VideoHubItem) -> Unit,
+    onToggleHomeFeatured: (VideoHubItem) -> Unit,
     onDeleteVideo: (VideoHubItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
@@ -629,6 +645,7 @@ private fun VideoLibraryCard(
                             isSelected = video.id == selectedVideoId,
                             isAdmin = uiState.isAdmin,
                             onSelect = { onSelectVideo(video) },
+                            onToggleHomeFeatured = { onToggleHomeFeatured(video) },
                             onDelete = { onDeleteVideo(video) },
                         )
                     }
@@ -644,6 +661,7 @@ private fun VideoLibraryRow(
     isSelected: Boolean,
     isAdmin: Boolean,
     onSelect: () -> Unit,
+    onToggleHomeFeatured: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Column(
@@ -705,18 +723,36 @@ private fun VideoLibraryRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             VideoPill(text = if (isSelected) "Im Player" else "Auswaehlen", isActive = isSelected)
             VideoPill(text = if (video.isPublic) "Live" else "Hidden", isActive = video.isPublic)
+            if (video.isHomeFeatured) {
+                VideoPill(text = "Home", isActive = true)
+            }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(
-                onClick = onSelect,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text(if (isSelected) "Aktiv" else "Abspielen")
-            }
+        Button(
+            onClick = onSelect,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text(if (isSelected) "Im Player" else "Im Player laden")
+        }
 
-            if (isAdmin) {
+        if (isAdmin) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(
+                    onClick = onToggleHomeFeatured,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = if (video.isHomeFeatured) "Home aktiv" else "Im Home zeigen",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+
                 OutlinedButton(
                     onClick = onDelete,
                     modifier = Modifier.weight(1f),

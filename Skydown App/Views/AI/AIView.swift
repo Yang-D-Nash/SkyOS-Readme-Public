@@ -57,12 +57,16 @@ struct AIView: View {
                     )
 
                     if featureFlags.isAIEnabled {
-                        AIFairUseCard(colorScheme: colorScheme)
-
                         AIQuickPromptCard(
                             colorScheme: colorScheme,
                             prompts: viewModel.quickPrompts,
                             onPromptSelected: viewModel.sendPrompt
+                        )
+
+                        AIVisualPromptCard(
+                            colorScheme: colorScheme,
+                            prompts: viewModel.visualPrompts,
+                            onPromptSelected: viewModel.generateVisual
                         )
 
                         ForEach(viewModel.messages) { message in
@@ -96,6 +100,7 @@ struct AIView: View {
                     AIComposerBar(
                         colorScheme: colorScheme,
                         draft: $viewModel.draft,
+                        composerMode: $viewModel.composerMode,
                         isFocused: $isComposerFocused,
                         isSending: viewModel.isSending,
                         onReset: viewModel.resetConversation,
@@ -142,10 +147,6 @@ private struct AIHeroCard: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Der Bot ist fuer schnelle Kreativhilfe da: Hooks, Captions, Claims und erste Texte. Wenn du stattdessen Struktur oder To-dos brauchst, nimm den Agent.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             ZStack {
@@ -189,50 +190,6 @@ private struct AIHeroCard: View {
     }
 }
 
-private struct AIFairUseCard: View {
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accent(for: colorScheme).opacity(0.14))
-                        .frame(width: 50, height: 50)
-
-                    Image(systemName: "lock.fill")
-                        .foregroundColor(AppColors.accent(for: colorScheme))
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("X22 Bot fuer schnelle Ideen")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Kompakt und direkt")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.accent(for: colorScheme))
-                }
-            }
-
-            Text("Der X22 Bot ist dein schneller Kreativmodus. Nutze ihn fuer einzelne Ideen, Captions, Hooks oder kurze Texte, nicht fuer komplette Ablaufplaene.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            Text("Wenn du Briefings, Timings, Freigaben oder naechste Schritte brauchst, ist der Agent der passendere Bereich.")
-                .font(.caption)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-        }
-        .padding(18)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-    }
-}
-
 private struct AIDisabledCard: View {
     let colorScheme: ColorScheme
 
@@ -258,10 +215,6 @@ private struct AIDisabledCard: View {
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
             }
-
-            Text("Der Skydown x 22 Bot ist im Moment pausiert. Versuch es spaeter erneut, dann ist er wieder wie gewohnt bereit.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
         .padding(18)
         .background(AppColors.cardBackground(for: colorScheme))
@@ -284,10 +237,6 @@ private struct AIQuickPromptCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier landen kurze Kreativ-Requests. Fuer Launch-Plaene und Struktur ist der Agent gedacht.")
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(prompts, id: \.self) { prompt in
@@ -299,6 +248,48 @@ private struct AIQuickPromptCard: View {
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .frame(width: 230, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct AIVisualPromptCard: View {
+    let colorScheme: ColorScheme
+    let prompts: [AIVisualPrompt]
+    let onPromptSelected: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Visuals")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(prompts) { prompt in
+                        Button(action: { onPromptSelected(prompt.prompt) }) {
+                            Text(prompt.label)
+                                .font(.subheadline.weight(.semibold))
+                                .multilineTextAlignment(.leading)
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .frame(width: 170, alignment: .leading)
                                 .background(
                                     RoundedRectangle(cornerRadius: 18)
                                         .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
@@ -349,6 +340,17 @@ private struct AIMessageBubble: View {
                     Text(message.text)
                         .font(.body)
                         .foregroundColor(isUser ? .white : AppColors.text(for: colorScheme))
+
+                    if let imageData = message.imageData,
+                       let image = UIImage(data: imageData) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .padding(.top, 4)
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -398,116 +400,131 @@ private struct AIMessageBubble: View {
 private struct AIComposerBar: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
+    @Binding var composerMode: AIComposerMode
     let isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onReset: () -> Void
     let onSend: () -> Void
+    @State private var showingComposer = false
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Bot-Prompt")
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Button(action: { showingComposer = true }) {
+                    Text(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Bot Prompt" : "Prompt weiter")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Kurz, klar und markentreu funktioniert hier am besten.")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer()
-
-                HStack(spacing: 8) {
-                    if isFocused.wrappedValue {
-                        Button(action: { isFocused.wrappedValue = false }) {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                                .font(.headline)
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .frame(width: 42, height: 42)
-                                .background(
-                                    Circle()
-                                        .fill(AppColors.primaryBackground(for: colorScheme))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    Button(action: onReset) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.headline)
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .frame(width: 42, height: 42)
-                            .background(
-                                Circle()
-                                    .fill(AppColors.primaryBackground(for: colorScheme))
-                            )
-                    }
-                    .disabled(isSending)
-                }
-                .buttonStyle(.plain)
-            }
-
-            TextField(
-                "Zum Beispiel: Schreib einen starken Teaser fuer den naechsten Skydown x 22 Drop.",
-                text: $draft,
-                axis: .vertical
-            )
-            .lineLimit(3...5)
-            .focused(isFocused)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.92))
-            )
-            .foregroundColor(AppColors.text(for: colorScheme))
-
-            HStack {
-                Text(isSending ? "X22 Bot antwortet..." : "Bereit fuer X22 Ideen")
-                    .font(.caption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                Spacer()
-
-                Button(action: {
-                    isFocused.wrappedValue = false
-                    onSend()
-                }) {
-                    Label("Senden", systemImage: "arrow.up.circle.fill")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 18)
+                        .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColors.accent(for: colorScheme),
-                                            AppColors.accentMystic(for: colorScheme)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(AppColors.secondaryBackground(for: colorScheme))
                         )
                 }
                 .buttonStyle(.plain)
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
-                .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? 0.6 : 1)
+
+                Button(action: onReset) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .frame(width: 42, height: 42)
+                        .background(
+                            Circle()
+                                .fill(AppColors.secondaryBackground(for: colorScheme))
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(isSending)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+            .background(
+                Rectangle()
+                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
+                    .ignoresSafeArea()
+            )
+            .overlay(alignment: .top) {
+                Divider().opacity(0.25)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
-        .background(
-            Rectangle()
-                .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
-                .ignoresSafeArea()
-        )
-        .overlay(alignment: .top) {
-            Divider().opacity(0.25)
+        .sheet(isPresented: $showingComposer) {
+            NavigationStack {
+                VStack(spacing: 16) {
+                    Picker("Modus", selection: $composerMode) {
+                        ForEach(AIComposerMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    TextField(
+                        composerMode == .text
+                            ? "Zum Beispiel: Teaser fuer den naechsten Drop."
+                            : "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release.",
+                        text: $draft,
+                        axis: .vertical
+                    )
+                    .lineLimit(4...8)
+                    .focused(isFocused)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                    )
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                    HStack {
+                        Spacer()
+
+                        Button(action: {
+                            isFocused.wrappedValue = false
+                            onSend()
+                            showingComposer = false
+                        }) {
+                            Label(
+                                composerMode == .text ? "Senden" : "Visual generieren",
+                                systemImage: "arrow.up.circle.fill"
+                            )
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 12)
+                                .background(
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    AppColors.accent(for: colorScheme),
+                                                    AppColors.accentMystic(for: colorScheme)
+                                                ],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
+                        .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? 0.6 : 1)
+                    }
+
+                    Spacer()
+                }
+                .padding(20)
+                .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+                .navigationTitle(composerMode == .text ? "Bot Prompt" : "Visual Prompt")
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Schliessen") {
+                            isFocused.wrappedValue = false
+                            showingComposer = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
         }
     }
 }

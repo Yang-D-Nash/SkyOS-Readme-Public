@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @Environment(\.colorScheme) private var colorScheme
+    let onOpenCart: () -> Void = {}
     let onOpenSettings: () -> Void = {}
 
     var body: some View {
@@ -33,7 +34,10 @@ struct HomeView: View {
             .navigationTitle("Skydown x 22")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    AppSessionToolbarActions(onOpenSettings: onOpenSettings)
+                    AppSessionToolbarActions(
+                        onOpenCart: onOpenCart,
+                        onOpenSettings: onOpenSettings
+                    )
                 }
             }
             .task {
@@ -60,6 +64,7 @@ struct ShopView: View {
     @ObservedObject private var authManager: AuthManager
     @StateObject private var viewModel: MerchandiseViewModel
     private let onOpenLogin: () -> Void
+    private let onOpenCart: () -> Void
     private let onOpenSettings: () -> Void
     @State private var showingAddSheet = false
     @State private var editingItem: MerchandiseItem?
@@ -70,11 +75,13 @@ struct ShopView: View {
     init(
         authManager: AuthManager,
         onOpenLogin: @escaping () -> Void = {},
+        onOpenCart: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {},
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService()
     ) {
         _authManager = ObservedObject(wrappedValue: authManager)
         self.onOpenLogin = onOpenLogin
+        self.onOpenCart = onOpenCart
         self.onOpenSettings = onOpenSettings
         _viewModel = StateObject(
             wrappedValue: MerchandiseViewModel(
@@ -164,7 +171,10 @@ struct ShopView: View {
                             }
                         }
 
-                        AppSessionToolbarActions(onOpenSettings: onOpenSettings)
+                        AppSessionToolbarActions(
+                            onOpenCart: onOpenCart,
+                            onOpenSettings: onOpenSettings
+                        )
                     }
                 }
             }
@@ -244,7 +254,7 @@ private struct HomeHeroIntroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Skydown Entertainment kommt aus dem Hip Hop, entsteht 2026 und kollaboriert mit 22 aus Hamburg. Musik, Videos und digitale Tools laufen hier zusammen.")
+                Text("Hip Hop, Music, Video.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -333,7 +343,7 @@ private struct HomeLatestReleaseCard: View {
                     ShopBadge(text: track.previewUrl == nil ? "Spotify Link" : "Preview in App", colorScheme: colorScheme)
                 }
             } else {
-                Text(viewModel.homeTrackMessage ?? "Der neueste Song erscheint hier, sobald Spotify verbunden ist.")
+                Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -362,7 +372,7 @@ private struct HomeLatestVideoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Neuestes Video")
+            Text("Video Highlight")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -399,10 +409,10 @@ private struct HomeLatestVideoCard: View {
 
                 HStack(spacing: 10) {
                     ShopBadge(text: "Videography", colorScheme: colorScheme)
-                    ShopBadge(text: "Neuester Visual", colorScheme: colorScheme)
+                    ShopBadge(text: "Home Auswahl", colorScheme: colorScheme)
                 }
             } else {
-                Text(viewModel.homeVideoMessage ?? "Sobald ein neues Video live ist, erscheint es hier.")
+                Text(viewModel.homeVideoMessage ?? "Neues Video erscheint hier.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -425,10 +435,6 @@ private struct HomeStoryCard: View {
             Text("Worum Es Geht")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Wir machen Musik und Videos. Yang D. Nash ist der Kern der ganzen Sache und gleichzeitig der Entwickler der App.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: 10) {
                 ShopBadge(text: "Yang D. Nash", colorScheme: colorScheme)
@@ -460,7 +466,7 @@ private struct ShopHeroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Produkte, Drops und spaetere Kaufwege wirken jetzt auf iOS ruhiger, direkter und naeher an der aktualisierten Android-App.")
+                Text("Merch & Drops.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }

@@ -12,7 +12,7 @@ class AiChatClient {
                 modelName = "gemini-2.5-flash-lite",
                 generationConfig = generationConfig {
                     candidateCount = 1
-                    maxOutputTokens = 512
+                    maxOutputTokens = 768
                     thinkingConfig = thinkingConfig {
                         thinkingBudget = 0
                     }

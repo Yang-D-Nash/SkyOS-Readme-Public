@@ -27,7 +27,7 @@ struct AgentChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class AgentChatViewModel: ObservableObject {
-    private static let introMessage = "Ich bin der Skydown x 22 Agent. Ich bin fuer Struktur, Briefings, To-dos und Release-Plaene da. Wenn du nur schnelle Ideen oder Captions brauchst, nimm den Bot."
+    private static let introMessage = "Ich bin der Skydown x 22 Agent. Ich baue dir Briefings, Release-Plaene, Content-Strukturen, Checklisten und naechste Schritte. Fuer schnelle Hooks oder Captions nimm den Bot."
 
     @Published var messages: [AgentChatMessage] = [
         AgentChatMessage(
@@ -42,10 +42,10 @@ final class AgentChatViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
 
     let quickPrompts = [
-        "Mach mir einen klaren 7-Tage-Release-Plan fuer einen neuen Skydown x 22 Track.",
-        "Baue mir ein kurzes Briefing mit Ziel, Content und Format fuer einen TikTok-Teaser.",
-        "Strukturiere die naechsten Schritte fuer einen Merchandise-Drop in To-dos.",
-        "Erstell mir einen kleinen Launch-Plan mit Content, Timing und Abfolge."
+        "Baue mir einen 7-Tage-Release-Plan mit Assets, Deadlines und Ownern.",
+        "Mach ein Video-Briefing mit Ziel, Shotlist, Deliverables und Risiken.",
+        "Strukturiere einen Merch-Drop in To-dos, Reihenfolge und Checkliste.",
+        "Erstelle einen Content-Plan fuer TikTok, Reels und Story mit Timing."
     ]
 
     private let service: AgentChatServicing

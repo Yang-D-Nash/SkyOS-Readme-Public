@@ -22,6 +22,7 @@ data class VideoHubItem(
     val mimeType: String,
     val storagePath: String,
     val isPublic: Boolean,
+    val isHomeFeatured: Boolean,
     val createdAtMillis: Long,
 ) {
     val isPlayable: Boolean

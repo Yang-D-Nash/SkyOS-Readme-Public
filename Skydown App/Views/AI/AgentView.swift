@@ -56,8 +56,6 @@ struct AgentView: View {
                             : ["X22 Agent", "Kurz pausiert"]
                     )
 
-                    AgentExplainCard(colorScheme: colorScheme)
-
                     if featureFlags.isAIEnabled {
                         AgentQuickPromptCard(
                             colorScheme: colorScheme,
@@ -142,10 +140,6 @@ private struct AgentHeroCard: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Der Agent ist fuer Struktur da: Briefings, Release-Plaene, Freigaben und To-dos. Fuer schnelle Ideen, Hooks oder Captions ist der Bot besser.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             ZStack {
@@ -189,33 +183,6 @@ private struct AgentHeroCard: View {
     }
 }
 
-private struct AgentExplainCard: View {
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Wofuer der X22 Agent gedacht ist")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Hier geht es weniger um lose Ideen und mehr um umsetzbare Briefings, Launch-Plaene, klare Reihenfolgen und konkrete naechste Schritte fuer Skydown x 22.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            Text("Kurz gesagt: Bot = kreativ und schnell. Agent = strukturiert und umsetzungsnah.")
-                .font(.caption)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-        }
-        .padding(18)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-    }
-}
-
 private struct AgentDisabledCard: View {
     let colorScheme: ColorScheme
 
@@ -241,10 +208,6 @@ private struct AgentDisabledCard: View {
                         .foregroundColor(AppColors.accentMystic(for: colorScheme))
                 }
             }
-
-            Text("Der Skydown x 22 Agent ist im Moment pausiert. Versuch es spaeter erneut, dann ist er wieder fuer Briefings und Planung bereit.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
         .padding(18)
         .background(AppColors.cardBackground(for: colorScheme))
@@ -266,10 +229,6 @@ private struct AgentQuickPromptCard: View {
             Text("Agent starten")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Diese Vorschlaege sind fuer Planung, Ablauf und Umsetzung gedacht. Fuer reine Ideen nimm den Bot.")
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -385,112 +344,114 @@ private struct AgentComposerBar: View {
     let isSending: Bool
     let onReset: () -> Void
     let onSend: () -> Void
+    @State private var showingComposer = false
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("X22 Aufgabe")
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Button(action: { showingComposer = true }) {
+                    Text(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aufgabe" : "Aufgabe weiter")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Klare Ziele, Rollen und naechste Schritte funktionieren fuer Skydown x 22 hier am besten.")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer()
-
-                HStack(spacing: 8) {
-                    if isFocused.wrappedValue {
-                        Button(action: { isFocused.wrappedValue = false }) {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                                .font(.headline)
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .frame(width: 42, height: 42)
-                                .background(
-                                    Circle()
-                                        .fill(AppColors.primaryBackground(for: colorScheme))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    Button(action: onReset) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.headline)
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .frame(width: 42, height: 42)
-                            .background(
-                                Circle()
-                                    .fill(AppColors.primaryBackground(for: colorScheme))
-                            )
-                    }
-                    .disabled(isSending)
-                }
-                .buttonStyle(.plain)
-            }
-
-            TextField(
-                "Zum Beispiel: Bau mir ein Release-Briefing fuer den naechsten Skydown x 22 Freitag auf.",
-                text: $draft,
-                axis: .vertical
-            )
-            .lineLimit(3...5)
-            .focused(isFocused)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.92))
-            )
-            .foregroundColor(AppColors.text(for: colorScheme))
-
-            HStack {
-                Text(isSending ? "X22 Agent plant..." : "Bereit fuer X22 Workflow")
-                    .font(.caption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                Spacer()
-
-                Button(action: {
-                    isFocused.wrappedValue = false
-                    onSend()
-                }) {
-                    Label("Senden", systemImage: "arrow.up.circle.fill")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 18)
+                        .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColors.accent(for: colorScheme),
-                                            AppColors.accentMystic(for: colorScheme)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(AppColors.secondaryBackground(for: colorScheme))
                         )
                 }
                 .buttonStyle(.plain)
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
-                .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? 0.6 : 1)
+
+                Button(action: onReset) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .frame(width: 42, height: 42)
+                        .background(
+                            Circle()
+                                .fill(AppColors.secondaryBackground(for: colorScheme))
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(isSending)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+            .background(
+                Rectangle()
+                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
+                    .ignoresSafeArea()
+            )
+            .overlay(alignment: .top) {
+                Divider().opacity(0.25)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
-        .background(
-            Rectangle()
-                .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
-                .ignoresSafeArea()
-        )
-        .overlay(alignment: .top) {
-            Divider().opacity(0.25)
+        .sheet(isPresented: $showingComposer) {
+            NavigationStack {
+                VStack(spacing: 16) {
+                    TextField(
+                        "Zum Beispiel: Release-Briefing fuer Freitag.",
+                        text: $draft,
+                        axis: .vertical
+                    )
+                    .lineLimit(4...8)
+                    .focused(isFocused)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                    )
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                    HStack {
+                        Spacer()
+
+                        Button(action: {
+                            isFocused.wrappedValue = false
+                            onSend()
+                            showingComposer = false
+                        }) {
+                            Label("Senden", systemImage: "arrow.up.circle.fill")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 12)
+                                .background(
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    AppColors.accent(for: colorScheme),
+                                                    AppColors.accentMystic(for: colorScheme)
+                                                ],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
+                        .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? 0.6 : 1)
+                    }
+
+                    Spacer()
+                }
+                .padding(20)
+                .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+                .navigationTitle("X22 Aufgabe")
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Schliessen") {
+                            isFocused.wrappedValue = false
+                            showingComposer = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
         }
     }
 }

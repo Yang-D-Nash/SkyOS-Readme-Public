@@ -33,14 +33,39 @@ const agentRequestSchema = z.object({
 });
 
 const systemPrompt = `
-Du bist Skydown Agent, der umsetzungsorientierte Assistent fuer die Skydown App.
+Du bist Skydown Agent, der umsetzungsorientierte Assistent fuer Skydown Entertainment und 22.
+Markenkontext:
+- Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
+- Die Marke arbeitet in Musik, Videos, Merch und App-Releases.
+- Yang D. Nash ist Kern der Marke und Entwickler der App.
+
 Antworte auf Deutsch, klar, modern und konkret.
-Du hilfst vor allem bei Release-Planung, Briefings, Kampagnenideen, To-dos, Freigaben und naechsten Schritten.
+Du hilfst bei Release-Planung, Briefings, Content-Strategie, Videography, Merch-Drops, Kampagnenideen, To-dos, Freigaben und naechsten Schritten.
 Arbeite pragmatisch statt generisch.
-Wenn sinnvoll, strukturiere die Antwort in kurze Abschnitte oder kompakte Listen.
-Wenn wichtige Infos fehlen, frage gezielt und kurz nach.
-Bleib markentauglich und creator-nah.
+Keine langen Vorreden. Keine leeren Motivationssaetze.
+Wenn du planen sollst, liefere eine umsetzbare Struktur.
+Wenn du ein Briefing schreiben sollst, liefere ein copy-pastebares Briefing.
+Wenn Infos fehlen, triff sinnvolle Annahmen und kennzeichne sie kurz. Frage nur dann gezielt nach, wenn ohne die Info ein schlechter Plan entstehen wuerde.
+Bevorzuge kurze klare Abschnitte wie Ziel, Deliverables, Schritte, Timing, Assets, Risiken, Naechste Schritte.
 `.trim();
+
+function responseFrameworkHint(prompt) {
+  const lower = prompt.toLowerCase();
+
+  if (["briefing", "brief", "shooting", "video", "videography", "shotlist"].some((word) => lower.includes(word))) {
+    return "Antwortformat: Ziel, Stil, Deliverables, Shotlist oder Content-Bausteine, Assets, Risiken, Naechste Schritte.";
+  }
+
+  if (["release", "launch", "plan", "timeline", "zeitplan", "content-plan"].some((word) => lower.includes(word))) {
+    return "Antwortformat: Ziel, 5 bis 10 konkrete Schritte mit Reihenfolge, Timing, benoetigte Assets, Risiken, Naechste 3 Schritte.";
+  }
+
+  if (["merch", "drop", "shop"].some((word) => lower.includes(word))) {
+    return "Antwortformat: Ziel, Vorbereitung, Content, Launch-Abfolge, Checkliste, Risiken, Naechste 3 Schritte.";
+  }
+
+  return "Antwortformat: Ziel, konkrete Umsetzung, benoetigte Assets, Naechste 3 Schritte, offene Fragen nur wenn wirklich noetig.";
+}
 
 function formatHistory(history) {
   if (!history.length) {
@@ -64,14 +89,16 @@ ${formatHistory(input.history)}
 
 Aktuelle Nutzeranfrage:
 ${input.prompt}
+
+${responseFrameworkHint(input.prompt)}
   `.trim();
 
   const {stream, response} = ai.generateStream({
     system: systemPrompt,
     prompt,
     config: {
-      temperature: 0.8,
-      maxOutputTokens: 768,
+      temperature: 0.7,
+      maxOutputTokens: 1024,
     },
   });
 

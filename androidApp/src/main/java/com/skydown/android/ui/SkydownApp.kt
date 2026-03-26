@@ -6,8 +6,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +43,7 @@ import com.skydown.android.ui.screen.OrderScreen
 import com.skydown.android.ui.screen.RegistrationScreen
 import com.skydown.android.ui.screen.SettingsScreen
 import com.skydown.android.ui.screen.ShopScreen
+import com.skydown.android.ui.screen.VideoHubScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +61,18 @@ fun SkydownApp() {
             }
         }
     }
+    val openCart = remember(navController) {
+        {
+            navController.navigate("cart") {
+                launchSingleTop = true
+            }
+        }
+    }
     val destinations = listOf(
         BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
         BottomDestination("music", "Musik", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
         BottomDestination("home", "Home", { Icon(Icons.Default.Home, contentDescription = null) }),
-        BottomDestination("cart", "Warenkorb", { Icon(Icons.Default.ShoppingCart, contentDescription = null) }),
+        BottomDestination("video", "Video", { Icon(Icons.Default.Movie, contentDescription = null) }),
         BottomDestination("ai", "KI", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }),
     )
 
@@ -134,17 +142,26 @@ fun SkydownApp() {
             ) {
                 composable("home") {
                     HomeScreen(
+                        onOpenCart = openCart,
                         onOpenSettings = openSettings,
                     )
                 }
                 composable("shop") {
                     ShopScreen(
                         onOpenLogin = { authSheet = AuthSheet.Login },
+                        onOpenCart = openCart,
                         onOpenSettings = openSettings,
                     )
                 }
                 composable("music") {
                     MusicScreen(
+                        onOpenCart = openCart,
+                        onOpenSettings = openSettings,
+                    )
+                }
+                composable("video") {
+                    VideoHubScreen(
+                        onOpenCart = openCart,
                         onOpenSettings = openSettings,
                     )
                 }
@@ -156,6 +173,8 @@ fun SkydownApp() {
                 }
                 composable("ai") {
                     AiHubScreen(
+                        onOpenLogin = { authSheet = AuthSheet.Login },
+                        onOpenCart = openCart,
                         onOpenSettings = openSettings,
                     )
                 }

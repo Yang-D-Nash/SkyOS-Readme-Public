@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +27,7 @@ import com.skydown.android.data.AppContainer
 
 @Composable
 fun RowScope.AppTopBarSessionActions(
+    onOpenCart: (() -> Unit)? = null,
     onOpenSettings: () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
@@ -73,6 +75,15 @@ fun RowScope.AppTopBarSessionActions(
     }
 
     trailingContent()
+
+    if (onOpenCart != null) {
+        IconButton(onClick = onOpenCart) {
+            Icon(
+                imageVector = Icons.Default.ShoppingCart,
+                contentDescription = "Warenkorb",
+            )
+        }
+    }
 
     IconButton(onClick = onOpenSettings) {
         Icon(

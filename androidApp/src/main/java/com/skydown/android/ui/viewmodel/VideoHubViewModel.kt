@@ -240,6 +240,36 @@ class VideoHubViewModel(
         }
     }
 
+    fun toggleHomeFeatured(video: VideoHubItem) {
+        if (!_uiState.value.isAdmin) return
+
+        viewModelScope.launch {
+            runCatching {
+                videoHubService.setHomeFeaturedVideo(
+                    video = if (video.isHomeFeatured) null else video,
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        feedbackMessage = if (video.isHomeFeatured) {
+                            "Home-Video entfernt."
+                        } else {
+                            "Video fuer Home ausgewaehlt."
+                        },
+                        feedbackIsError = false,
+                    )
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        feedbackMessage = "Das Home-Video konnte nicht aktualisiert werden.",
+                        feedbackIsError = true,
+                    )
+                }
+            }
+        }
+    }
+
     fun dismissFeedback() {
         _uiState.update { it.copy(feedbackMessage = null) }
     }

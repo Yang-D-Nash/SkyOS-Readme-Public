@@ -534,6 +534,7 @@ struct SkydownVideoHubItem: Identifiable {
     let mimeType: String
     let storagePath: String
     let isPublic: Bool
+    let isHomeFeatured: Bool
     let createdAt: Date
 
     var isPlayable: Bool {
@@ -558,6 +559,7 @@ protocol SkydownVideoHubServicing {
         _ onChange: @escaping @MainActor (Result<[SkydownVideoHubItem], Error>) -> Void
     ) -> () -> Void
     func uploadVideos(_ request: SkydownVideoUploadRequest, currentUser: User?) async throws
+    func setHomeFeaturedVideo(_ video: SkydownVideoHubItem?) async throws
     func deleteVideo(_ video: SkydownVideoHubItem) async throws
 }
 
@@ -587,7 +589,10 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                     self?.mapVideo(document: document)
                 }
                 .sorted { left, right in
-                    left.createdAt > right.createdAt
+                    if left.isHomeFeatured != right.isHomeFeatured {
+                        return left.isHomeFeatured && !right.isHomeFeatured
+                    }
+                    return left.createdAt > right.createdAt
                 } ?? []
                 onChange(.success(videos))
             }
@@ -610,6 +615,28 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         }
 
         try await firestore.collection(collectionName).document(video.id).delete()
+    }
+
+    func setHomeFeaturedVideo(_ video: SkydownVideoHubItem?) async throws {
+        let collection = firestore.collection(collectionName)
+        let currentFeatured = try await collection
+            .whereField("isHomeFeatured", isEqualTo: true)
+            .getDocuments()
+
+        let batch = firestore.batch()
+        currentFeatured.documents.forEach { document in
+            batch.updateData(["isHomeFeatured": false], forDocument: document.reference)
+        }
+
+        if let video {
+            batch.setData(
+                ["isHomeFeatured": true],
+                forDocument: collection.document(video.id),
+                merge: true
+            )
+        }
+
+        try await batch.commit()
     }
 
     private func upload(
@@ -665,6 +692,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             "uploaderEmail": currentUser?.email ?? request.email,
             "uploaderID": currentUser?.id ?? "",
             "isPublic": currentUser?.isAdmin == true,
+            "isHomeFeatured": false,
             "createdAt": Timestamp()
         ]
 
@@ -724,6 +752,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             mimeType: data["mimeType"] as? String ?? "video/mp4",
             storagePath: data["storagePath"] as? String ?? "",
             isPublic: data["isPublic"] as? Bool ?? false,
+            isHomeFeatured: data["isHomeFeatured"] as? Bool ?? false,
             createdAt: createdAt
         )
     }
@@ -897,6 +926,17 @@ final class SkydownVideoHubViewModel: ObservableObject {
             showUserToast("Video entfernt.", style: .success)
         } catch {
             showUserToast("Das Video konnte nicht geloescht werden.", style: .error)
+        }
+    }
+
+    func toggleHomeFeatured(_ video: SkydownVideoHubItem) async {
+        guard isAdmin else { return }
+
+        do {
+            try await service.setHomeFeaturedVideo(video.isHomeFeatured ? nil : video)
+            showUserToast(video.isHomeFeatured ? "Home-Video entfernt." : "Video fuer Home ausgewaehlt.", style: .success)
+        } catch {
+            showUserToast("Das Home-Video konnte nicht aktualisiert werden.", style: .error)
         }
     }
 

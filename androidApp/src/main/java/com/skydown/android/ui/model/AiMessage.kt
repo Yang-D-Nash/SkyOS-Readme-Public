@@ -12,4 +12,6 @@ data class AiMessage(
     val role: AiMessageRole,
     val text: String,
     val isStreaming: Boolean = false,
+    val imageBytes: ByteArray? = null,
+    val imageMimeType: String? = null,
 )

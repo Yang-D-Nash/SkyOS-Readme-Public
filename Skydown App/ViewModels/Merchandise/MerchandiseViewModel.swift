@@ -183,7 +183,7 @@ final class HomeViewModel: ObservableObject {
                 ? "Verbinde Spotify im Musikbereich, damit der neueste Release direkt hier erscheint."
                 : nil
             homeVideoMessage = featuredVideo == nil
-                ? "Sobald das erste oeffentliche Video live ist, taucht es hier direkt auf."
+                ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
                 : nil
         }
     }
@@ -208,31 +208,44 @@ final class HomeViewModel: ObservableObject {
 
     private func loadLatestVideo() async -> FeaturedHomeVideo? {
         do {
+            let featuredSnapshot = try await firestore.collection("videographyHub")
+                .whereField("isPublic", isEqualTo: true)
+                .whereField("isHomeFeatured", isEqualTo: true)
+                .limit(to: 1)
+                .getDocuments()
+
+            if let featuredDocument = featuredSnapshot.documents.first,
+               let video = mapFeaturedVideo(from: featuredDocument) {
+                return video
+            }
+
             let snapshot = try await firestore.collection("videographyHub")
                 .whereField("isPublic", isEqualTo: true)
                 .limit(to: 12)
                 .getDocuments()
 
-            let latestDocument = snapshot.documents
-                .sorted { lhs, rhs in
-                    documentDate(lhs) > documentDate(rhs)
-                }
-                .first
-
-            guard let latestDocument,
-                  let title = latestDocument.data()["title"] as? String,
-                  !title.isEmpty else {
-                return nil
+            let latestDocument = snapshot.documents.max { lhs, rhs in
+                documentDate(lhs) < documentDate(rhs)
             }
 
-            return FeaturedHomeVideo(
-                title: title,
-                projectName: latestDocument.data()["projectName"] as? String ?? "Skydown Visual",
-                notes: latestDocument.data()["notes"] as? String ?? ""
-            )
+            guard let latestDocument else { return nil }
+            return mapFeaturedVideo(from: latestDocument)
         } catch {
             return nil
         }
+    }
+
+    private func mapFeaturedVideo(from document: QueryDocumentSnapshot) -> FeaturedHomeVideo? {
+        guard let title = document.data()["title"] as? String,
+              !title.isEmpty else {
+            return nil
+        }
+
+        return FeaturedHomeVideo(
+            title: title,
+            projectName: document.data()["projectName"] as? String ?? "Skydown Visual",
+            notes: document.data()["notes"] as? String ?? ""
+        )
     }
 
     private func documentDate(_ document: QueryDocumentSnapshot) -> Date {

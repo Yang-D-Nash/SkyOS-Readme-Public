@@ -39,6 +39,12 @@ class AgentViewModel : ViewModel() {
 
     fun sendPrompt(prompt: String) {
         val trimmedPrompt = prompt.trim()
+        if (AppContainer.currentUser.value == null) {
+            _uiState.update {
+                it.copy(errorMessage = "Bitte melde dich an, um den Skydown x 22 Agent zu nutzen.")
+            }
+            return
+        }
         if (!_uiState.value.isAgentEnabled) {
             _uiState.update {
                 it.copy(errorMessage = "Der Skydown x 22 Agent ist gerade deaktiviert.")
@@ -167,6 +173,6 @@ class AgentViewModel : ViewModel() {
 
     private companion object {
         const val INTRO_MESSAGE =
-            "Ich bin der Skydown x 22 Agent. Ich bin fuer Struktur, Briefings, To-dos und Release-Plaene da. Wenn du nur schnelle Ideen oder Captions brauchst, nimm den Bot."
+            "Ich bin der Skydown x 22 Agent. Ich baue dir Briefings, Release-Plaene, Content-Strukturen, Checklisten und naechste Schritte. Fuer schnelle Hooks oder Captions nimm den Bot."
     }
 }

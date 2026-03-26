@@ -22,6 +22,7 @@ object AppContainer {
     private const val useFirebaseRepositories = true
 
     val aiChatClient: AiChatClient by lazy { AiChatClient() }
+    val aiImageClient: AiImageClient by lazy { AiImageClient() }
     val agentClient: AgentClient by lazy { AgentClient() }
 
     val authRepository: AuthRepository by lazy {
