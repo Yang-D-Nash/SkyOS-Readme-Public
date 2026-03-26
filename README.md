@@ -1,28 +1,33 @@
 # Skydown x 22
 
-Skydown x 22 is a multiplatform music and creator app for the Skydown / 22 ecosystem.
-It combines artist discovery, Spotify-powered listening, social artist access, producer services, beat listening, merch and in-app AI across iOS and Android.
+Skydown x 22 is a cross-platform music and creator app built for the Skydown / 22 ecosystem.
+It brings together artist discovery, Spotify-powered listening, social touchpoints, producer services, beat listening, merch and in-app AI in one mobile product across iOS and Android.
 
-## What The App Includes
+## Product Highlights
 
 - artist selection and music discovery
 - Spotify connection with in-app previews and premium handoff
 - Instagram links for artists, Skydown and 22
-- `NICMA MUSIC` producer area
+- `NICMA MUSIC` producer area for services and inquiries
 - `Beat Hub` for listening and admin-managed uploads
 - merch, cart and order flows
 - bot and agent features inside the app
 
-## Technology Stack
+## Built With
+
+### Client
 
 - `SwiftUI` for the iOS app UI
 - `Jetpack Compose` for the Android app UI
 - `Kotlin Multiplatform` for shared models and business logic
+
+### Music And Media
+
 - `Spotify Web API + OAuth` for music loading and Spotify connection
 - `AVFoundation` for iOS preview playback
 - `ExoPlayer / Media3` for Android preview playback
 
-## Backend And Data Technologies
+### Backend And Data
 
 - `Firebase Auth` for account and sign-in flows
 - `Cloud Firestore` as the main cloud database
