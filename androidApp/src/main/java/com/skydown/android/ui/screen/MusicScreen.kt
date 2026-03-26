@@ -499,7 +499,7 @@ private fun MusicOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Android folgt jetzt derselben klaren Music-Logik wie iOS: Artist auswaehlen, Preview testen, Song in Spotify fertig hoeren.",
+                    text = "Android folgt jetzt derselben klaren Music-Logik wie iOS: Artist auswaehlen, Preview testen und volle Wiedergabe nur mit Spotify Premium fortsetzen.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
