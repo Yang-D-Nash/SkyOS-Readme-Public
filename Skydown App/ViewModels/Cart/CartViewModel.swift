@@ -51,7 +51,12 @@ class CartViewModel: ObservableObject {
         items.removeAll()
     }
 
-    func submitCartAsOrder() async -> Bool {
+    func submitCartAsOrder(
+        customerName: String,
+        customerEmail: String,
+        whatsApp: String,
+        message: String,
+    ) async -> Bool {
         guard !items.isEmpty else {
             showUserToast("Warenkorb ist leer.", style: .error)
             return false
@@ -62,7 +67,14 @@ class CartViewModel: ObservableObject {
         }
 
         do {
-            try await orderService.submitOrder(userEmail: email, items: items)
+            try await orderService.submitOrder(
+                userEmail: email,
+                customerName: customerName,
+                customerEmail: customerEmail,
+                whatsApp: whatsApp,
+                message: message,
+                items: items
+            )
             clearCart()
             showUserToast("Bestellung erfolgreich abgeschickt!", style: .success)
             return true

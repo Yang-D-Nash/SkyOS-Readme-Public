@@ -3,7 +3,14 @@ import FirebaseFirestore
 
 protocol OrderServicing {
     func observeOrders(_ onChange: @escaping @MainActor (Result<[Order], Error>) -> Void) -> () -> Void
-    func submitOrder(userEmail: String, items: [CartItem]) async throws
+    func submitOrder(
+        userEmail: String,
+        customerName: String,
+        customerEmail: String,
+        whatsApp: String,
+        message: String,
+        items: [CartItem]
+    ) async throws
     func toggleCompleted(orderID: String, isCompleted: Bool) async throws
     func deleteOrder(orderID: String) async throws
 }
@@ -48,7 +55,14 @@ final class FirebaseOrderService: OrderServicing {
         }
     }
 
-    func submitOrder(userEmail: String, items: [CartItem]) async throws {
+    func submitOrder(
+        userEmail: String,
+        customerName: String,
+        customerEmail: String,
+        whatsApp: String,
+        message: String,
+        items: [CartItem]
+    ) async throws {
         let orderItems = items.map { item in
             [
                 "name": item.item.name,
@@ -59,6 +73,10 @@ final class FirebaseOrderService: OrderServicing {
 
         let orderData: [String: Any] = [
             "userEmail": userEmail,
+            "customerName": customerName,
+            "customerEmail": customerEmail,
+            "whatsApp": whatsApp,
+            "message": message,
             "items": orderItems,
             "isCompleted": false,
             "timestamp": Timestamp()
@@ -110,6 +128,10 @@ final class FirebaseOrderService: OrderServicing {
         return Order(
             id: document.documentID,
             userEmail: userEmail,
+            customerName: data["customerName"] as? String,
+            customerEmail: data["customerEmail"] as? String,
+            whatsApp: data["whatsApp"] as? String,
+            message: data["message"] as? String,
             items: items,
             isCompleted: isCompleted,
             timestamp: timestamp

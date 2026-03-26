@@ -75,6 +75,22 @@ class AndroidAuthRepository(
         }
     }
 
+    override suspend fun deleteCurrentAccount(): Result<Unit> {
+        return runCatching {
+            val authUser = auth.currentUser ?: error("Kein Benutzer angemeldet.")
+            val uid = authUser.uid
+
+            authUser.delete().await()
+            runCatching {
+                firestore.collection("users").document(uid).delete().await()
+            }
+            GoogleSignInManager.client(auth.app.applicationContext).signOut().await()
+            AppSessionStore.update(null)
+        }.recoverCatching { error ->
+            throw error.toReadableAuthError()
+        }
+    }
+
     private suspend fun syncUserDocument(
         authUser: FirebaseUser,
         preferredUsername: String? = null,
@@ -148,6 +164,7 @@ private fun Throwable.toReadableAuthError(): Throwable {
             "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" -> "Diese E-Mail ist bereits mit einer anderen Anmeldemethode verknuepft."
             "ERROR_CREDENTIAL_ALREADY_IN_USE" -> "Das Google-Konto wird bereits von einem anderen Benutzer verwendet."
             "ERROR_WEAK_PASSWORD" -> "Das Passwort ist zu schwach."
+            "ERROR_REQUIRES_RECENT_LOGIN" -> "Bitte melde dich erneut an, bevor du dein Konto loeschst."
             else -> null
         }
     }

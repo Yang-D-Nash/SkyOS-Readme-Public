@@ -281,9 +281,10 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingMailView) {
             MailView(
-                subject: "Support-Anfrage",
-                body: "Hallo Skydown-Team,\n\nich habe folgende Anfrage:\n",
-                recipients: ["skydownent@gmail.com"]
+                subject: supportMailSubject,
+                body: supportMailBody,
+                recipients: [supportMailbox],
+                preferredSendingEmailAddress: preferredSupportSenderEmail
             )
         }
         .alert(item: $activeAlert) { alert in
@@ -335,15 +336,45 @@ struct SettingsView: View {
         )
     }
 
+    private var supportMailbox: String {
+        "skydownent@gmail.com"
+    }
+
+    private var preferredSupportSenderEmail: String? {
+        authManager.userSession?.email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var supportMailSubject: String {
+        guard let email = preferredSupportSenderEmail, !email.isEmpty else {
+            return "Support-Anfrage"
+        }
+        return "Support-Anfrage - \(email)"
+    }
+
+    private var supportMailBody: String {
+        let username = authManager.userSession?.username
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .takeIfNotBlank()
+            ?? "Nicht verfuegbar"
+        let email = preferredSupportSenderEmail?.takeIfNotBlank() ?? "Nicht verfuegbar"
+
+        return """
+        Hallo Skydown-Team,
+
+        ich habe folgende Anfrage:
+
+        Eingeloggter Account: \(username)
+        Account-E-Mail: \(email)
+
+        Nachricht:
+        """
+    }
+
     private func openMailAppFallback() {
-        let email = "skydownent@gmail.com"
-        let subject = "Support-Anfrage"
-        let body = "Hallo Skydown-Team,\n\nich habe folgende Anfrage:\n"
+        let encodedSubject = supportMailSubject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = supportMailBody.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-
-        if let url = URL(string: "mailto:\(email)?subject=\(encodedSubject)&body=\(encodedBody)"),
+        if let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)"),
            UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
             showToastMessage("Mail-App geoeffnet", style: .success)
@@ -356,6 +387,13 @@ struct SettingsView: View {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+}
+
+private extension String {
+    func takeIfNotBlank() -> String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

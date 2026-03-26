@@ -24,6 +24,10 @@ class AndroidOrderRepository(
                     Order(
                         id = document.id,
                         userEmail = data["userEmail"] as? String ?: "",
+                        customerName = data["customerName"] as? String,
+                        customerEmail = data["customerEmail"] as? String,
+                        whatsApp = data["whatsApp"] as? String,
+                        message = data["message"] as? String,
                         items = rawItems.mapIndexed { index, item ->
                             OrderItem(
                                 id = item["id"] as? String ?: "${document.id}-$index",
@@ -40,7 +44,14 @@ class AndroidOrderRepository(
         }
     }
 
-    override suspend fun submitOrder(userEmail: String, items: List<CartItem>): Result<Unit> {
+    override suspend fun submitOrder(
+        userEmail: String,
+        items: List<CartItem>,
+        customerName: String,
+        customerEmail: String,
+        whatsApp: String,
+        message: String,
+    ): Result<Unit> {
         return runCatching {
             val orderItems = items.map { item ->
                 mapOf(
@@ -53,6 +64,10 @@ class AndroidOrderRepository(
             firestore.collection("orders").add(
                 mapOf(
                     "userEmail" to userEmail,
+                    "customerName" to customerName,
+                    "customerEmail" to customerEmail,
+                    "whatsApp" to whatsApp,
+                    "message" to message,
                     "items" to orderItems,
                     "isCompleted" to false,
                     "timestamp" to Timestamp.now(),

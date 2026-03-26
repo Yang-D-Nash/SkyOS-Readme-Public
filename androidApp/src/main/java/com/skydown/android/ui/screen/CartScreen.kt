@@ -1,5 +1,8 @@
 package com.skydown.android.ui.screen
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -59,6 +63,7 @@ fun CartScreen(
     viewModel: CartViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val appContext = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val totalPrice = uiState.items.sumOf { it.item.price * it.quantity }
@@ -269,8 +274,12 @@ fun CartScreen(
 
                             Button(
                                 onClick = {
+                                    val orderSnapshot = uiState
                                     coroutineScope.launch {
-                                        viewModel.submitOrder()
+                                        val result = viewModel.submitOrder()
+                                        if (result.isSuccess) {
+                                            openOrderEmail(appContext, orderSnapshot)
+                                        }
                                     }
                                 },
                                 enabled = viewModel.isFormValid() && !uiState.isSubmitting,
@@ -432,4 +441,50 @@ private fun CartInfoPill(text: String) {
 
 private fun formatCurrency(value: Double): String {
     return String.format(Locale.US, "%.2f", value)
+}
+
+private fun openOrderEmail(
+    context: Context,
+    state: com.skydown.android.ui.model.CartUiState,
+) {
+    val subject = if (state.email.isNotBlank()) {
+        "Neue Bestellung - ${state.email}"
+    } else {
+        "Neue Bestellung"
+    }
+    val itemSummary = if (state.items.isEmpty()) {
+        "- Keine Artikel"
+    } else {
+        state.items.joinToString(separator = "\n") { cartItem ->
+            val price = cartItem.item.price * cartItem.quantity
+            "- ${cartItem.item.name} | Groesse: ${cartItem.size} | Menge: ${cartItem.quantity} | Preis: EUR ${formatCurrency(price)}"
+        }
+    }
+    val total = state.items.sumOf { cartItem -> cartItem.item.price * cartItem.quantity }
+    val body = """
+        Hallo Skydown-Team,
+
+        es wurde eine neue Bestellung in der Skydown App vorbereitet.
+
+        Name: ${state.name.ifBlank { "Nicht angegeben" }}
+        E-Mail: ${state.email.ifBlank { "Nicht angegeben" }}
+        WhatsApp: ${state.whatsApp.ifBlank { "Nicht angegeben" }}
+
+        Warenkorb:
+        $itemSummary
+
+        Gesamt: EUR ${formatCurrency(total)}
+
+        Nachricht:
+        ${state.message.ifBlank { "Keine zusaetzliche Nachricht." }}
+    """.trimIndent()
+    val uri = Uri.parse("mailto:skydownent@gmail.com")
+        .buildUpon()
+        .appendQueryParameter("subject", subject)
+        .appendQueryParameter("body", body)
+        .build()
+    val intent = Intent(Intent.ACTION_SENDTO, uri)
+    if (intent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(intent)
+    }
 }

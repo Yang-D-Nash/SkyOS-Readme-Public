@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import MessageUI
 
 struct CartView: View {
     @EnvironmentObject var cartVM: CartViewModel
@@ -19,6 +20,7 @@ struct CartView: View {
     @State private var showConfirmationDialog = false
     @State private var isSubmitting = false
     @State private var showingLoginSheet = false
+    @State private var orderMailDraft: OrderMailDraft?
 
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -162,6 +164,14 @@ struct CartView: View {
         .sheet(isPresented: $showingLoginSheet) {
             LoginView()
         }
+        .sheet(item: $orderMailDraft) { draft in
+            MailView(
+                subject: draft.subject,
+                body: draft.body,
+                recipients: [supportMailbox],
+                preferredSendingEmailAddress: draft.preferredSendingEmailAddress
+            )
+        }
         .confirmationDialog(
             "Bestellung abschicken",
             isPresented: $showConfirmationDialog,
@@ -184,8 +194,18 @@ struct CartView: View {
     private func submitOrderAsync() async {
         guard !isSubmitting else { return }
         isSubmitting = true
+        let draft = makeOrderMailDraft(items: cartVM.items)
 
-        _ = await cartVM.submitCartAsOrder()
+        let didSubmit = await cartVM.submitCartAsOrder(
+            customerName: name,
+            customerEmail: email,
+            whatsApp: whatsApp,
+            message: message
+        )
+
+        if didSubmit {
+            presentOrderMailDraft(draft)
+        }
 
         isSubmitting = false
     }
@@ -209,6 +229,77 @@ struct CartView: View {
             startPoint: .top,
             endPoint: .bottom
         )
+    }
+
+    private var supportMailbox: String {
+        "skydownent@gmail.com"
+    }
+
+    private func makeOrderMailDraft(items: [CartItem]) -> OrderMailDraft {
+        let preferredEmail = authManager.userSession?.email
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .takeIfNotBlank()
+        let itemSummary = items.isEmpty
+            ? "- Keine Artikel"
+            : items.map { cartItem in
+                let linePrice = cartItem.item.price * Double(cartItem.quantity)
+                return "- \(cartItem.item.name) | Groesse: \(cartItem.size) | Menge: \(cartItem.quantity) | Preis: \(String(format: "EUR %.2f", linePrice))"
+            }.joined(separator: "\n")
+        let orderTotal = items.reduce(0.0) { partialResult, cartItem in
+            partialResult + cartItem.item.price * Double(cartItem.quantity)
+        }
+        let subject = preferredEmail.map { "Neue Bestellung - \($0)" } ?? "Neue Bestellung"
+        let body = """
+        Hallo Skydown-Team,
+
+        es wurde eine neue Bestellung in der Skydown App vorbereitet.
+
+        Name: \(name.isEmpty ? "Nicht angegeben" : name)
+        E-Mail: \(email.isEmpty ? "Nicht angegeben" : email)
+        WhatsApp: \(whatsApp.isEmpty ? "Nicht angegeben" : whatsApp)
+
+        Warenkorb:
+        \(itemSummary)
+
+        Gesamt: \(String(format: "EUR %.2f", orderTotal))
+
+        Nachricht:
+        \(message.isEmpty ? "Keine zusaetzliche Nachricht." : message)
+        """
+
+        return OrderMailDraft(
+            subject: subject,
+            body: body,
+            preferredSendingEmailAddress: preferredEmail
+        )
+    }
+
+    private func presentOrderMailDraft(_ draft: OrderMailDraft) {
+        if MFMailComposeViewController.canSendMail() {
+            orderMailDraft = draft
+            return
+        }
+
+        let encodedSubject = draft.subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = draft.body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        if let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)"),
+           UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        }
+    }
+}
+
+private struct OrderMailDraft: Identifiable {
+    let id = UUID()
+    let subject: String
+    let body: String
+    let preferredSendingEmailAddress: String?
+}
+
+private extension String {
+    func takeIfNotBlank() -> String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

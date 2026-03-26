@@ -14,6 +14,7 @@ struct MailView: UIViewControllerRepresentable {
     let subject: String
     let body: String
     let recipients: [String]
+    let preferredSendingEmailAddress: String?
     
     class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
         var parent: MailView
@@ -40,6 +41,10 @@ struct MailView: UIViewControllerRepresentable {
         viewController.setSubject(subject)
         viewController.setMessageBody(body, isHTML: false)
         viewController.setToRecipients(recipients)
+        if let preferredSendingEmailAddress,
+           !preferredSendingEmailAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            viewController.setPreferredSendingEmailAddress(preferredSendingEmailAddress)
+        }
         viewController.mailComposeDelegate = context.coordinator
         return viewController
     }

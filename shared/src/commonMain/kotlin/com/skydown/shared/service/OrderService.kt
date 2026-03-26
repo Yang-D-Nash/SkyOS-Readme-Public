@@ -9,15 +9,32 @@ class OrderService(
 ) {
     suspend fun loadOrders(): Result<List<Order>> = repository.loadOrders()
 
-    suspend fun submitOrder(userEmail: String, items: List<CartItem>): Result<Unit> {
+    suspend fun submitOrder(
+        userEmail: String,
+        items: List<CartItem>,
+        customerName: String,
+        customerEmail: String,
+        whatsApp: String,
+        message: String,
+    ): Result<Unit> {
         if (items.isEmpty()) {
             return Result.failure(IllegalArgumentException("Warenkorb ist leer."))
         }
         if (userEmail.isBlank()) {
             return Result.failure(IllegalArgumentException("Benutzer nicht angemeldet."))
         }
+        if (customerName.isBlank() || customerEmail.isBlank()) {
+            return Result.failure(IllegalArgumentException("Name und E-Mail sind erforderlich."))
+        }
 
-        return repository.submitOrder(userEmail, items)
+        return repository.submitOrder(
+            userEmail = userEmail,
+            items = items,
+            customerName = customerName,
+            customerEmail = customerEmail,
+            whatsApp = whatsApp,
+            message = message,
+        )
     }
 
     suspend fun toggleCompleted(orderId: String, isCompleted: Boolean): Result<Unit> {

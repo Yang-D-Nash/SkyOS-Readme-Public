@@ -41,4 +41,6 @@ class AuthService(
     }
 
     suspend fun signOut(): Result<Unit> = repository.signOut()
+
+    suspend fun deleteCurrentAccount(): Result<Unit> = repository.deleteCurrentAccount()
 }

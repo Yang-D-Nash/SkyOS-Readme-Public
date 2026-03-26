@@ -11,6 +11,10 @@ import FirebaseFirestore
 struct Order: Codable, Identifiable {
     @DocumentID var id: String?
     var userEmail: String
+    var customerName: String?
+    var customerEmail: String?
+    var whatsApp: String?
+    var message: String?
     var items: [OrderItem]
     var isCompleted: Bool
     var timestamp: Date

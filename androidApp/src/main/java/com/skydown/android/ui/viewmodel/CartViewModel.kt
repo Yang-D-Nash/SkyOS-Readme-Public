@@ -86,7 +86,14 @@ class CartViewModel : ViewModel() {
     suspend fun submitOrder(): Result<Unit> {
         val state = _uiState.value
         _uiState.update { it.copy(isSubmitting = true, errorMessage = null, successMessage = null) }
-        val result = orderService.submitOrder(state.email, state.items)
+        val result = orderService.submitOrder(
+            userEmail = state.email,
+            items = state.items,
+            customerName = state.name,
+            customerEmail = state.email,
+            whatsApp = state.whatsApp,
+            message = state.message,
+        )
         _uiState.update {
             it.copy(
                 isSubmitting = false,

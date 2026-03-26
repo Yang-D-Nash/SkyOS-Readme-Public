@@ -83,4 +83,38 @@ class SettingsViewModel : ViewModel() {
             }
         }
     }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isDeletingAccount = true,
+                    accountErrorMessage = null,
+                )
+            }
+
+            val result = authService.deleteCurrentAccount()
+
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isDeletingAccount = false,
+                        isLoggedIn = false,
+                        username = "",
+                        email = "",
+                        isAdmin = false,
+                        accountErrorMessage = null,
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isDeletingAccount = false,
+                        accountErrorMessage = result.exceptionOrNull()?.message
+                            ?: "Konto konnte nicht geloescht werden.",
+                    )
+                }
+            }
+        }
+    }
 }

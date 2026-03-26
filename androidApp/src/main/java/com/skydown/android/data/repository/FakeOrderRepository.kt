@@ -10,7 +10,14 @@ class FakeOrderRepository : OrderRepository {
 
     override suspend fun loadOrders(): Result<List<Order>> = Result.success(orders)
 
-    override suspend fun submitOrder(userEmail: String, items: List<CartItem>): Result<Unit> {
+    override suspend fun submitOrder(
+        userEmail: String,
+        items: List<CartItem>,
+        customerName: String,
+        customerEmail: String,
+        whatsApp: String,
+        message: String,
+    ): Result<Unit> {
         return Result.success(Unit)
     }
 

@@ -42,4 +42,10 @@ class FakeAuthRepository : AuthRepository {
         AppSessionStore.update(null)
         return Result.success(Unit)
     }
+
+    override suspend fun deleteCurrentAccount(): Result<Unit> {
+        currentUser = null
+        AppSessionStore.update(null)
+        return Result.success(Unit)
+    }
 }
