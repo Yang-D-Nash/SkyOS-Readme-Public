@@ -1,9 +1,9 @@
 # Skydown x 22
 
-Skydown x 22 is a multiplatform app for the Skydown / 22 ecosystem.  
-It brings together music discovery, Spotify handoff, social artist access, merch, producer services, beat listening and in-app AI tools across iOS and Android.
+Skydown x 22 is a multiplatform music and creator app for the Skydown / 22 ecosystem.
+It combines artist discovery, Spotify-powered listening, social artist access, producer services, beat listening, merch and in-app AI across iOS and Android.
 
-## Core Experience
+## What The App Includes
 
 - artist selection and music discovery
 - Spotify connection with in-app previews and premium handoff
@@ -15,47 +15,27 @@ It brings together music discovery, Spotify handoff, social artist access, merch
 
 ## Technology Stack
 
-- `SwiftUI`
-  iOS app UI
-- `Jetpack Compose`
-  Android app UI
-- `Kotlin Multiplatform`
-  shared models and business logic
-- `Firebase Auth`
-  account and sign-in flows
-- `Cloud Firestore`
-  primary cloud database for app data
-- `Firebase Storage`
-  media and upload storage
-- `Firebase Functions`
-  backend logic and agent endpoints
-- `Firebase App Distribution`
-  internal tester distribution
-- `Firebase AI / Gemini`
-  in-app AI features
-- `Spotify Web API + OAuth`
-  music loading and Spotify connection
-- `AVFoundation`
-  iOS preview playback
-- `ExoPlayer / Media3`
-  Android preview playback
+- `SwiftUI` for the iOS app UI
+- `Jetpack Compose` for the Android app UI
+- `Kotlin Multiplatform` for shared models and business logic
+- `Spotify Web API + OAuth` for music loading and Spotify connection
+- `AVFoundation` for iOS preview playback
+- `ExoPlayer / Media3` for Android preview playback
 
-## Data And Backend
+## Backend And Data Technologies
 
-- main database: `Cloud Firestore`
-- file storage: `Firebase Storage`
-- backend functions: `Firebase Functions`
-- authentication: `Firebase Auth`
-- AI integration: `Firebase AI`
+- `Firebase Auth` for account and sign-in flows
+- `Cloud Firestore` as the main cloud database
+- `Firebase Storage` for media and uploads
+- `Firebase Functions` for backend logic and agent endpoints
+- `Firebase App Distribution` for internal tester releases
+- `Firebase AI / Gemini` for in-app AI features
 
 ## Repository Structure
 
-- `Skydown App/`
-  iOS source, SwiftUI views, iOS services and view models
-- `androidApp/`
-  Android source, Compose screens and Android integrations
-- `shared/`
-  shared Kotlin Multiplatform code
+- `Skydown App/` for the iOS source, SwiftUI views, services and view models
+- `androidApp/` for the Android source, Compose screens and integrations
+- `shared/` for shared Kotlin Multiplatform code
 
 ## Platform Setup
 
