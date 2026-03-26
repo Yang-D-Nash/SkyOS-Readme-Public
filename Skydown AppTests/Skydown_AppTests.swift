@@ -6,7 +6,7 @@
 //
 
 import Testing
-@testable import Skydown_App_
+@testable import Skydown_App
 
 struct Skydown_AppTests {
 

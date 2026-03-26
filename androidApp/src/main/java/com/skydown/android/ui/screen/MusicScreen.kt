@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
@@ -37,7 +39,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +71,23 @@ fun MusicScreen(
     viewModel: MusicViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
+
+    if (activeDestination == musicDestinationNicmaProducer) {
+        NicmaProducerScreen(
+            onBack = { activeDestination = null },
+            onOpenBeatHub = { activeDestination = musicDestinationBeatHub },
+        )
+        return
+    }
+
+    if (activeDestination == musicDestinationBeatHub) {
+        BeatHubScreen(
+            onBack = { activeDestination = null },
+        )
+        return
+    }
+
     val context = LocalContext.current
     val player = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -190,6 +212,18 @@ fun MusicScreen(
                 }
 
                 item {
+                    NicmaProducerEntryCard(
+                        onOpen = { activeDestination = musicDestinationNicmaProducer },
+                    )
+                }
+
+                item {
+                    BeatHubEntryCard(
+                        onOpen = { activeDestination = musicDestinationBeatHub },
+                    )
+                }
+
+                item {
                     when {
                         !uiState.isSpotifyConnected -> {
                             SpotifyConnectCard(
@@ -253,6 +287,154 @@ fun MusicScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NicmaProducerEntryCard(
+    onOpen: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "NICMA MUSIC",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Producer-Seite mit Preisliste fuer Mixing, Mastering und Recording.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.GraphicEq,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MusicBadge(
+                text = "Mixing",
+                imageVector = Icons.Default.CheckCircle,
+                isActive = true,
+            )
+            MusicBadge(
+                text = "Mastering",
+                imageVector = Icons.Default.Sync,
+                isActive = false,
+            )
+            MusicBadge(
+                text = "Studio Services",
+                imageVector = Icons.Default.MusicNote,
+                isActive = false,
+            )
+        }
+
+        Button(
+            onClick = onOpen,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Text("NICMA MUSIC oeffnen")
+        }
+    }
+}
+
+@Composable
+private fun BeatHubEntryCard(
+    onOpen: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Beat Hub",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Eigener Bereich fuer Uploads, Playback und Admin-Freigaben, damit andere User Beats direkt in der App hoeren koennen.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LibraryMusic,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MusicBadge(
+                text = "Upload",
+                imageVector = Icons.Default.MusicNote,
+                isActive = true,
+            )
+            MusicBadge(
+                text = "Listen",
+                imageVector = Icons.Default.CheckCircle,
+                isActive = false,
+            )
+            MusicBadge(
+                text = "Admin Review",
+                imageVector = Icons.Default.Sync,
+                isActive = false,
+            )
+        }
+
+        Button(
+            onClick = onOpen,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Text("Beat Hub oeffnen")
         }
     }
 }
@@ -531,6 +713,9 @@ private fun MusicStatusCard(
         }
     }
 }
+
+private const val musicDestinationNicmaProducer = "nicma_producer"
+private const val musicDestinationBeatHub = "beat_hub"
 
 @Composable
 private fun MusicBadge(

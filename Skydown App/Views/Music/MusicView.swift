@@ -5,7 +5,9 @@
 //  Created by Yang D. Nash on 23.07.25.
 //
 
+import AVFoundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
@@ -115,6 +117,20 @@ struct MusicView: View {
                         RoundedRectangle(cornerRadius: 24)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                     )
+
+                    NavigationLink {
+                        NicmaProducerView()
+                    } label: {
+                        NicmaProducerSpotlightCard(colorScheme: colorScheme)
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        BeatHubView()
+                    } label: {
+                        BeatHubSpotlightCard(colorScheme: colorScheme)
+                    }
+                    .buttonStyle(.plain)
 
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Spotify")
@@ -259,6 +275,790 @@ private struct MusicBadge: View {
             .clipShape(Capsule())
     }
 }
+
+private struct NicmaProducerSpotlightCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("NICMA MUSIC")
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Producer-Seite mit Preisliste fuer Mixing, Mastering und Recording.")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
+                        .frame(width: 54, height: 54)
+
+                    Image(systemName: "waveform.path.ecg")
+                        .font(.title3)
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                }
+            }
+
+            HStack(spacing: 8) {
+                MusicBadge(text: "Mixing", isAccent: true)
+                MusicBadge(text: "Mastering", isAccent: false)
+                MusicBadge(text: "Studio Services", isAccent: false)
+            }
+
+            HStack {
+                Text("Preise & Services oeffnen")
+                    .font(.headline)
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+
+                Spacer()
+
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct BeatHubSpotlightCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Beat Hub")
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Eigener Bereich fuer Beat-Uploads, oeffentliche Hubsounds und Admin-Freigaben.")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.16))
+                        .frame(width: 54, height: 54)
+
+                    Image(systemName: "speaker.wave.3.fill")
+                        .font(.title3)
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+            }
+
+            HStack(spacing: 8) {
+                MusicBadge(text: "Upload", isAccent: true)
+                MusicBadge(text: "Listen", isAccent: false)
+                MusicBadge(text: "Admin Review", isAccent: false)
+            }
+
+            HStack {
+                Text("Beat Hub oeffnen")
+                    .font(.headline)
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+
+                Spacer()
+
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct NicmaProducerView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    private var inquiryMailURL: URL? {
+        URL(string: "mailto:nicoheine@me.com?subject=NICMA%20MUSIC%20Anfrage")
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("NICMA MUSIC")
+                        .font(.largeTitle.bold())
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Mixing, Mastering und Recording mit klarer Preisliste. Der Beat Hub lebt separat, damit Uploads und Hoerproben ihren eigenen Raum haben.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    HStack(spacing: 8) {
+                        MusicBadge(text: "Studio Services", isAccent: true)
+                        MusicBadge(text: "Mix & Master", isAccent: false)
+                        MusicBadge(text: "Recording", isAccent: false)
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 26)
+                        .fill(AppColors.cardBackground(for: colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26)
+                        .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+                )
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Preisliste")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    ForEach(nicmaProducerPackages) { package in
+                        NicmaProducerPriceCard(
+                            package: package,
+                            colorScheme: colorScheme
+                        )
+                    }
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(AppColors.cardBackground(for: colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                )
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Kontakt")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Anfragen fuer Mixing, Mastering und Recording gehen direkt an nicoheine@me.com.")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    if let inquiryMailURL {
+                        Link(destination: inquiryMailURL) {
+                            Label("NICMA MUSIC anfragen", systemImage: "envelope.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .foregroundColor(.white)
+                        .background(AppColors.accentMystic(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+
+                    Text("Mail: nicoheine@me.com")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(AppColors.cardBackground(for: colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
+                )
+
+                NavigationLink {
+                    BeatHubView()
+                } label: {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Beat Hub")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        Text("Uploads, Hoerproben und Freigaben laufen in einem eigenen Bereich, damit Producing und Beat-Library nicht ineinander verschwimmen.")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        HStack {
+                            Text("Zum Beat Hub")
+                                .font(.headline)
+                                .foregroundColor(AppColors.accent(for: colorScheme))
+
+                            Spacer()
+
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(AppColors.accent(for: colorScheme))
+                        }
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(AppColors.cardBackground(for: colorScheme))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+        }
+        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+        .navigationTitle("NICMA MUSIC")
+    }
+}
+
+private struct BeatHubView: View {
+    @EnvironmentObject private var authManager: AuthManager
+    @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var viewModel = NicmaProducerViewModel()
+    @StateObject private var playbackManager = BeatPlaybackManager()
+    @State private var showingFileImporter = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Beat Hub")
+                        .font(.largeTitle.bold())
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(viewModel.isAdmin
+                         ? "Als Admin siehst du alle Beats, kannst Uploads steuern und Hoerproben direkt pruefen."
+                         : "Hier hoerst du die freigegebenen Beats aus dem Hub. Uploads sind nur fuer Admins sichtbar.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    HStack(spacing: 8) {
+                        MusicBadge(text: viewModel.isAdmin ? "Upload" : "Curated", isAccent: true)
+                        MusicBadge(text: "Listen", isAccent: false)
+                        MusicBadge(text: viewModel.isAdmin ? "Admin aktiv" : "Public Beats", isAccent: false)
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 26)
+                        .fill(AppColors.cardBackground(for: colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
+                )
+
+                if viewModel.isAdmin {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Beat Upload")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        Text("Nur Admins laden neue Beats oder ZIP-Sessions hoch. Audio-Dateien gehen direkt live und koennen anschliessend im Hub getestet werden.")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        NicmaUploadField(
+                            title: "Beat Titel (optional)",
+                            text: $viewModel.beatTitle,
+                            colorScheme: colorScheme
+                        )
+
+                        NicmaUploadField(
+                            title: "Artist / Projekt",
+                            text: $viewModel.artistName,
+                            colorScheme: colorScheme
+                        )
+
+                        NicmaUploadField(
+                            title: "E-Mail",
+                            text: $viewModel.email,
+                            colorScheme: colorScheme,
+                            keyboard: .emailAddress,
+                            autocapitalization: .never
+                        )
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Notiz (optional)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+
+                            TextEditor(text: $viewModel.notes)
+                                .frame(minHeight: 110)
+                                .padding(12)
+                                .background(AppColors.secondaryBackground(for: colorScheme))
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                                )
+                        }
+
+                        Button {
+                            showingFileImporter = true
+                        } label: {
+                            Label("Audio-Dateien oder ZIP waehlen", systemImage: "waveform.badge.plus")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(AppColors.accentMystic(for: colorScheme))
+
+                        if !viewModel.selectedFiles.isEmpty {
+                            VStack(spacing: 10) {
+                                ForEach(viewModel.selectedFiles) { file in
+                                    NicmaSelectedFileRow(
+                                        file: file,
+                                        colorScheme: colorScheme
+                                    ) {
+                                        viewModel.removeFile(file.id)
+                                    }
+                                }
+                            }
+                        }
+
+                        if let validationMessage = viewModel.validationMessage {
+                            Text(validationMessage)
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                        }
+
+                        Button {
+                            Task {
+                                await viewModel.uploadSelectedBeats()
+                            }
+                        } label: {
+                            if viewModel.isUploading {
+                                ProgressView()
+                                    .tint(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            } else {
+                                Label("In den Beat Hub hochladen", systemImage: "arrow.up.circle.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            }
+                        }
+                        .background(AppColors.accent(for: colorScheme))
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .disabled(!viewModel.canUpload)
+                        .opacity(viewModel.canUpload ? 1 : 0.6)
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(AppColors.cardBackground(for: colorScheme))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Listening Only")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        Text("Der Beat Hub ist fuer Horer gedacht. Neue Uploads und Library-Pflege bleiben im Admin-Bereich von NICMA MUSIC.")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        HStack(spacing: 8) {
+                            MusicBadge(text: "Public Beats", isAccent: true)
+                            MusicBadge(text: "Preview", isAccent: false)
+                        }
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(AppColors.cardBackground(for: colorScheme))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Beats")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    if viewModel.isLoadingBeats {
+                        ProgressView("Beat Hub wird geladen ...")
+                    } else if viewModel.beats.isEmpty {
+                        Text(viewModel.isAdmin
+                             ? "Noch keine Beats im Hub. Neue Uploads tauchen hier sofort auf."
+                             : "Noch keine freigegebenen Beats. Sobald NICMA einen Beat live schaltet, kannst du ihn hier abspielen.")
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    } else {
+                        ForEach(viewModel.beats) { beat in
+                            BeatHubLibraryRow(
+                                beat: beat,
+                                isAdmin: viewModel.isAdmin,
+                                isPlaying: playbackManager.currentBeatID == beat.id,
+                                colorScheme: colorScheme,
+                                onPlayToggle: { playbackManager.togglePlayback(for: beat) },
+                                onVisibilityToggle: {
+                                    Task {
+                                        await viewModel.toggleBeatVisibility(beat)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(AppColors.cardBackground(for: colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+        }
+        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+        .navigationTitle("Beat Hub")
+        .task {
+            viewModel.configure(currentUser: authManager.userSession)
+        }
+        .onReceive(authManager.$userSession) { user in
+            viewModel.configure(currentUser: user)
+        }
+        .onDisappear {
+            playbackManager.stop()
+        }
+        .fileImporter(
+            isPresented: $showingFileImporter,
+            allowedContentTypes: [UTType.audio, UTType.zip],
+            allowsMultipleSelection: true
+        ) { result in
+            viewModel.handleFileImport(result)
+        }
+        .fancyToast(
+            isPresented: $viewModel.showToast,
+            message: viewModel.toastMessage,
+            style: viewModel.toastStyle
+        )
+    }
+}
+
+private struct BeatHubLibraryRow: View {
+    let beat: NicmaBeatHubItem
+    let isAdmin: Bool
+    let isPlaying: Bool
+    let colorScheme: ColorScheme
+    let onPlayToggle: () -> Void
+    let onVisibilityToggle: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.14))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: beat.isPlayable ? "waveform.circle.fill" : "doc.zipper")
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(beat.title)
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("\(beat.artistName) • \(beat.uploaderName)")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    if !beat.notes.isEmpty {
+                        Text(beat.notes)
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                MusicBadge(text: beat.isPublic ? "Live" : "Review", isAccent: beat.isPublic)
+                MusicBadge(text: beat.fileName, isAccent: false)
+            }
+
+            HStack(spacing: 10) {
+                if beat.isPlayable {
+                    Button(action: onPlayToggle) {
+                        Label(isPlaying ? "Stoppen" : "Abspielen", systemImage: isPlaying ? "stop.fill" : "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: colorScheme))
+                } else {
+                    Text("Nicht direkt abspielbar")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                if isAdmin {
+                    Button(beat.isPublic ? "Verbergen" : "Freigeben", action: onVisibilityToggle)
+                        .buttonStyle(.bordered)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct NicmaProducerPriceCard: View {
+    let package: NicmaProducerPackage
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top) {
+                Text(package.title)
+                    .font(.headline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Spacer()
+
+                Text(package.price)
+                    .font(.headline.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+            }
+
+            Text(package.detail)
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct NicmaUploadField: View {
+    let title: String
+    @Binding var text: String
+    let colorScheme: ColorScheme
+    var keyboard: UIKeyboardType = .default
+    var autocapitalization: TextInputAutocapitalization = .sentences
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            TextField(title, text: $text)
+                .keyboardType(keyboard)
+                .textInputAutocapitalization(autocapitalization)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .background(AppColors.secondaryBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                )
+        }
+    }
+}
+
+private struct NicmaSelectedFileRow: View {
+    let file: NicmaSelectedFile
+    let colorScheme: ColorScheme
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
+                    .frame(width: 42, height: 42)
+
+                Image(systemName: "waveform")
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(file.fileName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(1)
+
+                Text(ByteCountFormatter.string(fromByteCount: file.fileSizeInBytes, countStyle: .file))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Spacer()
+
+            Button(role: .destructive, action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+            }
+        }
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private final class BeatPlaybackManager: ObservableObject {
+    @Published var currentBeatID: String?
+    private var player: AVPlayer?
+    private var playbackObserver: NSObjectProtocol?
+
+    func togglePlayback(for beat: NicmaBeatHubItem) {
+        guard beat.isPlayable,
+              let url = URL(string: beat.downloadURL) else { return }
+
+        if currentBeatID == beat.id {
+            stop()
+            return
+        }
+
+        stop()
+        configureAudioSession()
+        player = AVPlayer(url: url)
+        observePlaybackFinished()
+        player?.play()
+        currentBeatID = beat.id
+    }
+
+    func stop() {
+        player?.pause()
+        if let playbackObserver {
+            NotificationCenter.default.removeObserver(playbackObserver)
+            self.playbackObserver = nil
+        }
+        player = nil
+        currentBeatID = nil
+    }
+
+    private func configureAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            print("Dev Fehler Beat AudioSession:", error.localizedDescription)
+        }
+    }
+
+    private func observePlaybackFinished() {
+        guard let currentItem = player?.currentItem else { return }
+        playbackObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: currentItem,
+            queue: .main
+        ) { [weak self] _ in
+            self?.stop()
+        }
+    }
+}
+
+private struct NicmaProducerPackage: Identifiable {
+    let id = UUID()
+    let title: String
+    let detail: String
+    let price: String
+}
+
+private let nicmaProducerPackages: [NicmaProducerPackage] = [
+    NicmaProducerPackage(
+        title: "Mixing",
+        detail: "max. 24 Audio Files",
+        price: "150 €"
+    ),
+    NicmaProducerPackage(
+        title: "Mastering",
+        detail: "2 stems",
+        price: "70 €"
+    ),
+    NicmaProducerPackage(
+        title: "Mastering",
+        detail: "max. 5 stems",
+        price: "90 €"
+    ),
+    NicmaProducerPackage(
+        title: "Mixing + Mastering",
+        detail: "max. 24 Audio Files",
+        price: "200 €"
+    ),
+    NicmaProducerPackage(
+        title: "Track Recording ohne Mix / Master",
+        detail: "Recording Session",
+        price: "120 €"
+    ),
+    NicmaProducerPackage(
+        title: "Track Recording inkl. Mix / Master",
+        detail: "Kompletter Recording-Flow",
+        price: "250 €"
+    ),
+    NicmaProducerPackage(
+        title: "8h Studio Zeit + Engineer",
+        detail: "zzgl. Nachbearbeitung",
+        price: "400 € + Nachbearbeitung"
+    )
+]
 
 #Preview {
     MusicView()
