@@ -28,17 +28,17 @@ class NicmaProducerViewModel(
     private var currentUser: User? = null
     private var allBeats: List<NicmaBeatHubItem> = emptyList()
     private var beatObservationCancellation: (() -> Unit)? = null
+    private var observedAdminState: Boolean? = null
 
     init {
-        observeBeats()
-
         viewModelScope.launch {
             AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collectLatest { user ->
                 currentUser = user
+                val nextIsAdmin = user?.isAdmin == true
                 _uiState.update { state ->
                     state.copy(
-                        isAdmin = user?.isAdmin == true,
+                        isAdmin = nextIsAdmin,
                         artistName = if (state.artistName.isBlank()) {
                             user?.username ?: state.artistName
                         } else {
@@ -51,7 +51,12 @@ class NicmaProducerViewModel(
                         },
                     )
                 }
-                applyVisibleBeats()
+
+                if (beatObservationCancellation == null || observedAdminState != nextIsAdmin) {
+                    observeBeats(isAdmin = nextIsAdmin)
+                } else {
+                    applyVisibleBeats()
+                }
             }
         }
     }
@@ -250,10 +255,13 @@ class NicmaProducerViewModel(
         _uiState.update { it.copy(feedbackMessage = null) }
     }
 
-    private fun observeBeats() {
+    private fun observeBeats(isAdmin: Boolean) {
+        observedAdminState = isAdmin
         _uiState.update { it.copy(isLoadingBeats = true) }
+        allBeats = emptyList()
+        _uiState.update { it.copy(beats = emptyList()) }
         beatObservationCancellation?.invoke()
-        beatObservationCancellation = beatHubService.observeBeats { result ->
+        beatObservationCancellation = beatHubService.observeBeats(isAdmin = isAdmin) { result ->
             result.onSuccess { beats ->
                 allBeats = beats
                 applyVisibleBeats()

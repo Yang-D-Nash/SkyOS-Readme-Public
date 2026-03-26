@@ -685,7 +685,7 @@ private struct BeatHubView: View {
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: colorScheme))
 
-                        Text("Nur Admins laden neue Beats oder ZIP-Sessions hoch. Audio-Dateien gehen direkt live und koennen anschliessend im Hub getestet werden.")
+                        Text("Nur Admins laden neue Beats oder ZIP-Sessions hoch. Audio-Dateien koennen danach direkt im Hub getestet und bei Bedarf verborgen werden.")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -794,7 +794,7 @@ private struct BeatHubView: View {
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: colorScheme))
 
-                        Text("Der Beat Hub ist fuer Horer gedacht. Neue Uploads und Library-Pflege bleiben im Admin-Bereich von NICMA MUSIC.")
+                        Text("Der Beat Hub ist fuer Horer gedacht. Neue Uploads und die Pflege der Library bleiben im Admin-Bereich.")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -825,7 +825,7 @@ private struct BeatHubView: View {
                     } else if viewModel.beats.isEmpty {
                         Text(viewModel.isAdmin
                              ? "Noch keine Beats im Hub. Neue Uploads tauchen hier sofort auf."
-                             : "Noch keine freigegebenen Beats. Sobald NICMA einen Beat live schaltet, kannst du ihn hier abspielen.")
+                             : "Noch keine freigegebenen Beats. Sobald ein Beat live geschaltet wird, kannst du ihn hier abspielen.")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     } else {

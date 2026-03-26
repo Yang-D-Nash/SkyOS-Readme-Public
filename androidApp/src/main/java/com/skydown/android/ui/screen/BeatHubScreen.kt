@@ -259,7 +259,7 @@ private fun BeatHubHeroCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "NICMA Beat Hub",
+                    text = "Beat Hub",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -305,7 +305,7 @@ private fun BeatHubListenerCard() {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Listening Only")
         Text(
-            text = "Dieser Bereich ist fuer Horer gedacht. Neue Uploads und die Pflege der Library bleiben im Admin-Bereich von NICMA MUSIC.",
+            text = "Dieser Bereich ist fuer Horer gedacht. Neue Uploads und die Pflege der Library bleiben im Admin-Bereich.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
@@ -495,7 +495,7 @@ private fun BeatHubLibrarySection(
                     text = if (uiState.isAdmin) {
                         "Noch keine Beats im Hub. Neue Uploads tauchen hier sofort auf."
                     } else {
-                        "Noch keine Beats verfuegbar. Sobald NICMA einen Beat live schaltet, erscheint er hier."
+                        "Noch keine Beats verfuegbar. Sobald ein Beat live geschaltet wird, erscheint er hier."
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),

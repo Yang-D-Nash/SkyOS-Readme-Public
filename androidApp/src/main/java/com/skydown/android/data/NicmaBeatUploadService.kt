@@ -29,10 +29,10 @@ class NicmaBeatUploadService(
     private val collectionName = "nicmaBeatHub"
 
     fun observeBeats(
+        isAdmin: Boolean,
         onChange: (Result<List<NicmaBeatHubItem>>) -> Unit,
     ): () -> Unit {
-        val listener = firestore.collection(collectionName)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
+        val listener = beatQuery(isAdmin)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     onChange(Result.failure(error))
@@ -177,5 +177,16 @@ class NicmaBeatUploadService(
             .trim()
 
         return if (cleaned.isBlank()) "Beat Upload" else cleaned
+    }
+
+    private fun beatQuery(isAdmin: Boolean): Query {
+        val baseCollection = firestore.collection(collectionName)
+        if (isAdmin) {
+            return baseCollection.orderBy("createdAt", Query.Direction.DESCENDING)
+        }
+
+        return baseCollection
+            .whereEqualTo("isPublic", true)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
     }
 }

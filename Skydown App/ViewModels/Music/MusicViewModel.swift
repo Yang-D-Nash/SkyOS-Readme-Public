@@ -122,7 +122,10 @@ struct NicmaBeatUploadRequest {
 }
 
 protocol NicmaBeatHubServicing {
-    func observeBeats(_ onChange: @escaping @MainActor (Result<[NicmaBeatHubItem], Error>) -> Void) -> () -> Void
+    func observeBeats(
+        isAdmin: Bool,
+        _ onChange: @escaping @MainActor (Result<[NicmaBeatHubItem], Error>) -> Void
+    ) -> () -> Void
     func uploadBeats(_ request: NicmaBeatUploadRequest, currentUser: User?) async throws
     func updateBeatVisibility(beatID: String, isPublic: Bool) async throws
 }
@@ -137,9 +140,12 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
         self.storage = storage
     }
 
-    func observeBeats(_ onChange: @escaping @MainActor (Result<[NicmaBeatHubItem], Error>) -> Void) -> () -> Void {
-        let listener = firestore.collection(collectionName)
-            .order(by: "createdAt", descending: true)
+    func observeBeats(
+        isAdmin: Bool,
+        _ onChange: @escaping @MainActor (Result<[NicmaBeatHubItem], Error>) -> Void
+    ) -> () -> Void {
+        let query = beatQuery(isAdmin: isAdmin)
+        let listener = query
             .addSnapshotListener { [weak self] snapshot, error in
                 Task { @MainActor in
                     if let error {
@@ -253,6 +259,17 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
         return cleaned.isEmpty ? "Beat Upload" : cleaned
     }
 
+    private func beatQuery(isAdmin: Bool) -> Query {
+        let baseCollection = firestore.collection(collectionName)
+        if isAdmin {
+            return baseCollection.order(by: "createdAt", descending: true)
+        }
+
+        return baseCollection
+            .whereField("isPublic", isEqualTo: true)
+            .order(by: "createdAt", descending: true)
+    }
+
     private func mapBeat(document: QueryDocumentSnapshot) -> NicmaBeatHubItem? {
         let data = document.data()
         guard let title = data["title"] as? String,
@@ -308,6 +325,7 @@ final class NicmaProducerViewModel: ObservableObject {
     private var currentUser: User?
     private var allBeats: [NicmaBeatHubItem] = []
     private var observationCancellation: (() -> Void)?
+    private var observedAdminState: Bool?
 
     deinit {
         observationCancellation?()
@@ -327,7 +345,8 @@ final class NicmaProducerViewModel: ObservableObject {
 
     func configure(currentUser: User?) {
         self.currentUser = currentUser
-        isAdmin = currentUser?.isAdmin == true
+        let nextIsAdmin = currentUser?.isAdmin == true
+        isAdmin = nextIsAdmin
 
         if email.isEmpty {
             email = currentUser?.email ?? ""
@@ -337,8 +356,8 @@ final class NicmaProducerViewModel: ObservableObject {
             artistName = currentUser?.username ?? ""
         }
 
-        if observationCancellation == nil {
-            observeBeats()
+        if observationCancellation == nil || observedAdminState != nextIsAdmin {
+            observeBeats(isAdmin: nextIsAdmin)
         } else {
             applyVisibleBeats()
         }
@@ -360,7 +379,7 @@ final class NicmaProducerViewModel: ObservableObject {
             }
             selectedFiles = resolvedFiles
             validationMessage = nil
-            showUserToast("\(resolvedFiles.count) Datei(en) fuer NICMA MUSIC ausgewaehlt.", style: .success)
+            showUserToast("\(resolvedFiles.count) Datei(en) fuer den Beat Hub ausgewaehlt.", style: .success)
         case .failure:
             showUserToast("Die Dateien konnten nicht geoeffnet werden.", style: .error)
         }
@@ -429,7 +448,7 @@ final class NicmaProducerViewModel: ObservableObject {
             selectedFiles = []
             beatTitle = ""
             notes = ""
-            showUserToast("\(uploadCount) Beat-Datei(en) an NICMA MUSIC hochgeladen.", style: .success)
+            showUserToast("\(uploadCount) Beat-Datei(en) in den Beat Hub hochgeladen.", style: .success)
         } catch {
             showUserToast("Der Upload ist fehlgeschlagen. Bitte versuch es noch einmal.", style: .error)
         }
@@ -460,9 +479,13 @@ final class NicmaProducerViewModel: ObservableObject {
         )
     }
 
-    private func observeBeats() {
+    private func observeBeats(isAdmin: Bool) {
+        observedAdminState = isAdmin
         isLoadingBeats = true
-        observationCancellation = service.observeBeats { [weak self] result in
+        allBeats = []
+        beats = []
+        observationCancellation?()
+        observationCancellation = service.observeBeats(isAdmin: isAdmin) { [weak self] result in
             guard let self else { return }
 
             switch result {
