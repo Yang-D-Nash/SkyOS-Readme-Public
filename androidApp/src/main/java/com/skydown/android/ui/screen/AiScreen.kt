@@ -242,7 +242,7 @@ private fun AiOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Der Bot ist der schnelle Kreativbereich fuer Hooks, Captions, Release-Texte und Ideen im Look der Skydown x 22 App.",
+                    text = "Der Bot ist fuer schnelle Kreativhilfe da: Hooks, Captions, Claims und erste Texte. Wenn du Struktur oder To-dos brauchst, nimm den Agent.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                 )
@@ -292,14 +292,14 @@ private fun AiFairUseCard() {
         }
 
         Text(
-            text = "Der Skydown x 22 Bot ist fuer schnelle Entwuerfe optimiert, damit Hooks, Captions und Konzepte direkt weitergehen.",
+            text = "Der Skydown x 22 Bot ist dein schneller Kreativmodus. Nutze ihn fuer einzelne Ideen, Captions, Hooks oder kurze Texte, nicht fuer komplette Ablaufplaene.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
             modifier = Modifier.padding(top = 14.dp),
         )
 
         Text(
-            text = "Je nach Auslastung koennen Antworten kuerzer ausfallen, damit alles stabil und schnell bleibt.",
+            text = "Wenn du Briefings, Timings, Freigaben oder naechste Schritte brauchst, ist der Agent der passendere Bereich.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 12.dp),
@@ -381,7 +381,7 @@ private fun QuickPromptCard(
         }
 
         Text(
-            text = "Die Vorschlaege schicken direkt eine kreative Anfrage an den Skydown x 22 Bot.",
+            text = "Hier landen kurze Kreativ-Requests. Fuer Launch-Plaene und Struktur ist der Agent gedacht.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 10.dp),

@@ -130,7 +130,7 @@ private struct AIHeroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Entwickle Hooks, Captions, Release-Texte und Kampagnenideen direkt im Look der Skydown x 22 App.")
+                Text("Der Bot ist fuer schnelle Kreativhilfe da: Hooks, Captions, Claims und erste Texte. Wenn du stattdessen Struktur oder To-dos brauchst, nimm den Agent.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -202,11 +202,11 @@ private struct AIFairUseCard: View {
                 }
             }
 
-            Text("Der X22 Bot ist fuer schnelle kreative Entwuerfe gedacht, damit Hooks, Captions und Kampagnenideen sofort weitergehen.")
+            Text("Der X22 Bot ist dein schneller Kreativmodus. Nutze ihn fuer einzelne Ideen, Captions, Hooks oder kurze Texte, nicht fuer komplette Ablaufplaene.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Je nach Auslastung koennen Antworten kuerzer ausfallen, damit der Bereich stabil und flott bleibt.")
+            Text("Wenn du Briefings, Timings, Freigaben oder naechste Schritte brauchst, ist der Agent der passendere Bereich.")
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -271,7 +271,7 @@ private struct AIQuickPromptCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Die Vorschlaege schicken direkt eine kreative Anfrage an den X22 Bot.")
+            Text("Hier landen kurze Kreativ-Requests. Fuer Launch-Plaene und Struktur ist der Agent gedacht.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

@@ -27,10 +27,12 @@ struct AIChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class AIChatViewModel: ObservableObject {
+    private static let introMessage = "Ich bin der Skydown x 22 Bot. Ich bin fuer schnelle Ideen, Captions, Hooks und erste Texte da. Wenn du Struktur, To-dos oder einen Plan brauchst, nimm den Agent."
+
     @Published var messages: [AIChatMessage] = [
         AIChatMessage(
             role: .assistant,
-            text: "Ich bin der Skydown x 22 Bot. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten."
+            text: introMessage
         )
     ]
     @Published var draft = ""
@@ -40,10 +42,10 @@ final class AIChatViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
 
     let quickPrompts = [
-        "Schreib eine Instagram Caption fuer einen neuen Skydown x 22 Release.",
-        "Gib mir drei Merch-Ideen fuer den naechsten Skydown x 22 Drop.",
-        "Formuliere eine kurze Presseankuendigung fuer einen Skydown x 22 Artist-Launch.",
-        "Brainstorme eine Hook fuer einen Skydown x 22 Song-Teaser auf TikTok."
+        "Schreib mir nur eine starke Instagram Caption fuer einen neuen Skydown x 22 Release.",
+        "Gib mir drei schnelle Hook-Ideen fuer einen Skydown x 22 Song-Teaser.",
+        "Formuliere einen kurzen Merch-Claim fuer den naechsten Skydown x 22 Drop.",
+        "Brainstorme drei knappe Kampagnenideen ohne langen Plan."
     ]
 
     private let service: AIChatServicing
@@ -113,7 +115,7 @@ final class AIChatViewModel: ObservableObject {
         messages = [
             AIChatMessage(
                 role: .assistant,
-                text: "Ich bin der Skydown x 22 Bot. Frag mich nach Captions, Release-Ideen, Merch-Texten oder kurzen Kampagnenkonzepten."
+                text: Self.introMessage
             )
         ]
     }

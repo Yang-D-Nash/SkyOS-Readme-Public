@@ -167,6 +167,6 @@ class AgentViewModel : ViewModel() {
 
     private companion object {
         const val INTRO_MESSAGE =
-            "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
+            "Ich bin der Skydown x 22 Agent. Ich bin fuer Struktur, Briefings, To-dos und Release-Plaene da. Wenn du nur schnelle Ideen oder Captions brauchst, nimm den Bot."
     }
 }

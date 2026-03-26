@@ -223,7 +223,7 @@ private fun AgentOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Der Agent ist fuer Briefings, Launch-Plaene, Freigaben und naechste Schritte gedacht und fuehlt sich jetzt wie ein klarer X22 Workflow-Bereich an.",
+                    text = "Der Agent ist fuer Struktur da: Briefings, Release-Plaene, Freigaben und To-dos. Fuer schnelle Ideen, Hooks oder Captions ist der Bot besser.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                 )
@@ -249,6 +249,13 @@ private fun AgentExplainCard() {
             text = "Hier geht es weniger um lose Ideen und mehr um konkrete Briefings, Struktur, Planung und naechste Schritte fuer die Skydown x 22 App.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+            modifier = Modifier.padding(top = 10.dp),
+        )
+
+        Text(
+            text = "Kurz gesagt: Bot = kreativ und schnell. Agent = strukturiert und umsetzungsnah.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 10.dp),
         )
     }
@@ -328,7 +335,7 @@ private fun AgentQuickPromptCard(
         }
 
         Text(
-            text = "Die Vorschlaege schicken direkt eine workflow-orientierte Anfrage an den Skydown x 22 Agent.",
+            text = "Diese Vorschlaege sind fuer Planung, Ablauf und Umsetzung gedacht. Fuer reine Ideen nimm den Bot.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 10.dp),

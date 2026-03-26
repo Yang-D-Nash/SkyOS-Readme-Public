@@ -130,7 +130,7 @@ private struct AgentHeroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Der Agent ist fuer Briefings, Release-Plaene, Freigaben und naechste Schritte da, damit Skydown x 22 von der Idee bis zum Launch klar gefuehrt wird.")
+                Text("Der Agent ist fuer Struktur da: Briefings, Release-Plaene, Freigaben und To-dos. Fuer schnelle Ideen, Hooks oder Captions ist der Bot besser.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -185,8 +185,12 @@ private struct AgentExplainCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier geht es weniger um lose Ideen und mehr um umsetzbare Briefings, Launch-Plaene, naechste Schritte und klare Launch-Ablaufe fuer Skydown x 22.")
+            Text("Hier geht es weniger um lose Ideen und mehr um umsetzbare Briefings, Launch-Plaene, klare Reihenfolgen und konkrete naechste Schritte fuer Skydown x 22.")
                 .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text("Kurz gesagt: Bot = kreativ und schnell. Agent = strukturiert und umsetzungsnah.")
+                .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
         .padding(18)
@@ -250,7 +254,7 @@ private struct AgentQuickPromptCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Die Vorschlaege schicken direkt eine workflow-orientierte Anfrage an den X22 Agent.")
+            Text("Diese Vorschlaege sind fuer Planung, Ablauf und Umsetzung gedacht. Fuer reine Ideen nimm den Bot.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

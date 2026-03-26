@@ -27,10 +27,12 @@ struct AgentChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class AgentChatViewModel: ObservableObject {
+    private static let introMessage = "Ich bin der Skydown x 22 Agent. Ich bin fuer Struktur, Briefings, To-dos und Release-Plaene da. Wenn du nur schnelle Ideen oder Captions brauchst, nimm den Bot."
+
     @Published var messages: [AgentChatMessage] = [
         AgentChatMessage(
             role: .assistant,
-            text: "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
+            text: introMessage
         )
     ]
     @Published var draft = ""
@@ -40,10 +42,10 @@ final class AgentChatViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
 
     let quickPrompts = [
-        "Mach mir einen 7-Tage-Release-Plan fuer einen neuen Skydown x 22 Track.",
-        "Baue mir ein kurzes Briefing fuer einen Skydown x 22 TikTok-Teaser.",
-        "Strukturiere die naechsten Schritte fuer einen Skydown x 22 Merchandise-Drop.",
-        "Erstell mir einen kleinen Skydown x 22 Launch-Plan mit Content, Timing und To-dos."
+        "Mach mir einen klaren 7-Tage-Release-Plan fuer einen neuen Skydown x 22 Track.",
+        "Baue mir ein kurzes Briefing mit Ziel, Content und Format fuer einen TikTok-Teaser.",
+        "Strukturiere die naechsten Schritte fuer einen Merchandise-Drop in To-dos.",
+        "Erstell mir einen kleinen Launch-Plan mit Content, Timing und Abfolge."
     ]
 
     private let service: AgentChatServicing
@@ -105,7 +107,7 @@ final class AgentChatViewModel: ObservableObject {
         messages = [
             AgentChatMessage(
                 role: .assistant,
-                text: "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten."
+                text: Self.introMessage
             )
         ]
     }
@@ -164,7 +166,7 @@ private extension Array where Element == AgentChatMessage {
     func filterNotIntroMessage() -> [AgentChatMessage] {
         filter { message in
             !(message.role == .assistant &&
-              message.text == "Ich bin der Skydown x 22 Agent. Ich helfe dir bei Briefings, Release-Planung, Freigaben und naechsten Schritten.")
+              message.text == AgentChatViewModel.introMessage)
         }
     }
 }
