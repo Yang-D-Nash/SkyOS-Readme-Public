@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,10 +21,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Sync
@@ -62,9 +68,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.MerchandiseCard
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
@@ -79,6 +88,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ShopScreen(
     onOpenLogin: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: ShopViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,11 +125,13 @@ fun ShopScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::refresh) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Shop aktualisieren",
-                        )
+                    AppTopBarSessionActions(onOpenSettings = onOpenSettings) {
+                        IconButton(onClick = viewModel::refresh) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Shop aktualisieren",
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -539,7 +551,7 @@ private fun MerchandiseEditorSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun MerchandiseDetailSheet(
     item: MerchandiseItem,
@@ -549,73 +561,174 @@ private fun MerchandiseDetailSheet(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    ModalBottomSheet(
+    val scrollState = rememberScrollState()
+    val pagerState = rememberPagerState(pageCount = { item.imageUrls.size.coerceAtLeast(1) })
+
+    Dialog(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.52f))
+                .padding(12.dp)
+                .clip(RoundedCornerShape(30.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.99f))
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Text(
-                text = item.name,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = item.description,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-            )
-            Text(
-                text = "${item.price} EUR",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = if (item.available) "Verfuegbar" else "Nicht verfuegbar",
-                color = if (item.available) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            if (item.imageUrls.isNotEmpty()) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(item.imageUrls, key = { it }) { imageUrl ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(460.dp)
+                    .clip(RoundedCornerShape(30.dp)),
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                ) { page ->
+                    Box(modifier = Modifier.fillMaxSize()) {
                         AsyncImage(
-                            model = imageUrl,
+                            model = item.imageUrls.getOrNull(page),
                             contentDescription = item.name,
-                            modifier = Modifier
-                                .width(180.dp)
-                                .height(180.dp)
-                                .clip(RoundedCornerShape(16.dp)),
+                            modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                         )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.04f),
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.12f),
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                        ),
+                                    ),
+                                ),
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ShopBadge(
+                        text = if (item.available) "Drop live" else "Nicht verfuegbar",
+                        icon = if (item.available) Icons.Default.CheckCircle else Icons.Default.Sync,
+                        isActive = item.available,
+                    )
+                    if (item.imageUrls.size > 1) {
+                        ShopBadge(
+                            text = "${item.imageUrls.size} Bilder",
+                            icon = Icons.Default.ShoppingBag,
+                            isActive = false,
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schliessen",
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Text(
+                        text = "EUR ${String.format(java.util.Locale.US, "%.2f", item.price)}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.94f),
+                    )
+                }
+
+                if (item.imageUrls.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        repeat(item.imageUrls.size) { index ->
+                            Box(
+                                modifier = Modifier
+                                    .size(if (pagerState.currentPage == index) 10.dp else 8.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(
+                                        if (pagerState.currentPage == index) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.35f)
+                                        },
+                                    ),
+                            )
+                        }
                     }
                 }
             }
 
-            if (isAdmin) {
-                HorizontalDivider()
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = item.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                )
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ShopBadge(
+                        text = if (item.available) "Verfuegbar" else "Pause",
+                        icon = if (item.available) Icons.Default.CheckCircle else Icons.Default.Sync,
+                        isActive = item.available,
+                    )
+                    ShopBadge(
+                        text = "Produktansicht",
+                        icon = Icons.Default.ShoppingBag,
+                        isActive = false,
+                    )
+                }
+            }
+
+            if (isAdmin) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 ) {
-                    TextButton(
-                        onClick = onEdit,
-                        enabled = !isSaving,
-                    ) {
+                    TextButton(onClick = onEdit, enabled = !isSaving) {
                         Text("Bearbeiten")
                     }
-                    TextButton(
-                        onClick = onDelete,
-                        enabled = !isSaving,
-                    ) {
+                    TextButton(onClick = onDelete, enabled = !isSaving) {
                         Text("Loeschen")
                     }
                     Button(
@@ -628,11 +741,16 @@ private fun MerchandiseDetailSheet(
             } else {
                 Button(
                     onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text("Schliessen")
                 }
             }
+
+            Box(modifier = Modifier.height(2.dp))
         }
     }
 }

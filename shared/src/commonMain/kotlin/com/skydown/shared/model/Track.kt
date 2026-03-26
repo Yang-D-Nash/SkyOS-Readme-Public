@@ -14,6 +14,7 @@ data class Track(
     val previewUrl: String? = null,
     val externalUrl: String? = null,
     val wrapperType: String? = null,
+    val releaseDate: String? = null,
 )
 
 @Serializable

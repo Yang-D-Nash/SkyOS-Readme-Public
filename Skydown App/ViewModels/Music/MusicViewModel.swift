@@ -512,3 +512,446 @@ final class NicmaProducerViewModel: ObservableObject {
         showToast = true
     }
 }
+
+struct SkydownSelectedVideoFile: Identifiable {
+    let id = UUID()
+    let url: URL
+    let fileName: String
+    let fileSizeInBytes: Int64
+    let mimeType: String
+}
+
+struct SkydownVideoHubItem: Identifiable {
+    let id: String
+    let title: String
+    let projectName: String
+    let fileName: String
+    let downloadURL: String
+    let notes: String
+    let uploaderName: String
+    let uploaderEmail: String
+    let uploaderID: String
+    let mimeType: String
+    let storagePath: String
+    let isPublic: Bool
+    let createdAt: Date
+
+    var isPlayable: Bool {
+        mimeType.hasPrefix("video/") ||
+        fileName.lowercased().hasSuffix(".mp4") ||
+        fileName.lowercased().hasSuffix(".mov") ||
+        fileName.lowercased().hasSuffix(".m4v")
+    }
+}
+
+struct SkydownVideoUploadRequest {
+    let title: String
+    let projectName: String
+    let email: String
+    let notes: String
+    let files: [SkydownSelectedVideoFile]
+}
+
+protocol SkydownVideoHubServicing {
+    func observeVideos(
+        isAdmin: Bool,
+        _ onChange: @escaping @MainActor (Result<[SkydownVideoHubItem], Error>) -> Void
+    ) -> () -> Void
+    func uploadVideos(_ request: SkydownVideoUploadRequest, currentUser: User?) async throws
+    func deleteVideo(_ video: SkydownVideoHubItem) async throws
+}
+
+final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
+    private let firestore: Firestore
+    private let storage: Storage
+    private let collectionName = "videographyHub"
+
+    init(storage: Storage = Storage.storage()) {
+        self.firestore = Firestore.firestore()
+        self.storage = storage
+    }
+
+    func observeVideos(
+        isAdmin: Bool,
+        _ onChange: @escaping @MainActor (Result<[SkydownVideoHubItem], Error>) -> Void
+    ) -> () -> Void {
+        let query = videoQuery(isAdmin: isAdmin)
+        let listener = query.addSnapshotListener { [weak self] snapshot, error in
+            Task { @MainActor in
+                if let error {
+                    onChange(.failure(error))
+                    return
+                }
+
+                let videos = snapshot?.documents.compactMap { document in
+                    self?.mapVideo(document: document)
+                }
+                .sorted { left, right in
+                    left.createdAt > right.createdAt
+                } ?? []
+                onChange(.success(videos))
+            }
+        }
+
+        return {
+            listener.remove()
+        }
+    }
+
+    func uploadVideos(_ request: SkydownVideoUploadRequest, currentUser: User?) async throws {
+        for file in request.files {
+            try await upload(file, request: request, currentUser: currentUser)
+        }
+    }
+
+    func deleteVideo(_ video: SkydownVideoHubItem) async throws {
+        if !video.storagePath.isEmpty {
+            try await deleteStorageObject(path: video.storagePath)
+        }
+
+        try await firestore.collection(collectionName).document(video.id).delete()
+    }
+
+    private func upload(
+        _ file: SkydownSelectedVideoFile,
+        request: SkydownVideoUploadRequest,
+        currentUser: User?
+    ) async throws {
+        let safeProject = sanitizePathComponent(request.projectName)
+        let safeFileName = sanitizePathComponent(file.fileName.replacingOccurrences(of: ".", with: "-"))
+        let path = "videography/videos/\(safeProject)/\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString)-\(safeFileName)"
+        let reference = storage.reference().child(path)
+        let metadata = StorageMetadata()
+        metadata.contentType = file.mimeType
+        metadata.customMetadata = [
+            "projectName": request.projectName,
+            "email": request.email,
+            "notes": request.notes,
+            "originalFilename": file.fileName,
+            "uploadedAt": ISO8601DateFormatter().string(from: Date())
+        ]
+
+        let hasAccess = file.url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                file.url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            reference.putFile(from: file.url, metadata: metadata) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
+
+        let downloadURL = try await reference.downloadURL()
+        let trimmedTitle = request.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let videoTitle = trimmedTitle.isEmpty ? displayTitle(from: file.fileName) : trimmedTitle
+
+        let payload: [String: Any] = [
+            "title": videoTitle,
+            "projectName": request.projectName,
+            "email": request.email,
+            "notes": request.notes,
+            "fileName": file.fileName,
+            "mimeType": file.mimeType,
+            "downloadURL": downloadURL.absoluteString,
+            "storagePath": path,
+            "uploaderName": currentUser?.username ?? request.projectName,
+            "uploaderEmail": currentUser?.email ?? request.email,
+            "uploaderID": currentUser?.id ?? "",
+            "isPublic": currentUser?.isAdmin == true,
+            "createdAt": Timestamp()
+        ]
+
+        try await firestore.collection(collectionName).addDocument(data: payload)
+    }
+
+    private func deleteStorageObject(path: String) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            storage.reference().child(path).delete { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
+    }
+
+    private func videoQuery(isAdmin: Bool) -> Query {
+        let baseCollection = firestore.collection(collectionName)
+        if isAdmin {
+            return baseCollection.order(by: "createdAt", descending: true)
+        }
+
+        return baseCollection
+            .whereField("isPublic", isEqualTo: true)
+    }
+
+    private func mapVideo(document: QueryDocumentSnapshot) -> SkydownVideoHubItem? {
+        let data = document.data()
+        guard let title = data["title"] as? String,
+              let projectName = data["projectName"] as? String,
+              let fileName = data["fileName"] as? String,
+              let downloadURL = data["downloadURL"] as? String else {
+            return nil
+        }
+
+        let createdAt: Date
+        if let timestamp = data["createdAt"] as? Timestamp {
+            createdAt = timestamp.dateValue()
+        } else if let date = data["createdAt"] as? Date {
+            createdAt = date
+        } else {
+            createdAt = .now
+        }
+
+        return SkydownVideoHubItem(
+            id: document.documentID,
+            title: title,
+            projectName: projectName,
+            fileName: fileName,
+            downloadURL: downloadURL,
+            notes: data["notes"] as? String ?? "",
+            uploaderName: data["uploaderName"] as? String ?? projectName,
+            uploaderEmail: data["uploaderEmail"] as? String ?? (data["email"] as? String ?? ""),
+            uploaderID: data["uploaderID"] as? String ?? "",
+            mimeType: data["mimeType"] as? String ?? "video/mp4",
+            storagePath: data["storagePath"] as? String ?? "",
+            isPublic: data["isPublic"] as? Bool ?? false,
+            createdAt: createdAt
+        )
+    }
+
+    private func sanitizePathComponent(_ value: String) -> String {
+        let raw = value
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9_-]+", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+
+        return raw.isEmpty ? "upload" : raw
+    }
+
+    private func displayTitle(from fileName: String) -> String {
+        let baseName = fileName.replacingOccurrences(
+            of: "\\.[A-Za-z0-9]+$",
+            with: "",
+            options: .regularExpression
+        )
+        let cleaned = baseName
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return cleaned.isEmpty ? "Video Upload" : cleaned
+    }
+}
+
+@MainActor
+final class SkydownVideoHubViewModel: ObservableObject {
+    @Published var videoTitle = ""
+    @Published var projectName = ""
+    @Published var email = ""
+    @Published var notes = ""
+    @Published var selectedFiles: [SkydownSelectedVideoFile] = []
+    @Published var videos: [SkydownVideoHubItem] = []
+    @Published var isLoadingVideos = true
+    @Published var isUploading = false
+    @Published var isAdmin = false
+    @Published var validationMessage: String?
+    @Published var showToast = false
+    @Published var toastMessage = ""
+    @Published var toastStyle: ToastStyle = .info
+
+    private let service: SkydownVideoHubServicing
+    private var currentUser: User?
+    private var allVideos: [SkydownVideoHubItem] = []
+    private var observationCancellation: (() -> Void)?
+    private var observedAdminState: Bool?
+
+    deinit {
+        observationCancellation?()
+    }
+
+    init(service: SkydownVideoHubServicing = FirebaseSkydownVideoHubService()) {
+        self.service = service
+    }
+
+    var canUpload: Bool {
+        isAdmin &&
+        !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        email.contains("@") &&
+        !selectedFiles.isEmpty &&
+        !isUploading
+    }
+
+    func configure(currentUser: User?) {
+        self.currentUser = currentUser
+        let nextIsAdmin = currentUser?.isAdmin == true
+        isAdmin = nextIsAdmin
+
+        if email.isEmpty {
+            email = currentUser?.email ?? ""
+        }
+
+        if projectName.isEmpty {
+            projectName = currentUser?.username ?? ""
+        }
+
+        if observationCancellation == nil || observedAdminState != nextIsAdmin {
+            observeVideos(isAdmin: nextIsAdmin)
+        } else {
+            applyVisibleVideos()
+        }
+    }
+
+    func handleFileImport(_ result: Result<[URL], Error>) {
+        guard isAdmin else {
+            showUserToast("Uploads sind nur fuer Admins verfuegbar.", style: .info)
+            return
+        }
+
+        switch result {
+        case .success(let urls):
+            let resolvedFiles = urls.compactMap(resolveSelectedFile(from:))
+            guard !resolvedFiles.isEmpty else {
+                validationMessage = "Bitte waehle mindestens eine MP4-, MOV- oder M4V-Datei aus."
+                showUserToast("Keine unterstuetzten Videoformate gefunden.", style: .error)
+                return
+            }
+            selectedFiles = resolvedFiles
+            validationMessage = nil
+            showUserToast("\(resolvedFiles.count) Video-Datei(en) ausgewaehlt.", style: .success)
+        case .failure:
+            showUserToast("Die Videos konnten nicht geoeffnet werden.", style: .error)
+        }
+    }
+
+    func removeFile(_ fileID: UUID) {
+        selectedFiles.removeAll { $0.id == fileID }
+    }
+
+    func uploadSelectedVideos() async {
+        guard isAdmin else {
+            validationMessage = "Nur Admins koennen Videos hochladen."
+            showUserToast("Uploads sind nur fuer Admins verfuegbar.", style: .info)
+            return
+        }
+
+        let trimmedTitle = videoTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedProject = projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedProject.isEmpty else {
+            validationMessage = "Bitte trag ein Projekt, einen Artist oder einen Videotitel ein."
+            return
+        }
+
+        guard trimmedEmail.contains("@") else {
+            validationMessage = "Bitte trag eine gueltige E-Mail ein."
+            return
+        }
+
+        guard !selectedFiles.isEmpty else {
+            validationMessage = "Bitte waehle mindestens eine MP4-, MOV- oder M4V-Datei aus."
+            return
+        }
+
+        isUploading = true
+        validationMessage = nil
+
+        do {
+            try await service.uploadVideos(
+                SkydownVideoUploadRequest(
+                    title: trimmedTitle,
+                    projectName: trimmedProject,
+                    email: trimmedEmail,
+                    notes: trimmedNotes,
+                    files: selectedFiles
+                ),
+                currentUser: currentUser
+            )
+            let uploadCount = selectedFiles.count
+            selectedFiles = []
+            videoTitle = ""
+            notes = ""
+            showUserToast("\(uploadCount) Video-Datei(en) hochgeladen.", style: .success)
+        } catch {
+            showUserToast("Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.", style: .error)
+        }
+
+        isUploading = false
+    }
+
+    func deleteVideo(_ video: SkydownVideoHubItem) async {
+        guard isAdmin else { return }
+
+        do {
+            try await service.deleteVideo(video)
+            showUserToast("Video entfernt.", style: .success)
+        } catch {
+            showUserToast("Das Video konnte nicht geloescht werden.", style: .error)
+        }
+    }
+
+    private func resolveSelectedFile(from url: URL) -> SkydownSelectedVideoFile? {
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let resourceValues = try? url.resourceValues(forKeys: [.nameKey, .fileSizeKey, .contentTypeKey])
+        let contentType = resourceValues?.contentType ?? UTType(filenameExtension: url.pathExtension) ?? .movie
+        let fileName = resourceValues?.name ?? url.lastPathComponent
+
+        guard contentType.conforms(to: .movie) || fileName.lowercased().hasSuffix(".m4v") else {
+            return nil
+        }
+
+        return SkydownSelectedVideoFile(
+            url: url,
+            fileName: fileName,
+            fileSizeInBytes: Int64(resourceValues?.fileSize ?? 0),
+            mimeType: contentType.preferredMIMEType ?? "video/mp4"
+        )
+    }
+
+    private func observeVideos(isAdmin: Bool) {
+        observedAdminState = isAdmin
+        isLoadingVideos = true
+        allVideos = []
+        videos = []
+        observationCancellation?()
+        observationCancellation = service.observeVideos(isAdmin: isAdmin) { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let videos):
+                allVideos = videos
+                applyVisibleVideos()
+            case .failure:
+                isLoadingVideos = false
+                showUserToast("Die Videos konnten gerade nicht geladen werden.", style: .error)
+            }
+        }
+    }
+
+    private func applyVisibleVideos() {
+        videos = isAdmin ? allVideos : allVideos.filter(\.isPublic)
+        isLoadingVideos = false
+    }
+
+    private func showUserToast(_ message: String, style: ToastStyle) {
+        toastMessage = message
+        toastStyle = style
+        showToast = true
+    }
+}

@@ -157,6 +157,13 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     private struct SpotifyAlbum: Decodable {
         let name: String
         let images: [SpotifyImage]
+        let releaseDate: String?
+
+        enum CodingKeys: String, CodingKey {
+            case name
+            case images
+            case releaseDate = "release_date"
+        }
     }
 
     private struct SpotifyArtist: Decodable {
@@ -267,7 +274,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 artworkUrl100: artworkURL,
                 previewUrl: item.previewURL,
                 externalURL: item.externalURLs["spotify"],
-                wrapperType: "track"
+                wrapperType: "track",
+                releaseDate: item.album.releaseDate
             )
         }
 
@@ -312,7 +320,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                     artworkUrl100: album.images.first?.url,
                     previewUrl: item.previewURL,
                     externalURL: item.externalURLs["spotify"],
-                    wrapperType: "track"
+                    wrapperType: "track",
+                    releaseDate: album.releaseDate
                 )
             }
         }

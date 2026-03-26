@@ -68,6 +68,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun AgentScreen(
     viewModel: AgentViewModel = viewModel(),
+    showTopBar: Boolean = true,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -91,30 +92,38 @@ fun AgentScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = if (showTopBar) {
+            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+        } else {
+            Modifier
+        },
         containerColor = Color.Transparent,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Agent",
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                actions = {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(end = 16.dp),
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
-                scrollBehavior = scrollBehavior,
-            )
+        topBar = if (showTopBar) {
+            {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Agent",
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    actions = {
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(end = 16.dp),
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
+                        scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                    ),
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+        } else {
+            {}
         },
         bottomBar = {
             if (uiState.isAgentEnabled) {

@@ -5,11 +5,14 @@ struct AgentView: View {
     @ObservedObject private var featureFlags: FeatureFlagsService
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
+    private let showsNavigation: Bool
 
     init(
         agentChatService: AgentChatServicing = FirebaseFunctionsAgentService(),
-        featureFlags: FeatureFlagsService
+        featureFlags: FeatureFlagsService,
+        showsNavigation: Bool = true
     ) {
+        self.showsNavigation = showsNavigation
         _viewModel = StateObject(
             wrappedValue: AgentChatViewModel(service: agentChatService)
         )
@@ -17,77 +20,15 @@ struct AgentView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 16) {
-                        AgentHeroCard(
-                            colorScheme: colorScheme,
-                            badges: featureFlags.isAIEnabled
-                                ? ["X22 Agent", "Workflow"]
-                                : ["X22 Agent", "Kurz pausiert"]
-                        )
-
-                        AgentExplainCard(colorScheme: colorScheme)
-
-                        if featureFlags.isAIEnabled {
-                            AgentQuickPromptCard(
-                                colorScheme: colorScheme,
-                                prompts: viewModel.quickPrompts,
-                                onPromptSelected: viewModel.sendPrompt
-                            )
-
-                            ForEach(viewModel.messages) { message in
-                                AgentMessageBubble(
-                                    message: message,
-                                    colorScheme: colorScheme
-                                )
-                                .id(message.id)
-                            }
-
-                            Color.clear
-                                .frame(height: 4)
-                                .id("agent-chat-end")
-                        } else {
-                            AgentDisabledCard(colorScheme: colorScheme)
-                        }
-                    }
+        Group {
+            if showsNavigation {
+                NavigationStack {
+                    content
+                        .navigationTitle("Agent")
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-                .scrollIndicators(.hidden)
-                .scrollDismissesKeyboard(.interactively)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        isComposerFocused = false
-                    }
-                )
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if featureFlags.isAIEnabled {
-                        AgentComposerBar(
-                            colorScheme: colorScheme,
-                            draft: $viewModel.draft,
-                            isFocused: $isComposerFocused,
-                            isSending: viewModel.isSending,
-                            onReset: viewModel.resetConversation,
-                            onSend: viewModel.sendDraft
-                        )
-                    }
-                }
-                .onChange(of: viewModel.messages.count) { _, _ in
-                    if featureFlags.isAIEnabled {
-                        withAnimation(.easeOut(duration: 0.25)) {
-                            proxy.scrollTo("agent-chat-end", anchor: .bottom)
-                        }
-                    }
-                }
-                .task {
-                    await featureFlags.refresh()
-                }
+            } else {
+                content
             }
-            .background(backgroundGradient.ignoresSafeArea())
-            .navigationTitle("Agent")
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -102,6 +43,78 @@ struct AgentView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+    }
+
+    private var content: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    AgentHeroCard(
+                        colorScheme: colorScheme,
+                        badges: featureFlags.isAIEnabled
+                            ? ["X22 Agent", "Workflow"]
+                            : ["X22 Agent", "Kurz pausiert"]
+                    )
+
+                    AgentExplainCard(colorScheme: colorScheme)
+
+                    if featureFlags.isAIEnabled {
+                        AgentQuickPromptCard(
+                            colorScheme: colorScheme,
+                            prompts: viewModel.quickPrompts,
+                            onPromptSelected: viewModel.sendPrompt
+                        )
+
+                        ForEach(viewModel.messages) { message in
+                            AgentMessageBubble(
+                                message: message,
+                                colorScheme: colorScheme
+                            )
+                            .id(message.id)
+                        }
+
+                        Color.clear
+                            .frame(height: 4)
+                            .id("agent-chat-end")
+                    } else {
+                        AgentDisabledCard(colorScheme: colorScheme)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    isComposerFocused = false
+                }
+            )
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if featureFlags.isAIEnabled {
+                    AgentComposerBar(
+                        colorScheme: colorScheme,
+                        draft: $viewModel.draft,
+                        isFocused: $isComposerFocused,
+                        isSending: viewModel.isSending,
+                        onReset: viewModel.resetConversation,
+                        onSend: viewModel.sendDraft
+                    )
+                }
+            }
+            .onChange(of: viewModel.messages.count) { _, _ in
+                if featureFlags.isAIEnabled {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                    }
+                }
+            }
+            .task {
+                await featureFlags.refresh()
+            }
+        }
+        .background(backgroundGradient.ignoresSafeArea())
     }
 
     private var backgroundGradient: LinearGradient {

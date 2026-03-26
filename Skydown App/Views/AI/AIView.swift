@@ -5,11 +5,14 @@ struct AIView: View {
     @ObservedObject private var featureFlags: FeatureFlagsService
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
+    private let showsNavigation: Bool
 
     init(
         aiChatService: AIChatServicing = FirebaseAIChatService(),
-        featureFlags: FeatureFlagsService
+        featureFlags: FeatureFlagsService,
+        showsNavigation: Bool = true
     ) {
+        self.showsNavigation = showsNavigation
         _viewModel = StateObject(
             wrappedValue: AIChatViewModel(service: aiChatService)
         )
@@ -17,77 +20,15 @@ struct AIView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 16) {
-                        AIHeroCard(
-                            colorScheme: colorScheme,
-                            badges: featureFlags.isAIEnabled
-                                ? ["X22 Bot", "Creative Assist"]
-                                : ["X22 Bot", "Kurz pausiert"]
-                        )
-
-                        if featureFlags.isAIEnabled {
-                            AIFairUseCard(colorScheme: colorScheme)
-
-                            AIQuickPromptCard(
-                                colorScheme: colorScheme,
-                                prompts: viewModel.quickPrompts,
-                                onPromptSelected: viewModel.sendPrompt
-                            )
-
-                            ForEach(viewModel.messages) { message in
-                                AIMessageBubble(
-                                    message: message,
-                                    colorScheme: colorScheme
-                                )
-                                .id(message.id)
-                            }
-
-                            Color.clear
-                                .frame(height: 4)
-                                .id("chat-end")
-                        } else {
-                            AIDisabledCard(colorScheme: colorScheme)
-                        }
-                    }
+        Group {
+            if showsNavigation {
+                NavigationStack {
+                    content
+                        .navigationTitle("Bot")
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-                .scrollIndicators(.hidden)
-                .scrollDismissesKeyboard(.interactively)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        isComposerFocused = false
-                    }
-                )
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if featureFlags.isAIEnabled {
-                        AIComposerBar(
-                            colorScheme: colorScheme,
-                            draft: $viewModel.draft,
-                            isFocused: $isComposerFocused,
-                            isSending: viewModel.isSending,
-                            onReset: viewModel.resetConversation,
-                            onSend: viewModel.sendDraft
-                        )
-                    }
-                }
-                .onChange(of: viewModel.messages.count) { _, _ in
-                    if featureFlags.isAIEnabled {
-                        withAnimation(.easeOut(duration: 0.25)) {
-                            proxy.scrollTo("chat-end", anchor: .bottom)
-                        }
-                    }
-                }
-                .task {
-                    await featureFlags.refresh()
-                }
+            } else {
+                content
             }
-            .background(backgroundGradient.ignoresSafeArea())
-            .navigationTitle("Bot")
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -102,6 +43,78 @@ struct AIView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+    }
+
+    private var content: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    AIHeroCard(
+                        colorScheme: colorScheme,
+                        badges: featureFlags.isAIEnabled
+                            ? ["X22 Bot", "Creative Assist"]
+                            : ["X22 Bot", "Kurz pausiert"]
+                    )
+
+                    if featureFlags.isAIEnabled {
+                        AIFairUseCard(colorScheme: colorScheme)
+
+                        AIQuickPromptCard(
+                            colorScheme: colorScheme,
+                            prompts: viewModel.quickPrompts,
+                            onPromptSelected: viewModel.sendPrompt
+                        )
+
+                        ForEach(viewModel.messages) { message in
+                            AIMessageBubble(
+                                message: message,
+                                colorScheme: colorScheme
+                            )
+                            .id(message.id)
+                        }
+
+                        Color.clear
+                            .frame(height: 4)
+                            .id("chat-end")
+                    } else {
+                        AIDisabledCard(colorScheme: colorScheme)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    isComposerFocused = false
+                }
+            )
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if featureFlags.isAIEnabled {
+                    AIComposerBar(
+                        colorScheme: colorScheme,
+                        draft: $viewModel.draft,
+                        isFocused: $isComposerFocused,
+                        isSending: viewModel.isSending,
+                        onReset: viewModel.resetConversation,
+                        onSend: viewModel.sendDraft
+                    )
+                }
+            }
+            .onChange(of: viewModel.messages.count) { _, _ in
+                if featureFlags.isAIEnabled {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        proxy.scrollTo("chat-end", anchor: .bottom)
+                    }
+                }
+            }
+            .task {
+                await featureFlags.refresh()
+            }
+        }
+        .background(backgroundGradient.ignoresSafeArea())
     }
 
     private var backgroundGradient: LinearGradient {

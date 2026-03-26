@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import FirebaseFirestore
 
 @MainActor
 final class MerchandiseViewModel: ObservableObject {
@@ -150,5 +151,98 @@ final class MerchandiseViewModel: ObservableObject {
 
     deinit {
         stopObservingItems?()
+    }
+}
+
+struct FeaturedHomeVideo {
+    let title: String
+    let projectName: String
+    let notes: String
+}
+
+@MainActor
+final class HomeViewModel: ObservableObject {
+    @Published var featuredTrack: Track?
+    @Published var featuredVideo: FeaturedHomeVideo?
+    @Published var homeTrackMessage: String?
+    @Published var homeVideoMessage: String?
+
+    private let musicService: MusicServicing
+    private let firestore = Firestore.firestore()
+    private let featuredArtists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
+
+    init(musicService: MusicServicing = SpotifyMusicService()) {
+        self.musicService = musicService
+    }
+
+    func refresh() {
+        Task {
+            featuredTrack = await loadLatestTrack()
+            featuredVideo = await loadLatestVideo()
+            homeTrackMessage = featuredTrack == nil
+                ? "Verbinde Spotify im Musikbereich, damit der neueste Release direkt hier erscheint."
+                : nil
+            homeVideoMessage = featuredVideo == nil
+                ? "Sobald das erste oeffentliche Video live ist, taucht es hier direkt auf."
+                : nil
+        }
+    }
+
+    private func loadLatestTrack() async -> Track? {
+        var latestTrack: Track?
+
+        for artist in featuredArtists {
+            guard musicService.isConnected else { return nil }
+            let tracks = (try? await musicService.fetchTracks(for: artist)) ?? []
+            for track in tracks {
+                let candidateDate = track.releaseDate ?? ""
+                let currentDate = latestTrack?.releaseDate ?? ""
+                if latestTrack == nil || candidateDate > currentDate {
+                    latestTrack = track
+                }
+            }
+        }
+
+        return latestTrack
+    }
+
+    private func loadLatestVideo() async -> FeaturedHomeVideo? {
+        do {
+            let snapshot = try await firestore.collection("videographyHub")
+                .whereField("isPublic", isEqualTo: true)
+                .limit(to: 12)
+                .getDocuments()
+
+            let latestDocument = snapshot.documents
+                .sorted { lhs, rhs in
+                    documentDate(lhs) > documentDate(rhs)
+                }
+                .first
+
+            guard let latestDocument,
+                  let title = latestDocument.data()["title"] as? String,
+                  !title.isEmpty else {
+                return nil
+            }
+
+            return FeaturedHomeVideo(
+                title: title,
+                projectName: latestDocument.data()["projectName"] as? String ?? "Skydown Visual",
+                notes: latestDocument.data()["notes"] as? String ?? ""
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    private func documentDate(_ document: QueryDocumentSnapshot) -> Date {
+        let data = document.data()
+        if let timestamp = data["createdAt"] as? Timestamp {
+            return timestamp.dateValue()
+        }
+        if let date = data["createdAt"] as? Date {
+            return date
+        }
+        return .distantPast
     }
 }

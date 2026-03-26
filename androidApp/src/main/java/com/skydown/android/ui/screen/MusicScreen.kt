@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,6 +61,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.skydown.android.data.SpotifyAuthManager
+import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.TrackRow
@@ -69,6 +71,7 @@ import com.skydown.android.ui.viewmodel.MusicViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicScreen(
+    onOpenSettings: () -> Unit = {},
     viewModel: MusicViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -83,6 +86,13 @@ fun MusicScreen(
 
     if (activeDestination == musicDestinationBeatHub) {
         BeatHubScreen(
+            onBack = { activeDestination = null },
+        )
+        return
+    }
+
+    if (activeDestination == musicDestinationVideoHub) {
+        VideoHubScreen(
             onBack = { activeDestination = null },
         )
         return
@@ -145,18 +155,20 @@ fun MusicScreen(
                     }
                 },
                 actions = {
-                    if (uiState.isSpotifyConnected) {
-                        IconButton(
-                            onClick = {
-                                player.stop()
-                                player.clearMediaItems()
-                                viewModel.disconnectSpotify()
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = "Spotify trennen",
-                            )
+                    AppTopBarSessionActions(onOpenSettings = onOpenSettings) {
+                        if (uiState.isSpotifyConnected) {
+                            IconButton(
+                                onClick = {
+                                    player.stop()
+                                    player.clearMediaItems()
+                                    viewModel.disconnectSpotify()
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = "Spotify trennen",
+                                )
+                            }
                         }
                     }
                 },
@@ -279,6 +291,12 @@ fun MusicScreen(
                     InstagramHubCard(
                         selectedArtist = uiState.selectedArtist,
                         onOpenLink = { url -> openExternalLink(context, url) },
+                    )
+                }
+
+                item {
+                    VideoHubEntryCard(
+                        onOpen = { activeDestination = musicDestinationVideoHub },
                     )
                 }
 
@@ -473,6 +491,80 @@ private fun BeatHubEntryCard(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Text("Beat Hub oeffnen")
+        }
+    }
+}
+
+@Composable
+private fun VideoHubEntryCard(
+    onOpen: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Videography",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Eigener Bereich fuer Skydown x 22 Videos mit Playback, Admin-Uploads und klaren Format-Hinweisen fuer MP4, MOV und M4V.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Movie,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MusicBadge(
+                text = "Playback",
+                imageVector = Icons.Default.CheckCircle,
+                isActive = true,
+            )
+            MusicBadge(
+                text = "Admin Upload",
+                imageVector = Icons.Default.Sync,
+                isActive = false,
+            )
+            MusicBadge(
+                text = "MP4 / MOV / M4V",
+                imageVector = Icons.Default.Movie,
+                isActive = false,
+            )
+        }
+
+        Button(
+            onClick = onOpen,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Text("Videography oeffnen")
         }
     }
 }
@@ -842,6 +934,7 @@ private fun selectedMusicInstagramLinks(selectedArtist: String): List<MusicInsta
 
 private const val musicDestinationNicmaProducer = "nicma_producer"
 private const val musicDestinationBeatHub = "beat_hub"
+private const val musicDestinationVideoHub = "video_hub"
 
 @Composable
 private fun MusicBadge(

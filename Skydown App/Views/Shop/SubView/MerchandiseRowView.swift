@@ -23,6 +23,19 @@ struct MerchandiseRowView: View {
                     onTap(item)
                 }
 
+            if !isAdmin {
+                HStack {
+                    Text(item.available ? "Mehr ansehen" : "Produkt ansehen")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.accent(for: environmentColorScheme))
+
+                    Spacer()
+
+                    Image(systemName: "arrow.right.circle.fill")
+                        .foregroundColor(AppColors.accent(for: environmentColorScheme))
+                }
+            }
+
             if isAdmin {
                 HStack(spacing: 12) {
                     Button {

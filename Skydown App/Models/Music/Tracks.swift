@@ -17,6 +17,7 @@ struct Track: Identifiable, Decodable {
     let previewUrl: String?
     let externalURL: String?
     let wrapperType: String?
+    let releaseDate: String? = nil
 
     var id: Int { trackId }
 }

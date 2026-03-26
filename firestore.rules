@@ -54,6 +54,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /videographyHub/{videoId} {
+      allow read: if isAdmin() || resource.data.isPublic == true;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

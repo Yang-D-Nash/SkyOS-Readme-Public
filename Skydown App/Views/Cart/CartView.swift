@@ -12,6 +12,7 @@ struct CartView: View {
     @EnvironmentObject var cartVM: CartViewModel
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    let onOpenSettings: () -> Void = {}
 
     @State private var name = ""
     @State private var email = ""
@@ -146,6 +147,11 @@ struct CartView: View {
             .background(backgroundGradient.ignoresSafeArea())
             .navigationTitle("Warenkorb")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    AppSessionToolbarActions(onOpenSettings: onOpenSettings)
+                }
+            }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if authManager.userSession != nil {
                     CartSubmitBar(

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
@@ -60,6 +61,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CartScreen(
     onOpenLogin: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: CartViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +96,9 @@ fun CartScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                },
+                actions = {
+                    AppTopBarSessionActions(onOpenSettings = onOpenSettings)
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),

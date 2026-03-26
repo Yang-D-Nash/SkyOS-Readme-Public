@@ -66,6 +66,7 @@ class AndroidMusicRepository : MusicRepository {
                                     previewUrl = track.previewUrl,
                                     externalUrl = track.externalUrls["spotify"],
                                     wrapperType = "track",
+                                    releaseDate = track.album.releaseDate,
                                 )
                             }
                             .filter { track ->
@@ -123,6 +124,7 @@ class AndroidMusicRepository : MusicRepository {
                         previewUrl = track.previewUrl,
                         externalUrl = track.externalUrls["spotify"],
                         wrapperType = "track",
+                        releaseDate = album.releaseDate,
                     ),
                 )
             }
