@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.GraphicEq
@@ -76,6 +77,11 @@ import com.skydown.android.ui.viewmodel.MusicViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicScreen(
+    onBack: (() -> Unit)? = null,
+    initialArtist: String? = null,
+    initialTrackId: Int? = null,
+    autoplaySelectedTrackPreview: Boolean = false,
+    autoOpenSelectedTrackInSpotify: Boolean = false,
     onOpenCart: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: MusicViewModel = viewModel(),
@@ -97,6 +103,7 @@ fun MusicScreen(
         }
     }
     var selectedTrackId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
 
@@ -140,6 +147,41 @@ fun MusicScreen(
         }
     }
 
+    LaunchedEffect(initialArtist) {
+        initialArtist
+            ?.takeIf { it.isNotBlank() && it != uiState.selectedArtist }
+            ?.let(viewModel::selectArtist)
+    }
+
+    LaunchedEffect(uiState.tracks, initialTrackId) {
+        if (hasHandledInitialSelection || uiState.tracks.isEmpty()) {
+            return@LaunchedEffect
+        }
+
+        val initialTrack = initialTrackId?.let { targetId ->
+            uiState.tracks.firstOrNull { it.trackId == targetId }
+        }
+        val track = initialTrack ?: selectedTrack ?: uiState.tracks.firstOrNull() ?: return@LaunchedEffect
+
+        selectedTrackId = track.trackId
+
+        if (autoplaySelectedTrackPreview && !track.previewUrl.isNullOrBlank()) {
+            viewModel.togglePreview(track)
+        } else if (autoOpenSelectedTrackInSpotify &&
+            (musicScreenResolvedSpotifyTrackId(track.spotifyTrackId, track.externalUrl) != null ||
+                musicScreenResolvedSpotifyArtistId(track.spotifyArtistId, track.externalUrl) != null)
+        ) {
+            openTrackInSpotify(
+                context = context,
+                spotifyArtistId = track.spotifyArtistId,
+                spotifyTrackId = track.spotifyTrackId,
+                externalUrl = track.externalUrl,
+            )
+        }
+
+        hasHandledInitialSelection = true
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
@@ -171,6 +213,18 @@ fun MusicScreen(
                             }
                         }
                     }
+                },
+                navigationIcon = if (onBack != null) {
+                    {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Zurueck",
+                            )
+                        }
+                    }
+                } else {
+                    {}
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),

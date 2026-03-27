@@ -12,6 +12,7 @@ data class FeaturedBeatHighlight(
 )
 
 data class FeaturedVideoHighlight(
+    val id: String,
     val title: String,
     val projectName: String,
     val notes: String,

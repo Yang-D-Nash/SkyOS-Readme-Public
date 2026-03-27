@@ -11,6 +11,9 @@ struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var beatPlaybackManager = BeatPlaybackManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
+    @State private var selectedHomeTrack: Track?
+    @State private var selectedHomeVideo: FeaturedHomeVideo?
+    @State private var showingNicmaProducer = false
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
@@ -28,6 +31,7 @@ struct HomeView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     HomeHeroIntroCard(colorScheme: colorScheme)
+                        .homeReveal(0)
                     HomeLatestReleaseCard(
                         viewModel: viewModel,
                         playbackManager: audioPlayerManager,
@@ -35,8 +39,14 @@ struct HomeView: View {
                         onPreviewToggle: { track in
                             beatPlaybackManager.stop()
                             audioPlayerManager.playPreview(for: track)
+                        },
+                        onOpenPlayer: { track in
+                            beatPlaybackManager.stop()
+                            audioPlayerManager.stop()
+                            selectedHomeTrack = track
                         }
                     )
+                    .homeReveal(1)
                     HomeLatestBeatCard(
                         viewModel: viewModel,
                         playbackManager: beatPlaybackManager,
@@ -46,14 +56,26 @@ struct HomeView: View {
                             beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
                         }
                     )
-                    HomeLatestVideoCard(viewModel: viewModel, colorScheme: colorScheme)
-                    NavigationLink {
-                        NicmaProducerView()
-                    } label: {
-                        NicmaProducerSpotlightCard(colorScheme: colorScheme)
-                    }
-                    .buttonStyle(.plain)
-                    HomeStoryCard(colorScheme: colorScheme)
+                    .homeReveal(2)
+                    HomeLatestVideoCard(
+                        viewModel: viewModel,
+                        colorScheme: colorScheme,
+                        onOpenPlayer: { video in
+                            beatPlaybackManager.stop()
+                            audioPlayerManager.stop()
+                            selectedHomeVideo = video
+                        }
+                    )
+                    .homeReveal(3)
+                    HomeStoryCard(
+                        colorScheme: colorScheme,
+                        onOpenNicma: {
+                            beatPlaybackManager.stop()
+                            audioPlayerManager.stop()
+                            showingNicmaProducer = true
+                        }
+                    )
+                    .homeReveal(4)
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.top, SkydownLayout.screenTopPadding)
@@ -80,6 +102,27 @@ struct HomeView: View {
             .onDisappear {
                 beatPlaybackManager.stop()
                 audioPlayerManager.stop()
+            }
+        }
+        .sheet(item: $selectedHomeTrack) { track in
+            MusicView(
+                initialArtist: homeMusicArtist(for: track),
+                initialTrackID: track.trackId,
+                autoplaySelectedTrackPreview: true,
+                autoPresentSelectedTrackSpotifyPlayer: true
+            )
+        }
+        .sheet(item: $selectedHomeVideo) { video in
+            NavigationStack {
+                VideoHubView(
+                    initialSelectedVideoID: video.id,
+                    autoplayInitialSelection: true
+                )
+            }
+        }
+        .sheet(isPresented: $showingNicmaProducer) {
+            NavigationStack {
+                NicmaProducerView()
             }
         }
     }
@@ -307,6 +350,7 @@ private struct HomeLatestReleaseCard: View {
     @ObservedObject var playbackManager: AudioPlayerManager
     let colorScheme: ColorScheme
     let onPreviewToggle: (Track) -> Void
+    let onOpenPlayer: (Track) -> Void
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -358,28 +402,35 @@ private struct HomeLatestReleaseCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
 
-                if hasPreview || hasSpotifyTarget {
-                    VStack(spacing: 10) {
-                        if hasPreview {
-                            HomeActionButton(
-                                title: playbackManager.currentlyPlayingId == track.trackId ? "Release stoppen" : "Release abspielen",
-                                icon: playbackManager.currentlyPlayingId == track.trackId ? "stop.fill" : "play.fill",
-                                colorScheme: colorScheme,
-                                isPrimary: true
-                            ) {
-                                onPreviewToggle(track)
-                            }
+                VStack(spacing: 10) {
+                    if hasPreview {
+                        HomeActionButton(
+                            title: playbackManager.currentlyPlayingId == track.trackId ? "Release stoppen" : "Release abspielen",
+                            icon: playbackManager.currentlyPlayingId == track.trackId ? "stop.fill" : "play.fill",
+                            colorScheme: colorScheme,
+                            isPrimary: true
+                        ) {
+                            onPreviewToggle(track)
                         }
+                    }
 
-                        if let spotifyURL = homeSpotifyTargetURL(for: track) {
-                            HomeActionButton(
-                                title: homeSpotifyActionTitle(for: track),
-                                icon: "music.note",
-                                colorScheme: colorScheme,
-                                isPrimary: false
-                            ) {
-                                openURL(spotifyURL)
-                            }
+                    HomeActionButton(
+                        title: "Im Music Player oeffnen",
+                        icon: "music.note.list",
+                        colorScheme: colorScheme,
+                        isPrimary: !hasPreview
+                    ) {
+                        onOpenPlayer(track)
+                    }
+
+                    if let spotifyURL = homeSpotifyTargetURL(for: track) {
+                        HomeActionButton(
+                            title: homeSpotifyActionTitle(for: track),
+                            icon: "music.note",
+                            colorScheme: colorScheme,
+                            isPrimary: false
+                        ) {
+                            openURL(spotifyURL)
                         }
                     }
                 }
@@ -479,6 +530,7 @@ private struct HomeLatestBeatCard: View {
 private struct HomeLatestVideoCard: View {
     @ObservedObject var viewModel: HomeViewModel
     let colorScheme: ColorScheme
+    let onOpenPlayer: (FeaturedHomeVideo) -> Void
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -522,14 +574,25 @@ private struct HomeLatestVideoCard: View {
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                if let videoURL = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
+                VStack(spacing: 10) {
                     HomeActionButton(
-                        title: "Video oeffnen",
-                        icon: "video.fill",
+                        title: "Im Video Player oeffnen",
+                        icon: "play.rectangle.fill",
                         colorScheme: colorScheme,
-                        isPrimary: false
+                        isPrimary: true
                     ) {
-                        openURL(videoURL)
+                        onOpenPlayer(video)
+                    }
+
+                    if let videoURL = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
+                        HomeActionButton(
+                            title: "Original-Datei oeffnen",
+                            icon: "video.fill",
+                            colorScheme: colorScheme,
+                            isPrimary: false
+                        ) {
+                            openURL(videoURL)
+                        }
                     }
                 }
             } else {
@@ -550,6 +613,7 @@ private struct HomeLatestVideoCard: View {
 
 private struct HomeStoryCard: View {
     let colorScheme: ColorScheme
+    let onOpenNicma: () -> Void
     @Environment(\.openURL) private var openURL
 
     private let contactEmailURL = URL(string: "mailto:skydownent@gmail.com?subject=Skydown%20x%2022%20Kontakt")
@@ -560,7 +624,7 @@ private struct HomeStoryCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier laufen die direkten Social-Links von Yang D. Nash, 22, Skydown und NICMA MUSIC zusammen. Der Musik-Tab bleibt dadurch fokussierter auf Releases und Beats.")
+            Text("Hier laufen die direkten Social-Links von Yang D. Nash, 22 und Skydown zusammen. NICMA MUSIC ist direkt hier im Home verankert, damit Musik und Producer-Seite sauber getrennt bleiben.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -599,14 +663,12 @@ private struct HomeStoryCard: View {
                 }
 
                 HomeActionButton(
-                    title: "NICMA MUSIC auf Instagram",
-                    icon: "waveform.path.ecg",
+                    title: "NICMA MUSIC oeffnen",
+                    icon: "slider.horizontal.3",
                     colorScheme: colorScheme,
                     isPrimary: false
                 ) {
-                    if let url = nicmaInstagramDestination.url {
-                        openURL(url)
-                    }
+                    onOpenNicma()
                 }
 
                 HomeActionButton(
@@ -628,6 +690,61 @@ private struct HomeStoryCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private let homeFeaturedArtists = [
+    "Yang D. Nash",
+    "ThaDude",
+    "MAVE",
+    "JANNO",
+    "TANGAJOE007",
+    "Toprack941"
+]
+
+private func homeMusicArtist(for track: Track) -> String {
+    guard let artistName = track.artistName, !artistName.isEmpty else {
+        return homeFeaturedArtists.first ?? "Yang D. Nash"
+    }
+
+    let normalizedArtist = homeNormalizeArtistName(artistName)
+    return homeFeaturedArtists.first { candidate in
+        let normalizedCandidate = homeNormalizeArtistName(candidate)
+        return normalizedArtist == normalizedCandidate ||
+            normalizedArtist.contains(normalizedCandidate) ||
+            normalizedCandidate.contains(normalizedArtist)
+    } ?? artistName
+}
+
+private func homeNormalizeArtistName(_ value: String) -> String {
+    value
+        .lowercased()
+        .replacingOccurrences(of: "[^a-z0-9]+", with: "", options: .regularExpression)
+}
+
+private struct HomeRevealModifier: ViewModifier {
+    let order: Int
+    @State private var isVisible = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isVisible ? 1 : 0)
+            .offset(y: isVisible ? 0 : 18)
+            .scaleEffect(isVisible ? 1 : 0.985)
+            .animation(
+                .spring(response: 0.52, dampingFraction: 0.88)
+                .delay(Double(order) * 0.05),
+                value: isVisible
+            )
+            .onAppear {
+                isVisible = true
+            }
+    }
+}
+
+private extension View {
+    func homeReveal(_ order: Int) -> some View {
+        modifier(HomeRevealModifier(order: order))
     }
 }
 

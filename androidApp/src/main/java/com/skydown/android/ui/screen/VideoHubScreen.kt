@@ -85,6 +85,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun VideoHubScreen(
     onBack: (() -> Unit)? = null,
+    initialSelectedVideoId: String? = null,
+    autoplayInitialSelection: Boolean = false,
     onOpenCart: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: VideoHubViewModel = viewModel(),
@@ -103,7 +105,11 @@ fun VideoHubScreen(
         keyboardController?.hide()
         Unit
     }
-    var selectedVideoId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedVideoId by rememberSaveable { mutableStateOf(initialSelectedVideoId) }
+    var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
+    var shouldAutoplaySelection by rememberSaveable {
+        mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
+    }
     val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: uiState.videos.firstOrNull()
     val videoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -125,12 +131,23 @@ fun VideoHubScreen(
         } else {
             player.setMediaItem(MediaItem.fromUri(url))
             player.prepare()
-            player.pause()
+            if (shouldAutoplaySelection) {
+                player.play()
+                shouldAutoplaySelection = false
+            } else {
+                player.pause()
+            }
         }
     }
 
-    LaunchedEffect(uiState.videos) {
-        if (selectedVideoId == null || uiState.videos.none { it.id == selectedVideoId }) {
+    LaunchedEffect(uiState.videos, initialSelectedVideoId) {
+        if (!hasHandledInitialSelection &&
+            !initialSelectedVideoId.isNullOrBlank() &&
+            uiState.videos.any { it.id == initialSelectedVideoId }
+        ) {
+            selectedVideoId = initialSelectedVideoId
+            hasHandledInitialSelection = true
+        } else if (selectedVideoId == null || uiState.videos.none { it.id == selectedVideoId }) {
             selectedVideoId = uiState.videos.firstOrNull()?.id
         }
     }

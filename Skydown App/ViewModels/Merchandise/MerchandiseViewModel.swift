@@ -154,7 +154,8 @@ final class MerchandiseViewModel: ObservableObject {
     }
 }
 
-struct FeaturedHomeVideo {
+struct FeaturedHomeVideo: Identifiable {
+    let id: String
     let title: String
     let projectName: String
     let notes: String
@@ -276,6 +277,7 @@ final class HomeViewModel: ObservableObject {
         }
 
         return FeaturedHomeVideo(
+            id: document.documentID,
             title: title,
             projectName: document.data()["projectName"] as? String ?? "Skydown Visual",
             notes: document.data()["notes"] as? String ?? "",

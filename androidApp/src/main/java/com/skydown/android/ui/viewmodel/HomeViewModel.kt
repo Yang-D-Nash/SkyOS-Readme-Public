@@ -130,6 +130,7 @@ class HomeViewModel : ViewModel() {
         if (title.isBlank()) return null
 
         return FeaturedVideoHighlight(
+            id = document.id,
             title = title,
             projectName = document.getString("projectName").orEmpty().ifBlank { "Skydown Visual" },
             notes = document.getString("notes").orEmpty(),

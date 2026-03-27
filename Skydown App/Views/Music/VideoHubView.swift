@@ -16,6 +16,17 @@ struct VideoHubView: View {
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
+    @State private var hasHandledInitialSelection = false
+    private let initialSelectedVideoID: String?
+    private let autoplayInitialSelection: Bool
+
+    init(
+        initialSelectedVideoID: String? = nil,
+        autoplayInitialSelection: Bool = false
+    ) {
+        self.initialSelectedVideoID = initialSelectedVideoID
+        self.autoplayInitialSelection = autoplayInitialSelection
+    }
 
     private var selectedVideo: SkydownVideoHubItem? {
         viewModel.videos.first(where: { $0.id == playbackManager.selectedVideoID }) ?? viewModel.videos.first
@@ -57,15 +68,7 @@ struct VideoHubView: View {
             viewModel.configure(currentUser: user)
         }
         .onReceive(viewModel.$videos) { videos in
-            guard !videos.isEmpty else {
-                playbackManager.stop()
-                return
-            }
-
-            guard videos.contains(where: { $0.id == playbackManager.selectedVideoID }) else {
-                playbackManager.load(video: videos.first)
-                return
-            }
+            activateInitialSelectionIfNeeded(with: videos)
         }
         .onDisappear {
             playbackManager.stop()
@@ -83,6 +86,29 @@ struct VideoHubView: View {
             style: viewModel.toastStyle
         )
         .skydownKeyboardDismissToolbar()
+    }
+
+    private func activateInitialSelectionIfNeeded(with videos: [SkydownVideoHubItem]) {
+        guard !videos.isEmpty else {
+            playbackManager.stop()
+            return
+        }
+
+        if !hasHandledInitialSelection,
+           let initialSelectedVideoID,
+           let video = videos.first(where: { $0.id == initialSelectedVideoID }) {
+            playbackManager.load(video: video)
+            if autoplayInitialSelection {
+                playbackManager.togglePlayback(for: video)
+            }
+            hasHandledInitialSelection = true
+            return
+        }
+
+        guard videos.contains(where: { $0.id == playbackManager.selectedVideoID }) else {
+            playbackManager.load(video: videos.first)
+            return
+        }
     }
 
     private var heroCard: some View {

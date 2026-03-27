@@ -10,20 +10,35 @@ import SwiftUI
 struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
-    @State private var selectedArtist = "Yang D. Nash"
+    @State private var selectedArtist: String
     @State private var selectedTrackID: Int?
     @State private var showFeaturedSpotifyPlayer = false
+    @State private var hasHandledInitialSelection = false
     @Environment(\.colorScheme) private var colorScheme
 
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
+    private let initialArtist: String?
+    private let initialTrackID: Int?
+    private let autoplaySelectedTrackPreview: Bool
+    private let autoPresentSelectedTrackSpotifyPlayer: Bool
 
     init(
+        initialArtist: String? = nil,
+        initialTrackID: Int? = nil,
+        autoplaySelectedTrackPreview: Bool = false,
+        autoPresentSelectedTrackSpotifyPlayer: Bool = false,
         onOpenCart: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {}
     ) {
+        self.initialArtist = initialArtist
+        self.initialTrackID = initialTrackID
+        self.autoplaySelectedTrackPreview = autoplaySelectedTrackPreview
+        self.autoPresentSelectedTrackSpotifyPlayer = autoPresentSelectedTrackSpotifyPlayer
         self.onOpenCart = onOpenCart
         self.onOpenSettings = onOpenSettings
+        _selectedArtist = State(initialValue: initialArtist ?? "Yang D. Nash")
+        _selectedTrackID = State(initialValue: initialTrackID)
     }
 
     private var artists: [String] {
@@ -88,11 +103,16 @@ struct MusicView: View {
                 if selectedTrackID == nil || !viewModel.tracks.contains(where: { $0.trackId == selectedTrackID }) {
                     selectedTrackID = viewModel.tracks.first?.trackId
                 }
+
+                activateInitialSelectionIfNeeded()
             }
             .onChange(of: audioManager.currentlyPlayingId) { playingID in
                 if let playingID {
                     selectedTrackID = playingID
                 }
+            }
+            .onAppear {
+                activateInitialSelectionIfNeeded()
             }
         }
         .fancyToast(
@@ -435,6 +455,31 @@ struct MusicView: View {
     private func reloadTracksIfNeeded() async {
         audioManager.stop()
         await viewModel.fetchTracks(for: selectedArtist)
+    }
+
+    private func activateInitialSelectionIfNeeded() {
+        guard !hasHandledInitialSelection,
+              !viewModel.tracks.isEmpty else {
+            return
+        }
+
+        let initialTrack = initialTrackID.flatMap { targetID in
+            viewModel.tracks.first(where: { $0.trackId == targetID })
+        }
+        let track = initialTrack ?? selectedTrack ?? viewModel.tracks.first
+
+        guard let track else { return }
+
+        selectedTrackID = track.trackId
+
+        if autoplaySelectedTrackPreview, track.previewUrl != nil {
+            audioManager.playPreview(for: track)
+        } else if autoPresentSelectedTrackSpotifyPlayer,
+                  resolvedMusicViewSpotifyTrackID(track) != nil {
+            showFeaturedSpotifyPlayer = true
+        }
+
+        hasHandledInitialSelection = true
     }
 }
 
