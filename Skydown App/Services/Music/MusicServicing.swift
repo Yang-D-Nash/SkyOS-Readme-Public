@@ -45,6 +45,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         static let artistAlbumsPageSize = 10
         static let artistAlbumsMaxResults = 100
         static let albumTracksPageSize = 50
+        static let publicFallbackTargetTrackCount = 6
+        static let publicFallbackMaxAlbumPages = 8
         static let artistIDs: [String: String] = [
             "Yang D. Nash": "63Sh0kQAWW3ZWn2aKDksbo",
             "ThaDude": "0Jmb7DXFkKxxRjqD70vi0e",
@@ -196,6 +198,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         let releaseDate: String?
     }
 
+    private struct PublicAlbumReference {
+        let albumID: String
+        let releaseDate: String?
+    }
+
     private struct StoredToken: Codable {
         let accessToken: String
         let refreshToken: String?
@@ -242,6 +249,13 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     func fetchTracks(for artist: String) async throws -> [Track] {
+        if let knownArtistID = Constants.artistIDs[artist] {
+            return try await fetchKnownArtistTracksWithFallbacks(
+                for: artist,
+                artistID: knownArtistID
+            )
+        }
+
         do {
             let accessToken = try await validAccessToken(forceRefresh: false, allowInteractiveAuth: false)
             return try await fetchSpotifyTracks(
@@ -249,38 +263,60 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 accessToken: accessToken
             )
         } catch {
-            if let knownArtistID = Constants.artistIDs[artist] {
-                return try await fetchPublicSpotifyTracks(
-                    for: artist,
-                    artistID: knownArtistID
-                )
-            }
-
             return try await fetchCatalogTracks(for: artist)
         }
+    }
+
+    private func fetchKnownArtistTracksWithFallbacks(
+        for artist: String,
+        artistID: String
+    ) async throws -> [Track] {
+        var publicTracks: [Track]?
+        var publicError: Error?
+
+        do {
+            publicTracks = try await fetchPublicSpotifyTracks(
+                for: artist,
+                artistID: artistID
+            )
+        } catch {
+            publicError = error
+        }
+
+        var apiTracks: [Track]?
+        var apiError: Error?
+
+        do {
+            let accessToken = try await validAccessToken(forceRefresh: false, allowInteractiveAuth: false)
+            apiTracks = try await fetchKnownArtistTracks(
+                accessToken: accessToken,
+                artist: artist,
+                artistID: artistID
+            )
+        } catch {
+            apiError = error
+        }
+
+        let mergedTracks = mergeKnownArtistTracks(
+            publicTracks: publicTracks ?? [],
+            apiTracks: apiTracks ?? []
+        )
+
+        if !mergedTracks.isEmpty {
+            return mergedTracks
+        }
+
+        if publicTracks != nil || apiTracks != nil {
+            return []
+        }
+
+        throw publicError ?? apiError ?? SpotifyAuthError.missingToken
     }
 
     private func fetchSpotifyTracks(
         for artist: String,
         accessToken: String
     ) async throws -> [Track] {
-        let artistID = Constants.artistIDs[artist]
-        if let artistID {
-            let directTracks = try await fetchKnownArtistTracks(
-                accessToken: accessToken,
-                artist: artist,
-                artistID: artistID
-            )
-            if !directTracks.isEmpty {
-                return directTracks
-            }
-
-            return try await fetchPublicSpotifyTracks(
-                for: artist,
-                artistID: artistID
-            )
-        }
-
         let searchQueries = searchQueries(for: artist)
         var lastError: Error?
         var searchItems: [SpotifyTrack] = []
@@ -304,12 +340,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         }
 
         let mappedTracks = searchItems.map { item in
-            let matchingArtist: SpotifyArtist?
-            if let artistID {
-                matchingArtist = item.artists.first(where: { $0.id == artistID })
-            } else {
-                matchingArtist = item.artists.first
-            }
+            let matchingArtist = item.artists.first
             let artworkURL = item.album.images.first?.url
             return Track(
                 trackId: abs(item.id.hashValue),
@@ -328,9 +359,6 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         }
 
         return mappedTracks.filter { track in
-            if let artistID {
-                return track.spotifyArtistID == artistID
-            }
             return artistMatches(expectedArtist: artist, actualArtist: track.artistName)
         }
     }
@@ -382,25 +410,129 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         for artist: String,
         artistID: String
     ) async throws -> [Track] {
-        let (data, _) = try await session.data(from: try publicArtistURL(for: artistID))
-        guard let html = String(data: data, encoding: .utf8) else {
-            throw URLError(.cannotDecodeRawData)
-        }
-
-        guard let initialStateData = try extractPublicInitialStateData(from: html),
-              let root = try JSONSerialization.jsonObject(with: initialStateData, options: []) as? [String: Any],
-              let artistEntity = publicArtistEntity(from: root, artistID: artistID),
+        let root = try await fetchPublicInitialStateRoot(from: try publicArtistURL(for: artistID))
+        guard let artistEntity = publicArtistEntity(from: root, artistID: artistID),
               let discography = artistEntity["discography"] as? [String: Any] else {
             throw SpotifyAuthError.missingToken
         }
 
         let releaseDatesByAlbumURI = publicReleaseDatesByAlbumURI(from: discography)
-        let trackItems = ((discography["topTracks"] as? [String: Any])?["items"] as? [[String: Any]]) ?? []
+        let artistArtworkURL = publicCoverArtURL(from: (artistEntity["visuals"] as? [String: Any])?["avatarImage"] as? [String: Any])
+        var orderedTrackIDs: [String] = []
+        var tracksByID: [String: Track] = [:]
 
-        let tracks: [Track] = trackItems.compactMap { item in
+        let topTrackItems = ((discography["topTracks"] as? [String: Any])?["items"] as? [[String: Any]]) ?? []
+        for item in topTrackItems {
+            guard let track = publicTrack(
+                fromArtistTrackItem: item,
+                artist: artist,
+                artistID: artistID,
+                artistArtworkURL: artistArtworkURL,
+                releaseDatesByAlbumURI: releaseDatesByAlbumURI
+            ) else {
+                continue
+            }
+
+            appendPublicTrack(
+                track,
+                orderedTrackIDs: &orderedTrackIDs,
+                tracksByID: &tracksByID
+            )
+        }
+
+        if tracksByID.count < Constants.publicFallbackTargetTrackCount {
+            let albumReferences = publicAlbumReferences(
+                from: artistEntity,
+                discography: discography,
+                releaseDatesByAlbumURI: releaseDatesByAlbumURI
+            )
+
+            for albumReference in albumReferences.prefix(Constants.publicFallbackMaxAlbumPages) {
+                let albumTracks = try await fetchPublicAlbumTracks(
+                    for: artist,
+                    artistID: artistID,
+                    albumReference: albumReference
+                )
+
+                for track in albumTracks {
+                    appendPublicTrack(
+                        track,
+                        orderedTrackIDs: &orderedTrackIDs,
+                        tracksByID: &tracksByID
+                    )
+                }
+
+                if tracksByID.count >= Constants.publicFallbackTargetTrackCount {
+                    break
+                }
+            }
+        }
+
+        let tracks = orderedTrackIDs.compactMap { tracksByID[$0] }
+
+        return tracks
+    }
+
+    private func publicTrack(
+        fromArtistTrackItem item: [String: Any],
+        artist: String,
+        artistID: String,
+        artistArtworkURL: String?,
+        releaseDatesByAlbumURI: [String: String]
+    ) -> Track? {
+        guard let track = item["track"] as? [String: Any],
+              let trackURI = track["uri"] as? String,
+              let trackID = spotifyID(fromURI: trackURI),
+              let trackName = (track["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trackName.isEmpty else {
+            return nil
+        }
+
+        let artistsItems = (((track["artists"] as? [String: Any])?["items"]) as? [[String: Any]]) ?? []
+        guard artistsItems.contains(where: { spotifyID(fromURI: $0["uri"] as? String) == artistID }) else {
+            return nil
+        }
+
+        let matchingArtist = artistsItems.first(where: { spotifyID(fromURI: $0["uri"] as? String) == artistID })
+        let album = track["albumOfTrack"] as? [String: Any]
+        let albumURI = album?["uri"] as? String
+        let artworkURL = publicCoverArtURL(from: album?["coverArt"] as? [String: Any]) ?? artistArtworkURL
+        let previewURL = (((track["previews"] as? [String: Any])?["audioPreviews"] as? [String: Any])?["items"] as? [[String: Any]])?.first?["url"] as? String
+
+        return Track(
+            trackId: abs(trackID.hashValue),
+            artistId: abs(artistID.hashValue),
+            spotifyArtistID: artistID,
+            spotifyTrackID: trackID,
+            artistName: publicArtistName(from: matchingArtist) ?? artist,
+            trackName: trackName,
+            collectionName: album?["name"] as? String,
+            artworkUrl100: artworkURL,
+            previewUrl: previewURL,
+            externalURL: "https://open.spotify.com/track/\(trackID)",
+            wrapperType: "track",
+            releaseDate: albumURI.flatMap { releaseDatesByAlbumURI[$0] }
+        )
+    }
+
+    private func fetchPublicAlbumTracks(
+        for artist: String,
+        artistID: String,
+        albumReference: PublicAlbumReference
+    ) async throws -> [Track] {
+        let root = try await fetchPublicInitialStateRoot(from: try publicAlbumURL(for: albumReference.albumID))
+        guard let albumEntity = publicAlbumEntity(from: root, albumID: albumReference.albumID) else {
+            return []
+        }
+
+        let trackItems = ((albumEntity["tracksV2"] as? [String: Any])?["items"] as? [[String: Any]]) ?? []
+        let albumName = albumEntity["name"] as? String
+        let artworkURL = publicCoverArtURL(from: albumEntity["coverArt"] as? [String: Any])
+        let releaseDate = ((albumEntity["date"] as? [String: Any]).flatMap(publicReleaseDateString)) ?? albumReference.releaseDate
+
+        return trackItems.compactMap { item in
             guard let track = item["track"] as? [String: Any],
-                  let trackURI = track["uri"] as? String,
-                  let trackID = spotifyID(fromURI: trackURI),
+                  let trackID = (track["id"] as? String) ?? spotifyID(fromURI: track["uri"] as? String),
                   let trackName = (track["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !trackName.isEmpty else {
                 return nil
@@ -412,10 +544,6 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             }
 
             let matchingArtist = artistsItems.first(where: { spotifyID(fromURI: $0["uri"] as? String) == artistID })
-            let album = track["albumOfTrack"] as? [String: Any]
-            let albumURI = album?["uri"] as? String
-            let artworkURL = publicCoverArtURL(from: album?["coverArt"] as? [String: Any])
-                ?? publicCoverArtURL(from: (artistEntity["visuals"] as? [String: Any])?["avatarImage"] as? [String: Any])
             let previewURL = (((track["previews"] as? [String: Any])?["audioPreviews"] as? [String: Any])?["items"] as? [[String: Any]])?.first?["url"] as? String
 
             return Track(
@@ -425,20 +553,14 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 spotifyTrackID: trackID,
                 artistName: publicArtistName(from: matchingArtist) ?? artist,
                 trackName: trackName,
-                collectionName: album?["name"] as? String,
+                collectionName: albumName,
                 artworkUrl100: artworkURL,
                 previewUrl: previewURL,
                 externalURL: "https://open.spotify.com/track/\(trackID)",
                 wrapperType: "track",
-                releaseDate: albumURI.flatMap { releaseDatesByAlbumURI[$0] }
+                releaseDate: releaseDate
             )
         }
-
-        guard !tracks.isEmpty else {
-            throw SpotifyAuthError.missingToken
-        }
-
-        return tracks
     }
 
     private func fetchKnownArtistTracks(
@@ -798,6 +920,13 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         return url
     }
 
+    private func publicAlbumURL(for albumID: String) throws -> URL {
+        guard let url = URL(string: "https://open.spotify.com/album/\(albumID)") else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
     private func catalogQueries(for artist: String) -> [(term: String, attribute: String?)] {
         let cleanedArtist = artist
             .replacingOccurrences(of: "[^a-zA-Z0-9]+", with: " ", options: .regularExpression)
@@ -858,11 +987,33 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         return Data(base64Encoded: String(html[payloadRange]))
     }
 
+    private func fetchPublicInitialStateRoot(from url: URL) async throws -> [String: Any] {
+        let (data, _) = try await session.data(from: url)
+        guard let html = String(data: data, encoding: .utf8) else {
+            throw URLError(.cannotDecodeRawData)
+        }
+
+        guard let initialStateData = try extractPublicInitialStateData(from: html),
+              let root = try JSONSerialization.jsonObject(with: initialStateData, options: []) as? [String: Any] else {
+            throw SpotifyAuthError.missingToken
+        }
+
+        return root
+    }
+
     private func publicArtistEntity(
         from root: [String: Any],
         artistID: String
     ) -> [String: Any]? {
         let entityKey = "spotify:artist:\(artistID)"
+        return (((root["entities"] as? [String: Any])?["items"]) as? [String: Any])?[entityKey] as? [String: Any]
+    }
+
+    private func publicAlbumEntity(
+        from root: [String: Any],
+        albumID: String
+    ) -> [String: Any]? {
+        let entityKey = "spotify:album:\(albumID)"
         return (((root["entities"] as? [String: Any])?["items"]) as? [String: Any])?[entityKey] as? [String: Any]
     }
 
@@ -882,8 +1033,161 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             from: ((discography["albums"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
             into: &releaseDates
         )
+        appendPublicReleaseDates(
+            from: ((discography["compilations"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            into: &releaseDates
+        )
 
         return releaseDates
+    }
+
+    private func publicAlbumReferences(
+        from artistEntity: [String: Any],
+        discography: [String: Any],
+        releaseDatesByAlbumURI: [String: String]
+    ) -> [PublicAlbumReference] {
+        var releaseDatesByAlbumID: [String: String] = [:]
+        var orderedAlbumIDs: [String] = []
+
+        appendPublicAlbumReferences(
+            from: [discography["latest"]].compactMap { $0 as? [String: Any] },
+            releaseDatesByAlbumURI: releaseDatesByAlbumURI,
+            orderedAlbumIDs: &orderedAlbumIDs,
+            releaseDatesByAlbumID: &releaseDatesByAlbumID
+        )
+        appendPublicAlbumReferences(
+            from: ((discography["popularReleasesAlbums"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            releaseDatesByAlbumURI: releaseDatesByAlbumURI,
+            orderedAlbumIDs: &orderedAlbumIDs,
+            releaseDatesByAlbumID: &releaseDatesByAlbumID
+        )
+        appendPublicAlbumReferences(
+            from: ((discography["singles"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            releaseDatesByAlbumURI: releaseDatesByAlbumURI,
+            orderedAlbumIDs: &orderedAlbumIDs,
+            releaseDatesByAlbumID: &releaseDatesByAlbumID
+        )
+        appendPublicAlbumReferences(
+            from: ((discography["albums"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            releaseDatesByAlbumURI: releaseDatesByAlbumURI,
+            orderedAlbumIDs: &orderedAlbumIDs,
+            releaseDatesByAlbumID: &releaseDatesByAlbumID
+        )
+        appendPublicAlbumReferences(
+            from: ((discography["compilations"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            releaseDatesByAlbumURI: releaseDatesByAlbumURI,
+            orderedAlbumIDs: &orderedAlbumIDs,
+            releaseDatesByAlbumID: &releaseDatesByAlbumID
+        )
+        appendPublicAlbumReferences(
+            from: (((artistEntity["relatedContent"] as? [String: Any])?["appearsOn"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            releaseDatesByAlbumURI: releaseDatesByAlbumURI,
+            orderedAlbumIDs: &orderedAlbumIDs,
+            releaseDatesByAlbumID: &releaseDatesByAlbumID
+        )
+
+        return orderedAlbumIDs.map { albumID in
+            PublicAlbumReference(
+                albumID: albumID,
+                releaseDate: releaseDatesByAlbumID[albumID]
+            )
+        }
+    }
+
+    private func appendPublicAlbumReferences(
+        from items: [[String: Any]],
+        releaseDatesByAlbumURI: [String: String],
+        orderedAlbumIDs: inout [String],
+        releaseDatesByAlbumID: inout [String: String]
+    ) {
+        for item in items {
+            if let releases = ((item["releases"] as? [String: Any])?["items"] as? [[String: Any]]) {
+                appendPublicAlbumReferences(
+                    from: releases,
+                    releaseDatesByAlbumURI: releaseDatesByAlbumURI,
+                    orderedAlbumIDs: &orderedAlbumIDs,
+                    releaseDatesByAlbumID: &releaseDatesByAlbumID
+                )
+                continue
+            }
+
+            let fallbackReleaseDate = (item["date"] as? [String: Any]).flatMap(publicReleaseDateString)
+            let albumID: String?
+
+            if let uri = item["uri"] as? String {
+                albumID = spotifyID(fromURI: uri)
+                if let albumID,
+                   let releaseDate = fallbackReleaseDate ?? releaseDatesByAlbumURI[uri],
+                   releaseDatesByAlbumID[albumID] == nil {
+                    releaseDatesByAlbumID[albumID] = releaseDate
+                }
+            } else {
+                albumID = item["id"] as? String
+                if let albumID,
+                   let releaseDate = fallbackReleaseDate,
+                   releaseDatesByAlbumID[albumID] == nil {
+                    releaseDatesByAlbumID[albumID] = releaseDate
+                }
+            }
+
+            guard let albumID, !albumID.isEmpty else { continue }
+            if !orderedAlbumIDs.contains(albumID) {
+                orderedAlbumIDs.append(albumID)
+            }
+        }
+    }
+
+    private func appendPublicTrack(
+        _ track: Track,
+        orderedTrackIDs: inout [String],
+        tracksByID: inout [String: Track]
+    ) {
+        guard let trackID = track.spotifyTrackID, !trackID.isEmpty else { return }
+        if tracksByID[trackID] == nil {
+            orderedTrackIDs.append(trackID)
+        }
+        tracksByID[trackID] = track
+    }
+
+    private func mergeKnownArtistTracks(
+        publicTracks: [Track],
+        apiTracks: [Track]
+    ) -> [Track] {
+        var tracksByKey: [String: Track] = [:]
+        var orderedKeys: [String] = []
+
+        for track in publicTracks + apiTracks {
+            guard let key = knownArtistTrackKey(for: track) else {
+                continue
+            }
+
+            if tracksByKey[key] == nil {
+                orderedKeys.append(key)
+            }
+            tracksByKey[key] = track
+        }
+
+        return orderedKeys.compactMap { tracksByKey[$0] }
+    }
+
+    private func knownArtistTrackKey(for track: Track) -> String? {
+        if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
+            return "spotify-\(spotifyTrackID)"
+        }
+
+        if let externalURL = track.externalURL, !externalURL.isEmpty {
+            return "external-\(externalURL)"
+        }
+
+        guard let artistName = track.artistName, !artistName.isEmpty else {
+            return nil
+        }
+
+        return [
+            normalizeArtistName(artistName),
+            track.trackName.lowercased(),
+            track.releaseDate ?? ""
+        ].joined(separator: "|")
     }
 
     private func appendPublicReleaseDates(

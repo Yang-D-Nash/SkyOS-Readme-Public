@@ -25,21 +25,28 @@ class AndroidMusicRepository : MusicRepository {
     private val artistAlbumsMaxResults = 100
     private val albumTracksPageSize = 50
     private val catalogPageSize = 50
+    private val publicFallbackTargetTrackCount = 6
+    private val publicFallbackMaxAlbumPages = 8
+
+    private data class PublicAlbumReference(
+        val albumId: String,
+        val releaseDate: String?,
+    )
 
     override suspend fun fetchTracks(artist: String): Result<List<Track>> {
         return runCatching {
             withContext(Dispatchers.IO) {
                 val knownArtistId = artistIds[artist]
+                if (knownArtistId != null) {
+                    return@withContext fetchKnownArtistTracksWithFallbacks(
+                        artist = artist,
+                        artistId = knownArtistId,
+                    )
+                }
+
                 val accessToken = SpotifyAuthManager.validAccessToken()
                 if (accessToken.isNullOrBlank()) {
-                    return@withContext if (knownArtistId != null) {
-                        fetchPublicSpotifyTracks(
-                            artist = artist,
-                            artistId = knownArtistId,
-                        )
-                    } else {
-                        fetchCatalogTracks(artist)
-                    }
+                    return@withContext fetchCatalogTracks(artist)
                 }
 
                 runCatching {
@@ -48,41 +55,66 @@ class AndroidMusicRepository : MusicRepository {
                         artist = artist,
                     )
                 }.getOrElse {
-                    if (knownArtistId != null) {
-                        fetchPublicSpotifyTracks(
-                            artist = artist,
-                            artistId = knownArtistId,
-                        )
-                    } else {
-                        fetchCatalogTracks(artist)
-                    }
+                    fetchCatalogTracks(artist)
                 }
             }
         }
+    }
+
+    private suspend fun fetchKnownArtistTracksWithFallbacks(
+        artist: String,
+        artistId: String,
+    ): List<Track> {
+        var publicTracks: List<Track>? = null
+        var publicError: Throwable? = null
+
+        try {
+            publicTracks = fetchPublicSpotifyTracks(
+                artist = artist,
+                artistId = artistId,
+            )
+        } catch (error: Throwable) {
+            publicError = error
+        }
+
+        var apiTracks: List<Track>? = null
+        var apiError: Throwable? = null
+
+        val accessToken = SpotifyAuthManager.validAccessToken()
+        if (accessToken.isNullOrBlank()) {
+            apiError = IllegalStateException("Spotify access token missing.")
+        } else {
+            try {
+                apiTracks = fetchKnownArtistTracks(
+                    accessToken = accessToken,
+                    artist = artist,
+                    artistId = artistId,
+                )
+            } catch (error: Throwable) {
+                apiError = error
+            }
+        }
+
+        val mergedTracks = mergeKnownArtistTracks(
+            publicTracks = publicTracks.orEmpty(),
+            apiTracks = apiTracks.orEmpty(),
+        )
+
+        if (mergedTracks.isNotEmpty()) {
+            return mergedTracks
+        }
+
+        if (publicTracks != null || apiTracks != null) {
+            return emptyList()
+        }
+
+        throw publicError ?: apiError ?: IllegalStateException("Tracks konnten gerade nicht geladen werden.")
     }
 
     private fun fetchSpotifyTracks(
         accessToken: String,
         artist: String,
     ): List<Track> {
-        val artistId = artistIds[artist]
-
-        if (artistId != null) {
-            val directTracks = fetchKnownArtistTracks(
-                accessToken = accessToken,
-                artist = artist,
-                artistId = artistId,
-            )
-            if (directTracks.isNotEmpty()) {
-                return directTracks
-            }
-
-            return fetchPublicSpotifyTracks(
-                artist = artist,
-                artistId = artistId,
-            )
-        }
-
         val queries = searchQueriesFor(artist)
         var lastErrorMessage: String? = null
 
@@ -95,11 +127,7 @@ class AndroidMusicRepository : MusicRepository {
             if (searchResult.errorMessage == null) {
                 return searchResult.items
                     .map { track ->
-                        val matchingArtist = if (artistId != null) {
-                            track.artists.firstOrNull { it.id == artistId }
-                        } else {
-                            track.artists.firstOrNull()
-                        }
+                        val matchingArtist = track.artists.firstOrNull()
                         Track(
                             trackId = kotlin.math.abs(track.id.hashCode()),
                             artistId = kotlin.math.abs((matchingArtist?.id ?: track.artists.firstOrNull()?.id ?: track.id).hashCode()),
@@ -116,11 +144,7 @@ class AndroidMusicRepository : MusicRepository {
                         )
                     }
                     .filter { track ->
-                        if (artistId != null) {
-                            track.spotifyArtistId == artistId
-                        } else {
-                            artistMatches(expectedArtist = artist, actualArtist = track.artistName)
-                        }
+                        artistMatches(expectedArtist = artist, actualArtist = track.artistName)
                     }
             }
 
@@ -189,15 +213,11 @@ class AndroidMusicRepository : MusicRepository {
         artist: String,
         artistId: String,
     ): List<Track> {
-        val response = performCatalogRequest(buildPublicArtistUrl(artistId))
-        if (response.responseCode !in 200..299) {
-            error("Spotify Artist Seite konnte nicht geladen werden.")
-        }
-
-        val initialStatePayload = extractInitialStatePayload(response.payload)
-            ?: error("Spotify Artist Daten konnten nicht gelesen werden.")
-        val root = json.parseToJsonElement(initialStatePayload).jsonObjectOrNull()
-            ?: error("Spotify Artist Daten konnten nicht gelesen werden.")
+        val root = fetchPublicInitialStateRoot(
+            url = buildPublicArtistUrl(artistId),
+            pageErrorMessage = "Spotify Artist Seite konnte nicht geladen werden.",
+            dataErrorMessage = "Spotify Artist Daten konnten nicht gelesen werden.",
+        )
         val artistEntity = root
             .jsonObject("entities")
             ?.jsonObject("items")
@@ -223,71 +243,213 @@ class AndroidMusicRepository : MusicRepository {
             discography.jsonObject("albums")?.jsonArray("items").orEmpty(),
             releaseDatesByAlbumUri,
         )
+        appendReleaseDates(
+            discography.jsonObject("compilations")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri,
+        )
 
-        val tracks = buildList {
-            discography
-                .jsonObject("topTracks")
-                ?.jsonArray("items")
-                .orEmpty()
-                .forEach { item ->
-                    val track = item.jsonObjectOrNull()?.jsonObject("track") ?: return@forEach
-                    val trackId = spotifyIdFromUri(track.string("uri")) ?: return@forEach
-                    val trackName = track.string("name")?.trim().orEmpty()
-                    if (trackName.isBlank()) return@forEach
+        val tracksById = linkedMapOf<String, Track>()
+        val artistArtworkUrl = artistEntity
+            .jsonObject("visuals")
+            ?.jsonObject("avatarImage")
+            ?.coverArtUrl()
 
-                    val trackArtists = track
-                        .jsonObject("artists")
-                        ?.jsonArray("items")
-                        .orEmpty()
-                    if (trackArtists.none { spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId }) {
-                        return@forEach
-                    }
+        discography
+            .jsonObject("topTracks")
+            ?.jsonArray("items")
+            .orEmpty()
+            .forEach { item ->
+                val track = publicArtistTrack(
+                    item = item,
+                    artist = artist,
+                    artistId = artistId,
+                    artistArtworkUrl = artistArtworkUrl,
+                    releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+                ) ?: return@forEach
+                tracksById.putIfAbsent(track.spotifyTrackId.orEmpty(), track)
+            }
 
-                    val matchingArtist = trackArtists.firstOrNull {
-                        spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId
-                    }?.jsonObjectOrNull()
-                    val album = track.jsonObject("albumOfTrack")
-                    val albumUri = album?.string("uri")
+        if (tracksById.size < publicFallbackTargetTrackCount) {
+            val albumReferences = publicAlbumReferences(
+                artistEntity = artistEntity,
+                discography = discography,
+                releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+            )
 
-                    add(
-                        Track(
-                            trackId = kotlin.math.abs(trackId.hashCode()),
-                            artistId = kotlin.math.abs(artistId.hashCode()),
-                            spotifyArtistId = artistId,
-                            spotifyTrackId = trackId,
-                            artistName = matchingArtist
-                                ?.jsonObject("profile")
-                                ?.string("name")
-                                ?: artist,
-                            trackName = trackName,
-                            collectionName = album?.string("name"),
-                            artworkUrl100 = album
-                                ?.jsonObject("coverArt")
-                                ?.coverArtUrl()
-                                ?: artistEntity
-                                    .jsonObject("visuals")
-                                    ?.jsonObject("avatarImage")
-                                    ?.coverArtUrl(),
-                            previewUrl = track
-                                .jsonObject("previews")
-                                ?.jsonObject("audioPreviews")
-                                ?.jsonArray("items")
-                                ?.firstOrNull()
-                                ?.jsonObjectOrNull()
-                                ?.string("url"),
-                            externalUrl = "https://open.spotify.com/track/$trackId",
-                            wrapperType = "track",
-                            releaseDate = albumUri?.let(releaseDatesByAlbumUri::get),
-                        ),
-                    )
+            for (albumReference in albumReferences.take(publicFallbackMaxAlbumPages)) {
+                val albumTracks = fetchPublicAlbumTracks(
+                    artist = artist,
+                    artistId = artistId,
+                    albumReference = albumReference,
+                )
+
+                for (track in albumTracks) {
+                    tracksById.putIfAbsent(track.spotifyTrackId.orEmpty(), track)
                 }
+
+                if (tracksById.size >= publicFallbackTargetTrackCount) {
+                    break
+                }
+            }
         }
 
-        if (tracks.isEmpty()) {
-            error("Spotify Artist Tracks konnten nicht gelesen werden.")
+        return tracksById.values.toList()
+    }
+
+    private fun mergeKnownArtistTracks(
+        publicTracks: List<Track>,
+        apiTracks: List<Track>,
+    ): List<Track> {
+        val tracksByKey = linkedMapOf<String, Track>()
+
+        (publicTracks + apiTracks).forEach { track ->
+            val key = knownArtistTrackKey(track) ?: return@forEach
+            tracksByKey.putIfAbsent(key, track)
         }
 
-        return tracks
+        return tracksByKey.values.toList()
+    }
+
+    private fun knownArtistTrackKey(track: Track): String? {
+        if (!track.spotifyTrackId.isNullOrBlank()) {
+            return "spotify-${track.spotifyTrackId}"
+        }
+
+        if (!track.externalUrl.isNullOrBlank()) {
+            return "external-${track.externalUrl}"
+        }
+
+        val artistName = track.artistName?.takeIf { it.isNotBlank() } ?: return null
+        return listOf(
+            normalizeArtistName(artistName),
+            track.trackName.lowercase(),
+            track.releaseDate.orEmpty(),
+        ).joinToString(separator = "|")
+    }
+
+    private fun publicArtistTrack(
+        item: JsonElement,
+        artist: String,
+        artistId: String,
+        artistArtworkUrl: String?,
+        releaseDatesByAlbumUri: Map<String, String>,
+    ): Track? {
+        val track = item.jsonObjectOrNull()?.jsonObject("track") ?: return null
+        val trackId = spotifyIdFromUri(track.string("uri")) ?: return null
+        val trackName = track.string("name")?.trim().orEmpty()
+        if (trackName.isBlank()) return null
+
+        val trackArtists = track
+            .jsonObject("artists")
+            ?.jsonArray("items")
+            .orEmpty()
+        if (trackArtists.none { spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId }) {
+            return null
+        }
+
+        val matchingArtist = trackArtists.firstOrNull {
+            spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId
+        }?.jsonObjectOrNull()
+        val album = track.jsonObject("albumOfTrack")
+        val albumUri = album?.string("uri")
+
+        return Track(
+            trackId = kotlin.math.abs(trackId.hashCode()),
+            artistId = kotlin.math.abs(artistId.hashCode()),
+            spotifyArtistId = artistId,
+            spotifyTrackId = trackId,
+            artistName = matchingArtist
+                ?.jsonObject("profile")
+                ?.string("name")
+                ?: artist,
+            trackName = trackName,
+            collectionName = album?.string("name"),
+            artworkUrl100 = album
+                ?.jsonObject("coverArt")
+                ?.coverArtUrl()
+                ?: artistArtworkUrl,
+            previewUrl = track
+                .jsonObject("previews")
+                ?.jsonObject("audioPreviews")
+                ?.jsonArray("items")
+                ?.firstOrNull()
+                ?.jsonObjectOrNull()
+                ?.string("url"),
+            externalUrl = "https://open.spotify.com/track/$trackId",
+            wrapperType = "track",
+            releaseDate = albumUri?.let(releaseDatesByAlbumUri::get),
+        )
+    }
+
+    private fun fetchPublicAlbumTracks(
+        artist: String,
+        artistId: String,
+        albumReference: PublicAlbumReference,
+    ): List<Track> {
+        val root = fetchPublicInitialStateRoot(
+            url = buildPublicAlbumUrl(albumReference.albumId),
+            pageErrorMessage = "Spotify Album Seite konnte nicht geladen werden.",
+            dataErrorMessage = "Spotify Album Daten konnten nicht gelesen werden.",
+        )
+        val albumEntity = root
+            .jsonObject("entities")
+            ?.jsonObject("items")
+            ?.jsonObject("spotify:album:${albumReference.albumId}")
+            ?: return emptyList()
+
+        val releaseDate = albumEntity
+            .jsonObject("date")
+            ?.releaseDateString()
+            ?: albumReference.releaseDate
+
+        return albumEntity
+            .jsonObject("tracksV2")
+            ?.jsonArray("items")
+            .orEmpty()
+            .mapNotNull { item ->
+                val track = item.jsonObjectOrNull()?.jsonObject("track") ?: return@mapNotNull null
+                val trackId = track.string("id") ?: spotifyIdFromUri(track.string("uri")) ?: return@mapNotNull null
+                val trackName = track.string("name")?.trim().orEmpty()
+                if (trackName.isBlank()) return@mapNotNull null
+
+                val trackArtists = track
+                    .jsonObject("artists")
+                    ?.jsonArray("items")
+                    .orEmpty()
+                if (trackArtists.none { spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId }) {
+                    return@mapNotNull null
+                }
+
+                val matchingArtist = trackArtists.firstOrNull {
+                    spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId
+                }?.jsonObjectOrNull()
+
+                Track(
+                    trackId = kotlin.math.abs(trackId.hashCode()),
+                    artistId = kotlin.math.abs(artistId.hashCode()),
+                    spotifyArtistId = artistId,
+                    spotifyTrackId = trackId,
+                    artistName = matchingArtist
+                        ?.jsonObject("profile")
+                        ?.string("name")
+                        ?: artist,
+                    trackName = trackName,
+                    collectionName = albumEntity.string("name"),
+                    artworkUrl100 = albumEntity
+                        .jsonObject("coverArt")
+                        ?.coverArtUrl(),
+                    previewUrl = track
+                        .jsonObject("previews")
+                        ?.jsonObject("audioPreviews")
+                        ?.jsonArray("items")
+                        ?.firstOrNull()
+                        ?.jsonObjectOrNull()
+                        ?.string("url"),
+                    externalUrl = "https://open.spotify.com/track/$trackId",
+                    wrapperType = "track",
+                    releaseDate = releaseDate,
+                )
+            }
     }
 
     private fun fetchKnownArtistTracks(
@@ -536,6 +698,10 @@ class AndroidMusicRepository : MusicRepository {
         return URL("https://open.spotify.com/artist/$artistId")
     }
 
+    private fun buildPublicAlbumUrl(albumId: String): URL {
+        return URL("https://open.spotify.com/album/$albumId")
+    }
+
     private fun buildSpotifySearchUrl(artist: String, trackName: String): String {
         val query = listOf(artist, trackName)
             .filter { it.isNotBlank() }
@@ -564,6 +730,22 @@ class AndroidMusicRepository : MusicRepository {
             }
     }
 
+    private fun fetchPublicInitialStateRoot(
+        url: URL,
+        pageErrorMessage: String,
+        dataErrorMessage: String,
+    ): JsonObject {
+        val response = performCatalogRequest(url)
+        if (response.responseCode !in 200..299) {
+            error(pageErrorMessage)
+        }
+
+        val initialStatePayload = extractInitialStatePayload(response.payload)
+            ?: error(dataErrorMessage)
+        return json.parseToJsonElement(initialStatePayload).jsonObjectOrNull()
+            ?: error(dataErrorMessage)
+    }
+
     private fun searchQueriesFor(artist: String): List<String> {
         return listOf(
             "artist:\"$artist\"",
@@ -589,6 +771,106 @@ class AndroidMusicRepository : MusicRepository {
             val uri = item.string("uri") ?: return@forEach
             val releaseDate = item.jsonObject("date")?.releaseDateString() ?: return@forEach
             releaseDatesByAlbumUri[uri] = releaseDate
+        }
+    }
+
+    private fun publicAlbumReferences(
+        artistEntity: JsonObject,
+        discography: JsonObject,
+        releaseDatesByAlbumUri: Map<String, String>,
+    ): List<PublicAlbumReference> {
+        val releaseDatesByAlbumId = linkedMapOf<String, String>()
+        val orderedAlbumIds = linkedSetOf<String>()
+
+        appendPublicAlbumReferences(
+            items = listOfNotNull(discography["latest"]),
+            releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+            orderedAlbumIds = orderedAlbumIds,
+            releaseDatesByAlbumId = releaseDatesByAlbumId,
+        )
+        appendPublicAlbumReferences(
+            items = discography.jsonObject("popularReleasesAlbums")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+            orderedAlbumIds = orderedAlbumIds,
+            releaseDatesByAlbumId = releaseDatesByAlbumId,
+        )
+        appendPublicAlbumReferences(
+            items = discography.jsonObject("singles")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+            orderedAlbumIds = orderedAlbumIds,
+            releaseDatesByAlbumId = releaseDatesByAlbumId,
+        )
+        appendPublicAlbumReferences(
+            items = discography.jsonObject("albums")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+            orderedAlbumIds = orderedAlbumIds,
+            releaseDatesByAlbumId = releaseDatesByAlbumId,
+        )
+        appendPublicAlbumReferences(
+            items = discography.jsonObject("compilations")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+            orderedAlbumIds = orderedAlbumIds,
+            releaseDatesByAlbumId = releaseDatesByAlbumId,
+        )
+        appendPublicAlbumReferences(
+            items = artistEntity
+                .jsonObject("relatedContent")
+                ?.jsonObject("appearsOn")
+                ?.jsonArray("items")
+                .orEmpty(),
+            releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+            orderedAlbumIds = orderedAlbumIds,
+            releaseDatesByAlbumId = releaseDatesByAlbumId,
+        )
+
+        return orderedAlbumIds.map { albumId ->
+            PublicAlbumReference(
+                albumId = albumId,
+                releaseDate = releaseDatesByAlbumId[albumId],
+            )
+        }
+    }
+
+    private fun appendPublicAlbumReferences(
+        items: List<JsonElement>,
+        releaseDatesByAlbumUri: Map<String, String>,
+        orderedAlbumIds: MutableSet<String>,
+        releaseDatesByAlbumId: MutableMap<String, String>,
+    ) {
+        items.forEach { element ->
+            val item = element.jsonObjectOrNull() ?: return@forEach
+            val releases = item
+                .jsonObject("releases")
+                ?.jsonArray("items")
+
+            if (!releases.isNullOrEmpty()) {
+                appendPublicAlbumReferences(
+                    items = releases,
+                    releaseDatesByAlbumUri = releaseDatesByAlbumUri,
+                    orderedAlbumIds = orderedAlbumIds,
+                    releaseDatesByAlbumId = releaseDatesByAlbumId,
+                )
+                return@forEach
+            }
+
+            val fallbackReleaseDate = item
+                .jsonObject("date")
+                ?.releaseDateString()
+            val albumId = item.string("uri")?.let(::spotifyIdFromUri) ?: item.string("id")
+            if (albumId.isNullOrBlank()) return@forEach
+
+            item.string("uri")?.let { uri ->
+                val releaseDate = fallbackReleaseDate ?: releaseDatesByAlbumUri[uri]
+                if (releaseDate != null && albumId !in releaseDatesByAlbumId) {
+                    releaseDatesByAlbumId[albumId] = releaseDate
+                }
+            } ?: run {
+                if (fallbackReleaseDate != null && albumId !in releaseDatesByAlbumId) {
+                    releaseDatesByAlbumId[albumId] = fallbackReleaseDate
+                }
+            }
+
+            orderedAlbumIds += albumId
         }
     }
 
