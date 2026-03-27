@@ -28,9 +28,9 @@ class AndroidMusicRepository : MusicRepository {
     private val publicFallbackTargetTrackCount = 6
     private val publicFallbackMaxAlbumPages = 8
     private val publicSpotifyUserAgent =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
-            "Chrome/135.0.0.0 Safari/537.36"
+            "Chrome/135.0.0.0 Mobile Safari/537.36"
     private val publicSpotifyAcceptLanguage = "en-US,en;q=0.9,de;q=0.8"
 
     private data class PublicAlbumReference(
@@ -751,7 +751,10 @@ class AndroidMusicRepository : MusicRepository {
     }
 
     private fun extractInitialStatePayload(payload: String): String? {
-        return Regex("""<script id="initialState" type="text/plain">([^<]+)""")
+        return Regex(
+            pattern = """<script[^>]*id=["']initialState["'][^>]*>([^<]+)</script>""",
+            options = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+        )
             .find(payload)
             ?.groupValues
             ?.getOrNull(1)
