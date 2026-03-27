@@ -16,7 +16,6 @@ struct SettingsView: View {
 
     @State private var language = "Deutsch"
     @State private var notificationsEnabled = true
-    @State private var appVersion = "1.0.0"
 
     @State private var activeAlert: SettingsAlert?
     @State private var showingLoginSheet = false
@@ -38,10 +37,19 @@ struct SettingsView: View {
         }
     }
 
+    private var appVersion: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        guard let build, !build.isEmpty, build != version else {
+            return version
+        }
+        return "\(version) (\(build))"
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     SettingsHeroCard(
                         colorScheme: effectiveColorScheme,
                         username: authManager.userSession?.username,
@@ -233,16 +241,20 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 28)
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .scrollIndicators(.hidden)
             .navigationTitle("Einstellungen")
-            .background(backgroundGradient.ignoresSafeArea())
-            .toolbarBackground(AppColors.primaryBackground(for: effectiveColorScheme), for: .navigationBar)
-            .toolbarColorScheme(effectiveColorScheme, for: .navigationBar)
-            .toolbar(.visible, for: .navigationBar)
+            .background(
+                AppColors.screenGradient(
+                    for: effectiveColorScheme,
+                    secondaryAccent: AppColors.accentHighlight(for: effectiveColorScheme)
+                )
+                .ignoresSafeArea()
+            )
+            .skydownNavigationChrome(colorScheme: effectiveColorScheme)
             .environment(\.colorScheme, effectiveColorScheme)
         }
         .sheet(isPresented: $showingLoginSheet) {
@@ -321,19 +333,6 @@ struct SettingsView: View {
 
     private var currentAppearanceLabel: String {
         Appearance(rawValue: colorScheme)?.rawValue.capitalized ?? "System"
-    }
-
-    private var backgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                AppColors.primaryBackground(for: effectiveColorScheme),
-                AppColors.accent(for: effectiveColorScheme).opacity(0.12),
-                AppColors.accentMystic(for: effectiveColorScheme).opacity(0.10),
-                AppColors.primaryBackground(for: effectiveColorScheme)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
     }
 
     private var supportMailbox: String {

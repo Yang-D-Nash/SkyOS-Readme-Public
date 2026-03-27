@@ -58,6 +58,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
+import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.model.SettingsLegalDocumentType
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.model.resolve
@@ -88,19 +91,10 @@ fun SettingsScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Einstellungen",
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Konto, Rechtliches, Anzeige und Support sauber sortiert.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    SkydownTopBarTitle(
+                        title = "Einstellungen",
+                        subtitle = "Konto, Rechtliches, Anzeige und Support sauber sortiert.",
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
@@ -114,24 +108,16 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.05f),
-                            MaterialTheme.colorScheme.background,
-                        ),
+                    skydownScreenBrush(
+                        secondaryColor = MaterialTheme.colorScheme.tertiary,
+                        primaryAlpha = 0.06f,
+                        secondaryAlpha = 0.05f,
                     ),
                 ),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 8.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
+                contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {

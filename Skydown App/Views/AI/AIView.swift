@@ -89,8 +89,8 @@ struct AIView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, showsNavigation ? 20 : 8)
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.top, showsNavigation ? SkydownLayout.screenTopPadding : 8)
             .padding(.bottom, 12)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
@@ -127,15 +127,9 @@ struct AIView: View {
     }
 
     private var backgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                AppColors.primaryBackground(for: colorScheme),
-                AppColors.accent(for: colorScheme).opacity(0.16),
-                AppColors.accentMystic(for: colorScheme).opacity(0.12),
-                AppColors.primaryBackground(for: colorScheme)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
+        AppColors.screenGradient(
+            for: colorScheme,
+            secondaryAccent: AppColors.accentMystic(for: colorScheme)
         )
     }
 }

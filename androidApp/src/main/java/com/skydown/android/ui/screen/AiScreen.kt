@@ -68,9 +68,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
+import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
+import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
@@ -125,9 +128,9 @@ fun AiScreen(
             {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = "Bot",
-                            fontWeight = FontWeight.Bold,
+                        SkydownTopBarTitle(
+                            title = "Bot",
+                            subtitle = "Hooks, Captions, Claims und Visuals.",
                         )
                     },
                     actions = {
@@ -174,28 +177,26 @@ fun AiScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
-                            MaterialTheme.colorScheme.background,
-                        ),
+                    skydownScreenBrush(
+                        primaryColor = MaterialTheme.colorScheme.primary,
+                        secondaryColor = MaterialTheme.colorScheme.tertiary,
+                        primaryAlpha = 0.08f,
+                        secondaryAlpha = 0.06f,
                     ),
                 )
-                .padding(innerPadding),
         ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    horizontal = if (compactLayout) 12.dp else 16.dp,
-                    vertical = when {
-                        showTopBar && compactLayout -> 10.dp
-                        showTopBar -> 16.dp
-                        compactLayout -> 4.dp
-                        else -> 8.dp
+                    start = SkydownUiTokens.screenHorizontalPadding,
+                    top = if (showTopBar) {
+                        innerPadding.calculateTopPadding() + SkydownUiTokens.screenTopPadding
+                    } else {
+                        4.dp
                     },
+                    end = SkydownUiTokens.screenHorizontalPadding,
+                    bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
                 ),
                 verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
             ) {

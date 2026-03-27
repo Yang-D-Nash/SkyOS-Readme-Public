@@ -1,6 +1,7 @@
 package com.skydown.android.data
 
 import android.content.Context
+import android.net.Uri
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -113,10 +114,19 @@ class NicmaBeatUploadService(
             .setCustomMetadata("uploadedAt", Timestamp.now().toDate().time.toString())
             .build()
 
-        context.contentResolver.openInputStream(file.uri)?.close()
-            ?: error("Die Datei ${file.fileName} konnte nicht gelesen werden.")
+        val stagedFile = context.stagePickerFileForUpload(
+            sourceUri = file.uri,
+            fileName = file.fileName,
+        )
 
-        reference.putFile(file.uri, metadata).await()
+        try {
+            reference.putFile(Uri.fromFile(stagedFile), metadata).await()
+        } catch (error: Exception) {
+            throw error.toReadableStorageUploadError(file.fileName)
+        } finally {
+            stagedFile.delete()
+        }
+
         val downloadUrl = reference.downloadUrl.await().toString()
         val beatTitle = request.beatTitle.trim().ifBlank { displayTitle(file.fileName) }
 

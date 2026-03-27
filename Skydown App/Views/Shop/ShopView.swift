@@ -25,7 +25,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     HomeHeroIntroCard(colorScheme: colorScheme)
                     HomeLatestReleaseCard(viewModel: viewModel, colorScheme: colorScheme)
                     HomeLatestBeatCard(
@@ -36,16 +36,17 @@ struct HomeView: View {
                     HomeLatestVideoCard(viewModel: viewModel, colorScheme: colorScheme)
                     HomeStoryCard(colorScheme: colorScheme)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 28)
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .scrollIndicators(.hidden)
             .refreshable {
                 viewModel.refresh()
             }
-            .background(homeBackgroundGradient.ignoresSafeArea())
+            .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Skydown x 22")
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(
@@ -61,19 +62,6 @@ struct HomeView: View {
                 beatPlaybackManager.stop()
             }
         }
-    }
-
-    private var homeBackgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                AppColors.primaryBackground(for: colorScheme),
-                AppColors.accent(for: colorScheme).opacity(0.14),
-                AppColors.accentMystic(for: colorScheme).opacity(0.08),
-                AppColors.primaryBackground(for: colorScheme)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
     }
 }
 
@@ -121,7 +109,7 @@ struct ShopView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 16) {
+                        LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                             ShopHeroCard(
                                 colorScheme: colorScheme,
                                 itemCount: viewModel.merchandiseItems.count,
@@ -164,9 +152,9 @@ struct ShopView: View {
                                 )
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                        .padding(.bottom, 28)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
                     }
                     .scrollIndicators(.hidden)
                     .refreshable {
@@ -174,8 +162,9 @@ struct ShopView: View {
                     }
                 }
             }
-            .background(backgroundGradient.ignoresSafeArea())
+            .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Skydown Merch")
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 10) {
@@ -243,19 +232,6 @@ struct ShopView: View {
             isPresented: $viewModel.showToast,
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
-        )
-    }
-
-    private var backgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                AppColors.primaryBackground(for: colorScheme),
-                AppColors.accent(for: colorScheme).opacity(0.14),
-                AppColors.accentMystic(for: colorScheme).opacity(0.08),
-                AppColors.primaryBackground(for: colorScheme)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
         )
     }
 }

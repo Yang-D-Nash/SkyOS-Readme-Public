@@ -223,7 +223,7 @@ private struct AIHubView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            VStack(spacing: SkydownLayout.sectionSpacing) {
                 if authManager.userSession == nil {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("KI nur mit Konto")
@@ -243,15 +243,15 @@ private struct AIHubView: View {
                         .buttonStyle(.borderedProminent)
                         .tint(AppColors.accent(for: colorScheme))
                     }
-                    .padding(18)
+                    .padding(SkydownLayout.cardPadding)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 24)
+                        RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
-                    .padding(.horizontal, 20)
-                    .padding(.top, 14)
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, SkydownLayout.screenTopPadding)
                 } else {
                     HStack(spacing: 10) {
                         ForEach(AIHubMode.allCases) { currentMode in
@@ -282,8 +282,8 @@ private struct AIHubView: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, SkydownLayout.screenTopPadding)
 
                     Group {
                         if mode == .bot {
@@ -303,8 +303,15 @@ private struct AIHubView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
             }
-            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+            .background(
+                AppColors.screenGradient(
+                    for: colorScheme,
+                    secondaryAccent: AppColors.accentMystic(for: colorScheme)
+                )
+                .ignoresSafeArea()
+            )
             .navigationTitle("KI")
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(

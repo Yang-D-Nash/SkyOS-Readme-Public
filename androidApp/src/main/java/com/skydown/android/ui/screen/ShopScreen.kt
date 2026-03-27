@@ -76,8 +76,11 @@ import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.MerchandiseCard
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
@@ -109,12 +112,7 @@ fun ShopScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             LargeTopAppBar(
-                title = {
-                    Text(
-                        text = "Shop",
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
+                title = { SkydownTopBarTitle("Skydown Merch", "Merch & Drops.") },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -154,24 +152,12 @@ fun ShopScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.07f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
-                            MaterialTheme.colorScheme.background,
-                        ),
-                    ),
+                    skydownScreenBrush(),
                 ),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 8.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
+                contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {

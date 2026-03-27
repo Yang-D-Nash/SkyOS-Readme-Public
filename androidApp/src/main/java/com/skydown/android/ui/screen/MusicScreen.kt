@@ -63,7 +63,10 @@ import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.TrackRow
+import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.openTrackInSpotify
 import com.skydown.android.ui.model.MusicUiState
 import com.skydown.android.ui.theme.SpotifyGreen
@@ -150,9 +153,9 @@ fun MusicScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Text(
-                        text = "Music",
-                        fontWeight = FontWeight.Bold,
+                    SkydownTopBarTitle(
+                        title = "Skydown Music",
+                        subtitle = "Artist waehlen, Preview starten oder Spotify direkt oeffnen.",
                     )
                 },
                 actions = {
@@ -188,24 +191,15 @@ fun MusicScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.06f),
-                            MaterialTheme.colorScheme.background,
-                        ),
+                    skydownScreenBrush(
+                        primaryAlpha = 0.08f,
+                        secondaryAlpha = 0.06f,
                     ),
                 ),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 8.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
+                contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
@@ -336,6 +330,10 @@ private fun MusicPlayerCard(
 ) {
     if (track == null) return
 
+    val hasDirectSpotifyTrack = musicScreenResolvedSpotifyTrackId(track.spotifyTrackId, track.externalUrl) != null
+    val hasSpotifyArtistLink = musicScreenResolvedSpotifyArtistId(track.spotifyArtistId, track.externalUrl) != null && !hasDirectSpotifyTrack
+    val hasSpotifySearch = !track.externalUrl.isNullOrBlank() && !hasDirectSpotifyTrack && !hasSpotifyArtistLink
+
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -408,7 +406,7 @@ private fun MusicPlayerCard(
                 }
             }
 
-            if (!track.spotifyTrackId.isNullOrBlank()) {
+            if (hasDirectSpotifyTrack) {
                 Button(
                     onClick = onOpenSpotify,
                     modifier = if (!track.previewUrl.isNullOrBlank()) Modifier.weight(1f) else Modifier.fillMaxWidth(),
@@ -420,7 +418,7 @@ private fun MusicPlayerCard(
                 ) {
                     Text("Spotify Player")
                 }
-            } else if (!track.externalUrl.isNullOrBlank()) {
+            } else if (hasSpotifyArtistLink || hasSpotifySearch) {
                 OutlinedButton(
                     onClick = onOpenSpotify,
                     modifier = if (!track.previewUrl.isNullOrBlank()) Modifier.weight(1f) else Modifier.fillMaxWidth(),
@@ -430,7 +428,7 @@ private fun MusicPlayerCard(
                         contentColor = SpotifyGreen,
                     ),
                 ) {
-                    Text("Spotify Suche")
+                    Text(if (hasSpotifyArtistLink) "Spotify Artist" else "Spotify Suche")
                 }
             }
         }
@@ -762,6 +760,38 @@ private fun ArtistChoiceButton(
             )
         }
     }
+}
+
+private fun musicScreenResolvedSpotifyTrackId(
+    spotifyTrackId: String?,
+    externalUrl: String?,
+): String? {
+    if (!spotifyTrackId.isNullOrBlank()) return spotifyTrackId
+    if (externalUrl.isNullOrBlank()) return null
+    val marker = "/track/"
+    val start = externalUrl.indexOf(marker)
+    if (start == -1) return null
+    return externalUrl
+        .substring(start + marker.length)
+        .substringBefore("?")
+        .substringBefore("/")
+        .takeIf { it.isNotBlank() }
+}
+
+private fun musicScreenResolvedSpotifyArtistId(
+    spotifyArtistId: String?,
+    externalUrl: String?,
+): String? {
+    if (!spotifyArtistId.isNullOrBlank()) return spotifyArtistId
+    if (externalUrl.isNullOrBlank()) return null
+    val marker = "/artist/"
+    val start = externalUrl.indexOf(marker)
+    if (start == -1) return null
+    return externalUrl
+        .substring(start + marker.length)
+        .substringBefore("?")
+        .substringBefore("/")
+        .takeIf { it.isNotBlank() }
 }
 
 @Composable

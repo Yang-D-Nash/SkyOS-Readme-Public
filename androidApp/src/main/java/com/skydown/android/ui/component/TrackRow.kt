@@ -74,7 +74,7 @@ fun TrackRow(
         } else if (isSelected) {
             MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.82f)
         } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
         },
         label = "track_container",
     )
@@ -89,7 +89,7 @@ fun TrackRow(
         } else if (isSelected) {
             MaterialTheme.colorScheme.secondary.copy(alpha = 0.28f)
         } else {
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
         },
         label = "track_border",
     )
@@ -105,7 +105,7 @@ fun TrackRow(
         shadowElevation = if (isPlaying) 6.dp else 0.dp,
         border = BorderStroke(1.dp, borderColor),
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -114,7 +114,7 @@ fun TrackRow(
                     model = track.artworkUrl100,
                     contentDescription = track.trackName,
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(78.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
                     contentScale = ContentScale.Crop,
@@ -247,7 +247,7 @@ fun TrackRow(
                                     contentDescription = null,
                                 )
                                 Text(
-                                    text = "In App",
+                                    text = "Spotify Player",
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
@@ -272,7 +272,7 @@ fun TrackRow(
                                     contentDescription = null,
                                 )
                                 Text(
-                                    text = if (hasSpotifyArtistLink) "Artist" else "Spotify",
+                                    text = if (hasSpotifyArtistLink) "Spotify Artist" else "Spotify Suche",
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
@@ -294,7 +294,7 @@ fun TrackRow(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             )
                             Text(
-                                text = "Aktuell keine Vorschau verfugbar",
+                                text = "Aktuell keine Vorschau verfuegbar",
                                 color = contentColor.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.labelLarge,
                             )

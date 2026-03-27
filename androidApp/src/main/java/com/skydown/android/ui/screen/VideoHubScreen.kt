@@ -63,8 +63,11 @@ import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
@@ -132,21 +135,14 @@ fun VideoHubScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Videography",
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = if (uiState.isAdmin) {
-                                "Admin Uploads, Home-Highlights und die komplette Videography-Library."
-                            } else {
-                                "Oeffentliche Videos direkt schauen, ohne Admin-Overhead."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
-                    }
+                    SkydownTopBarTitle(
+                        title = "Videography",
+                        subtitle = if (uiState.isAdmin) {
+                            "Admin Uploads, Home-Highlights und die komplette Videography-Library."
+                        } else {
+                            "Oeffentliche Videos direkt schauen, ohne Admin-Overhead."
+                        },
+                    )
                 },
                 actions = {
                     AppTopBarSessionActions(
@@ -177,24 +173,16 @@ fun VideoHubScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.07f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.05f),
-                            MaterialTheme.colorScheme.background,
-                        ),
+                    skydownScreenBrush(
+                        secondaryColor = MaterialTheme.colorScheme.tertiary,
+                        primaryAlpha = 0.07f,
+                        secondaryAlpha = 0.05f,
                     ),
                 ),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 8.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
+                contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {

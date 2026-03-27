@@ -2,6 +2,7 @@ package com.skydown.android.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
@@ -52,7 +53,7 @@ fun RowScope.AppTopBarSessionActions(
                 horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                androidx.compose.foundation.layout.Box(
+                Box(
                     modifier = Modifier
                         .size(if (compactLayout) 22.dp else 24.dp)
                         .clip(CircleShape)
@@ -83,18 +84,41 @@ fun RowScope.AppTopBarSessionActions(
     trailingContent()
 
     if (onOpenCart != null) {
-        IconButton(onClick = onOpenCart) {
-            Icon(
-                imageVector = Icons.Default.ShoppingCart,
-                contentDescription = "Warenkorb",
-            )
-        }
+        SessionIconAction(
+            onClick = onOpenCart,
+            imageVector = Icons.Default.ShoppingCart,
+            contentDescription = "Warenkorb",
+            compactLayout = compactLayout,
+        )
     }
 
-    IconButton(onClick = onOpenSettings) {
-        Icon(
-            imageVector = Icons.Default.Settings,
-            contentDescription = "Einstellungen",
-        )
+    SessionIconAction(
+        onClick = onOpenSettings,
+        imageVector = Icons.Default.Settings,
+        contentDescription = "Einstellungen",
+        compactLayout = compactLayout,
+    )
+}
+
+@Composable
+private fun SessionIconAction(
+    onClick: () -> Unit,
+    imageVector: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    compactLayout: Boolean,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
+        shape = CircleShape,
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.size(if (compactLayout) 38.dp else 40.dp),
+        ) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+            )
+        }
     }
 }

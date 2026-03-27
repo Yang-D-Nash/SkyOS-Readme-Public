@@ -23,7 +23,7 @@ struct VideoHubView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                 heroCard
                 playerCard
                 libraryCard
@@ -34,11 +34,20 @@ struct VideoHubView: View {
                     uploadCard
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.top, SkydownLayout.screenTopPadding)
+            .padding(.bottom, SkydownLayout.screenBottomPadding)
         }
-        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+        .scrollIndicators(.hidden)
+        .background(
+            AppColors.screenGradient(
+                for: colorScheme,
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+            )
+            .ignoresSafeArea()
+        )
         .navigationTitle("Videography")
+        .skydownNavigationChrome(colorScheme: colorScheme)
         .task {
             viewModel.configure(currentUser: authManager.userSession)
         }
@@ -93,14 +102,14 @@ struct VideoHubView: View {
                 MusicBadge(text: "Storage", isAccent: false)
             }
         }
-        .padding(20)
+        .padding(SkydownLayout.heroPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 26)
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 26)
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
     }

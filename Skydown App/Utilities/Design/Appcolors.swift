@@ -117,4 +117,21 @@ struct AppColors {
             return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.12)
         }
     }
+
+    static func screenGradient(
+        for colorScheme: ColorScheme,
+        secondaryAccent: Color? = nil
+    ) -> LinearGradient {
+        let secondary = secondaryAccent ?? accentMystic(for: colorScheme)
+        return LinearGradient(
+            colors: [
+                primaryBackground(for: colorScheme),
+                accent(for: colorScheme).opacity(0.14),
+                secondary.opacity(0.08),
+                primaryBackground(for: colorScheme),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
 }

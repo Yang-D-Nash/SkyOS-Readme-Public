@@ -60,7 +60,7 @@ struct MusicView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     heroCard
                     artistsCard
                     spotifyCard
@@ -69,11 +69,14 @@ struct MusicView: View {
                     instagramCard
                     spotlightLinks
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
-            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+            .scrollIndicators(.hidden)
+            .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Skydown Music")
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(
@@ -116,7 +119,7 @@ struct MusicView: View {
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Skydown Music")
-                .font(.title.bold())
+                .font(.largeTitle.bold())
 
             Text(selectedArtist)
                 .font(.headline.weight(.semibold))
@@ -126,14 +129,14 @@ struct MusicView: View {
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
-        .padding(16)
+        .padding(SkydownLayout.heroPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
     }
@@ -147,14 +150,14 @@ struct MusicView: View {
                 artistButton(for: artist)
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
@@ -189,7 +192,7 @@ struct MusicView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
                     .fill(
                         isSelected
                         ? AppColors.accent(for: colorScheme)
@@ -197,7 +200,7 @@ struct MusicView: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
                     .stroke(
                         isSelected
                         ? AppColors.accent(for: colorScheme)
@@ -259,14 +262,14 @@ struct MusicView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
@@ -278,14 +281,14 @@ struct MusicView: View {
 
             tracksContent
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
@@ -380,14 +383,14 @@ struct MusicView: View {
                     }
                 }
             }
-            .padding(18)
+            .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                     .fill(AppColors.cardBackground(for: colorScheme))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
             )
         }
