@@ -51,6 +51,7 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.viewmodel.CartViewModel
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -90,10 +91,7 @@ fun CartScreen(
                 actions = {
                     AppTopBarSessionActions(onOpenSettings = onOpenSettings)
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
         },

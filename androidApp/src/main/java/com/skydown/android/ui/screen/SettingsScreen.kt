@@ -61,6 +61,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.SettingsLegalDocumentType
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.model.resolve
@@ -96,10 +97,7 @@ fun SettingsScreen(
                         subtitle = "Konto, Rechtliches, Anzeige und Support sauber sortiert.",
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
         },

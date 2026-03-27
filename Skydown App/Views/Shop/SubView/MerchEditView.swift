@@ -191,6 +191,8 @@ struct MerchEditView: View {
                     Button("Abbrechen") { dismiss() }
                 }
             }
+            .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: environmentColorScheme)
             .task(id: selectedPhotoItems) {
                 await loadSelectedImages()
             }

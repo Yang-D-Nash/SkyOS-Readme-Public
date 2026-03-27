@@ -73,6 +73,7 @@ import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.dismissKeyboardOnTap
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
@@ -191,10 +192,7 @@ fun VideoHubScreen(
                 } else {
                     {}
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
             )
         },
     ) { innerPadding ->

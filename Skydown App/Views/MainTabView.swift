@@ -110,7 +110,7 @@ struct MainTabView: View {
                 .tag(MainTab.ai)
             }
             .toolbar(.visible, for: .tabBar)
-            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+            .toolbarBackground(.hidden, for: .tabBar)
             .toolbarColorScheme(currentScheme, for: .tabBar)
         }
         .accentColor(AppColors.accent(for: currentScheme))
@@ -205,15 +205,6 @@ private struct AIHubView: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
 
-    private var activeAccent: Color {
-        switch mode {
-        case .bot:
-            return AppColors.accent(for: colorScheme)
-        case .agent:
-            return AppColors.accentMystic(for: colorScheme)
-        }
-    }
-
     init(
         aiChatService: AIChatServicing,
         agentChatService: AgentChatServicing,
@@ -239,52 +230,15 @@ private struct AIHubView: View {
                         onOpenLogin: onOpenLogin
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, SkydownLayout.screenTopPadding)
+                    .padding(.top, 6)
                 } else {
-                    AIHubSpotlightCard(
+                    AIHubControlCard(
                         mode: mode,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        onSelectMode: { mode = $0 }
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, SkydownLayout.screenTopPadding)
-
-                    HStack(spacing: 10) {
-                        ForEach(AIHubMode.allCases) { currentMode in
-                            Button {
-                                mode = currentMode
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: currentMode.iconName)
-                                    Text(currentMode.rawValue)
-                                        .fontWeight(.semibold)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 18)
-                                        .fill(
-                                            mode == currentMode
-                                            ? activeAccent
-                                            : AppColors.secondaryBackground(for: colorScheme)
-                                        )
-                                )
-                                .foregroundColor(
-                                    mode == currentMode
-                                    ? .white
-                                    : AppColors.text(for: colorScheme)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(6)
-                    .background(AppColors.cardBackground(for: colorScheme))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22)
-                            .stroke(activeAccent.opacity(0.14), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, 6)
 
                     Group {
                         if mode == .bot {
@@ -388,9 +342,10 @@ private struct AIHubLoginCard: View {
     }
 }
 
-private struct AIHubSpotlightCard: View {
+private struct AIHubControlCard: View {
     let mode: AIHubMode
     let colorScheme: ColorScheme
+    let onSelectMode: (AIHubMode) -> Void
 
     private var accent: Color {
         switch mode {
@@ -404,74 +359,84 @@ private struct AIHubSpotlightCard: View {
     private var title: String {
         switch mode {
         case .bot:
-            return "Hooks, Captions und Visual-Ideen ohne Reibung."
+            return "Bot fuer schnelle Ideen"
         case .agent:
-            return "Briefings, To-dos und Release-Plaene mit Struktur."
+            return "Agent fuer klare Struktur"
         }
     }
 
     private var message: String {
         switch mode {
         case .bot:
-            return "Nutze den Bot fuer schnelle kreative Varianten, Claims, Caption-Ideen und erste Bildrichtungen."
+            return "Hooks, Captions und Visual-Ideen ohne Umwege."
         case .agent:
-            return "Nutze den Agent fuer klare Kampagnenplaene, Aufgabenlisten, Timings und naechste Schritte."
-        }
-    }
-
-    private var badges: [String] {
-        switch mode {
-        case .bot:
-            return ["Hooks", "Captions", "Visuals"]
-        case .agent:
-            return ["Briefing", "Plan", "Checkliste"]
+            return "Briefings, To-dos und Release-Plaene in einem Flow."
         }
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(title)
-                    .font(.title2.bold())
-                    .foregroundColor(AppColors.text(for: colorScheme))
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline.bold())
+                        .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text(message)
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
 
-                HStack(spacing: 10) {
-                    ForEach(badges, id: \.self) { badge in
-                        AIHubBadge(text: badge, color: accent)
-                    }
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(accent.opacity(0.14))
+                        .frame(width: 42, height: 42)
+
+                    Image(systemName: mode.iconName)
+                        .font(.headline)
+                        .foregroundColor(accent)
                 }
             }
 
-            ZStack {
-                Circle()
-                    .fill(accent.opacity(0.16))
-                    .frame(width: 56, height: 56)
-
-                Image(systemName: mode.iconName)
-                    .font(.title2)
-                    .foregroundColor(accent)
+            HStack(spacing: 8) {
+                ForEach(AIHubMode.allCases) { currentMode in
+                    Button {
+                        onSelectMode(currentMode)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: currentMode.iconName)
+                            Text(currentMode.rawValue)
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(
+                                    mode == currentMode
+                                    ? accent
+                                    : AppColors.secondaryBackground(for: colorScheme)
+                                )
+                        )
+                        .foregroundColor(
+                            mode == currentMode
+                            ? .white
+                            : AppColors.text(for: colorScheme)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
-        .padding(SkydownLayout.heroPadding)
-        .background(
-            LinearGradient(
-                colors: [
-                    AppColors.cardBackground(for: colorScheme),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .padding(14)
+        .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
-                .stroke(accent.opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(accent.opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 

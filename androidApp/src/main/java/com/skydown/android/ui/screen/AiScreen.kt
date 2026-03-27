@@ -74,6 +74,7 @@ import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
@@ -141,10 +142,7 @@ fun AiScreen(
                             modifier = Modifier.padding(end = 16.dp),
                         )
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                        scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                    ),
+                    colors = skydownTopBarColors(),
                     scrollBehavior = scrollBehavior,
                 )
             }
@@ -193,7 +191,7 @@ fun AiScreen(
                     top = if (showTopBar) {
                         innerPadding.calculateTopPadding() + SkydownUiTokens.screenTopPadding
                     } else {
-                        4.dp
+                        0.dp
                     },
                     end = SkydownUiTokens.screenHorizontalPadding,
                     bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,

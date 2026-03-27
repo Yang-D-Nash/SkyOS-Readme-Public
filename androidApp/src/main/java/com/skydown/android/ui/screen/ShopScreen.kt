@@ -81,6 +81,7 @@ import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
@@ -126,10 +127,7 @@ fun ShopScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
         },

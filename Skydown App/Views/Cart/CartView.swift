@@ -151,6 +151,7 @@ struct CartView: View {
             .background(backgroundGradient.ignoresSafeArea())
             .navigationTitle("Warenkorb")
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(onOpenSettings: onOpenSettings)

@@ -89,13 +89,14 @@ struct RegistrationSheet: View {
             }
             .navigationTitle("Neues Konto")
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Abbrechen") { dismiss() }
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(AppColors.primaryBackground(for: colorScheme))
+            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
         .fancyToast(isPresented: $viewModel.showToast,
                     message: viewModel.toastMessage,

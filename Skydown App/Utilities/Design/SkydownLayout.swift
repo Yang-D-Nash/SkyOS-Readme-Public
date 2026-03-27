@@ -9,7 +9,7 @@ import SwiftUI
 
 enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 16
-    static let screenTopPadding: CGFloat = 12
+    static let screenTopPadding: CGFloat = 14
     static let screenBottomPadding: CGFloat = 28
     static let sectionSpacing: CGFloat = 16
     static let cardPadding: CGFloat = 18
@@ -24,7 +24,7 @@ private struct SkydownNavigationChromeModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .toolbarBackground(AppColors.primaryBackground(for: colorScheme), for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar(.visible, for: .navigationBar)
     }

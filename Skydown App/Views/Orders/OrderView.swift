@@ -61,6 +61,7 @@ struct OrderView: View {
             .background(backgroundGradient.ignoresSafeArea())
             .navigationTitle("Bestellungen")
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Fertig") {

@@ -41,6 +41,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 
 private enum class AiHubMode {
     Bot,
@@ -68,10 +69,7 @@ fun AiHubScreen(
                         onOpenSettings = onOpenSettings,
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
             )
         },
     ) { innerPadding ->
@@ -92,44 +90,23 @@ fun AiHubScreen(
                     AiHubLoginCard(
                         onOpenLogin = onOpenLogin,
                         modifier = Modifier.padding(
-                            horizontal = SkydownUiTokens.screenHorizontalPadding,
-                            vertical = SkydownUiTokens.screenTopPadding,
+                            start = SkydownUiTokens.screenHorizontalPadding,
+                            top = SkydownUiTokens.screenTopPadding,
+                            end = SkydownUiTokens.screenHorizontalPadding,
+                            bottom = 6.dp,
                         ),
                     )
                 } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = SkydownUiTokens.screenHorizontalPadding,
-                                vertical = SkydownUiTokens.screenTopPadding,
-                            ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AiHubWelcomeCard(mode = mode)
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(22.dp))
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
-                                .padding(6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            AiHubModeButton(
-                                mode = AiHubMode.Bot,
-                                isSelected = mode == AiHubMode.Bot,
-                                onClick = { mode = AiHubMode.Bot },
-                                modifier = Modifier.weight(1f),
-                            )
-                            AiHubModeButton(
-                                mode = AiHubMode.Agent,
-                                isSelected = mode == AiHubMode.Agent,
-                                onClick = { mode = AiHubMode.Agent },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
+                    AiHubControlCard(
+                        mode = mode,
+                        onSelectMode = { selectedMode -> mode = selectedMode },
+                        modifier = Modifier.padding(
+                            start = SkydownUiTokens.screenHorizontalPadding,
+                            top = SkydownUiTokens.screenTopPadding,
+                            end = SkydownUiTokens.screenHorizontalPadding,
+                            bottom = 8.dp,
+                        ),
+                    )
 
                     Box(
                         modifier = Modifier
@@ -187,56 +164,52 @@ private fun AiHubLoginCard(
 }
 
 @Composable
-private fun AiHubWelcomeCard(
+private fun AiHubControlCard(
     mode: AiHubMode,
+    onSelectMode: (AiHubMode) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val isAgent = mode == AiHubMode.Agent
     val accent = if (isAgent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
     val icon = if (isAgent) Icons.Default.Bolt else Icons.Default.AutoAwesome
     val title = if (isAgent) {
-        "Briefings, To-dos und Release-Plaene mit Struktur."
+        "Agent fuer klare Struktur"
     } else {
-        "Hooks, Captions und Visual-Ideen ohne Reibung."
+        "Bot fuer schnelle Ideen"
     }
     val message = if (isAgent) {
-        "Der Agent baut dir klare Naechste-Schritte-Listen, Kampagnenplaene und Briefings fuer Releases."
+        "Briefings, To-dos und Release-Plaene in einem Flow."
     } else {
-        "Der Bot hilft dir schnell mit kreativen Varianten, Claims, Captions und ersten Bildrichtungen."
-    }
-    val badges = if (isAgent) {
-        listOf("Briefing", "Plan", "Checkliste")
-    } else {
-        listOf("Hooks", "Captions", "Visuals")
+        "Hooks, Captions und Visual-Ideen ohne Umwege."
     }
 
-    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.heroPadding)) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(14.dp),
+    ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = message,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    badges.forEach { badge ->
-                        AiHubBadge(text = badge, isAgent = isAgent)
-                    }
-                }
             }
 
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
                     .background(accent.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
@@ -247,6 +220,26 @@ private fun AiHubWelcomeCard(
                     tint = accent,
                 )
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AiHubModeButton(
+                mode = AiHubMode.Bot,
+                isSelected = mode == AiHubMode.Bot,
+                onClick = { onSelectMode(AiHubMode.Bot) },
+                modifier = Modifier.weight(1f),
+            )
+            AiHubModeButton(
+                mode = AiHubMode.Agent,
+                isSelected = mode == AiHubMode.Agent,
+                onClick = { onSelectMode(AiHubMode.Agent) },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

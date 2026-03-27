@@ -142,6 +142,7 @@ struct ContactFormView: View {
         .background(backgroundGradient.ignoresSafeArea())
         .navigationTitle("Artikel")
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: colorScheme)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 10) {
                 Divider()

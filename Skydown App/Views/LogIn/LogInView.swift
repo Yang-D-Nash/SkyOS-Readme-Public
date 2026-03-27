@@ -98,9 +98,10 @@ struct LoginView: View {
                 Spacer()
             }
             .padding()
-            .background(AppColors.primaryBackground(for: colorScheme))
+            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Anmelden")
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .onChange(of: viewModel.isAuthenticated) { _, newValue in
                 if newValue { dismiss() }
             }

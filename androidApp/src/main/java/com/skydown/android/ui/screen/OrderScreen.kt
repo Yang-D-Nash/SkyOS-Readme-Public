@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.viewmodel.OrderViewModel
 import com.skydown.shared.model.Order
 import java.text.SimpleDateFormat
@@ -88,10 +89,7 @@ fun OrderScreen(
                         Text("Schliessen")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
         },

@@ -67,6 +67,7 @@ import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.viewmodel.AgentViewModel
@@ -124,10 +125,7 @@ fun AgentScreen(
                             modifier = Modifier.padding(end = 16.dp),
                         )
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                        scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                    ),
+                    colors = skydownTopBarColors(),
                     scrollBehavior = scrollBehavior,
                 )
             }
@@ -167,7 +165,7 @@ fun AgentScreen(
                     top = if (showTopBar) {
                         innerPadding.calculateTopPadding() + SkydownUiTokens.screenTopPadding
                     } else {
-                        4.dp
+                        0.dp
                     },
                     end = SkydownUiTokens.screenHorizontalPadding,
                     bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,

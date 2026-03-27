@@ -25,6 +25,7 @@ struct AIView: View {
                 NavigationStack {
                     content
                         .navigationTitle("Bot")
+                        .skydownNavigationChrome(colorScheme: colorScheme)
                 }
             } else {
                 content
@@ -90,7 +91,7 @@ struct AIView: View {
                 }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, showsNavigation ? SkydownLayout.screenTopPadding : 8)
+            .padding(.top, showsNavigation ? SkydownLayout.screenTopPadding : 0)
             .padding(.bottom, 12)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)

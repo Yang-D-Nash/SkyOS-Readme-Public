@@ -72,6 +72,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.FeaturedBeatHighlight
 import com.skydown.android.ui.model.FeaturedVideoHighlight
 import com.skydown.android.ui.model.HomeUiState
@@ -186,10 +187,7 @@ fun HomeScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -205,7 +203,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = SkydownUiTokens.screenHorizontalPadding,
-                    top = innerPadding.calculateTopPadding() + 4.dp,
+                    top = innerPadding.calculateTopPadding() + SkydownUiTokens.screenTopPadding,
                     end = SkydownUiTokens.screenHorizontalPadding,
                     bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
                 ),

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -14,7 +16,7 @@ import androidx.compose.ui.unit.dp
 
 object SkydownUiTokens {
     val screenHorizontalPadding = 16.dp
-    val screenTopPadding = 6.dp
+    val screenTopPadding = 10.dp
     val screenBottomPadding = 28.dp
     val cardPadding = 18.dp
     val heroPadding = 20.dp
@@ -42,6 +44,15 @@ fun skydownScreenBrush(
         secondaryColor.copy(alpha = secondaryAlpha),
         MaterialTheme.colorScheme.background,
     ),
+)
+
+@Composable
+fun skydownTopBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
+    containerColor = Color.Transparent,
+    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+    titleContentColor = MaterialTheme.colorScheme.onSurface,
+    actionIconContentColor = MaterialTheme.colorScheme.onSurface,
 )
 
 @Composable

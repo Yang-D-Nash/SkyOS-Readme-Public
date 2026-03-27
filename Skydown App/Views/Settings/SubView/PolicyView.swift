@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct PolicyView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let text: String
 
@@ -29,6 +30,8 @@ struct PolicyView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
+            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
     }
 }

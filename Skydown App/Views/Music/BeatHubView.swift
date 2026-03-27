@@ -39,6 +39,7 @@ struct BeatHubView: View {
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         .navigationTitle("Beat Hub")
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: colorScheme)
         .task {
             viewModel.configure(currentUser: authManager.userSession)
         }

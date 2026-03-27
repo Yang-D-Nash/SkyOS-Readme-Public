@@ -68,6 +68,7 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.TrackRow
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.component.openTrackInSpotify
 import com.skydown.android.ui.model.MusicUiState
 import com.skydown.android.ui.theme.SpotifyGreen
@@ -218,10 +219,7 @@ fun MusicScreen(
                 } else {
                     {}
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
         },

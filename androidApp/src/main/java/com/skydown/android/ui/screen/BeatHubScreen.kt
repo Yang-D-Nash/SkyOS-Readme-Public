@@ -73,6 +73,7 @@ import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.dismissKeyboardOnTap
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.NicmaBeatHubItem
 import com.skydown.android.ui.model.NicmaProducerUiState
 import com.skydown.android.ui.model.NicmaSelectedBeatFile
@@ -165,10 +166,7 @@ fun BeatHubScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
+                colors = skydownTopBarColors(),
             )
         },
     ) { innerPadding ->
