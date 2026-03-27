@@ -210,6 +210,7 @@ final class HomeViewModel: ObservableObject {
             let tracks = (try? await musicService.fetchTracks(for: artist)) ?? []
             for track in tracks {
                 let candidateDate = track.releaseDate ?? ""
+                guard !candidateDate.isEmpty else { continue }
                 let currentDate = latestTrack?.releaseDate ?? ""
                 if latestTrack == nil || candidateDate > currentDate {
                     latestTrack = track

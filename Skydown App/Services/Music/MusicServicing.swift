@@ -249,6 +249,13 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 accessToken: accessToken
             )
         } catch {
+            if let knownArtistID = Constants.artistIDs[artist] {
+                return try await fetchPublicSpotifyTracks(
+                    for: artist,
+                    artistID: knownArtistID
+                )
+            }
+
             return try await fetchCatalogTracks(for: artist)
         }
     }
@@ -267,6 +274,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             if !directTracks.isEmpty {
                 return directTracks
             }
+
+            return try await fetchPublicSpotifyTracks(
+                for: artist,
+                artistID: artistID
+            )
         }
 
         let searchQueries = searchQueries(for: artist)
@@ -364,6 +376,69 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                     releaseDate: item.releaseDate
                 )
             }
+    }
+
+    private func fetchPublicSpotifyTracks(
+        for artist: String,
+        artistID: String
+    ) async throws -> [Track] {
+        let (data, _) = try await session.data(from: try publicArtistURL(for: artistID))
+        guard let html = String(data: data, encoding: .utf8) else {
+            throw URLError(.cannotDecodeRawData)
+        }
+
+        guard let initialStateData = try extractPublicInitialStateData(from: html),
+              let root = try JSONSerialization.jsonObject(with: initialStateData, options: []) as? [String: Any],
+              let artistEntity = publicArtistEntity(from: root, artistID: artistID),
+              let discography = artistEntity["discography"] as? [String: Any] else {
+            throw SpotifyAuthError.missingToken
+        }
+
+        let releaseDatesByAlbumURI = publicReleaseDatesByAlbumURI(from: discography)
+        let trackItems = ((discography["topTracks"] as? [String: Any])?["items"] as? [[String: Any]]) ?? []
+
+        let tracks: [Track] = trackItems.compactMap { item in
+            guard let track = item["track"] as? [String: Any],
+                  let trackURI = track["uri"] as? String,
+                  let trackID = spotifyID(fromURI: trackURI),
+                  let trackName = (track["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !trackName.isEmpty else {
+                return nil
+            }
+
+            let artistsItems = (((track["artists"] as? [String: Any])?["items"]) as? [[String: Any]]) ?? []
+            guard artistsItems.contains(where: { spotifyID(fromURI: $0["uri"] as? String) == artistID }) else {
+                return nil
+            }
+
+            let matchingArtist = artistsItems.first(where: { spotifyID(fromURI: $0["uri"] as? String) == artistID })
+            let album = track["albumOfTrack"] as? [String: Any]
+            let albumURI = album?["uri"] as? String
+            let artworkURL = publicCoverArtURL(from: album?["coverArt"] as? [String: Any])
+                ?? publicCoverArtURL(from: (artistEntity["visuals"] as? [String: Any])?["avatarImage"] as? [String: Any])
+            let previewURL = (((track["previews"] as? [String: Any])?["audioPreviews"] as? [String: Any])?["items"] as? [[String: Any]])?.first?["url"] as? String
+
+            return Track(
+                trackId: abs(trackID.hashValue),
+                artistId: abs(artistID.hashValue),
+                spotifyArtistID: artistID,
+                spotifyTrackID: trackID,
+                artistName: publicArtistName(from: matchingArtist) ?? artist,
+                trackName: trackName,
+                collectionName: album?["name"] as? String,
+                artworkUrl100: artworkURL,
+                previewUrl: previewURL,
+                externalURL: "https://open.spotify.com/track/\(trackID)",
+                wrapperType: "track",
+                releaseDate: albumURI.flatMap { releaseDatesByAlbumURI[$0] }
+            )
+        }
+
+        guard !tracks.isEmpty else {
+            throw SpotifyAuthError.missingToken
+        }
+
+        return tracks
     }
 
     private func fetchKnownArtistTracks(
@@ -716,6 +791,13 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         return url
     }
 
+    private func publicArtistURL(for artistID: String) throws -> URL {
+        guard let url = URL(string: "https://open.spotify.com/artist/\(artistID)") else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
     private func catalogQueries(for artist: String) -> [(term: String, attribute: String?)] {
         let cleanedArtist = artist
             .replacingOccurrences(of: "[^a-zA-Z0-9]+", with: " ", options: .regularExpression)
@@ -760,6 +842,102 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     private func spotifyArtistURL(artistID: String?) -> URL? {
         guard let artistID, !artistID.isEmpty else { return nil }
         return URL(string: "https://open.spotify.com/artist/\(artistID)")
+    }
+
+    private func extractPublicInitialStateData(from html: String) throws -> Data? {
+        let pattern = #"<script id="initialState" type="text/plain">([^<]+)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(
+                in: html,
+                range: NSRange(location: 0, length: html.utf16.count)
+              ),
+              let payloadRange = Range(match.range(at: 1), in: html) else {
+            return nil
+        }
+
+        return Data(base64Encoded: String(html[payloadRange]))
+    }
+
+    private func publicArtistEntity(
+        from root: [String: Any],
+        artistID: String
+    ) -> [String: Any]? {
+        let entityKey = "spotify:artist:\(artistID)"
+        return (((root["entities"] as? [String: Any])?["items"]) as? [String: Any])?[entityKey] as? [String: Any]
+    }
+
+    private func publicReleaseDatesByAlbumURI(from discography: [String: Any]) -> [String: String] {
+        var releaseDates: [String: String] = [:]
+
+        appendPublicReleaseDates(from: [discography["latest"]].compactMap { $0 as? [String: Any] }, into: &releaseDates)
+        appendPublicReleaseDates(
+            from: ((discography["popularReleasesAlbums"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            into: &releaseDates
+        )
+        appendPublicReleaseDates(
+            from: ((discography["singles"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            into: &releaseDates
+        )
+        appendPublicReleaseDates(
+            from: ((discography["albums"] as? [String: Any])?["items"] as? [[String: Any]]) ?? [],
+            into: &releaseDates
+        )
+
+        return releaseDates
+    }
+
+    private func appendPublicReleaseDates(
+        from items: [[String: Any]],
+        into releaseDates: inout [String: String]
+    ) {
+        for item in items {
+            if let releases = ((item["releases"] as? [String: Any])?["items"] as? [[String: Any]]) {
+                appendPublicReleaseDates(from: releases, into: &releaseDates)
+                continue
+            }
+
+            guard let uri = item["uri"] as? String,
+                  let dateComponents = item["date"] as? [String: Any],
+                  let releaseDate = publicReleaseDateString(from: dateComponents) else {
+                continue
+            }
+
+            releaseDates[uri] = releaseDate
+        }
+    }
+
+    private func publicReleaseDateString(from dateComponents: [String: Any]) -> String? {
+        guard let year = dateComponents["year"] as? Int else {
+            return nil
+        }
+
+        if let month = dateComponents["month"] as? Int,
+           let day = dateComponents["day"] as? Int {
+            return String(format: "%04d-%02d-%02d", year, month, day)
+        }
+
+        if let month = dateComponents["month"] as? Int {
+            return String(format: "%04d-%02d", year, month)
+        }
+
+        return String(format: "%04d", year)
+    }
+
+    private func publicCoverArtURL(from container: [String: Any]?) -> String? {
+        let sources = container?["sources"] as? [[String: Any]]
+        return sources?
+            .sorted { ($0["height"] as? Int ?? 0) > ($1["height"] as? Int ?? 0) }
+            .first?["url"] as? String
+    }
+
+    private func publicArtistName(from item: [String: Any]?) -> String? {
+        ((item?["profile"] as? [String: Any])?["name"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func spotifyID(fromURI uri: String?) -> String? {
+        guard let uri else { return nil }
+        return uri.split(separator: ":").last.map(String.init)
     }
 
     private func performSearch(query: String, accessToken: String) async throws -> [SpotifyTrack] {

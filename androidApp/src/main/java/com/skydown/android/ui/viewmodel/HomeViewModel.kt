@@ -73,6 +73,7 @@ class HomeViewModel : ViewModel() {
             val tracks = musicService.fetchTracks(artist).getOrNull().orEmpty()
             tracks.forEach { track ->
                 val candidateDate = track.releaseDate.orEmpty()
+                if (candidateDate.isBlank()) return@forEach
                 val currentDate = latestTrack?.releaseDate.orEmpty()
                 if (latestTrack == null || candidateDate > currentDate) {
                     latestTrack = track

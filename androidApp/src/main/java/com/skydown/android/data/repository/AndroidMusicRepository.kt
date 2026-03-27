@@ -9,6 +9,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -24,9 +29,17 @@ class AndroidMusicRepository : MusicRepository {
     override suspend fun fetchTracks(artist: String): Result<List<Track>> {
         return runCatching {
             withContext(Dispatchers.IO) {
+                val knownArtistId = artistIds[artist]
                 val accessToken = SpotifyAuthManager.validAccessToken()
                 if (accessToken.isNullOrBlank()) {
-                    return@withContext fetchCatalogTracks(artist)
+                    return@withContext if (knownArtistId != null) {
+                        fetchPublicSpotifyTracks(
+                            artist = artist,
+                            artistId = knownArtistId,
+                        )
+                    } else {
+                        fetchCatalogTracks(artist)
+                    }
                 }
 
                 runCatching {
@@ -35,7 +48,14 @@ class AndroidMusicRepository : MusicRepository {
                         artist = artist,
                     )
                 }.getOrElse {
-                    fetchCatalogTracks(artist)
+                    if (knownArtistId != null) {
+                        fetchPublicSpotifyTracks(
+                            artist = artist,
+                            artistId = knownArtistId,
+                        )
+                    } else {
+                        fetchCatalogTracks(artist)
+                    }
                 }
             }
         }
@@ -56,6 +76,11 @@ class AndroidMusicRepository : MusicRepository {
             if (directTracks.isNotEmpty()) {
                 return directTracks
             }
+
+            return fetchPublicSpotifyTracks(
+                artist = artist,
+                artistId = artistId,
+            )
         }
 
         val queries = searchQueriesFor(artist)
@@ -158,6 +183,111 @@ class AndroidMusicRepository : MusicRepository {
                     releaseDate = result.releaseDate,
                 )
             }
+    }
+
+    private fun fetchPublicSpotifyTracks(
+        artist: String,
+        artistId: String,
+    ): List<Track> {
+        val response = performCatalogRequest(buildPublicArtistUrl(artistId))
+        if (response.responseCode !in 200..299) {
+            error("Spotify Artist Seite konnte nicht geladen werden.")
+        }
+
+        val initialStatePayload = extractInitialStatePayload(response.payload)
+            ?: error("Spotify Artist Daten konnten nicht gelesen werden.")
+        val root = json.parseToJsonElement(initialStatePayload).jsonObjectOrNull()
+            ?: error("Spotify Artist Daten konnten nicht gelesen werden.")
+        val artistEntity = root
+            .jsonObject("entities")
+            ?.jsonObject("items")
+            ?.jsonObject("spotify:artist:$artistId")
+            ?: error("Spotify Artist Daten fehlen.")
+        val discography = artistEntity.jsonObject("discography")
+            ?: error("Spotify Discography fehlt.")
+
+        val releaseDatesByAlbumUri = mutableMapOf<String, String>()
+        appendReleaseDates(
+            listOfNotNull(discography["latest"]),
+            releaseDatesByAlbumUri,
+        )
+        appendReleaseDates(
+            discography.jsonObject("popularReleasesAlbums")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri,
+        )
+        appendReleaseDates(
+            discography.jsonObject("singles")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri,
+        )
+        appendReleaseDates(
+            discography.jsonObject("albums")?.jsonArray("items").orEmpty(),
+            releaseDatesByAlbumUri,
+        )
+
+        val tracks = buildList {
+            discography
+                .jsonObject("topTracks")
+                ?.jsonArray("items")
+                .orEmpty()
+                .forEach { item ->
+                    val track = item.jsonObjectOrNull()?.jsonObject("track") ?: return@forEach
+                    val trackId = spotifyIdFromUri(track.string("uri")) ?: return@forEach
+                    val trackName = track.string("name")?.trim().orEmpty()
+                    if (trackName.isBlank()) return@forEach
+
+                    val trackArtists = track
+                        .jsonObject("artists")
+                        ?.jsonArray("items")
+                        .orEmpty()
+                    if (trackArtists.none { spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId }) {
+                        return@forEach
+                    }
+
+                    val matchingArtist = trackArtists.firstOrNull {
+                        spotifyIdFromUri(it.jsonObjectOrNull()?.string("uri")) == artistId
+                    }?.jsonObjectOrNull()
+                    val album = track.jsonObject("albumOfTrack")
+                    val albumUri = album?.string("uri")
+
+                    add(
+                        Track(
+                            trackId = kotlin.math.abs(trackId.hashCode()),
+                            artistId = kotlin.math.abs(artistId.hashCode()),
+                            spotifyArtistId = artistId,
+                            spotifyTrackId = trackId,
+                            artistName = matchingArtist
+                                ?.jsonObject("profile")
+                                ?.string("name")
+                                ?: artist,
+                            trackName = trackName,
+                            collectionName = album?.string("name"),
+                            artworkUrl100 = album
+                                ?.jsonObject("coverArt")
+                                ?.coverArtUrl()
+                                ?: artistEntity
+                                    .jsonObject("visuals")
+                                    ?.jsonObject("avatarImage")
+                                    ?.coverArtUrl(),
+                            previewUrl = track
+                                .jsonObject("previews")
+                                ?.jsonObject("audioPreviews")
+                                ?.jsonArray("items")
+                                ?.firstOrNull()
+                                ?.jsonObjectOrNull()
+                                ?.string("url"),
+                            externalUrl = "https://open.spotify.com/track/$trackId",
+                            wrapperType = "track",
+                            releaseDate = albumUri?.let(releaseDatesByAlbumUri::get),
+                        ),
+                    )
+                }
+        }
+
+        if (tracks.isEmpty()) {
+            error("Spotify Artist Tracks konnten nicht gelesen werden.")
+        }
+
+        return tracks
     }
 
     private fun fetchKnownArtistTracks(
@@ -402,6 +532,10 @@ class AndroidMusicRepository : MusicRepository {
         return URL(uriBuilder.build().toString())
     }
 
+    private fun buildPublicArtistUrl(artistId: String): URL {
+        return URL("https://open.spotify.com/artist/$artistId")
+    }
+
     private fun buildSpotifySearchUrl(artist: String, trackName: String): String {
         val query = listOf(artist, trackName)
             .filter { it.isNotBlank() }
@@ -418,11 +552,48 @@ class AndroidMusicRepository : MusicRepository {
         return Uri.parse("https://open.spotify.com/artist/$artistId").toString()
     }
 
+    private fun extractInitialStatePayload(payload: String): String? {
+        return Regex("""<script id="initialState" type="text/plain">([^<]+)""")
+            .find(payload)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.let { encoded ->
+                runCatching {
+                    String(java.util.Base64.getDecoder().decode(encoded))
+                }.getOrNull()
+            }
+    }
+
     private fun searchQueriesFor(artist: String): List<String> {
         return listOf(
             "artist:\"$artist\"",
             artist,
         ).distinct()
+    }
+
+    private fun appendReleaseDates(
+        items: List<JsonElement>,
+        releaseDatesByAlbumUri: MutableMap<String, String>,
+    ) {
+        items.forEach { element ->
+            val item = element.jsonObjectOrNull() ?: return@forEach
+            val releases = item
+                .jsonObject("releases")
+                ?.jsonArray("items")
+
+            if (!releases.isNullOrEmpty()) {
+                appendReleaseDates(releases, releaseDatesByAlbumUri)
+                return@forEach
+            }
+
+            val uri = item.string("uri") ?: return@forEach
+            val releaseDate = item.jsonObject("date")?.releaseDateString() ?: return@forEach
+            releaseDatesByAlbumUri[uri] = releaseDate
+        }
+    }
+
+    private fun spotifyIdFromUri(uri: String?): String? {
+        return uri?.substringAfterLast(':')
     }
 
     private fun catalogQueriesFor(artist: String): List<CatalogQuery> {
@@ -482,10 +653,55 @@ class AndroidMusicRepository : MusicRepository {
         val errorMessage: String?,
     )
 
-    private data class CatalogQuery(
-        val term: String,
-        val attribute: String?,
-    )
+private data class CatalogQuery(
+    val term: String,
+    val attribute: String?,
+)
+}
+
+private fun JsonObject.string(key: String): String? {
+    return this[key]?.jsonPrimitive?.contentOrNull
+}
+
+private fun JsonObject.jsonObject(key: String): JsonObject? {
+    return this[key]?.jsonObjectOrNull()
+}
+
+private fun JsonObject.jsonArray(key: String): List<JsonElement>? {
+    return this[key]?.jsonArrayOrNull()
+}
+
+private fun JsonElement.jsonObjectOrNull(): JsonObject? {
+    return this as? JsonObject
+}
+
+private fun JsonElement.jsonArrayOrNull(): JsonArray? {
+    return this as? JsonArray
+}
+
+private fun JsonObject.releaseDateString(): String? {
+    val year = string("year")?.toIntOrNull() ?: return null
+    val month = string("month")?.toIntOrNull()
+    val day = string("day")?.toIntOrNull()
+
+    return when {
+        month != null && day != null -> "%04d-%02d-%02d".format(year, month, day)
+        month != null -> "%04d-%02d".format(year, month)
+        else -> "%04d".format(year)
+    }
+}
+
+private fun JsonObject.coverArtUrl(): String? {
+    val sources = jsonArray("sources").orEmpty()
+    return sources
+        .mapNotNull { element ->
+            val source = element.jsonObjectOrNull() ?: return@mapNotNull null
+            source to (source.string("height")?.toIntOrNull() ?: 0)
+        }
+        .sortedByDescending { it.second }
+        .firstOrNull()
+        ?.first
+        ?.string("url")
 }
 
 @Serializable
