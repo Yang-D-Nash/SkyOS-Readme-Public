@@ -27,6 +27,11 @@ class AndroidMusicRepository : MusicRepository {
     private val catalogPageSize = 50
     private val publicFallbackTargetTrackCount = 6
     private val publicFallbackMaxAlbumPages = 8
+    private val publicSpotifyUserAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/135.0.0.0 Safari/537.36"
+    private val publicSpotifyAcceptLanguage = "en-US,en;q=0.9,de;q=0.8"
 
     private data class PublicAlbumReference(
         val albumId: String,
@@ -651,6 +656,33 @@ class AndroidMusicRepository : MusicRepository {
         }
     }
 
+    private fun performPublicSpotifyPageRequest(url: URL): SearchHttpResponse {
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            instanceFollowRedirects = true
+            setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            setRequestProperty("Accept-Language", publicSpotifyAcceptLanguage)
+            // Spotify serves an "Unsupported browser" page to Android's default Dalvik user agent.
+            setRequestProperty("User-Agent", publicSpotifyUserAgent)
+        }
+
+        return try {
+            val responseCode = connection.responseCode
+            val stream = when {
+                responseCode in 200..299 -> connection.inputStream
+                connection.errorStream != null -> connection.errorStream
+                else -> connection.inputStream
+            }
+            val payload = stream.bufferedReader().use { it.readText() }
+            SearchHttpResponse(
+                responseCode = responseCode,
+                payload = payload,
+            )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     private fun buildSearchUrl(query: String, offset: Int): URL {
         val uri = Uri.parse("https://api.spotify.com/v1/search")
             .buildUpon()
@@ -735,7 +767,7 @@ class AndroidMusicRepository : MusicRepository {
         pageErrorMessage: String,
         dataErrorMessage: String,
     ): JsonObject {
-        val response = performCatalogRequest(url)
+        val response = performPublicSpotifyPageRequest(url)
         if (response.responseCode !in 200..299) {
             error(pageErrorMessage)
         }
