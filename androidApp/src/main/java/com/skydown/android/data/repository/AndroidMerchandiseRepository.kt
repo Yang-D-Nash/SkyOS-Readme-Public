@@ -83,8 +83,11 @@ class AndroidMerchandiseRepository(
     }
 
     private suspend fun uploadImages(imageDataList: List<ByteArray>): List<String> {
-        return imageDataList.map { imageData ->
-            val imageReference = storage.reference.child("merchandise/${UUID.randomUUID()}.jpg")
+        return imageDataList.mapIndexed { index, imageData ->
+            val uploadId = UUID.randomUUID().toString()
+            val imageReference = storage.reference.child(
+                "merchandise/items/$uploadId/image-${index + 1}.jpg",
+            )
             val metadata = StorageMetadata.Builder()
                 .setContentType("image/jpeg")
                 .build()

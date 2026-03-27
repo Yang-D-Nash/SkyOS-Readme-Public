@@ -52,8 +52,9 @@ final class FirebaseMerchandiseService: MerchandiseServicing {
         try await withThrowingTaskGroup(of: (Int, String).self) { taskGroup in
             for (index, imageData) in imageDataList.enumerated() {
                 taskGroup.addTask { [storage] in
-                    let fileName = UUID().uuidString + ".jpg"
-                    let reference = storage.reference().child("merchandise/\(fileName)")
+                    let uploadID = UUID().uuidString
+                    let fileName = "image-\(index + 1).jpg"
+                    let reference = storage.reference().child("merchandise/items/\(uploadID)/\(fileName)")
                     let metadata = StorageMetadata()
                     metadata.contentType = "image/jpeg"
 

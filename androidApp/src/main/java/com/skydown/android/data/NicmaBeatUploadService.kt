@@ -84,17 +84,11 @@ class NicmaBeatUploadService(
         currentUser: User?,
     ) {
         val safeArtist = sanitizePathComponent(request.artistName)
-        val safeFileName = sanitizePathComponent(file.fileName.replace(".", "-"))
-        val storagePath = buildString {
-            append("nicma_music/beats/")
-            append(safeArtist)
-            append("/")
-            append(System.currentTimeMillis())
-            append("-")
-            append(UUID.randomUUID())
-            append("-")
-            append(safeFileName)
-        }
+        val storagePath = buildUploadPath(
+            rootFolder = "nicma_music/beats",
+            scopeFolder = safeArtist,
+            fileName = file.fileName,
+        )
         val reference = storage.reference.child(storagePath)
 
         val metadata = StorageMetadata.Builder()
@@ -169,6 +163,28 @@ class NicmaBeatUploadService(
             .trim('-')
 
         return if (raw.isBlank()) "upload" else raw
+    }
+
+    private fun sanitizeFileName(fileName: String): String {
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+            .replace(Regex("[^a-z0-9]+"), "")
+        val baseName = fileName.substringBeforeLast('.', fileName)
+        val safeBaseName = sanitizePathComponent(baseName)
+
+        return if (extension.isBlank()) {
+            safeBaseName
+        } else {
+            "$safeBaseName.$extension"
+        }
+    }
+
+    private fun buildUploadPath(
+        rootFolder: String,
+        scopeFolder: String,
+        fileName: String,
+    ): String {
+        val uploadId = "${System.currentTimeMillis()}-${UUID.randomUUID()}"
+        return "$rootFolder/$scopeFolder/$uploadId/${sanitizeFileName(fileName)}"
     }
 
     private fun displayTitle(fileName: String): String {

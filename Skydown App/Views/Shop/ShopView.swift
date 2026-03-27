@@ -10,8 +10,16 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @Environment(\.colorScheme) private var colorScheme
-    let onOpenCart: () -> Void = {}
-    let onOpenSettings: () -> Void = {}
+    let onOpenCart: () -> Void
+    let onOpenSettings: () -> Void
+
+    init(
+        onOpenCart: @escaping () -> Void = {},
+        onOpenSettings: @escaping () -> Void = {}
+    ) {
+        self.onOpenCart = onOpenCart
+        self.onOpenSettings = onOpenSettings
+    }
 
     var body: some View {
         NavigationStack {

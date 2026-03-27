@@ -186,8 +186,11 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
         currentUser: User?,
     ) async throws {
         let safeArtist = sanitizePathComponent(request.artistName)
-        let safeFileName = sanitizePathComponent(file.fileName.replacingOccurrences(of: ".", with: "-"))
-        let path = "nicma_music/beats/\(safeArtist)/\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString)-\(safeFileName)"
+        let path = buildUploadPath(
+            rootFolder: "nicma_music/beats",
+            scopeFolder: safeArtist,
+            fileName: file.fileName
+        )
         let reference = storage.reference().child(path)
         let metadata = StorageMetadata()
         metadata.contentType = file.mimeType
@@ -246,6 +249,29 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
 
         return raw.isEmpty ? "upload" : raw
+    }
+
+    private func sanitizeFileName(_ fileName: String) -> String {
+        let baseName = (fileName as NSString).deletingPathExtension
+        let fileExtension = (fileName as NSString).pathExtension
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9]+", with: "", options: .regularExpression)
+        let safeBaseName = sanitizePathComponent(baseName)
+
+        if fileExtension.isEmpty {
+            return safeBaseName
+        }
+
+        return "\(safeBaseName).\(fileExtension)"
+    }
+
+    private func buildUploadPath(
+        rootFolder: String,
+        scopeFolder: String,
+        fileName: String
+    ) -> String {
+        let uploadID = "\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString)"
+        return "\(rootFolder)/\(scopeFolder)/\(uploadID)/\(sanitizeFileName(fileName))"
     }
 
     private func displayTitle(from fileName: String) -> String {
@@ -645,8 +671,11 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         currentUser: User?
     ) async throws {
         let safeProject = sanitizePathComponent(request.projectName)
-        let safeFileName = sanitizePathComponent(file.fileName.replacingOccurrences(of: ".", with: "-"))
-        let path = "videography/videos/\(safeProject)/\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString)-\(safeFileName)"
+        let path = buildUploadPath(
+            rootFolder: "videography/videos",
+            scopeFolder: safeProject,
+            fileName: file.fileName
+        )
         let reference = storage.reference().child(path)
         let metadata = StorageMetadata()
         metadata.contentType = file.mimeType
@@ -764,6 +793,29 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
 
         return raw.isEmpty ? "upload" : raw
+    }
+
+    private func sanitizeFileName(_ fileName: String) -> String {
+        let baseName = (fileName as NSString).deletingPathExtension
+        let fileExtension = (fileName as NSString).pathExtension
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9]+", with: "", options: .regularExpression)
+        let safeBaseName = sanitizePathComponent(baseName)
+
+        if fileExtension.isEmpty {
+            return safeBaseName
+        }
+
+        return "\(safeBaseName).\(fileExtension)"
+    }
+
+    private func buildUploadPath(
+        rootFolder: String,
+        scopeFolder: String,
+        fileName: String
+    ) -> String {
+        let uploadID = "\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString)"
+        return "\(rootFolder)/\(scopeFolder)/\(uploadID)/\(sanitizeFileName(fileName))"
     }
 
     private func displayTitle(from fileName: String) -> String {

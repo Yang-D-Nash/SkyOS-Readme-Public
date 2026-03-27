@@ -124,10 +124,15 @@ struct MainTabView: View {
 }
 
 struct AppSessionToolbarActions: View {
-    let onOpenCart: (() -> Void)? = nil
+    let onOpenCart: (() -> Void)?
     let onOpenSettings: () -> Void
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+
+    init(onOpenCart: (() -> Void)? = nil, onOpenSettings: @escaping () -> Void) {
+        self.onOpenCart = onOpenCart
+        self.onOpenSettings = onOpenSettings
+    }
 
     private var displayName: String {
         let trimmed = authManager.userSession?.username.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

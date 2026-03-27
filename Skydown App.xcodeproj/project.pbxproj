@@ -441,8 +441,8 @@
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = F3BNLG6L7P;
 				ENABLE_PREVIEWS = YES;
-					GENERATE_INFOPLIST_FILE = NO;
-					INFOPLIST_FILE = SkydownApp-Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "SkydownApp-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -469,8 +469,8 @@
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = F3BNLG6L7P;
 				ENABLE_PREVIEWS = YES;
-					GENERATE_INFOPLIST_FILE = NO;
-					INFOPLIST_FILE = SkydownApp-Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "SkydownApp-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

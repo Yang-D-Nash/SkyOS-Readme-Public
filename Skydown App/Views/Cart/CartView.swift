@@ -12,7 +12,11 @@ struct CartView: View {
     @EnvironmentObject var cartVM: CartViewModel
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
-    let onOpenSettings: () -> Void = {}
+    let onOpenSettings: () -> Void
+
+    init(onOpenSettings: @escaping () -> Void = {}) {
+        self.onOpenSettings = onOpenSettings
+    }
 
     @State private var name = ""
     @State private var email = ""

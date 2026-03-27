@@ -23,6 +23,11 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
+    match /nicma_music/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

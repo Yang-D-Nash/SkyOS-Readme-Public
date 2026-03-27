@@ -113,17 +113,11 @@ class VideoHubService(
         currentUser: User?,
     ) {
         val safeProject = sanitizePathComponent(request.projectName)
-        val safeFileName = sanitizePathComponent(file.fileName.replace(".", "-"))
-        val storagePath = buildString {
-            append("videography/videos/")
-            append(safeProject)
-            append("/")
-            append(System.currentTimeMillis())
-            append("-")
-            append(UUID.randomUUID())
-            append("-")
-            append(safeFileName)
-        }
+        val storagePath = buildUploadPath(
+            rootFolder = "videography/videos",
+            scopeFolder = safeProject,
+            fileName = file.fileName,
+        )
         val reference = storage.reference.child(storagePath)
 
         val metadata = StorageMetadata.Builder()
@@ -200,6 +194,28 @@ class VideoHubService(
             .trim('-')
 
         return if (raw.isBlank()) "upload" else raw
+    }
+
+    private fun sanitizeFileName(fileName: String): String {
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+            .replace(Regex("[^a-z0-9]+"), "")
+        val baseName = fileName.substringBeforeLast('.', fileName)
+        val safeBaseName = sanitizePathComponent(baseName)
+
+        return if (extension.isBlank()) {
+            safeBaseName
+        } else {
+            "$safeBaseName.$extension"
+        }
+    }
+
+    private fun buildUploadPath(
+        rootFolder: String,
+        scopeFolder: String,
+        fileName: String,
+    ): String {
+        val uploadId = "${System.currentTimeMillis()}-${UUID.randomUUID()}"
+        return "$rootFolder/$scopeFolder/$uploadId/${sanitizeFileName(fileName)}"
     }
 
     private fun displayTitle(fileName: String): String {

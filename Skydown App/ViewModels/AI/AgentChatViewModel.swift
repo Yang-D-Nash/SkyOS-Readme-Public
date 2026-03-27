@@ -27,7 +27,7 @@ struct AgentChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class AgentChatViewModel: ObservableObject {
-    private static let introMessage = "Ich bin der Skydown x 22 Agent. Ich baue dir Briefings, Release-Plaene, Content-Strukturen, Checklisten und naechste Schritte. Fuer schnelle Hooks oder Captions nimm den Bot."
+    static let introMessage = "Ich bin der Skydown x 22 Agent. Ich baue dir Briefings, Release-Plaene, Content-Strukturen, Checklisten und naechste Schritte. Fuer schnelle Hooks oder Captions nimm den Bot."
 
     @Published var messages: [AgentChatMessage] = [
         AgentChatMessage(

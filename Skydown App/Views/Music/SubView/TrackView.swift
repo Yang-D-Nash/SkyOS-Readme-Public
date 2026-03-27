@@ -199,7 +199,8 @@ private struct TrackTag: View {
         artworkUrl100: "https://via.placeholder.com/100",
         previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
         externalURL: "https://open.spotify.com",
-        wrapperType: "track"
+        wrapperType: "track",
+        releaseDate: nil
     )
     
     let audioManager = AudioPlayerManager()

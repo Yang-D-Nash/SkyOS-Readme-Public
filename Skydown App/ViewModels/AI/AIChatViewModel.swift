@@ -231,7 +231,7 @@ final class AIChatViewModel: ObservableObject {
             formatHint = "Liefere eine direkt nutzbare Hauptantwort und wenn passend 3 starke Varianten."
         }
 
-        """
+        return """
         Du bist der Skydown x 22 Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
         Markenkontext:
         - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
@@ -254,7 +254,7 @@ final class AIChatViewModel: ObservableObject {
     }
 
     private func buildVisualPrompt(for userPrompt: String) -> String {
-        """
+        return """
         Du bist der Skydown x 22 Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
         Markenkontext:
         - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
