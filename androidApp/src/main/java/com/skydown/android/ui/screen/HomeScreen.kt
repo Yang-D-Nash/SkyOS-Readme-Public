@@ -2,6 +2,8 @@ package com.skydown.android.ui.screen
 
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -55,12 +58,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.openTrackInSpotify
 import coil3.compose.AsyncImage
 import com.skydown.android.ui.component.AppTopBarSessionActions
@@ -84,9 +89,6 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedHomeArtist by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedHomeTrackId by rememberSaveable { mutableStateOf<Int?>(null) }
-    var selectedHomeVideoId by rememberSaveable { mutableStateOf<String?>(null) }
 
     if (activeDestination == homeDestinationNicmaProducer) {
         NicmaProducerScreen(
@@ -95,50 +97,75 @@ fun HomeScreen(
         return
     }
 
-    if (activeDestination == homeDestinationMusic) {
-        MusicScreen(
+    if (activeDestination == homeDestinationBeatHub) {
+        BeatHubScreen(
             onBack = { activeDestination = null },
-            initialArtist = selectedHomeArtist,
-            initialTrackId = selectedHomeTrackId,
-            autoplaySelectedTrackPreview = true,
-            autoOpenSelectedTrackInSpotify = true,
-        )
-        return
-    }
-
-    if (activeDestination == homeDestinationVideo) {
-        VideoHubScreen(
-            onBack = { activeDestination = null },
-            initialSelectedVideoId = selectedHomeVideoId,
-            autoplayInitialSelection = true,
         )
         return
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
-    val player = remember {
+    val audioPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             playWhenReady = true
         }
     }
+    val videoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            playWhenReady = false
+        }
+    }
     var currentAudioKey by rememberSaveable { mutableStateOf<String?>(null) }
+    var currentVideoId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    DisposableEffect(player) {
+    DisposableEffect(audioPlayer) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED) {
-                    player.stop()
-                    player.clearMediaItems()
+                    audioPlayer.stop()
+                    audioPlayer.clearMediaItems()
                     currentAudioKey = null
                 }
             }
         }
-        player.addListener(listener)
+        audioPlayer.addListener(listener)
 
         onDispose {
-            player.removeListener(listener)
-            player.release()
+            audioPlayer.removeListener(listener)
+            audioPlayer.release()
+        }
+    }
+
+    DisposableEffect(videoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) {
+                    videoPlayer.pause()
+                    videoPlayer.seekTo(0)
+                    currentVideoId = null
+                }
+            }
+        }
+        videoPlayer.addListener(listener)
+
+        onDispose {
+            videoPlayer.removeListener(listener)
+            videoPlayer.release()
+        }
+    }
+
+    LaunchedEffect(uiState.featuredVideo?.id, uiState.featuredVideo?.downloadUrl) {
+        val featuredVideo = uiState.featuredVideo
+        if (featuredVideo == null || featuredVideo.downloadUrl.isBlank()) {
+            videoPlayer.stop()
+            videoPlayer.clearMediaItems()
+            currentVideoId = null
+        } else {
+            videoPlayer.setMediaItem(MediaItem.fromUri(featuredVideo.downloadUrl))
+            videoPlayer.prepare()
+            videoPlayer.pause()
+            currentVideoId = null
         }
     }
 
@@ -197,23 +224,18 @@ fun HomeScreen(
                                 if (previewUrl.isNullOrBlank()) return@HomeLatestReleaseCard
                                 val audioKey = homeTrackAudioKey(track)
                                 if (currentAudioKey == audioKey) {
-                                    player.stop()
-                                    player.clearMediaItems()
+                                    audioPlayer.stop()
+                                    audioPlayer.clearMediaItems()
                                     currentAudioKey = null
                                 } else {
-                                    player.setMediaItem(MediaItem.fromUri(previewUrl))
-                                    player.prepare()
-                                    player.play()
+                                    videoPlayer.pause()
+                                    videoPlayer.seekTo(0)
+                                    currentVideoId = null
+                                    audioPlayer.setMediaItem(MediaItem.fromUri(previewUrl))
+                                    audioPlayer.prepare()
+                                    audioPlayer.play()
                                     currentAudioKey = audioKey
                                 }
-                            },
-                            onOpenInMusic = { track ->
-                                player.stop()
-                                player.clearMediaItems()
-                                currentAudioKey = null
-                                selectedHomeArtist = homeResolveMusicArtist(track)
-                                selectedHomeTrackId = track.trackId
-                                activeDestination = homeDestinationMusic
                             },
                             onOpenSpotify = { track ->
                                 openTrackInSpotify(
@@ -236,13 +258,16 @@ fun HomeScreen(
                                 if (!beat.isPlayable || beat.downloadUrl.isBlank()) return@HomeLatestBeatCard
                                 val audioKey = homeBeatAudioKey(beat)
                                 if (currentAudioKey == audioKey) {
-                                    player.stop()
-                                    player.clearMediaItems()
+                                    audioPlayer.stop()
+                                    audioPlayer.clearMediaItems()
                                     currentAudioKey = null
                                 } else {
-                                    player.setMediaItem(MediaItem.fromUri(beat.downloadUrl))
-                                    player.prepare()
-                                    player.play()
+                                    videoPlayer.pause()
+                                    videoPlayer.seekTo(0)
+                                    currentVideoId = null
+                                    audioPlayer.setMediaItem(MediaItem.fromUri(beat.downloadUrl))
+                                    audioPlayer.prepare()
+                                    audioPlayer.play()
                                     currentAudioKey = audioKey
                                 }
                             },
@@ -254,12 +279,22 @@ fun HomeScreen(
                     HomeAnimatedItem(order = 3) {
                         HomeLatestVideoCard(
                             uiState = uiState,
-                            onOpenVideo = { video ->
-                                player.stop()
-                                player.clearMediaItems()
-                                currentAudioKey = null
-                                selectedHomeVideoId = video.id
-                                activeDestination = homeDestinationVideo
+                            player = videoPlayer,
+                            isPlaying = currentVideoId == uiState.featuredVideo?.id,
+                            onPlayToggle = { video ->
+                                if (video.downloadUrl.isBlank()) return@HomeLatestVideoCard
+
+                                if (currentVideoId == video.id) {
+                                    videoPlayer.pause()
+                                    videoPlayer.seekTo(0)
+                                    currentVideoId = null
+                                } else {
+                                    audioPlayer.stop()
+                                    audioPlayer.clearMediaItems()
+                                    currentAudioKey = null
+                                    videoPlayer.play()
+                                    currentVideoId = video.id
+                                }
                             },
                         )
                     }
@@ -268,10 +303,22 @@ fun HomeScreen(
                 item {
                     HomeAnimatedItem(order = 4) {
                         HomeStoryCard(
-                            onOpenNicma = {
-                                player.stop()
-                                player.clearMediaItems()
+                            onOpenBeatHub = {
+                                audioPlayer.stop()
+                                audioPlayer.clearMediaItems()
                                 currentAudioKey = null
+                                videoPlayer.pause()
+                                videoPlayer.seekTo(0)
+                                currentVideoId = null
+                                activeDestination = homeDestinationBeatHub
+                            },
+                            onOpenNicma = {
+                                audioPlayer.stop()
+                                audioPlayer.clearMediaItems()
+                                currentAudioKey = null
+                                videoPlayer.pause()
+                                videoPlayer.seekTo(0)
+                                currentVideoId = null
                                 activeDestination = homeDestinationNicmaProducer
                             },
                         )
@@ -347,7 +394,6 @@ private fun HomeLatestReleaseCard(
     uiState: HomeUiState,
     isPlaying: Boolean,
     onPlayToggle: (com.skydown.shared.model.Track) -> Unit,
-    onOpenInMusic: (com.skydown.shared.model.Track) -> Unit,
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
@@ -407,13 +453,14 @@ private fun HomeLatestReleaseCard(
         }
 
         val hasPreview = !track.previewUrl.isNullOrBlank()
+        val hasSpotifyEmbed = homeResolvedSpotifyTrackId(track) != null
         val hasSpotifyTarget = homeHasSpotifyTarget(track)
 
         Text(
             text = when {
-                hasPreview && hasSpotifyTarget -> "Preview direkt im Home oder direkt bei Spotify weiterhoeren."
+                hasPreview && hasSpotifyEmbed -> "Preview und Spotify-Player laufen direkt im Home."
                 hasPreview -> "Preview direkt im Home verfuegbar."
-                homeResolvedSpotifyTrackId(track) != null -> "Direkt mit Spotify verbunden."
+                hasSpotifyEmbed -> "Spotify-Player direkt im Home verfuegbar."
                 homeResolvedSpotifyArtistId(track) != null -> "Spotify-Artist direkt erreichbar."
                 !track.externalUrl.isNullOrBlank() -> "Spotify-Ziel direkt erreichbar."
                 else -> "Neuester Song."
@@ -443,20 +490,6 @@ private fun HomeLatestReleaseCard(
                 }
             }
 
-            OutlinedButton(
-                onClick = { onOpenInMusic(track) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "Im Music Player oeffnen",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-
             if (hasSpotifyTarget) {
                 OutlinedButton(
                     onClick = { onOpenSpotify(track) },
@@ -472,6 +505,17 @@ private fun HomeLatestReleaseCard(
                     )
                 }
             }
+        }
+
+        if (hasSpotifyEmbed) {
+            Text(
+                text = "Spotify Player",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 14.dp),
+            )
+
+            HomeSpotifyEmbedCard(track = track)
         }
     }
 }
@@ -563,7 +607,9 @@ private fun HomeLatestBeatCard(
 @Composable
 private fun HomeLatestVideoCard(
     uiState: HomeUiState,
-    onOpenVideo: (FeaturedVideoHighlight) -> Unit,
+    player: ExoPlayer,
+    isPlaying: Boolean,
+    onPlayToggle: (FeaturedVideoHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Video Highlight")
@@ -630,26 +676,79 @@ private fun HomeLatestVideoCard(
             modifier = Modifier.padding(top = 14.dp),
         )
 
-        Button(
-            onClick = { onOpenVideo(video) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 14.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Movie,
-                contentDescription = null,
+        if (video.downloadUrl.isNotBlank()) {
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .padding(top = 14.dp)
+                    .clip(MaterialTheme.shapes.extraLarge),
+                factory = { playerContext ->
+                    PlayerView(playerContext).apply {
+                        useController = true
+                        this.player = player
+                    }
+                },
+                update = { view ->
+                    view.player = player
+                },
             )
-            Text(
-                text = "Im Video Player oeffnen",
-                modifier = Modifier.padding(start = 8.dp),
-            )
+        }
+
+        if (video.downloadUrl.isNotBlank()) {
+            Button(
+                onClick = { onPlayToggle(video) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = null,
+                )
+                Text(
+                    text = if (isPlaying) "Video stoppen" else "Video abspielen",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
     }
 }
 
 @Composable
+private fun HomeSpotifyEmbedCard(
+    track: com.skydown.shared.model.Track,
+) {
+    val embedUri = remember(track.spotifyTrackId, track.externalUrl) {
+        homeSpotifyEmbedUri(track)
+    } ?: return
+
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(188.dp)
+            .padding(top = 10.dp)
+            .clip(MaterialTheme.shapes.extraLarge),
+        factory = { playerContext ->
+            WebView(playerContext).apply {
+                webViewClient = WebViewClient()
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.mediaPlaybackRequiresUserGesture = false
+                loadUrl(embedUri.toString())
+            }
+        },
+        update = { webView ->
+            if (webView.url != embedUri.toString()) {
+                webView.loadUrl(embedUri.toString())
+            }
+        },
+    )
+}
+
+@Composable
 private fun HomeStoryCard(
+    onOpenBeatHub: () -> Unit,
     onOpenNicma: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -657,7 +756,7 @@ private fun HomeStoryCard(
         SectionHeader("Links")
 
         Text(
-            text = "Hier laufen die direkten Social-Links von Yang D. Nash, 22 und Skydown zusammen. NICMA MUSIC ist direkt im Home verankert, damit der Musik-Tab nur Musik bleibt.",
+            text = "Hier laufen die direkten Social-Links, der Beat Hub und NICMA MUSIC zusammen. Der Musik-Tab bleibt damit wirklich nur fuer Releases und Tracks reserviert.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -711,6 +810,20 @@ private fun HomeStoryCard(
                 )
                 Text(
                     text = "Skydown auf Instagram",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+
+            OutlinedButton(
+                onClick = { onOpenBeatHub() },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.GraphicEq,
+                    contentDescription = null,
+                )
+                Text(
+                    text = "Beat Hub oeffnen",
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
@@ -832,31 +945,10 @@ private fun homeResolvedSpotifyArtistId(track: com.skydown.shared.model.Track): 
     return pathSegments[artistIndex + 1]
 }
 
-private fun homeResolveMusicArtist(track: com.skydown.shared.model.Track): String {
-    val artistName = track.artistName
-    if (artistName.isNullOrBlank()) return homeFeaturedArtists.first()
-    val normalizedArtist = homeNormalizeArtistName(artistName)
-    return homeFeaturedArtists.firstOrNull { candidate ->
-        val normalizedCandidate = homeNormalizeArtistName(candidate)
-        normalizedArtist == normalizedCandidate ||
-            normalizedArtist.contains(normalizedCandidate) ||
-            normalizedCandidate.contains(normalizedArtist)
-    } ?: artistName
+private fun homeSpotifyEmbedUri(track: com.skydown.shared.model.Track): Uri? {
+    val trackId = homeResolvedSpotifyTrackId(track) ?: return null
+    return Uri.parse("https://open.spotify.com/embed/track/$trackId?utm_source=generator")
 }
 
-private fun homeNormalizeArtistName(value: String): String {
-    return value.lowercase().replace(Regex("[^a-z0-9]+"), "")
-}
-
-private val homeFeaturedArtists = listOf(
-    "Yang D. Nash",
-    "ThaDude",
-    "MAVE",
-    "JANNO",
-    "TANGAJOE007",
-    "Toprack941",
-)
-
-private const val homeDestinationMusic = "home_music"
-private const val homeDestinationVideo = "home_video"
+private const val homeDestinationBeatHub = "home_beat_hub"
 private const val homeDestinationNicmaProducer = "home_nicma_producer"

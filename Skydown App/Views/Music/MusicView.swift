@@ -73,7 +73,6 @@ struct MusicView: View {
                     spotifyCard
                     musicPlayerCard
                     tracksCard
-                    spotlightLinks
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.top, SkydownLayout.screenTopPadding)
@@ -434,15 +433,6 @@ struct MusicView: View {
                 }
             }
         }
-    }
-
-    private var spotlightLinks: some View {
-        NavigationLink {
-            BeatHubView()
-        } label: {
-            BeatHubSpotlightCard(colorScheme: colorScheme)
-        }
-        .buttonStyle(.plain)
     }
 
     private func connectSpotifyAndLoadTracks() async {

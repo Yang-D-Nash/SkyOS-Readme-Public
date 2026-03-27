@@ -5,14 +5,16 @@
 //  Created by Yang D. Nash on 23.07.25.
 //
 
+import AVKit
 import SwiftUI
+import WebKit
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var beatPlaybackManager = BeatPlaybackManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
-    @State private var selectedHomeTrack: Track?
-    @State private var selectedHomeVideo: FeaturedHomeVideo?
+    @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
+    @State private var showingBeatHub = false
     @State private var showingNicmaProducer = false
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
@@ -38,12 +40,8 @@ struct HomeView: View {
                         colorScheme: colorScheme,
                         onPreviewToggle: { track in
                             beatPlaybackManager.stop()
+                            videoPlaybackManager.stop()
                             audioPlayerManager.playPreview(for: track)
-                        },
-                        onOpenPlayer: { track in
-                            beatPlaybackManager.stop()
-                            audioPlayerManager.stop()
-                            selectedHomeTrack = track
                         }
                     )
                     .homeReveal(1)
@@ -53,25 +51,34 @@ struct HomeView: View {
                         colorScheme: colorScheme,
                         onPlayToggle: { beat in
                             audioPlayerManager.stop()
+                            videoPlaybackManager.stop()
                             beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
                         }
                     )
                     .homeReveal(2)
                     HomeLatestVideoCard(
                         viewModel: viewModel,
+                        playbackManager: videoPlaybackManager,
                         colorScheme: colorScheme,
-                        onOpenPlayer: { video in
+                        onPlayToggle: { video in
                             beatPlaybackManager.stop()
                             audioPlayerManager.stop()
-                            selectedHomeVideo = video
+                            videoPlaybackManager.togglePlayback(for: video)
                         }
                     )
                     .homeReveal(3)
                     HomeStoryCard(
                         colorScheme: colorScheme,
+                        onOpenBeatHub: {
+                            beatPlaybackManager.stop()
+                            audioPlayerManager.stop()
+                            videoPlaybackManager.stop()
+                            showingBeatHub = true
+                        },
                         onOpenNicma: {
                             beatPlaybackManager.stop()
                             audioPlayerManager.stop()
+                            videoPlaybackManager.stop()
                             showingNicmaProducer = true
                         }
                     )
@@ -102,22 +109,12 @@ struct HomeView: View {
             .onDisappear {
                 beatPlaybackManager.stop()
                 audioPlayerManager.stop()
+                videoPlaybackManager.stop()
             }
         }
-        .sheet(item: $selectedHomeTrack) { track in
-            MusicView(
-                initialArtist: homeMusicArtist(for: track),
-                initialTrackID: track.trackId,
-                autoplaySelectedTrackPreview: true,
-                autoPresentSelectedTrackSpotifyPlayer: true
-            )
-        }
-        .sheet(item: $selectedHomeVideo) { video in
+        .sheet(isPresented: $showingBeatHub) {
             NavigationStack {
-                VideoHubView(
-                    initialSelectedVideoID: video.id,
-                    autoplayInitialSelection: true
-                )
+                BeatHubView()
             }
         }
         .sheet(isPresented: $showingNicmaProducer) {
@@ -350,7 +347,6 @@ private struct HomeLatestReleaseCard: View {
     @ObservedObject var playbackManager: AudioPlayerManager
     let colorScheme: ColorScheme
     let onPreviewToggle: (Track) -> Void
-    let onOpenPlayer: (Track) -> Void
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -362,6 +358,7 @@ private struct HomeLatestReleaseCard: View {
             if let track = viewModel.featuredTrack {
                 let hasPreview = !(track.previewUrl?.isEmpty ?? true)
                 let hasSpotifyTarget = homeSpotifyTargetURL(for: track) != nil
+                let hasSpotifyEmbed = homeSpotifyEmbedURL(for: track) != nil
 
                 HStack(spacing: 14) {
                     AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
@@ -394,9 +391,13 @@ private struct HomeLatestReleaseCard: View {
 
                 HStack(spacing: 10) {
                     Text(
-                        hasPreview && hasSpotifyTarget
-                            ? "Preview direkt im Home oder direkt bei Spotify weiterhoeren."
-                            : (hasPreview ? "Neuester Song mit In-App-Preview." : (hasSpotifyTarget ? "Neuester Song mit Spotify-Ziel." : "Neuester Song."))
+                        hasPreview && hasSpotifyEmbed
+                            ? "Preview und Spotify-Player laufen beide direkt im Home."
+                            : (hasPreview
+                               ? "Neuester Song mit In-App-Preview direkt im Home."
+                               : (hasSpotifyEmbed
+                                  ? "Spotify-Player direkt im Home verfuegbar."
+                                  : (hasSpotifyTarget ? "Spotify-Ziel direkt erreichbar." : "Neuester Song.")))
                     )
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -414,24 +415,31 @@ private struct HomeLatestReleaseCard: View {
                         }
                     }
 
-                    HomeActionButton(
-                        title: "Im Music Player oeffnen",
-                        icon: "music.note.list",
-                        colorScheme: colorScheme,
-                        isPrimary: !hasPreview
-                    ) {
-                        onOpenPlayer(track)
-                    }
-
                     if let spotifyURL = homeSpotifyTargetURL(for: track) {
                         HomeActionButton(
-                            title: homeSpotifyActionTitle(for: track),
+                            title: hasSpotifyEmbed ? "Spotify direkt oeffnen" : homeSpotifyActionTitle(for: track),
                             icon: "music.note",
                             colorScheme: colorScheme,
-                            isPrimary: false
+                            isPrimary: !hasPreview && !hasSpotifyEmbed
                         ) {
                             openURL(spotifyURL)
                         }
+                    }
+                }
+
+                if let embedURL = homeSpotifyEmbedURL(for: track) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Spotify Player")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        HomeSpotifyEmbedView(url: embedURL)
+                            .frame(height: 172)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                            )
                     }
                 }
             } else {
@@ -529,8 +537,9 @@ private struct HomeLatestBeatCard: View {
 
 private struct HomeLatestVideoCard: View {
     @ObservedObject var viewModel: HomeViewModel
+    @ObservedObject var playbackManager: HomeInlineVideoPlaybackManager
     let colorScheme: ColorScheme
-    let onOpenPlayer: (FeaturedHomeVideo) -> Void
+    let onPlayToggle: (FeaturedHomeVideo) -> Void
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -574,14 +583,32 @@ private struct HomeLatestVideoCard: View {
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
+                if !video.downloadURL.isEmpty {
+                    VideoPlayer(player: playbackManager.player)
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                        )
+                        .onAppear {
+                            playbackManager.prepare(video: video)
+                        }
+                        .onChange(of: video.id) { _ in
+                            playbackManager.prepare(video: video)
+                        }
+                }
+
                 VStack(spacing: 10) {
-                    HomeActionButton(
-                        title: "Im Video Player oeffnen",
-                        icon: "play.rectangle.fill",
-                        colorScheme: colorScheme,
-                        isPrimary: true
-                    ) {
-                        onOpenPlayer(video)
+                    if !video.downloadURL.isEmpty {
+                        HomeActionButton(
+                            title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "Video stoppen" : "Video abspielen",
+                            icon: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "stop.fill" : "play.rectangle.fill",
+                            colorScheme: colorScheme,
+                            isPrimary: true
+                        ) {
+                            onPlayToggle(video)
+                        }
                     }
 
                     if let videoURL = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
@@ -613,6 +640,7 @@ private struct HomeLatestVideoCard: View {
 
 private struct HomeStoryCard: View {
     let colorScheme: ColorScheme
+    let onOpenBeatHub: () -> Void
     let onOpenNicma: () -> Void
     @Environment(\.openURL) private var openURL
 
@@ -624,7 +652,7 @@ private struct HomeStoryCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier laufen die direkten Social-Links von Yang D. Nash, 22 und Skydown zusammen. NICMA MUSIC ist direkt hier im Home verankert, damit Musik und Producer-Seite sauber getrennt bleiben.")
+            Text("Hier laufen die direkten Social-Links, der Beat Hub und NICMA MUSIC zusammen. Der Musik-Tab bleibt damit auf beiden Plattformen wirklich nur fuer Releases und Tracks reserviert.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -660,6 +688,15 @@ private struct HomeStoryCard: View {
                     if let url = skydownMusicInstagramDestination.url {
                         openURL(url)
                     }
+                }
+
+                HomeActionButton(
+                    title: "Beat Hub oeffnen",
+                    icon: "waveform.circle.fill",
+                    colorScheme: colorScheme,
+                    isPrimary: false
+                ) {
+                    onOpenBeatHub()
                 }
 
                 HomeActionButton(
@@ -749,17 +786,17 @@ private extension View {
 }
 
 private func homeSpotifyTargetURL(for track: Track) -> URL? {
-    if let externalURL = track.externalURL,
-       let url = URL(string: externalURL) {
-        return url
-    }
-
     if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
         return URL(string: "https://open.spotify.com/track/\(spotifyTrackID)")
     }
 
     if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
         return URL(string: "https://open.spotify.com/artist/\(spotifyArtistID)")
+    }
+
+    if let externalURL = track.externalURL,
+       let url = URL(string: externalURL) {
+        return url
     }
 
     return nil
@@ -779,6 +816,54 @@ private func homeSpotifyActionTitle(for track: Track) -> String {
     }
 
     return "Spotify oeffnen"
+}
+
+private func homeSpotifyEmbedURL(for track: Track) -> URL? {
+    guard let spotifyTrackID = homeResolvedSpotifyTrackID(for: track) else { return nil }
+    return URL(string: "https://open.spotify.com/embed/track/\(spotifyTrackID)?utm_source=generator")
+}
+
+private func homeResolvedSpotifyTrackID(for track: Track) -> String? {
+    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
+        return spotifyTrackID
+    }
+
+    guard let externalURL = track.externalURL,
+          let webURL = URL(string: externalURL),
+          let components = URLComponents(url: webURL, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+
+    let pathComponents = components.path.split(separator: "/")
+    guard let trackIndex = pathComponents.firstIndex(of: "track"),
+          trackIndex + 1 < pathComponents.count else {
+        return nil
+    }
+
+    return String(pathComponents[trackIndex + 1])
+}
+
+private struct HomeSpotifyEmbedView: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.scrollView.backgroundColor = .clear
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if webView.url != url {
+            webView.load(URLRequest(url: url))
+        }
+    }
 }
 
 private extension FeaturedHomeBeat {
@@ -840,6 +925,79 @@ private struct HomeActionButton: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+final class HomeInlineVideoPlaybackManager: ObservableObject {
+    @Published var currentVideoID: String?
+    @Published var isPlaying = false
+    let player = AVPlayer()
+    private var playbackObserver: NSObjectProtocol?
+
+    deinit {
+        clearPlaybackObserver()
+        player.pause()
+        player.replaceCurrentItem(with: nil)
+    }
+
+    func prepare(video: FeaturedHomeVideo?) {
+        guard let video,
+              let url = URL(string: video.downloadURL) else {
+            stop()
+            player.replaceCurrentItem(with: nil)
+            currentVideoID = nil
+            return
+        }
+
+        guard currentVideoID != video.id || player.currentItem == nil else { return }
+
+        clearPlaybackObserver()
+        player.pause()
+        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+        currentVideoID = video.id
+        isPlaying = false
+        observePlaybackFinished()
+    }
+
+    func togglePlayback(for video: FeaturedHomeVideo) {
+        prepare(video: video)
+
+        guard currentVideoID == video.id else { return }
+
+        if isPlaying {
+            stop()
+        } else {
+            player.play()
+            isPlaying = true
+        }
+    }
+
+    func stop() {
+        player.pause()
+        player.seek(to: .zero)
+        isPlaying = false
+    }
+
+    private func observePlaybackFinished() {
+        clearPlaybackObserver()
+        guard let currentItem = player.currentItem else { return }
+
+        playbackObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: currentItem,
+            queue: .main
+        ) { [weak self] _ in
+            self?.player.seek(to: .zero)
+            self?.player.pause()
+            self?.isPlaying = false
+        }
+    }
+
+    private func clearPlaybackObserver() {
+        if let playbackObserver {
+            NotificationCenter.default.removeObserver(playbackObserver)
+            self.playbackObserver = nil
+        }
     }
 }
 

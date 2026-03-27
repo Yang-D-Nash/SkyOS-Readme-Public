@@ -87,14 +87,6 @@ fun MusicScreen(
     viewModel: MusicViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
-
-    if (activeDestination == musicDestinationBeatHub) {
-        BeatHubScreen(
-            onBack = { activeDestination = null },
-        )
-        return
-    }
 
     val context = LocalContext.current
     val player = remember {
@@ -345,11 +337,6 @@ fun MusicScreen(
                     }
                 }
 
-                item {
-                    BeatHubEntryCard(
-                        onOpen = { activeDestination = musicDestinationBeatHub },
-                    )
-                }
             }
         }
     }
@@ -465,80 +452,6 @@ private fun MusicPlayerCard(
                     Text(if (hasSpotifyArtistLink) "Spotify Artist" else "Spotify Suche")
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun BeatHubEntryCard(
-    onOpen: () -> Unit,
-) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Beat Hub",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Eigener Bereich fuer Uploads, Playback und Admin-Freigaben, damit andere User Beats direkt in der App hoeren koennen.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LibraryMusic,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            MusicBadge(
-                text = "Upload",
-                imageVector = Icons.Default.MusicNote,
-                isActive = true,
-            )
-            MusicBadge(
-                text = "Listen",
-                imageVector = Icons.Default.CheckCircle,
-                isActive = false,
-            )
-            MusicBadge(
-                text = "Admin Review",
-                imageVector = Icons.Default.Sync,
-                isActive = false,
-            )
-        }
-
-        Button(
-            onClick = onOpen,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            shape = RoundedCornerShape(18.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            Text("Beat Hub oeffnen")
         }
     }
 }
@@ -846,8 +759,6 @@ private fun MusicStatusCard(
 }
 }
 
-
-private const val musicDestinationBeatHub = "beat_hub"
 
 @Composable
 private fun MusicBadge(
