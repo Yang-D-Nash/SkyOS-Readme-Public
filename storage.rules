@@ -23,6 +23,16 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
+    match /videos/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /beats/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /nicma_music/{allPaths=**} {
       allow read: if true;
       allow write: if isAdmin();

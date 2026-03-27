@@ -9,6 +9,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,22 +51,27 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import com.skydown.shared.model.Track
+import com.skydown.android.ui.theme.SpotifyGreen
 
 @Composable
 fun TrackRow(
     track: Track,
     isPlaying: Boolean,
+    isSelected: Boolean,
+    onSelectTrack: () -> Unit,
     onPlayToggle: () -> Unit,
 ) {
     val context = LocalContext.current
     var showSpotifyPlayer by rememberSaveable(track.trackId) { mutableStateOf(false) }
     val hasPreview = !track.previewUrl.isNullOrBlank()
     val hasExternalLink = !track.externalUrl.isNullOrBlank()
-    val hasDirectSpotifyTrack = spotifyAppUri(track.externalUrl) != null
+    val hasDirectSpotifyTrack = resolvedSpotifyTrackId(track.spotifyTrackId, track.externalUrl) != null
     val hasSpotifySearch = hasExternalLink && !hasDirectSpotifyTrack
     val containerColor by animateColorAsState(
         targetValue = if (isPlaying) {
             MaterialTheme.colorScheme.primaryContainer
+        } else if (isSelected) {
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.82f)
         } else {
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
         },
@@ -78,6 +85,8 @@ fun TrackRow(
     val borderColor by animateColorAsState(
         targetValue = if (isPlaying) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+        } else if (isSelected) {
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.28f)
         } else {
             MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
         },
@@ -86,7 +95,8 @@ fun TrackRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize()
+            .clickable(onClick = onSelectTrack),
         shape = RoundedCornerShape(24.dp),
         color = containerColor,
         contentColor = contentColor,
@@ -167,15 +177,23 @@ fun TrackRow(
                                 isHighlighted = isPlaying,
                             )
                         }
+                        if (isSelected && !isPlaying) {
+                            TrackPill(
+                                text = "Im Player",
+                                isHighlighted = false,
+                            )
+                        }
                         if (hasDirectSpotifyTrack) {
                             TrackPill(
                                 text = "Spotify Player",
                                 isHighlighted = false,
+                                accentColor = SpotifyGreen,
                             )
                         } else if (hasSpotifySearch) {
                             TrackPill(
                                 text = "Spotify Suche",
                                 isHighlighted = false,
+                                accentColor = SpotifyGreen,
                             )
                         }
                     }
@@ -188,6 +206,10 @@ fun TrackRow(
                             FilledTonalButton(
                                 onClick = onPlayToggle,
                                 modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                ),
                             ) {
                                 Icon(
                                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -206,6 +228,10 @@ fun TrackRow(
                                     showSpotifyPlayer = true
                                 },
                                 modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                                border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = SpotifyGreen,
+                                ),
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.MusicNote,
@@ -219,9 +245,17 @@ fun TrackRow(
                         } else if (hasSpotifySearch) {
                             OutlinedButton(
                                 onClick = {
-                                    openTrackInSpotify(context, track.externalUrl)
+                                    openTrackInSpotify(
+                                        context = context,
+                                        spotifyTrackId = track.spotifyTrackId,
+                                        externalUrl = track.externalUrl,
+                                    )
                                 },
                                 modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                                border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = SpotifyGreen,
+                                ),
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.OpenInNew,
@@ -274,16 +308,18 @@ fun TrackRow(
 private fun TrackPill(
     text: String,
     isHighlighted: Boolean,
+    accentColor: androidx.compose.ui.graphics.Color? = null,
 ) {
+    val resolvedAccentColor = accentColor ?: MaterialTheme.colorScheme.primary
     val backgroundColor = if (isHighlighted) {
-        MaterialTheme.colorScheme.primary
+        resolvedAccentColor
     } else {
         MaterialTheme.colorScheme.surface
     }
     val contentColor = if (isHighlighted) {
         MaterialTheme.colorScheme.onPrimary
     } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f)
+        resolvedAccentColor.copy(alpha = 0.82f)
     }
 
     Row(
@@ -301,11 +337,12 @@ private fun TrackPill(
     }
 }
 
-private fun openTrackInSpotify(
+fun openTrackInSpotify(
     context: android.content.Context,
+    spotifyTrackId: String?,
     externalUrl: String?,
 ) {
-    val spotifyAppUri = spotifyAppUri(externalUrl)
+    val spotifyAppUri = spotifyAppUri(spotifyTrackId, externalUrl)
     if (spotifyAppUri != null) {
         val spotifyIntent = Intent(Intent.ACTION_VIEW, spotifyAppUri).setPackage("com.spotify.music")
         try {
@@ -328,7 +365,9 @@ private fun SpotifyEmbedDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val embedUrl = remember(track.externalUrl) { spotifyEmbedUri(track.externalUrl) }
+    val embedUrl = remember(track.spotifyTrackId, track.externalUrl) {
+        spotifyEmbedUri(track.spotifyTrackId, track.externalUrl)
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -411,7 +450,11 @@ private fun SpotifyEmbedDialog(
                 ) {
                     FilledTonalButton(
                         onClick = {
-                            openTrackInSpotify(context, track.externalUrl)
+                            openTrackInSpotify(
+                                context = context,
+                                spotifyTrackId = track.spotifyTrackId,
+                                externalUrl = track.externalUrl,
+                            )
                         },
                         modifier = Modifier.weight(1f),
                     ) {
@@ -437,22 +480,34 @@ private fun SpotifyEmbedDialog(
     }
 }
 
-private fun spotifyAppUri(externalUrl: String?): Uri? {
+private fun spotifyAppUri(
+    spotifyTrackId: String?,
+    externalUrl: String?,
+): Uri? {
+    val trackId = resolvedSpotifyTrackId(spotifyTrackId, externalUrl) ?: return null
+    return Uri.parse("spotify:track:$trackId")
+}
+
+private fun spotifyEmbedUri(
+    spotifyTrackId: String?,
+    externalUrl: String?,
+): Uri? {
+    val trackId = resolvedSpotifyTrackId(spotifyTrackId, externalUrl) ?: return null
+    return Uri.parse("https://open.spotify.com/embed/track/$trackId?utm_source=generator")
+}
+
+private fun resolvedSpotifyTrackId(
+    spotifyTrackId: String?,
+    externalUrl: String?,
+): String? {
+    if (!spotifyTrackId.isNullOrBlank()) return spotifyTrackId
     if (externalUrl.isNullOrBlank()) return null
     val parsed = Uri.parse(externalUrl)
     val segments = parsed.pathSegments
     val trackIndex = segments.indexOf("track")
-    val trackId = if (trackIndex != -1 && trackIndex + 1 < segments.size) {
+    return if (trackIndex != -1 && trackIndex + 1 < segments.size) {
         segments[trackIndex + 1]
     } else {
         null
     }
-    return trackId?.let { Uri.parse("spotify:track:$it") }
-}
-
-private fun spotifyEmbedUri(externalUrl: String?): Uri? {
-    val trackUri = spotifyAppUri(externalUrl) ?: return null
-    val trackId = trackUri.schemeSpecificPart.substringAfter("track:", "")
-    if (trackId.isBlank()) return null
-    return Uri.parse("https://open.spotify.com/embed/track/$trackId?utm_source=generator")
 }

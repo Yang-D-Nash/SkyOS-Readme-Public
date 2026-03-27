@@ -27,3 +27,6 @@ val BackgroundDark = Color(0xFF090B11)
 val TextDark = Color(0xFFF5F7FB)
 val TextMutedDark = Color(0xFF9AA4B5)
 val OutlineDark = Color(0xFF293244)
+
+val SpotifyGreen = Color(0xFF1ED760)
+val SpotifyGreenContainer = Color(0xFF123C25)

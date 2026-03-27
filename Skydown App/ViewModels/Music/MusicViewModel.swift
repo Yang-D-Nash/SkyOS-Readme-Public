@@ -15,6 +15,7 @@ class MusicViewModel: ObservableObject {
     @Published var tracks: [Track] = []
     @Published var isSpotifyConnected = false
     @Published var isConnectingSpotify = false
+    @Published var isLoadingTracks = false
 
     // Toast
     @Published var toastMessage = ""
@@ -45,20 +46,20 @@ class MusicViewModel: ObservableObject {
     func disconnectSpotify() {
         musicService.disconnect()
         isSpotifyConnected = false
-        tracks = []
-        showUserToast("Spotify getrennt", style: .info)
+        showUserToast("Spotify getrennt, Katalog bleibt aktiv", style: .info)
     }
 
     func fetchTracks(for artist: String) async {
         isSpotifyConnected = musicService.isConnected
+        isLoadingTracks = true
 
         do {
             let filteredTracks = try await musicService.fetchTracks(for: artist)
+            tracks = filteredTracks
 
             if filteredTracks.isEmpty {
                 showUserToast("Keine Songs für \(artist) gefunden", style: .error)
             } else {
-                tracks = filteredTracks
                 showUserToast("Songs erfolgreich geladen", style: .success)
             }
 
@@ -66,6 +67,8 @@ class MusicViewModel: ObservableObject {
             showUserToast("Tracks konnten gerade nicht geladen werden.", style: .error)
             tracks = []
         }
+
+        isLoadingTracks = false
     }
 
     private func showUserToast(_ message: String, style: ToastStyle) {
@@ -94,6 +97,7 @@ struct NicmaBeatHubItem: Identifiable {
     let uploaderEmail: String
     let uploaderID: String
     let mimeType: String
+    let storagePath: String
     let isPublic: Bool
     let createdAt: Date
 
@@ -117,6 +121,7 @@ protocol NicmaBeatHubServicing {
     ) -> () -> Void
     func uploadBeats(_ request: NicmaBeatUploadRequest, currentUser: User?) async throws
     func updateBeatVisibility(beatID: String, isPublic: Bool) async throws
+    func deleteBeat(_ beat: NicmaBeatHubItem) async throws
 }
 
 final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
@@ -169,6 +174,14 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
         ])
     }
 
+    func deleteBeat(_ beat: NicmaBeatHubItem) async throws {
+        if !beat.storagePath.isEmpty {
+            try await deleteStorageObject(path: beat.storagePath)
+        }
+
+        try await firestore.collection(collectionName).document(beat.id).delete()
+    }
+
     private func upload(
         _ file: NicmaSelectedFile,
         request: NicmaBeatUploadRequest,
@@ -176,7 +189,7 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
     ) async throws {
         let safeArtist = sanitizePathComponent(request.artistName)
         let path = buildUploadPath(
-            rootFolder: "nicma_music/beats",
+            rootFolder: "beats",
             scopeFolder: safeArtist,
             fileName: file.fileName
         )
@@ -316,9 +329,22 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
             uploaderEmail: data["uploaderEmail"] as? String ?? (data["email"] as? String ?? ""),
             uploaderID: data["uploaderID"] as? String ?? "",
             mimeType: data["mimeType"] as? String ?? "application/octet-stream",
+            storagePath: data["storagePath"] as? String ?? "",
             isPublic: data["isPublic"] as? Bool ?? false,
             createdAt: createdAt
         )
+    }
+
+    private func deleteStorageObject(path: String) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            storage.reference().child(path).delete { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
     }
 }
 
@@ -417,6 +443,17 @@ final class NicmaProducerViewModel: ObservableObject {
             )
         } catch {
             showUserToast("Der Beat-Status konnte nicht aktualisiert werden.", style: .error)
+        }
+    }
+
+    func deleteBeat(_ beat: NicmaBeatHubItem) async {
+        guard isAdmin else { return }
+
+        do {
+            try await service.deleteBeat(beat)
+            showUserToast("Beat geloescht.", style: .success)
+        } catch {
+            showUserToast("Der Beat konnte nicht geloescht werden.", style: .error)
         }
     }
 
@@ -661,7 +698,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
     ) async throws {
         let safeProject = sanitizePathComponent(request.projectName)
         let path = buildUploadPath(
-            rootFolder: "videography/videos",
+            rootFolder: "videos",
             scopeFolder: safeProject,
             fileName: file.fileName
         )
@@ -953,7 +990,12 @@ final class SkydownVideoHubViewModel: ObservableObject {
             notes = ""
             showUserToast("\(uploadCount) Video-Datei(en) hochgeladen.", style: .success)
         } catch {
-            showUserToast("Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.", style: .error)
+            let detail = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+            if detail.isEmpty {
+                showUserToast("Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.", style: .error)
+            } else {
+                showUserToast("Der Video-Upload ist fehlgeschlagen: \(detail)", style: .error)
+            }
         }
 
         isUploading = false

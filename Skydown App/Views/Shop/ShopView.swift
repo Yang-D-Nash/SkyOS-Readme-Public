@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
+    @StateObject private var beatPlaybackManager = BeatPlaybackManager()
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
@@ -27,6 +28,11 @@ struct HomeView: View {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     HomeHeroIntroCard(colorScheme: colorScheme)
                     HomeLatestReleaseCard(viewModel: viewModel, colorScheme: colorScheme)
+                    HomeLatestBeatCard(
+                        viewModel: viewModel,
+                        playbackManager: beatPlaybackManager,
+                        colorScheme: colorScheme
+                    )
                     HomeLatestVideoCard(viewModel: viewModel, colorScheme: colorScheme)
                     HomeStoryCard(colorScheme: colorScheme)
                 }
@@ -50,6 +56,9 @@ struct HomeView: View {
             }
             .task {
                 viewModel.refresh()
+            }
+            .onDisappear {
+                beatPlaybackManager.stop()
             }
         }
     }
@@ -294,15 +303,6 @@ private struct HomeHeroIntroCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 26))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
-        .overlay(alignment: .bottomLeading) {
-            HStack(spacing: 10) {
-                ShopBadge(text: "Hip Hop", colorScheme: colorScheme)
-                ShopBadge(text: "22 Hamburg", colorScheme: colorScheme)
-                ShopBadge(text: "Music & Video", colorScheme: colorScheme)
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 18)
-        }
     }
 }
 
@@ -347,13 +347,13 @@ private struct HomeLatestReleaseCard: View {
                 }
 
                 HStack(spacing: 10) {
-                    ShopBadge(text: "Neuester Song", colorScheme: colorScheme)
-                    ShopBadge(
-                        text: track.previewUrl != nil
-                            ? "Preview in App"
-                            : (track.externalURL != nil ? "Spotify Suche" : "Release"),
-                        colorScheme: colorScheme
+                    Text(
+                        track.previewUrl != nil
+                            ? "Neuester Song mit In-App-Preview."
+                            : ((track.spotifyTrackID != nil || track.externalURL != nil) ? "Neuester Song mit Spotify-Ziel." : "Neuester Song.")
                     )
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             } else {
                 Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.")
@@ -376,6 +376,74 @@ private struct HomeLatestReleaseCard: View {
             return "\(collection) • \(releaseDate)"
         }
         return collection
+    }
+}
+
+private struct HomeLatestBeatCard: View {
+    @ObservedObject var viewModel: HomeViewModel
+    @ObservedObject var playbackManager: BeatPlaybackManager
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Neuester Beat")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            if let beat = viewModel.featuredBeat {
+                HStack(alignment: .top, spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                            .frame(width: 82, height: 82)
+
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(AppColors.accent(for: colorScheme))
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(beat.title)
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        Text(beat.artistName)
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        if !beat.notes.isEmpty {
+                            Text(beat.notes)
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+                    }
+
+                    Spacer()
+                }
+
+                if beat.isPlayable, !beat.downloadURL.isEmpty {
+                    HomeActionButton(
+                        title: playbackManager.currentBeatID == beat.id ? "Beat stoppen" : "Beat abspielen",
+                        icon: playbackManager.currentBeatID == beat.id ? "stop.fill" : "play.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: true
+                    ) {
+                        playbackManager.togglePlayback(for: beat.asBeatHubItem)
+                    }
+                }
+            } else {
+                Text(viewModel.homeBeatMessage ?? "Neuer Beat erscheint hier.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+        }
+        .padding(18)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -420,10 +488,9 @@ private struct HomeLatestVideoCard: View {
                     Spacer()
                 }
 
-                HStack(spacing: 10) {
-                    ShopBadge(text: "Videography", colorScheme: colorScheme)
-                    ShopBadge(text: "Home Auswahl", colorScheme: colorScheme)
-                }
+                Text("Aus dem Videography Hub fuers Home ausgewaehlt.")
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else {
                 Text(viewModel.homeVideoMessage ?? "Neues Video erscheint hier.")
                     .font(.body)
@@ -453,12 +520,6 @@ private struct HomeStoryCard: View {
             Text("Developer")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
-
-            HStack(spacing: 10) {
-                ShopBadge(text: "Yang D. Nash", colorScheme: colorScheme)
-                ShopBadge(text: "Skydown", colorScheme: colorScheme)
-                ShopBadge(text: "Entwickler", colorScheme: colorScheme)
-            }
 
             Text("Yang D. Nash entwickelt die App und bildet den Kern von Skydown x 22. Skydown Entertainment verbindet Hip Hop, Music und Video mit einer eigenen mobilen Plattform.")
                 .font(.body)
@@ -506,6 +567,26 @@ private struct HomeStoryCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private extension FeaturedHomeBeat {
+    var asBeatHubItem: NicmaBeatHubItem {
+        NicmaBeatHubItem(
+            id: id,
+            title: title,
+            artistName: artistName,
+            fileName: title,
+            downloadURL: downloadURL,
+            notes: notes,
+            uploaderName: artistName,
+            uploaderEmail: "",
+            uploaderID: "",
+            mimeType: "audio/mpeg",
+            storagePath: "",
+            isPublic: true,
+            createdAt: .now
+        )
     }
 }
 

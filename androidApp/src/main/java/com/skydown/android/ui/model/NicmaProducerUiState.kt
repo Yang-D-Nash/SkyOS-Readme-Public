@@ -20,6 +20,7 @@ data class NicmaBeatHubItem(
     val uploaderEmail: String,
     val uploaderId: String,
     val mimeType: String,
+    val storagePath: String,
     val isPublic: Boolean,
     val createdAtMillis: Long,
 ) {

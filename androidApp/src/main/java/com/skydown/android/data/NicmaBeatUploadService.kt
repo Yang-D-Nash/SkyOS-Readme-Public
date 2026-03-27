@@ -77,6 +77,19 @@ class NicmaBeatUploadService(
             .await()
     }
 
+    suspend fun deleteBeat(beat: NicmaBeatHubItem) {
+        if (beat.storagePath.isNotBlank()) {
+            runCatching {
+                storage.reference.child(beat.storagePath).delete().await()
+            }
+        }
+
+        firestore.collection(collectionName)
+            .document(beat.id)
+            .delete()
+            .await()
+    }
+
     private suspend fun uploadSingleFile(
         context: Context,
         request: NicmaBeatUploadRequest,
@@ -85,7 +98,7 @@ class NicmaBeatUploadService(
     ) {
         val safeArtist = sanitizePathComponent(request.artistName)
         val storagePath = buildUploadPath(
-            rootFolder = "nicma_music/beats",
+            rootFolder = "beats",
             scopeFolder = safeArtist,
             fileName = file.fileName,
         )
@@ -151,6 +164,7 @@ class NicmaBeatUploadService(
             uploaderEmail = data["uploaderEmail"] as? String ?: (data["email"] as? String ?: ""),
             uploaderId = data["uploaderID"] as? String ?: "",
             mimeType = data["mimeType"] as? String ?: "application/octet-stream",
+            storagePath = data["storagePath"] as? String ?: "",
             isPublic = data["isPublic"] as? Boolean ?: false,
             createdAtMillis = createdAtMillis,
         )

@@ -299,6 +299,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 trackId: abs(item.id.hashValue),
                 artistId: abs((matchingArtist?.id ?? item.artists.first?.id ?? item.id).hashValue),
                 spotifyArtistID: matchingArtist?.id ?? item.artists.first?.id,
+                spotifyTrackID: item.id,
                 artistName: matchingArtist?.name ?? item.artists.first?.name,
                 trackName: item.name,
                 collectionName: item.album.name,
@@ -319,18 +320,34 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func fetchCatalogTracks(for artist: String) async throws -> [Track] {
-        let url = try catalogSearchURL(for: artist)
-        let (data, _) = try await session.data(from: url)
-        let response = try decoder.decode(CatalogSearchResponse.self, from: data)
+        var resultsByKey: [String: CatalogTrack] = [:]
+        var orderedKeys: [String] = []
 
-        return response.results
-            .filter { artistMatches(expectedArtist: artist, actualArtist: $0.artistName) }
+        for query in catalogQueries(for: artist) {
+            let url = try catalogSearchURL(for: query.term, attribute: query.attribute)
+            let (data, _) = try await session.data(from: url)
+            let response = try decoder.decode(CatalogSearchResponse.self, from: data)
+
+            response.results
+                .filter { artistMatches(expectedArtist: artist, actualArtist: $0.artistName) }
+                .forEach { item in
+                    let key = catalogTrackKey(for: item)
+                    if resultsByKey[key] == nil {
+                        orderedKeys.append(key)
+                    }
+                    resultsByKey[key] = item
+                }
+        }
+
+        return orderedKeys
+            .compactMap { resultsByKey[$0] }
             .sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
             .map { item in
                 Track(
                     trackId: item.trackId ?? abs("\(item.artistName)-\(item.trackName)".hashValue),
                     artistId: item.artistId ?? abs(item.artistName.hashValue),
                     spotifyArtistID: nil,
+                    spotifyTrackID: nil,
                     artistName: item.artistName,
                     trackName: item.trackName,
                     collectionName: item.collectionName,
@@ -370,6 +387,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                     trackId: abs(item.id.hashValue),
                     artistId: abs(artistID.hashValue),
                     spotifyArtistID: artistID,
+                    spotifyTrackID: item.id,
                     artistName: matchingArtist?.name ?? artist,
                     trackName: item.name,
                     collectionName: album.name,
@@ -653,27 +671,76 @@ final class SpotifyMusicService: NSObject, MusicServicing {
 
     private func artistMatches(expectedArtist: String, actualArtist: String?) -> Bool {
         guard let actualArtist else { return false }
-        let expected = expectedArtist.lowercased()
-        let actual = actualArtist.lowercased()
+        let expected = normalizeArtistName(expectedArtist)
+        let actual = normalizeArtistName(actualArtist)
         return actual == expected || actual.contains(expected) || expected.contains(actual)
     }
 
+    private func normalizeArtistName(_ value: String) -> String {
+        value
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9]+", with: "", options: .regularExpression)
+    }
+
     private func catalogSearchURL(for artist: String) throws -> URL {
+        try catalogSearchURL(for: artist, attribute: nil)
+    }
+
+    private func catalogSearchURL(for artist: String, attribute: String?) throws -> URL {
         guard var components = URLComponents(string: "https://itunes.apple.com/search") else {
             throw URLError(.badURL)
         }
 
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "term", value: artist),
             URLQueryItem(name: "media", value: "music"),
             URLQueryItem(name: "entity", value: "song"),
-            URLQueryItem(name: "limit", value: "25"),
+            URLQueryItem(name: "limit", value: "50"),
         ]
+
+        if let attribute {
+            queryItems.append(URLQueryItem(name: "attribute", value: attribute))
+        }
+
+        components.queryItems = queryItems
 
         guard let url = components.url else {
             throw URLError(.badURL)
         }
         return url
+    }
+
+    private func catalogQueries(for artist: String) -> [(term: String, attribute: String?)] {
+        let cleanedArtist = artist
+            .replacingOccurrences(of: "[^a-zA-Z0-9]+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let baseQueries: [(term: String, attribute: String?)] = [
+            (artist, "artistTerm"),
+            (cleanedArtist, "artistTerm"),
+            (artist, nil),
+            (cleanedArtist, nil)
+        ]
+
+        var deduplicatedQueries: [(term: String, attribute: String?)] = []
+        for query in baseQueries where !query.term.isEmpty {
+            let isDuplicate = deduplicatedQueries.contains { existing in
+                existing.term == query.term && existing.attribute == query.attribute
+            }
+            if !isDuplicate {
+                deduplicatedQueries.append(query)
+            }
+        }
+
+        return deduplicatedQueries
+    }
+
+    private func catalogTrackKey(for track: CatalogTrack) -> String {
+        if let trackId = track.trackId {
+            return "id-\(trackId)"
+        }
+
+        return "\(normalizeArtistName(track.artistName))-\(track.trackName.lowercased())"
     }
 
     private func spotifySearchURL(artist: String, track: String) -> URL? {

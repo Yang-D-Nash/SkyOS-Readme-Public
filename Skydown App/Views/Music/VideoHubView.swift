@@ -25,15 +25,14 @@ struct VideoHubView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 heroCard
-                formatCard
-                VideoEquipmentCard(colorScheme: colorScheme)
-
-                if viewModel.isAdmin {
-                    uploadCard
-                }
-
                 playerCard
                 libraryCard
+
+                if viewModel.isAdmin {
+                    formatCard
+                    VideoEquipmentCard(colorScheme: colorScheme)
+                    uploadCard
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
@@ -82,8 +81,8 @@ struct VideoHubView: View {
 
             Text(
                 viewModel.isAdmin
-                ? "Hier landen Reels, Clips, Sessions und Visuals. Als Admin kannst du Videos hochladen und eins direkt fuer Home auswaehlen."
-                : "Hier laufen die oeffentlichen Videos von Skydown x 22. Uploads und Pflege bleiben im Admin-Bereich."
+                ? "Hier landen Reels, Clips, Sessions und Visuals. Als Admin kannst du hochladen, loeschen und ein Home-Video festlegen."
+                : "Hier laufen die oeffentlichen Videos von Skydown x 22. Einfach Clip waehlen und direkt anschauen."
             )
             .font(.body)
             .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -382,10 +381,14 @@ struct VideoHubLibraryRow: View {
 
             HStack(spacing: 8) {
                 MusicBadge(text: video.isPublic ? "Live" : "Hidden", isAccent: video.isPublic)
-                if video.isHomeFeatured {
+                if isAdmin && video.isHomeFeatured {
                     MusicBadge(text: "Home", isAccent: true)
                 }
-                MusicBadge(text: video.fileName, isAccent: false)
+                if isAdmin {
+                    MusicBadge(text: video.fileName, isAccent: false)
+                } else {
+                    MusicBadge(text: "Clip", isAccent: false)
+                }
             }
 
             HStack(spacing: 10) {

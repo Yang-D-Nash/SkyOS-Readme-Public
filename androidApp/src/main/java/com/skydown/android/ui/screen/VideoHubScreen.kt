@@ -138,7 +138,11 @@ fun VideoHubScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Videos schauen, Admin-Uploads verwalten und klare Formatvorgaben sehen.",
+                            text = if (uiState.isAdmin) {
+                                "Admin Uploads, Home-Highlights und die komplette Videography-Library."
+                            } else {
+                                "Oeffentliche Videos direkt schauen, ohne Admin-Overhead."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -197,15 +201,15 @@ fun VideoHubScreen(
                     VideoHubHeroCard(isAdmin = uiState.isAdmin)
                 }
 
-                item {
-                    VideoFormatCard()
-                }
-
-                item {
-                    VideoEquipmentCard()
-                }
-
                 if (uiState.isAdmin) {
+                    item {
+                        VideoFormatCard()
+                    }
+
+                    item {
+                        VideoEquipmentCard()
+                    }
+
                     item {
                         VideoUploadCard(
                             uiState = uiState,
@@ -723,8 +727,10 @@ private fun VideoLibraryRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             VideoPill(text = if (isSelected) "Im Player" else "Auswaehlen", isActive = isSelected)
             VideoPill(text = if (video.isPublic) "Live" else "Hidden", isActive = video.isPublic)
-            if (video.isHomeFeatured) {
+            if (isAdmin && video.isHomeFeatured) {
                 VideoPill(text = "Home", isActive = true)
+            } else if (!isAdmin) {
+                VideoPill(text = "Clip", isActive = false)
             }
         }
 

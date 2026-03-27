@@ -30,15 +30,15 @@ class MusicViewModel : ViewModel() {
                     } else {
                         it.copy(
                             isSpotifyConnected = false,
-                            isLoading = false,
-                            tracks = emptyList(),
+                            errorMessage = null,
                             currentlyPlayingId = null,
                             currentPreviewUrl = null,
-                            errorMessage = null,
                         )
                     }
                 }
-                if (connected && _uiState.value.tracks.isEmpty()) {
+
+                val currentState = _uiState.value
+                if (currentState.tracks.isEmpty() && !currentState.isLoading) {
                     selectArtist(_uiState.value.selectedArtist)
                 }
             }
@@ -115,6 +115,12 @@ class MusicViewModel : ViewModel() {
 
     fun disconnectSpotify() {
         SpotifyAuthManager.disconnect()
+        _uiState.update {
+            it.copy(
+                currentlyPlayingId = null,
+                currentPreviewUrl = null,
+            )
+        }
     }
 
     fun clearSpotifyError() {

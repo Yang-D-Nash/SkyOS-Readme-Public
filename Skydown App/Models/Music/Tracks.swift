@@ -10,6 +10,7 @@ struct Track: Identifiable, Decodable {
     let trackId: Int
     let artistId: Int
     let spotifyArtistID: String?
+    let spotifyTrackID: String?
     let artistName: String?
     let trackName: String
     let collectionName: String?

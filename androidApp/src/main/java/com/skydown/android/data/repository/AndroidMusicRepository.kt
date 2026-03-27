@@ -19,7 +19,7 @@ class AndroidMusicRepository : MusicRepository {
     private val artistAlbumsPageSize = 10
     private val artistAlbumsMaxResults = 100
     private val albumTracksPageSize = 50
-    private val catalogPageSize = 25
+    private val catalogPageSize = 50
 
     override suspend fun fetchTracks(artist: String): Result<List<Track>> {
         return runCatching {
@@ -79,6 +79,7 @@ class AndroidMusicRepository : MusicRepository {
                             trackId = kotlin.math.abs(track.id.hashCode()),
                             artistId = kotlin.math.abs((matchingArtist?.id ?: track.artists.firstOrNull()?.id ?: track.id).hashCode()),
                             spotifyArtistId = matchingArtist?.id ?: track.artists.firstOrNull()?.id,
+                            spotifyTrackId = track.id,
                             artistName = matchingArtist?.name ?: track.artists.firstOrNull()?.name,
                             trackName = track.name,
                             collectionName = track.album.name,
@@ -111,21 +112,40 @@ class AndroidMusicRepository : MusicRepository {
     }
 
     private fun fetchCatalogTracks(artist: String): List<Track> {
-        val response = performCatalogRequest(buildCatalogSearchUrl(artist))
-        if (response.responseCode !in 200..299) {
+        val resultsByKey = linkedMapOf<String, CatalogTrack>()
+
+        catalogQueriesFor(artist).forEach { query ->
+            val response = performCatalogRequest(
+                buildCatalogSearchUrl(
+                    artist = query.term,
+                    attribute = query.attribute,
+                ),
+            )
+            if (response.responseCode !in 200..299) {
+                return@forEach
+            }
+
+            json.decodeFromString(CatalogSearchResponse.serializer(), response.payload).results
+                .filter { result ->
+                    artistMatches(expectedArtist = artist, actualArtist = result.artistName)
+                }
+                .forEach { result ->
+                    resultsByKey.putIfAbsent(catalogTrackKey(result), result)
+                }
+        }
+
+        if (resultsByKey.isEmpty()) {
             error("Tracks konnten gerade nicht geladen werden.")
         }
 
-        return json.decodeFromString(CatalogSearchResponse.serializer(), response.payload).results
-            .filter { result ->
-                artistMatches(expectedArtist = artist, actualArtist = result.artistName)
-            }
+        return resultsByKey.values
             .sortedByDescending { it.releaseDate.orEmpty() }
             .map { result ->
                 Track(
                     trackId = result.trackId ?: kotlin.math.abs("${result.artistName}-${result.trackName}".hashCode()),
                     artistId = result.artistId ?: kotlin.math.abs(result.artistName.hashCode()),
                     spotifyArtistId = null,
+                    spotifyTrackId = null,
                     artistName = result.artistName,
                     trackName = result.trackName,
                     collectionName = result.collectionName,
@@ -163,6 +183,7 @@ class AndroidMusicRepository : MusicRepository {
                         trackId = kotlin.math.abs(track.id.hashCode()),
                         artistId = kotlin.math.abs(artistId.hashCode()),
                         spotifyArtistId = artistId,
+                        spotifyTrackId = track.id,
                         artistName = track.artists.firstOrNull { it.id == artistId }?.name ?: artist,
                         trackName = track.name,
                         collectionName = album.name,
@@ -366,15 +387,17 @@ class AndroidMusicRepository : MusicRepository {
         return URL(uri.toString())
     }
 
-    private fun buildCatalogSearchUrl(artist: String): URL {
-        val uri = Uri.parse("https://itunes.apple.com/search")
+    private fun buildCatalogSearchUrl(artist: String, attribute: String? = null): URL {
+        val uriBuilder = Uri.parse("https://itunes.apple.com/search")
             .buildUpon()
             .appendQueryParameter("term", artist)
             .appendQueryParameter("media", "music")
             .appendQueryParameter("entity", "song")
             .appendQueryParameter("limit", catalogPageSize.toString())
-            .build()
-        return URL(uri.toString())
+
+        attribute?.let { uriBuilder.appendQueryParameter("attribute", it) }
+
+        return URL(uriBuilder.build().toString())
     }
 
     private fun buildSpotifySearchUrl(artist: String, trackName: String): String {
@@ -395,11 +418,37 @@ class AndroidMusicRepository : MusicRepository {
         ).distinct()
     }
 
+    private fun catalogQueriesFor(artist: String): List<CatalogQuery> {
+        val cleanedArtist = artist
+            .replace(Regex("[^a-zA-Z0-9]+"), " ")
+            .trim()
+
+        return listOf(
+            CatalogQuery(term = artist, attribute = "artistTerm"),
+            CatalogQuery(term = cleanedArtist, attribute = "artistTerm"),
+            CatalogQuery(term = artist, attribute = null),
+            CatalogQuery(term = cleanedArtist, attribute = null),
+        )
+            .filter { it.term.isNotBlank() }
+            .distinct()
+    }
+
     private fun artistMatches(expectedArtist: String, actualArtist: String?): Boolean {
         if (actualArtist.isNullOrBlank()) return false
-        val expected = expectedArtist.lowercase()
-        val actual = actualArtist.lowercase()
+        val expected = normalizeArtistName(expectedArtist)
+        val actual = normalizeArtistName(actualArtist)
         return actual == expected || actual.contains(expected) || expected.contains(actual)
+    }
+
+    private fun catalogTrackKey(track: CatalogTrack): String {
+        return track.trackId?.let { "id-$it" }
+            ?: "${normalizeArtistName(track.artistName)}-${track.trackName.lowercase()}"
+    }
+
+    private fun normalizeArtistName(value: String): String {
+        return value
+            .lowercase()
+            .replace(Regex("[^a-z0-9]+"), "")
     }
 
     private val artistIds = mapOf(
@@ -420,6 +469,11 @@ class AndroidMusicRepository : MusicRepository {
         val items: List<SpotifyTrack>,
         val responseCode: Int,
         val errorMessage: String?,
+    )
+
+    private data class CatalogQuery(
+        val term: String,
+        val attribute: String?,
     )
 }
 

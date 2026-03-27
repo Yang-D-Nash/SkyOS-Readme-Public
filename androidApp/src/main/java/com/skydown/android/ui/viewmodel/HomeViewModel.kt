@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.skydown.android.data.AppContainer
+import com.skydown.android.ui.model.FeaturedBeatHighlight
 import com.skydown.android.ui.model.FeaturedVideoHighlight
 import com.skydown.android.ui.model.HomeUiState
 import com.skydown.shared.model.Track
@@ -37,14 +38,21 @@ class HomeViewModel : ViewModel() {
     fun refresh() {
         viewModelScope.launch {
             val latestTrack = loadLatestTrack()
+            val latestBeat = loadLatestBeat()
             val latestVideo = loadLatestVideo()
 
             _uiState.update {
                 it.copy(
                     featuredTrack = latestTrack,
+                    featuredBeat = latestBeat,
                     featuredVideo = latestVideo,
                     homeTrackMessage = if (latestTrack == null) {
                         "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
+                    } else {
+                        null
+                    },
+                    homeBeatMessage = if (latestBeat == null) {
+                        "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
                     } else {
                         null
                     },
@@ -73,6 +81,21 @@ class HomeViewModel : ViewModel() {
         }
 
         return latestTrack
+    }
+
+    private suspend fun loadLatestBeat(): FeaturedBeatHighlight? {
+        val snapshot = firestore.collection("nicmaBeatHub")
+            .whereEqualTo("isPublic", true)
+            .limit(20)
+            .get()
+            .await()
+
+        val latestDocument = snapshot.documents
+            .sortedByDescending(::documentTimestamp)
+            .firstOrNull()
+            ?: return null
+
+        return mapFeaturedBeat(latestDocument)
     }
 
     private suspend fun loadLatestVideo(): FeaturedVideoHighlight? {
@@ -109,6 +132,27 @@ class HomeViewModel : ViewModel() {
             title = title,
             projectName = document.getString("projectName").orEmpty().ifBlank { "Skydown Visual" },
             notes = document.getString("notes").orEmpty(),
+        )
+    }
+
+    private fun mapFeaturedBeat(document: com.google.firebase.firestore.DocumentSnapshot): FeaturedBeatHighlight? {
+        val title = document.getString("title").orEmpty()
+        val artistName = document.getString("artistName").orEmpty()
+        val downloadUrl = document.getString("downloadURL").orEmpty()
+        val fileName = document.getString("fileName").orEmpty()
+        val mimeType = document.getString("mimeType").orEmpty()
+        if (title.isBlank()) return null
+
+        return FeaturedBeatHighlight(
+            id = document.id,
+            title = title,
+            artistName = artistName.ifBlank { "Skydown Beat" },
+            notes = document.getString("notes").orEmpty(),
+            downloadUrl = downloadUrl,
+            isPlayable = mimeType.startsWith("audio/") ||
+                fileName.endsWith(".mp3", ignoreCase = true) ||
+                fileName.endsWith(".wav", ignoreCase = true) ||
+                fileName.endsWith(".m4a", ignoreCase = true),
         )
     }
 

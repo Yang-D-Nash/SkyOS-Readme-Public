@@ -17,10 +17,26 @@ object MusicUseCase {
         return tracks.filter { track ->
             track.wrapperType == "track" &&
                 if (artistId != null) {
-                    track.spotifyArtistId == artistId
+                    track.spotifyArtistId == artistId ||
+                        (track.spotifyArtistId == null && artistMatches(artist, track.artistName))
                 } else {
-                    track.artistName?.equals(artist, ignoreCase = true) == true
+                    artistMatches(artist, track.artistName)
                 }
         }
+    }
+
+    private fun artistMatches(expectedArtist: String, actualArtist: String?): Boolean {
+        if (actualArtist.isNullOrBlank()) return false
+
+        val expected = normalizeArtistName(expectedArtist)
+        val actual = normalizeArtistName(actualArtist)
+
+        return actual == expected || actual.contains(expected) || expected.contains(actual)
+    }
+
+    private fun normalizeArtistName(value: String): String {
+        return value
+            .lowercase()
+            .replace(Regex("[^a-z0-9]+"), "")
     }
 }

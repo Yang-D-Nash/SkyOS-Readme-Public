@@ -114,7 +114,7 @@ class VideoHubService(
     ) {
         val safeProject = sanitizePathComponent(request.projectName)
         val storagePath = buildUploadPath(
-            rootFolder = "videography/videos",
+            rootFolder = "videos",
             scopeFolder = safeProject,
             fileName = file.fileName,
         )

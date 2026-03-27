@@ -10,7 +10,7 @@ struct SpotifyEmbedPlayerView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let embedURL = spotifyEmbedURL(externalURL: track.externalURL) {
+                if let embedURL = spotifyEmbedURL(track: track) {
                     SpotifyEmbedWebView(url: embedURL)
                         .background(Color.black)
                 } else {
@@ -29,11 +29,11 @@ struct SpotifyEmbedPlayerView: View {
                     }
                 }
 
-                if let appURL = spotifyAppURL(externalURL: track.externalURL) {
+                if let appURL = spotifyAppURL(track: track) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             openURL(appURL) { accepted in
-                                if !accepted, let webURL = spotifyWebURL(externalURL: track.externalURL) {
+                                if !accepted, let webURL = spotifyWebURL(track: track) {
                                     openURL(webURL)
                                 }
                             }
@@ -41,7 +41,7 @@ struct SpotifyEmbedPlayerView: View {
                             Image(systemName: "arrow.up.forward.circle")
                         }
                     }
-                } else if let webURL = spotifyWebURL(externalURL: track.externalURL) {
+                } else if let webURL = spotifyWebURL(track: track) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             openURL(webURL)
@@ -78,23 +78,31 @@ private struct SpotifyEmbedWebView: UIViewRepresentable {
     }
 }
 
-private func spotifyWebURL(externalURL: String?) -> URL? {
-    guard let externalURL, !externalURL.isEmpty else { return nil }
-    return URL(string: externalURL)
+private func spotifyWebURL(track: Track) -> URL? {
+    if let externalURL = track.externalURL, !externalURL.isEmpty {
+        return URL(string: externalURL)
+    }
+    guard let trackID = resolvedSpotifyTrackID(track: track) else { return nil }
+    return URL(string: "https://open.spotify.com/track/\(trackID)")
 }
 
-private func spotifyAppURL(externalURL: String?) -> URL? {
-    guard let trackID = spotifyTrackID(externalURL: externalURL) else { return nil }
+private func spotifyAppURL(track: Track) -> URL? {
+    guard let trackID = resolvedSpotifyTrackID(track: track) else { return nil }
     return URL(string: "spotify:track:\(trackID)")
 }
 
-private func spotifyEmbedURL(externalURL: String?) -> URL? {
-    guard let trackID = spotifyTrackID(externalURL: externalURL) else { return nil }
+private func spotifyEmbedURL(track: Track) -> URL? {
+    guard let trackID = resolvedSpotifyTrackID(track: track) else { return nil }
     return URL(string: "https://open.spotify.com/embed/track/\(trackID)?utm_source=generator")
 }
 
-private func spotifyTrackID(externalURL: String?) -> String? {
-    guard let webURL = spotifyWebURL(externalURL: externalURL),
+private func resolvedSpotifyTrackID(track: Track) -> String? {
+    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
+        return spotifyTrackID
+    }
+
+    guard let externalURL = track.externalURL,
+          let webURL = URL(string: externalURL),
           let components = URLComponents(url: webURL, resolvingAgainstBaseURL: false) else {
         return nil
     }

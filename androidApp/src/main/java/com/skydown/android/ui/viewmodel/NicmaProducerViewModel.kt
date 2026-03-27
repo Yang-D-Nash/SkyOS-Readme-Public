@@ -166,6 +166,30 @@ class NicmaProducerViewModel(
         }
     }
 
+    fun deleteBeat(beat: NicmaBeatHubItem) {
+        if (!_uiState.value.isAdmin) return
+
+        viewModelScope.launch {
+            runCatching {
+                beatHubService.deleteBeat(beat)
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        feedbackMessage = "Beat geloescht.",
+                        feedbackIsError = false,
+                    )
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        feedbackMessage = "Der Beat konnte nicht geloescht werden.",
+                        feedbackIsError = true,
+                    )
+                }
+            }
+        }
+    }
+
     fun upload(context: Context) {
         val currentState = _uiState.value
         if (!currentState.isAdmin) {

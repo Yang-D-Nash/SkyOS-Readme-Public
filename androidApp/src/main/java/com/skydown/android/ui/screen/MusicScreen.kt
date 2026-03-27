@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -63,7 +64,10 @@ import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.TrackRow
+import com.skydown.android.ui.component.openTrackInSpotify
 import com.skydown.android.ui.model.MusicUiState
+import com.skydown.android.ui.theme.SpotifyGreen
+import com.skydown.android.ui.theme.SpotifyGreenContainer
 import com.skydown.android.ui.viewmodel.MusicViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +100,9 @@ fun MusicScreen(
             playWhenReady = true
         }
     }
+    var selectedTrackId by rememberSaveable { mutableStateOf<Int?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -123,6 +129,18 @@ fun MusicScreen(
             player.setMediaItem(MediaItem.fromUri(previewUrl))
             player.prepare()
             player.play()
+        }
+    }
+
+    LaunchedEffect(uiState.tracks) {
+        if (selectedTrackId == null || uiState.tracks.none { it.trackId == selectedTrackId }) {
+            selectedTrackId = uiState.tracks.firstOrNull()?.trackId
+        }
+    }
+
+    LaunchedEffect(uiState.currentlyPlayingId) {
+        uiState.currentlyPlayingId?.let { playingId ->
+            selectedTrackId = playingId
         }
     }
 
@@ -240,13 +258,30 @@ fun MusicScreen(
                         uiState.tracks.isEmpty() -> {
                             MusicStatusCard(
                                 title = "Noch keine Tracks gefunden",
-                                body = "Fur ${uiState.selectedArtist} wurden gerade keine Spotify-Releases gefunden.",
+                                body = "Fur ${uiState.selectedArtist} wurden gerade keine Tracks gefunden.",
                             )
                         }
                     }
                 }
 
                 if (uiState.tracks.isNotEmpty()) {
+                    item {
+                        MusicPlayerCard(
+                            track = selectedTrack,
+                            isPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
+                            onPlayToggle = {
+                                selectedTrack?.let { viewModel.togglePreview(it) }
+                            },
+                            onOpenSpotify = {
+                                openTrackInSpotify(
+                                    context = context,
+                                    spotifyTrackId = selectedTrack?.spotifyTrackId,
+                                    externalUrl = selectedTrack?.externalUrl,
+                                )
+                            },
+                        )
+                    }
+
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             SectionHeader("Tracks")
@@ -262,6 +297,8 @@ fun MusicScreen(
                         TrackRow(
                             track = track,
                             isPlaying = uiState.currentlyPlayingId == track.trackId,
+                            isSelected = selectedTrackId == track.trackId,
+                            onSelectTrack = { selectedTrackId = track.trackId },
                             onPlayToggle = { viewModel.togglePreview(track) },
                         )
                     }
@@ -284,6 +321,116 @@ fun MusicScreen(
                     BeatHubEntryCard(
                         onOpen = { activeDestination = musicDestinationBeatHub },
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MusicPlayerCard(
+    track: com.skydown.shared.model.Track?,
+    isPlaying: Boolean,
+    onPlayToggle: () -> Unit,
+    onOpenSpotify: () -> Unit,
+) {
+    if (track == null) return
+
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "Song Player",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (!track.spotifyTrackId.isNullOrBlank()) SpotifyGreen else MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = track.trackName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = track.artistName ?: "Skydown x 22",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+                track.collectionName?.takeIf { it.isNotBlank() }?.let { album ->
+                    Text(
+                        text = album,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (!track.spotifyTrackId.isNullOrBlank()) {
+                            SpotifyGreen.copy(alpha = 0.16f)
+                        } else {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = if (!track.spotifyTrackId.isNullOrBlank()) SpotifyGreen else MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (!track.previewUrl.isNullOrBlank()) {
+                Button(
+                    onClick = onPlayToggle,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    Text(if (isPlaying) "Preview stoppen" else "Preview starten")
+                }
+            }
+
+            if (!track.spotifyTrackId.isNullOrBlank()) {
+                Button(
+                    onClick = onOpenSpotify,
+                    modifier = if (!track.previewUrl.isNullOrBlank()) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SpotifyGreen,
+                        contentColor = MaterialTheme.colorScheme.scrim,
+                    ),
+                ) {
+                    Text("Spotify Player")
+                }
+            } else if (!track.externalUrl.isNullOrBlank()) {
+                OutlinedButton(
+                    onClick = onOpenSpotify,
+                    modifier = if (!track.previewUrl.isNullOrBlank()) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = SpotifyGreen,
+                    ),
+                ) {
+                    Text("Spotify Suche")
                 }
             }
         }
@@ -486,11 +633,11 @@ private fun MusicOverviewCard(
             ) {
                 Text(
                     text = uiState.selectedArtist,
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Preview in App. Full track mit Spotify Premium.",
+                    text = "Preview in App. Voller Track mit Spotify Premium.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -498,34 +645,29 @@ private fun MusicOverviewCard(
 
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(SpotifyGreen.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = SpotifyGreen,
                 )
             }
         }
 
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            MusicBadge(
-                text = if (uiState.isSpotifyConnected) "Spotify verbunden" else "Preview bereit",
-                imageVector = if (uiState.isSpotifyConnected) Icons.Default.CheckCircle else Icons.Default.Sync,
-                isActive = uiState.isSpotifyConnected,
-            )
-            MusicBadge(
-                text = if (uiState.currentPreviewUrl != null) "Preview laeuft" else "${uiState.tracks.size} Songs",
-                imageVector = if (uiState.currentPreviewUrl != null) Icons.Default.MusicNote else Icons.Default.CheckCircle,
-                isActive = uiState.currentPreviewUrl != null,
-            )
-        }
+        Text(
+            text = if (uiState.currentPreviewUrl != null) {
+                "Preview laeuft gerade. ${uiState.tracks.size} Songs verfuegbar."
+            } else {
+                "${uiState.tracks.size} Songs verfuegbar. Spotify bleibt optional."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+            modifier = Modifier.padding(top = 12.dp),
+        )
 
         if (uiState.isSpotifyConnected) {
             OutlinedButton(
@@ -533,6 +675,8 @@ private fun MusicOverviewCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.5f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = SpotifyGreen),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Logout,
@@ -544,13 +688,17 @@ private fun MusicOverviewCard(
                 )
             }
         } else {
-            OutlinedButton(
+            Button(
                 onClick = onConnect,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SpotifyGreen,
+                    contentColor = MaterialTheme.colorScheme.scrim,
+                ),
             ) {
-                Text("Spotify optional verbinden")
+                Text("Spotify verbinden")
             }
         }
     }

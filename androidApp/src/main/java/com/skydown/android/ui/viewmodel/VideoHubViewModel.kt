@@ -205,10 +205,13 @@ class VideoHubViewModel(
                     )
                 }
             }.onFailure {
+                val detail = it.localizedMessage?.takeIf { message -> message.isNotBlank() }
                 _uiState.update {
                     it.copy(
                         isUploading = false,
-                        feedbackMessage = "Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
+                        feedbackMessage = detail?.let { message ->
+                            "Der Video-Upload ist fehlgeschlagen: $message"
+                        } ?: "Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
                         feedbackIsError = true,
                     )
                 }

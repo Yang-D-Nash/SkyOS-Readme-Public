@@ -160,11 +160,22 @@ struct FeaturedHomeVideo {
     let notes: String
 }
 
+struct FeaturedHomeBeat {
+    let id: String
+    let title: String
+    let artistName: String
+    let notes: String
+    let downloadURL: String
+    let isPlayable: Bool
+}
+
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published var featuredTrack: Track?
+    @Published var featuredBeat: FeaturedHomeBeat?
     @Published var featuredVideo: FeaturedHomeVideo?
     @Published var homeTrackMessage: String?
+    @Published var homeBeatMessage: String?
     @Published var homeVideoMessage: String?
 
     private let musicService: MusicServicing
@@ -178,9 +189,13 @@ final class HomeViewModel: ObservableObject {
     func refresh() {
         Task {
             featuredTrack = await loadLatestTrack()
+            featuredBeat = await loadLatestBeat()
             featuredVideo = await loadLatestVideo()
             homeTrackMessage = featuredTrack == nil
                 ? "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
+                : nil
+            homeBeatMessage = featuredBeat == nil
+                ? "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
                 : nil
             homeVideoMessage = featuredVideo == nil
                 ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
@@ -203,6 +218,24 @@ final class HomeViewModel: ObservableObject {
         }
 
         return latestTrack
+    }
+
+    private func loadLatestBeat() async -> FeaturedHomeBeat? {
+        do {
+            let snapshot = try await firestore.collection("nicmaBeatHub")
+                .whereField("isPublic", isEqualTo: true)
+                .limit(to: 20)
+                .getDocuments()
+
+            let latestDocument = snapshot.documents.max { lhs, rhs in
+                documentDate(lhs) < documentDate(rhs)
+            }
+
+            guard let latestDocument else { return nil }
+            return mapFeaturedBeat(from: latestDocument)
+        } catch {
+            return nil
+        }
     }
 
     private func loadLatestVideo() async -> FeaturedHomeVideo? {
@@ -244,6 +277,29 @@ final class HomeViewModel: ObservableObject {
             title: title,
             projectName: document.data()["projectName"] as? String ?? "Skydown Visual",
             notes: document.data()["notes"] as? String ?? ""
+        )
+    }
+
+    private func mapFeaturedBeat(from document: QueryDocumentSnapshot) -> FeaturedHomeBeat? {
+        let data = document.data()
+        guard let title = data["title"] as? String,
+              !title.isEmpty else {
+            return nil
+        }
+
+        let fileName = data["fileName"] as? String ?? ""
+        let mimeType = data["mimeType"] as? String ?? ""
+
+        return FeaturedHomeBeat(
+            id: document.documentID,
+            title: title,
+            artistName: data["artistName"] as? String ?? "Skydown Beat",
+            notes: data["notes"] as? String ?? "",
+            downloadURL: data["downloadURL"] as? String ?? "",
+            isPlayable: mimeType.hasPrefix("audio/") ||
+                fileName.lowercased().hasSuffix(".mp3") ||
+                fileName.lowercased().hasSuffix(".wav") ||
+                fileName.lowercased().hasSuffix(".m4a")
         )
     }
 

@@ -95,4 +95,26 @@ struct AppColors {
             return Color(red: 89/255, green: 97/255, blue: 113/255)
         }
     }
+
+    static func spotify(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return Color(red: 30/255, green: 215/255, blue: 96/255)
+        case .dark:
+            return Color(red: 30/255, green: 215/255, blue: 96/255)
+        @unknown default:
+            return Color(red: 30/255, green: 215/255, blue: 96/255)
+        }
+    }
+
+    static func spotifySurface(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.12)
+        case .dark:
+            return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.18)
+        @unknown default:
+            return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.12)
+        }
+    }
 }

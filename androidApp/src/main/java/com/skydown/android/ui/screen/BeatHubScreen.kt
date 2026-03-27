@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -212,10 +213,10 @@ fun BeatHubScreen(
                 }
 
                 item {
-                    BeatHubLibrarySection(
-                        uiState = uiState,
-                        currentBeatId = currentBeatId,
-                        onPlayToggle = { beat ->
+                        BeatHubLibrarySection(
+                            uiState = uiState,
+                            currentBeatId = currentBeatId,
+                            onPlayToggle = { beat ->
                             if (beat.isPlayable) {
                                 if (currentBeatId == beat.id) {
                                     player.stop()
@@ -228,11 +229,12 @@ fun BeatHubScreen(
                                     currentBeatId = beat.id
                                 }
                             }
-                        },
-                        onVisibilityToggle = viewModel::toggleBeatVisibility,
-                    )
+                            },
+                            onVisibilityToggle = viewModel::toggleBeatVisibility,
+                            onDeleteBeat = viewModel::deleteBeat,
+                        )
+                    }
                 }
-            }
 
             ToastHost(
                 message = uiState.feedbackMessage,
@@ -458,6 +460,7 @@ private fun BeatHubLibrarySection(
     currentBeatId: String?,
     onPlayToggle: (NicmaBeatHubItem) -> Unit,
     onVisibilityToggle: (NicmaBeatHubItem) -> Unit,
+    onDeleteBeat: (NicmaBeatHubItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Beat Library")
@@ -515,6 +518,7 @@ private fun BeatHubLibrarySection(
                             isPlaying = currentBeatId == beat.id,
                             onPlayToggle = { onPlayToggle(beat) },
                             onVisibilityToggle = { onVisibilityToggle(beat) },
+                            onDelete = { onDeleteBeat(beat) },
                         )
                     }
                 }
@@ -530,6 +534,7 @@ private fun BeatHubLibraryRow(
     isPlaying: Boolean,
     onPlayToggle: () -> Unit,
     onVisibilityToggle: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -564,7 +569,11 @@ private fun BeatHubLibraryRow(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "${beat.artistName} • ${beat.uploaderName}",
+                text = if (isAdmin) {
+                    "${beat.artistName} • ${beat.uploaderName}"
+                } else {
+                    beat.artistName
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             )
@@ -582,10 +591,17 @@ private fun BeatHubLibraryRow(
                     text = if (beat.isPublic) "Live" else "Review",
                     isActive = beat.isPublic,
                 )
-                BeatHubBadge(
-                    text = beat.fileName,
-                    isActive = false,
-                )
+                if (isAdmin) {
+                    BeatHubBadge(
+                        text = beat.fileName,
+                        isActive = false,
+                    )
+                } else if (beat.isPlayable) {
+                    BeatHubBadge(
+                        text = "Preview",
+                        isActive = false,
+                    )
+                }
             }
 
             Row(
@@ -617,18 +633,37 @@ private fun BeatHubLibraryRow(
                 }
 
                 if (isAdmin) {
-                    OutlinedButton(
-                        onClick = onVisibilityToggle,
+                    Column(
                         modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Icon(
-                            imageVector = if (beat.isPublic) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = if (beat.isPublic) "Verbergen" else "Freigeben",
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
+                        OutlinedButton(
+                            onClick = onVisibilityToggle,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = if (beat.isPublic) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = if (beat.isPublic) "Verbergen" else "Freigeben",
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onDelete,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = "Loeschen",
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
                     }
                 }
             }

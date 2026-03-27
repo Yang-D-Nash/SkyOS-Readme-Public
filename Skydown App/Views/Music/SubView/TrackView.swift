@@ -10,6 +10,8 @@ import SwiftUI
 struct TrackView: View {
     let track: Track
     @ObservedObject var audioManager: AudioPlayerManager
+    let isSelected: Bool
+    let onSelect: () -> Void
     @State private var showSpotifyPlayer = false
     @Environment(\.openURL) private var openURL
     @Environment(\.colorScheme) private var colorScheme
@@ -19,7 +21,7 @@ struct TrackView: View {
     }
 
     private var hasDirectSpotifyTrack: Bool {
-        trackSpotifyID(externalURL: track.externalURL) != nil
+        resolvedTrackSpotifyID(track) != nil
     }
 
     private var hasSpotifySearch: Bool {
@@ -58,6 +60,8 @@ struct TrackView: View {
 
                         if isPlaying {
                             TrackTag(text: "Laeuft", isAccent: true)
+                        } else if isSelected {
+                            TrackTag(text: "Im Player", isAccent: false)
                         } else if track.previewUrl != nil {
                             TrackTag(text: "Preview", isAccent: false)
                         }
@@ -87,9 +91,9 @@ struct TrackView: View {
                             TrackTag(text: "In-App Preview", isAccent: false)
                         }
                         if hasDirectSpotifyTrack {
-                            TrackTag(text: "Spotify Player", isAccent: false)
+                            TrackTag(text: "Spotify Player", isAccent: false, tint: AppColors.spotify(for: colorScheme))
                         } else if hasSpotifySearch {
-                            TrackTag(text: "Spotify Suche", isAccent: false)
+                            TrackTag(text: "Spotify Suche", isAccent: false, tint: AppColors.spotify(for: colorScheme))
                         }
                     }
                 }
@@ -98,6 +102,7 @@ struct TrackView: View {
             HStack(spacing: 10) {
                 if track.previewUrl != nil {
                     Button {
+                        onSelect()
                         audioManager.playPreview(for: track)
                     } label: {
                         Label(
@@ -115,22 +120,24 @@ struct TrackView: View {
 
                 if hasDirectSpotifyTrack {
                     Button {
+                        onSelect()
                         showSpotifyPlayer = true
                     } label: {
-                        Label("In App", systemImage: "music.note.tv")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(AppColors.secondaryBackground(for: colorScheme))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(AppColors.accent(for: colorScheme).opacity(0.22), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            Label("In App", systemImage: "music.note.tv")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(AppColors.spotifySurface(for: colorScheme))
+                                .foregroundColor(AppColors.spotify(for: colorScheme))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                 } else if hasSpotifySearch {
                     Button {
+                        onSelect()
                         if let url = URL(string: track.externalURL ?? "") {
                             openURL(url)
                         }
@@ -139,11 +146,11 @@ struct TrackView: View {
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(AppColors.secondaryBackground(for: colorScheme))
-                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .background(AppColors.spotifySurface(for: colorScheme))
+                            .foregroundColor(AppColors.spotify(for: colorScheme))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(AppColors.accent(for: colorScheme).opacity(0.22), lineWidth: 1)
+                                    .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
@@ -158,7 +165,12 @@ struct TrackView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 22)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                .stroke(
+                    isSelected
+                    ? AppColors.accent(for: colorScheme).opacity(0.28)
+                    : AppColors.accent(for: colorScheme).opacity(0.12),
+                    lineWidth: 1
+                )
         )
         .shadow(
             color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.06),
@@ -166,6 +178,7 @@ struct TrackView: View {
             x: 0,
             y: 8
         )
+        .onTapGesture(perform: onSelect)
         .sheet(isPresented: $showSpotifyPlayer) {
             SpotifyEmbedPlayerView(track: track)
         }
@@ -188,22 +201,31 @@ private func trackSpotifyID(externalURL: String?) -> String? {
     return String(pathComponents[trackIndex + 1])
 }
 
+private func resolvedTrackSpotifyID(_ track: Track) -> String? {
+    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
+        return spotifyTrackID
+    }
+    return trackSpotifyID(externalURL: track.externalURL)
+}
+
 private struct TrackTag: View {
     let text: String
     let isAccent: Bool
+    var tint: Color? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let resolvedTint = tint ?? AppColors.accent(for: colorScheme)
         Text(text)
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
                 isAccent
-                ? AppColors.accent(for: colorScheme)
-                : AppColors.accent(for: colorScheme).opacity(0.12)
+                ? resolvedTint
+                : resolvedTint.opacity(0.12)
             )
-            .foregroundColor(isAccent ? .white : AppColors.accent(for: colorScheme))
+            .foregroundColor(isAccent ? .white : resolvedTint)
             .clipShape(Capsule())
     }
 }
@@ -214,18 +236,24 @@ private struct TrackTag: View {
         trackId: 1,
         artistId: 123,
         spotifyArtistID: "sample-artist-id",
+        spotifyTrackID: "sample-track-id",
         artistName: "Skydown",
         trackName: "Beispiel Song",
         collectionName: "Beispiel Album",
         artworkUrl100: "https://via.placeholder.com/100",
         previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        externalURL: "https://open.spotify.com",
+        externalURL: "https://open.spotify.com/track/sample-track-id",
         wrapperType: "track",
         releaseDate: nil
     )
     
     let audioManager = AudioPlayerManager()
     
-    TrackView(track: sampleTrack, audioManager: audioManager)
+    TrackView(
+        track: sampleTrack,
+        audioManager: audioManager,
+        isSelected: true,
+        onSelect: {}
+    )
         .padding()
 }

@@ -255,6 +255,11 @@ struct BeatHubView: View {
                             Task {
                                 await viewModel.toggleBeatVisibility(beat)
                             }
+                        },
+                        onDelete: {
+                            Task {
+                                await viewModel.deleteBeat(beat)
+                            }
                         }
                     )
                 }
@@ -280,6 +285,7 @@ struct BeatHubLibraryRow: View {
     let colorScheme: ColorScheme
     let onPlayToggle: () -> Void
     let onVisibilityToggle: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -298,7 +304,7 @@ struct BeatHubLibraryRow: View {
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("\(beat.artistName) • \(beat.uploaderName)")
+                    Text(isAdmin ? "\(beat.artistName) • \(beat.uploaderName)" : beat.artistName)
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -314,7 +320,11 @@ struct BeatHubLibraryRow: View {
 
             HStack(spacing: 8) {
                 MusicBadge(text: beat.isPublic ? "Live" : "Review", isAccent: beat.isPublic)
-                MusicBadge(text: beat.fileName, isAccent: false)
+                if isAdmin {
+                    MusicBadge(text: beat.fileName, isAccent: false)
+                } else if beat.isPlayable {
+                    MusicBadge(text: "Preview", isAccent: false)
+                }
             }
 
             HStack(spacing: 10) {
@@ -332,8 +342,15 @@ struct BeatHubLibraryRow: View {
                 }
 
                 if isAdmin {
-                    Button(beat.isPublic ? "Verbergen" : "Freigeben", action: onVisibilityToggle)
+                    HStack(spacing: 10) {
+                        Button(beat.isPublic ? "Verbergen" : "Freigeben", action: onVisibilityToggle)
+                            .buttonStyle(.bordered)
+
+                        Button(role: .destructive, action: onDelete) {
+                            Label("Loeschen", systemImage: "trash")
+                        }
                         .buttonStyle(.bordered)
+                    }
                 }
             }
         }
