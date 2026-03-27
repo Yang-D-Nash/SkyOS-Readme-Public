@@ -304,15 +304,12 @@ private val nicmaProducerPackages = listOf(
 )
 
 private fun openNicmaEmail(context: Context) {
-    val intent = Intent(
-        Intent.ACTION_SENDTO,
-        Uri.parse("mailto:nicoheine@me.com?subject=NICMA%20MUSIC%20Anfrage"),
+    openEmailDraft(
+        context = context,
+        recipients = listOf("nicoheine@me.com"),
+        subject = "NICMA MUSIC Anfrage",
+        body = "",
     )
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
-        Toast.makeText(context, "Keine Mail-App gefunden.", Toast.LENGTH_SHORT).show()
-    }
 }
 
 private fun openNicmaInstagram(context: Context) {

@@ -203,16 +203,16 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
             "originalFilename": file.fileName,
             "uploadedAt": ISO8601DateFormatter().string(from: Date())
         ]
-
-        let hasAccess = file.url.startAccessingSecurityScopedResource()
+        let stagedURL = try stageSecurityScopedUploadFile(
+            from: file.url,
+            fileName: file.fileName
+        )
         defer {
-            if hasAccess {
-                file.url.stopAccessingSecurityScopedResource()
-            }
+            try? FileManager.default.removeItem(at: stagedURL)
         }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            reference.putFile(from: file.url, metadata: metadata) { _, error in
+            reference.putFile(from: stagedURL, metadata: metadata) { _, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
@@ -712,16 +712,16 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             "originalFilename": file.fileName,
             "uploadedAt": ISO8601DateFormatter().string(from: Date())
         ]
-
-        let hasAccess = file.url.startAccessingSecurityScopedResource()
+        let stagedURL = try stageSecurityScopedUploadFile(
+            from: file.url,
+            fileName: file.fileName
+        )
         defer {
-            if hasAccess {
-                file.url.stopAccessingSecurityScopedResource()
-            }
+            try? FileManager.default.removeItem(at: stagedURL)
         }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            reference.putFile(from: file.url, metadata: metadata) { _, error in
+            reference.putFile(from: stagedURL, metadata: metadata) { _, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
@@ -857,6 +857,41 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
 
         return cleaned.isEmpty ? "Video Upload" : cleaned
     }
+}
+
+private func stageSecurityScopedUploadFile(
+    from sourceURL: URL,
+    fileName: String
+) throws -> URL {
+    let hasAccess = sourceURL.startAccessingSecurityScopedResource()
+    defer {
+        if hasAccess {
+            sourceURL.stopAccessingSecurityScopedResource()
+        }
+    }
+
+    let stagingDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("upload-staging", isDirectory: true)
+    try FileManager.default.createDirectory(
+        at: stagingDirectory,
+        withIntermediateDirectories: true
+    )
+
+    let fileExtension = (fileName as NSString).pathExtension
+    let stagedURL = if fileExtension.isEmpty {
+        stagingDirectory.appendingPathComponent(UUID().uuidString)
+    } else {
+        stagingDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(fileExtension)
+    }
+
+    if FileManager.default.fileExists(atPath: stagedURL.path) {
+        try FileManager.default.removeItem(at: stagedURL)
+    }
+
+    try FileManager.default.copyItem(at: sourceURL, to: stagedURL)
+    return stagedURL
 }
 
 @MainActor

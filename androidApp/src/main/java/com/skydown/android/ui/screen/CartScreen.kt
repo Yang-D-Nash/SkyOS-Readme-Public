@@ -473,13 +473,10 @@ private fun openOrderEmail(
         Nachricht:
         ${state.message.ifBlank { "Keine zusaetzliche Nachricht." }}
     """.trimIndent()
-    val uri = Uri.parse("mailto:skydownent@gmail.com")
-        .buildUpon()
-        .appendQueryParameter("subject", subject)
-        .appendQueryParameter("body", body)
-        .build()
-    val intent = Intent(Intent.ACTION_SENDTO, uri)
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    }
+    openEmailDraft(
+        context = context,
+        recipients = listOf("skydownent@gmail.com"),
+        subject = subject,
+        body = body,
+    )
 }

@@ -3,8 +3,12 @@ package com.skydown.android.data
 import android.content.Context
 import android.net.Uri
 import com.google.firebase.storage.StorageException
+import com.google.firebase.storage.StorageMetadata
+import com.google.firebase.storage.StorageReference
+import com.google.firebase.storage.UploadTask
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 internal suspend fun Context.stagePickerFileForUpload(
@@ -56,6 +60,15 @@ internal fun Throwable.toReadableStorageUploadError(fileName: String): Throwable
         readableMessage ?: "Die Datei $fileName konnte nicht hochgeladen werden.",
         this,
     )
+}
+
+internal suspend fun StorageReference.putStagedFile(
+    stagedFile: File,
+    metadata: StorageMetadata,
+): UploadTask.TaskSnapshot = withContext(Dispatchers.IO) {
+    stagedFile.inputStream().buffered().use { inputStream ->
+        putStream(inputStream, metadata).await()
+    }
 }
 
 private fun uploadTempFileSuffix(fileName: String): String {

@@ -29,9 +29,13 @@ struct BeatHubView: View {
 
                 beatsCard
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.top, SkydownLayout.screenTopPadding)
+            .padding(.bottom, SkydownLayout.screenBottomPadding)
         }
+        .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .skydownDismissKeyboardOnTap()
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         .navigationTitle("Beat Hub")
         .task {
@@ -55,6 +59,7 @@ struct BeatHubView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .skydownKeyboardDismissToolbar()
     }
 
     private var heroCard: some View {

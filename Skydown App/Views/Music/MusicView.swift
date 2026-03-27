@@ -30,14 +30,6 @@ struct MusicView: View {
         ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
     }
 
-    private var instagramDestinations: [MusicInstagramDestination] {
-        [
-            artistInstagramDestinations[selectedArtist],
-            skydownMusicInstagramDestination,
-            zweizweiInstagramDestination,
-        ].compactMap { $0 }
-    }
-
     private var spotifyStatusText: String {
         if viewModel.isSpotifyConnected {
             return "Spotify ist verbunden. Du kannst Previews testen oder den Spotify Player direkt in der App oeffnen."
@@ -66,7 +58,6 @@ struct MusicView: View {
                     spotifyCard
                     musicPlayerCard
                     tracksCard
-                    instagramCard
                     spotlightLinks
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -425,30 +416,13 @@ struct MusicView: View {
         }
     }
 
-    private var instagramCard: some View {
-        MusicInstagramHubCard(
-            selectedArtist: selectedArtist,
-            destinations: instagramDestinations,
-            colorScheme: colorScheme
-        )
-    }
-
     private var spotlightLinks: some View {
-        Group {
-            NavigationLink {
-                NicmaProducerView()
-            } label: {
-                NicmaProducerSpotlightCard(colorScheme: colorScheme)
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                BeatHubView()
-            } label: {
-                BeatHubSpotlightCard(colorScheme: colorScheme)
-            }
-            .buttonStyle(.plain)
+        NavigationLink {
+            BeatHubView()
+        } label: {
+            BeatHubSpotlightCard(colorScheme: colorScheme)
         }
+        .buttonStyle(.plain)
     }
 
     private func connectSpotifyAndLoadTracks() async {

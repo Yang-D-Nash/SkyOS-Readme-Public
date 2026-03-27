@@ -15,6 +15,7 @@ data class FeaturedVideoHighlight(
     val title: String,
     val projectName: String,
     val notes: String,
+    val downloadUrl: String,
 )
 
 data class HomeUiState(

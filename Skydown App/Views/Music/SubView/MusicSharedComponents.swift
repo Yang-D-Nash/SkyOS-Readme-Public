@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct MusicBadge: View {
     let text: String
@@ -396,6 +397,33 @@ struct NicmaProducerPackage: Identifiable {
     let title: String
     let detail: String
     let price: String
+}
+
+extension View {
+    func skydownKeyboardDismissToolbar() -> some View {
+        toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Fertig") {
+                    UIApplication.shared.skydownDismissKeyboard()
+                }
+            }
+        }
+    }
+
+    func skydownDismissKeyboardOnTap() -> some View {
+        simultaneousGesture(
+            TapGesture().onEnded {
+                UIApplication.shared.skydownDismissKeyboard()
+            }
+        )
+    }
+}
+
+private extension UIApplication {
+    func skydownDismissKeyboard() {
+        sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
 }
 
 struct MusicInstagramDestination: Identifiable {

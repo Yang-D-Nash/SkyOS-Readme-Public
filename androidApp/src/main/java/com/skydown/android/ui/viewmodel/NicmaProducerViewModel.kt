@@ -264,10 +264,13 @@ class NicmaProducerViewModel(
                     )
                 }
             }.onFailure {
+                val detail = it.localizedMessage?.takeIf { message -> message.isNotBlank() }
                 _uiState.update {
                     it.copy(
                         isUploading = false,
-                        feedbackMessage = "Der Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
+                        feedbackMessage = detail?.let { message ->
+                            "Der Upload ist fehlgeschlagen: $message"
+                        } ?: "Der Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
                         feedbackIsError = true,
                     )
                 }

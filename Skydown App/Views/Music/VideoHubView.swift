@@ -39,6 +39,8 @@ struct VideoHubView: View {
             .padding(.bottom, SkydownLayout.screenBottomPadding)
         }
         .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .skydownDismissKeyboardOnTap()
         .background(
             AppColors.screenGradient(
                 for: colorScheme,
@@ -80,6 +82,7 @@ struct VideoHubView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .skydownKeyboardDismissToolbar()
     }
 
     private var heroCard: some View {

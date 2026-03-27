@@ -39,6 +39,54 @@ fun openExternalLink(
     }
 }
 
+fun openEmailDraft(
+    context: Context,
+    recipients: List<String>,
+    subject: String,
+    body: String,
+    chooserTitle: String = "Mail-App waehlen",
+    emailAppMissingMessage: String = "Keine Mail-App gefunden.",
+) {
+    val cleanedRecipients = recipients
+        .map(String::trim)
+        .filter(String::isNotBlank)
+
+    if (cleanedRecipients.isEmpty()) {
+        Toast.makeText(context, emailAppMissingMessage, Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    val baseIntent = Intent(Intent.ACTION_SENDTO).apply {
+        data = Uri.parse("mailto:")
+        putExtra(Intent.EXTRA_EMAIL, cleanedRecipients.toTypedArray())
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        putExtra(Intent.EXTRA_TEXT, body)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    if (baseIntent.resolveActivity(context.packageManager) != null) {
+        val chooserIntent = Intent.createChooser(baseIntent, chooserTitle).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(chooserIntent)
+        return
+    }
+
+    val fallbackIntent = Intent(
+        Intent.ACTION_SENDTO,
+        Uri.parse("mailto:${cleanedRecipients.joinToString(",")}").buildUpon()
+            .appendQueryParameter("subject", subject)
+            .appendQueryParameter("body", body)
+            .build(),
+    ).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    if (!tryStartActivity(context, fallbackIntent)) {
+        Toast.makeText(context, emailAppMissingMessage, Toast.LENGTH_SHORT).show()
+    }
+}
+
 private fun tryStartActivity(
     context: Context,
     intent: Intent,

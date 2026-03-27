@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var beatPlaybackManager = BeatPlaybackManager()
+    @StateObject private var audioPlayerManager = AudioPlayerManager()
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
@@ -27,13 +28,31 @@ struct HomeView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     HomeHeroIntroCard(colorScheme: colorScheme)
-                    HomeLatestReleaseCard(viewModel: viewModel, colorScheme: colorScheme)
+                    HomeLatestReleaseCard(
+                        viewModel: viewModel,
+                        playbackManager: audioPlayerManager,
+                        colorScheme: colorScheme,
+                        onPreviewToggle: { track in
+                            beatPlaybackManager.stop()
+                            audioPlayerManager.playPreview(for: track)
+                        }
+                    )
                     HomeLatestBeatCard(
                         viewModel: viewModel,
                         playbackManager: beatPlaybackManager,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        onPlayToggle: { beat in
+                            audioPlayerManager.stop()
+                            beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
+                        }
                     )
                     HomeLatestVideoCard(viewModel: viewModel, colorScheme: colorScheme)
+                    NavigationLink {
+                        NicmaProducerView()
+                    } label: {
+                        NicmaProducerSpotlightCard(colorScheme: colorScheme)
+                    }
+                    .buttonStyle(.plain)
                     HomeStoryCard(colorScheme: colorScheme)
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -60,6 +79,7 @@ struct HomeView: View {
             }
             .onDisappear {
                 beatPlaybackManager.stop()
+                audioPlayerManager.stop()
             }
         }
     }
@@ -284,7 +304,10 @@ private struct HomeHeroIntroCard: View {
 
 private struct HomeLatestReleaseCard: View {
     @ObservedObject var viewModel: HomeViewModel
+    @ObservedObject var playbackManager: AudioPlayerManager
     let colorScheme: ColorScheme
+    let onPreviewToggle: (Track) -> Void
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -293,6 +316,9 @@ private struct HomeLatestReleaseCard: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if let track = viewModel.featuredTrack {
+                let hasPreview = !(track.previewUrl?.isEmpty ?? true)
+                let hasSpotifyTarget = homeSpotifyTargetURL(for: track) != nil
+
                 HStack(spacing: 14) {
                     AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
                         image
@@ -324,12 +350,38 @@ private struct HomeLatestReleaseCard: View {
 
                 HStack(spacing: 10) {
                     Text(
-                        track.previewUrl != nil
-                            ? "Neuester Song mit In-App-Preview."
-                            : ((track.spotifyTrackID != nil || track.externalURL != nil) ? "Neuester Song mit Spotify-Ziel." : "Neuester Song.")
+                        hasPreview && hasSpotifyTarget
+                            ? "Preview direkt im Home oder direkt bei Spotify weiterhoeren."
+                            : (hasPreview ? "Neuester Song mit In-App-Preview." : (hasSpotifyTarget ? "Neuester Song mit Spotify-Ziel." : "Neuester Song."))
                     )
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                if hasPreview || hasSpotifyTarget {
+                    VStack(spacing: 10) {
+                        if hasPreview {
+                            HomeActionButton(
+                                title: playbackManager.currentlyPlayingId == track.trackId ? "Release stoppen" : "Release abspielen",
+                                icon: playbackManager.currentlyPlayingId == track.trackId ? "stop.fill" : "play.fill",
+                                colorScheme: colorScheme,
+                                isPrimary: true
+                            ) {
+                                onPreviewToggle(track)
+                            }
+                        }
+
+                        if let spotifyURL = homeSpotifyTargetURL(for: track) {
+                            HomeActionButton(
+                                title: homeSpotifyActionTitle(for: track),
+                                icon: "music.note",
+                                colorScheme: colorScheme,
+                                isPrimary: false
+                            ) {
+                                openURL(spotifyURL)
+                            }
+                        }
+                    }
                 }
             } else {
                 Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.")
@@ -359,6 +411,7 @@ private struct HomeLatestBeatCard: View {
     @ObservedObject var viewModel: HomeViewModel
     @ObservedObject var playbackManager: BeatPlaybackManager
     let colorScheme: ColorScheme
+    let onPlayToggle: (FeaturedHomeBeat) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -404,7 +457,7 @@ private struct HomeLatestBeatCard: View {
                         colorScheme: colorScheme,
                         isPrimary: true
                     ) {
-                        playbackManager.togglePlayback(for: beat.asBeatHubItem)
+                        onPlayToggle(beat)
                     }
                 }
             } else {
@@ -426,6 +479,7 @@ private struct HomeLatestBeatCard: View {
 private struct HomeLatestVideoCard: View {
     @ObservedObject var viewModel: HomeViewModel
     let colorScheme: ColorScheme
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -467,6 +521,17 @@ private struct HomeLatestVideoCard: View {
                 Text("Aus dem Videography Hub fuers Home ausgewaehlt.")
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                if let videoURL = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
+                    HomeActionButton(
+                        title: "Video oeffnen",
+                        icon: "video.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: false
+                    ) {
+                        openURL(videoURL)
+                    }
+                }
             } else {
                 Text(viewModel.homeVideoMessage ?? "Neues Video erscheint hier.")
                     .font(.body)
@@ -487,17 +552,15 @@ private struct HomeStoryCard: View {
     let colorScheme: ColorScheme
     @Environment(\.openURL) private var openURL
 
-    private let developerInstagramURL = URL(string: "https://www.instagram.com/y.d.nash/")
-    private let skydownInstagramURL = URL(string: "https://www.instagram.com/skydown_entertainment/")
     private let contactEmailURL = URL(string: "mailto:skydownent@gmail.com?subject=Skydown%20x%2022%20Kontakt")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Developer")
+            Text("Links")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Yang D. Nash entwickelt die App und bildet den Kern von Skydown x 22. Skydown Entertainment verbindet Hip Hop, Music und Video mit einer eigenen mobilen Plattform.")
+            Text("Hier laufen die direkten Social-Links von Yang D. Nash, 22, Skydown und NICMA MUSIC zusammen. Der Musik-Tab bleibt dadurch fokussierter auf Releases und Beats.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -508,8 +571,19 @@ private struct HomeStoryCard: View {
                     colorScheme: colorScheme,
                     isPrimary: true
                 ) {
-                    if let developerInstagramURL {
-                        openURL(developerInstagramURL)
+                    if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
+                        openURL(url)
+                    }
+                }
+
+                HomeActionButton(
+                    title: "22 auf Instagram",
+                    icon: "person.2.fill",
+                    colorScheme: colorScheme,
+                    isPrimary: false
+                ) {
+                    if let url = zweizweiInstagramDestination.url {
+                        openURL(url)
                     }
                 }
 
@@ -519,8 +593,19 @@ private struct HomeStoryCard: View {
                     colorScheme: colorScheme,
                     isPrimary: false
                 ) {
-                    if let skydownInstagramURL {
-                        openURL(skydownInstagramURL)
+                    if let url = skydownMusicInstagramDestination.url {
+                        openURL(url)
+                    }
+                }
+
+                HomeActionButton(
+                    title: "NICMA MUSIC auf Instagram",
+                    icon: "waveform.path.ecg",
+                    colorScheme: colorScheme,
+                    isPrimary: false
+                ) {
+                    if let url = nicmaInstagramDestination.url {
+                        openURL(url)
                     }
                 }
 
@@ -544,6 +629,39 @@ private struct HomeStoryCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
     }
+}
+
+private func homeSpotifyTargetURL(for track: Track) -> URL? {
+    if let externalURL = track.externalURL,
+       let url = URL(string: externalURL) {
+        return url
+    }
+
+    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
+        return URL(string: "https://open.spotify.com/track/\(spotifyTrackID)")
+    }
+
+    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
+        return URL(string: "https://open.spotify.com/artist/\(spotifyArtistID)")
+    }
+
+    return nil
+}
+
+private func homeSpotifyActionTitle(for track: Track) -> String {
+    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
+        return "Song auf Spotify"
+    }
+
+    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
+        return "Artist auf Spotify"
+    }
+
+    if let externalURL = track.externalURL, externalURL.contains("/artist/") {
+        return "Artist auf Spotify"
+    }
+
+    return "Spotify oeffnen"
 }
 
 private extension FeaturedHomeBeat {

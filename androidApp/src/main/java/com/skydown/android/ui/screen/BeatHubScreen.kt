@@ -5,6 +5,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,8 +54,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,6 +70,9 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.dismissKeyboardOnTap
+import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.model.NicmaBeatHubItem
 import com.skydown.android.ui.model.NicmaProducerUiState
 import com.skydown.android.ui.model.NicmaSelectedBeatFile
@@ -81,11 +87,18 @@ fun BeatHubScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     var currentBeatId by rememberSaveable { mutableStateOf<String?>(null) }
     val player = remember {
         ExoPlayer.Builder(context).build().apply {
             playWhenReady = true
         }
+    }
+    val dismissKeyboard: () -> Unit = {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        Unit
     }
     val pickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -162,25 +175,20 @@ fun BeatHubScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding()
+                .dismissKeyboardOnTap(onDismissKeyboard = dismissKeyboard)
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.06f),
-                            MaterialTheme.colorScheme.background,
-                        ),
+                    skydownScreenBrush(
+                        secondaryColor = MaterialTheme.colorScheme.tertiary,
+                        primaryAlpha = 0.07f,
+                        secondaryAlpha = 0.05f,
                     ),
                 ),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 8.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
+                contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
@@ -196,6 +204,7 @@ fun BeatHubScreen(
                             onEmailChanged = viewModel::updateEmail,
                             onNotesChanged = viewModel::updateNotes,
                             onPickFiles = {
+                                dismissKeyboard()
                                 pickerLauncher.launch(
                                     arrayOf(
                                         "audio/*",
@@ -205,7 +214,10 @@ fun BeatHubScreen(
                                 )
                             },
                             onRemoveFile = viewModel::removeFile,
-                            onUpload = { viewModel.upload(context) },
+                            onUpload = {
+                                dismissKeyboard()
+                                viewModel.upload(context)
+                            },
                         )
                     } else {
                         BeatHubListenerCard()

@@ -1,7 +1,6 @@
 package com.skydown.android.data
 
 import android.content.Context
-import android.net.Uri
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -136,7 +135,10 @@ class VideoHubService(
         )
 
         try {
-            reference.putFile(Uri.fromFile(stagedFile), metadata).await()
+            reference.putStagedFile(
+                stagedFile = stagedFile,
+                metadata = metadata,
+            )
         } catch (error: Exception) {
             throw error.toReadableStorageUploadError(file.fileName)
         } finally {

@@ -676,15 +676,10 @@ private fun openSupportEmail(
 
         Nachricht:
     """.trimIndent()
-    val uri = Uri.parse("mailto:skydownent@gmail.com")
-        .buildUpon()
-        .appendQueryParameter("subject", subject)
-        .appendQueryParameter("body", body)
-        .build()
-    val intent = Intent(Intent.ACTION_SENDTO, uri)
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
-        Toast.makeText(context, "Keine Mail-App gefunden.", Toast.LENGTH_SHORT).show()
-    }
+    openEmailDraft(
+        context = context,
+        recipients = listOf("skydownent@gmail.com"),
+        subject = subject,
+        body = body,
+    )
 }

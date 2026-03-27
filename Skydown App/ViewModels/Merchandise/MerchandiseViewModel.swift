@@ -158,6 +158,7 @@ struct FeaturedHomeVideo {
     let title: String
     let projectName: String
     let notes: String
+    let downloadURL: String
 }
 
 struct FeaturedHomeBeat {
@@ -277,7 +278,8 @@ final class HomeViewModel: ObservableObject {
         return FeaturedHomeVideo(
             title: title,
             projectName: document.data()["projectName"] as? String ?? "Skydown Visual",
-            notes: document.data()["notes"] as? String ?? ""
+            notes: document.data()["notes"] as? String ?? "",
+            downloadURL: document.data()["downloadURL"] as? String ?? ""
         )
     }
 

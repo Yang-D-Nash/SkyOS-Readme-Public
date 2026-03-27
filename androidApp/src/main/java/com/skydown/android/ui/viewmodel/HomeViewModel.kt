@@ -133,6 +133,7 @@ class HomeViewModel : ViewModel() {
             title = title,
             projectName = document.getString("projectName").orEmpty().ifBlank { "Skydown Visual" },
             notes = document.getString("notes").orEmpty(),
+            downloadUrl = document.getString("downloadURL").orEmpty(),
         )
     }
 

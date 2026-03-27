@@ -3,6 +3,8 @@ package com.skydown.android.ui.screen
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +53,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
@@ -66,6 +70,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.dismissKeyboardOnTap
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.model.SelectedVideoFile
@@ -86,10 +91,17 @@ fun VideoHubScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val player = remember(context) {
         ExoPlayer.Builder(context).build().apply {
             playWhenReady = false
         }
+    }
+    val dismissKeyboard: () -> Unit = {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        Unit
     }
     var selectedVideoId by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: uiState.videos.firstOrNull()
@@ -172,6 +184,9 @@ fun VideoHubScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding()
+                .dismissKeyboardOnTap(onDismissKeyboard = dismissKeyboard)
                 .background(
                     skydownScreenBrush(
                         secondaryColor = MaterialTheme.colorScheme.tertiary,
@@ -206,6 +221,7 @@ fun VideoHubScreen(
                             onUpdateEmail = viewModel::updateEmail,
                             onUpdateNotes = viewModel::updateNotes,
                             onPickFiles = {
+                                dismissKeyboard()
                                 videoPickerLauncher.launch(
                                     arrayOf(
                                         "video/mp4",
@@ -216,7 +232,10 @@ fun VideoHubScreen(
                                 )
                             },
                             onRemoveFile = viewModel::removeFile,
-                            onUpload = { viewModel.upload(context) },
+                            onUpload = {
+                                dismissKeyboard()
+                                viewModel.upload(context)
+                            },
                         )
                     }
                 }
