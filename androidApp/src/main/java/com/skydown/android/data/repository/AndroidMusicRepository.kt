@@ -371,7 +371,7 @@ class AndroidMusicRepository : MusicRepository {
     private fun buildArtistAlbumsUrl(artistId: String, offset: Int): URL {
         val uri = Uri.parse("https://api.spotify.com/v1/artists/$artistId/albums")
             .buildUpon()
-            .appendQueryParameter("include_groups", "album,single,appears_on,compilation")
+            .appendQueryParameter("include_groups", "album,single")
             .appendQueryParameter("limit", artistAlbumsPageSize.toString())
             .appendQueryParameter("offset", offset.toString())
             .build()
@@ -456,7 +456,11 @@ class AndroidMusicRepository : MusicRepository {
         "ThaDude" to "0Jmb7DXFkKxxRjqD70vi0e",
         "MAVE" to "0GXymtRaIk2ngbXSkcHtsp",
         "JANNO" to "7hpiHzP9aLLb5liDLxtwhM",
+        "Tangajoe" to "0OA5dgpVdwzI8K82m8FPxN",
         "TANGAJOE007" to "0OA5dgpVdwzI8K82m8FPxN",
+        "NICMA MUSIC" to "0OoRIo7pJjtLgg3qyf1oDS",
+        "NICMA" to "0OoRIo7pJjtLgg3qyf1oDS",
+        "Toprack" to "4CoozMQ3B3I20day60N7QA",
         "Toprack941" to "4CoozMQ3B3I20day60N7QA",
     )
 

@@ -50,7 +50,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             "ThaDude": "0Jmb7DXFkKxxRjqD70vi0e",
             "MAVE": "0GXymtRaIk2ngbXSkcHtsp",
             "JANNO": "7hpiHzP9aLLb5liDLxtwhM",
+            "Tangajoe": "0OA5dgpVdwzI8K82m8FPxN",
             "TANGAJOE007": "0OA5dgpVdwzI8K82m8FPxN",
+            "NICMA MUSIC": "0OoRIo7pJjtLgg3qyf1oDS",
+            "NICMA": "0OoRIo7pJjtLgg3qyf1oDS",
+            "Toprack": "4CoozMQ3B3I20day60N7QA",
             "Toprack941": "4CoozMQ3B3I20day60N7QA",
         ]
     }
@@ -635,7 +639,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         }
 
         components.queryItems = [
-            URLQueryItem(name: "include_groups", value: "album,single,appears_on,compilation"),
+            URLQueryItem(name: "include_groups", value: "album,single"),
             URLQueryItem(name: "limit", value: "\(Constants.artistAlbumsPageSize)"),
             URLQueryItem(name: "offset", value: "\(offset)")
         ]
