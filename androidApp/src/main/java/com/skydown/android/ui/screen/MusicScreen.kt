@@ -193,6 +193,12 @@ fun MusicScreen(
                 item {
                     MusicOverviewCard(
                         uiState = uiState,
+                        onConnect = {
+                            viewModel.clearSpotifyError()
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
+                            )
+                        },
                         onDisconnect = {
                             player.stop()
                             player.clearMediaItems()
@@ -211,19 +217,6 @@ fun MusicScreen(
 
                 item {
                     when {
-                        !uiState.isSpotifyConnected -> {
-                            SpotifyConnectCard(
-                                selectedArtist = uiState.selectedArtist,
-                                errorMessage = uiState.errorMessage,
-                                onConnect = {
-                                    viewModel.clearSpotifyError()
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
-                                    )
-                                },
-                            )
-                        }
-
                         uiState.isLoading -> {
                             MusicStatusCard(
                                 title = "Tracks werden geladen",
@@ -234,14 +227,12 @@ fun MusicScreen(
 
                         !uiState.errorMessage.isNullOrBlank() -> {
                             MusicStatusCard(
-                                title = "Spotify konnte nicht geladen werden",
+                                title = "Tracks konnten nicht geladen werden",
                                 body = uiState.errorMessage.orEmpty(),
-                                actionLabel = "Spotify neu verbinden",
+                                actionLabel = "Erneut laden",
                                 onAction = {
                                     viewModel.clearSpotifyError()
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
-                                    )
+                                    viewModel.selectArtist(uiState.selectedArtist)
                                 },
                             )
                         }
@@ -481,6 +472,7 @@ private fun BeatHubEntryCard(
 @Composable
 private fun MusicOverviewCard(
     uiState: MusicUiState,
+    onConnect: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
@@ -524,7 +516,7 @@ private fun MusicOverviewCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             MusicBadge(
-                text = if (uiState.isSpotifyConnected) "Spotify verbunden" else "Spotify bereit machen",
+                text = if (uiState.isSpotifyConnected) "Spotify verbunden" else "Preview bereit",
                 imageVector = if (uiState.isSpotifyConnected) Icons.Default.CheckCircle else Icons.Default.Sync,
                 isActive = uiState.isSpotifyConnected,
             )
@@ -550,6 +542,15 @@ private fun MusicOverviewCard(
                     text = "Spotify trennen",
                     modifier = Modifier.padding(start = 8.dp),
                 )
+            }
+        } else {
+            OutlinedButton(
+                onClick = onConnect,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+            ) {
+                Text("Spotify optional verbinden")
             }
         }
     }
@@ -661,26 +662,16 @@ private fun ArtistChoiceContent(
 
 @Composable
 private fun SpotifyConnectCard(
-    selectedArtist: String,
-    errorMessage: String?,
     onConnect: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Spotify")
         Text(
-            text = "Previews direkt hier. Falls ein Spotify-Track da ist, kannst du ihn auch im In-App-Player oeffnen.",
+            text = "Previews laufen direkt in der App. Wenn du Spotify verknuepfst, kannst du kompatible Tracks zusaetzlich im In-App-Player oeffnen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
         )
-        if (!errorMessage.isNullOrBlank()) {
-            Text(
-                text = errorMessage,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 12.dp),
-            )
-        }
         Button(
             onClick = onConnect,
             modifier = Modifier
@@ -694,7 +685,7 @@ private fun SpotifyConnectCard(
                 contentDescription = null,
             )
             Text(
-                text = "Spotify verbinden",
+                text = "Spotify optional verbinden",
                 modifier = Modifier.padding(start = 8.dp),
             )
         }

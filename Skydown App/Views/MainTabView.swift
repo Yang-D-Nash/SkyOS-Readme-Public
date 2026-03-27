@@ -253,46 +253,37 @@ private struct AIHubView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
                 } else {
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(spacing: 10) {
-                            ForEach(AIHubMode.allCases) { currentMode in
-                                Button {
-                                    mode = currentMode
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: currentMode.iconName)
-                                        Text(currentMode.rawValue)
-                                            .fontWeight(.semibold)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 18)
-                                            .fill(
-                                                mode == currentMode
-                                                ? AppColors.accent(for: colorScheme)
-                                                : AppColors.secondaryBackground(for: colorScheme)
-                                            )
-                                    )
-                                    .foregroundColor(
-                                        mode == currentMode
-                                        ? .white
-                                        : AppColors.text(for: colorScheme)
-                                    )
+                    HStack(spacing: 10) {
+                        ForEach(AIHubMode.allCases) { currentMode in
+                            Button {
+                                mode = currentMode
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: currentMode.iconName)
+                                    Text(currentMode.rawValue)
+                                        .fontWeight(.semibold)
                                 }
-                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .fill(
+                                            mode == currentMode
+                                            ? AppColors.accent(for: colorScheme)
+                                            : AppColors.secondaryBackground(for: colorScheme)
+                                        )
+                                )
+                                .foregroundColor(
+                                    mode == currentMode
+                                    ? .white
+                                    : AppColors.text(for: colorScheme)
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
                     }
-                    .padding(18)
-                    .background(AppColors.cardBackground(for: colorScheme))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
                     .padding(.horizontal, 20)
-                    .padding(.top, 14)
+                    .padding(.top, 10)
 
                     Group {
                         if mode == .bot {

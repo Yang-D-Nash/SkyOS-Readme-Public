@@ -115,77 +115,73 @@ fun AiHubScreen(
                         }
                     }
                 } else {
-                    SkydownCard(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                        contentPadding = PaddingValues(18.dp),
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            if (mode == AiHubMode.Bot) {
-                                Button(
-                                    onClick = { mode = AiHubMode.Bot },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(18.dp),
-                                ) {
-                                    androidx.compose.material3.Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                    )
-                                    Text(
-                                        text = "Bot",
-                                        modifier = Modifier.padding(start = 8.dp),
-                                    )
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { mode = AiHubMode.Bot },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(18.dp),
-                                ) {
-                                    androidx.compose.material3.Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                    )
-                                    Text(
-                                        text = "Bot",
-                                        modifier = Modifier.padding(start = 8.dp),
-                                    )
-                                }
+                        if (mode == AiHubMode.Bot) {
+                            Button(
+                                onClick = { mode = AiHubMode.Bot },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                )
+                                Text(
+                                    text = "Bot",
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
                             }
+                        } else {
+                            OutlinedButton(
+                                onClick = { mode = AiHubMode.Bot },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                )
+                                Text(
+                                    text = "Bot",
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
+                            }
+                        }
 
-                            if (mode == AiHubMode.Agent) {
-                                Button(
-                                    onClick = { mode = AiHubMode.Agent },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(18.dp),
-                                ) {
-                                    androidx.compose.material3.Icon(
-                                        imageVector = Icons.Default.Bolt,
-                                        contentDescription = null,
-                                    )
-                                    Text(
-                                        text = "Agent",
-                                        modifier = Modifier.padding(start = 8.dp),
-                                    )
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { mode = AiHubMode.Agent },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(18.dp),
-                                ) {
-                                    androidx.compose.material3.Icon(
-                                        imageVector = Icons.Default.Bolt,
-                                        contentDescription = null,
-                                    )
-                                    Text(
-                                        text = "Agent",
-                                        modifier = Modifier.padding(start = 8.dp),
-                                    )
-                                }
+                        if (mode == AiHubMode.Agent) {
+                            Button(
+                                onClick = { mode = AiHubMode.Agent },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = Icons.Default.Bolt,
+                                    contentDescription = null,
+                                )
+                                Text(
+                                    text = "Agent",
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { mode = AiHubMode.Agent },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = Icons.Default.Bolt,
+                                    contentDescription = null,
+                                )
+                                Text(
+                                    text = "Agent",
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
                             }
                         }
                     }

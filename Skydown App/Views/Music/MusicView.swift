@@ -40,7 +40,7 @@ struct MusicView: View {
         if viewModel.isSpotifyConnected {
             return "Spotify ist verbunden. Du kannst Previews testen oder den Spotify Player direkt in der App oeffnen."
         }
-        return "Verbinde Spotify, damit wir Songs fuer den aktuellen Artist laden koennen."
+        return "Previews laufen direkt in der App. Spotify ist optional, falls du kompatible Tracks zusaetzlich im In-App-Player oeffnen willst."
     }
 
     private var tracksStatusText: String {
@@ -97,7 +97,7 @@ struct MusicView: View {
 
             HStack(spacing: 8) {
                 MusicBadge(
-                    text: viewModel.isSpotifyConnected ? "Spotify verbunden" : "Spotify noch nicht verbunden",
+                    text: viewModel.isSpotifyConnected ? "Spotify verbunden" : "Preview bereit",
                     isAccent: viewModel.isSpotifyConnected
                 )
 
@@ -232,7 +232,7 @@ struct MusicView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                     } else {
-                        Label("Spotify verbinden", systemImage: "music.note")
+                        Label("Spotify optional verbinden", systemImage: "music.note")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -276,11 +276,7 @@ struct MusicView: View {
 
     @ViewBuilder
     private var tracksContent: some View {
-        if !viewModel.isSpotifyConnected {
-            Text("Verbinde Spotify, um Tracks fuer den ausgewaehlten Artist zu laden und den Spotify Player direkt hier zu starten.")
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-        } else if viewModel.tracks.isEmpty {
+        if viewModel.tracks.isEmpty {
             if viewModel.showToast {
                 EmptyView()
             } else {
@@ -335,9 +331,7 @@ struct MusicView: View {
 
     private func reloadTracksIfNeeded() async {
         audioManager.stop()
-        if viewModel.isSpotifyConnected {
-            await viewModel.fetchTracks(for: selectedArtist)
-        }
+        await viewModel.fetchTracks(for: selectedArtist)
     }
 }
 

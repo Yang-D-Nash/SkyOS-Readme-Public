@@ -44,37 +44,11 @@ class MusicViewModel : ViewModel() {
             }
         }
 
-        viewModelScope.launch {
-            SpotifyAuthManager.lastErrorMessage.collectLatest { errorMessage ->
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        errorMessage = errorMessage ?: if (currentState.isSpotifyConnected) {
-                            currentState.errorMessage
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
-        }
+        selectArtist(_uiState.value.selectedArtist)
     }
 
     fun selectArtist(artist: String) {
         viewModelScope.launch {
-            if (!_uiState.value.isSpotifyConnected) {
-                _uiState.update {
-                    it.copy(
-                        selectedArtist = artist,
-                        isLoading = false,
-                        tracks = emptyList(),
-                        currentlyPlayingId = null,
-                        currentPreviewUrl = null,
-                        errorMessage = null,
-                    )
-                }
-                return@launch
-            }
-
             _uiState.update {
                 it.copy(
                     selectedArtist = artist,
@@ -107,7 +81,7 @@ class MusicViewModel : ViewModel() {
                             tracks = emptyList(),
                             currentlyPlayingId = null,
                             currentPreviewUrl = null,
-                            errorMessage = error.message ?: "Spotify konnte gerade nicht geladen werden.",
+                            errorMessage = error.message ?: "Tracks konnten gerade nicht geladen werden.",
                         )
                     }
                 }

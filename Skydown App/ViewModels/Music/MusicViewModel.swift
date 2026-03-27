@@ -34,14 +34,9 @@ class MusicViewModel: ObservableObject {
             isSpotifyConnected = musicService.isConnected
             showUserToast("Spotify verbunden", style: .success)
         } catch {
-            print("Dev Fehler connectSpotify:", error.localizedDescription)
-            print("Spotify Konfiguration:", musicService.debugConfigurationDescription)
-            if let authorizationURL = musicService.lastAuthorizationURLString {
-                print("Spotify Authorize URL:", authorizationURL)
-            }
             showUserToast(
-                "Spotify-Verbindung fehlgeschlagen: \(error.localizedDescription)\n\(musicService.debugConfigurationDescription)\nauthorize_url=\(musicService.lastAuthorizationURLString ?? "-")",
-                style: .error
+                "Spotify konnte gerade nicht verbunden werden. Previews laufen weiter, wenn sie verfuegbar sind.",
+                style: .info
             )
         }
         isConnectingSpotify = false
@@ -56,11 +51,6 @@ class MusicViewModel: ObservableObject {
 
     func fetchTracks(for artist: String) async {
         isSpotifyConnected = musicService.isConnected
-        guard isSpotifyConnected else {
-            tracks = []
-            showUserToast("Verbinde zuerst Spotify, um Songs zu laden.", style: .info)
-            return
-        }
 
         do {
             let filteredTracks = try await musicService.fetchTracks(for: artist)
@@ -73,8 +63,7 @@ class MusicViewModel: ObservableObject {
             }
 
         } catch {
-            print("Dev Fehler fetchTracks:", error.localizedDescription)
-            showUserToast("Fehler beim Laden der Daten: \(error.localizedDescription)", style: .error)
+            showUserToast("Tracks konnten gerade nicht geladen werden.", style: .error)
             tracks = []
         }
     }

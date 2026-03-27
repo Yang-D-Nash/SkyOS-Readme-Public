@@ -180,7 +180,7 @@ final class HomeViewModel: ObservableObject {
             featuredTrack = await loadLatestTrack()
             featuredVideo = await loadLatestVideo()
             homeTrackMessage = featuredTrack == nil
-                ? "Verbinde Spotify im Musikbereich, damit der neueste Release direkt hier erscheint."
+                ? "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
                 : nil
             homeVideoMessage = featuredVideo == nil
                 ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
@@ -192,7 +192,6 @@ final class HomeViewModel: ObservableObject {
         var latestTrack: Track?
 
         for artist in featuredArtists {
-            guard musicService.isConnected else { return nil }
             let tracks = (try? await musicService.fetchTracks(for: artist)) ?? []
             for track in tracks {
                 let candidateDate = track.releaseDate ?? ""

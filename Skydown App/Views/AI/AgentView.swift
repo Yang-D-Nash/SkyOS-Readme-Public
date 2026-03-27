@@ -49,19 +49,23 @@ struct AgentView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    AgentHeroCard(
-                        colorScheme: colorScheme,
-                        badges: featureFlags.isAIEnabled
-                            ? ["X22 Agent", "Workflow"]
-                            : ["X22 Agent", "Kurz pausiert"]
-                    )
+                    if showsNavigation {
+                        AgentHeroCard(
+                            colorScheme: colorScheme,
+                            badges: featureFlags.isAIEnabled
+                                ? ["X22 Agent", "Workflow"]
+                                : ["X22 Agent", "Kurz pausiert"]
+                        )
+                    }
 
                     if featureFlags.isAIEnabled {
-                        AgentQuickPromptCard(
-                            colorScheme: colorScheme,
-                            prompts: viewModel.quickPrompts,
-                            onPromptSelected: viewModel.sendPrompt
-                        )
+                        if showsNavigation {
+                            AgentQuickPromptCard(
+                                colorScheme: colorScheme,
+                                prompts: viewModel.quickPrompts,
+                                onPromptSelected: viewModel.sendPrompt
+                            )
+                        }
 
                         ForEach(viewModel.messages) { message in
                             AgentMessageBubble(
@@ -80,7 +84,7 @@ struct AgentView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.top, showsNavigation ? 20 : 8)
             .padding(.bottom, 12)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)

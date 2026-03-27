@@ -44,7 +44,7 @@ class HomeViewModel : ViewModel() {
                     featuredTrack = latestTrack,
                     featuredVideo = latestVideo,
                     homeTrackMessage = if (latestTrack == null) {
-                        "Verbinde Spotify im Musikbereich, damit der neueste Release direkt hier erscheint."
+                        "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
                     } else {
                         null
                     },

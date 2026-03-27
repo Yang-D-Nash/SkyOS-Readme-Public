@@ -185,26 +185,33 @@ fun AiScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                contentPadding = PaddingValues(
+                    horizontal = 16.dp,
+                    vertical = if (showTopBar) 16.dp else 8.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item {
-                    AiOverviewCard(isEnabled = uiState.isAiEnabled)
+                if (showTopBar) {
+                    item {
+                        AiOverviewCard(isEnabled = uiState.isAiEnabled)
+                    }
                 }
 
                 if (uiState.isAiEnabled) {
-                    item {
-                        QuickPromptCard(
-                            prompts = uiState.quickPrompts,
-                            onPromptSelected = viewModel::sendPrompt,
-                        )
-                    }
+                    if (showTopBar) {
+                        item {
+                            QuickPromptCard(
+                                prompts = uiState.quickPrompts,
+                                onPromptSelected = viewModel::sendPrompt,
+                            )
+                        }
 
-                    item {
-                        VisualPromptCard(
-                            prompts = uiState.visualPrompts,
-                            onPromptSelected = viewModel::generateVisual,
-                        )
+                        item {
+                            VisualPromptCard(
+                                prompts = uiState.visualPrompts,
+                                onPromptSelected = viewModel::generateVisual,
+                            )
+                        }
                     }
 
                     items(uiState.messages, key = { it.id }) { message ->

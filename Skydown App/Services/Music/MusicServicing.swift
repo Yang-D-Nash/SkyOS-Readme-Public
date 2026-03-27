@@ -175,6 +175,23 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         let url: String
     }
 
+    private struct CatalogSearchResponse: Decodable {
+        let results: [CatalogTrack]
+    }
+
+    private struct CatalogTrack: Decodable {
+        let trackId: Int?
+        let artistId: Int?
+        let artistName: String
+        let trackName: String
+        let collectionName: String?
+        let artworkUrl100: String?
+        let previewUrl: String?
+        let wrapperType: String?
+        let kind: String?
+        let releaseDate: String?
+    }
+
     private struct StoredToken: Codable {
         let accessToken: String
         let refreshToken: String?
@@ -221,7 +238,21 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     func fetchTracks(for artist: String) async throws -> [Track] {
-        let accessToken = try await validAccessToken(forceRefresh: false, allowInteractiveAuth: false)
+        do {
+            let accessToken = try await validAccessToken(forceRefresh: false, allowInteractiveAuth: false)
+            return try await fetchSpotifyTracks(
+                for: artist,
+                accessToken: accessToken
+            )
+        } catch {
+            return try await fetchCatalogTracks(for: artist)
+        }
+    }
+
+    private func fetchSpotifyTracks(
+        for artist: String,
+        accessToken: String
+    ) async throws -> [Track] {
         let artistID = Constants.artistIDs[artist]
         if let artistID {
             let directTracks = try await fetchKnownArtistTracks(
@@ -283,8 +314,33 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             if let artistID {
                 return track.spotifyArtistID == artistID
             }
-            return track.artistName?.caseInsensitiveCompare(artist) == .orderedSame
+            return artistMatches(expectedArtist: artist, actualArtist: track.artistName)
         }
+    }
+
+    private func fetchCatalogTracks(for artist: String) async throws -> [Track] {
+        let url = try catalogSearchURL(for: artist)
+        let (data, _) = try await session.data(from: url)
+        let response = try decoder.decode(CatalogSearchResponse.self, from: data)
+
+        return response.results
+            .filter { artistMatches(expectedArtist: artist, actualArtist: $0.artistName) }
+            .sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
+            .map { item in
+                Track(
+                    trackId: item.trackId ?? abs("\(item.artistName)-\(item.trackName)".hashValue),
+                    artistId: item.artistId ?? abs(item.artistName.hashValue),
+                    spotifyArtistID: nil,
+                    artistName: item.artistName,
+                    trackName: item.trackName,
+                    collectionName: item.collectionName,
+                    artworkUrl100: item.artworkUrl100,
+                    previewUrl: item.previewUrl,
+                    externalURL: nil,
+                    wrapperType: item.wrapperType ?? item.kind,
+                    releaseDate: item.releaseDate
+                )
+            }
     }
 
     private func fetchKnownArtistTracks(
@@ -593,6 +649,31 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             "artist:\"\(artist)\"",
             artist,
         ]
+    }
+
+    private func artistMatches(expectedArtist: String, actualArtist: String?) -> Bool {
+        guard let actualArtist else { return false }
+        let expected = expectedArtist.lowercased()
+        let actual = actualArtist.lowercased()
+        return actual == expected || actual.contains(expected) || expected.contains(actual)
+    }
+
+    private func catalogSearchURL(for artist: String) throws -> URL {
+        guard var components = URLComponents(string: "https://itunes.apple.com/search") else {
+            throw URLError(.badURL)
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "term", value: artist),
+            URLQueryItem(name: "media", value: "music"),
+            URLQueryItem(name: "entity", value: "song"),
+            URLQueryItem(name: "limit", value: "25"),
+        ]
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+        return url
     }
 
     private func performSearch(query: String, accessToken: String) async throws -> [SpotifyTrack] {

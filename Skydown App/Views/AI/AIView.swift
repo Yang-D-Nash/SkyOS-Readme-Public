@@ -49,25 +49,29 @@ struct AIView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    AIHeroCard(
-                        colorScheme: colorScheme,
-                        badges: featureFlags.isAIEnabled
-                            ? ["X22 Bot", "Creative Assist"]
-                            : ["X22 Bot", "Kurz pausiert"]
-                    )
+                    if showsNavigation {
+                        AIHeroCard(
+                            colorScheme: colorScheme,
+                            badges: featureFlags.isAIEnabled
+                                ? ["X22 Bot", "Creative Assist"]
+                                : ["X22 Bot", "Kurz pausiert"]
+                        )
+                    }
 
                     if featureFlags.isAIEnabled {
-                        AIQuickPromptCard(
-                            colorScheme: colorScheme,
-                            prompts: viewModel.quickPrompts,
-                            onPromptSelected: viewModel.sendPrompt
-                        )
+                        if showsNavigation {
+                            AIQuickPromptCard(
+                                colorScheme: colorScheme,
+                                prompts: viewModel.quickPrompts,
+                                onPromptSelected: viewModel.sendPrompt
+                            )
 
-                        AIVisualPromptCard(
-                            colorScheme: colorScheme,
-                            prompts: viewModel.visualPrompts,
-                            onPromptSelected: viewModel.generateVisual
-                        )
+                            AIVisualPromptCard(
+                                colorScheme: colorScheme,
+                                prompts: viewModel.visualPrompts,
+                                onPromptSelected: viewModel.generateVisual
+                            )
+                        }
 
                         ForEach(viewModel.messages) { message in
                             AIMessageBubble(
@@ -86,7 +90,7 @@ struct AIView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.top, showsNavigation ? 20 : 8)
             .padding(.bottom, 12)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)

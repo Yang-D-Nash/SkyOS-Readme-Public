@@ -159,19 +159,26 @@ fun AgentScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                contentPadding = PaddingValues(
+                    horizontal = 16.dp,
+                    vertical = if (showTopBar) 16.dp else 8.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item {
-                    AgentOverviewCard(isEnabled = uiState.isAgentEnabled)
+                if (showTopBar) {
+                    item {
+                        AgentOverviewCard(isEnabled = uiState.isAgentEnabled)
+                    }
                 }
 
                 if (uiState.isAgentEnabled) {
-                    item {
-                        AgentQuickPromptCard(
-                            prompts = uiState.quickPrompts,
-                            onPromptSelected = viewModel::sendPrompt,
-                        )
+                    if (showTopBar) {
+                        item {
+                            AgentQuickPromptCard(
+                                prompts = uiState.quickPrompts,
+                                onPromptSelected = viewModel::sendPrompt,
+                            )
+                        }
                     }
 
                     items(uiState.messages, key = { it.id }) { message ->

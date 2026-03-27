@@ -19,77 +19,123 @@ class AndroidMusicRepository : MusicRepository {
     private val artistAlbumsPageSize = 10
     private val artistAlbumsMaxResults = 100
     private val albumTracksPageSize = 50
+    private val catalogPageSize = 25
 
     override suspend fun fetchTracks(artist: String): Result<List<Track>> {
         return runCatching {
-            val accessToken = SpotifyAuthManager.validAccessToken()
-                ?: error("Verbinde zuerst Spotify.")
-            val artistId = artistIds[artist]
-
             withContext(Dispatchers.IO) {
-                if (artistId != null) {
-                    val directTracks = fetchKnownArtistTracks(
+                val accessToken = SpotifyAuthManager.validAccessToken()
+                if (accessToken.isNullOrBlank()) {
+                    return@withContext fetchCatalogTracks(artist)
+                }
+
+                runCatching {
+                    fetchSpotifyTracks(
                         accessToken = accessToken,
                         artist = artist,
-                        artistId = artistId,
                     )
-                    if (directTracks.isNotEmpty()) {
-                        return@withContext directTracks
-                    }
+                }.getOrElse {
+                    fetchCatalogTracks(artist)
                 }
-
-                val queries = searchQueriesFor(artist)
-                var lastErrorMessage: String? = null
-
-                for ((index, query) in queries.withIndex()) {
-                    val searchResult = performSearch(
-                        accessToken = accessToken,
-                        query = query,
-                    )
-
-                    if (searchResult.errorMessage == null) {
-                        return@withContext searchResult.items
-                            .map { track ->
-                                val matchingArtist = if (artistId != null) {
-                                    track.artists.firstOrNull { it.id == artistId }
-                                } else {
-                                    track.artists.firstOrNull()
-                                }
-                                Track(
-                                    trackId = kotlin.math.abs(track.id.hashCode()),
-                                    artistId = kotlin.math.abs((matchingArtist?.id ?: track.artists.firstOrNull()?.id ?: track.id).hashCode()),
-                                    spotifyArtistId = matchingArtist?.id ?: track.artists.firstOrNull()?.id,
-                                    artistName = matchingArtist?.name ?: track.artists.firstOrNull()?.name,
-                                    trackName = track.name,
-                                    collectionName = track.album.name,
-                                    artworkUrl100 = track.album.images.firstOrNull()?.url,
-                                    previewUrl = track.previewUrl,
-                                    externalUrl = track.externalUrls["spotify"],
-                                    wrapperType = "track",
-                                    releaseDate = track.album.releaseDate,
-                                )
-                            }
-                            .filter { track ->
-                                if (artistId != null) {
-                                    track.spotifyArtistId == artistId
-                                } else {
-                                    track.artistName.equals(artist, ignoreCase = true)
-                                }
-                            }
-                    }
-
-                    lastErrorMessage = searchResult.errorMessage
-
-                    if (searchResult.responseCode == 400 && index < queries.lastIndex) {
-                        continue
-                    }
-
-                    error(lastErrorMessage)
-                }
-
-                error(lastErrorMessage ?: "Spotify konnte gerade nicht geladen werden.")
             }
         }
+    }
+
+    private fun fetchSpotifyTracks(
+        accessToken: String,
+        artist: String,
+    ): List<Track> {
+        val artistId = artistIds[artist]
+
+        if (artistId != null) {
+            val directTracks = fetchKnownArtistTracks(
+                accessToken = accessToken,
+                artist = artist,
+                artistId = artistId,
+            )
+            if (directTracks.isNotEmpty()) {
+                return directTracks
+            }
+        }
+
+        val queries = searchQueriesFor(artist)
+        var lastErrorMessage: String? = null
+
+        for ((index, query) in queries.withIndex()) {
+            val searchResult = performSearch(
+                accessToken = accessToken,
+                query = query,
+            )
+
+            if (searchResult.errorMessage == null) {
+                return searchResult.items
+                    .map { track ->
+                        val matchingArtist = if (artistId != null) {
+                            track.artists.firstOrNull { it.id == artistId }
+                        } else {
+                            track.artists.firstOrNull()
+                        }
+                        Track(
+                            trackId = kotlin.math.abs(track.id.hashCode()),
+                            artistId = kotlin.math.abs((matchingArtist?.id ?: track.artists.firstOrNull()?.id ?: track.id).hashCode()),
+                            spotifyArtistId = matchingArtist?.id ?: track.artists.firstOrNull()?.id,
+                            artistName = matchingArtist?.name ?: track.artists.firstOrNull()?.name,
+                            trackName = track.name,
+                            collectionName = track.album.name,
+                            artworkUrl100 = track.album.images.firstOrNull()?.url,
+                            previewUrl = track.previewUrl,
+                            externalUrl = track.externalUrls["spotify"],
+                            wrapperType = "track",
+                            releaseDate = track.album.releaseDate,
+                        )
+                    }
+                    .filter { track ->
+                        if (artistId != null) {
+                            track.spotifyArtistId == artistId
+                        } else {
+                            artistMatches(expectedArtist = artist, actualArtist = track.artistName)
+                        }
+                    }
+            }
+
+            lastErrorMessage = searchResult.errorMessage
+
+            if (searchResult.responseCode == 400 && index < queries.lastIndex) {
+                continue
+            }
+
+            error(lastErrorMessage)
+        }
+
+        error(lastErrorMessage ?: "Tracks konnten gerade nicht geladen werden.")
+    }
+
+    private fun fetchCatalogTracks(artist: String): List<Track> {
+        val response = performCatalogRequest(buildCatalogSearchUrl(artist))
+        if (response.responseCode !in 200..299) {
+            error("Tracks konnten gerade nicht geladen werden.")
+        }
+
+        return json.decodeFromString(CatalogSearchResponse.serializer(), response.payload).results
+            .filter { result ->
+                artistMatches(expectedArtist = artist, actualArtist = result.artistName)
+            }
+            .sortedByDescending { it.releaseDate.orEmpty() }
+            .map { result ->
+                Track(
+                    trackId = result.trackId ?: kotlin.math.abs("${result.artistName}-${result.trackName}".hashCode()),
+                    artistId = result.artistId ?: kotlin.math.abs(result.artistName.hashCode()),
+                    spotifyArtistId = null,
+                    artistName = result.artistName,
+                    trackName = result.trackName,
+                    collectionName = result.collectionName,
+                    artworkUrl100 = result.artworkUrl100,
+                    previewUrl = result.previewUrl,
+                    externalUrl = null,
+                    wrapperType = result.wrapperType ?: result.kind,
+                    releaseDate = result.releaseDate,
+                )
+            }
     }
 
     private fun fetchKnownArtistTracks(
@@ -267,6 +313,29 @@ class AndroidMusicRepository : MusicRepository {
         }
     }
 
+    private fun performCatalogRequest(url: URL): SearchHttpResponse {
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            setRequestProperty("Accept", "application/json")
+        }
+
+        return try {
+            val responseCode = connection.responseCode
+            val stream = when {
+                responseCode in 200..299 -> connection.inputStream
+                connection.errorStream != null -> connection.errorStream
+                else -> connection.inputStream
+            }
+            val payload = stream.bufferedReader().use { it.readText() }
+            SearchHttpResponse(
+                responseCode = responseCode,
+                payload = payload,
+            )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     private fun buildSearchUrl(query: String, offset: Int): URL {
         val uri = Uri.parse("https://api.spotify.com/v1/search")
             .buildUpon()
@@ -297,11 +366,29 @@ class AndroidMusicRepository : MusicRepository {
         return URL(uri.toString())
     }
 
+    private fun buildCatalogSearchUrl(artist: String): URL {
+        val uri = Uri.parse("https://itunes.apple.com/search")
+            .buildUpon()
+            .appendQueryParameter("term", artist)
+            .appendQueryParameter("media", "music")
+            .appendQueryParameter("entity", "song")
+            .appendQueryParameter("limit", catalogPageSize.toString())
+            .build()
+        return URL(uri.toString())
+    }
+
     private fun searchQueriesFor(artist: String): List<String> {
         return listOf(
             "artist:\"$artist\"",
             artist,
         ).distinct()
+    }
+
+    private fun artistMatches(expectedArtist: String, actualArtist: String?): Boolean {
+        if (actualArtist.isNullOrBlank()) return false
+        val expected = expectedArtist.lowercase()
+        val actual = actualArtist.lowercase()
+        return actual == expected || actual.contains(expected) || expected.contains(actual)
     }
 
     private val artistIds = mapOf(
@@ -391,4 +478,23 @@ private data class SpotifyAlbumTrack(
     @SerialName("preview_url") val previewUrl: String? = null,
     val artists: List<SpotifyArtist>,
     @SerialName("external_urls") val externalUrls: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+private data class CatalogSearchResponse(
+    val results: List<CatalogTrack> = emptyList(),
+)
+
+@Serializable
+private data class CatalogTrack(
+    val trackId: Int? = null,
+    val artistId: Int? = null,
+    val artistName: String = "",
+    val trackName: String = "",
+    val collectionName: String? = null,
+    val artworkUrl100: String? = null,
+    val previewUrl: String? = null,
+    val wrapperType: String? = null,
+    val kind: String? = null,
+    val releaseDate: String? = null,
 )
