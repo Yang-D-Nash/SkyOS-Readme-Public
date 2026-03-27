@@ -60,6 +60,8 @@ fun TrackRow(
     var showSpotifyPlayer by rememberSaveable(track.trackId) { mutableStateOf(false) }
     val hasPreview = !track.previewUrl.isNullOrBlank()
     val hasExternalLink = !track.externalUrl.isNullOrBlank()
+    val hasDirectSpotifyTrack = spotifyAppUri(track.externalUrl) != null
+    val hasSpotifySearch = hasExternalLink && !hasDirectSpotifyTrack
     val containerColor by animateColorAsState(
         targetValue = if (isPlaying) {
             MaterialTheme.colorScheme.primaryContainer
@@ -133,9 +135,11 @@ fun TrackRow(
                     )
                     Text(
                         text = when {
-                            hasPreview && hasExternalLink -> "Preview hier oder Spotify Player direkt in der App."
+                            hasPreview && hasDirectSpotifyTrack -> "Preview hier oder Spotify Player direkt in der App."
+                            hasPreview && hasSpotifySearch -> "Preview hier oder den Song in Spotify suchen."
                             hasPreview -> "Preview direkt in der App."
-                            hasExternalLink -> "Spotify Player direkt in der App."
+                            hasDirectSpotifyTrack -> "Spotify Player direkt in der App."
+                            hasSpotifySearch -> "Song in Spotify suchen."
                             else -> "Aktuell kein Spotify-Link verfuegbar."
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -163,9 +167,14 @@ fun TrackRow(
                                 isHighlighted = isPlaying,
                             )
                         }
-                        if (hasExternalLink) {
+                        if (hasDirectSpotifyTrack) {
                             TrackPill(
                                 text = "Spotify Player",
+                                isHighlighted = false,
+                            )
+                        } else if (hasSpotifySearch) {
+                            TrackPill(
+                                text = "Spotify Suche",
                                 isHighlighted = false,
                             )
                         }
@@ -191,7 +200,7 @@ fun TrackRow(
                             }
                         }
 
-                        if (hasExternalLink) {
+                        if (hasDirectSpotifyTrack) {
                             OutlinedButton(
                                 onClick = {
                                     showSpotifyPlayer = true
@@ -204,6 +213,22 @@ fun TrackRow(
                                 )
                                 Text(
                                     text = "In App",
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
+                            }
+                        } else if (hasSpotifySearch) {
+                            OutlinedButton(
+                                onClick = {
+                                    openTrackInSpotify(context, track.externalUrl)
+                                },
+                                modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                    contentDescription = null,
+                                )
+                                Text(
+                                    text = "Spotify",
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
@@ -237,7 +262,7 @@ fun TrackRow(
         }
     }
 
-    if (showSpotifyPlayer && hasExternalLink) {
+    if (showSpotifyPlayer && hasDirectSpotifyTrack) {
         SpotifyEmbedDialog(
             track = track,
             onDismiss = { showSpotifyPlayer = false },

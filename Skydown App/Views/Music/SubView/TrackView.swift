@@ -18,6 +18,14 @@ struct TrackView: View {
         audioManager.currentlyPlayingId == track.trackId
     }
 
+    private var hasDirectSpotifyTrack: Bool {
+        trackSpotifyID(externalURL: track.externalURL) != nil
+    }
+
+    private var hasSpotifySearch: Bool {
+        track.externalURL != nil && !hasDirectSpotifyTrack
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
@@ -78,8 +86,10 @@ struct TrackView: View {
                         if track.previewUrl != nil {
                             TrackTag(text: "In-App Preview", isAccent: false)
                         }
-                        if track.externalURL != nil {
+                        if hasDirectSpotifyTrack {
                             TrackTag(text: "Spotify Player", isAccent: false)
+                        } else if hasSpotifySearch {
+                            TrackTag(text: "Spotify Suche", isAccent: false)
                         }
                     }
                 }
@@ -103,11 +113,29 @@ struct TrackView: View {
                     }
                 }
 
-                if track.externalURL != nil {
+                if hasDirectSpotifyTrack {
                     Button {
                         showSpotifyPlayer = true
                     } label: {
                         Label("In App", systemImage: "music.note.tv")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(AppColors.secondaryBackground(for: colorScheme))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(AppColors.accent(for: colorScheme).opacity(0.22), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                } else if hasSpotifySearch {
+                    Button {
+                        if let url = URL(string: track.externalURL ?? "") {
+                            openURL(url)
+                        }
+                    } label: {
+                        Label("Spotify", systemImage: "arrow.up.forward.square")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
@@ -142,6 +170,22 @@ struct TrackView: View {
             SpotifyEmbedPlayerView(track: track)
         }
     }
+}
+
+private func trackSpotifyID(externalURL: String?) -> String? {
+    guard let externalURL,
+          let webURL = URL(string: externalURL),
+          let components = URLComponents(url: webURL, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+
+    let pathComponents = components.path.split(separator: "/")
+    guard let trackIndex = pathComponents.firstIndex(of: "track"),
+          trackIndex + 1 < pathComponents.count else {
+        return nil
+    }
+
+    return String(pathComponents[trackIndex + 1])
 }
 
 private struct TrackTag: View {

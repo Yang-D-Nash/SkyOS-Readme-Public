@@ -131,7 +131,7 @@ class AndroidMusicRepository : MusicRepository {
                     collectionName = result.collectionName,
                     artworkUrl100 = result.artworkUrl100,
                     previewUrl = result.previewUrl,
-                    externalUrl = null,
+                    externalUrl = buildSpotifySearchUrl(result.artistName, result.trackName),
                     wrapperType = result.wrapperType ?: result.kind,
                     releaseDate = result.releaseDate,
                 )
@@ -375,6 +375,17 @@ class AndroidMusicRepository : MusicRepository {
             .appendQueryParameter("limit", catalogPageSize.toString())
             .build()
         return URL(uri.toString())
+    }
+
+    private fun buildSpotifySearchUrl(artist: String, trackName: String): String {
+        val query = listOf(artist, trackName)
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+        return Uri.parse("https://open.spotify.com/search")
+            .buildUpon()
+            .appendPath(query)
+            .build()
+            .toString()
     }
 
     private fun searchQueriesFor(artist: String): List<String> {

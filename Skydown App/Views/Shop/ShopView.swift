@@ -348,7 +348,12 @@ private struct HomeLatestReleaseCard: View {
 
                 HStack(spacing: 10) {
                     ShopBadge(text: "Neuester Song", colorScheme: colorScheme)
-                    ShopBadge(text: track.previewUrl == nil ? "Spotify Player" : "Preview in App", colorScheme: colorScheme)
+                    ShopBadge(
+                        text: track.previewUrl != nil
+                            ? "Preview in App"
+                            : (track.externalURL != nil ? "Spotify Suche" : "Release"),
+                        colorScheme: colorScheme
+                    )
                 }
             } else {
                 Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.")

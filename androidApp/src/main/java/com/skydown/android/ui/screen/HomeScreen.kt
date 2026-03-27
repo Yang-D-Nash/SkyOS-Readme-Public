@@ -254,7 +254,11 @@ private fun HomeLatestReleaseCard(
         ) {
             HomeBadge(text = "Neuester Song", icon = Icons.Default.MusicNote, isActive = true)
             HomeBadge(
-                text = if (!track.previewUrl.isNullOrBlank()) "Preview in App" else "Spotify Player",
+                text = when {
+                    !track.previewUrl.isNullOrBlank() -> "Preview in App"
+                    !track.externalUrl.isNullOrBlank() -> "Spotify Suche"
+                    else -> "Release"
+                },
                 icon = Icons.Default.CheckCircle,
                 isActive = !track.previewUrl.isNullOrBlank(),
             )

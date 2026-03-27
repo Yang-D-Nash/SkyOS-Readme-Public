@@ -336,7 +336,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                     collectionName: item.collectionName,
                     artworkUrl100: item.artworkUrl100,
                     previewUrl: item.previewUrl,
-                    externalURL: nil,
+                    externalURL: spotifySearchURL(artist: item.artistName, track: item.trackName)?.absoluteString,
                     wrapperType: item.wrapperType ?? item.kind,
                     releaseDate: item.releaseDate
                 )
@@ -674,6 +674,14 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             throw URLError(.badURL)
         }
         return url
+    }
+
+    private func spotifySearchURL(artist: String, track: String) -> URL? {
+        let query = [artist, track]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+        return encoded.flatMap { URL(string: "https://open.spotify.com/search/\($0)") }
     }
 
     private func performSearch(query: String, accessToken: String) async throws -> [SpotifyTrack] {
