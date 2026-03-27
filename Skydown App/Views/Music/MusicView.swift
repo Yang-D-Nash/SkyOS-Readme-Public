@@ -38,7 +38,7 @@ struct MusicView: View {
 
     private var spotifyStatusText: String {
         if viewModel.isSpotifyConnected {
-            return "Spotify ist verbunden. Du kannst Previews testen, die komplette Wiedergabe in Spotify braucht aber Premium."
+            return "Spotify ist verbunden. Du kannst Previews testen oder den Spotify Player direkt in der App oeffnen."
         }
         return "Verbinde Spotify, damit wir Songs fuer den aktuellen Artist laden koennen."
     }
@@ -91,7 +91,7 @@ struct MusicView: View {
                 .font(.title3.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Waehle einen Artist, hoere eine Preview in der App und oeffne die komplette Wiedergabe mit Spotify Premium.")
+            Text("Waehle einen Artist, hoere eine Preview in der App oder oeffne den Spotify Player direkt hier.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -277,7 +277,7 @@ struct MusicView: View {
     @ViewBuilder
     private var tracksContent: some View {
         if !viewModel.isSpotifyConnected {
-            Text("Verbinde Spotify, um Tracks fuer den ausgewaehlten Artist zu laden. Fuer die komplette Wiedergabe in Spotify wird Premium benoetigt.")
+            Text("Verbinde Spotify, um Tracks fuer den ausgewaehlten Artist zu laden und den Spotify Player direkt hier zu starten.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         } else if viewModel.tracks.isEmpty {

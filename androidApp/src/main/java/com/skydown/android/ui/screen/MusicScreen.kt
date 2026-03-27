@@ -214,7 +214,9 @@ fun MusicScreen(
                         !uiState.isSpotifyConnected -> {
                             SpotifyConnectCard(
                                 selectedArtist = uiState.selectedArtist,
+                                errorMessage = uiState.errorMessage,
                                 onConnect = {
+                                    viewModel.clearSpotifyError()
                                     context.startActivity(
                                         Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
                                     )
@@ -236,6 +238,7 @@ fun MusicScreen(
                                 body = uiState.errorMessage.orEmpty(),
                                 actionLabel = "Spotify neu verbinden",
                                 onAction = {
+                                    viewModel.clearSpotifyError()
                                     context.startActivity(
                                         Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
                                     )
@@ -659,16 +662,25 @@ private fun ArtistChoiceContent(
 @Composable
 private fun SpotifyConnectCard(
     selectedArtist: String,
+    errorMessage: String?,
     onConnect: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Spotify")
         Text(
-            text = "Previews in App. Voller Track mit Spotify Premium.",
+            text = "Previews direkt hier. Falls ein Spotify-Track da ist, kannst du ihn auch im In-App-Player oeffnen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
         )
+        if (!errorMessage.isNullOrBlank()) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+        }
         Button(
             onClick = onConnect,
             modifier = Modifier

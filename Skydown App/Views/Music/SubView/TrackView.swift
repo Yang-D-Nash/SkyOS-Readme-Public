@@ -10,6 +10,7 @@ import SwiftUI
 struct TrackView: View {
     let track: Track
     @ObservedObject var audioManager: AudioPlayerManager
+    @State private var showSpotifyPlayer = false
     @Environment(\.openURL) private var openURL
     @Environment(\.colorScheme) private var colorScheme
 
@@ -78,7 +79,7 @@ struct TrackView: View {
                             TrackTag(text: "In-App Preview", isAccent: false)
                         }
                         if track.externalURL != nil {
-                            TrackTag(text: "Spotify Premium", isAccent: false)
+                            TrackTag(text: "Spotify Player", isAccent: false)
                         }
                     }
                 }
@@ -104,9 +105,9 @@ struct TrackView: View {
 
                 if track.externalURL != nil {
                     Button {
-                        openSpotifyTrack()
+                        showSpotifyPlayer = true
                     } label: {
-                        Label("Spotify Premium", systemImage: "arrow.up.forward.circle.fill")
+                        Label("In App", systemImage: "music.note.tv")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
@@ -137,33 +138,9 @@ struct TrackView: View {
             x: 0,
             y: 8
         )
-    }
-
-    private func openSpotifyTrack() {
-        if let appURL = spotifyAppURL {
-            openURL(appURL) { accepted in
-                if !accepted, let webURL = spotifyWebURL {
-                    openURL(webURL)
-                }
-            }
-        } else if let webURL = spotifyWebURL {
-            openURL(webURL)
+        .sheet(isPresented: $showSpotifyPlayer) {
+            SpotifyEmbedPlayerView(track: track)
         }
-    }
-
-    private var spotifyWebURL: URL? {
-        guard let externalURL = track.externalURL else { return nil }
-        return URL(string: externalURL)
-    }
-
-    private var spotifyAppURL: URL? {
-        guard let webURL = spotifyWebURL else { return nil }
-        let components = webURL.pathComponents
-        guard let trackIndex = components.firstIndex(of: "track"),
-              trackIndex + 1 < components.count else {
-            return nil
-        }
-        return URL(string: "spotify:track:\(components[trackIndex + 1])")
     }
 }
 

@@ -1,5 +1,7 @@
 package com.skydown.android.ui.screen
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,14 +15,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -34,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -246,7 +254,7 @@ private fun HomeLatestReleaseCard(
         ) {
             HomeBadge(text = "Neuester Song", icon = Icons.Default.MusicNote, isActive = true)
             HomeBadge(
-                text = if (!track.previewUrl.isNullOrBlank()) "Preview in App" else "Spotify Link",
+                text = if (!track.previewUrl.isNullOrBlank()) "Preview in App" else "Spotify Player",
                 icon = Icons.Default.CheckCircle,
                 isActive = !track.previewUrl.isNullOrBlank(),
             )
@@ -328,15 +336,80 @@ private fun HomeLatestVideoCard(
 
 @Composable
 private fun HomeStoryCard() {
+    val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Worum Es Geht")
+        SectionHeader("Developer")
         Row(
             modifier = Modifier.padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             HomeBadge(text = "Yang D. Nash", icon = Icons.Default.Person, isActive = true)
-            HomeBadge(text = "Founder", icon = Icons.Default.CheckCircle, isActive = false)
-            HomeBadge(text = "Programmierer", icon = Icons.Default.CheckCircle, isActive = false)
+            HomeBadge(text = "Skydown", icon = Icons.Default.CheckCircle, isActive = false)
+            HomeBadge(text = "Entwickler", icon = Icons.Default.CheckCircle, isActive = false)
+        }
+
+        Text(
+            text = "Yang D. Nash entwickelt die App und bildet den Kern von Skydown x 22. Skydown Entertainment verbindet Hip Hop, Music und Video in einer eigenen mobilen Plattform.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 14.dp),
+        )
+
+        Column(
+            modifier = Modifier.padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Button(
+                onClick = {
+                    openExternalLink(context, "https://www.instagram.com/y.d.nash/")
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = null,
+                )
+                Text(
+                    text = "Yang D. Nash auf Instagram",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+
+            OutlinedButton(
+                onClick = {
+                    openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                )
+                Text(
+                    text = "Skydown auf Instagram",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+
+            OutlinedButton(
+                onClick = {
+                    val emailIntent = Intent(
+                        Intent.ACTION_SENDTO,
+                        Uri.parse("mailto:skydownent@gmail.com?subject=Skydown%20x%2022%20Kontakt"),
+                    )
+                    context.startActivity(emailIntent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Email,
+                    contentDescription = null,
+                )
+                Text(
+                    text = "Kontakt per E-Mail",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
     }
 }

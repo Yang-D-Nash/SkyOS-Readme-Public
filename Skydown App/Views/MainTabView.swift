@@ -57,56 +57,61 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DeferredView {
-                ShopView(
-                    authManager: services.authManager,
-                    onOpenCart: { showingCart = true },
-                    onOpenSettings: { showingSettings = true },
-                    merchandiseService: services.merchandiseService
-                )
-            }
-            .tabItem { Label("Shop", systemImage: "bag.fill") }
-            .tag(MainTab.shop)
+            Group {
+                DeferredView {
+                    ShopView(
+                        authManager: services.authManager,
+                        onOpenCart: { showingCart = true },
+                        onOpenSettings: { showingSettings = true },
+                        merchandiseService: services.merchandiseService
+                    )
+                }
+                .tabItem { Label("Shop", systemImage: "bag.fill") }
+                .tag(MainTab.shop)
 
-            DeferredView {
-                MusicView(
-                    onOpenCart: { showingCart = true },
-                    onOpenSettings: { showingSettings = true }
-                )
-            }
-            .tabItem { Label("Musik", systemImage: "music.note.list") }
-            .tag(MainTab.music)
+                DeferredView {
+                    MusicView(
+                        onOpenCart: { showingCart = true },
+                        onOpenSettings: { showingSettings = true }
+                    )
+                }
+                .tabItem { Label("Musik", systemImage: "music.note.list") }
+                .tag(MainTab.music)
 
-            DeferredView {
-                HomeView(
-                    onOpenCart: { showingCart = true },
-                    onOpenSettings: { showingSettings = true }
-                )
-            }
-            .tabItem { Label("Home", systemImage: "house.fill") }
-            .tag(MainTab.home)
+                DeferredView {
+                    HomeView(
+                        onOpenCart: { showingCart = true },
+                        onOpenSettings: { showingSettings = true }
+                    )
+                }
+                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tag(MainTab.home)
 
-            DeferredView {
-                VideoHubTabView(
-                    onOpenCart: { showingCart = true },
-                    onOpenSettings: { showingSettings = true }
-                )
-            }
-            .tabItem { Label("Video", systemImage: "video.fill") }
-            .tag(MainTab.video)
+                DeferredView {
+                    VideoHubTabView(
+                        onOpenCart: { showingCart = true },
+                        onOpenSettings: { showingSettings = true }
+                    )
+                }
+                .tabItem { Label("Video", systemImage: "video.fill") }
+                .tag(MainTab.video)
 
-            DeferredView {
-                AIHubView(
-                    aiChatService: services.aiChatService,
-                    agentChatService: services.agentChatService,
-                    featureFlags: services.featureFlags,
-                    onOpenCart: { showingCart = true },
-                    onOpenLogin: { showingLogin = true },
-                    onOpenSettings: { showingSettings = true }
-                )
+                DeferredView {
+                    AIHubView(
+                        aiChatService: services.aiChatService,
+                        agentChatService: services.agentChatService,
+                        featureFlags: services.featureFlags,
+                        onOpenCart: { showingCart = true },
+                        onOpenLogin: { showingLogin = true },
+                        onOpenSettings: { showingSettings = true }
+                    )
+                }
+                .tabItem { Label("KI", systemImage: "sparkles") }
+                .tag(MainTab.ai)
             }
-            .tabItem { Label("KI", systemImage: "sparkles") }
-            .tag(MainTab.ai)
+            .toolbar(.visible, for: .tabBar)
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+            .toolbarColorScheme(currentScheme, for: .tabBar)
         }
         .accentColor(AppColors.accent(for: currentScheme))
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))

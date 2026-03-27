@@ -32,6 +32,8 @@ object SpotifyAuthManager {
     private lateinit var appContext: Context
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
+    private val _lastErrorMessage = MutableStateFlow<String?>(null)
+    val lastErrorMessage: StateFlow<String?> = _lastErrorMessage.asStateFlow()
 
     fun initialize(context: Context) {
         appContext = context.applicationContext
@@ -47,6 +49,7 @@ object SpotifyAuthManager {
             .putString(keyState, state)
             .putString(keyVerifier, verifier)
             .apply()
+        _lastErrorMessage.value = null
 
         return Uri.parse(authorizeUrl).buildUpon()
             .appendQueryParameter("client_id", clientId)
@@ -72,6 +75,9 @@ object SpotifyAuthManager {
 
         val tokenResponse = exchangeCodeForToken(code, verifier)
         saveTokenResponse(tokenResponse)
+        _lastErrorMessage.value = null
+    }.onFailure { error ->
+        _lastErrorMessage.value = error.message ?: "Spotify konnte nicht verbunden werden."
     }
 
     suspend fun validAccessToken(): String? {
@@ -97,6 +103,11 @@ object SpotifyAuthManager {
             .remove(keyVerifier)
             .apply()
         _isConnected.value = false
+        _lastErrorMessage.value = null
+    }
+
+    fun clearError() {
+        _lastErrorMessage.value = null
     }
 
     private suspend fun exchangeCodeForToken(code: String, verifier: String): TokenResponse {

@@ -1,6 +1,9 @@
 package com.skydown.android.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -25,8 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -86,50 +91,60 @@ fun SkydownApp() {
 
         Scaffold(
             bottomBar = {
-                Surface(
-                    tonalElevation = 8.dp,
-                    shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                    ),
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    NavigationBar(
-                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                        tonalElevation = 0.dp,
+                    Surface(
+                        tonalElevation = 10.dp,
+                        shadowElevation = 14.dp,
+                        shape = RoundedCornerShape(30.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                        ),
                     ) {
-                        destinations.forEach { destination ->
-                            val isSelected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
+                        NavigationBar(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            tonalElevation = 0.dp,
+                        ) {
+                            destinations.forEach { destination ->
+                                val isSelected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
 
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = {
-                                    navController.navigate(destination.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = {
+                                        navController.navigate(destination.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = destination.icon,
-                                label = {
-                                    Text(
-                                        text = destination.label,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                },
-                                alwaysShowLabel = true,
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                ),
-                            )
+                                    },
+                                    icon = destination.icon,
+                                    label = {
+                                        Text(
+                                            text = destination.label,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    },
+                                    alwaysShowLabel = true,
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                    ),
+                                )
+                            }
                         }
                     }
                 }

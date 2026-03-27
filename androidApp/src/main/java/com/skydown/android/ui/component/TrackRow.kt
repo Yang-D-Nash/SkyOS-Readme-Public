@@ -3,6 +3,8 @@ package com.skydown.android.ui.component
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -12,22 +14,29 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +45,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import com.skydown.shared.model.Track
 
@@ -46,6 +57,7 @@ fun TrackRow(
     onPlayToggle: () -> Unit,
 ) {
     val context = LocalContext.current
+    var showSpotifyPlayer by rememberSaveable(track.trackId) { mutableStateOf(false) }
     val hasPreview = !track.previewUrl.isNullOrBlank()
     val hasExternalLink = !track.externalUrl.isNullOrBlank()
     val containerColor by animateColorAsState(
@@ -119,11 +131,11 @@ fun TrackRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                        Text(
-                            text = when {
-                            hasPreview && hasExternalLink -> "Preview in der App, voller Song nur mit Spotify Premium."
+                    Text(
+                        text = when {
+                            hasPreview && hasExternalLink -> "Preview hier oder Spotify Player direkt in der App."
                             hasPreview -> "Preview direkt in der App."
-                            hasExternalLink -> "Voller Song nur mit Spotify Premium."
+                            hasExternalLink -> "Spotify Player direkt in der App."
                             else -> "Aktuell kein Spotify-Link verfuegbar."
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -153,7 +165,7 @@ fun TrackRow(
                         }
                         if (hasExternalLink) {
                             TrackPill(
-                                text = "Spotify Premium",
+                                text = "Spotify Player",
                                 isHighlighted = false,
                             )
                         }
@@ -182,16 +194,16 @@ fun TrackRow(
                         if (hasExternalLink) {
                             OutlinedButton(
                                 onClick = {
-                                    openTrackInSpotify(context, track)
+                                    showSpotifyPlayer = true
                                 },
                                 modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                    imageVector = Icons.Default.MusicNote,
                                     contentDescription = null,
                                 )
                                 Text(
-                                    text = "Spotify Premium",
+                                    text = "In App",
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
@@ -223,6 +235,13 @@ fun TrackRow(
             }
             Spacer(modifier = Modifier.size(0.dp))
         }
+    }
+
+    if (showSpotifyPlayer && hasExternalLink) {
+        SpotifyEmbedDialog(
+            track = track,
+            onDismiss = { showSpotifyPlayer = false },
+        )
     }
 }
 
@@ -259,9 +278,9 @@ private fun TrackPill(
 
 private fun openTrackInSpotify(
     context: android.content.Context,
-    track: Track,
+    externalUrl: String?,
 ) {
-    val spotifyAppUri = spotifyAppUri(track.externalUrl)
+    val spotifyAppUri = spotifyAppUri(externalUrl)
     if (spotifyAppUri != null) {
         val spotifyIntent = Intent(Intent.ACTION_VIEW, spotifyAppUri).setPackage("com.spotify.music")
         try {
@@ -272,10 +291,125 @@ private fun openTrackInSpotify(
         }
     }
 
-    val externalUrl = track.externalUrl ?: return
+    val externalUrl = externalUrl ?: return
     context.startActivity(
         Intent(Intent.ACTION_VIEW, Uri.parse(externalUrl)),
     )
+}
+
+@Composable
+private fun SpotifyEmbedDialog(
+    track: Track,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val embedUrl = remember(track.externalUrl) { spotifyEmbedUri(track.externalUrl) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            tonalElevation = 8.dp,
+            shadowElevation = 10.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = track.trackName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = track.artistName ?: "Spotify",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Dialog schliessen",
+                        )
+                    }
+                }
+
+                if (embedUrl != null) {
+                    AndroidView(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(420.dp)
+                            .clip(RoundedCornerShape(22.dp)),
+                        factory = { playerContext ->
+                            WebView(playerContext).apply {
+                                webViewClient = WebViewClient()
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
+                                settings.mediaPlaybackRequiresUserGesture = false
+                                loadUrl(embedUrl.toString())
+                            }
+                        },
+                        update = { webView ->
+                            if (webView.url != embedUrl.toString()) {
+                                webView.loadUrl(embedUrl.toString())
+                            }
+                        },
+                    )
+                } else {
+                    Text(
+                        text = "Der Spotify Player konnte fuer diesen Track nicht aufgebaut werden.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    FilledTonalButton(
+                        onClick = {
+                            openTrackInSpotify(context, track.externalUrl)
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = "Spotify App",
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Schliessen")
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun spotifyAppUri(externalUrl: String?): Uri? {
@@ -289,4 +423,11 @@ private fun spotifyAppUri(externalUrl: String?): Uri? {
         null
     }
     return trackId?.let { Uri.parse("spotify:track:$it") }
+}
+
+private fun spotifyEmbedUri(externalUrl: String?): Uri? {
+    val trackUri = spotifyAppUri(externalUrl) ?: return null
+    val trackId = trackUri.schemeSpecificPart.substringAfter("track:", "")
+    if (trackId.isBlank()) return null
+    return Uri.parse("https://open.spotify.com/embed/track/$trackId?utm_source=generator")
 }

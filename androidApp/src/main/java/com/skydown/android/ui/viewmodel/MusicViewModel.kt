@@ -43,6 +43,20 @@ class MusicViewModel : ViewModel() {
                 }
             }
         }
+
+        viewModelScope.launch {
+            SpotifyAuthManager.lastErrorMessage.collectLatest { errorMessage ->
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        errorMessage = errorMessage ?: if (currentState.isSpotifyConnected) {
+                            currentState.errorMessage
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+        }
     }
 
     fun selectArtist(artist: String) {
@@ -127,5 +141,10 @@ class MusicViewModel : ViewModel() {
 
     fun disconnectSpotify() {
         SpotifyAuthManager.disconnect()
+    }
+
+    fun clearSpotifyError() {
+        SpotifyAuthManager.clearError()
+        _uiState.update { it.copy(errorMessage = null) }
     }
 }

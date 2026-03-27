@@ -348,7 +348,7 @@ private struct HomeLatestReleaseCard: View {
 
                 HStack(spacing: 10) {
                     ShopBadge(text: "Neuester Song", colorScheme: colorScheme)
-                    ShopBadge(text: track.previewUrl == nil ? "Spotify Link" : "Preview in App", colorScheme: colorScheme)
+                    ShopBadge(text: track.previewUrl == nil ? "Spotify Player" : "Preview in App", colorScheme: colorScheme)
                 }
             } else {
                 Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.")
@@ -437,17 +437,61 @@ private struct HomeLatestVideoCard: View {
 
 private struct HomeStoryCard: View {
     let colorScheme: ColorScheme
+    @Environment(\.openURL) private var openURL
+
+    private let developerInstagramURL = URL(string: "https://www.instagram.com/y.d.nash/")
+    private let skydownInstagramURL = URL(string: "https://www.instagram.com/skydown_entertainment/")
+    private let contactEmailURL = URL(string: "mailto:skydownent@gmail.com?subject=Skydown%20x%2022%20Kontakt")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Worum Es Geht")
+            Text("Developer")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             HStack(spacing: 10) {
                 ShopBadge(text: "Yang D. Nash", colorScheme: colorScheme)
-                ShopBadge(text: "Founder", colorScheme: colorScheme)
-                ShopBadge(text: "Programmierer", colorScheme: colorScheme)
+                ShopBadge(text: "Skydown", colorScheme: colorScheme)
+                ShopBadge(text: "Entwickler", colorScheme: colorScheme)
+            }
+
+            Text("Yang D. Nash entwickelt die App und bildet den Kern von Skydown x 22. Skydown Entertainment verbindet Hip Hop, Music und Video mit einer eigenen mobilen Plattform.")
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            VStack(spacing: 10) {
+                HomeActionButton(
+                    title: "Yang D. Nash auf Instagram",
+                    icon: "camera.fill",
+                    colorScheme: colorScheme,
+                    isPrimary: true
+                ) {
+                    if let developerInstagramURL {
+                        openURL(developerInstagramURL)
+                    }
+                }
+
+                HomeActionButton(
+                    title: "Skydown auf Instagram",
+                    icon: "sparkles.tv.fill",
+                    colorScheme: colorScheme,
+                    isPrimary: false
+                ) {
+                    if let skydownInstagramURL {
+                        openURL(skydownInstagramURL)
+                    }
+                }
+
+                HomeActionButton(
+                    title: "Kontakt per E-Mail",
+                    icon: "envelope.fill",
+                    colorScheme: colorScheme,
+                    isPrimary: false
+                ) {
+                    if let contactEmailURL {
+                        openURL(contactEmailURL)
+                    }
+                }
             }
         }
         .padding(18)
@@ -457,6 +501,48 @@ private struct HomeStoryCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct HomeActionButton: View {
+    let title: String
+    let icon: String
+    let colorScheme: ColorScheme
+    let isPrimary: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.subheadline.weight(.bold))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+            }
+            .foregroundColor(isPrimary ? .white : AppColors.text(for: colorScheme))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(
+                        isPrimary
+                        ? AppColors.accent(for: colorScheme)
+                        : AppColors.secondaryBackground(for: colorScheme)
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(
+                        isPrimary
+                        ? AppColors.accent(for: colorScheme)
+                        : AppColors.accent(for: colorScheme).opacity(0.16),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
