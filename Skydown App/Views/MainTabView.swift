@@ -230,7 +230,7 @@ private struct AIHubView: View {
                         onOpenLogin: onOpenLogin
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, 6)
+                    .padding(.top, 12)
                 } else {
                     AIHubControlCard(
                         mode: mode,
@@ -238,7 +238,7 @@ private struct AIHubView: View {
                         onSelectMode: { mode = $0 }
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, 6)
+                    .padding(.top, 12)
 
                     Group {
                         if mode == .bot {

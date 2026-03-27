@@ -85,8 +85,8 @@ struct AgentView: View {
                 }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, showsNavigation ? SkydownLayout.screenTopPadding : 0)
-            .padding(.bottom, 12)
+            .padding(.top, showsNavigation ? SkydownLayout.screenTopPadding : 8)
+            .padding(.bottom, showsNavigation ? 12 : 20)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .simultaneousGesture(
@@ -375,8 +375,8 @@ private struct AgentComposerBar: View {
                 .disabled(isSending)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
+            .padding(.top, 16)
+            .padding(.bottom, 14)
             .background(
                 Rectangle()
                     .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))

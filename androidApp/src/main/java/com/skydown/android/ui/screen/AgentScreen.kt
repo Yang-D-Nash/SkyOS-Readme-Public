@@ -165,10 +165,14 @@ fun AgentScreen(
                     top = if (showTopBar) {
                         innerPadding.calculateTopPadding() + SkydownUiTokens.screenTopPadding
                     } else {
-                        0.dp
+                        8.dp
                     },
                     end = SkydownUiTokens.screenHorizontalPadding,
-                    bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
+                    bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding + if (showTopBar) {
+                        0.dp
+                    } else {
+                        8.dp
+                    },
                 ),
                 verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
             ) {
@@ -197,7 +201,7 @@ fun AgentScreen(
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 12.dp))
                     }
                 } else {
                     item {
@@ -439,7 +443,7 @@ private fun AgentComposerBar(
             .imePadding()
             .padding(
                 horizontal = if (compactLayout) 10.dp else 12.dp,
-                vertical = if (compactLayout) 6.dp else 10.dp,
+                vertical = if (compactLayout) 8.dp else 12.dp,
             ),
     ) {
         SkydownCard(

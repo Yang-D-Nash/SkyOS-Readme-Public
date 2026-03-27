@@ -91,9 +91,9 @@ fun AiHubScreen(
                         onOpenLogin = onOpenLogin,
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = SkydownUiTokens.screenTopPadding,
+                            top = SkydownUiTokens.screenTopPadding + 4.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 6.dp,
+                            bottom = 10.dp,
                         ),
                     )
                 } else {
@@ -102,9 +102,9 @@ fun AiHubScreen(
                         onSelectMode = { selectedMode -> mode = selectedMode },
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = SkydownUiTokens.screenTopPadding,
+                            top = SkydownUiTokens.screenTopPadding + 4.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 8.dp,
+                            bottom = 12.dp,
                         ),
                     )
 
