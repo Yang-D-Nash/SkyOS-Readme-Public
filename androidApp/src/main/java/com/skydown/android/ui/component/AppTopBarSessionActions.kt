@@ -32,6 +32,7 @@ fun RowScope.AppTopBarSessionActions(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val currentUser = AppContainer.currentUser.collectAsStateWithLifecycle().value
+    val compactLayout = rememberIsCompactAppLayout()
     val displayName = currentUser?.username?.trim().takeUnless { it.isNullOrBlank() } ?: "Gast"
     val initials = displayName.firstOrNull()?.uppercase() ?: "G"
 
@@ -40,17 +41,20 @@ fun RowScope.AppTopBarSessionActions(
         shape = MaterialTheme.shapes.extraLarge,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(
+                horizontal = if (compactLayout) 8.dp else 10.dp,
+                vertical = if (compactLayout) 6.dp else 8.dp,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 androidx.compose.foundation.layout.Box(
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(if (compactLayout) 22.dp else 24.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
@@ -63,13 +67,15 @@ fun RowScope.AppTopBarSessionActions(
                     )
                 }
 
-                Text(
-                    text = displayName,
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
+                if (!compactLayout) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                }
             }
         }
     }

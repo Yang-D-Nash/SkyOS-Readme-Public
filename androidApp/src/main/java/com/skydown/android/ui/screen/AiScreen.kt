@@ -70,6 +70,7 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
@@ -84,6 +85,7 @@ fun AiScreen(
     showTopBar: Boolean = true,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val compactLayout = rememberIsCompactAppLayout()
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
@@ -152,6 +154,7 @@ fun AiScreen(
                     draft = uiState.draft,
                     composerMode = uiState.composerMode,
                     isSending = uiState.isSending,
+                    compactLayout = compactLayout,
                     onDraftChanged = viewModel::updateDraft,
                     onComposerModeChange = viewModel::updateComposerMode,
                     onSend = {
@@ -186,10 +189,15 @@ fun AiScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    horizontal = 16.dp,
-                    vertical = if (showTopBar) 16.dp else 8.dp,
+                    horizontal = if (compactLayout) 12.dp else 16.dp,
+                    vertical = when {
+                        showTopBar && compactLayout -> 10.dp
+                        showTopBar -> 16.dp
+                        compactLayout -> 4.dp
+                        else -> 8.dp
+                    },
                 ),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
             ) {
                 if (showTopBar) {
                     item {
@@ -203,6 +211,7 @@ fun AiScreen(
                             QuickPromptCard(
                                 prompts = uiState.quickPrompts,
                                 onPromptSelected = viewModel::sendPrompt,
+                                compactLayout = compactLayout,
                             )
                         }
 
@@ -210,12 +219,16 @@ fun AiScreen(
                             VisualPromptCard(
                                 prompts = uiState.visualPrompts,
                                 onPromptSelected = viewModel::generateVisual,
+                                compactLayout = compactLayout,
                             )
                         }
                     }
 
                     items(uiState.messages, key = { it.id }) { message ->
-                        AiMessageBubble(message = message)
+                        AiMessageBubble(
+                            message = message,
+                            compactLayout = compactLayout,
+                        )
                     }
 
                     item {
@@ -233,7 +246,11 @@ fun AiScreen(
                 type = ToastType.Error,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = if (uiState.isAiEnabled) 92.dp else 28.dp),
+                    .padding(bottom = if (uiState.isAiEnabled) {
+                        if (compactLayout) 76.dp else 92.dp
+                    } else {
+                        28.dp
+                    }),
             )
         }
     }
@@ -323,19 +340,23 @@ private fun AiDisabledCard() {
 private fun QuickPromptCard(
     prompts: List<String>,
     onPromptSelected: (String) -> Unit,
+    compactLayout: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+    SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
         SectionHeader("Bot starten")
         LazyRow(
-            modifier = Modifier.padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts) { prompt ->
                 OutlinedButton(
                     onClick = { onPromptSelected(prompt) },
                     modifier = Modifier.widthIn(min = 190.dp, max = 236.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 12.dp,
+                        vertical = if (compactLayout) 8.dp else 10.dp,
+                    ),
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(
@@ -354,19 +375,23 @@ private fun QuickPromptCard(
 private fun VisualPromptCard(
     prompts: List<AiVisualPrompt>,
     onPromptSelected: (String) -> Unit,
+    compactLayout: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+    SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
         SectionHeader("Visuals")
         LazyRow(
-            modifier = Modifier.padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts, key = { it.label }) { prompt ->
                 OutlinedButton(
                     onClick = { onPromptSelected(prompt.prompt) },
                     modifier = Modifier.widthIn(min = 156.dp, max = 190.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 12.dp,
+                        vertical = if (compactLayout) 8.dp else 10.dp,
+                    ),
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(
@@ -384,6 +409,7 @@ private fun VisualPromptCard(
 @Composable
 private fun AiMessageBubble(
     message: AiMessage,
+    compactLayout: Boolean,
 ) {
     val isUser = message.role == AiMessageRole.User
     val bubbleShape = RoundedCornerShape(
@@ -418,7 +444,10 @@ private fun AiMessageBubble(
                         )
                     },
                 )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(
+                    horizontal = if (compactLayout) 12.dp else 14.dp,
+                    vertical = if (compactLayout) 10.dp else 12.dp,
+                ),
         ) {
             Text(
                 text = if (isUser) "Du" else "X22 Bot",
@@ -484,6 +513,7 @@ private fun AiComposerBar(
     draft: String,
     composerMode: AiComposerMode,
     isSending: Boolean,
+    compactLayout: Boolean,
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
     onSend: () -> Unit,
@@ -498,21 +528,38 @@ private fun AiComposerBar(
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(
+                horizontal = if (compactLayout) 10.dp else 12.dp,
+                vertical = if (compactLayout) 6.dp else 10.dp,
+            ),
     ) {
-        SkydownCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+        SkydownCard(
+            contentPadding = PaddingValues(
+                horizontal = if (compactLayout) 12.dp else 14.dp,
+                vertical = if (compactLayout) 10.dp else 12.dp,
+            ),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedButton(
                     onClick = { showComposer = true },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(18.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 14.dp,
+                        vertical = if (compactLayout) 9.dp else 12.dp,
+                    ),
                 ) {
-                    Text(if (draft.isBlank()) "Bot Prompt" else "Prompt weiter")
+                    Text(
+                        if (draft.isBlank()) {
+                            if (compactLayout) "Prompt" else "Bot Prompt"
+                        } else {
+                            if (compactLayout) "Weiter" else "Prompt weiter"
+                        },
+                    )
                 }
 
                 IconButton(
@@ -539,7 +586,7 @@ private fun AiComposerBar(
         ) {
             SkydownCard(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                contentPadding = PaddingValues(18.dp),
+                contentPadding = PaddingValues(if (compactLayout) 14.dp else 18.dp),
             ) {
                 Text(
                     text = if (composerMode == AiComposerMode.Text) "Bot Prompt" else "Visual Prompt",
@@ -550,7 +597,7 @@ private fun AiComposerBar(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
+                        .padding(top = if (compactLayout) 10.dp else 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     OutlinedButton(
@@ -575,7 +622,7 @@ private fun AiComposerBar(
                     onValueChange = onDraftChanged,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
+                        .padding(top = if (compactLayout) 10.dp else 12.dp),
                     placeholder = {
                         Text(
                             if (composerMode == AiComposerMode.Text) {
@@ -585,8 +632,8 @@ private fun AiComposerBar(
                             },
                         )
                     },
-                    minLines = 4,
-                    maxLines = 8,
+                    minLines = if (compactLayout) 3 else 4,
+                    maxLines = if (compactLayout) 6 else 8,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(
                         onSend = {
@@ -600,7 +647,7 @@ private fun AiComposerBar(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
+                        .padding(top = if (compactLayout) 10.dp else 12.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

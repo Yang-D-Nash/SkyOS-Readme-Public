@@ -63,6 +63,7 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.viewmodel.AgentViewModel
@@ -75,6 +76,7 @@ fun AgentScreen(
     showTopBar: Boolean = true,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val compactLayout = rememberIsCompactAppLayout()
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
@@ -134,6 +136,7 @@ fun AgentScreen(
                 AgentComposerBar(
                     draft = uiState.draft,
                     isSending = uiState.isSending,
+                    compactLayout = compactLayout,
                     onDraftChanged = viewModel::updateDraft,
                     onSend = viewModel::sendDraft,
                     onReset = viewModel::resetConversation,
@@ -160,10 +163,15 @@ fun AgentScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    horizontal = 16.dp,
-                    vertical = if (showTopBar) 16.dp else 8.dp,
+                    horizontal = if (compactLayout) 12.dp else 16.dp,
+                    vertical = when {
+                        showTopBar && compactLayout -> 10.dp
+                        showTopBar -> 16.dp
+                        compactLayout -> 4.dp
+                        else -> 8.dp
+                    },
                 ),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
             ) {
                 if (showTopBar) {
                     item {
@@ -177,12 +185,16 @@ fun AgentScreen(
                             AgentQuickPromptCard(
                                 prompts = uiState.quickPrompts,
                                 onPromptSelected = viewModel::sendPrompt,
+                                compactLayout = compactLayout,
                             )
                         }
                     }
 
                     items(uiState.messages, key = { it.id }) { message ->
-                        AgentMessageBubble(message = message)
+                        AgentMessageBubble(
+                            message = message,
+                            compactLayout = compactLayout,
+                        )
                     }
 
                     item {
@@ -200,7 +212,11 @@ fun AgentScreen(
                 type = ToastType.Error,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = if (uiState.isAgentEnabled) 92.dp else 28.dp),
+                    .padding(bottom = if (uiState.isAgentEnabled) {
+                        if (compactLayout) 76.dp else 92.dp
+                    } else {
+                        28.dp
+                    }),
             )
         }
     }
@@ -290,19 +306,23 @@ private fun AgentDisabledCard() {
 private fun AgentQuickPromptCard(
     prompts: List<String>,
     onPromptSelected: (String) -> Unit,
+    compactLayout: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+    SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
         SectionHeader("Agent starten")
         LazyRow(
-            modifier = Modifier.padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts) { prompt ->
                 OutlinedButton(
                     onClick = { onPromptSelected(prompt) },
                     modifier = Modifier.widthIn(min = 190.dp, max = 236.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 12.dp,
+                        vertical = if (compactLayout) 8.dp else 10.dp,
+                    ),
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(
@@ -321,6 +341,7 @@ private fun AgentQuickPromptCard(
 @Composable
 private fun AgentMessageBubble(
     message: AgentMessage,
+    compactLayout: Boolean,
 ) {
     val isUser = message.role == AgentMessageRole.User
     val bubbleShape = RoundedCornerShape(
@@ -355,7 +376,10 @@ private fun AgentMessageBubble(
                         )
                     },
                 )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(
+                    horizontal = if (compactLayout) 12.dp else 14.dp,
+                    vertical = if (compactLayout) 10.dp else 12.dp,
+                ),
         ) {
             Text(
                 text = if (isUser) "Du" else "X22 Agent",
@@ -401,6 +425,7 @@ private fun AgentMessageBubble(
 private fun AgentComposerBar(
     draft: String,
     isSending: Boolean,
+    compactLayout: Boolean,
     onDraftChanged: (String) -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
@@ -413,21 +438,38 @@ private fun AgentComposerBar(
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(
+                horizontal = if (compactLayout) 10.dp else 12.dp,
+                vertical = if (compactLayout) 6.dp else 10.dp,
+            ),
     ) {
-        SkydownCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+        SkydownCard(
+            contentPadding = PaddingValues(
+                horizontal = if (compactLayout) 12.dp else 14.dp,
+                vertical = if (compactLayout) 10.dp else 12.dp,
+            ),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedButton(
                     onClick = { showComposer = true },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(18.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 14.dp,
+                        vertical = if (compactLayout) 9.dp else 12.dp,
+                    ),
                 ) {
-                    Text(if (draft.isBlank()) "Aufgabe" else "Aufgabe weiter")
+                    Text(
+                        if (draft.isBlank()) {
+                            "Aufgabe"
+                        } else {
+                            if (compactLayout) "Weiter" else "Aufgabe weiter"
+                        },
+                    )
                 }
 
                 IconButton(
@@ -451,7 +493,7 @@ private fun AgentComposerBar(
         ) {
             SkydownCard(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                contentPadding = PaddingValues(18.dp),
+                contentPadding = PaddingValues(if (compactLayout) 14.dp else 18.dp),
             ) {
                 Text(
                     text = "X22 Aufgabe",
@@ -464,12 +506,12 @@ private fun AgentComposerBar(
                     onValueChange = onDraftChanged,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
+                        .padding(top = if (compactLayout) 10.dp else 12.dp),
                     placeholder = {
                         Text("Zum Beispiel: Release-Briefing fuer Freitag.")
                     },
-                    minLines = 4,
-                    maxLines = 8,
+                    minLines = if (compactLayout) 3 else 4,
+                    maxLines = if (compactLayout) 6 else 8,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(
                         onSend = {
@@ -482,7 +524,7 @@ private fun AgentComposerBar(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
+                        .padding(top = if (compactLayout) 10.dp else 12.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

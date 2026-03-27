@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.rememberIsCompactAppLayout
 
 private enum class AiHubMode {
     Bot,
@@ -49,28 +51,50 @@ fun AiHubScreen(
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val compactLayout = rememberIsCompactAppLayout()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Text(
-                        text = "KI",
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                actions = {
-                    AppTopBarSessionActions(
-                        onOpenCart = onOpenCart,
-                        onOpenSettings = onOpenSettings,
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                ),
-            )
+            if (compactLayout) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "KI",
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    actions = {
+                        AppTopBarSessionActions(
+                            onOpenCart = onOpenCart,
+                            onOpenSettings = onOpenSettings,
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
+                        scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                    ),
+                )
+            } else {
+                LargeTopAppBar(
+                    title = {
+                        Text(
+                            text = "KI",
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    actions = {
+                        AppTopBarSessionActions(
+                            onOpenCart = onOpenCart,
+                            onOpenSettings = onOpenSettings,
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
+                        scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                    ),
+                )
+            }
         },
     ) { innerPadding ->
         Box(
@@ -91,8 +115,11 @@ fun AiHubScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 if (currentUser == null) {
                     SkydownCard(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                        contentPadding = PaddingValues(18.dp),
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp,
+                            vertical = if (compactLayout) 10.dp else 16.dp,
+                        ),
+                        contentPadding = PaddingValues(if (compactLayout) 14.dp else 18.dp),
                     ) {
                         Text(
                             text = "KI nur mit Konto",
@@ -101,15 +128,15 @@ fun AiHubScreen(
                         )
                         Text(
                             text = "Bot und Agent sind jetzt an den Login gebunden, damit anonyme Nutzer keine AI-Kosten ausloesen.",
-                            modifier = Modifier.padding(top = 8.dp),
+                            modifier = Modifier.padding(top = if (compactLayout) 6.dp else 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         Button(
                             onClick = onOpenLogin,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 16.dp),
-                            shape = RoundedCornerShape(18.dp),
+                                .padding(top = if (compactLayout) 12.dp else 16.dp),
+                            shape = RoundedCornerShape(if (compactLayout) 16.dp else 18.dp),
                         ) {
                             Text("Jetzt anmelden")
                         }
@@ -118,14 +145,21 @@ fun AiHubScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(
+                                horizontal = 16.dp,
+                                vertical = if (compactLayout) 6.dp else 10.dp,
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
                     ) {
                         if (mode == AiHubMode.Bot) {
                             Button(
                                 onClick = { mode = AiHubMode.Bot },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(if (compactLayout) 16.dp else 18.dp),
+                                contentPadding = PaddingValues(
+                                    horizontal = 12.dp,
+                                    vertical = if (compactLayout) 8.dp else 10.dp,
+                                ),
                             ) {
                                 androidx.compose.material3.Icon(
                                     imageVector = Icons.Default.AutoAwesome,
@@ -140,7 +174,11 @@ fun AiHubScreen(
                             OutlinedButton(
                                 onClick = { mode = AiHubMode.Bot },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(if (compactLayout) 16.dp else 18.dp),
+                                contentPadding = PaddingValues(
+                                    horizontal = 12.dp,
+                                    vertical = if (compactLayout) 8.dp else 10.dp,
+                                ),
                             ) {
                                 androidx.compose.material3.Icon(
                                     imageVector = Icons.Default.AutoAwesome,
@@ -157,7 +195,11 @@ fun AiHubScreen(
                             Button(
                                 onClick = { mode = AiHubMode.Agent },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(if (compactLayout) 16.dp else 18.dp),
+                                contentPadding = PaddingValues(
+                                    horizontal = 12.dp,
+                                    vertical = if (compactLayout) 8.dp else 10.dp,
+                                ),
                             ) {
                                 androidx.compose.material3.Icon(
                                     imageVector = Icons.Default.Bolt,
@@ -172,7 +214,11 @@ fun AiHubScreen(
                             OutlinedButton(
                                 onClick = { mode = AiHubMode.Agent },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(if (compactLayout) 16.dp else 18.dp),
+                                contentPadding = PaddingValues(
+                                    horizontal = 12.dp,
+                                    vertical = if (compactLayout) 8.dp else 10.dp,
+                                ),
                             ) {
                                 androidx.compose.material3.Icon(
                                     imageVector = Icons.Default.Bolt,

@@ -38,6 +38,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.screen.AiHubScreen
 import com.skydown.android.ui.screen.CartScreen
 import com.skydown.android.ui.screen.HomeScreen
@@ -54,6 +55,7 @@ import com.skydown.android.ui.screen.VideoHubScreen
 @Composable
 fun SkydownApp() {
     val navController = rememberNavController()
+    val isCompactLayout = rememberIsCompactAppLayout()
     var showIntro by remember { mutableStateOf(true) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
     var showOrders by remember { mutableStateOf(false) }
@@ -95,13 +97,16 @@ fun SkydownApp() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(
+                            horizontal = if (isCompactLayout) 10.dp else 16.dp,
+                            vertical = if (isCompactLayout) 6.dp else 10.dp,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Surface(
-                        tonalElevation = 10.dp,
-                        shadowElevation = 14.dp,
-                        shape = RoundedCornerShape(30.dp),
+                        tonalElevation = if (isCompactLayout) 8.dp else 10.dp,
+                        shadowElevation = if (isCompactLayout) 10.dp else 14.dp,
+                        shape = RoundedCornerShape(if (isCompactLayout) 24.dp else 30.dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
                         border = BorderStroke(
                             1.dp,
@@ -109,7 +114,10 @@ fun SkydownApp() {
                         ),
                     ) {
                         NavigationBar(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(
+                                horizontal = if (isCompactLayout) 4.dp else 6.dp,
+                                vertical = if (isCompactLayout) 2.dp else 4.dp,
+                            ),
                             containerColor = androidx.compose.ui.graphics.Color.Transparent,
                             tonalElevation = 0.dp,
                         ) {
@@ -135,7 +143,7 @@ fun SkydownApp() {
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     },
-                                    alwaysShowLabel = true,
+                                    alwaysShowLabel = !isCompactLayout,
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                         selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
