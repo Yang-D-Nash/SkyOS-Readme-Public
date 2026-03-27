@@ -362,7 +362,10 @@ struct MusicView: View {
                         }
                     } else if let externalURL = selectedTrack.externalURL, let url = URL(string: externalURL) {
                         Link(destination: url) {
-                            Label("Spotify Suche", systemImage: "arrow.up.forward.square")
+                            Label(
+                                resolvedMusicViewSpotifyArtistID(selectedTrack) != nil ? "Spotify Artist" : "Spotify Suche",
+                                systemImage: "arrow.up.forward.square"
+                            )
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -479,6 +482,26 @@ private func resolvedMusicViewSpotifyTrackID(_ track: Track) -> String? {
         return spotifyTrackID
     }
     return musicViewTrackSpotifyID(externalURL: track.externalURL)
+}
+
+private func resolvedMusicViewSpotifyArtistID(_ track: Track) -> String? {
+    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
+        return spotifyArtistID
+    }
+
+    guard let externalURL = track.externalURL,
+          let webURL = URL(string: externalURL),
+          let components = URLComponents(url: webURL, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+
+    let pathComponents = components.path.split(separator: "/")
+    guard let artistIndex = pathComponents.firstIndex(of: "artist"),
+          artistIndex + 1 < pathComponents.count else {
+        return nil
+    }
+
+    return String(pathComponents[artistIndex + 1])
 }
 
 #Preview {

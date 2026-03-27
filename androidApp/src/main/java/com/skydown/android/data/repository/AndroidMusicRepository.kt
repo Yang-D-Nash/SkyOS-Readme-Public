@@ -112,6 +112,7 @@ class AndroidMusicRepository : MusicRepository {
     }
 
     private fun fetchCatalogTracks(artist: String): List<Track> {
+        val knownArtistId = artistIds[artist]
         val resultsByKey = linkedMapOf<String, CatalogTrack>()
 
         catalogQueriesFor(artist).forEach { query ->
@@ -144,14 +145,15 @@ class AndroidMusicRepository : MusicRepository {
                 Track(
                     trackId = result.trackId ?: kotlin.math.abs("${result.artistName}-${result.trackName}".hashCode()),
                     artistId = result.artistId ?: kotlin.math.abs(result.artistName.hashCode()),
-                    spotifyArtistId = null,
+                    spotifyArtistId = knownArtistId,
                     spotifyTrackId = null,
                     artistName = result.artistName,
                     trackName = result.trackName,
                     collectionName = result.collectionName,
                     artworkUrl100 = result.artworkUrl100,
                     previewUrl = result.previewUrl,
-                    externalUrl = buildSpotifySearchUrl(result.artistName, result.trackName),
+                    externalUrl = buildSpotifyArtistUrl(knownArtistId)
+                        ?: buildSpotifySearchUrl(result.artistName, result.trackName),
                     wrapperType = result.wrapperType ?: result.kind,
                     releaseDate = result.releaseDate,
                 )
@@ -409,6 +411,11 @@ class AndroidMusicRepository : MusicRepository {
             .appendPath(query)
             .build()
             .toString()
+    }
+
+    private fun buildSpotifyArtistUrl(artistId: String?): String? {
+        if (artistId.isNullOrBlank()) return null
+        return Uri.parse("https://open.spotify.com/artist/$artistId").toString()
     }
 
     private fun searchQueriesFor(artist: String): List<String> {

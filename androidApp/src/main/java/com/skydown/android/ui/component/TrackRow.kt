@@ -66,7 +66,8 @@ fun TrackRow(
     val hasPreview = !track.previewUrl.isNullOrBlank()
     val hasExternalLink = !track.externalUrl.isNullOrBlank()
     val hasDirectSpotifyTrack = resolvedSpotifyTrackId(track.spotifyTrackId, track.externalUrl) != null
-    val hasSpotifySearch = hasExternalLink && !hasDirectSpotifyTrack
+    val hasSpotifyArtistLink = resolvedSpotifyArtistId(track.spotifyArtistId, track.externalUrl) != null && !hasDirectSpotifyTrack
+    val hasSpotifySearch = hasExternalLink && !hasDirectSpotifyTrack && !hasSpotifyArtistLink
     val containerColor by animateColorAsState(
         targetValue = if (isPlaying) {
             MaterialTheme.colorScheme.primaryContainer
@@ -146,9 +147,11 @@ fun TrackRow(
                     Text(
                         text = when {
                             hasPreview && hasDirectSpotifyTrack -> "Preview hier oder Spotify Player direkt in der App."
+                            hasPreview && hasSpotifyArtistLink -> "Preview hier oder den Artist direkt auf Spotify oeffnen."
                             hasPreview && hasSpotifySearch -> "Preview hier oder den Song in Spotify suchen."
                             hasPreview -> "Preview direkt in der App."
                             hasDirectSpotifyTrack -> "Spotify Player direkt in der App."
+                            hasSpotifyArtistLink -> "Artist direkt auf Spotify oeffnen."
                             hasSpotifySearch -> "Song in Spotify suchen."
                             else -> "Aktuell kein Spotify-Link verfuegbar."
                         },
@@ -186,6 +189,12 @@ fun TrackRow(
                         if (hasDirectSpotifyTrack) {
                             TrackPill(
                                 text = "Spotify Player",
+                                isHighlighted = false,
+                                accentColor = SpotifyGreen,
+                            )
+                        } else if (hasSpotifyArtistLink) {
+                            TrackPill(
+                                text = "Spotify Artist",
                                 isHighlighted = false,
                                 accentColor = SpotifyGreen,
                             )
@@ -242,11 +251,12 @@ fun TrackRow(
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
-                        } else if (hasSpotifySearch) {
+                        } else if (hasSpotifyArtistLink || hasSpotifySearch) {
                             OutlinedButton(
                                 onClick = {
                                     openTrackInSpotify(
                                         context = context,
+                                        spotifyArtistId = track.spotifyArtistId,
                                         spotifyTrackId = track.spotifyTrackId,
                                         externalUrl = track.externalUrl,
                                     )
@@ -262,7 +272,7 @@ fun TrackRow(
                                     contentDescription = null,
                                 )
                                 Text(
-                                    text = "Spotify",
+                                    text = if (hasSpotifyArtistLink) "Artist" else "Spotify",
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
@@ -339,10 +349,11 @@ private fun TrackPill(
 
 fun openTrackInSpotify(
     context: android.content.Context,
+    spotifyArtistId: String? = null,
     spotifyTrackId: String?,
     externalUrl: String?,
 ) {
-    val spotifyAppUri = spotifyAppUri(spotifyTrackId, externalUrl)
+    val spotifyAppUri = spotifyAppUri(spotifyTrackId, spotifyArtistId, externalUrl)
     if (spotifyAppUri != null) {
         val spotifyIntent = Intent(Intent.ACTION_VIEW, spotifyAppUri).setPackage("com.spotify.music")
         try {
@@ -452,6 +463,7 @@ private fun SpotifyEmbedDialog(
                         onClick = {
                             openTrackInSpotify(
                                 context = context,
+                                spotifyArtistId = track.spotifyArtistId,
                                 spotifyTrackId = track.spotifyTrackId,
                                 externalUrl = track.externalUrl,
                             )
@@ -482,8 +494,13 @@ private fun SpotifyEmbedDialog(
 
 private fun spotifyAppUri(
     spotifyTrackId: String?,
+    spotifyArtistId: String?,
     externalUrl: String?,
 ): Uri? {
+    val artistId = resolvedSpotifyArtistId(spotifyArtistId, externalUrl)
+    if (artistId != null && resolvedSpotifyTrackId(spotifyTrackId, externalUrl) == null) {
+        return Uri.parse("spotify:artist:$artistId")
+    }
     val trackId = resolvedSpotifyTrackId(spotifyTrackId, externalUrl) ?: return null
     return Uri.parse("spotify:track:$trackId")
 }
@@ -507,6 +524,22 @@ private fun resolvedSpotifyTrackId(
     val trackIndex = segments.indexOf("track")
     return if (trackIndex != -1 && trackIndex + 1 < segments.size) {
         segments[trackIndex + 1]
+    } else {
+        null
+    }
+}
+
+private fun resolvedSpotifyArtistId(
+    spotifyArtistId: String?,
+    externalUrl: String?,
+): String? {
+    if (!spotifyArtistId.isNullOrBlank()) return spotifyArtistId
+    if (externalUrl.isNullOrBlank()) return null
+    val parsed = Uri.parse(externalUrl)
+    val segments = parsed.pathSegments
+    val artistIndex = segments.indexOf("artist")
+    return if (artistIndex != -1 && artistIndex + 1 < segments.size) {
+        segments[artistIndex + 1]
     } else {
         null
     }

@@ -324,6 +324,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func fetchCatalogTracks(for artist: String) async throws -> [Track] {
+        let knownArtistID = Constants.artistIDs[artist]
         var resultsByKey: [String: CatalogTrack] = [:]
         var orderedKeys: [String] = []
 
@@ -350,14 +351,15 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 Track(
                     trackId: item.trackId ?? abs("\(item.artistName)-\(item.trackName)".hashValue),
                     artistId: item.artistId ?? abs(item.artistName.hashValue),
-                    spotifyArtistID: nil,
+                    spotifyArtistID: knownArtistID,
                     spotifyTrackID: nil,
                     artistName: item.artistName,
                     trackName: item.trackName,
                     collectionName: item.collectionName,
                     artworkUrl100: item.artworkUrl100,
                     previewUrl: item.previewUrl,
-                    externalURL: spotifySearchURL(artist: item.artistName, track: item.trackName)?.absoluteString,
+                    externalURL: spotifyArtistURL(artistID: knownArtistID)?.absoluteString
+                        ?? spotifySearchURL(artist: item.artistName, track: item.trackName)?.absoluteString,
                     wrapperType: item.wrapperType ?? item.kind,
                     releaseDate: item.releaseDate
                 )
@@ -753,6 +755,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             .joined(separator: " ")
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
         return encoded.flatMap { URL(string: "https://open.spotify.com/search/\($0)") }
+    }
+
+    private func spotifyArtistURL(artistID: String?) -> URL? {
+        guard let artistID, !artistID.isEmpty else { return nil }
+        return URL(string: "https://open.spotify.com/artist/\(artistID)")
     }
 
     private func performSearch(query: String, accessToken: String) async throws -> [SpotifyTrack] {

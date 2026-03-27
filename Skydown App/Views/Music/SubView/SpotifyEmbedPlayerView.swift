@@ -79,16 +79,24 @@ private struct SpotifyEmbedWebView: UIViewRepresentable {
 }
 
 private func spotifyWebURL(track: Track) -> URL? {
+    if let trackID = resolvedSpotifyTrackID(track: track) {
+        return URL(string: "https://open.spotify.com/track/\(trackID)")
+    }
+    if let artistID = resolvedSpotifyArtistID(track: track) {
+        return URL(string: "https://open.spotify.com/artist/\(artistID)")
+    }
     if let externalURL = track.externalURL, !externalURL.isEmpty {
         return URL(string: externalURL)
     }
-    guard let trackID = resolvedSpotifyTrackID(track: track) else { return nil }
-    return URL(string: "https://open.spotify.com/track/\(trackID)")
+    return nil
 }
 
 private func spotifyAppURL(track: Track) -> URL? {
-    guard let trackID = resolvedSpotifyTrackID(track: track) else { return nil }
-    return URL(string: "spotify:track:\(trackID)")
+    if let trackID = resolvedSpotifyTrackID(track: track) {
+        return URL(string: "spotify:track:\(trackID)")
+    }
+    guard let artistID = resolvedSpotifyArtistID(track: track) else { return nil }
+    return URL(string: "spotify:artist:\(artistID)")
 }
 
 private func spotifyEmbedURL(track: Track) -> URL? {
@@ -114,4 +122,24 @@ private func resolvedSpotifyTrackID(track: Track) -> String? {
     }
 
     return String(pathComponents[trackIndex + 1])
+}
+
+private func resolvedSpotifyArtistID(track: Track) -> String? {
+    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
+        return spotifyArtistID
+    }
+
+    guard let externalURL = track.externalURL,
+          let webURL = URL(string: externalURL),
+          let components = URLComponents(url: webURL, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+
+    let pathComponents = components.path.split(separator: "/")
+    guard let artistIndex = pathComponents.firstIndex(of: "artist"),
+          artistIndex + 1 < pathComponents.count else {
+        return nil
+    }
+
+    return String(pathComponents[artistIndex + 1])
 }

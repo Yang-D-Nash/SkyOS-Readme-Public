@@ -28,6 +28,10 @@ struct TrackView: View {
         track.externalURL != nil && !hasDirectSpotifyTrack
     }
 
+    private var hasSpotifyArtistLink: Bool {
+        resolvedTrackSpotifyArtistID(track) != nil && !hasDirectSpotifyTrack
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
@@ -92,6 +96,8 @@ struct TrackView: View {
                         }
                         if hasDirectSpotifyTrack {
                             TrackTag(text: "Spotify Player", isAccent: false, tint: AppColors.spotify(for: colorScheme))
+                        } else if hasSpotifyArtistLink {
+                            TrackTag(text: "Spotify Artist", isAccent: false, tint: AppColors.spotify(for: colorScheme))
                         } else if hasSpotifySearch {
                             TrackTag(text: "Spotify Suche", isAccent: false, tint: AppColors.spotify(for: colorScheme))
                         }
@@ -135,14 +141,14 @@ struct TrackView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                } else if hasSpotifySearch {
+                } else if hasSpotifyArtistLink || hasSpotifySearch {
                     Button {
                         onSelect()
                         if let url = URL(string: track.externalURL ?? "") {
                             openURL(url)
                         }
                     } label: {
-                        Label("Spotify", systemImage: "arrow.up.forward.square")
+                        Label(hasSpotifyArtistLink ? "Artist" : "Spotify", systemImage: "arrow.up.forward.square")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
@@ -206,6 +212,26 @@ private func resolvedTrackSpotifyID(_ track: Track) -> String? {
         return spotifyTrackID
     }
     return trackSpotifyID(externalURL: track.externalURL)
+}
+
+private func resolvedTrackSpotifyArtistID(_ track: Track) -> String? {
+    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
+        return spotifyArtistID
+    }
+
+    guard let externalURL = track.externalURL,
+          let webURL = URL(string: externalURL),
+          let components = URLComponents(url: webURL, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+
+    let pathComponents = components.path.split(separator: "/")
+    guard let artistIndex = pathComponents.firstIndex(of: "artist"),
+          artistIndex + 1 < pathComponents.count else {
+        return nil
+    }
+
+    return String(pathComponents[artistIndex + 1])
 }
 
 private struct TrackTag: View {
