@@ -7,7 +7,6 @@
 
 import AVKit
 import SwiftUI
-import WebKit
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
@@ -85,7 +84,7 @@ struct HomeView: View {
                     .homeReveal(4)
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.top, SkydownLayout.screenTopPadding * 0.5)
                 .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .scrollIndicators(.hidden)
@@ -94,6 +93,7 @@ struct HomeView: View {
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Skydown x 22")
+            .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -224,6 +224,7 @@ struct ShopView: View {
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Skydown Merch")
+            .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -358,7 +359,6 @@ private struct HomeLatestReleaseCard: View {
             if let track = viewModel.featuredTrack {
                 let hasPreview = !(track.previewUrl?.isEmpty ?? true)
                 let hasSpotifyTarget = homeSpotifyTargetURL(for: track) != nil
-                let hasSpotifyEmbed = homeSpotifyEmbedURL(for: track) != nil
 
                 HStack(spacing: 14) {
                     AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
@@ -391,13 +391,11 @@ private struct HomeLatestReleaseCard: View {
 
                 HStack(spacing: 10) {
                     Text(
-                        hasPreview && hasSpotifyEmbed
-                            ? "Preview und Spotify-Player laufen beide direkt im Home."
-                            : (hasPreview
-                               ? "Neuester Song mit In-App-Preview direkt im Home."
-                               : (hasSpotifyEmbed
-                                  ? "Spotify-Player direkt im Home verfuegbar."
-                                  : (hasSpotifyTarget ? "Spotify-Ziel direkt erreichbar." : "Neuester Song.")))
+                        hasPreview
+                            ? "Preview bleibt direkt im Home. Den Spotify-Player findest du im Musik-Tab."
+                            : (hasSpotifyTarget
+                               ? "Neuester Song direkt ueber Spotify erreichbar."
+                               : "Neuester Song.")
                     )
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -417,29 +415,13 @@ private struct HomeLatestReleaseCard: View {
 
                     if let spotifyURL = homeSpotifyTargetURL(for: track) {
                         HomeActionButton(
-                            title: hasSpotifyEmbed ? "Spotify direkt oeffnen" : homeSpotifyActionTitle(for: track),
+                            title: homeSpotifyActionTitle(for: track),
                             icon: "music.note",
                             colorScheme: colorScheme,
-                            isPrimary: !hasPreview && !hasSpotifyEmbed
+                            isPrimary: !hasPreview
                         ) {
                             openURL(spotifyURL)
                         }
-                    }
-                }
-
-                if let embedURL = homeSpotifyEmbedURL(for: track) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Spotify Player")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-
-                        HomeSpotifyEmbedView(url: embedURL)
-                            .frame(height: 172)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                            )
                     }
                 }
             } else {
@@ -816,54 +798,6 @@ private func homeSpotifyActionTitle(for track: Track) -> String {
     }
 
     return "Spotify oeffnen"
-}
-
-private func homeSpotifyEmbedURL(for track: Track) -> URL? {
-    guard let spotifyTrackID = homeResolvedSpotifyTrackID(for: track) else { return nil }
-    return URL(string: "https://open.spotify.com/embed/track/\(spotifyTrackID)?utm_source=generator")
-}
-
-private func homeResolvedSpotifyTrackID(for track: Track) -> String? {
-    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
-        return spotifyTrackID
-    }
-
-    guard let externalURL = track.externalURL,
-          let webURL = URL(string: externalURL),
-          let components = URLComponents(url: webURL, resolvingAgainstBaseURL: false) else {
-        return nil
-    }
-
-    let pathComponents = components.path.split(separator: "/")
-    guard let trackIndex = pathComponents.firstIndex(of: "track"),
-          trackIndex + 1 < pathComponents.count else {
-        return nil
-    }
-
-    return String(pathComponents[trackIndex + 1])
-}
-
-private struct HomeSpotifyEmbedView: UIViewRepresentable {
-    let url: URL
-
-    func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.allowsInlineMediaPlayback = true
-        configuration.mediaTypesRequiringUserActionForPlayback = []
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        if webView.url != url {
-            webView.load(URLRequest(url: url))
-        }
-    }
 }
 
 private extension FeaturedHomeBeat {

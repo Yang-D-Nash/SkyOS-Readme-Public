@@ -33,7 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -162,7 +162,7 @@ fun VideoHubScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
                     SkydownTopBarTitle(
                         title = "Videography",
@@ -280,7 +280,9 @@ fun VideoHubScreen(
                 type = if (uiState.feedbackIsError) ToastType.Error else ToastType.Success,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = innerPadding.calculateTopPadding() + 8.dp),
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
+                    ),
             )
         }
     }

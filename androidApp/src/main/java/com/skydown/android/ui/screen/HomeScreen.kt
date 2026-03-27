@@ -2,8 +2,6 @@ package com.skydown.android.ui.screen
 
 import android.content.Intent
 import android.net.Uri
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -37,10 +35,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -72,7 +70,7 @@ import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
-import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.model.FeaturedBeatHighlight
 import com.skydown.android.ui.model.FeaturedVideoHighlight
@@ -104,7 +102,7 @@ fun HomeScreen(
         return
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val context = LocalContext.current
     val audioPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -173,8 +171,8 @@ fun HomeScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
-                title = { SkydownTopBarTitle("Skydown x 22", "Hip Hop, Music, Video.") },
+            TopAppBar(
+                title = { SkydownTopBarTitle("Skydown x 22") },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -205,7 +203,12 @@ fun HomeScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = skydownContentPadding(innerPadding),
+                contentPadding = PaddingValues(
+                    start = SkydownUiTokens.screenHorizontalPadding,
+                    top = innerPadding.calculateTopPadding() + 4.dp,
+                    end = SkydownUiTokens.screenHorizontalPadding,
+                    bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
@@ -453,16 +456,12 @@ private fun HomeLatestReleaseCard(
         }
 
         val hasPreview = !track.previewUrl.isNullOrBlank()
-        val hasSpotifyEmbed = homeResolvedSpotifyTrackId(track) != null
         val hasSpotifyTarget = homeHasSpotifyTarget(track)
 
         Text(
             text = when {
-                hasPreview && hasSpotifyEmbed -> "Preview und Spotify-Player laufen direkt im Home."
-                hasPreview -> "Preview direkt im Home verfuegbar."
-                hasSpotifyEmbed -> "Spotify-Player direkt im Home verfuegbar."
-                homeResolvedSpotifyArtistId(track) != null -> "Spotify-Artist direkt erreichbar."
-                !track.externalUrl.isNullOrBlank() -> "Spotify-Ziel direkt erreichbar."
+                hasPreview -> "Preview bleibt direkt im Home. Den Spotify-Player findest du im Musik-Tab."
+                hasSpotifyTarget -> "Neuester Song direkt ueber Spotify erreichbar."
                 else -> "Neuester Song."
             },
             style = MaterialTheme.typography.bodySmall,
@@ -505,17 +504,6 @@ private fun HomeLatestReleaseCard(
                     )
                 }
             }
-        }
-
-        if (hasSpotifyEmbed) {
-            Text(
-                text = "Spotify Player",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 14.dp),
-            )
-
-            HomeSpotifyEmbedCard(track = track)
         }
     }
 }
@@ -716,37 +704,6 @@ private fun HomeLatestVideoCard(
 }
 
 @Composable
-private fun HomeSpotifyEmbedCard(
-    track: com.skydown.shared.model.Track,
-) {
-    val embedUri = remember(track.spotifyTrackId, track.externalUrl) {
-        homeSpotifyEmbedUri(track)
-    } ?: return
-
-    AndroidView(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(188.dp)
-            .padding(top = 10.dp)
-            .clip(MaterialTheme.shapes.extraLarge),
-        factory = { playerContext ->
-            WebView(playerContext).apply {
-                webViewClient = WebViewClient()
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.mediaPlaybackRequiresUserGesture = false
-                loadUrl(embedUri.toString())
-            }
-        },
-        update = { webView ->
-            if (webView.url != embedUri.toString()) {
-                webView.loadUrl(embedUri.toString())
-            }
-        },
-    )
-}
-
-@Composable
 private fun HomeStoryCard(
     onOpenBeatHub: () -> Unit,
     onOpenNicma: () -> Unit,
@@ -943,11 +900,6 @@ private fun homeResolvedSpotifyArtistId(track: com.skydown.shared.model.Track): 
     val artistIndex = pathSegments.indexOf("artist")
     if (artistIndex == -1 || artistIndex + 1 >= pathSegments.size) return null
     return pathSegments[artistIndex + 1]
-}
-
-private fun homeSpotifyEmbedUri(track: com.skydown.shared.model.Track): Uri? {
-    val trackId = homeResolvedSpotifyTrackId(track) ?: return null
-    return Uri.parse("https://open.spotify.com/embed/track/$trackId?utm_source=generator")
 }
 
 private const val homeDestinationBeatHub = "home_beat_hub"

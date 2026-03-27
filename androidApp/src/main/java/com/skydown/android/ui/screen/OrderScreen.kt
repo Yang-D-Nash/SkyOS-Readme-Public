@@ -18,7 +18,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -67,7 +67,7 @@ fun OrderScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
@@ -114,7 +114,7 @@ fun OrderScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 8.dp,
+                    top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
                     end = 16.dp,
                     bottom = innerPadding.calculateBottomPadding() + 28.dp,
                 ),
@@ -173,7 +173,9 @@ fun OrderScreen(
                 type = if (uiState.errorMessage != null) ToastType.Error else ToastType.Success,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = innerPadding.calculateTopPadding() + 8.dp),
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
+                    ),
             )
         }
     }

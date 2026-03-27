@@ -29,7 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -89,7 +89,7 @@ fun SettingsScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
                     SkydownTopBarTitle(
                         title = "Einstellungen",
@@ -478,7 +478,12 @@ private fun SettingsLegalDocumentSheet(
         containerColor = MaterialTheme.colorScheme.background,
     ) {
         LazyColumn(
-            contentPadding = PaddingValues(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 36.dp),
+            contentPadding = PaddingValues(
+                start = 20.dp,
+                top = com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
+                end = 20.dp,
+                bottom = 36.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {

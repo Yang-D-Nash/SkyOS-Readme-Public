@@ -25,7 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -80,7 +80,7 @@ fun CartScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
                         text = "Warenkorb",
@@ -116,7 +116,7 @@ fun CartScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 8.dp,
+                    top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
                     end = 16.dp,
                     bottom = innerPadding.calculateBottomPadding() + 28.dp,
                 ),
@@ -308,7 +308,9 @@ fun CartScreen(
                 type = if (uiState.errorMessage != null) ToastType.Error else ToastType.Success,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = innerPadding.calculateTopPadding() + 8.dp),
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
+                    ),
             )
         }
     }

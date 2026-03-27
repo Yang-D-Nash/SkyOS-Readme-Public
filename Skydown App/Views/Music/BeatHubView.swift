@@ -38,6 +38,7 @@ struct BeatHubView: View {
         .skydownDismissKeyboardOnTap()
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         .navigationTitle("Beat Hub")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             viewModel.configure(currentUser: authManager.userSession)
         }

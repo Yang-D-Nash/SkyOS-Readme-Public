@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 
 object SkydownUiTokens {
     val screenHorizontalPadding = 16.dp
-    val screenTopPadding = 8.dp
+    val screenTopPadding = 6.dp
     val screenBottomPadding = 28.dp
     val cardPadding = 18.dp
     val heroPadding = 20.dp

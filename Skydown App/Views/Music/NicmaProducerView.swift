@@ -26,6 +26,7 @@ struct NicmaProducerView: View {
         }
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         .navigationTitle("NICMA MUSIC")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var heroCard: some View {

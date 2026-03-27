@@ -144,13 +144,13 @@ struct CartView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 28)
+                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .scrollIndicators(.hidden)
             .background(backgroundGradient.ignoresSafeArea())
             .navigationTitle("Warenkorb")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(onOpenSettings: onOpenSettings)

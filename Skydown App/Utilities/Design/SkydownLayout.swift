@@ -9,7 +9,7 @@ import SwiftUI
 
 enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 16
-    static let screenTopPadding: CGFloat = 16
+    static let screenTopPadding: CGFloat = 12
     static let screenBottomPadding: CGFloat = 28
     static let sectionSpacing: CGFloat = 16
     static let cardPadding: CGFloat = 18

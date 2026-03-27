@@ -60,6 +60,7 @@ struct VideoHubView: View {
             .ignoresSafeArea()
         )
         .navigationTitle("Videography")
+        .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
         .task {
             viewModel.configure(currentUser: authManager.userSession)

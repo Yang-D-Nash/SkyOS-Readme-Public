@@ -81,6 +81,7 @@ struct MusicView: View {
             .scrollIndicators(.hidden)
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Skydown Music")
+            .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

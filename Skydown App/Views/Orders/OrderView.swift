@@ -51,15 +51,16 @@ struct OrderView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 28)
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.top, SkydownLayout.screenTopPadding)
+            .padding(.bottom, SkydownLayout.screenBottomPadding)
             .scrollIndicators(.hidden)
             .refreshable {
                 viewModel.fetchOrders()
             }
             .background(backgroundGradient.ignoresSafeArea())
             .navigationTitle("Bestellungen")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Fertig") {

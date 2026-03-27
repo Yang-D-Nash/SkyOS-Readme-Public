@@ -247,6 +247,7 @@ struct SettingsView: View {
             }
             .scrollIndicators(.hidden)
             .navigationTitle("Einstellungen")
+            .navigationBarTitleDisplayMode(.inline)
             .background(
                 AppColors.screenGradient(
                     for: effectiveColorScheme,

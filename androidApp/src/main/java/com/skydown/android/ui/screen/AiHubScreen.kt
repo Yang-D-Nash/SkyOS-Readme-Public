@@ -1,6 +1,7 @@
 package com.skydown.android.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,23 +9,29 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,7 +41,6 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.skydownScreenBrush
-import androidx.compose.material3.LargeTopAppBar
 
 private enum class AiHubMode {
     Bot,
@@ -54,13 +60,8 @@ fun AiHubScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    SkydownTopBarTitle(
-                        title = "KI",
-                        subtitle = "Bot, Agent und Visuals in einem Bereich.",
-                    )
-                },
+            TopAppBar(
+                title = { SkydownTopBarTitle(title = "KI") },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -88,121 +89,45 @@ fun AiHubScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 if (currentUser == null) {
-                    SkydownCard(
+                    AiHubLoginCard(
+                        onOpenLogin = onOpenLogin,
                         modifier = Modifier.padding(
                             horizontal = SkydownUiTokens.screenHorizontalPadding,
                             vertical = SkydownUiTokens.screenTopPadding,
                         ),
-                        contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
-                    ) {
-                        Text(
-                            text = "KI nur mit Konto",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Bot und Agent sind jetzt an den Login gebunden, damit anonyme Nutzer keine AI-Kosten ausloesen.",
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
-                        Button(
-                            onClick = onOpenLogin,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp),
-                            shape = RoundedCornerShape(18.dp),
-                        ) {
-                            Text("Jetzt anmelden")
-                        }
-                    }
+                    )
                 } else {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(
                                 horizontal = SkydownUiTokens.screenHorizontalPadding,
                                 vertical = SkydownUiTokens.screenTopPadding,
                             ),
-                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        if (mode == AiHubMode.Bot) {
-                            Button(
-                                onClick = { mode = AiHubMode.Bot },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
-                                contentPadding = PaddingValues(
-                                    horizontal = 12.dp,
-                                    vertical = 10.dp,
-                                ),
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                )
-                                Text(
-                                    text = "Bot",
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = { mode = AiHubMode.Bot },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
-                                contentPadding = PaddingValues(
-                                    horizontal = 12.dp,
-                                    vertical = 10.dp,
-                                ),
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                )
-                                Text(
-                                    text = "Bot",
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
-                            }
-                        }
+                        AiHubWelcomeCard(mode = mode)
 
-                        if (mode == AiHubMode.Agent) {
-                            Button(
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+                                .padding(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            AiHubModeButton(
+                                mode = AiHubMode.Bot,
+                                isSelected = mode == AiHubMode.Bot,
+                                onClick = { mode = AiHubMode.Bot },
+                                modifier = Modifier.weight(1f),
+                            )
+                            AiHubModeButton(
+                                mode = AiHubMode.Agent,
+                                isSelected = mode == AiHubMode.Agent,
                                 onClick = { mode = AiHubMode.Agent },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
-                                contentPadding = PaddingValues(
-                                    horizontal = 12.dp,
-                                    vertical = 10.dp,
-                                ),
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    imageVector = Icons.Default.Bolt,
-                                    contentDescription = null,
-                                )
-                                Text(
-                                    text = "Agent",
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = { mode = AiHubMode.Agent },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(18.dp),
-                                contentPadding = PaddingValues(
-                                    horizontal = 12.dp,
-                                    vertical = 10.dp,
-                                ),
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    imageVector = Icons.Default.Bolt,
-                                    contentDescription = null,
-                                )
-                                Text(
-                                    text = "Agent",
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
-                            }
+                            )
                         }
                     }
 
@@ -219,5 +144,176 @@ fun AiHubScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AiHubLoginCard(
+    onOpenLogin: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
+    ) {
+        Text(
+            text = "KI nur mit Konto",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "Melde dich an und starte direkt mit Hooks, Captions, Briefings, Release-Plaenen oder Visual-Ideen in einem gemeinsamen Bereich.",
+            modifier = Modifier.padding(top = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AiHubBadge(text = "Bot", isAgent = false)
+            AiHubBadge(text = "Agent", isAgent = true)
+            AiHubBadge(text = "Visuals", isAgent = false)
+        }
+        Button(
+            onClick = onOpenLogin,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Jetzt anmelden")
+        }
+    }
+}
+
+@Composable
+private fun AiHubWelcomeCard(
+    mode: AiHubMode,
+) {
+    val isAgent = mode == AiHubMode.Agent
+    val accent = if (isAgent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    val icon = if (isAgent) Icons.Default.Bolt else Icons.Default.AutoAwesome
+    val title = if (isAgent) {
+        "Briefings, To-dos und Release-Plaene mit Struktur."
+    } else {
+        "Hooks, Captions und Visual-Ideen ohne Reibung."
+    }
+    val message = if (isAgent) {
+        "Der Agent baut dir klare Naechste-Schritte-Listen, Kampagnenplaene und Briefings fuer Releases."
+    } else {
+        "Der Bot hilft dir schnell mit kreativen Varianten, Claims, Captions und ersten Bildrichtungen."
+    }
+    val badges = if (isAgent) {
+        listOf("Briefing", "Plan", "Checkliste")
+    } else {
+        listOf("Hooks", "Captions", "Visuals")
+    }
+
+    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.heroPadding)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    badges.forEach { badge ->
+                        AiHubBadge(text = badge, isAgent = isAgent)
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiHubModeButton(
+    mode: AiHubMode,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isAgent = mode == AiHubMode.Agent
+    val accent = if (isAgent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    val icon = if (isAgent) Icons.Default.Bolt else Icons.Default.AutoAwesome
+    val label = if (isAgent) "Agent" else "Bot"
+
+    if (isSelected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(18.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Icon(imageVector = icon, contentDescription = null)
+            Text(
+                text = label,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(18.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+            )
+            Text(
+                text = label,
+                modifier = Modifier.padding(start = 8.dp),
+                color = accent,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiHubBadge(
+    text: String,
+    isAgent: Boolean,
+) {
+    val accent = if (isAgent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(accent.copy(alpha = 0.12f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = accent,
+        )
     }
 }
