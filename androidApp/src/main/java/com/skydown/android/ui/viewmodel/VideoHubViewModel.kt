@@ -32,6 +32,7 @@ class VideoHubViewModel(
     private var videoObservationCancellation: (() -> Unit)? = null
     private var publicConfigObservationCancellation: (() -> Unit)? = null
     private var observedAdminState: Boolean? = null
+    private var hasLoadedVideosOnce = false
 
     init {
         observePublicConfig()
@@ -452,6 +453,7 @@ class VideoHubViewModel(
         videoObservationCancellation?.invoke()
         videoObservationCancellation = videoHubService.observeVideos(isAdmin = isAdmin) { result ->
             result.onSuccess { videos ->
+                hasLoadedVideosOnce = true
                 _uiState.update {
                     it.copy(
                         videos = videos,
@@ -461,9 +463,29 @@ class VideoHubViewModel(
             }.onFailure {
                 _uiState.update {
                     it.copy(
+                        videos = emptyList(),
                         isLoadingVideos = false,
-                        feedbackMessage = "Die Videos konnten gerade nicht geladen werden.",
-                        feedbackIsError = true,
+                        feedbackMessage = if (currentUser?.isAdmin == true || hasLoadedVideosOnce) {
+                            "Die Videos konnten gerade nicht geladen werden."
+                        } else {
+                            null
+                        },
+                        feedbackIsError = currentUser?.isAdmin == true || hasLoadedVideosOnce,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun observePublicConfig() {
+        publicConfigObservationCancellation?.invoke()
+        publicConfigObservationCancellation = videoHubService.observePublicConfig { result ->
+            result.onSuccess { config ->
+                _uiState.update { it.copy(publicConfig = config) }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        publicConfig = VideoHubPublicConfig.default(),
                     )
                 }
             }

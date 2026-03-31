@@ -10,6 +10,7 @@ import MessageUI
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
 
     @Binding var colorScheme: String
@@ -248,6 +249,15 @@ struct SettingsView: View {
             .scrollIndicators(.hidden)
             .navigationTitle("Einstellungen")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label("Schliessen", systemImage: "xmark")
+                    }
+                }
+            }
             .background(
                 AppColors.screenGradient(
                     for: effectiveColorScheme,

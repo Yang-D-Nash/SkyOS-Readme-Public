@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -202,14 +203,14 @@ fun AiScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
             ) {
-                if (showTopBar) {
+                if (showTopBar && uiState.messages.isEmpty()) {
                     item {
                         AiOverviewCard(isEnabled = uiState.isAiEnabled)
                     }
                 }
 
                 if (uiState.isAiEnabled) {
-                    if (showTopBar) {
+                    if (uiState.messages.isEmpty()) {
                         item {
                             QuickPromptCard(
                                 prompts = uiState.quickPrompts,
@@ -295,6 +296,11 @@ private fun AiOverviewCard(
                     text = if (isEnabled) "X22 Bot aktiv" else "X22 Bot pausiert",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Direkte Captions, Hooks, Skripte und Visual-Ideen. Schreib unten direkt los oder starte mit einem Prompt.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
         }
@@ -523,8 +529,6 @@ private fun AiComposerBar(
     onReset: () -> Unit,
     onDismissKeyboard: () -> Unit,
 ) {
-    var showComposer by remember { mutableStateOf(false) }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -544,25 +548,42 @@ private fun AiComposerBar(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
-                    onClick = { showComposer = true },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp),
-                    contentPadding = PaddingValues(
-                        horizontal = 14.dp,
-                        vertical = if (compactLayout) 9.dp else 12.dp,
-                    ),
-                ) {
-                    Text(
-                        if (draft.isBlank()) {
-                            if (compactLayout) "Prompt" else "Bot Prompt"
-                        } else {
-                            if (compactLayout) "Weiter" else "Prompt weiter"
-                        },
-                    )
+                if (composerMode == AiComposerMode.Text) {
+                    Button(
+                        onClick = { onComposerModeChange(AiComposerMode.Text) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text("Text")
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { onComposerModeChange(AiComposerMode.Text) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text("Text")
+                    }
+                }
+
+                if (composerMode == AiComposerMode.Visual) {
+                    Button(
+                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text("Visual")
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text("Visual")
+                    }
                 }
 
                 IconButton(
@@ -576,98 +597,52 @@ private fun AiComposerBar(
                     )
                 }
             }
-        }
-    }
 
-    if (showComposer) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                onDismissKeyboard()
-                showComposer = false
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            SkydownCard(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                contentPadding = PaddingValues(if (compactLayout) 14.dp else 18.dp),
-            ) {
-                Text(
-                    text = if (composerMode == AiComposerMode.Text) "Bot Prompt" else "Visual Prompt",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (compactLayout) 10.dp else 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = { onComposerModeChange(AiComposerMode.Text) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                    ) {
-                        Text("Text")
-                    }
-
-                    OutlinedButton(
-                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                    ) {
-                        Text("Visual")
-                    }
-                }
-
-                OutlinedTextField(
-                    value = draft,
-                    onValueChange = onDraftChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (compactLayout) 10.dp else 12.dp),
-                    placeholder = {
-                        Text(
-                            if (composerMode == AiComposerMode.Text) {
-                                "Zum Beispiel: Teaser fuer den naechsten Drop."
-                            } else {
-                                "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
-                            },
-                        )
+            OutlinedTextField(
+                value = draft,
+                onValueChange = onDraftChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = if (compactLayout) 10.dp else 12.dp),
+                placeholder = {
+                    Text(
+                        if (composerMode == AiComposerMode.Text) {
+                            "Zum Beispiel: Teaser fuer den naechsten Drop."
+                        } else {
+                            "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
+                        },
+                    )
+                },
+                minLines = 2,
+                maxLines = if (compactLayout) 4 else 5,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(
+                    onSend = {
+                        onSend()
+                        onDismissKeyboard()
                     },
-                    minLines = if (compactLayout) 3 else 4,
-                    maxLines = if (compactLayout) 6 else 8,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            onSend()
-                            onDismissKeyboard()
-                            showComposer = false
-                        },
-                    ),
-                )
+                ),
+            )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (compactLayout) 10.dp else 12.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = if (compactLayout) 10.dp else 12.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledIconButton(
+                    onClick = {
+                        onSend()
+                        onDismissKeyboard()
+                    },
+                    enabled = draft.isNotBlank() && !isSending,
+                    modifier = Modifier.size(42.dp),
                 ) {
-                    FilledIconButton(
-                        onClick = {
-                            onSend()
-                            onDismissKeyboard()
-                            showComposer = false
-                        },
-                        enabled = draft.isNotBlank() && !isSending,
-                        modifier = Modifier.size(42.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = if (composerMode == AiComposerMode.Text) "Senden" else "Visual generieren",
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = if (composerMode == AiComposerMode.Text) "Senden" else "Visual generieren",
+                    )
                 }
             }
         }

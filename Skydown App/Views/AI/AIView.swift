@@ -50,7 +50,7 @@ struct AIView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    if showsNavigation {
+                    if showsNavigation && viewModel.messages.isEmpty {
                         AIHeroCard(
                             colorScheme: colorScheme,
                             badges: featureFlags.isAIEnabled
@@ -60,7 +60,7 @@ struct AIView: View {
                     }
 
                     if featureFlags.isAIEnabled {
-                        if showsNavigation {
+                        if viewModel.messages.isEmpty {
                             AIQuickPromptCard(
                                 colorScheme: colorScheme,
                                 prompts: viewModel.quickPrompts,
@@ -146,6 +146,10 @@ private struct AIHeroCard: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text("Direkte Captions, Hooks, Skripte und Visual-Ideen. Frag unten einfach los oder starte mit einem brauchbaren Prompt.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             ZStack {
@@ -232,9 +236,13 @@ private struct AIQuickPromptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Bot starten")
+            Text("Schnell starten")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Copy-pastebare Ideen fuer Releases, Reels und Drops.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -277,6 +285,10 @@ private struct AIVisualPromptCard: View {
             Text("Visuals")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Ein klarer Prompt reicht, damit du direkt im Flow bleibst.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -404,59 +416,22 @@ private struct AIComposerBar: View {
     let isSending: Bool
     let onReset: () -> Void
     let onSend: () -> Void
-    @State private var showingComposer = false
+
+    private var trimmedDraft: String {
+        draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Button(action: { showingComposer = true }) {
-                    Text(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Bot Prompt" : "Prompt weiter")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18)
-                                .fill(AppColors.secondaryBackground(for: colorScheme))
-                        )
-                }
-                .buttonStyle(.plain)
-
-                Button(action: onReset) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(width: 42, height: 42)
-                        .background(
-                            Circle()
-                                .fill(AppColors.secondaryBackground(for: colorScheme))
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(isSending)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 14)
-            .background(
-                Rectangle()
-                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
-                    .ignoresSafeArea()
-            )
-            .overlay(alignment: .top) {
-                Divider().opacity(0.25)
-            }
-        }
-        .sheet(isPresented: $showingComposer) {
-            NavigationStack {
-                VStack(spacing: 16) {
-                    Picker("Modus", selection: $composerMode) {
-                        ForEach(AIComposerMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
-                        }
+            VStack(spacing: 12) {
+                Picker("Modus", selection: $composerMode) {
+                    ForEach(AIComposerMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
                     }
-                    .pickerStyle(.segmented)
+                }
+                .pickerStyle(.segmented)
 
+                HStack(alignment: .bottom, spacing: 10) {
                     TextField(
                         composerMode == .text
                             ? "Zum Beispiel: Teaser fuer den naechsten Drop."
@@ -464,7 +439,7 @@ private struct AIComposerBar: View {
                         text: $draft,
                         axis: .vertical
                     )
-                    .lineLimit(4...8)
+                    .lineLimit(1...4)
                     .focused(isFocused)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 14)
@@ -474,24 +449,17 @@ private struct AIComposerBar: View {
                     )
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                    HStack {
-                        Spacer()
-
+                    VStack(spacing: 8) {
                         Button(action: {
                             isFocused.wrappedValue = false
                             onSend()
-                            showingComposer = false
                         }) {
-                            Label(
-                                composerMode == .text ? "Senden" : "Visual generieren",
-                                systemImage: "arrow.up.circle.fill"
-                            )
-                                .font(.headline)
+                            Image(systemName: composerMode == .text ? "arrow.up.circle.fill" : "sparkles")
+                                .font(.title3.weight(.bold))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 18)
-                                .padding(.vertical, 12)
+                                .frame(width: 46, height: 46)
                                 .background(
-                                    Capsule()
+                                    Circle()
                                         .fill(
                                             LinearGradient(
                                                 colors: [
@@ -505,25 +473,35 @@ private struct AIComposerBar: View {
                                 )
                         }
                         .buttonStyle(.plain)
-                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
-                        .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? 0.6 : 1)
-                    }
+                        .disabled(trimmedDraft.isEmpty || isSending)
+                        .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
 
-                    Spacer()
-                }
-                .padding(20)
-                .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
-                .navigationTitle(composerMode == .text ? "Bot Prompt" : "Visual Prompt")
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Schliessen") {
-                            isFocused.wrappedValue = false
-                            showingComposer = false
+                        Button(action: onReset) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .frame(width: 38, height: 38)
+                                .background(
+                                    Circle()
+                                        .fill(AppColors.secondaryBackground(for: colorScheme))
+                                )
                         }
+                        .buttonStyle(.plain)
+                        .disabled(isSending)
                     }
                 }
             }
-            .presentationDetents([.medium, .large])
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 14)
+            .background(
+                Rectangle()
+                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
+                    .ignoresSafeArea()
+            )
+            .overlay(alignment: .top) {
+                Divider().opacity(0.25)
+            }
         }
     }
 }

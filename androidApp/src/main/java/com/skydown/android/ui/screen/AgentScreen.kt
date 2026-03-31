@@ -36,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -52,6 +53,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -83,6 +86,13 @@ fun AgentScreen(
     val compactLayout = rememberIsCompactAppLayout()
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val dismissKeyboard: () -> Unit = {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        Unit
+    }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.isAgentEnabled && uiState.messages.isNotEmpty()) {
@@ -139,8 +149,14 @@ fun AgentScreen(
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
                     onDraftChanged = viewModel::updateDraft,
-                    onSend = viewModel::sendDraft,
-                    onReset = viewModel::resetConversation,
+                    onSend = {
+                        viewModel.sendDraft()
+                        dismissKeyboard()
+                    },
+                    onReset = {
+                        viewModel.resetConversation()
+                        dismissKeyboard()
+                    },
                 )
             }
         },
@@ -176,14 +192,14 @@ fun AgentScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
             ) {
-                if (showTopBar) {
+                if (showTopBar && uiState.messages.isEmpty()) {
                     item {
                         AgentOverviewCard(isEnabled = uiState.isAgentEnabled)
                     }
                 }
 
                 if (uiState.isAgentEnabled) {
-                    if (showTopBar) {
+                    if (uiState.messages.isEmpty()) {
                         item {
                             AgentQuickPromptCard(
                                 prompts = uiState.quickPrompts,
@@ -261,6 +277,11 @@ private fun AgentOverviewCard(
                     text = if (isEnabled) "X22 Agent aktiv" else "X22 Agent pausiert",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.tertiary,
+                )
+                Text(
+                    text = "Fuer Briefings, Release-Plaene, Shotlists und naechste Schritte. Gleicher Flow wie im Bot, nur strukturierter.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
         }
@@ -433,8 +454,6 @@ private fun AgentComposerBar(
     onSend: () -> Unit,
     onReset: () -> Unit,
 ) {
-    var showComposer by remember { mutableStateOf(false) }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -452,29 +471,28 @@ private fun AgentComposerBar(
                 vertical = if (compactLayout) 10.dp else 12.dp,
             ),
         ) {
-            Row(
+            OutlinedTextField(
+                value = draft,
+                onValueChange = onDraftChanged,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+                placeholder = {
+                    Text("Zum Beispiel: Release-Briefing fuer Freitag.")
+                },
+                minLines = 2,
+                maxLines = if (compactLayout) 4 else 5,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(
+                    onSend = { onSend() },
+                ),
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = if (compactLayout) 10.dp else 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedButton(
-                    onClick = { showComposer = true },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp),
-                    contentPadding = PaddingValues(
-                        horizontal = 14.dp,
-                        vertical = if (compactLayout) 9.dp else 12.dp,
-                    ),
-                ) {
-                    Text(
-                        if (draft.isBlank()) {
-                            "Aufgabe"
-                        } else {
-                            if (compactLayout) "Weiter" else "Aufgabe weiter"
-                        },
-                    )
-                }
-
                 IconButton(
                     onClick = onReset,
                     enabled = !isSending,
@@ -485,65 +503,16 @@ private fun AgentComposerBar(
                         contentDescription = "Agent zuruecksetzen",
                     )
                 }
-            }
-        }
-    }
 
-    if (showComposer) {
-        ModalBottomSheet(
-            onDismissRequest = { showComposer = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            SkydownCard(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                contentPadding = PaddingValues(if (compactLayout) 14.dp else 18.dp),
-            ) {
-                Text(
-                    text = "X22 Aufgabe",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                androidx.compose.material3.OutlinedTextField(
-                    value = draft,
-                    onValueChange = onDraftChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (compactLayout) 10.dp else 12.dp),
-                    placeholder = {
-                        Text("Zum Beispiel: Release-Briefing fuer Freitag.")
-                    },
-                    minLines = if (compactLayout) 3 else 4,
-                    maxLines = if (compactLayout) 6 else 8,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            onSend()
-                            showComposer = false
-                        },
-                    ),
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (compactLayout) 10.dp else 12.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
+                FilledIconButton(
+                    onClick = onSend,
+                    enabled = draft.isNotBlank() && !isSending,
+                    modifier = Modifier.size(42.dp),
                 ) {
-                    FilledIconButton(
-                        onClick = {
-                            onSend()
-                            showComposer = false
-                        },
-                        enabled = draft.isNotBlank() && !isSending,
-                        modifier = Modifier.size(42.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Senden",
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Senden",
+                    )
                 }
             }
         }

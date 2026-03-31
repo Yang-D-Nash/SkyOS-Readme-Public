@@ -366,7 +366,7 @@ private struct AIHubView: View {
     let onOpenLogin: () -> Void
     let onOpenSettings: () -> Void
     @State private var mode: AIHubMode = .bot
-    @State private var hasPreparedN8NTrigger = false
+    @State private var hasPreparedWorkflowTrigger = false
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
 
@@ -389,14 +389,6 @@ private struct AIHubView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: SkydownLayout.sectionSpacing) {
-                ToolsHubCard(
-                    colorScheme: colorScheme,
-                    hasPreparedN8NTrigger: hasPreparedN8NTrigger,
-                    onTrigger: { hasPreparedN8NTrigger = true }
-                )
-                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                .padding(.top, 12)
-
                 if authManager.userSession == nil {
                     AIHubLoginCard(
                         colorScheme: colorScheme,
@@ -413,12 +405,15 @@ private struct AIHubView: View {
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 } else {
-                    AIHubControlCard(
+                    AIHubCompactHeader(
                         mode: mode,
                         colorScheme: colorScheme,
-                        onSelectMode: { mode = $0 }
+                        hasPreparedWorkflowTrigger: hasPreparedWorkflowTrigger,
+                        onSelectMode: { mode = $0 },
+                        onTrigger: { hasPreparedWorkflowTrigger = true }
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, 12)
 
                     Group {
                         if mode == .bot {
@@ -476,50 +471,6 @@ private struct VideoHubTabView: View {
                     }
                 }
         }
-    }
-}
-
-private struct ToolsHubCard: View {
-    let colorScheme: ColorScheme
-    let hasPreparedN8NTrigger: Bool
-    let onTrigger: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Global Tools")
-                .font(.title2.bold())
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text(
-                hasPreparedN8NTrigger
-                ? "Der Trigger-Slot ist vorbereitet. Hier kann als naechstes dein direkter N8N-Webhook andocken, ohne dass er an Musik, Video oder Merch gebunden ist."
-                : "AI und Automationen landen hier global fuer die ganze App. Damit bleibt N8N spaeter neutral und haengt nicht an einer einzelnen Lane."
-            )
-            .font(.body)
-            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            HStack(spacing: 10) {
-                AIHubBadge(text: "N8N", color: AppColors.accentHighlight(for: colorScheme))
-                AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
-                AIHubBadge(text: "Agent", color: AppColors.accentMystic(for: colorScheme))
-            }
-
-            Button(action: onTrigger) {
-                Text(hasPreparedN8NTrigger ? "Trigger Slot bereit" : "Trigger Slot aktivieren")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accentHighlight(for: colorScheme))
-        }
-        .padding(SkydownLayout.cardPadding)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.16), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
     }
 }
 
@@ -604,10 +555,12 @@ private struct AIHubRestrictedCard: View {
     }
 }
 
-private struct AIHubControlCard: View {
+private struct AIHubCompactHeader: View {
     let mode: AIHubMode
     let colorScheme: ColorScheme
+    let hasPreparedWorkflowTrigger: Bool
     let onSelectMode: (AIHubMode) -> Void
+    let onTrigger: () -> Void
 
     private var accent: Color {
         switch mode {
@@ -618,87 +571,55 @@ private struct AIHubControlCard: View {
         }
     }
 
-    private var title: String {
-        switch mode {
-        case .bot:
-            return "Bot fuer schnelle Ideen"
-        case .agent:
-            return "Agent fuer klare Struktur"
-        }
-    }
-
-    private var message: String {
-        switch mode {
-        case .bot:
-            return "Hooks, Captions und Visual-Ideen ohne Umwege."
-        case .agent:
-            return "Briefings, To-dos und Release-Plaene in einem Flow."
-        }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline.bold())
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text(message)
-                        .font(.subheadline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(accent.opacity(0.14))
-                        .frame(width: 42, height: 42)
-
-                    Image(systemName: mode.iconName)
-                        .font(.headline)
-                        .foregroundColor(accent)
-                }
-            }
-
-            HStack(spacing: 8) {
-                ForEach(AIHubMode.allCases) { currentMode in
-                    Button {
-                        onSelectMode(currentMode)
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: currentMode.iconName)
-                            Text(currentMode.rawValue)
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(
-                                    mode == currentMode
-                                    ? accent
-                                    : AppColors.secondaryBackground(for: colorScheme)
-                                )
-                        )
-                        .foregroundColor(
-                            mode == currentMode
-                            ? .white
-                            : AppColors.text(for: colorScheme)
-                        )
+        HStack(spacing: 8) {
+            ForEach(AIHubMode.allCases) { currentMode in
+                Button {
+                    onSelectMode(currentMode)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: currentMode.iconName)
+                        Text(currentMode.rawValue)
+                            .fontWeight(.semibold)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                mode == currentMode
+                                ? accent
+                                : AppColors.secondaryBackground(for: colorScheme)
+                            )
+                    )
+                    .foregroundColor(
+                        mode == currentMode
+                        ? .white
+                        : AppColors.text(for: colorScheme)
+                    )
                 }
+                .buttonStyle(.plain)
             }
+
+            Button(action: onTrigger) {
+                Image(systemName: hasPreparedWorkflowTrigger ? "point.3.connected.trianglepath.dotted" : "bolt.horizontal.circle.fill")
+                    .font(.headline)
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    .frame(width: 44, height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                    )
+            }
+            .buttonStyle(.plain)
         }
-        .padding(14)
+        .padding(12)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: 20)
                 .stroke(accent.opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 

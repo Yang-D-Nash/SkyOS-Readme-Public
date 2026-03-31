@@ -52,14 +52,7 @@ struct AIChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class AIChatViewModel: ObservableObject {
-    private static let introMessage = "Ich bin der Skydown x 22 Bot. Ich liefere dir Hooks, Captions, Claims, Skripte und generiere Cover, Poster und Story-Visuals. Fuer Briefings, To-dos und Plaene nimm den Agent."
-
-    @Published var messages: [AIChatMessage] = [
-        AIChatMessage(
-            role: .assistant,
-            text: introMessage
-        )
-    ]
+    @Published var messages: [AIChatMessage] = []
     @Published var draft = ""
     @Published var composerMode: AIComposerMode = .text
     @Published var isSending = false
@@ -190,12 +183,7 @@ final class AIChatViewModel: ObservableObject {
 
     func resetConversation() {
         chat = nil
-        messages = [
-            AIChatMessage(
-                role: .assistant,
-                text: Self.introMessage
-            )
-        ]
+        messages = []
     }
 
     private func activeChat() -> Chat {

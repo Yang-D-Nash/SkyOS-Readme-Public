@@ -58,7 +58,7 @@ fun AiHubScreen(
     onOpenSettings: () -> Unit,
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
-    var hasPreparedN8NTrigger by rememberSaveable { mutableStateOf(false) }
+    var hasPreparedWorkflowTrigger by rememberSaveable { mutableStateOf(false) }
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
@@ -73,7 +73,7 @@ fun AiHubScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Tools",
-                        subtitle = "AI und N8N global fuer die ganze App.",
+                        subtitle = "AI und Workflow global fuer die ganze App.",
                     )
                 },
                 actions = {
@@ -99,17 +99,6 @@ fun AiHubScreen(
                 .padding(innerPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                ToolsHubCard(
-                    hasPreparedN8NTrigger = hasPreparedN8NTrigger,
-                    onPrepareTrigger = { hasPreparedN8NTrigger = true },
-                    modifier = Modifier.padding(
-                        start = SkydownUiTokens.screenHorizontalPadding,
-                        top = SkydownUiTokens.screenTopPadding + 4.dp,
-                        end = SkydownUiTokens.screenHorizontalPadding,
-                        bottom = 12.dp,
-                    ),
-                )
-
                 if (currentUser == null) {
                     AiHubLoginCard(
                         title = if (aiAccessMode == AiAccessMode.AdminOnly) {
@@ -142,11 +131,14 @@ fun AiHubScreen(
                         ),
                     )
                 } else {
-                    AiHubControlCard(
+                    AiHubCompactHeader(
                         mode = mode,
+                        hasPreparedWorkflowTrigger = hasPreparedWorkflowTrigger,
                         onSelectMode = { selectedMode -> mode = selectedMode },
+                        onTrigger = { hasPreparedWorkflowTrigger = true },
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
+                            top = SkydownUiTokens.screenTopPadding + 4.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
                             bottom = 12.dp,
                         ),
@@ -250,113 +242,23 @@ private fun AiHubRestrictedCard(
 }
 
 @Composable
-private fun ToolsHubCard(
-    hasPreparedN8NTrigger: Boolean,
-    onPrepareTrigger: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SkydownCard(
-        modifier = modifier,
-        contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
-    ) {
-        Text(
-            text = "Global Tools",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = if (hasPreparedN8NTrigger) {
-                "Der Trigger-Slot ist vorbereitet. Hier kann als naechstes dein direkter N8N-Webhook global andocken."
-            } else {
-                "AI und Automationen bleiben hier neutral fuer die ganze App. So haengt der spaetere N8N-Flow nicht an Musik, Video oder Merch."
-            },
-            modifier = Modifier.padding(top = 8.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        )
-        Row(
-            modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            AiHubBadge(text = "N8N", isAgent = false)
-            AiHubBadge(text = "Bot", isAgent = false)
-            AiHubBadge(text = "Agent", isAgent = true)
-        }
-        Button(
-            onClick = onPrepareTrigger,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            Text(if (hasPreparedN8NTrigger) "Trigger Slot bereit" else "Trigger Slot aktivieren")
-        }
-    }
-}
-
-@Composable
-private fun AiHubControlCard(
+private fun AiHubCompactHeader(
     mode: AiHubMode,
+    hasPreparedWorkflowTrigger: Boolean,
     onSelectMode: (AiHubMode) -> Unit,
+    onTrigger: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isAgent = mode == AiHubMode.Agent
     val accent = if (isAgent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    val icon = if (isAgent) Icons.Default.Bolt else Icons.Default.AutoAwesome
-    val title = if (isAgent) {
-        "Agent fuer klare Struktur"
-    } else {
-        "Bot fuer schnelle Ideen"
-    }
-    val message = if (isAgent) {
-        "Briefings, To-dos und Release-Plaene in einem Flow."
-    } else {
-        "Hooks, Captions und Visual-Ideen ohne Umwege."
-    }
 
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(14.dp),
+        contentPadding = PaddingValues(12.dp),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(accent.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accent,
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             AiHubModeButton(
                 mode = AiHubMode.Bot,
@@ -370,6 +272,14 @@ private fun AiHubControlCard(
                 onClick = { onSelectMode(AiHubMode.Agent) },
                 modifier = Modifier.weight(1f),
             )
+
+            OutlinedButton(
+                onClick = onTrigger,
+                shape = RoundedCornerShape(18.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                Text(if (hasPreparedWorkflowTrigger) "Workflow" else "Trigger")
+            }
         }
     }
 }

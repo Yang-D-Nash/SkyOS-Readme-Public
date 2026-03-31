@@ -146,10 +146,6 @@ class AgentViewModel : ViewModel() {
 
     private fun buildHistory(messages: List<AgentMessage>): List<AgentHistoryTurn> =
         messages
-            .filterNot { message ->
-                message.role == AgentMessageRole.Assistant &&
-                    message.text == INTRO_MESSAGE
-            }
             .map { message ->
                 AgentHistoryTurn(
                     role = if (message.role == AgentMessageRole.User) "user" else "assistant",
@@ -172,10 +168,5 @@ class AgentViewModel : ViewModel() {
         }
 
         else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
-    }
-
-    private companion object {
-        const val INTRO_MESSAGE =
-            "Ich bin der Skydown x 22 Agent. Ich baue dir Briefings, Release-Plaene, Content-Strukturen, Checklisten und naechste Schritte. Fuer schnelle Hooks oder Captions nimm den Bot."
     }
 }

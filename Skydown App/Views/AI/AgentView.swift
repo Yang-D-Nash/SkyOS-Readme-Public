@@ -50,7 +50,7 @@ struct AgentView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    if showsNavigation {
+                    if showsNavigation && viewModel.messages.isEmpty {
                         AgentHeroCard(
                             colorScheme: colorScheme,
                             badges: featureFlags.isAIEnabled
@@ -60,7 +60,7 @@ struct AgentView: View {
                     }
 
                     if featureFlags.isAIEnabled {
-                        if showsNavigation {
+                        if viewModel.messages.isEmpty {
                             AgentQuickPromptCard(
                                 colorScheme: colorScheme,
                                 prompts: viewModel.quickPrompts,
@@ -139,6 +139,10 @@ private struct AgentHeroCard: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text("Fuer Briefings, Release-Plaene, Shotlists und naechste Schritte. Du bleibst im selben Flow, nur strukturierter.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             ZStack {
@@ -225,9 +229,13 @@ private struct AgentQuickPromptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Agent starten")
+            Text("Schnell planen")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Starte mit einer konkreten Aufgabe und lass dir direkt Struktur bauen.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -343,39 +351,72 @@ private struct AgentComposerBar: View {
     let isSending: Bool
     let onReset: () -> Void
     let onSend: () -> Void
-    @State private var showingComposer = false
+
+    private var trimmedDraft: String {
+        draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Button(action: { showingComposer = true }) {
-                    Text(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aufgabe" : "Aufgabe weiter")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18)
-                                .fill(AppColors.secondaryBackground(for: colorScheme))
-                        )
-                }
-                .buttonStyle(.plain)
+            HStack(alignment: .bottom, spacing: 10) {
+                TextField(
+                    "Zum Beispiel: Release-Briefing fuer Freitag.",
+                    text: $draft,
+                    axis: .vertical
+                )
+                .lineLimit(1...4)
+                .focused(isFocused)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(AppColors.secondaryBackground(for: colorScheme))
+                )
+                .foregroundColor(AppColors.text(for: colorScheme))
 
-                Button(action: onReset) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(width: 42, height: 42)
-                        .background(
-                            Circle()
-                                .fill(AppColors.secondaryBackground(for: colorScheme))
-                        )
+                VStack(spacing: 8) {
+                    Button(action: {
+                        isFocused.wrappedValue = false
+                        onSend()
+                    }) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title3.weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(width: 46, height: 46)
+                            .background(
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                AppColors.accent(for: colorScheme),
+                                                AppColors.accentMystic(for: colorScheme)
+                                            ],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(trimmedDraft.isEmpty || isSending)
+                    .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
+
+                    Button(action: onReset) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .frame(width: 38, height: 38)
+                            .background(
+                                Circle()
+                                    .fill(AppColors.secondaryBackground(for: colorScheme))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSending)
                 }
-                .buttonStyle(.plain)
-                .disabled(isSending)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 16)
+            .padding(.top, 14)
             .padding(.bottom, 14)
             .background(
                 Rectangle()
@@ -385,72 +426,6 @@ private struct AgentComposerBar: View {
             .overlay(alignment: .top) {
                 Divider().opacity(0.25)
             }
-        }
-        .sheet(isPresented: $showingComposer) {
-            NavigationStack {
-                VStack(spacing: 16) {
-                    TextField(
-                        "Zum Beispiel: Release-Briefing fuer Freitag.",
-                        text: $draft,
-                        axis: .vertical
-                    )
-                    .lineLimit(4...8)
-                    .focused(isFocused)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(AppColors.secondaryBackground(for: colorScheme))
-                    )
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                    HStack {
-                        Spacer()
-
-                        Button(action: {
-                            isFocused.wrappedValue = false
-                            onSend()
-                            showingComposer = false
-                        }) {
-                            Label("Senden", systemImage: "arrow.up.circle.fill")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 18)
-                                .padding(.vertical, 12)
-                                .background(
-                                    Capsule()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    AppColors.accent(for: colorScheme),
-                                                    AppColors.accentMystic(for: colorScheme)
-                                                ],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
-                        .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending ? 0.6 : 1)
-                    }
-
-                    Spacer()
-                }
-                .padding(20)
-                .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
-                .navigationTitle("X22 Aufgabe")
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Schliessen") {
-                            isFocused.wrappedValue = false
-                            showingComposer = false
-                        }
-                    }
-                }
-            }
-            .presentationDetents([.medium, .large])
         }
     }
 }

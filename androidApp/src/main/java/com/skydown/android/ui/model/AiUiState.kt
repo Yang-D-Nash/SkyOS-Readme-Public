@@ -11,12 +11,7 @@ data class AiVisualPrompt(
 )
 
 data class AiUiState(
-    val messages: List<AiMessage> = listOf(
-        AiMessage(
-            role = AiMessageRole.Assistant,
-            text = "Ich bin der Skydown x 22 Bot. Ich liefere dir Hooks, Captions, Claims, Skripte und generiere Cover, Poster und Story-Visuals. Fuer Briefings, To-dos und Plaene nimm den Agent.",
-        ),
-    ),
+    val messages: List<AiMessage> = emptyList(),
     val draft: String = "",
     val isSending: Boolean = false,
     val isAiEnabled: Boolean = true,

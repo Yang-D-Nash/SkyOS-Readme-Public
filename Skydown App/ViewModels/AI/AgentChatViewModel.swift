@@ -27,14 +27,7 @@ struct AgentChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class AgentChatViewModel: ObservableObject {
-    static let introMessage = "Ich bin der Skydown x 22 Agent. Ich baue dir Briefings, Release-Plaene, Content-Strukturen, Checklisten und naechste Schritte. Fuer schnelle Hooks oder Captions nimm den Bot."
-
-    @Published var messages: [AgentChatMessage] = [
-        AgentChatMessage(
-            role: .assistant,
-            text: introMessage
-        )
-    ]
+    @Published var messages: [AgentChatMessage] = []
     @Published var draft = ""
     @Published var isSending = false
     @Published var showToast = false
@@ -104,17 +97,11 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     func resetConversation() {
-        messages = [
-            AgentChatMessage(
-                role: .assistant,
-                text: Self.introMessage
-            )
-        ]
+        messages = []
     }
 
     private func buildHistory(from messages: [AgentChatMessage]) -> [AgentHistoryTurn] {
         messages
-            .filterNotIntroMessage()
             .map { message in
                 AgentHistoryTurn(
                     role: message.role == .user ? "user" : "assistant",
@@ -161,14 +148,5 @@ final class AgentChatViewModel: ObservableObject {
         }
 
         return "Der Skydown x 22 Agent konnte gerade nicht antworten."
-    }
-}
-
-private extension Array where Element == AgentChatMessage {
-    func filterNotIntroMessage() -> [AgentChatMessage] {
-        filter { message in
-            !(message.role == .assistant &&
-              message.text == AgentChatViewModel.introMessage)
-        }
     }
 }

@@ -1026,6 +1026,7 @@ final class SkydownVideoHubViewModel: ObservableObject {
     private var observationCancellation: (() -> Void)?
     private var configObservationCancellation: (() -> Void)?
     private var observedAdminState: Bool?
+    private var hasLoadedVideosOnce = false
 
     deinit {
         observationCancellation?()
@@ -1303,11 +1304,16 @@ final class SkydownVideoHubViewModel: ObservableObject {
 
             switch result {
             case .success(let videos):
+                hasLoadedVideosOnce = true
                 allVideos = videos
                 applyVisibleVideos()
             case .failure:
+                allVideos = []
                 isLoadingVideos = false
-                showUserToast("Die Videos konnten gerade nicht geladen werden.", style: .error)
+                applyVisibleVideos()
+                if isAdmin || hasLoadedVideosOnce {
+                    showUserToast("Die Videos konnten gerade nicht geladen werden.", style: .error)
+                }
             }
         }
     }
@@ -1327,7 +1333,6 @@ final class SkydownVideoHubViewModel: ObservableObject {
                 publicConfig = config
             case .failure:
                 publicConfig = .default
-                showUserToast("Die oeffentlichen Videography-Daten konnten nicht geladen werden.", style: .error)
             }
         }
     }
