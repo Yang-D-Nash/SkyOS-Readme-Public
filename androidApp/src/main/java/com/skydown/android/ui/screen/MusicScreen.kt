@@ -257,6 +257,11 @@ fun MusicScreen(
                 item {
                     MusicOverviewCard(
                         uiState = uiState,
+                        onOpenInstagram = {
+                            uiState.selectedArtistSocialProfile?.let { socialProfile ->
+                                openExternalLink(context, socialProfile.instagramUrl)
+                            }
+                        },
                         onConnect = {
                             viewModel.clearSpotifyError()
                             context.startActivity(
@@ -472,6 +477,7 @@ private fun MusicPlayerCard(
 @Composable
 private fun MusicOverviewCard(
     uiState: MusicUiState,
+    onOpenInstagram: () -> Unit,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
@@ -521,6 +527,24 @@ private fun MusicOverviewCard(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 12.dp),
         )
+
+        uiState.selectedArtistSocialProfile?.let { socialProfile ->
+            OutlinedButton(
+                onClick = onOpenInstagram,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                Text("${socialProfile.handle} auf Instagram")
+            }
+        }
 
         if (uiState.isSpotifyConnected) {
             OutlinedButton(
