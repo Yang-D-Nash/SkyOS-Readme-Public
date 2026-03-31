@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-private enum MainTab: Hashable {
+enum MainTab: Hashable {
     case shop
     case music
     case home
@@ -53,6 +53,10 @@ struct MainTabView: View {
 
     private var currentScheme: ColorScheme {
         preferredScheme ?? systemColorScheme
+    }
+
+    init(initialTab: MainTab = .home) {
+        _selectedTab = State(initialValue: initialTab)
     }
 
     var body: some View {
