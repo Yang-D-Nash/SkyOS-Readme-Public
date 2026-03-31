@@ -49,6 +49,15 @@ Wenn Infos fehlen, triff sinnvolle Annahmen und kennzeichne sie kurz. Frage nur 
 Bevorzuge kurze klare Abschnitte wie Ziel, Deliverables, Schritte, Timing, Assets, Risiken, Naechste Schritte.
 `.trim();
 
+async function isAdminAuth(auth) {
+  if (!auth?.uid) {
+    return false;
+  }
+
+  const userSnapshot = await admin.firestore().doc(`users/${auth.uid}`).get();
+  return userSnapshot.exists && userSnapshot.data()?.isAdmin === true;
+}
+
 function responseFrameworkHint(prompt) {
   const lower = prompt.toLowerCase();
 
@@ -123,6 +132,7 @@ exports.skydownAgent = onCallGenkit({
   region: "us-central1",
   enforceAppCheck: false,
   timeoutSeconds: 60,
+  authPolicy: isAdminAuth,
 }, skydownAgentFlow);
 
 function formatOrderItems(items) {

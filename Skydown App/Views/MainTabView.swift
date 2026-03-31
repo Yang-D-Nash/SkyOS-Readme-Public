@@ -42,6 +42,8 @@ struct MainTabView: View {
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @Environment(\.colorScheme) private var systemColorScheme
     @EnvironmentObject private var services: AppServices
+    @EnvironmentObject private var featureFlags: FeatureFlagsService
+    @EnvironmentObject private var authManager: AuthManager
     @State private var selectedTab: MainTab = .hub
     @State private var showingSettings = false
     @State private var showingCart = false
@@ -66,17 +68,24 @@ struct MainTabView: View {
         _selectedTab = State(initialValue: initialTab)
     }
 
+    private var hasAIAccess: Bool {
+        featureFlags.allowsAIAccess(for: authManager.userSession)
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             Group {
                 DeferredView {
-                    HomeView(
+                    ShopView(
+                        authManager: services.authManager,
+                        onOpenLogin: { showingLogin = true },
                         onOpenCart: { showingCart = true },
-                        onOpenSettings: { showingSettings = true }
+                        onOpenSettings: { showingSettings = true },
+                        merchandiseService: services.merchandiseService
                     )
                 }
-                .tabItem { Label("Hub", systemImage: "square.grid.2x2.fill") }
-                .tag(MainTab.hub)
+                .tabItem { Label("Merchandise", systemImage: "bag.fill") }
+                .tag(MainTab.merch)
 
                 DeferredView {
                     ZweizweiTabView(
@@ -88,6 +97,16 @@ struct MainTabView: View {
                 .tag(MainTab.zweizwei)
 
                 DeferredView {
+                    HomeView(
+                        onOpenCart: { showingCart = true },
+                        onOpenSettings: { showingSettings = true },
+                        onOpenWorkflow: hasAIAccess ? { selectedTab = .tools } : nil
+                    )
+                }
+                .tabItem { Label("Home", systemImage: "square.grid.2x2.fill") }
+                .tag(MainTab.hub)
+
+                DeferredView {
                     VideoHubTabView(
                         onOpenCart: { showingCart = true },
                         onOpenSettings: { showingSettings = true }
@@ -96,30 +115,20 @@ struct MainTabView: View {
                 .tabItem { Label("Skydown", systemImage: "video.fill") }
                 .tag(MainTab.skydown)
 
-                DeferredView {
-                    ShopView(
-                        authManager: services.authManager,
-                        onOpenLogin: { showingLogin = true },
-                        onOpenCart: { showingCart = true },
-                        onOpenSettings: { showingSettings = true },
-                        merchandiseService: services.merchandiseService
-                    )
+                if hasAIAccess {
+                    DeferredView {
+                        AIHubView(
+                            aiChatService: services.aiChatService,
+                            agentChatService: services.agentChatService,
+                            featureFlags: services.featureFlags,
+                            onOpenCart: { showingCart = true },
+                            onOpenLogin: { showingLogin = true },
+                            onOpenSettings: { showingSettings = true }
+                        )
+                    }
+                    .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver.fill") }
+                    .tag(MainTab.tools)
                 }
-                .tabItem { Label("Merch", systemImage: "bag.fill") }
-                .tag(MainTab.merch)
-
-                DeferredView {
-                    AIHubView(
-                        aiChatService: services.aiChatService,
-                        agentChatService: services.agentChatService,
-                        featureFlags: services.featureFlags,
-                        onOpenCart: { showingCart = true },
-                        onOpenLogin: { showingLogin = true },
-                        onOpenSettings: { showingSettings = true }
-                    )
-                }
-                .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver.fill") }
-                .tag(MainTab.tools)
             }
             .toolbar(.visible, for: .tabBar)
             .toolbarBackground(.hidden, for: .tabBar)
@@ -136,6 +145,11 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showingLogin) {
             LoginView()
+        }
+        .onChange(of: hasAIAccess) { _, allowed in
+            if !allowed && selectedTab == .tools {
+                selectedTab = .hub
+            }
         }
     }
 }
@@ -386,7 +400,16 @@ private struct AIHubView: View {
                 if authManager.userSession == nil {
                     AIHubLoginCard(
                         colorScheme: colorScheme,
+                        title: featureFlags.aiAccessMode == .adminOnly ? "KI nur fuer Admins" : "KI nur mit Konto",
+                        message: featureFlags.aiAccessMessage(for: nil),
                         onOpenLogin: onOpenLogin
+                    )
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                } else if !featureFlags.allowsAIAccess(for: authManager.userSession) {
+                    AIHubRestrictedCard(
+                        colorScheme: colorScheme,
+                        message: featureFlags.aiAccessMessage(for: authManager.userSession),
+                        onOpenSettings: onOpenSettings
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 } else {
@@ -502,15 +525,17 @@ private struct ToolsHubCard: View {
 
 private struct AIHubLoginCard: View {
     let colorScheme: ColorScheme
+    let title: String
+    let message: String
     let onOpenLogin: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("AI nur mit Konto")
+            Text(title)
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Melde dich an und starte direkt mit Hooks, Captions, Briefings, Release-Plaenen oder Visual-Ideen im globalen Tools-Bereich.")
+            Text(message)
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -534,6 +559,46 @@ private struct AIHubLoginCard: View {
         .overlay(
             RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+    }
+}
+
+private struct AIHubRestrictedCard: View {
+    let colorScheme: ColorScheme
+    let message: String
+    let onOpenSettings: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("KI derzeit gesperrt")
+                .font(.title2.bold())
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text(message)
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 10) {
+                AIHubBadge(text: "Admin Only", color: AppColors.accentMystic(for: colorScheme))
+                AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: "Agent", color: AppColors.accentHighlight(for: colorScheme))
+            }
+
+            Button(action: onOpenSettings) {
+                Text("Einstellungen")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accentMystic(for: colorScheme))
+        }
+        .padding(SkydownLayout.cardPadding)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
     }
@@ -669,6 +734,7 @@ private struct DeferredView<Content: View>: View {
 
     MainTabView()
         .environmentObject(services)
+        .environmentObject(services.featureFlags)
         .environmentObject(services.authManager)
         .environmentObject(services.cartViewModel)
 }

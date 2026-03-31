@@ -51,9 +51,11 @@ class AiViewModel : ViewModel() {
 
     fun sendPrompt(prompt: String) {
         val trimmedPrompt = prompt.trim()
-        if (AppContainer.currentUser.value == null) {
+        if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
             _uiState.update {
-                it.copy(errorMessage = "Bitte melde dich an, um den Skydown x 22 Bot zu nutzen.")
+                it.copy(
+                    errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value),
+                )
             }
             return
         }
@@ -132,9 +134,11 @@ class AiViewModel : ViewModel() {
 
     fun generateVisual(prompt: String) {
         val trimmedPrompt = prompt.trim()
-        if (AppContainer.currentUser.value == null) {
+        if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
             _uiState.update {
-                it.copy(errorMessage = "Bitte melde dich an, um Visuals mit dem Skydown x 22 Bot zu generieren.")
+                it.copy(
+                    errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value),
+                )
             }
             return
         }

@@ -21,6 +21,7 @@ struct SkydownApp: App {
         WindowGroup {
             LaunchScreenView()
                 .environmentObject(services)
+                .environmentObject(services.featureFlags)
                 .environmentObject(services.authManager)
                 .environmentObject(services.cartViewModel)
                 .onOpenURL { url in

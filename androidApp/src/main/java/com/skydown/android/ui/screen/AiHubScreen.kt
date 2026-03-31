@@ -35,7 +35,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.skydown.android.data.AiAccessMode
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -58,6 +60,11 @@ fun AiHubScreen(
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
     var hasPreparedN8NTrigger by rememberSaveable { mutableStateOf(false) }
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
+    val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
+        user = currentUser,
+        accessMode = aiAccessMode,
+    )
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -105,7 +112,29 @@ fun AiHubScreen(
 
                 if (currentUser == null) {
                     AiHubLoginCard(
+                        title = if (aiAccessMode == AiAccessMode.AdminOnly) {
+                            "KI nur fuer Admins"
+                        } else {
+                            "KI nur mit Konto"
+                        },
+                        message = AppFeatureFlagsStore.accessDeniedMessage(
+                            user = currentUser,
+                            accessMode = aiAccessMode,
+                        ),
                         onOpenLogin = onOpenLogin,
+                        modifier = Modifier.padding(
+                            start = SkydownUiTokens.screenHorizontalPadding,
+                            end = SkydownUiTokens.screenHorizontalPadding,
+                            bottom = 10.dp,
+                        ),
+                    )
+                } else if (!hasAiAccess) {
+                    AiHubRestrictedCard(
+                        message = AppFeatureFlagsStore.accessDeniedMessage(
+                            user = currentUser,
+                            accessMode = aiAccessMode,
+                        ),
+                        onOpenSettings = onOpenSettings,
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
                             end = SkydownUiTokens.screenHorizontalPadding,
@@ -141,6 +170,8 @@ fun AiHubScreen(
 
 @Composable
 private fun AiHubLoginCard(
+    title: String,
+    message: String,
     onOpenLogin: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -149,12 +180,12 @@ private fun AiHubLoginCard(
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "AI nur mit Konto",
+            text = title,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Melde dich an und starte direkt mit Hooks, Captions, Briefings, Release-Plaenen oder Visual-Ideen im globalen Tools-Bereich.",
+            text = message,
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -174,6 +205,46 @@ private fun AiHubLoginCard(
             shape = RoundedCornerShape(18.dp),
         ) {
             Text("Jetzt anmelden")
+        }
+    }
+}
+
+@Composable
+private fun AiHubRestrictedCard(
+    message: String,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
+    ) {
+        Text(
+            text = "KI derzeit gesperrt",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = message,
+            modifier = Modifier.padding(top = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AiHubBadge(text = "Admin Only", isAgent = true)
+            AiHubBadge(text = "Bot", isAgent = false)
+            AiHubBadge(text = "Agent", isAgent = true)
+        }
+        OutlinedButton(
+            onClick = onOpenSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Einstellungen")
         }
     }
 }

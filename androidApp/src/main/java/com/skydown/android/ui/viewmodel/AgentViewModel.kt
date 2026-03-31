@@ -39,9 +39,11 @@ class AgentViewModel : ViewModel() {
 
     fun sendPrompt(prompt: String) {
         val trimmedPrompt = prompt.trim()
-        if (AppContainer.currentUser.value == null) {
+        if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
             _uiState.update {
-                it.copy(errorMessage = "Bitte melde dich an, um den Skydown x 22 Agent zu nutzen.")
+                it.copy(
+                    errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value),
+                )
             }
             return
         }
@@ -164,6 +166,7 @@ class AgentViewModel : ViewModel() {
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Der Skydown x 22 Agent hat zu lange fuer die Antwort gebraucht."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> "Der Skydown x 22 Agent ist gerade ausgelastet."
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
+            FirebaseFunctionsException.Code.PERMISSION_DENIED -> "Der Skydown x 22 Agent ist aktuell nur fuer Admins freigeschaltet."
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
             else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
         }

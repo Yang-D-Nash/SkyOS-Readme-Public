@@ -32,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.screen.AiHubScreen
 import com.skydown.android.ui.screen.BeatHubScreen
@@ -70,6 +74,8 @@ import com.skydown.android.ui.screen.VideoHubScreen
 fun SkydownApp() {
     val navController = rememberNavController()
     val isCompactLayout = rememberIsCompactAppLayout()
+    val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     var showIntro by remember { mutableStateOf(true) }
     var selectedEntryRoute by rememberSaveable { mutableStateOf<String?>(null) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
@@ -90,13 +96,19 @@ fun SkydownApp() {
             }
         }
     }
-    val destinations = listOf(
-        BottomDestination("home", "Hub", { Icon(Icons.Default.Home, contentDescription = null) }),
-        BottomDestination("music", "Zweizwei", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
-        BottomDestination("video", "Skydown", { Icon(Icons.Default.Movie, contentDescription = null) }),
-        BottomDestination("shop", "Merch", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
-        BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }),
+    val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
+        user = currentUser,
+        accessMode = aiAccessMode,
     )
+    val destinations = buildList {
+        add(BottomDestination("shop", "Merchandise", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }))
+        add(BottomDestination("music", "Zweizwei", { Icon(Icons.Default.MusicNote, contentDescription = null) }))
+        add(BottomDestination("home", "Home", { Icon(Icons.Default.Home, contentDescription = null) }))
+        add(BottomDestination("video", "Skydown", { Icon(Icons.Default.Movie, contentDescription = null) }))
+        if (hasAiAccess) {
+            add(BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }))
+        }
+    }
 
     if (showIntro) {
         IntroScreen(
@@ -106,12 +118,24 @@ fun SkydownApp() {
         LaunchLandingScreen(
             onOpenMusic = { selectedEntryRoute = "music" },
             onOpenVideography = { selectedEntryRoute = "video" },
-            onOpenN8N = { selectedEntryRoute = "ai" },
+            onOpenShop = { selectedEntryRoute = "shop" },
         )
     } else {
         val startRoute = selectedEntryRoute ?: "home"
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
+
+        LaunchedEffect(hasAiAccess, currentDestination?.route) {
+            if (!hasAiAccess && currentDestination?.route == "ai") {
+                navController.navigate("home") {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+        }
 
         Scaffold(
             bottomBar = {
@@ -189,6 +213,15 @@ fun SkydownApp() {
                     HomeScreen(
                         onOpenCart = openCart,
                         onOpenSettings = openSettings,
+                        onOpenWorkflow = if (hasAiAccess) {
+                            {
+                                navController.navigate("ai") {
+                                    launchSingleTop = true
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     )
                 }
                 composable("shop") {
@@ -280,7 +313,7 @@ private enum class AuthSheet {
 private fun LaunchLandingScreen(
     onOpenMusic: () -> Unit,
     onOpenVideography: () -> Unit,
-    onOpenN8N: () -> Unit,
+    onOpenShop: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -337,10 +370,10 @@ private fun LaunchLandingScreen(
                     onClick = onOpenVideography,
                 )
                 LaunchLandingButton(
-                    title = "N8N TRIGGER",
-                    subtitle = "Springt in den globalen Tools-Bereich, wo spaeter AI und N8N neutral andocken.",
+                    title = "SHOP",
+                    subtitle = "Oeffnet direkt den globalen Merchandise-Bereich innerhalb der App-Shell.",
                     accentColor = MaterialTheme.colorScheme.secondary,
-                    onClick = onOpenN8N,
+                    onClick = onOpenShop,
                 )
             }
 
