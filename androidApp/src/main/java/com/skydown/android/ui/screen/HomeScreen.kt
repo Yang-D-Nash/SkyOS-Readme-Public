@@ -178,7 +178,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        "Hub",
+                        "Home",
                         "Zweizwei, Skydown, Merchandise und Tools auf einen Blick.",
                     )
                 },
@@ -195,7 +195,7 @@ fun HomeScreen(
                                     Icons.Default.Refresh
                                 },
                                 contentDescription = if (onOpenWorkflow != null) {
-                                    "Workflow oeffnen"
+                                    "Automationen oeffnen"
                                 } else {
                                     "Hub aktualisieren"
                                 },
@@ -388,7 +388,7 @@ private fun HomeHeroCard() {
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
                 Text(
-                    text = "Entwickelt von Yang D. Nash, damit Musik, Videography und Creator-Workflows in einer App zusammenlaufen.",
+                    text = "Entwickelt und koordiniert von Yang D. Nash als zentralem Ansprechpartner fuer Musik, Videography und Merchandise.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -729,10 +729,10 @@ private fun HomeStoryCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Lanes")
+        SectionHeader("Bereiche")
 
         Text(
-            text = "Zweizwei und Skydown bleiben hier bewusst getrennt, damit Musik- und Videography-Logik nicht wieder in einer Sammelkarte landen.",
+            text = "Zweizwei und Skydown behalten hier jeweils ihren eigenen Fokus, damit Musik und Videography sauber getrennt bleiben.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -742,9 +742,32 @@ private fun HomeStoryCard(
             modifier = Modifier.padding(top = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+                Button(
+                    onClick = { openExternalLink(context, homePrimaryContactLink.url) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Language,
+                        contentDescription = null,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(homePrimaryContactLink.title)
+                        Text(
+                            text = homePrimaryContactLink.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
+                        )
+                    }
+                }
+
                 HomeLaneSection(
                     title = "Zweizwei Music",
-                    subtitle = "Releases, Artists, Beat Hub und NICMA Producer laufen ueber die Zweizwei-Schiene.",
+                    subtitle = "Releases, Artists, Beat Hub und NICMA Producer bleiben hier im Zweizwei-Bereich gebuendelt.",
                 ) {
                     homeZweizweiSocialLinks.forEachIndexed { index, link ->
                         val isPrimary = index == 0
@@ -820,7 +843,7 @@ private fun HomeStoryCard(
 
             HomeLaneSection(
                 title = "Skydown Videography",
-                subtitle = "Visuals, Clips und Brand-Kontakt bleiben auf der Skydown-Schiene.",
+                subtitle = "Visuals, Clips und Kontakt laufen hier gesammelt im Skydown-Bereich.",
             ) {
                 OutlinedButton(
                     onClick = {
@@ -974,12 +997,13 @@ private data class HomeSocialLink(
     val url: String,
 )
 
+private val homePrimaryContactLink = HomeSocialLink(
+    title = "Yang D. Nash • Ansprechpartner",
+    subtitle = "@y.d.nash",
+    url = "https://www.instagram.com/y.d.nash/",
+)
+
 private val homeZweizweiSocialLinks = listOf(
-    HomeSocialLink(
-        title = "Yang D. Nash • Artist & Developer",
-        subtitle = "@y.d.nash",
-        url = "https://www.instagram.com/y.d.nash/",
-    ),
     HomeSocialLink(
         title = "Zweizwei Music",
         subtitle = "@zweizwei_music",

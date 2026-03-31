@@ -2,7 +2,9 @@ package com.skydown.android.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.MerchStoreStatusRepository
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.shared.model.MerchandiseItem
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,21 +16,60 @@ import kotlinx.coroutines.launch
 
 class ShopViewModel : ViewModel() {
     private val merchandiseService = AppContainer.merchandiseService
+    private val merchStoreStatusRepository = MerchStoreStatusRepository()
     private val _uiState = MutableStateFlow(
         ShopUiState(),
     )
     val uiState: StateFlow<ShopUiState> = _uiState.asStateFlow()
+    private var storeStatusListener: ListenerRegistration? = null
 
     init {
         viewModelScope.launch {
             refreshState()
         }
+        observeStoreStatus()
         viewModelScope.launch {
             AppContainer.currentUser.collectLatest { user ->
                 _uiState.update {
                     it.copy(
                         isLoggedIn = user != null,
                         isAdmin = user?.isAdmin == true,
+                    )
+                }
+            }
+        }
+    }
+
+    fun toggleStoreOpen() {
+        if (!_uiState.value.isAdmin) {
+            _uiState.update {
+                it.copy(
+                    toastMessage = "Nur Admins duerfen den Merch Store schalten.",
+                    isErrorToast = true,
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            val nextState = !_uiState.value.isStoreOpen
+            _uiState.update { it.copy(isUpdatingStoreState = true) }
+            val result = merchStoreStatusRepository.updateStoreOpen(nextState)
+
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isUpdatingStoreState = false,
+                        toastMessage = if (nextState) "Merch Store geoeffnet." else "Merch Store geschlossen.",
+                        isErrorToast = false,
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isUpdatingStoreState = false,
+                        toastMessage = result.exceptionOrNull()?.message ?: "Store-Status konnte nicht aktualisiert werden.",
+                        isErrorToast = true,
                     )
                 }
             }
@@ -257,5 +298,26 @@ class ShopViewModel : ViewModel() {
                 errorMessage = itemsResult.exceptionOrNull()?.message,
             )
         }
+    }
+
+    private fun observeStoreStatus() {
+        storeStatusListener?.remove()
+        storeStatusListener = merchStoreStatusRepository.observeStatus { result ->
+            result.onSuccess { status ->
+                _uiState.update { it.copy(isStoreOpen = status.isOpen) }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        toastMessage = error.message ?: "Store-Status konnte nicht geladen werden.",
+                        isErrorToast = true,
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        storeStatusListener?.remove()
+        super.onCleared()
     }
 }

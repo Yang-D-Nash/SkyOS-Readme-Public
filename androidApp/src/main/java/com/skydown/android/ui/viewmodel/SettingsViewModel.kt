@@ -5,6 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
+import com.skydown.android.data.BankTransferSettings
+import com.skydown.android.data.PaymentMethodsSettings
+import com.skydown.android.data.WorkflowAutomationPreferences
+import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.theme.AppearanceMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +20,8 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel : ViewModel() {
     private val authService = AppContainer.authService
+    private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
+    private var paymentMethodsListener: ListenerRegistration? = null
     private val _uiState = MutableStateFlow(
         SettingsUiState(),
     )
@@ -55,6 +61,29 @@ class SettingsViewModel : ViewModel() {
                 _uiState.update { it.copy(aiVisualReferenceLibrary = settings) }
             }
         }
+
+        viewModelScope.launch {
+            WorkflowAutomationPreferences.settings.collect { settings ->
+                _uiState.update { it.copy(workflowAutomationSettings = settings) }
+            }
+        }
+
+        paymentMethodsListener = paymentMethodsRepository.observeSettings { result ->
+            result.onSuccess { settings ->
+                _uiState.update {
+                    it.copy(
+                        paymentMethods = settings,
+                        paymentFeedbackMessage = null,
+                        isPaymentFeedbackError = false,
+                    )
+                }
+            }.onFailure { error ->
+                showPaymentFeedback(
+                    message = error.message ?: "Zahlungseinstellungen konnten nicht geladen werden.",
+                    isError = true,
+                )
+            }
+        }
     }
 
     fun updateNotifications(enabled: Boolean) {
@@ -79,6 +108,142 @@ class SettingsViewModel : ViewModel() {
 
     fun updateAiVisualReferenceHint(index: Int, value: String) {
         AiVisualReferenceLibraryPreferences.updateReferenceHint(index, value)
+    }
+
+    fun updateWorkflowKeepsGoogleSeparate(value: Boolean) {
+        WorkflowAutomationPreferences.updateKeepsGoogleSeparate(value)
+    }
+
+    fun updateWorkflowPrepared(value: Boolean) {
+        WorkflowAutomationPreferences.updatePrepared(value)
+    }
+
+    fun updateWorkflowGoogleAccountHint(value: String) {
+        WorkflowAutomationPreferences.updateGoogleAccountHint(value)
+    }
+
+    fun updateWorkflowGoogleScopeHint(value: String) {
+        WorkflowAutomationPreferences.updateGoogleScopeHint(value)
+    }
+
+    fun connectStripe(accountHint: String) {
+        updatePaymentMethods("Stripe verbunden.") { current ->
+            current.copy(
+                stripe = current.stripe.copy(
+                    connected = true,
+                    accountHint = accountHint.trim(),
+                ),
+            )
+        }
+    }
+
+    fun disconnectStripe() {
+        updatePaymentMethods("Stripe getrennt.") { current ->
+            current.copy(
+                stripe = current.stripe.copy(
+                    connected = false,
+                    enabled = false,
+                    accountHint = "",
+                ),
+            )
+        }
+    }
+
+    fun setStripeEnabled(enabled: Boolean) {
+        updatePaymentMethods(
+            message = if (enabled) "Stripe im Checkout sichtbar." else "Stripe im Checkout ausgeblendet.",
+        ) { current ->
+            current.copy(
+                stripe = current.stripe.copy(
+                    enabled = enabled && current.stripe.connected,
+                ),
+            )
+        }
+    }
+
+    fun connectPayPal(accountHint: String) {
+        updatePaymentMethods("PayPal verbunden.") { current ->
+            current.copy(
+                paypal = current.paypal.copy(
+                    connected = true,
+                    accountHint = accountHint.trim(),
+                ),
+            )
+        }
+    }
+
+    fun disconnectPayPal() {
+        updatePaymentMethods("PayPal getrennt.") { current ->
+            current.copy(
+                paypal = current.paypal.copy(
+                    connected = false,
+                    enabled = false,
+                    accountHint = "",
+                ),
+            )
+        }
+    }
+
+    fun setPayPalEnabled(enabled: Boolean) {
+        updatePaymentMethods(
+            message = if (enabled) "PayPal im Checkout sichtbar." else "PayPal im Checkout ausgeblendet.",
+        ) { current ->
+            current.copy(
+                paypal = current.paypal.copy(
+                    enabled = enabled && current.paypal.connected,
+                ),
+            )
+        }
+    }
+
+    fun saveBankTransfer(
+        accountHolder: String,
+        iban: String,
+        bic: String,
+        bankName: String,
+        paymentInstructions: String,
+    ) {
+        val updatedBankSettings = BankTransferSettings(
+            enabled = _uiState.value.paymentMethods.bankTransfer.enabled,
+            accountHolder = accountHolder.trim(),
+            iban = iban.trim(),
+            bic = bic.trim(),
+            bankName = bankName.trim(),
+            paymentInstructions = paymentInstructions.trim(),
+        )
+
+        if (!updatedBankSettings.isConfigured) {
+            showPaymentFeedback(
+                message = "Bitte mindestens Kontoinhaber, IBAN und Bankname hinterlegen.",
+                isError = true,
+            )
+            return
+        }
+
+        updatePaymentMethods("Bankdaten gespeichert.") { current ->
+            current.copy(bankTransfer = updatedBankSettings)
+        }
+    }
+
+    fun setBankTransferEnabled(enabled: Boolean) {
+        updatePaymentMethods(
+            message = if (enabled) "Bankueberweisung im Checkout sichtbar." else "Bankueberweisung im Checkout ausgeblendet.",
+        ) { current ->
+            current.copy(
+                bankTransfer = current.bankTransfer.copy(
+                    enabled = enabled && current.bankTransfer.isConfigured,
+                ),
+            )
+        }
+    }
+
+    fun clearPaymentFeedback() {
+        _uiState.update {
+            it.copy(
+                paymentFeedbackMessage = null,
+                isPaymentFeedbackError = false,
+            )
+        }
     }
 
     fun signOut(onSuccess: (() -> Unit)? = null) {
@@ -138,6 +303,50 @@ class SettingsViewModel : ViewModel() {
                     )
                 }
             }
+        }
+    }
+
+    override fun onCleared() {
+        paymentMethodsListener?.remove()
+        paymentMethodsListener = null
+        super.onCleared()
+    }
+
+    private fun updatePaymentMethods(
+        message: String,
+        transform: (PaymentMethodsSettings) -> PaymentMethodsSettings,
+    ) {
+        viewModelScope.launch {
+            if (!_uiState.value.isAdmin) {
+                showPaymentFeedback(
+                    message = "Nur Admins duerfen Zahlarten verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val current = _uiState.value.paymentMethods
+            val updated = transform(current)
+            val result = paymentMethodsRepository.updateSettings(updated)
+
+            if (result.isSuccess) {
+                showPaymentFeedback(message = message, isError = false)
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message
+                        ?: "Zahlungseinstellungen konnten nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    private fun showPaymentFeedback(message: String, isError: Boolean) {
+        _uiState.update {
+            it.copy(
+                paymentFeedbackMessage = message,
+                isPaymentFeedbackError = isError,
+            )
         }
     }
 }

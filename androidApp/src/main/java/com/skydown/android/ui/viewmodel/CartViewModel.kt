@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.model.CartUiState
+import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.shared.model.ContactRequest
 import com.skydown.shared.model.sampleMerchandiseItems
 import com.skydown.shared.usecase.CartUseCase
@@ -16,6 +17,8 @@ import kotlinx.coroutines.launch
 
 class CartViewModel : ViewModel() {
     private val orderService = AppContainer.orderService
+    private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
+    private var paymentMethodsListener: ListenerRegistration? = null
     private val initialItems = listOf(
         CartUseCase.addItem(
             currentItems = emptyList(),
@@ -45,6 +48,12 @@ class CartViewModel : ViewModel() {
                         whatsApp = user?.whatsApp.orEmpty(),
                     )
                 }
+            }
+        }
+
+        paymentMethodsListener = paymentMethodsRepository.observeSettings { result ->
+            result.onSuccess { settings ->
+                _uiState.update { it.copy(paymentMethods = settings) }
             }
         }
     }
@@ -107,5 +116,11 @@ class CartViewModel : ViewModel() {
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
+    override fun onCleared() {
+        paymentMethodsListener?.remove()
+        paymentMethodsListener = null
+        super.onCleared()
     }
 }

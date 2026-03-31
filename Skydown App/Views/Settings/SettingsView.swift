@@ -14,6 +14,8 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var environmentColorScheme
 
     @StateObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
+    @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @StateObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
     @Binding var colorScheme: String
 
     @State private var language = "Deutsch"
@@ -30,6 +32,13 @@ struct SettingsView: View {
     @State private var toastStyle: ToastStyle = .success
     @State private var showingMailOptions = false
     @State private var showingMailView = false
+    @State private var stripeAccountHintDraft = ""
+    @State private var paypalAccountHintDraft = ""
+    @State private var bankAccountHolderDraft = ""
+    @State private var bankIbanDraft = ""
+    @State private var bankBicDraft = ""
+    @State private var bankNameDraft = ""
+    @State private var bankInstructionsDraft = ""
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -229,6 +238,130 @@ struct SettingsView: View {
                                         )
                                     }
                                 }
+
+                                Divider()
+                                    .padding(.vertical, 4)
+
+                                Toggle(
+                                    "Google fuer Automationen separat halten",
+                                    isOn: Binding(
+                                        get: { workflowAutomationSettings.settings.keepsGoogleSeparate },
+                                        set: { isEnabled in
+                                            workflowAutomationSettings.update { settings in
+                                                settings.keepsGoogleSeparate = isEnabled
+                                            }
+                                        }
+                                    )
+                                )
+
+                                Toggle(
+                                    "Automation-Google vorbereitet",
+                                    isOn: Binding(
+                                        get: { workflowAutomationSettings.settings.isPrepared },
+                                        set: { isPrepared in
+                                            workflowAutomationSettings.update { settings in
+                                                settings.isPrepared = isPrepared
+                                            }
+                                        }
+                                    )
+                                )
+
+                                Text("Das normale Google-Login der App bleibt damit getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.")
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                SettingsInputField(
+                                    title: "Automation Google Konto",
+                                    text: Binding(
+                                        get: { workflowAutomationSettings.settings.googleAccountHint },
+                                        set: { value in
+                                            workflowAutomationSettings.update { settings in
+                                                settings.googleAccountHint = value
+                                            }
+                                        }
+                                    ),
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. automation@deinedomain.de"
+                                )
+
+                                SettingsInputField(
+                                    title: "Google Scope / Einsatz",
+                                    text: Binding(
+                                        get: { workflowAutomationSettings.settings.googleScopeHint },
+                                        set: { value in
+                                            workflowAutomationSettings.update { settings in
+                                                settings.googleScopeHint = value
+                                            }
+                                        }
+                                    ),
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. Drive, Sheets, Calendar"
+                                )
+                            }
+                        }
+                    }
+
+                    if authManager.userSession?.isAdmin == true {
+                        SettingsSectionCard(title: "Zahlungen", colorScheme: effectiveColorScheme) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text("Verbinde Zahlarten getrennt vom Checkout. Erst danach kannst du sie fuer Kunden sichtbar schalten.")
+                                    .font(.body)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                PaymentProviderSettingsCard(
+                                    colorScheme: effectiveColorScheme,
+                                    title: "Stripe",
+                                    statusText: paymentMethodSettingsStore.settings.stripe.connected ? "Verbunden" : "Nicht verbunden",
+                                    checkoutVisible: paymentMethodSettingsStore.settings.stripe.connected && paymentMethodSettingsStore.settings.stripe.enabled,
+                                    accountHintTitle: "Stripe Konto / Workspace",
+                                    accountHint: $stripeAccountHintDraft,
+                                    actionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Verbindung aktualisieren" : "Mit Stripe verbinden",
+                                    secondaryActionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Trennen" : nil,
+                                    onPrimaryAction: { saveStripeConnection() },
+                                    onSecondaryAction: paymentMethodSettingsStore.settings.stripe.connected ? { disconnectStripe() } : nil,
+                                    onToggleCheckoutVisible: { isVisible in
+                                        setCheckoutVisibility(
+                                            keyPath: \.stripe,
+                                            isVisible: isVisible,
+                                            providerName: "Stripe"
+                                        )
+                                    }
+                                )
+
+                                PaymentProviderSettingsCard(
+                                    colorScheme: effectiveColorScheme,
+                                    title: "PayPal",
+                                    statusText: paymentMethodSettingsStore.settings.paypal.connected ? "Verbunden" : "Nicht verbunden",
+                                    checkoutVisible: paymentMethodSettingsStore.settings.paypal.connected && paymentMethodSettingsStore.settings.paypal.enabled,
+                                    accountHintTitle: "PayPal Konto / Business-Mail",
+                                    accountHint: $paypalAccountHintDraft,
+                                    actionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "Verbindung aktualisieren" : "Mit PayPal verbinden",
+                                    secondaryActionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "Trennen" : nil,
+                                    onPrimaryAction: { savePayPalConnection() },
+                                    onSecondaryAction: paymentMethodSettingsStore.settings.paypal.connected ? { disconnectPayPal() } : nil,
+                                    onToggleCheckoutVisible: { isVisible in
+                                        setCheckoutVisibility(
+                                            keyPath: \.paypal,
+                                            isVisible: isVisible,
+                                            providerName: "PayPal"
+                                        )
+                                    }
+                                )
+
+                                BankTransferSettingsCard(
+                                    colorScheme: effectiveColorScheme,
+                                    isConfigured: paymentMethodSettingsStore.settings.bankTransfer.isConfigured,
+                                    checkoutVisible: paymentMethodSettingsStore.settings.bankTransfer.enabled && paymentMethodSettingsStore.settings.bankTransfer.isConfigured,
+                                    accountHolder: $bankAccountHolderDraft,
+                                    iban: $bankIbanDraft,
+                                    bic: $bankBicDraft,
+                                    bankName: $bankNameDraft,
+                                    paymentInstructions: $bankInstructionsDraft,
+                                    onSave: { saveBankTransferDetails() },
+                                    onToggleCheckoutVisible: { isVisible in
+                                        setBankTransferVisibility(isVisible)
+                                    }
+                                )
                             }
                         }
                     }
@@ -417,6 +550,12 @@ struct SettingsView: View {
             }
         }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
+        .onAppear {
+            syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
+        }
+        .onReceive(paymentMethodSettingsStore.$settings) { settings in
+            syncPaymentDrafts(with: settings)
+        }
     }
 
     private var currentAppearanceLabel: String {
@@ -475,6 +614,155 @@ struct SettingsView: View {
         toastStyle = style
         showToast = true
     }
+
+    private func syncPaymentDrafts(with settings: PaymentMethodSettings) {
+        stripeAccountHintDraft = settings.stripe.accountHint
+        paypalAccountHintDraft = settings.paypal.accountHint
+        bankAccountHolderDraft = settings.bankTransfer.accountHolder
+        bankIbanDraft = settings.bankTransfer.iban
+        bankBicDraft = settings.bankTransfer.bic
+        bankNameDraft = settings.bankTransfer.bankName
+        bankInstructionsDraft = settings.bankTransfer.paymentInstructions
+    }
+
+    private func saveStripeConnection() {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.stripe.connected = true
+            updated.stripe.accountHint = stripeAccountHintDraft.takeIfNotBlank() ?? ""
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("Stripe verbunden.", style: .success)
+            } catch {
+                showToastMessage("Stripe konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func disconnectStripe() {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.stripe.connected = false
+            updated.stripe.enabled = false
+            updated.stripe.accountHint = ""
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("Stripe getrennt.", style: .success)
+            } catch {
+                showToastMessage("Stripe konnte nicht getrennt werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func savePayPalConnection() {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.paypal.connected = true
+            updated.paypal.accountHint = paypalAccountHintDraft.takeIfNotBlank() ?? ""
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("PayPal verbunden.", style: .success)
+            } catch {
+                showToastMessage("PayPal konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func disconnectPayPal() {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.paypal.connected = false
+            updated.paypal.enabled = false
+            updated.paypal.accountHint = ""
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("PayPal getrennt.", style: .success)
+            } catch {
+                showToastMessage("PayPal konnte nicht getrennt werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveBankTransferDetails() {
+        let accountHolder = bankAccountHolderDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let iban = bankIbanDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bankName = bankNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !accountHolder.isEmpty, !iban.isEmpty, !bankName.isEmpty else {
+            showToastMessage("Bitte mindestens Kontoinhaber, IBAN und Bankname hinterlegen.", style: .error)
+            return
+        }
+
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.bankTransfer.accountHolder = accountHolder
+            updated.bankTransfer.iban = iban
+            updated.bankTransfer.bic = bankBicDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bankTransfer.bankName = bankName
+            updated.bankTransfer.paymentInstructions = bankInstructionsDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("Bankdaten gespeichert.", style: .success)
+            } catch {
+                showToastMessage("Bankdaten konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func setCheckoutVisibility(
+        keyPath: WritableKeyPath<PaymentMethodSettings, PaymentProviderSettings>,
+        isVisible: Bool,
+        providerName: String
+    ) {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            guard updated[keyPath: keyPath].connected else {
+                showToastMessage("\(providerName) muss zuerst verbunden werden.", style: .error)
+                return
+            }
+            updated[keyPath: keyPath].enabled = isVisible
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage(
+                    isVisible
+                    ? "\(providerName) ist jetzt im Checkout sichtbar."
+                    : "\(providerName) ist nicht mehr im Checkout sichtbar.",
+                    style: .success
+                )
+            } catch {
+                showToastMessage("\(providerName) konnte nicht aktualisiert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func setBankTransferVisibility(_ isVisible: Bool) {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            guard updated.bankTransfer.isConfigured else {
+                showToastMessage("Bitte zuerst Bankdaten hinterlegen.", style: .error)
+                return
+            }
+            updated.bankTransfer.enabled = isVisible
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage(
+                    isVisible
+                    ? "Bankueberweisung ist jetzt im Checkout sichtbar."
+                    : "Bankueberweisung ist nicht mehr im Checkout sichtbar.",
+                    style: .success
+                )
+            } catch {
+                showToastMessage("Bankueberweisung konnte nicht aktualisiert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
 }
 
 private struct SettingsInputField: View {
@@ -499,6 +787,168 @@ private struct SettingsInputField: View {
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                 )
         }
+    }
+}
+
+private struct PaymentProviderSettingsCard: View {
+    let colorScheme: ColorScheme
+    let title: String
+    let statusText: String
+    let checkoutVisible: Bool
+    let accountHintTitle: String
+    @Binding var accountHint: String
+    let actionTitle: String
+    let secondaryActionTitle: String?
+    let onPrimaryAction: () -> Void
+    let onSecondaryAction: (() -> Void)?
+    let onToggleCheckoutVisible: (Bool) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(statusText)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(
+                            statusText == "Verbunden"
+                            ? AppColors.accent(for: colorScheme)
+                            : AppColors.secondaryText(for: colorScheme)
+                        )
+                }
+
+                Spacer()
+
+                SettingsBadge(
+                    text: checkoutVisible ? "Im Checkout sichtbar" : "Ausgeblendet",
+                    colorScheme: colorScheme
+                )
+            }
+
+            SettingsInputField(
+                title: accountHintTitle,
+                text: $accountHint,
+                colorScheme: colorScheme,
+                placeholder: title == "Stripe" ? "z. B. Skydown Merch Workspace" : "z. B. paypal@deinedomain.de"
+            )
+
+            SettingsToggleCard(
+                colorScheme: colorScheme,
+                title: "Fuer Kunden im Checkout anzeigen",
+                subtitle: "Erst nach der Verbindung sichtbar schalten.",
+                isOn: Binding(
+                    get: { checkoutVisible },
+                    set: { onToggleCheckoutVisible($0) }
+                ),
+                isEnabled: statusText == "Verbunden"
+            )
+
+            HStack(spacing: 10) {
+                Button(actionTitle, action: onPrimaryAction)
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: colorScheme))
+
+                if let secondaryActionTitle, let onSecondaryAction {
+                    Button(secondaryActionTitle, action: onSecondaryAction)
+                        .buttonStyle(.bordered)
+                }
+            }
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private struct BankTransferSettingsCard: View {
+    let colorScheme: ColorScheme
+    let isConfigured: Bool
+    let checkoutVisible: Bool
+    @Binding var accountHolder: String
+    @Binding var iban: String
+    @Binding var bic: String
+    @Binding var bankName: String
+    @Binding var paymentInstructions: String
+    let onSave: () -> Void
+    let onToggleCheckoutVisible: (Bool) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Bankueberweisung")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(isConfigured ? "Bankdaten hinterlegt" : "Noch nicht hinterlegt")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(
+                            isConfigured
+                            ? AppColors.accent(for: colorScheme)
+                            : AppColors.secondaryText(for: colorScheme)
+                        )
+                }
+
+                Spacer()
+
+                SettingsBadge(
+                    text: checkoutVisible ? "Im Checkout sichtbar" : "Ausgeblendet",
+                    colorScheme: colorScheme
+                )
+            }
+
+            SettingsInputField(
+                title: "Kontoinhaber",
+                text: $accountHolder,
+                colorScheme: colorScheme,
+                placeholder: "Vor- und Nachname oder Firmenname"
+            )
+            SettingsInputField(
+                title: "IBAN",
+                text: $iban,
+                colorScheme: colorScheme,
+                placeholder: "DE00 0000 0000 0000 0000 00"
+            )
+            SettingsInputField(
+                title: "BIC",
+                text: $bic,
+                colorScheme: colorScheme,
+                placeholder: "Optional"
+            )
+            SettingsInputField(
+                title: "Bankname",
+                text: $bankName,
+                colorScheme: colorScheme,
+                placeholder: "z. B. Deutsche Bank"
+            )
+            SettingsInputField(
+                title: "Zahlungsanweisung",
+                text: $paymentInstructions,
+                colorScheme: colorScheme,
+                placeholder: "z. B. Bitte Bestellnummer im Verwendungszweck angeben."
+            )
+
+            SettingsToggleCard(
+                colorScheme: colorScheme,
+                title: "Fuer Kunden im Checkout anzeigen",
+                subtitle: "Erst aktivieren, wenn die Bankdaten vollstaendig sind.",
+                isOn: Binding(
+                    get: { checkoutVisible },
+                    set: { onToggleCheckoutVisible($0) }
+                ),
+                isEnabled: isConfigured
+            )
+
+            Button(isConfigured ? "Bankdaten aktualisieren" : "Bankdaten hinterlegen", action: onSave)
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accentMystic(for: colorScheme))
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -605,6 +1055,7 @@ private struct SettingsToggleCard: View {
     let title: String
     let subtitle: String
     @Binding var isOn: Bool
+    var isEnabled: Bool = true
 
     var body: some View {
         HStack(spacing: 12) {
@@ -622,10 +1073,12 @@ private struct SettingsToggleCard: View {
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
+                .disabled(!isEnabled)
         }
         .padding(14)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .opacity(isEnabled ? 1 : 0.6)
     }
 }
 

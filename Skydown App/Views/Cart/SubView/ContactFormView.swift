@@ -12,6 +12,7 @@ struct ContactFormView: View {
     @EnvironmentObject var cartVM: CartViewModel
     @EnvironmentObject var authManager: AuthManager
     let item: MerchandiseItem
+    let storeIsOpen: Bool
     
     @Environment(\.colorScheme) private var colorScheme
     @State private var alertType: AlertType?
@@ -31,6 +32,9 @@ struct ContactFormView: View {
     }
 
     private var isFormValid: Bool { !selectedSize.isEmpty && selectedQuantity > 0 }
+    private var canOrder: Bool {
+        isFormValid && authManager.userSession != nil && storeIsOpen && item.available
+    }
     
     private func addToCart() {
         cartVM.addItem(item, size: selectedSize, quantity: selectedQuantity)
@@ -132,6 +136,18 @@ struct ContactFormView: View {
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
+                } else if !storeIsOpen {
+                    ContactSectionCard(title: "Store pausiert", colorScheme: colorScheme) {
+                        Text("Der Merch Store ist aktuell geschlossen. Produkte bleiben sichtbar, neue Kaeufe sind voruebergehend pausiert.")
+                            .font(.body)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                } else if !item.available {
+                    ContactSectionCard(title: "Nicht verfuegbar", colorScheme: colorScheme) {
+                        Text("Dieses Produkt ist aktuell nicht kaufbar. Sobald der Drop wieder live ist, kannst du es direkt bestellen.")
+                            .font(.body)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -148,8 +164,8 @@ struct ContactFormView: View {
                 Divider()
                     .overlay(AppColors.accent(for: colorScheme).opacity(0.12))
 
-                Button(authManager.userSession != nil ? "In Warenkorb legen" : "Account erforderlich") {
-                    if authManager.userSession != nil {
+                Button(orderButtonTitle) {
+                    if canOrder {
                         alertType = .confirm
                     }
                 }
@@ -157,13 +173,13 @@ struct ContactFormView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
-                    (isFormValid && authManager.userSession != nil)
+                    canOrder
                     ? AppColors.accent(for: colorScheme)
                     : Color.gray
                 )
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
-                .disabled(!isFormValid || authManager.userSession == nil)
+                .disabled(!canOrder)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
             }
@@ -192,6 +208,19 @@ struct ContactFormView: View {
             endPoint: .bottom
         )
     }
+
+    private var orderButtonTitle: String {
+        if authManager.userSession == nil {
+            return "Account erforderlich"
+        }
+        if !storeIsOpen {
+            return "Store aktuell geschlossen"
+        }
+        if !item.available {
+            return "Aktuell nicht verfuegbar"
+        }
+        return "In Warenkorb legen"
+    }
 }
 #Preview {
     let authManager = AuthManager()
@@ -206,7 +235,7 @@ struct ContactFormView: View {
             imageURLs: ["https://via.placeholder.com/150"],
             available: true
         )
-        ContactFormView(item: sampleItem)
+        ContactFormView(item: sampleItem, storeIsOpen: true)
             .environmentObject(authManager)
             .environmentObject(cartVM)
     }

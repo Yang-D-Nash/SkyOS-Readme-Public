@@ -128,6 +128,14 @@ fun CartScreen(
                     )
                 }
 
+                item {
+                    PaymentMethodAvailabilityCard(
+                        methods = uiState.paymentMethods.checkoutMethodLabels,
+                        bankTransferEnabled = uiState.paymentMethods.bankTransfer.enabled &&
+                            uiState.paymentMethods.bankTransfer.isConfigured,
+                    )
+                }
+
                 if (!uiState.isLoggedIn) {
                     item {
                         SkydownCard {
@@ -359,6 +367,46 @@ private fun CartOverviewCard(
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PaymentMethodAvailabilityCard(
+    methods: List<String>,
+    bankTransferEnabled: Boolean,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Zahlungsarten")
+        if (methods.isEmpty()) {
+            Text(
+                text = "Aktuell ist noch keine Zahlart fuer Kunden sichtbar. Der Merch-Checkout bleibt bis dahin auf Anfrage und Rueckkontakt ausgelegt.",
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        } else {
+            Text(
+                text = "Diese Zahlarten sind aktuell fuer Kunden vorbereitet:",
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                methods.forEach { method ->
+                    CartInfoPill(text = method)
+                }
+            }
+            Text(
+                text = if (bankTransferEnabled) {
+                    "Bankdaten und genaue Anweisung folgen nach der Bestellbestaetigung direkt durch das Team."
+                } else {
+                    "Live-Zahlung kann spaeter erweitert werden. Bis dahin bleibt der Kontakt- und Freigabe-Flow in der App klar steuerbar."
+                },
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
         }
     }
 }

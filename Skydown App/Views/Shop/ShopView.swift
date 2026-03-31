@@ -107,6 +107,7 @@ struct HomeView: View {
                                 .background(AppColors.secondaryBackground(for: colorScheme))
                                 .clipShape(Circle())
                         }
+                        .accessibilityLabel("Automationen oeffnen")
                     }
 
                     AppSessionToolbarActions(
@@ -187,8 +188,15 @@ struct ShopView: View {
                             ShopHeroCard(
                                 colorScheme: colorScheme,
                                 itemCount: viewModel.merchandiseItems.count,
+                                isStoreOpen: viewModel.isStoreOpen,
                                 isLoggedIn: authManager.userSession != nil,
-                                isAdmin: isAdmin
+                                isAdmin: isAdmin,
+                                isUpdatingStoreState: viewModel.isUpdatingStoreState,
+                                onToggleStore: isAdmin ? {
+                                    Task {
+                                        await viewModel.toggleStoreOpen()
+                                    }
+                                } : nil
                             )
 
                             if let errorMessage = viewModel.errorMessage, !isAdmin {
@@ -198,6 +206,14 @@ struct ShopView: View {
                                     message: errorMessage,
                                     actionTitle: "Anmelden",
                                     action: onOpenLogin
+                                )
+                            }
+
+                            if !viewModel.isStoreOpen && !isAdmin {
+                                ShopInfoCard(
+                                    colorScheme: colorScheme,
+                                    title: "Merch Store pausiert",
+                                    message: "Produkte bleiben sichtbar, aber neue Kaeufe sind gerade geschlossen. Sobald du den Store wieder oeffnest, kann direkt wieder bestellt werden."
                                 )
                             }
 
@@ -278,7 +294,10 @@ struct ShopView: View {
             }
             .sheet(item: $selectedItem) { item in
                 NavigationStack {
-                    ContactFormView(item: item)
+                    ContactFormView(
+                        item: item,
+                        storeIsOpen: viewModel.isStoreOpen || isAdmin
+                    )
                         .background(AppColors.primaryBackground(for: colorScheme))
                 }
             }
@@ -317,7 +336,7 @@ private struct HomeHeroIntroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Hub")
+                Text("Home")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -326,7 +345,7 @@ private struct HomeHeroIntroCard: View {
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                Text("Entwickelt von Yang D. Nash, damit Musik, Videography und Creator-Workflows in einer App zusammenlaufen.")
+                Text("Entwickelt und koordiniert von Yang D. Nash als zentralem Ansprechpartner fuer Musik, Videography und Merchandise.")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
             }
@@ -648,26 +667,37 @@ private struct HomeStoryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Lanes")
+            Text("Bereiche")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Zweizwei und Skydown bleiben hier bewusst getrennt, damit Musik- und Videography-Logik nicht wieder in einer Sammelkarte landen.")
+            Text("Zweizwei und Skydown behalten hier jeweils ihren eigenen Fokus, damit Musik und Videography sauber getrennt bleiben.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 12) {
+                HomeActionButton(
+                    title: "Yang D. Nash • Ansprechpartner",
+                    icon: "person.crop.circle.badge.checkmark",
+                    colorScheme: colorScheme,
+                    isPrimary: true
+                ) {
+                    if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
+                        openURL(url)
+                    }
+                }
+
                 HomeLaneSection(
                     title: "Zweizwei Music",
-                    subtitle: "Releases, Artists, Beat Hub und NICMA Producer laufen ueber die Zweizwei-Schiene.",
+                    subtitle: "Releases, Artists, Beat Hub und NICMA Producer bleiben hier im Zweizwei-Bereich gebuendelt.",
                     colorScheme: colorScheme
                 ) {
                     ForEach(homeZweizweiInstagramDestinations) { destination in
                         HomeActionButton(
                             title: destination.title,
-                            icon: destination.id == "artist_yang_d_nash" ? "camera.fill" : "person.2.fill",
+                            icon: destination.id == zweizweiInstagramDestination.id ? "music.note.house.fill" : "person.2.fill",
                             colorScheme: colorScheme,
-                            isPrimary: destination.id == "artist_yang_d_nash"
+                            isPrimary: destination.id == zweizweiInstagramDestination.id
                         ) {
                             if let url = destination.url {
                                 openURL(url)
@@ -696,7 +726,7 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Skydown Videography",
-                    subtitle: "Visuals, Clips und Brand-Kontakt bleiben auf der Skydown-Schiene.",
+                    subtitle: "Visuals, Clips und Kontakt laufen hier gesammelt im Skydown-Bereich.",
                     colorScheme: colorScheme
                 ) {
                     HomeActionButton(
@@ -776,7 +806,7 @@ private struct HomeLaneSection<Content: View>: View {
 }
 
 private let homeFeaturedArtists = [
-    "Yang D. Nash",
+    "Zweizwei Music",
     "ThaDude",
     "MAVE",
     "JANNO",
@@ -785,13 +815,6 @@ private let homeFeaturedArtists = [
 ]
 
 private let homeZweizweiInstagramDestinations: [MusicInstagramDestination] = [
-    MusicInstagramDestination(
-        id: "artist_yang_d_nash",
-        title: "Yang D. Nash • Artist & Developer",
-        handle: "@y.d.nash",
-        urlString: "https://www.instagram.com/y.d.nash/",
-        helper: "Kopf der App und Zweizwei-Artist"
-    ),
     zweizweiInstagramDestination,
     MusicInstagramDestination(
         id: "artist_thadude_home",
@@ -1040,30 +1063,50 @@ final class HomeInlineVideoPlaybackManager: ObservableObject {
 private struct ShopHeroCard: View {
     let colorScheme: ColorScheme
     let itemCount: Int
+    let isStoreOpen: Bool
     let isLoggedIn: Bool
     let isAdmin: Bool
+    let isUpdatingStoreState: Bool
+    let onToggleStore: (() -> Void)?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Merch Hub")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(AppColors.text(for: colorScheme))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Merch Hub")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Global Drops, Apparel & Cart.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text("Global Drops, Apparel & Cart.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    Text(isStoreOpen ? "Kaufen ist aktuell freigeschaltet." : "Kaufen ist aktuell pausiert.")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(isStoreOpen ? AppColors.accent(for: colorScheme) : AppColors.accentMystic(for: colorScheme))
+                }
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.16))
+                        .frame(width: 58, height: 58)
+
+                    Image(systemName: "bag.fill")
+                        .font(.title2)
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
             }
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(AppColors.accent(for: colorScheme).opacity(0.16))
-                    .frame(width: 58, height: 58)
-
-                Image(systemName: "bag.fill")
-                    .font(.title2)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
+            if let onToggleStore {
+                Button(action: onToggleStore) {
+                    Text(isUpdatingStoreState ? "Store wird aktualisiert..." : (isStoreOpen ? "Store schliessen" : "Store oeffnen"))
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(isStoreOpen ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
+                .disabled(isUpdatingStoreState)
             }
         }
         .padding(20)
@@ -1077,6 +1120,7 @@ private struct ShopHeroCard: View {
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: 10) {
                 ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)
+                ShopBadge(text: isStoreOpen ? "Store offen" : "Store pausiert", colorScheme: colorScheme)
                 ShopBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
                 if isAdmin {
                     ShopBadge(text: "Admin", colorScheme: colorScheme)

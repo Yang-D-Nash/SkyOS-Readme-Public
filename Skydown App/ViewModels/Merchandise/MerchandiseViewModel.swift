@@ -13,14 +13,18 @@ final class MerchandiseViewModel: ObservableObject {
     @Published var merchandiseItems: [MerchandiseItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var isStoreOpen = true
+    @Published var isUpdatingStoreState = false
 
     // Toast
     @Published var toastMessage = ""
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .info
     private let merchandiseService: MerchandiseServicing
+    private let merchStoreStatusService: MerchStoreStatusServicing
     private let authManager: AuthManager
     private var stopObservingItems: (() -> Void)?
+    private var stopObservingStoreStatus: (() -> Void)?
 
     private var canManageMerchandise: Bool {
         authManager.userSession?.isAdmin == true
@@ -28,9 +32,11 @@ final class MerchandiseViewModel: ObservableObject {
 
     init(
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
+        merchStoreStatusService: MerchStoreStatusServicing = FirestoreMerchStoreStatusService(),
         authManager: AuthManager
     ) {
         self.merchandiseService = merchandiseService
+        self.merchStoreStatusService = merchStoreStatusService
         self.authManager = authManager
     }
 
@@ -39,6 +45,7 @@ final class MerchandiseViewModel: ObservableObject {
         errorMessage = nil
 
         stopObservingItems?()
+        observeStoreStatusIfNeeded()
 
         stopObservingItems = merchandiseService.observeItems { [weak self] result in
             guard let self else { return }
@@ -55,6 +62,24 @@ final class MerchandiseViewModel: ObservableObject {
                 self.showUserToast("Fehler beim Laden der Artikel: \(error.localizedDescription)", style: .error)
                 self.merchandiseItems = []
             }
+        }
+    }
+
+    func toggleStoreOpen() async {
+        guard canManageMerchandise else {
+            showUserToast("Nur Admins duerfen den Merch Store schalten.", style: .error)
+            return
+        }
+
+        isUpdatingStoreState = true
+        defer { isUpdatingStoreState = false }
+
+        do {
+            let nextState = !isStoreOpen
+            try await merchStoreStatusService.updateStoreOpen(nextState)
+            showUserToast(nextState ? "Merch Store geoeffnet." : "Merch Store geschlossen.", style: .success)
+        } catch {
+            showUserToast("Store-Status konnte nicht aktualisiert werden: \(error.localizedDescription)", style: .error)
         }
     }
 
@@ -149,8 +174,24 @@ final class MerchandiseViewModel: ObservableObject {
         showToast = true
     }
 
+    private func observeStoreStatusIfNeeded() {
+        guard stopObservingStoreStatus == nil else { return }
+
+        stopObservingStoreStatus = merchStoreStatusService.observeStatus { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let status):
+                self.isStoreOpen = status.isOpen
+            case .failure(let error):
+                self.showUserToast("Store-Status konnte nicht geladen werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
     deinit {
         stopObservingItems?()
+        stopObservingStoreStatus?()
     }
 }
 

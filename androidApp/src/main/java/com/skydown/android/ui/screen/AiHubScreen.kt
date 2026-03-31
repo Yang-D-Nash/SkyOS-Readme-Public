@@ -53,12 +53,14 @@ private enum class AiHubMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiHubScreen(
+    showsWorkflowWorkspace: Boolean,
+    onToggleWorkflow: () -> Unit,
+    onHideWorkflow: () -> Unit,
     onOpenLogin: () -> Unit = {},
     onOpenCart: () -> Unit = {},
     onOpenSettings: () -> Unit,
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
-    var hasPreparedWorkflowTrigger by rememberSaveable { mutableStateOf(false) }
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
@@ -73,7 +75,7 @@ fun AiHubScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Tools",
-                        subtitle = "AI und Workflow global fuer die ganze App.",
+                        subtitle = "KI und Automationen fuer die ganze App.",
                     )
                 },
                 actions = {
@@ -133,9 +135,12 @@ fun AiHubScreen(
                 } else {
                     AiHubCompactHeader(
                         mode = mode,
-                        hasPreparedWorkflowTrigger = hasPreparedWorkflowTrigger,
-                        onSelectMode = { selectedMode -> mode = selectedMode },
-                        onTrigger = { hasPreparedWorkflowTrigger = true },
+                        showsWorkflowWorkspace = showsWorkflowWorkspace,
+                        onSelectMode = { selectedMode ->
+                            onHideWorkflow()
+                            mode = selectedMode
+                        },
+                        onToggleWorkflow = onToggleWorkflow,
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
                             top = SkydownUiTokens.screenTopPadding + 4.dp,
@@ -149,9 +154,17 @@ fun AiHubScreen(
                             .fillMaxWidth()
                             .weight(1f),
                     ) {
-                        when (mode) {
-                            AiHubMode.Bot -> AiScreen(showTopBar = false)
-                            AiHubMode.Agent -> AgentScreen(showTopBar = false)
+                        if (showsWorkflowWorkspace) {
+                            WorkflowWorkspaceCard(
+                                onOpenSettings = onOpenSettings,
+                                onClose = onHideWorkflow,
+                                modifier = Modifier.padding(horizontal = SkydownUiTokens.screenHorizontalPadding),
+                            )
+                        } else {
+                            when (mode) {
+                                AiHubMode.Bot -> AiScreen(showTopBar = false)
+                                AiHubMode.Agent -> AgentScreen(showTopBar = false)
+                            }
                         }
                     }
                 }
@@ -244,9 +257,9 @@ private fun AiHubRestrictedCard(
 @Composable
 private fun AiHubCompactHeader(
     mode: AiHubMode,
-    hasPreparedWorkflowTrigger: Boolean,
+    showsWorkflowWorkspace: Boolean,
     onSelectMode: (AiHubMode) -> Unit,
-    onTrigger: () -> Unit,
+    onToggleWorkflow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isAgent = mode == AiHubMode.Agent
@@ -274,12 +287,61 @@ private fun AiHubCompactHeader(
             )
 
             OutlinedButton(
-                onClick = onTrigger,
+                onClick = onToggleWorkflow,
                 shape = RoundedCornerShape(18.dp),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             ) {
-                Text(if (hasPreparedWorkflowTrigger) "Workflow" else "Trigger")
+                Text(if (showsWorkflowWorkspace) "Zur KI" else "Automation")
             }
+        }
+    }
+}
+
+@Composable
+private fun WorkflowWorkspaceCard(
+    onOpenSettings: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
+    ) {
+        Text(
+            text = "Automation",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "Hier bereitest du versteckte Trigger und spaetere Automationen vor. Die Google-Verbindung dafuer bleibt bewusst getrennt vom normalen App-Login und wird in den Einstellungen vorbereitet.",
+            modifier = Modifier.padding(top = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AiHubBadge(text = "Versteckt", isAgent = false)
+            AiHubBadge(text = "Manuell", isAgent = true)
+            AiHubBadge(text = "Admin Setup", isAgent = false)
+        }
+        Button(
+            onClick = onOpenSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Einstellungen oeffnen")
+        }
+        OutlinedButton(
+            onClick = onClose,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Zur KI zurueck")
         }
     }
 }

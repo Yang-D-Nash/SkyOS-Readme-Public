@@ -17,6 +17,7 @@ import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.SpotifyAuthManager
+import com.skydown.android.data.WorkflowAutomationPreferences
 import com.skydown.android.ui.SkydownApp
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.ui.theme.SkydownTheme
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
         AppearancePreferences.initialize(applicationContext)
         AppFeatureFlagsStore.initialize()
         AiVisualReferenceLibraryPreferences.initialize(applicationContext)
+        WorkflowAutomationPreferences.initialize(applicationContext)
         SpotifyAuthManager.initialize(applicationContext)
         handleSpotifyRedirect(intent?.data)
         volumeControlStream = AudioManager.STREAM_MUSIC

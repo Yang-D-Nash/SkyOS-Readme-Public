@@ -12,6 +12,7 @@ struct CartView: View {
     @EnvironmentObject var cartVM: CartViewModel
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
     let onOpenSettings: () -> Void
 
     init(onOpenSettings: @escaping () -> Void = {}) {
@@ -49,6 +50,16 @@ struct CartView: View {
                         totalPrice: totalPrice,
                         isLoggedIn: authManager.userSession != nil
                     )
+
+                    CartSectionCard(
+                        title: "Zahlungsarten",
+                        colorScheme: colorScheme
+                    ) {
+                        PaymentMethodsCheckoutInfo(
+                            colorScheme: colorScheme,
+                            settings: paymentMethodSettingsStore.settings
+                        )
+                    }
 
                     if authManager.userSession == nil {
                         CartSectionCard(
@@ -295,6 +306,41 @@ struct CartView: View {
         if let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)"),
            UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
+        }
+    }
+}
+
+private struct PaymentMethodsCheckoutInfo: View {
+    let colorScheme: ColorScheme
+    let settings: PaymentMethodSettings
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if settings.checkoutMethodLabels.isEmpty {
+                Text("Aktuell ist noch keine Zahlart fuer Kunden sichtbar. Der Merch-Checkout bleibt bis dahin auf Anfrage und Rueckkontakt ausgelegt.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            } else {
+                Text("Diese Zahlarten sind aktuell fuer Kunden vorbereitet:")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                HStack(spacing: 8) {
+                    ForEach(settings.checkoutMethodLabels, id: \.self) { method in
+                        CartBadge(text: method, colorScheme: colorScheme)
+                    }
+                }
+
+                if settings.bankTransfer.enabled && settings.bankTransfer.isConfigured {
+                    Text("Bankdaten und genaue Anweisung folgen nach der Bestellbestaetigung direkt durch das Team.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                } else {
+                    Text("Live-Zahlung kann spaeter erweitert werden. Bis dahin bleibt der Kontakt- und Freigabe-Flow in der App klar steuerbar.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            }
         }
     }
 }

@@ -78,6 +78,7 @@ fun SkydownApp() {
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     var showIntro by remember { mutableStateOf(true) }
     var selectedEntryRoute by rememberSaveable { mutableStateOf<String?>(null) }
+    var showsWorkflowWorkspace by rememberSaveable { mutableStateOf(false) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
     var showOrders by remember { mutableStateOf(false) }
     val authSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -127,6 +128,7 @@ fun SkydownApp() {
 
         LaunchedEffect(hasAiAccess, currentDestination?.route) {
             if (!hasAiAccess && currentDestination?.route == "ai") {
+                showsWorkflowWorkspace = false
                 navController.navigate("home") {
                     popUpTo(navController.graph.findStartDestination().id) {
                         saveState = true
@@ -134,6 +136,8 @@ fun SkydownApp() {
                     launchSingleTop = true
                     restoreState = true
                 }
+            } else if (currentDestination?.route != "ai") {
+                showsWorkflowWorkspace = false
             }
         }
 
@@ -215,6 +219,7 @@ fun SkydownApp() {
                         onOpenSettings = openSettings,
                         onOpenWorkflow = if (hasAiAccess) {
                             {
+                                showsWorkflowWorkspace = true
                                 navController.navigate("ai") {
                                     launchSingleTop = true
                                 }
@@ -251,6 +256,9 @@ fun SkydownApp() {
                 }
                 composable("ai") {
                     AiHubScreen(
+                        showsWorkflowWorkspace = showsWorkflowWorkspace,
+                        onToggleWorkflow = { showsWorkflowWorkspace = !showsWorkflowWorkspace },
+                        onHideWorkflow = { showsWorkflowWorkspace = false },
                         onOpenLogin = { authSheet = AuthSheet.Login },
                         onOpenCart = openCart,
                         onOpenSettings = openSettings,
@@ -344,13 +352,13 @@ private fun LaunchLandingScreen(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Choose your lane.",
+                    text = "Wohin soll's zuerst gehen?",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Danach landest du immer in der globalen App-Shell und startest nur im passenden Bereich.",
+                    text = "Danach landest du immer in der App und startest direkt im passenden Bereich.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
                 )
@@ -359,19 +367,19 @@ private fun LaunchLandingScreen(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 LaunchLandingButton(
                     title = "MUSIK",
-                    subtitle = "Zweizwei steht hier fuer Songs, Releases, Beats und den kompletten Music-Hub.",
+                    subtitle = "Du startest direkt im Zweizwei-Musikbereich.",
                     accentColor = MaterialTheme.colorScheme.primary,
                     onClick = onOpenMusic,
                 )
                 LaunchLandingButton(
                     title = "VIDEOGRAPHY",
-                    subtitle = "Skydown buendelt hier Clips, Reels, Sessions und die komplette Video-Welt.",
+                    subtitle = "Du startest direkt bei Skydown Videography.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     onClick = onOpenVideography,
                 )
                 LaunchLandingButton(
                     title = "SHOP",
-                    subtitle = "Oeffnet direkt den globalen Merchandise-Bereich innerhalb der App-Shell.",
+                    subtitle = "Du landest direkt im Merchandise-Bereich.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     onClick = onOpenShop,
                 )
@@ -444,7 +452,7 @@ private fun ZweizweiMusicLaneScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     Text(
-                        text = "Hier lebt die eigene Musik-Logik: Catalog, Beat Hub und NICMA Producer laufen getrennt von Skydown Videography.",
+                        text = "Hier hat Zweizwei seinen eigenen Musikbereich. Catalog, Beat Hub und NICMA Producer bleiben klar getrennt von Skydown Videography.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
                     )

@@ -104,4 +104,10 @@ val skydownProducedWithArtists = listOf(
         spotifyArtistId = "3oxSFNrPcoqo7qkAIsR74D",
         instagramUrl = "https://www.instagram.com/daco.27/",
     ),
+    ProducedWithArtist(
+        id = "produced-with-neo",
+        name = "Neo",
+        role = "Produced With",
+        instagramUrl = "https://www.instagram.com/sincity.neo/",
+    ),
 )

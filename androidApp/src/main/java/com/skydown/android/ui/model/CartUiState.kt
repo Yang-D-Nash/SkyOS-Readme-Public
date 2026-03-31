@@ -1,5 +1,6 @@
 package com.skydown.android.ui.model
 
+import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.shared.model.CartItem
 
 data class CartUiState(
@@ -12,4 +13,5 @@ data class CartUiState(
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
+    val paymentMethods: PaymentMethodsSettings = PaymentMethodsSettings(),
 )

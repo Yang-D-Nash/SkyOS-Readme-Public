@@ -159,7 +159,14 @@ fun ShopScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    ShopOverviewCard(uiState = uiState)
+                    ShopOverviewCard(
+                        uiState = uiState,
+                        onToggleStore = if (uiState.isAdmin) {
+                            viewModel::toggleStoreOpen
+                        } else {
+                            null
+                        },
+                    )
                 }
 
                 val errorMessage = uiState.errorMessage
@@ -168,6 +175,15 @@ fun ShopScreen(
                         LoginSection(
                             errorMessage = errorMessage,
                             onOpenLogin = onOpenLogin,
+                        )
+                    }
+                }
+
+                if (!uiState.isStoreOpen && !uiState.isAdmin) {
+                    item {
+                        ShopMessageCard(
+                            title = "Merch Store pausiert",
+                            body = "Produkte bleiben sichtbar, aber neue Kaeufe sind gerade geschlossen. Sobald du den Store wieder oeffnest, kann direkt wieder bestellt werden.",
                         )
                     }
                 }
@@ -232,6 +248,7 @@ fun ShopScreen(
             uiState.selectedItem?.let { item ->
                 MerchandiseDetailSheet(
                     item = item,
+                    isStoreOpen = uiState.isStoreOpen,
                     isAdmin = uiState.isAdmin,
                     isSaving = uiState.isSaving,
                     onDismiss = viewModel::dismissSelectedItem,
@@ -281,6 +298,7 @@ fun ShopScreen(
 @Composable
 private fun ShopOverviewCard(
     uiState: ShopUiState,
+    onToggleStore: (() -> Unit)? = null,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         Row(
@@ -300,6 +318,19 @@ private fun ShopOverviewCard(
                     text = "Globale Drops, Apparel und Cart.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
+                Text(
+                    text = if (uiState.isStoreOpen) {
+                        "Kaufen ist aktuell freigeschaltet."
+                    } else {
+                        "Kaufen ist aktuell pausiert."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (uiState.isStoreOpen) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.tertiary
+                    },
                 )
             }
 
@@ -328,6 +359,11 @@ private fun ShopOverviewCard(
                 isActive = uiState.items.isNotEmpty(),
             )
             ShopBadge(
+                text = if (uiState.isStoreOpen) "Store offen" else "Store pausiert",
+                icon = if (uiState.isStoreOpen) Icons.Default.CheckCircle else Icons.Default.Sync,
+                isActive = uiState.isStoreOpen,
+            )
+            ShopBadge(
                 text = if (uiState.isLoggedIn) "Konto aktiv" else "Gast",
                 icon = if (uiState.isLoggedIn) Icons.Default.CheckCircle else Icons.Default.Sync,
                 isActive = uiState.isLoggedIn,
@@ -340,6 +376,47 @@ private fun ShopOverviewCard(
                 )
             }
         }
+
+        onToggleStore?.let { toggleStore ->
+            Button(
+                onClick = toggleStore,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                enabled = !uiState.isUpdatingStoreState,
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text(
+                    if (uiState.isUpdatingStoreState) {
+                        "Store wird aktualisiert..."
+                    } else if (uiState.isStoreOpen) {
+                        "Store schliessen"
+                    } else {
+                        "Store oeffnen"
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopMessageCard(
+    title: String,
+    body: String,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = body,
+            modifier = Modifier.padding(top = 10.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+        )
     }
 }
 
@@ -533,6 +610,7 @@ private fun MerchandiseEditorSheet(
 @Composable
 private fun MerchandiseDetailSheet(
     item: MerchandiseItem,
+    isStoreOpen: Boolean,
     isAdmin: Boolean,
     isSaving: Boolean,
     onDismiss: () -> Unit,
@@ -600,6 +678,11 @@ private fun MerchandiseDetailSheet(
                         text = if (item.available) "Drop live" else "Nicht verfuegbar",
                         icon = if (item.available) Icons.Default.CheckCircle else Icons.Default.Sync,
                         isActive = item.available,
+                    )
+                    ShopBadge(
+                        text = if (isStoreOpen) "Store offen" else "Store pausiert",
+                        icon = if (isStoreOpen) Icons.Default.CheckCircle else Icons.Default.Sync,
+                        isActive = isStoreOpen,
                     )
                     if (item.imageUrls.size > 1) {
                         ShopBadge(
@@ -691,6 +774,14 @@ private fun MerchandiseDetailSheet(
                         text = "Produktansicht",
                         icon = Icons.Default.ShoppingBag,
                         isActive = false,
+                    )
+                }
+
+                if (!isStoreOpen && !isAdmin) {
+                    Text(
+                        text = "Der Merch Store ist aktuell geschlossen. Produkte bleiben sichtbar, neue Kaeufe sind aber pausiert.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
                 }
             }

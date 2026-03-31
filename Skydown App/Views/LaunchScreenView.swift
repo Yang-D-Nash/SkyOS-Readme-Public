@@ -158,11 +158,11 @@ private struct LaunchLandingView: View {
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(AppColors.accent(for: colorScheme))
 
-                    Text("Choose your lane.")
+                    Text("Wohin soll's zuerst gehen?")
                         .font(.system(size: 42, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Du landest danach immer in der globalen App-Shell und startest nur im passenden Bereich.")
+                    Text("Du landest danach immer in der App und startest direkt im passenden Bereich.")
                         .font(.headline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -170,21 +170,21 @@ private struct LaunchLandingView: View {
                 VStack(spacing: 14) {
                     LaunchLandingButton(
                         title: "MUSIK",
-                        subtitle: "Startet direkt in Zweizwei Music innerhalb der globalen Shell.",
+                        subtitle: "Du startest direkt im Zweizwei-Musikbereich.",
                         accent: AppColors.spotify(for: colorScheme),
                         action: onOpenMusic
                     )
 
                     LaunchLandingButton(
                         title: "VIDEOGRAPHY",
-                        subtitle: "Startet direkt in Skydown Videography innerhalb der globalen Shell.",
+                        subtitle: "Du startest direkt bei Skydown Videography.",
                         accent: AppColors.accentMystic(for: colorScheme),
                         action: onOpenVideography
                     )
 
                     LaunchLandingButton(
                         title: "SHOP",
-                        subtitle: "Oeffnet direkt den globalen Merchandise-Bereich innerhalb der App-Shell.",
+                        subtitle: "Du landest direkt im Merchandise-Bereich.",
                         accent: AppColors.accentHighlight(for: colorScheme),
                         action: onOpenShop
                     )

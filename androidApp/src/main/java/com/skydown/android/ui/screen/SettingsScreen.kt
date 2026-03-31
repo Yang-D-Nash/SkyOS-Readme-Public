@@ -41,8 +41,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +55,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -80,11 +81,34 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    var stripeAccountHintDraft by rememberSaveable { mutableStateOf("") }
+    var paypalAccountHintDraft by rememberSaveable { mutableStateOf("") }
+    var bankAccountHolderDraft by rememberSaveable { mutableStateOf("") }
+    var bankIbanDraft by rememberSaveable { mutableStateOf("") }
+    var bankBicDraft by rememberSaveable { mutableStateOf("") }
+    var bankNameDraft by rememberSaveable { mutableStateOf("") }
+    var bankInstructionsDraft by rememberSaveable { mutableStateOf("") }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
     val showDeleteAccountDialog = rememberSaveable {
         mutableStateOf(false)
+    }
+
+    LaunchedEffect(uiState.paymentMethods) {
+        stripeAccountHintDraft = uiState.paymentMethods.stripe.accountHint
+        paypalAccountHintDraft = uiState.paymentMethods.paypal.accountHint
+        bankAccountHolderDraft = uiState.paymentMethods.bankTransfer.accountHolder
+        bankIbanDraft = uiState.paymentMethods.bankTransfer.iban
+        bankBicDraft = uiState.paymentMethods.bankTransfer.bic
+        bankNameDraft = uiState.paymentMethods.bankTransfer.bankName
+        bankInstructionsDraft = uiState.paymentMethods.bankTransfer.paymentInstructions
+    }
+
+    LaunchedEffect(uiState.paymentFeedbackMessage) {
+        val message = uiState.paymentFeedbackMessage ?: return@LaunchedEffect
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        viewModel.clearPaymentFeedback()
     }
 
     Scaffold(
@@ -301,6 +325,125 @@ fun SettingsScreen(
                                     maxLines = 3,
                                 )
                             }
+
+                            Text(
+                                text = "Workflow Google Verbindung",
+                                modifier = Modifier.padding(top = 18.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            SettingsToggleRow(
+                                title = "Google fuer Automationen separat halten",
+                                body = "Das normale Google-Login der App bleibt getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.",
+                                checked = uiState.workflowAutomationSettings.keepsGoogleSeparate,
+                                onCheckedChange = viewModel::updateWorkflowKeepsGoogleSeparate,
+                                modifier = Modifier.padding(top = 10.dp),
+                            )
+                            SettingsToggleRow(
+                                title = "Automation-Google vorbereitet",
+                                body = "Markiert, dass ein separates Google-Konto fuer Workflows spaeter angebunden werden soll.",
+                                checked = uiState.workflowAutomationSettings.isPrepared,
+                                onCheckedChange = viewModel::updateWorkflowPrepared,
+                                modifier = Modifier.padding(top = 10.dp),
+                            )
+                            OutlinedTextField(
+                                value = uiState.workflowAutomationSettings.googleAccountHint,
+                                onValueChange = viewModel::updateWorkflowGoogleAccountHint,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                label = { Text("Automation Google Konto") },
+                                placeholder = { Text("z. B. automation@deinedomain.de") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = uiState.workflowAutomationSettings.googleScopeHint,
+                                onValueChange = viewModel::updateWorkflowGoogleScopeHint,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Google Scope / Einsatz") },
+                                placeholder = { Text("z. B. Drive, Sheets, Calendar") },
+                                singleLine = true,
+                            )
+                        }
+                    }
+                }
+
+                if (uiState.isAdmin) {
+                    item {
+                        SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                            SectionHeader("Zahlungen")
+                            Text(
+                                text = "Verbinde Stripe, PayPal und Bankueberweisung getrennt vom Checkout. Erst danach werden sie fuer Kunden sichtbar geschaltet.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+
+                            PaymentProviderAdminCard(
+                                title = "Stripe",
+                                connected = uiState.paymentMethods.stripe.connected,
+                                enabledInCheckout = uiState.paymentMethods.stripe.connected &&
+                                    uiState.paymentMethods.stripe.enabled,
+                                accountHint = stripeAccountHintDraft,
+                                accountHintLabel = "Stripe Konto / Workspace",
+                                accountHintPlaceholder = "z. B. Skydown Merch Workspace",
+                                onAccountHintChange = { stripeAccountHintDraft = it },
+                                onSaveConnection = { viewModel.connectStripe(stripeAccountHintDraft) },
+                                onDisconnect = if (uiState.paymentMethods.stripe.connected) {
+                                    { viewModel.disconnectStripe() }
+                                } else {
+                                    null
+                                },
+                                onToggleEnabled = viewModel::setStripeEnabled,
+                                modifier = Modifier.padding(top = 16.dp),
+                            )
+
+                            PaymentProviderAdminCard(
+                                title = "PayPal",
+                                connected = uiState.paymentMethods.paypal.connected,
+                                enabledInCheckout = uiState.paymentMethods.paypal.connected &&
+                                    uiState.paymentMethods.paypal.enabled,
+                                accountHint = paypalAccountHintDraft,
+                                accountHintLabel = "PayPal Konto / Business-Mail",
+                                accountHintPlaceholder = "z. B. paypal@deinedomain.de",
+                                onAccountHintChange = { paypalAccountHintDraft = it },
+                                onSaveConnection = { viewModel.connectPayPal(paypalAccountHintDraft) },
+                                onDisconnect = if (uiState.paymentMethods.paypal.connected) {
+                                    { viewModel.disconnectPayPal() }
+                                } else {
+                                    null
+                                },
+                                onToggleEnabled = viewModel::setPayPalEnabled,
+                                modifier = Modifier.padding(top = 14.dp),
+                            )
+
+                            BankTransferAdminCard(
+                                configured = uiState.paymentMethods.bankTransfer.isConfigured,
+                                enabledInCheckout = uiState.paymentMethods.bankTransfer.enabled &&
+                                    uiState.paymentMethods.bankTransfer.isConfigured,
+                                accountHolder = bankAccountHolderDraft,
+                                iban = bankIbanDraft,
+                                bic = bankBicDraft,
+                                bankName = bankNameDraft,
+                                paymentInstructions = bankInstructionsDraft,
+                                onAccountHolderChange = { bankAccountHolderDraft = it },
+                                onIbanChange = { bankIbanDraft = it },
+                                onBicChange = { bankBicDraft = it },
+                                onBankNameChange = { bankNameDraft = it },
+                                onPaymentInstructionsChange = { bankInstructionsDraft = it },
+                                onSave = {
+                                    viewModel.saveBankTransfer(
+                                        accountHolder = bankAccountHolderDraft,
+                                        iban = bankIbanDraft,
+                                        bic = bankBicDraft,
+                                        bankName = bankNameDraft,
+                                        paymentInstructions = bankInstructionsDraft,
+                                    )
+                                },
+                                onToggleEnabled = viewModel::setBankTransferEnabled,
+                                modifier = Modifier.padding(top = 14.dp),
+                            )
                         }
                     }
                 }
@@ -442,6 +585,214 @@ fun SettingsScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun PaymentProviderAdminCard(
+    title: String,
+    connected: Boolean,
+    enabledInCheckout: Boolean,
+    accountHint: String,
+    accountHintLabel: String,
+    accountHintPlaceholder: String,
+    onAccountHintChange: (String) -> Unit,
+    onSaveConnection: () -> Unit,
+    onDisconnect: (() -> Unit)?,
+    onToggleEnabled: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = if (connected) "Verbunden" else "Nicht verbunden",
+                    color = if (connected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    },
+                )
+            }
+            SettingsBadge(
+                text = if (enabledInCheckout) "Im Checkout sichtbar" else "Ausgeblendet",
+                icon = Icons.Default.CheckCircle,
+                isActive = enabledInCheckout,
+            )
+        }
+
+        OutlinedTextField(
+            value = accountHint,
+            onValueChange = onAccountHintChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            label = { Text(accountHintLabel) },
+            placeholder = { Text(accountHintPlaceholder) },
+            singleLine = true,
+        )
+
+        SettingsToggleRow(
+            title = "Fuer Kunden im Checkout anzeigen",
+            body = "Erst nach der Verbindung sichtbar schalten.",
+            checked = enabledInCheckout,
+            onCheckedChange = onToggleEnabled,
+            modifier = Modifier.padding(top = 12.dp),
+            enabled = connected,
+        )
+
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Button(
+                onClick = onSaveConnection,
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text(if (connected) "Verbindung aktualisieren" else "Verbinden")
+            }
+            onDisconnect?.let { disconnect ->
+                OutlinedButton(
+                    onClick = disconnect,
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("Trennen")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BankTransferAdminCard(
+    configured: Boolean,
+    enabledInCheckout: Boolean,
+    accountHolder: String,
+    iban: String,
+    bic: String,
+    bankName: String,
+    paymentInstructions: String,
+    onAccountHolderChange: (String) -> Unit,
+    onIbanChange: (String) -> Unit,
+    onBicChange: (String) -> Unit,
+    onBankNameChange: (String) -> Unit,
+    onPaymentInstructionsChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onToggleEnabled: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Bankueberweisung",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = if (configured) "Bankdaten hinterlegt" else "Noch nicht hinterlegt",
+                    color = if (configured) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    },
+                )
+            }
+            SettingsBadge(
+                text = if (enabledInCheckout) "Im Checkout sichtbar" else "Ausgeblendet",
+                icon = Icons.Default.CheckCircle,
+                isActive = enabledInCheckout,
+            )
+        }
+
+        OutlinedTextField(
+            value = accountHolder,
+            onValueChange = onAccountHolderChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            label = { Text("Kontoinhaber") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = iban,
+            onValueChange = onIbanChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("IBAN") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = bic,
+            onValueChange = onBicChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("BIC") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = bankName,
+            onValueChange = onBankNameChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("Bankname") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = paymentInstructions,
+            onValueChange = onPaymentInstructionsChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("Zahlungsanweisung") },
+            minLines = 2,
+            maxLines = 3,
+        )
+
+        SettingsToggleRow(
+            title = "Fuer Kunden im Checkout anzeigen",
+            body = "Erst aktivieren, wenn die Bankdaten vollstaendig sind.",
+            checked = enabledInCheckout,
+            onCheckedChange = onToggleEnabled,
+            modifier = Modifier.padding(top = 12.dp),
+            enabled = configured,
+        )
+
+        Button(
+            onClick = onSave,
+            modifier = Modifier.padding(top = 12.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text(if (configured) "Bankdaten aktualisieren" else "Bankdaten hinterlegen")
+        }
     }
 }
 
@@ -599,6 +950,7 @@ private fun SettingsToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -626,6 +978,7 @@ private fun SettingsToggleRow(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            enabled = enabled,
         )
     }
 }

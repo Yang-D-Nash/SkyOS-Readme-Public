@@ -48,6 +48,7 @@ struct MainTabView: View {
     @State private var showingSettings = false
     @State private var showingCart = false
     @State private var showingLogin = false
+    @State private var showsWorkflowWorkspace = false
 
     private var preferredScheme: ColorScheme? {
         switch colorScheme {
@@ -100,7 +101,10 @@ struct MainTabView: View {
                     HomeView(
                         onOpenCart: { showingCart = true },
                         onOpenSettings: { showingSettings = true },
-                        onOpenWorkflow: hasAIAccess ? { selectedTab = .tools } : nil
+                        onOpenWorkflow: hasAIAccess ? {
+                            showsWorkflowWorkspace = true
+                            selectedTab = .tools
+                        } : nil
                     )
                 }
                 .tabItem { Label("Home", systemImage: "square.grid.2x2.fill") }
@@ -121,6 +125,7 @@ struct MainTabView: View {
                             aiChatService: services.aiChatService,
                             agentChatService: services.agentChatService,
                             featureFlags: services.featureFlags,
+                            showsWorkflowWorkspace: $showsWorkflowWorkspace,
                             onOpenCart: { showingCart = true },
                             onOpenLogin: { showingLogin = true },
                             onOpenSettings: { showingSettings = true }
@@ -151,6 +156,14 @@ struct MainTabView: View {
         .onChange(of: hasAIAccess) { _, allowed in
             if !allowed && selectedTab == .tools {
                 selectedTab = .hub
+            }
+            if !allowed {
+                showsWorkflowWorkspace = false
+            }
+        }
+        .onChange(of: selectedTab) { _, newTab in
+            if newTab != .tools {
+                showsWorkflowWorkspace = false
             }
         }
     }
@@ -239,7 +252,7 @@ private struct ZweizweiTabView: View {
                                 .font(.system(size: 38, weight: .black, design: .rounded))
                                 .foregroundColor(AppColors.text(for: colorScheme))
 
-                            Text("Hier laeuft die eigene Music-Lane: Catalog, Beat Hub und NICMA Producer bleiben getrennt von Skydown Videography und Merch.")
+                            Text("Hier hat Zweizwei seinen eigenen Musikbereich. Catalog, Beat Hub und NICMA Producer bleiben klar getrennt von Skydown Videography und Merchandise.")
                                 .font(.headline)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         }
@@ -371,11 +384,11 @@ private struct AIHubView: View {
     let aiChatService: AIChatServicing
     let agentChatService: AgentChatServicing
     @ObservedObject private var featureFlags: FeatureFlagsService
+    @Binding var showsWorkflowWorkspace: Bool
     let onOpenCart: () -> Void
     let onOpenLogin: () -> Void
     let onOpenSettings: () -> Void
     @State private var mode: AIHubMode = .bot
-    @State private var hasPreparedWorkflowTrigger = false
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
 
@@ -383,6 +396,7 @@ private struct AIHubView: View {
         aiChatService: AIChatServicing,
         agentChatService: AgentChatServicing,
         featureFlags: FeatureFlagsService,
+        showsWorkflowWorkspace: Binding<Bool>,
         onOpenCart: @escaping () -> Void,
         onOpenLogin: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void
@@ -393,6 +407,7 @@ private struct AIHubView: View {
         self.onOpenLogin = onOpenLogin
         self.onOpenSettings = onOpenSettings
         _featureFlags = ObservedObject(wrappedValue: featureFlags)
+        _showsWorkflowWorkspace = showsWorkflowWorkspace
     }
 
     var body: some View {
@@ -417,15 +432,27 @@ private struct AIHubView: View {
                     AIHubCompactHeader(
                         mode: mode,
                         colorScheme: colorScheme,
-                        hasPreparedWorkflowTrigger: hasPreparedWorkflowTrigger,
-                        onSelectMode: { mode = $0 },
-                        onTrigger: { hasPreparedWorkflowTrigger = true }
+                        showsWorkflowWorkspace: showsWorkflowWorkspace,
+                        onSelectMode: {
+                            showsWorkflowWorkspace = false
+                            mode = $0
+                        },
+                        onToggleWorkflow: {
+                            showsWorkflowWorkspace.toggle()
+                        }
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                     .padding(.top, 12)
 
                     Group {
-                        if mode == .bot {
+                        if showsWorkflowWorkspace {
+                            AIWorkflowWorkspaceCard(
+                                colorScheme: colorScheme,
+                                onOpenSettings: onOpenSettings
+                            ) {
+                                showsWorkflowWorkspace = false
+                            }
+                        } else if mode == .bot {
                             AIView(
                                 aiChatService: aiChatService,
                                 featureFlags: featureFlags,
@@ -567,9 +594,9 @@ private struct AIHubRestrictedCard: View {
 private struct AIHubCompactHeader: View {
     let mode: AIHubMode
     let colorScheme: ColorScheme
-    let hasPreparedWorkflowTrigger: Bool
+    let showsWorkflowWorkspace: Bool
     let onSelectMode: (AIHubMode) -> Void
-    let onTrigger: () -> Void
+    let onToggleWorkflow: () -> Void
 
     private var accent: Color {
         switch mode {
@@ -610,15 +637,20 @@ private struct AIHubCompactHeader: View {
                 .buttonStyle(.plain)
             }
 
-            Button(action: onTrigger) {
-                Image(systemName: hasPreparedWorkflowTrigger ? "point.3.connected.trianglepath.dotted" : "bolt.horizontal.circle.fill")
-                    .font(.headline)
-                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-                    .frame(width: 44, height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
-                    )
+            Button(action: onToggleWorkflow) {
+                HStack(spacing: 6) {
+                    Image(systemName: showsWorkflowWorkspace ? "xmark.circle.fill" : "bolt.horizontal.circle.fill")
+                        .font(.headline)
+                    Text(showsWorkflowWorkspace ? "Zur KI" : "Automation")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                .padding(.horizontal, 12)
+                .frame(height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                )
             }
             .buttonStyle(.plain)
         }
@@ -629,6 +661,55 @@ private struct AIHubCompactHeader: View {
                 .stroke(accent.opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private struct AIWorkflowWorkspaceCard: View {
+    let colorScheme: ColorScheme
+    let onOpenSettings: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Automation")
+                .font(.title2.bold())
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Hier bereitest du versteckte Trigger und spaetere Automationen vor. Die Google-Verbindung dafuer bleibt bewusst getrennt vom normalen App-Login und wird in den Einstellungen vorbereitet.")
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 10) {
+                AIHubBadge(text: "Versteckt", color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: "Manuell", color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: "Admin Setup", color: AppColors.accentMystic(for: colorScheme))
+            }
+
+            Button(action: onOpenSettings) {
+                Text("Einstellungen oeffnen")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accentHighlight(for: colorScheme))
+
+            Button(action: onClose) {
+                Text("Zur KI zurueck")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.bordered)
+            .tint(AppColors.accent(for: colorScheme))
+        }
+        .padding(SkydownLayout.cardPadding)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
     }
 }
 

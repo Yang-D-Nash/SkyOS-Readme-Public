@@ -101,5 +101,12 @@ let skydownProducedWithArtists: [SkydownProducedWithArtist] = [
         role: "Produced With",
         spotifyArtistID: "3oxSFNrPcoqo7qkAIsR74D",
         instagramURLString: "https://www.instagram.com/daco.27/"
+    ),
+    SkydownProducedWithArtist(
+        id: "produced-with-neo",
+        name: "Neo",
+        role: "Produced With",
+        spotifyArtistID: nil,
+        instagramURLString: "https://www.instagram.com/sincity.neo/"
     )
 ]
