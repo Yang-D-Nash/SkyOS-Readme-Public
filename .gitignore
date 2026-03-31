@@ -9,5 +9,6 @@ local.properties
 .idea/
 
 *.xcuserstate
-*.xcuserdata/
-
+xcuserdata/
+*.xcuserdatad/
+App Icon.png
