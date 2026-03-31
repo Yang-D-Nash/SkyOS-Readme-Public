@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AgentView: View {
     @StateObject private var viewModel: AgentChatViewModel
@@ -240,7 +241,7 @@ private struct AgentQuickPromptCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(prompts, id: \.self) { prompt in
-                        Button(action: { onPromptSelected(prompt) }) {
+                        Button(action: { onPromptSelected(prompt) }, label: {
                             Text(prompt)
                                 .font(.subheadline.weight(.semibold))
                                 .multilineTextAlignment(.leading)
@@ -252,7 +253,7 @@ private struct AgentQuickPromptCard: View {
                                     RoundedRectangle(cornerRadius: 18)
                                         .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
                                 )
-                        }
+                        })
                         .buttonStyle(.plain)
                     }
                 }
@@ -271,6 +272,8 @@ private struct AgentQuickPromptCard: View {
 private struct AgentMessageBubble: View {
     let message: AgentChatMessage
     let colorScheme: ColorScheme
+    @State private var showingShareSheet = false
+    @State private var copyLabel = "Kopieren"
 
     private var isUser: Bool {
         message.role == .user
@@ -298,6 +301,27 @@ private struct AgentMessageBubble: View {
                     Text(message.text)
                         .font(.body)
                         .foregroundColor(isUser ? .white : AppColors.text(for: colorScheme))
+
+                    if !isUser {
+                        HStack(spacing: 10) {
+                            Button(copyLabel) {
+                                UIPasteboard.general.string = message.text
+                                copyLabel = "Kopiert"
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                                    copyLabel = "Kopieren"
+                                }
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.accentMystic(for: colorScheme))
+
+                            Button("Teilen") {
+                                showingShareSheet = true
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.accent(for: colorScheme))
+                        }
+                        .padding(.top, 8)
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -316,6 +340,9 @@ private struct AgentMessageBubble: View {
             )
 
             if !isUser { Spacer(minLength: 48) }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            AIShareSheet(activityItems: [message.text])
         }
     }
 
@@ -378,7 +405,7 @@ private struct AgentComposerBar: View {
                     Button(action: {
                         isFocused.wrappedValue = false
                         onSend()
-                    }) {
+                    }, label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title3.weight(.bold))
                             .foregroundColor(.white)
@@ -396,7 +423,7 @@ private struct AgentComposerBar: View {
                                         )
                                     )
                             )
-                    }
+                    })
                     .buttonStyle(.plain)
                     .disabled(trimmedDraft.isEmpty || isSending)
                     .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)

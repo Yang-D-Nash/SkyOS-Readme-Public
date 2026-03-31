@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AIView: View {
     @StateObject private var viewModel: AIChatViewModel
@@ -247,7 +248,7 @@ private struct AIQuickPromptCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(prompts, id: \.self) { prompt in
-                        Button(action: { onPromptSelected(prompt) }) {
+                        Button(action: { onPromptSelected(prompt) }, label: {
                             Text(prompt)
                                 .font(.subheadline.weight(.semibold))
                                 .multilineTextAlignment(.leading)
@@ -259,7 +260,7 @@ private struct AIQuickPromptCard: View {
                                     RoundedRectangle(cornerRadius: 18)
                                         .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
                                 )
-                        }
+                        })
                         .buttonStyle(.plain)
                     }
                 }
@@ -293,7 +294,7 @@ private struct AIVisualPromptCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(prompts) { prompt in
-                        Button(action: { onPromptSelected(prompt.prompt) }) {
+                        Button(action: { onPromptSelected(prompt.prompt) }, label: {
                             Text(prompt.label)
                                 .font(.subheadline.weight(.semibold))
                                 .multilineTextAlignment(.leading)
@@ -305,7 +306,7 @@ private struct AIVisualPromptCard: View {
                                     RoundedRectangle(cornerRadius: 18)
                                         .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
                                 )
-                        }
+                        })
                         .buttonStyle(.plain)
                     }
                 }
@@ -324,6 +325,9 @@ private struct AIVisualPromptCard: View {
 private struct AIMessageBubble: View {
     let message: AIChatMessage
     let colorScheme: ColorScheme
+    @State private var showingShareSheet = false
+    @State private var shareItems: [Any] = []
+    @State private var copyLabel = "Kopieren"
 
     private var isUser: Bool {
         message.role == .user
@@ -362,6 +366,28 @@ private struct AIMessageBubble: View {
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                             .padding(.top, 4)
                     }
+
+                    if !isUser {
+                        HStack(spacing: 10) {
+                            Button(copyLabel) {
+                                UIPasteboard.general.string = message.text
+                                copyLabel = "Kopiert"
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                                    copyLabel = "Kopieren"
+                                }
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.accent(for: colorScheme))
+
+                            Button("Teilen / Speichern") {
+                                shareItems = sharePayload()
+                                showingShareSheet = true
+                            }
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                        }
+                        .padding(.top, 8)
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -380,6 +406,9 @@ private struct AIMessageBubble: View {
             )
 
             if !isUser { Spacer(minLength: 48) }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            AIShareSheet(activityItems: shareItems)
         }
     }
 
@@ -405,6 +434,15 @@ private struct AIMessageBubble: View {
                 )
             }
         }
+    }
+
+    private func sharePayload() -> [Any] {
+        var items: [Any] = [message.text]
+        if let imageData = message.imageData,
+           let image = UIImage(data: imageData) {
+            items.append(image)
+        }
+        return items
     }
 }
 
@@ -453,7 +491,7 @@ private struct AIComposerBar: View {
                         Button(action: {
                             isFocused.wrappedValue = false
                             onSend()
-                        }) {
+                        }, label: {
                             Image(systemName: composerMode == .text ? "arrow.up.circle.fill" : "sparkles")
                                 .font(.title3.weight(.bold))
                                 .foregroundColor(.white)
@@ -471,7 +509,7 @@ private struct AIComposerBar: View {
                                             )
                                         )
                                 )
-                        }
+                        })
                         .buttonStyle(.plain)
                         .disabled(trimmedDraft.isEmpty || isSending)
                         .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)

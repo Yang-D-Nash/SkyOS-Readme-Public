@@ -1,6 +1,7 @@
 package com.skydown.android.ui.screen
 
 import android.graphics.BitmapFactory
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -420,6 +422,7 @@ private fun AiMessageBubble(
     message: AiMessage,
     compactLayout: Boolean,
 ) {
+    val context = LocalContext.current
     val isUser = message.role == AiMessageRole.User
     val bubbleShape = RoundedCornerShape(
         topStart = 24.dp,
@@ -510,6 +513,49 @@ private fun AiMessageBubble(
                             .height(220.dp)
                             .clip(RoundedCornerShape(18.dp)),
                     )
+                }
+
+                if (!isUser && !message.isStreaming) {
+                    Row(
+                        modifier = Modifier.padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Button(
+                            onClick = {
+                                copyAiText(context, "X22 Bot", message.text)
+                                Toast.makeText(context, "Antwort kopiert.", Toast.LENGTH_SHORT).show()
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text("Kopieren")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                shareAiText(context, "X22 Bot", message.text)
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text("Teilen")
+                        }
+
+                        if (message.imageBytes != null) {
+                            OutlinedButton(
+                                onClick = {
+                                    saveAiImage(context, message.imageBytes, message.imageMimeType)
+                                        .onSuccess {
+                                            Toast.makeText(context, "Bild gespeichert.", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .onFailure {
+                                            Toast.makeText(context, "Bild konnte nicht gespeichert werden.", Toast.LENGTH_SHORT).show()
+                                        }
+                                },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            ) {
+                                Text("Bild speichern")
+                            }
+                        }
+                    }
                 }
             }
         }

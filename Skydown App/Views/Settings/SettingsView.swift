@@ -13,6 +13,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
 
+    @StateObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @Binding var colorScheme: String
 
     @State private var language = "Deutsch"
@@ -153,6 +154,82 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.bordered)
                             .disabled(!(authManager.userSession?.isAdmin ?? false))
+
+                            if authManager.userSession?.isAdmin == true {
+                                Divider()
+                                    .padding(.vertical, 4)
+
+                                Toggle(
+                                    "Visual Reference Pack aktiv",
+                                    isOn: Binding(
+                                        get: { aiVisualReferenceLibrary.settings.isEnabled },
+                                        set: { isEnabled in
+                                            aiVisualReferenceLibrary.update { settings in
+                                                settings.isEnabled = isEnabled
+                                            }
+                                        }
+                                    )
+                                )
+
+                                Text("Lokal auf diesem Admin-Geraet gespeichert. Drive-Link und Referenzhinweise helfen der KI bei Benennung und Stilrichtung; echtes Drive-Sync folgt spaeter.")
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                SettingsInputField(
+                                    title: "Drive- oder Asset-Link",
+                                    text: Binding(
+                                        get: { aiVisualReferenceLibrary.settings.storageLink },
+                                        set: { value in
+                                            aiVisualReferenceLibrary.update { settings in
+                                                settings.storageLink = value
+                                            }
+                                        }
+                                    ),
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "https://drive.google.com/..."
+                                )
+
+                                SettingsInputField(
+                                    title: "Benennungs-Praefix",
+                                    text: Binding(
+                                        get: { aiVisualReferenceLibrary.settings.namingPrefix },
+                                        set: { value in
+                                            aiVisualReferenceLibrary.update { settings in
+                                                settings.namingPrefix = value
+                                            }
+                                        }
+                                    ),
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. skydown_drop_"
+                                )
+
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Referenzhinweise")
+                                        .font(.headline)
+                                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                                    Text("Bis zu 5 kurze Hinweise fuer Charaktere, Elemente, Moodboards oder Shots.")
+                                        .font(.footnote)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                    ForEach(Array(aiVisualReferenceLibrary.settings.referenceHints.indices), id: \.self) { index in
+                                        SettingsInputField(
+                                            title: "Referenz \(index + 1)",
+                                            text: Binding(
+                                                get: { aiVisualReferenceLibrary.settings.referenceHints[index] },
+                                                set: { value in
+                                                    aiVisualReferenceLibrary.update { settings in
+                                                        guard settings.referenceHints.indices.contains(index) else { return }
+                                                        settings.referenceHints[index] = value
+                                                    }
+                                                }
+                                            ),
+                                            colorScheme: effectiveColorScheme,
+                                            placeholder: "z. B. Close-up Charakter mit starker Seitenkante und dunklem Hintergrund"
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -397,6 +474,31 @@ struct SettingsView: View {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+}
+
+private struct SettingsInputField: View {
+    let title: String
+    @Binding var text: String
+    let colorScheme: ColorScheme
+    let placeholder: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            TextField(placeholder, text: $text)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .background(AppColors.secondaryBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                )
+        }
     }
 }
 

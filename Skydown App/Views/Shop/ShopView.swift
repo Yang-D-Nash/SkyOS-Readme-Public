@@ -15,6 +15,7 @@ struct HomeView: View {
     @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
     @State private var showingBeatHub = false
     @State private var showingNicmaProducer = false
+    @State private var hasLoadedInitialHomeContent = false
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
@@ -39,35 +40,32 @@ struct HomeView: View {
                     HomeLatestReleaseCard(
                         viewModel: viewModel,
                         playbackManager: audioPlayerManager,
-                        colorScheme: colorScheme,
-                        onPreviewToggle: { track in
-                            beatPlaybackManager.stop()
-                            videoPlaybackManager.stop()
-                            audioPlayerManager.playPreview(for: track)
-                        }
-                    )
+                        colorScheme: colorScheme
+                    ) { track in
+                        beatPlaybackManager.stop()
+                        videoPlaybackManager.stop()
+                        audioPlayerManager.playPreview(for: track)
+                    }
                     .homeReveal(1)
                     HomeLatestBeatCard(
                         viewModel: viewModel,
                         playbackManager: beatPlaybackManager,
-                        colorScheme: colorScheme,
-                        onPlayToggle: { beat in
-                            audioPlayerManager.stop()
-                            videoPlaybackManager.stop()
-                            beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
-                        }
-                    )
+                        colorScheme: colorScheme
+                    ) { beat in
+                        audioPlayerManager.stop()
+                        videoPlaybackManager.stop()
+                        beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
+                    }
                     .homeReveal(2)
                     HomeLatestVideoCard(
                         viewModel: viewModel,
                         playbackManager: videoPlaybackManager,
-                        colorScheme: colorScheme,
-                        onPlayToggle: { video in
-                            beatPlaybackManager.stop()
-                            audioPlayerManager.stop()
-                            videoPlaybackManager.togglePlayback(for: video)
-                        }
-                    )
+                        colorScheme: colorScheme
+                    ) { video in
+                        beatPlaybackManager.stop()
+                        audioPlayerManager.stop()
+                        videoPlaybackManager.togglePlayback(for: video)
+                    }
                     .homeReveal(3)
                     HomeStoryCard(
                         colorScheme: colorScheme,
@@ -95,7 +93,7 @@ struct HomeView: View {
                 viewModel.refresh()
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Hub")
+            .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -118,6 +116,8 @@ struct HomeView: View {
                 }
             }
             .task {
+                guard !hasLoadedInitialHomeContent else { return }
+                hasLoadedInitialHomeContent = true
                 viewModel.refresh()
             }
             .onDisappear {
@@ -322,9 +322,13 @@ private struct HomeHeroIntroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Hier laufen Zweizwei, Skydown, Merch und Tools als globale Bereiche zusammen.")
+                Text("Hier laufen Zweizwei, Skydown, Merchandise und Tools als globale Bereiche zusammen.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                Text("Entwickelt von Yang D. Nash, damit Musik, Videography und Creator-Workflows in einer App zusammenlaufen.")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
             }
 
             ZStack {
@@ -590,7 +594,7 @@ private struct HomeLatestVideoCard: View {
                         .onAppear {
                             playbackManager.prepare(video: video)
                         }
-                        .onChange(of: video.id) { _ in
+                        .onChange(of: video.id) { _, _ in
                             playbackManager.prepare(video: video)
                         }
                 }
@@ -658,25 +662,16 @@ private struct HomeStoryCard: View {
                     subtitle: "Releases, Artists, Beat Hub und NICMA Producer laufen ueber die Zweizwei-Schiene.",
                     colorScheme: colorScheme
                 ) {
-                    HomeActionButton(
-                        title: "Yang D. Nash auf Instagram",
-                        icon: "camera.fill",
-                        colorScheme: colorScheme,
-                        isPrimary: true
-                    ) {
-                        if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
-                            openURL(url)
-                        }
-                    }
-
-                    HomeActionButton(
-                        title: "22 auf Instagram",
-                        icon: "person.2.fill",
-                        colorScheme: colorScheme,
-                        isPrimary: false
-                    ) {
-                        if let url = zweizweiInstagramDestination.url {
-                            openURL(url)
+                    ForEach(homeZweizweiInstagramDestinations) { destination in
+                        HomeActionButton(
+                            title: destination.title,
+                            icon: destination.id == "artist_yang_d_nash" ? "camera.fill" : "person.2.fill",
+                            colorScheme: colorScheme,
+                            isPrimary: destination.id == "artist_yang_d_nash"
+                        ) {
+                            if let url = destination.url {
+                                openURL(url)
+                            }
                         }
                     }
 
@@ -787,6 +782,45 @@ private let homeFeaturedArtists = [
     "JANNO",
     "TANGAJOE007",
     "Toprack941"
+]
+
+private let homeZweizweiInstagramDestinations: [MusicInstagramDestination] = [
+    MusicInstagramDestination(
+        id: "artist_yang_d_nash",
+        title: "Yang D. Nash • Artist & Developer",
+        handle: "@y.d.nash",
+        urlString: "https://www.instagram.com/y.d.nash/",
+        helper: "Kopf der App und Zweizwei-Artist"
+    ),
+    zweizweiInstagramDestination,
+    MusicInstagramDestination(
+        id: "artist_thadude_home",
+        title: "ThaDude",
+        handle: "@thadude_offizielle",
+        urlString: "https://www.instagram.com/thadude_offizielle/",
+        helper: "Zweizwei Artist"
+    ),
+    MusicInstagramDestination(
+        id: "artist_mave_home",
+        title: "MAVE",
+        handle: "@mave__official",
+        urlString: "https://www.instagram.com/mave__official/",
+        helper: "Zweizwei Artist"
+    ),
+    MusicInstagramDestination(
+        id: "artist_janno_home",
+        title: "JANNO",
+        handle: "@janno_official_",
+        urlString: "https://www.instagram.com/janno_official_/",
+        helper: "Zweizwei Artist"
+    ),
+    MusicInstagramDestination(
+        id: "artist_tangajoe_home",
+        title: "TANGAJOE007",
+        handle: "@tangajoe007",
+        urlString: "https://www.instagram.com/tangajoe007/",
+        helper: "Zweizwei Artist"
+    )
 ]
 
 private func homeMusicArtist(for track: Track) -> String {

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppearancePreferences
+import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.theme.AppearanceMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +49,12 @@ class SettingsViewModel : ViewModel() {
                 _uiState.update { it.copy(colorScheme = mode) }
             }
         }
+
+        viewModelScope.launch {
+            AiVisualReferenceLibraryPreferences.settings.collect { settings ->
+                _uiState.update { it.copy(aiVisualReferenceLibrary = settings) }
+            }
+        }
     }
 
     fun updateNotifications(enabled: Boolean) {
@@ -56,6 +63,22 @@ class SettingsViewModel : ViewModel() {
 
     fun updateColorScheme(colorScheme: AppearanceMode) {
         AppearancePreferences.updateAppearanceMode(colorScheme)
+    }
+
+    fun updateAiVisualReferenceEnabled(isEnabled: Boolean) {
+        AiVisualReferenceLibraryPreferences.updateEnabled(isEnabled)
+    }
+
+    fun updateAiVisualStorageLink(storageLink: String) {
+        AiVisualReferenceLibraryPreferences.updateStorageLink(storageLink)
+    }
+
+    fun updateAiVisualNamingPrefix(namingPrefix: String) {
+        AiVisualReferenceLibraryPreferences.updateNamingPrefix(namingPrefix)
+    }
+
+    fun updateAiVisualReferenceHint(index: Int, value: String) {
+        AiVisualReferenceLibraryPreferences.updateReferenceHint(index, value)
     }
 
     fun signOut(onSuccess: (() -> Unit)? = null) {

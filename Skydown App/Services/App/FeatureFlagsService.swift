@@ -27,7 +27,7 @@ final class FeatureFlagsService: ObservableObject {
         remoteConfig.configSettings = settings
         remoteConfig.setDefaults([
             Keys.aiEnabled: true as NSObject,
-            Keys.aiAccessMode: AIAccessMode.adminOnly.rawValue as NSObject,
+            Keys.aiAccessMode: AIAccessMode.adminOnly.rawValue as NSObject
         ])
         applyRemoteConfig()
 

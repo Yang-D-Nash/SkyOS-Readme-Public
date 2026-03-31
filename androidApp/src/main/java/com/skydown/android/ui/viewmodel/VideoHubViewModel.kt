@@ -491,23 +491,6 @@ class VideoHubViewModel(
             }
         }
     }
-
-    private fun observePublicConfig() {
-        publicConfigObservationCancellation?.invoke()
-        publicConfigObservationCancellation = videoHubService.observePublicConfig { result ->
-            result.onSuccess { config ->
-                _uiState.update { it.copy(publicConfig = config) }
-            }.onFailure {
-                _uiState.update {
-                    it.copy(
-                        publicConfig = VideoHubPublicConfig.default(),
-                        feedbackMessage = "Die oeffentlichen Videography-Daten konnten nicht geladen werden.",
-                        feedbackIsError = true,
-                    )
-                }
-            }
-        }
-    }
 }
 
 private fun Context.resolveSelectedVideoFile(

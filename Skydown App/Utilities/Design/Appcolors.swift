@@ -128,7 +128,7 @@ struct AppColors {
                 primaryBackground(for: colorScheme),
                 accent(for: colorScheme).opacity(0.14),
                 secondary.opacity(0.08),
-                primaryBackground(for: colorScheme),
+                primaryBackground(for: colorScheme)
             ],
             startPoint: .top,
             endPoint: .bottom

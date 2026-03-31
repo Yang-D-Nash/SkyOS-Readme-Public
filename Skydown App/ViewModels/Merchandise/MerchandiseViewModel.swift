@@ -190,37 +190,55 @@ final class HomeViewModel: ObservableObject {
 
     func refresh() {
         Task {
-            featuredTrack = await loadLatestTrack()
-            featuredBeat = await loadLatestBeat()
-            featuredVideo = await loadLatestVideo()
-            homeTrackMessage = featuredTrack == nil
-                ? "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
-                : nil
-            homeBeatMessage = featuredBeat == nil
-                ? "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
-                : nil
-            homeVideoMessage = featuredVideo == nil
-                ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
-                : nil
+            await withTaskGroup(of: HomeRefreshResult.self) { group in
+                group.addTask { .track(await self.loadLatestTrack()) }
+                group.addTask { .beat(await self.loadLatestBeat()) }
+                group.addTask { .video(await self.loadLatestVideo()) }
+
+                for await result in group {
+                    switch result {
+                    case .track(let track):
+                        featuredTrack = track
+                        homeTrackMessage = track == nil
+                            ? "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
+                            : nil
+                    case .beat(let beat):
+                        featuredBeat = beat
+                        homeBeatMessage = beat == nil
+                            ? "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
+                            : nil
+                    case .video(let video):
+                        featuredVideo = video
+                        homeVideoMessage = video == nil
+                            ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
+                            : nil
+                    }
+                }
+            }
         }
     }
 
     private func loadLatestTrack() async -> Track? {
-        var latestTrack: Track?
-
-        for artist in featuredArtists {
-            let tracks = (try? await musicService.fetchTracks(for: artist)) ?? []
-            for track in tracks {
-                let candidateDate = track.releaseDate ?? ""
-                guard !candidateDate.isEmpty else { continue }
-                let currentDate = latestTrack?.releaseDate ?? ""
-                if latestTrack == nil || candidateDate > currentDate {
-                    latestTrack = track
+        let trackGroups = await withTaskGroup(of: [Track].self) { group in
+            for artist in featuredArtists {
+                group.addTask {
+                    (try? await self.musicService.fetchTracks(for: artist)) ?? []
                 }
             }
+
+            var collectedTracks: [[Track]] = []
+            for await tracks in group {
+                collectedTracks.append(tracks)
+            }
+            return collectedTracks
         }
 
-        return latestTrack
+        return trackGroups
+            .flatMap { $0 }
+            .filter { !($0.releaseDate ?? "").isEmpty }
+            .max { lhs, rhs in
+                (lhs.releaseDate ?? "") < (rhs.releaseDate ?? "")
+            }
     }
 
     private func loadLatestBeat() async -> FeaturedHomeBeat? {
@@ -318,4 +336,10 @@ final class HomeViewModel: ObservableObject {
         }
         return .distantPast
     }
+}
+
+private enum HomeRefreshResult {
+    case track(Track?)
+    case beat(FeaturedHomeBeat?)
+    case video(FeaturedHomeVideo?)
 }

@@ -242,6 +242,8 @@ final class AIChatViewModel: ObservableObject {
     }
 
     private func buildVisualPrompt(for userPrompt: String) -> String {
+        let referenceContext = AIVisualReferenceLibraryStore.promptContext()
+
         return """
         Du bist der Skydown x 22 Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
         Markenkontext:
@@ -254,6 +256,8 @@ final class AIChatViewModel: ObservableObject {
         Nutze nur sehr wenig Text im Bild. Wenn Text im Motiv vorkommt, dann maximal eine kurze Headline.
         Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.
         Antworte auf Deutsch.
+
+        \(referenceContext ?? "")
 
         Nutzeranfrage:
         \(userPrompt)

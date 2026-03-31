@@ -33,191 +33,6 @@ enum SpotifyAuthError: LocalizedError {
 }
 
 final class SpotifyMusicService: NSObject, MusicServicing {
-    private enum Constants {
-        static let clientID = "e22e102e5cd847bb8f59a140fda76bcc"
-        static let redirectURI = "skydown://spotify-auth"
-        static let authorizeURL = "https://accounts.spotify.com/authorize"
-        static let tokenURL = "https://accounts.spotify.com/api/token"
-        static let apiBaseURL = "https://api.spotify.com/v1"
-        static let callbackScheme = "skydown"
-        static let searchPageSize = 10
-        static let searchMaxResults = 50
-        static let artistAlbumsPageSize = 10
-        static let artistAlbumsMaxResults = 100
-        static let albumTracksPageSize = 50
-        static let publicFallbackTargetTrackCount = 6
-        static let publicFallbackMaxAlbumPages = 8
-        static let artistIDs: [String: String] = [
-            "Yang D. Nash": "63Sh0kQAWW3ZWn2aKDksbo",
-            "ThaDude": "0Jmb7DXFkKxxRjqD70vi0e",
-            "MAVE": "0GXymtRaIk2ngbXSkcHtsp",
-            "JANNO": "7hpiHzP9aLLb5liDLxtwhM",
-            "Tangajoe": "0OA5dgpVdwzI8K82m8FPxN",
-            "TANGAJOE007": "0OA5dgpVdwzI8K82m8FPxN",
-            "NICMA MUSIC": "0OoRIo7pJjtLgg3qyf1oDS",
-            "NICMA": "0OoRIo7pJjtLgg3qyf1oDS",
-            "Toprack": "4CoozMQ3B3I20day60N7QA",
-            "Toprack941": "4CoozMQ3B3I20day60N7QA",
-        ]
-    }
-
-    private struct SpotifyTokenResponse: Decodable {
-        let accessToken: String
-        let tokenType: String
-        let expiresIn: Int
-        let refreshToken: String?
-
-        enum CodingKeys: String, CodingKey {
-            case accessToken = "access_token"
-            case tokenType = "token_type"
-            case expiresIn = "expires_in"
-            case refreshToken = "refresh_token"
-        }
-    }
-
-    private struct SpotifyErrorResponse: Decodable {
-        let error: String?
-        let errorDescription: String?
-
-        enum CodingKeys: String, CodingKey {
-            case error
-            case errorDescription = "error_description"
-        }
-    }
-
-    private struct SpotifyHTTPError: LocalizedError {
-        let statusCode: Int
-        let payload: String
-
-        var errorDescription: String? {
-            "Spotify API Fehler \(statusCode): \(payload)"
-        }
-    }
-
-    private struct SpotifySearchResponse: Decodable {
-        let tracks: SpotifyTracks
-    }
-
-    private struct SpotifyTracks: Decodable {
-        let items: [SpotifyTrack]
-    }
-
-    private struct SpotifyArtistAlbumsResponse: Decodable {
-        let items: [SpotifyArtistAlbum]
-    }
-
-    private struct SpotifyArtistAlbum: Decodable {
-        let id: String
-        let name: String
-        let images: [SpotifyImage]
-        let totalTracks: Int
-        let releaseDate: String?
-
-        enum CodingKeys: String, CodingKey {
-            case id
-            case name
-            case images
-            case totalTracks = "total_tracks"
-            case releaseDate = "release_date"
-        }
-    }
-
-    private struct SpotifyAlbumTracksResponse: Decodable {
-        let items: [SpotifyAlbumTrack]
-    }
-
-    private struct SpotifyAlbumTrack: Decodable {
-        let id: String
-        let name: String
-        let previewURL: String?
-        let artists: [SpotifyArtist]
-        let externalURLs: [String: String]
-
-        enum CodingKeys: String, CodingKey {
-            case id
-            case name
-            case previewURL = "preview_url"
-            case artists
-            case externalURLs = "external_urls"
-        }
-    }
-
-    private struct SpotifyTrack: Decodable {
-        let id: String
-        let name: String
-        let previewURL: String?
-        let album: SpotifyAlbum
-        let artists: [SpotifyArtist]
-        let externalURLs: [String: String]
-
-        enum CodingKeys: String, CodingKey {
-            case id
-            case name
-            case previewURL = "preview_url"
-            case album
-            case artists
-            case externalURLs = "external_urls"
-        }
-    }
-
-    private struct SpotifyAlbum: Decodable {
-        let name: String
-        let images: [SpotifyImage]
-        let releaseDate: String?
-
-        enum CodingKeys: String, CodingKey {
-            case name
-            case images
-            case releaseDate = "release_date"
-        }
-    }
-
-    private struct SpotifyArtist: Decodable {
-        let id: String
-        let name: String
-    }
-
-    private struct SpotifyImage: Decodable {
-        let url: String
-    }
-
-    private struct CatalogSearchResponse: Decodable {
-        let results: [CatalogTrack]
-    }
-
-    private struct CatalogTrack: Decodable {
-        let trackId: Int?
-        let artistId: Int?
-        let artistName: String
-        let trackName: String
-        let collectionName: String?
-        let artworkUrl100: String?
-        let previewUrl: String?
-        let wrapperType: String?
-        let kind: String?
-        let releaseDate: String?
-    }
-
-    private struct PublicAlbumReference {
-        let albumID: String
-        let releaseDate: String?
-    }
-
-    private struct StoredToken: Codable {
-        let accessToken: String
-        let refreshToken: String?
-        let expirationDate: Date
-    }
-
-    private final class PresentationAnchorProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
-        func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            return scenes
-                .flatMap(\.windows)
-                .first(where: \.isKeyWindow) ?? ASPresentationAnchor()
-        }
-    }
-
     private let session = URLSession.shared
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
@@ -232,7 +47,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     var debugConfigurationDescription: String {
-        "client_id=\(Constants.clientID) redirect_uri=\(Constants.redirectURI)"
+        "client_id=\(SpotifyMusicConstants.clientID) redirect_uri=\(SpotifyMusicConstants.redirectURI)"
     }
 
     var lastAuthorizationURLString: String? {
@@ -249,7 +64,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     func fetchTracks(for artist: String) async throws -> [Track] {
-        if let knownArtistID = Constants.artistIDs[artist] {
+        if let knownArtistID = SpotifyMusicConstants.artistIDs[artist] {
             return try await fetchKnownArtistTracksWithFallbacks(
                 for: artist,
                 artistID: knownArtistID
@@ -359,12 +174,12 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         }
 
         return mappedTracks.filter { track in
-            return artistMatches(expectedArtist: artist, actualArtist: track.artistName)
+            artistMatches(expectedArtist: artist, actualArtist: track.artistName)
         }
     }
 
     private func fetchCatalogTracks(for artist: String) async throws -> [Track] {
-        let knownArtistID = Constants.artistIDs[artist]
+        let knownArtistID = SpotifyMusicConstants.artistIDs[artist]
         var resultsByKey: [String: CatalogTrack] = [:]
         var orderedKeys: [String] = []
 
@@ -440,14 +255,14 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             )
         }
 
-        if tracksByID.count < Constants.publicFallbackTargetTrackCount {
+        if tracksByID.count < SpotifyMusicConstants.publicFallbackTargetTrackCount {
             let albumReferences = publicAlbumReferences(
                 from: artistEntity,
                 discography: discography,
                 releaseDatesByAlbumURI: releaseDatesByAlbumURI
             )
 
-            for albumReference in albumReferences.prefix(Constants.publicFallbackMaxAlbumPages) {
+            for albumReference in albumReferences.prefix(SpotifyMusicConstants.publicFallbackMaxAlbumPages) {
                 let albumTracks = try await fetchPublicAlbumTracks(
                     for: artist,
                     artistID: artistID,
@@ -462,7 +277,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                     )
                 }
 
-                if tracksByID.count >= Constants.publicFallbackTargetTrackCount {
+                if tracksByID.count >= SpotifyMusicConstants.publicFallbackTargetTrackCount {
                     break
                 }
             }
@@ -613,7 +428,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         var albumsByID: [String: SpotifyArtistAlbum] = [:]
         var albumOrder: [String] = []
 
-        for offset in stride(from: 0, to: Constants.artistAlbumsMaxResults, by: Constants.artistAlbumsPageSize) {
+        for offset in stride(from: 0, to: SpotifyMusicConstants.artistAlbumsMaxResults, by: SpotifyMusicConstants.artistAlbumsPageSize) {
             let data = try await performGetRequest(
                 url: try artistAlbumsURL(for: artistID, offset: offset),
                 accessToken: accessToken
@@ -625,7 +440,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 albumsByID[album.id] = album
             }
 
-            if page.count < Constants.artistAlbumsPageSize {
+            if page.count < SpotifyMusicConstants.artistAlbumsPageSize {
                 break
             }
         }
@@ -642,7 +457,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
 
         var tracks: [SpotifyAlbumTrack] = []
 
-        for offset in stride(from: 0, to: album.totalTracks, by: Constants.albumTracksPageSize) {
+        for offset in stride(from: 0, to: album.totalTracks, by: SpotifyMusicConstants.albumTracksPageSize) {
             let data = try await performGetRequest(
                 url: try albumTracksURL(for: album.id, offset: offset),
                 accessToken: accessToken
@@ -652,7 +467,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 track.artists.contains(where: { $0.id == artistID })
             })
 
-            if page.count < Constants.albumTracksPageSize {
+            if page.count < SpotifyMusicConstants.albumTracksPageSize {
                 break
             }
         }
@@ -719,11 +534,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func authorizationURL(codeChallenge: String, state: String) throws -> URL {
-        var components = URLComponents(string: Constants.authorizeURL)
+        var components = URLComponents(string: SpotifyMusicConstants.authorizeURL)
         components?.queryItems = [
-            URLQueryItem(name: "client_id", value: Constants.clientID),
+            URLQueryItem(name: "client_id", value: SpotifyMusicConstants.clientID),
             URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "redirect_uri", value: Constants.redirectURI),
+            URLQueryItem(name: "redirect_uri", value: SpotifyMusicConstants.redirectURI),
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "code_challenge", value: codeChallenge),
             URLQueryItem(name: "state", value: state),
@@ -740,7 +555,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         try await withCheckedThrowingContinuation { continuation in
             let session = ASWebAuthenticationSession(
                 url: url,
-                callbackURLScheme: Constants.callbackScheme
+                callbackURLScheme: SpotifyMusicConstants.callbackScheme
             ) { callbackURL, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -764,8 +579,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         try await performTokenRequest([
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": Constants.redirectURI,
-            "client_id": Constants.clientID,
+            "redirect_uri": SpotifyMusicConstants.redirectURI,
+            "client_id": SpotifyMusicConstants.clientID,
             "code_verifier": verifier,
         ])
     }
@@ -774,7 +589,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         try await performTokenRequest([
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
-            "client_id": Constants.clientID,
+            "client_id": SpotifyMusicConstants.clientID,
         ], fallbackRefreshToken: refreshToken)
     }
 
@@ -782,7 +597,10 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         _ parameters: [String: String],
         fallbackRefreshToken: String? = nil
     ) async throws -> StoredToken {
-        var request = URLRequest(url: URL(string: Constants.tokenURL)!)
+        guard let tokenURL = URL(string: SpotifyMusicConstants.tokenURL) else {
+            throw SpotifyAuthError.missingToken
+        }
+        var request = URLRequest(url: tokenURL)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -815,14 +633,14 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func searchURL(forQuery query: String, offset: Int) throws -> URL {
-        guard var components = URLComponents(string: "\(Constants.apiBaseURL)/search") else {
+        guard var components = URLComponents(string: "\(SpotifyMusicConstants.apiBaseURL)/search") else {
             throw URLError(.badURL)
         }
 
         components.queryItems = [
             URLQueryItem(name: "q", value: query),
             URLQueryItem(name: "type", value: "track"),
-            URLQueryItem(name: "limit", value: "\(Constants.searchPageSize)"),
+            URLQueryItem(name: "limit", value: "\(SpotifyMusicConstants.searchPageSize)"),
             URLQueryItem(name: "offset", value: "\(offset)"),
         ]
 
@@ -833,13 +651,13 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func artistAlbumsURL(for artistID: String, offset: Int) throws -> URL {
-        guard var components = URLComponents(string: "\(Constants.apiBaseURL)/artists/\(artistID)/albums") else {
+        guard var components = URLComponents(string: "\(SpotifyMusicConstants.apiBaseURL)/artists/\(artistID)/albums") else {
             throw URLError(.badURL)
         }
 
         components.queryItems = [
             URLQueryItem(name: "include_groups", value: "album,single"),
-            URLQueryItem(name: "limit", value: "\(Constants.artistAlbumsPageSize)"),
+            URLQueryItem(name: "limit", value: "\(SpotifyMusicConstants.artistAlbumsPageSize)"),
             URLQueryItem(name: "offset", value: "\(offset)")
         ]
 
@@ -850,12 +668,12 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func albumTracksURL(for albumID: String, offset: Int) throws -> URL {
-        guard var components = URLComponents(string: "\(Constants.apiBaseURL)/albums/\(albumID)/tracks") else {
+        guard var components = URLComponents(string: "\(SpotifyMusicConstants.apiBaseURL)/albums/\(albumID)/tracks") else {
             throw URLError(.badURL)
         }
 
         components.queryItems = [
-            URLQueryItem(name: "limit", value: "\(Constants.albumTracksPageSize)"),
+            URLQueryItem(name: "limit", value: "\(SpotifyMusicConstants.albumTracksPageSize)"),
             URLQueryItem(name: "offset", value: "\(offset)")
         ]
 
@@ -1247,7 +1065,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     private func performSearch(query: String, accessToken: String) async throws -> [SpotifyTrack] {
         var items: [SpotifyTrack] = []
 
-        for offset in stride(from: 0, to: Constants.searchMaxResults, by: Constants.searchPageSize) {
+        for offset in stride(from: 0, to: SpotifyMusicConstants.searchMaxResults, by: SpotifyMusicConstants.searchPageSize) {
             let data = try await performSearchRequest(
                 query: query,
                 accessToken: accessToken,
@@ -1256,7 +1074,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             let page = try decoder.decode(SpotifySearchResponse.self, from: data).tracks.items
             items.append(contentsOf: page)
 
-            if page.count < Constants.searchPageSize {
+            if page.count < SpotifyMusicConstants.searchPageSize {
                 break
             }
         }

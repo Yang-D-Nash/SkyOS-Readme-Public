@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -54,6 +55,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -367,6 +369,7 @@ private fun AgentMessageBubble(
     message: AgentMessage,
     compactLayout: Boolean,
 ) {
+    val context = LocalContext.current
     val isUser = message.role == AgentMessageRole.User
     val bubbleShape = RoundedCornerShape(
         topStart = 24.dp,
@@ -439,6 +442,32 @@ private fun AgentMessageBubble(
                     },
                     modifier = Modifier.padding(top = 8.dp),
                 )
+
+                if (!isUser && !message.isStreaming) {
+                    Row(
+                        modifier = Modifier.padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Button(
+                            onClick = {
+                                copyAiText(context, "X22 Agent", message.text)
+                                android.widget.Toast.makeText(context, "Antwort kopiert.", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text("Kopieren")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                shareAiText(context, "X22 Agent", message.text)
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text("Teilen")
+                        }
+                    }
+                }
             }
         }
     }

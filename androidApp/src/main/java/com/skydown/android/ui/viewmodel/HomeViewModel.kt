@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.tasks.await
 
 class HomeViewModel : ViewModel() {
@@ -36,51 +39,67 @@ class HomeViewModel : ViewModel() {
 
     fun refresh() {
         viewModelScope.launch {
-            val latestTrack = loadLatestTrack()
-            val latestBeat = loadLatestBeat()
-            val latestVideo = loadLatestVideo()
+            supervisorScope {
+                launch {
+                    val latestTrack = loadLatestTrack()
+                    _uiState.update {
+                        it.copy(
+                            featuredTrack = latestTrack,
+                            homeTrackMessage = if (latestTrack == null) {
+                                "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                }
 
-            _uiState.update {
-                it.copy(
-                    featuredTrack = latestTrack,
-                    featuredBeat = latestBeat,
-                    featuredVideo = latestVideo,
-                    homeTrackMessage = if (latestTrack == null) {
-                        "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
-                    } else {
-                        null
-                    },
-                    homeBeatMessage = if (latestBeat == null) {
-                        "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
-                    } else {
-                        null
-                    },
-                    homeVideoMessage = if (latestVideo == null) {
-                        "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
-                    } else {
-                        null
-                    },
-                )
+                launch {
+                    val latestBeat = loadLatestBeat()
+                    _uiState.update {
+                        it.copy(
+                            featuredBeat = latestBeat,
+                            homeBeatMessage = if (latestBeat == null) {
+                                "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                }
+
+                launch {
+                    val latestVideo = loadLatestVideo()
+                    _uiState.update {
+                        it.copy(
+                            featuredVideo = latestVideo,
+                            homeVideoMessage = if (latestVideo == null) {
+                                "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                }
             }
         }
     }
 
     private suspend fun loadLatestTrack(): Track? {
-        var latestTrack: Track? = null
-
-        featuredArtists.forEach { artist ->
-            val tracks = musicService.fetchTracks(artist).getOrNull().orEmpty()
-            tracks.forEach { track ->
-                val candidateDate = track.releaseDate.orEmpty()
-                if (candidateDate.isBlank()) return@forEach
-                val currentDate = latestTrack?.releaseDate.orEmpty()
-                if (latestTrack == null || candidateDate > currentDate) {
-                    latestTrack = track
+        val tracks = supervisorScope {
+            featuredArtists
+                .map { artist ->
+                    async {
+                        musicService.fetchTracks(artist).getOrNull().orEmpty()
+                    }
                 }
-            }
+                .awaitAll()
+                .flatten()
         }
 
-        return latestTrack
+        return tracks
+            .filter { !it.releaseDate.orEmpty().isBlank() }
+            .maxByOrNull { it.releaseDate.orEmpty() }
     }
 
     private suspend fun loadLatestBeat(): FeaturedBeatHighlight? {

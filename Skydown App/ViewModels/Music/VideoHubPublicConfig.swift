@@ -46,7 +46,7 @@ struct SkydownVideoHubPublicConfig: Equatable {
                 id: "post-production",
                 title: "Postproduktion",
                 detail: "Adobe Premiere Pro, DaVinci Resolve Studio und Adobe After Effects."
-            ),
+            )
         ],
         youtubeItems: []
     )
@@ -101,5 +101,5 @@ let skydownProducedWithArtists: [SkydownProducedWithArtist] = [
         role: "Produced With",
         spotifyArtistID: "3oxSFNrPcoqo7qkAIsR74D",
         instagramURLString: "https://www.instagram.com/daco.27/"
-    ),
+    )
 ]

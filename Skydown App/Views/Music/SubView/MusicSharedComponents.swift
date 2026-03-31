@@ -492,7 +492,7 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         handle: "@janno_official_",
         urlString: "https://www.instagram.com/janno_official_/",
         helper: "Artist aktuell ausgewaehlt"
-    ),
+    )
 ]
 
 let zweizweiInstagramDestination = MusicInstagramDestination(

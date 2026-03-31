@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.ui.SkydownApp
 import com.skydown.android.ui.theme.AppearanceMode
@@ -27,6 +28,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         AppearancePreferences.initialize(applicationContext)
         AppFeatureFlagsStore.initialize()
+        AiVisualReferenceLibraryPreferences.initialize(applicationContext)
         SpotifyAuthManager.initialize(applicationContext)
         handleSpotifyRedirect(intent?.data)
         volumeControlStream = AudioManager.STREAM_MUSIC

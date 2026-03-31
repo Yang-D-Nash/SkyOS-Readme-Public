@@ -163,11 +163,10 @@ struct CartView: View {
                         colorScheme: colorScheme,
                         totalPrice: totalPrice,
                         isFormValid: isFormValid,
-                        isSubmitting: isSubmitting,
-                        onSubmit: {
-                            showConfirmationDialog = true
-                        }
-                    )
+                        isSubmitting: isSubmitting
+                    ) {
+                        showConfirmationDialog = true
+                    }
                 }
             }
             .onAppear(perform: populateContactDetails)

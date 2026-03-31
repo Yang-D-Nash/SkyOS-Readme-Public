@@ -126,7 +126,7 @@ struct MusicView: View {
     }
 
     private var selectedTrack: Track? {
-        viewModel.tracks.first(where: { $0.trackId == selectedTrackID }) ?? viewModel.tracks.first
+        viewModel.tracks.first { $0.trackId == selectedTrackID } ?? viewModel.tracks.first
     }
 
     private var trackIDs: [Int] {
@@ -140,6 +140,7 @@ struct MusicView: View {
                     heroCard
                     workflowCard
                     artistsCard
+                    instagramCard
                     spotifyCard
                     musicPlayerCard
                     tracksCard
@@ -185,7 +186,7 @@ struct MusicView: View {
             .task(id: selectedArtist) {
                 await reloadTracksIfNeeded()
             }
-            .onChange(of: trackIDs) { _ in
+            .onChange(of: trackIDs) {
                 guard !viewModel.tracks.isEmpty else {
                     selectedTrackID = nil
                     return
@@ -197,7 +198,7 @@ struct MusicView: View {
 
                 activateInitialSelectionIfNeeded()
             }
-            .onChange(of: audioManager.currentlyPlayingId) { playingID in
+            .onChange(of: audioManager.currentlyPlayingId) { _, playingID in
                 if let playingID {
                     selectedTrackID = playingID
                 }
@@ -435,6 +436,18 @@ struct MusicView: View {
         )
     }
 
+    @ViewBuilder
+    private var instagramCard: some View {
+        let destinations = musicInstagramDestinations()
+        if !destinations.isEmpty {
+            MusicInstagramHubCard(
+                selectedArtist: selectedArtist,
+                destinations: destinations,
+                colorScheme: colorScheme
+            )
+        }
+    }
+
     private var tracksCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Tracks")
@@ -576,11 +589,10 @@ struct MusicView: View {
                     TrackView(
                         track: track,
                         audioManager: audioManager,
-                        isSelected: selectedTrackID == track.trackId,
-                        onSelect: {
-                            selectedTrackID = track.trackId
-                        }
-                    )
+                        isSelected: selectedTrackID == track.trackId
+                    ) {
+                        selectedTrackID = track.trackId
+                    }
                 }
             }
         }
@@ -605,7 +617,7 @@ struct MusicView: View {
         }
 
         let initialTrack = initialTrackID.flatMap { targetID in
-            viewModel.tracks.first(where: { $0.trackId == targetID })
+            viewModel.tracks.first { $0.trackId == targetID }
         }
         let track = initialTrack ?? selectedTrack ?? viewModel.tracks.first
 
@@ -621,6 +633,17 @@ struct MusicView: View {
         }
 
         hasHandledInitialSelection = true
+    }
+
+    private func musicInstagramDestinations() -> [MusicInstagramDestination] {
+        let artistDestinations = artists.compactMap { artistInstagramDestinations[$0] }
+
+        switch brand {
+        case .skydown:
+            return artistDestinations + [skydownMusicInstagramDestination]
+        case .zweizwei:
+            return [zweizweiInstagramDestination] + artistDestinations
+        }
     }
 }
 

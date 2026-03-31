@@ -179,7 +179,7 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "Hub",
-                        "Zweizwei, Skydown, Merch und Tools auf einen Blick.",
+                        "Zweizwei, Skydown, Merchandise und Tools auf einen Blick.",
                     )
                 },
                 actions = {
@@ -354,7 +354,7 @@ private fun HomeAnimatedItem(
     var visible by remember(order) { mutableStateOf(false) }
 
     LaunchedEffect(order) {
-        delay(order * 45L)
+        delay(order * 18L)
         visible = true
     }
 
@@ -378,14 +378,19 @@ private fun HomeHeroCard() {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "Hub",
+                    text = "Home",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Hier laufen Zweizwei, Skydown, Merch und Tools als globale Bereiche zusammen.",
+                    text = "Hier laufen Zweizwei, Skydown, Merchandise und Tools als globale Bereiche zusammen.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
+                Text(
+                    text = "Entwickelt von Yang D. Nash, damit Musik, Videography und Creator-Workflows in einer App zusammenlaufen.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
 
@@ -737,41 +742,52 @@ private fun HomeStoryCard(
             modifier = Modifier.padding(top = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            HomeLaneSection(
-                title = "Zweizwei Music",
-                subtitle = "Releases, Artists, Beat Hub und NICMA Producer laufen ueber die Zweizwei-Schiene.",
-            ) {
-                Button(
-                    onClick = {
-                        openExternalLink(context, "https://www.instagram.com/y.d.nash/")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
+                HomeLaneSection(
+                    title = "Zweizwei Music",
+                    subtitle = "Releases, Artists, Beat Hub und NICMA Producer laufen ueber die Zweizwei-Schiene.",
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Language,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Yang D. Nash auf Instagram",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                    homeZweizweiSocialLinks.forEachIndexed { index, link ->
+                        val isPrimary = index == 0
+                        val buttonContent: @Composable () -> Unit = {
+                            Icon(
+                                imageVector = if (isPrimary) Icons.Default.Language else Icons.Default.Person,
+                                contentDescription = null,
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(link.title)
+                                Text(
+                                    text = link.subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isPrimary) {
+                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
+                                    },
+                                )
+                            }
+                        }
 
-                OutlinedButton(
-                    onClick = {
-                        openExternalLink(context, "https://www.instagram.com/zweizwei_music/")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "22 auf Instagram",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                        if (isPrimary) {
+                            Button(
+                                onClick = { openExternalLink(context, link.url) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                buttonContent()
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { openExternalLink(context, link.url) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                buttonContent()
+                            }
+                        }
+                    }
 
                 OutlinedButton(
                     onClick = { onOpenBeatHub() },
@@ -951,6 +967,45 @@ private fun homeResolvedSpotifyArtistId(track: com.skydown.shared.model.Track): 
     if (artistIndex == -1 || artistIndex + 1 >= pathSegments.size) return null
     return pathSegments[artistIndex + 1]
 }
+
+private data class HomeSocialLink(
+    val title: String,
+    val subtitle: String,
+    val url: String,
+)
+
+private val homeZweizweiSocialLinks = listOf(
+    HomeSocialLink(
+        title = "Yang D. Nash • Artist & Developer",
+        subtitle = "@y.d.nash",
+        url = "https://www.instagram.com/y.d.nash/",
+    ),
+    HomeSocialLink(
+        title = "Zweizwei Music",
+        subtitle = "@zweizwei_music",
+        url = "https://www.instagram.com/zweizwei_music/",
+    ),
+    HomeSocialLink(
+        title = "ThaDude",
+        subtitle = "@thadude_offizielle",
+        url = "https://www.instagram.com/thadude_offizielle/",
+    ),
+    HomeSocialLink(
+        title = "MAVE",
+        subtitle = "@mave__official",
+        url = "https://www.instagram.com/mave__official/",
+    ),
+    HomeSocialLink(
+        title = "JANNO",
+        subtitle = "@janno_official_",
+        url = "https://www.instagram.com/janno_official_/",
+    ),
+    HomeSocialLink(
+        title = "TANGAJOE007",
+        subtitle = "@tangajoe007",
+        url = "https://www.instagram.com/tangajoe007/",
+    ),
+)
 
 private const val homeDestinationBeatHub = "home_beat_hub"
 private const val homeDestinationNicmaProducer = "home_nicma_producer"

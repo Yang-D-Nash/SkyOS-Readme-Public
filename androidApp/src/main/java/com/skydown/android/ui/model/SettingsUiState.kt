@@ -1,6 +1,7 @@
 package com.skydown.android.ui.model
 
 import com.skydown.android.ui.theme.AppearanceMode
+import com.skydown.android.data.AiVisualReferenceLibrarySettings
 
 data class SettingsUiState(
     val isLoggedIn: Boolean = false,
@@ -14,4 +15,5 @@ data class SettingsUiState(
     val isSigningOut: Boolean = false,
     val isDeletingAccount: Boolean = false,
     val accountErrorMessage: String? = null,
+    val aiVisualReferenceLibrary: AiVisualReferenceLibrarySettings = AiVisualReferenceLibrarySettings(),
 )

@@ -32,7 +32,7 @@ struct VideoHubView: View {
     }
 
     private var selectedVideo: SkydownVideoHubItem? {
-        viewModel.videos.first(where: { $0.id == playbackManager.selectedVideoID }) ?? viewModel.videos.first
+        viewModel.videos.first { $0.id == playbackManager.selectedVideoID } ?? viewModel.videos.first
     }
 
     var body: some View {
@@ -1003,17 +1003,3 @@ final class VideoPlaybackManager: ObservableObject {
         }
     }
 }
-
-let supportedVideoContentTypes: [UTType] = [
-    .movie,
-    .mpeg4Movie,
-    .quickTimeMovie,
-    UTType(filenameExtension: "m4v") ?? .movie
-]
-
-let skydownVideoDateFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "de_DE")
-    formatter.dateFormat = "dd.MM.yyyy"
-    return formatter
-}()

@@ -141,7 +141,9 @@ struct MainTabView: View {
             SettingsView(colorScheme: $colorScheme)
         }
         .sheet(isPresented: $showingCart) {
-            CartView(onOpenSettings: { showingSettings = true })
+            CartView {
+                showingSettings = true
+            }
         }
         .sheet(isPresented: $showingLogin) {
             LoginView()
@@ -253,23 +255,26 @@ private struct ZweizweiTabView: View {
                         ShellActionCard(
                             title: "MUSIC CATALOG",
                             subtitle: "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
-                            accent: AppColors.spotify(for: colorScheme),
-                            action: { destination = .catalog }
-                        )
+                            accent: AppColors.spotify(for: colorScheme)
+                        ) {
+                            destination = .catalog
+                        }
 
                         ShellActionCard(
                             title: "BEAT HUB",
                             subtitle: "Eigene Beat-Logik, Preview-Library und Upload-/Listener-Flow.",
-                            accent: AppColors.accent(for: colorScheme),
-                            action: { destination = .beatHub }
-                        )
+                            accent: AppColors.accent(for: colorScheme)
+                        ) {
+                            destination = .beatHub
+                        }
 
                         ShellActionCard(
                             title: "NICMA PRODUCER",
                             subtitle: "Mixing, Mastering und Recording als eigener Music-Service.",
-                            accent: AppColors.accentMystic(for: colorScheme),
-                            action: { destination = .nicma }
-                        )
+                            accent: AppColors.accentMystic(for: colorScheme)
+                        ) {
+                            destination = .nicma
+                        }
                     }
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                     .padding(.top, SkydownLayout.screenTopPadding)
@@ -304,11 +309,15 @@ private struct ZweizweiTabView: View {
             )
         case .beatHub:
             NavigationStack {
-                BeatHubView(onBack: { destination = .hub })
+                BeatHubView {
+                    destination = .hub
+                }
             }
         case .nicma:
             NavigationStack {
-                NicmaProducerView(onBack: { destination = .hub })
+                NicmaProducerView {
+                    destination = .hub
+                }
             }
         }
     }

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,6 +55,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,6 +73,7 @@ import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.component.openTrackInSpotify
 import com.skydown.android.ui.model.MusicUiState
+import com.skydown.android.ui.model.MusicInstagramDestination
 import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.theme.SpotifyGreenContainer
 import com.skydown.android.ui.viewmodel.MusicViewModel
@@ -285,6 +288,15 @@ fun MusicScreen(
                 }
 
                 item {
+                    MusicInstagramHubCard(
+                        destinations = uiState.instagramHubDestinations,
+                        onOpenLink = { url ->
+                            openExternalLink(context, url)
+                        },
+                    )
+                }
+
+                item {
                     when {
                         uiState.isLoading -> {
                             MusicStatusCard(
@@ -355,6 +367,59 @@ fun MusicScreen(
                     }
                 }
 
+            }
+        }
+    }
+}
+
+@Composable
+private fun MusicInstagramHubCard(
+    destinations: List<MusicInstagramDestination>,
+    onOpenLink: (String) -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Instagram")
+        Text(
+            text = "Direkte Artist- und Label-Links fuer die komplette Zweizwei Section.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+
+        Column(
+            modifier = Modifier.padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            destinations.forEach { destination ->
+                OutlinedButton(
+                    onClick = { onOpenLink(destination.instagramUrl) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Language,
+                        contentDescription = null,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = destination.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = destination.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }

@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -247,6 +248,59 @@ fun SettingsScreen(
                             shape = RoundedCornerShape(18.dp),
                         ) {
                             Text("Bestellungen oeffnen")
+                        }
+
+                        if (uiState.isAdmin) {
+                            Text(
+                                text = "Visual Reference Pack",
+                                modifier = Modifier.padding(top = 16.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            SettingsToggleRow(
+                                title = "Referenzbibliothek aktiv",
+                                body = "Drive-Link, Benennungs-Praefix und bis zu 5 Referenzhinweise fuer Visual-Prompts auf diesem Admin-Geraet.",
+                                checked = uiState.aiVisualReferenceLibrary.isEnabled,
+                                onCheckedChange = viewModel::updateAiVisualReferenceEnabled,
+                                modifier = Modifier.padding(top = 10.dp),
+                            )
+                            OutlinedTextField(
+                                value = uiState.aiVisualReferenceLibrary.storageLink,
+                                onValueChange = viewModel::updateAiVisualStorageLink,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                label = { Text("Drive- oder Asset-Link") },
+                                placeholder = { Text("https://drive.google.com/...") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = uiState.aiVisualReferenceLibrary.namingPrefix,
+                                onValueChange = viewModel::updateAiVisualNamingPrefix,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Benennungs-Praefix") },
+                                placeholder = { Text("z. B. skydown_drop_") },
+                                singleLine = true,
+                            )
+                            uiState.aiVisualReferenceLibrary.referenceHints.forEachIndexed { index, referenceHint ->
+                                OutlinedTextField(
+                                    value = referenceHint,
+                                    onValueChange = { value ->
+                                        viewModel.updateAiVisualReferenceHint(index, value)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 10.dp),
+                                    label = { Text("Referenz ${index + 1}") },
+                                    placeholder = {
+                                        Text("z. B. Charakter, Outfit, Shot, Element oder Mood")
+                                    },
+                                    minLines = 2,
+                                    maxLines = 3,
+                                )
+                            }
                         }
                     }
                 }

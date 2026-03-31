@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.google.firebase.ai.type.FinishReason
 import com.google.firebase.ai.type.PromptBlockedException
 import com.google.firebase.ai.type.ResponseStoppedException
@@ -284,6 +285,7 @@ class AiViewModel : ViewModel() {
     }
 
     private fun buildVisualPrompt(userPrompt: String): String {
+        val referenceContext = AiVisualReferenceLibraryPreferences.promptContext()
         return """
             Du bist der Skydown x 22 Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
             Markenkontext:
@@ -296,6 +298,8 @@ class AiViewModel : ViewModel() {
             Nutze nur sehr wenig Text im Bild. Wenn Text im Motiv vorkommt, dann maximal eine kurze Headline.
             Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.
             Antworte auf Deutsch.
+
+            ${referenceContext ?: ""}
 
             Nutzeranfrage:
             $userPrompt

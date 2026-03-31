@@ -237,7 +237,7 @@ private func resolvedTrackSpotifyArtistID(_ track: Track) -> String? {
 private struct TrackTag: View {
     let text: String
     let isAccent: Bool
-    var tint: Color? = nil
+    var tint: Color?
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -278,8 +278,7 @@ private struct TrackTag: View {
     TrackView(
         track: sampleTrack,
         audioManager: audioManager,
-        isSelected: true,
-        onSelect: {}
-    )
+        isSelected: true
+    ) {}
         .padding()
 }
