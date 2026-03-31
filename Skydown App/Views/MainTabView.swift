@@ -136,7 +136,8 @@ struct MainTabView: View {
                 }
             }
             .toolbar(.visible, for: .tabBar)
-            .toolbarBackground(.hidden, for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
             .toolbarColorScheme(currentScheme, for: .tabBar)
         }
         .accentColor(AppColors.accent(for: currentScheme))
@@ -247,23 +248,34 @@ private struct ZweizweiTabView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Zweizwei Music")
-                                .font(.system(size: 38, weight: .black, design: .rounded))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-
-                            Text("Hier hat Zweizwei seinen eigenen Musikbereich. Catalog, Beat Hub und NICMA Producer bleiben klar getrennt von Skydown Videography und Merchandise.")
-                                .font(.headline)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        BrandHeroSurface(
+                            colorScheme: colorScheme,
+                            eyebrow: "Zweizwei",
+                            title: "Music",
+                            subtitle: "Catalog, Beat Hub und NICMA Producer bleiben klar als eigener Musikbereich gebündelt.",
+                            detail: "Die Identität von Zweizwei bleibt getrennt von Skydown Videography und Merchandise, aber die Navigation wirkt jetzt wie ein gemeinsames System.",
+                            accent: AppColors.spotify(for: colorScheme),
+                            secondaryAccent: AppColors.accent(for: colorScheme),
+                            marks: [.zweizwei]
+                        ) {
+                            HStack(spacing: 10) {
+                                BrandHeroPill(
+                                    text: "Catalog",
+                                    colorScheme: colorScheme,
+                                    tint: AppColors.spotify(for: colorScheme)
+                                )
+                                BrandHeroPill(
+                                    text: "Beat Hub",
+                                    colorScheme: colorScheme,
+                                    tint: AppColors.accent(for: colorScheme)
+                                )
+                                BrandHeroPill(
+                                    text: "NICMA",
+                                    colorScheme: colorScheme,
+                                    tint: AppColors.accentMystic(for: colorScheme)
+                                )
+                            }
                         }
-                        .padding(SkydownLayout.heroPadding)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(AppColors.cardBackground(for: colorScheme))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
-                                .stroke(AppColors.spotify(for: colorScheme).opacity(0.22), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
 
                         ShellActionCard(
                             title: "MUSIC CATALOG",

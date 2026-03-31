@@ -6,6 +6,7 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.BankTransferSettings
+import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.WorkflowAutomationPreferences
 import com.google.firebase.firestore.ListenerRegistration
@@ -20,7 +21,9 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel : ViewModel() {
     private val authService = AppContainer.authService
+    private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
     private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
+    private var commerceSettingsListener: ListenerRegistration? = null
     private var paymentMethodsListener: ListenerRegistration? = null
     private val _uiState = MutableStateFlow(
         SettingsUiState(),
@@ -84,6 +87,17 @@ class SettingsViewModel : ViewModel() {
                 )
             }
         }
+
+        commerceSettingsListener = commerceSettingsRepository.observeSettings { result ->
+            result.onSuccess { settings ->
+                _uiState.update { it.copy(commerceSettings = settings) }
+            }.onFailure { error ->
+                showPaymentFeedback(
+                    message = error.message ?: "Commerce-Einstellungen konnten nicht geladen werden.",
+                    isError = true,
+                )
+            }
+        }
     }
 
     fun updateNotifications(enabled: Boolean) {
@@ -126,6 +140,23 @@ class SettingsViewModel : ViewModel() {
         WorkflowAutomationPreferences.updateGoogleScopeHint(value)
     }
 
+    fun saveCommerceSettings(settings: CommerceSettings, successMessage: String = "Commerce-Einstellungen gespeichert.") {
+        viewModelScope.launch {
+            val result = commerceSettingsRepository.updateSettings(settings)
+            if (result.isSuccess) {
+                showPaymentFeedback(
+                    message = successMessage,
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "Commerce-Einstellungen konnten nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
     fun connectStripe(accountHint: String) {
         updatePaymentMethods("Stripe verbunden.") { current ->
             current.copy(
@@ -162,9 +193,28 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun connectPayPal(accountHint: String) {
+        if (accountHint.isBlank()) {
+            showPaymentFeedback(
+                message = "Bitte zuerst einen PayPal.Me-Link oder eine Business-Mail hinterlegen.",
+                isError = true,
+            )
+            return
+        }
+
         updatePaymentMethods("PayPal verbunden.") { current ->
             current.copy(
                 paypal = current.paypal.copy(
+                    connected = true,
+                    accountHint = accountHint.trim(),
+                ),
+            )
+        }
+    }
+
+    fun connectKlarna(accountHint: String) {
+        updatePaymentMethods("Klarna verbunden.") { current ->
+            current.copy(
+                klarna = current.klarna.copy(
                     connected = true,
                     accountHint = accountHint.trim(),
                 ),
@@ -184,6 +234,18 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
+    fun disconnectKlarna() {
+        updatePaymentMethods("Klarna getrennt.") { current ->
+            current.copy(
+                klarna = current.klarna.copy(
+                    connected = false,
+                    enabled = false,
+                    accountHint = "",
+                ),
+            )
+        }
+    }
+
     fun setPayPalEnabled(enabled: Boolean) {
         updatePaymentMethods(
             message = if (enabled) "PayPal im Checkout sichtbar." else "PayPal im Checkout ausgeblendet.",
@@ -191,6 +253,18 @@ class SettingsViewModel : ViewModel() {
             current.copy(
                 paypal = current.paypal.copy(
                     enabled = enabled && current.paypal.connected,
+                ),
+            )
+        }
+    }
+
+    fun setKlarnaEnabled(enabled: Boolean) {
+        updatePaymentMethods(
+            message = if (enabled) "Klarna im Checkout sichtbar." else "Klarna im Checkout ausgeblendet.",
+        ) { current ->
+            current.copy(
+                klarna = current.klarna.copy(
+                    enabled = enabled && current.klarna.connected,
                 ),
             )
         }
@@ -307,6 +381,8 @@ class SettingsViewModel : ViewModel() {
     }
 
     override fun onCleared() {
+        commerceSettingsListener?.remove()
+        commerceSettingsListener = null
         paymentMethodsListener?.remove()
         paymentMethodsListener = null
         super.onCleared()

@@ -67,6 +67,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -336,53 +339,24 @@ fun VideoHubScreen(
 private fun VideoHubHeroCard(
     isAdmin: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Skydown Videography",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = if (isAdmin) {
-                        "Hier landen Videoarbeiten fuer Reels, Clips, Sessions und Visuals. Admins koennen neue Dateien direkt nach Firebase Storage hochladen."
-                    } else {
-                        "Hier laufen die oeffentlichen Videoarbeiten von Skydown. Admin-Uploads gehen direkt ueber den internen Bereich."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Movie,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            VideoPill(text = "Videos", isActive = true)
-            VideoPill(text = "Admin Upload", isActive = isAdmin)
-            VideoPill(text = "Storage", isActive = false)
+    BrandHeroCard(
+        eyebrow = "Skydown",
+        title = "Videography",
+        subtitle = if (isAdmin) {
+            "Reels, Clips, Sessions und Visuals bleiben zentral steuerbar. Admins koennen Uploads, Home-Highlights und oeffentliche Listen direkt pflegen."
+        } else {
+            "Hier laufen die oeffentlichen Videoarbeiten von Skydown mit Equipment, YouTube-Bereich und aktuellen Kollaborationen."
+        },
+        detail = "Der Bereich ist jetzt klarer als eigener Premium-Hub fuer Skydown produziert.",
+        accent = MaterialTheme.colorScheme.secondary,
+        secondaryAccent = MaterialTheme.colorScheme.tertiary,
+        marks = listOf(BrandArtwork.Skydown),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandPill(text = "Videos", tint = MaterialTheme.colorScheme.secondary)
+            BrandPill(text = "Equipment", tint = MaterialTheme.colorScheme.primary)
+            BrandPill(text = "YouTube", tint = MaterialTheme.colorScheme.tertiary)
+            BrandPill(text = if (isAdmin) "Admin" else "Live", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }

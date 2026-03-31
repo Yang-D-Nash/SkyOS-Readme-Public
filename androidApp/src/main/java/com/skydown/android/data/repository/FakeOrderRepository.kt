@@ -16,7 +16,14 @@ class FakeOrderRepository : OrderRepository {
         customerName: String,
         customerEmail: String,
         whatsApp: String,
+        shippingAddress: String,
         message: String,
+        paymentMethod: String,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double,
     ): Result<Unit> {
         return Result.success(Unit)
     }

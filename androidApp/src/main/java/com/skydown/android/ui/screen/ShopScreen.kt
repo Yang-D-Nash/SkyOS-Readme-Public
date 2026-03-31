@@ -73,6 +73,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.MerchandiseCard
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
@@ -113,7 +115,7 @@ fun ShopScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { SkydownTopBarTitle("Merch Hub", "Globale Drops, Apparel und Cart.") },
+                title = { SkydownTopBarTitle("Merchandise", "Drops, Apparel und direkter Checkout.") },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -300,57 +302,20 @@ private fun ShopOverviewCard(
     uiState: ShopUiState,
     onToggleStore: (() -> Unit)? = null,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    BrandHeroCard(
+        eyebrow = "Global Store",
+        title = "Merchandise",
+        subtitle = "Drops, Apparel und direkter Checkout fuer Zweizwei und Skydown in einem gemeinsamen Store.",
+        detail = if (uiState.isStoreOpen) {
+            "Der Store ist live und fuer Kunden sichtbar."
+        } else {
+            "Der Store ist aktuell pausiert und kann jederzeit wieder freigeschaltet werden."
+        },
+        accent = MaterialTheme.colorScheme.tertiary,
+        secondaryAccent = MaterialTheme.colorScheme.secondary,
+        marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
+    ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = "Merch Hub",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Globale Drops, Apparel und Cart.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-                Text(
-                    text = if (uiState.isStoreOpen) {
-                        "Kaufen ist aktuell freigeschaltet."
-                    } else {
-                        "Kaufen ist aktuell pausiert."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (uiState.isStoreOpen) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.tertiary
-                    },
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ShoppingBag,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ShopBadge(

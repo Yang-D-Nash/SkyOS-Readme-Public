@@ -20,13 +20,22 @@ class AndroidOrderRepository(
                 .documents
                 .mapNotNull { document ->
                     val data = document.data ?: return@mapNotNull null
-                    val rawItems = data["items"] as? List<Map<String, Any?>> ?: emptyList()
+                    val rawItems = (data["items"] as? List<*>)
+                        ?.mapNotNull { it as? Map<*, *> }
+                        .orEmpty()
                     Order(
                         id = document.id,
                         userEmail = data["userEmail"] as? String ?: "",
                         customerName = data["customerName"] as? String,
                         customerEmail = data["customerEmail"] as? String,
                         whatsApp = data["whatsApp"] as? String,
+                        shippingAddress = data["shippingAddress"] as? String,
+                        paymentMethod = (data["paymentMethod"] as? String)?.takeIf { it.isNotBlank() },
+                        subtotalAmount = (data["subtotalAmount"] as? Number)?.toDouble(),
+                        shippingAmount = (data["shippingAmount"] as? Number)?.toDouble(),
+                        taxRate = (data["taxRate"] as? Number)?.toDouble(),
+                        taxAmount = (data["taxAmount"] as? Number)?.toDouble(),
+                        totalAmount = (data["totalAmount"] as? Number)?.toDouble(),
                         message = data["message"] as? String,
                         items = rawItems.mapIndexed { index, item ->
                             OrderItem(
@@ -50,7 +59,14 @@ class AndroidOrderRepository(
         customerName: String,
         customerEmail: String,
         whatsApp: String,
+        shippingAddress: String,
         message: String,
+        paymentMethod: String,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double,
     ): Result<Unit> {
         return runCatching {
             val orderItems = items.map { item ->
@@ -67,6 +83,13 @@ class AndroidOrderRepository(
                     "customerName" to customerName,
                     "customerEmail" to customerEmail,
                     "whatsApp" to whatsApp,
+                    "shippingAddress" to shippingAddress,
+                    "paymentMethod" to paymentMethod,
+                    "subtotalAmount" to subtotalAmount,
+                    "shippingAmount" to shippingAmount,
+                    "taxRate" to taxRate,
+                    "taxAmount" to taxAmount,
+                    "totalAmount" to totalAmount,
                     "message" to message,
                     "items" to orderItems,
                     "isCompleted" to false,

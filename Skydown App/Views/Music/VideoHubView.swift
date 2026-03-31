@@ -170,35 +170,25 @@ struct VideoHubView: View {
     }
 
     private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Skydown Videography")
-                .font(.largeTitle.bold())
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text(
-                viewModel.isAdmin
-                ? "Hier landen Reels, Clips, Sessions und Visuals. Als Admin kannst du hochladen, loeschen und ein Home-Video festlegen."
-                : "Hier laufen die oeffentlichen Videos von Skydown. Einfach Clip waehlen und direkt anschauen."
-            )
-            .font(.body)
-            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
+        BrandHeroSurface(
+            colorScheme: colorScheme,
+            eyebrow: "Skydown",
+            title: "Videography",
+            subtitle: viewModel.isAdmin
+                ? "Reels, Clips, Sessions und Visuals bleiben zentral steuerbar. Admins koennen Uploads, Home-Highlights und oeffentliche Listen direkt pflegen."
+                : "Hier laufen die oeffentlichen Videoarbeiten von Skydown mit Equipment, YouTube-Bereich und aktuellen Kollaborationen.",
+            detail: "Der Bereich ist jetzt klarer als eigener Premium-Hub fuer Skydown produziert.",
+            accent: AppColors.accentMystic(for: colorScheme),
+            secondaryAccent: AppColors.accentHighlight(for: colorScheme),
+            marks: [.skydown]
+        ) {
             HStack(spacing: 8) {
                 MusicBadge(text: "Videos", isAccent: true)
-                MusicBadge(text: viewModel.isAdmin ? "Admin Upload" : "Playback", isAccent: false)
-                MusicBadge(text: "Storage", isAccent: false)
+                MusicBadge(text: "Equipment", isAccent: false)
+                MusicBadge(text: "YouTube", isAccent: false)
+                MusicBadge(text: viewModel.isAdmin ? "Admin" : "Live", isAccent: false)
             }
         }
-        .padding(SkydownLayout.heroPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
     }
 
     private var formatCard: some View {

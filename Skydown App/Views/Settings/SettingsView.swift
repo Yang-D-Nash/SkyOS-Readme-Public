@@ -5,6 +5,9 @@
 //  Created by Yang D. Nash on 24.07.25.
 //
 
+// swiftlint:disable file_length
+// swiftlint:disable multiple_closures_with_trailing_closure
+
 import SwiftUI
 import MessageUI
 
@@ -14,6 +17,8 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var environmentColorScheme
 
     @StateObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
+    @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
+    @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
     @StateObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
     @Binding var colorScheme: String
@@ -34,11 +39,23 @@ struct SettingsView: View {
     @State private var showingMailView = false
     @State private var stripeAccountHintDraft = ""
     @State private var paypalAccountHintDraft = ""
+    @State private var klarnaAccountHintDraft = ""
     @State private var bankAccountHolderDraft = ""
     @State private var bankIbanDraft = ""
     @State private var bankBicDraft = ""
     @State private var bankNameDraft = ""
     @State private var bankInstructionsDraft = ""
+    @State private var domesticShippingDraft = ""
+    @State private var internationalShippingDraft = ""
+    @State private var freeShippingThresholdDraft = ""
+    @State private var shippingNotesDraft = ""
+    @State private var invoiceCompanyNameDraft = ""
+    @State private var invoiceCompanyAddressDraft = ""
+    @State private var invoiceTaxNumberDraft = ""
+    @State private var invoiceVatIdDraft = ""
+    @State private var invoiceTaxRateDraft = ""
+    @State private var invoicePrefixDraft = ""
+    @State private var invoiceSupportEmailDraft = ""
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -304,7 +321,7 @@ struct SettingsView: View {
                     if authManager.userSession?.isAdmin == true {
                         SettingsSectionCard(title: "Zahlungen", colorScheme: effectiveColorScheme) {
                             VStack(alignment: .leading, spacing: 14) {
-                                Text("Verbinde Zahlarten getrennt vom Checkout. Erst danach kannst du sie fuer Kunden sichtbar schalten.")
+                                Text("PayPal und Bankueberweisung kannst du sofort als manuellen Checkout-Handoff nutzen. Stripe und Klarna bleiben vorerst vorbereitete Live-Provider fuer spaeter.")
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -314,39 +331,59 @@ struct SettingsView: View {
                                     statusText: paymentMethodSettingsStore.settings.stripe.connected ? "Verbunden" : "Nicht verbunden",
                                     checkoutVisible: paymentMethodSettingsStore.settings.stripe.connected && paymentMethodSettingsStore.settings.stripe.enabled,
                                     accountHintTitle: "Stripe Konto / Workspace",
+                                    accountHintPlaceholder: "z. B. Skydown Merch Workspace",
                                     accountHint: $stripeAccountHintDraft,
                                     actionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Verbindung aktualisieren" : "Mit Stripe verbinden",
                                     secondaryActionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Trennen" : nil,
                                     onPrimaryAction: { saveStripeConnection() },
-                                    onSecondaryAction: paymentMethodSettingsStore.settings.stripe.connected ? { disconnectStripe() } : nil,
-                                    onToggleCheckoutVisible: { isVisible in
+                                    onSecondaryAction: paymentMethodSettingsStore.settings.stripe.connected ? { disconnectStripe() } : nil
+                                ) { isVisible in
                                         setCheckoutVisibility(
                                             keyPath: \.stripe,
                                             isVisible: isVisible,
                                             providerName: "Stripe"
                                         )
-                                    }
-                                )
+                                }
 
                                 PaymentProviderSettingsCard(
                                     colorScheme: effectiveColorScheme,
                                     title: "PayPal",
-                                    statusText: paymentMethodSettingsStore.settings.paypal.connected ? "Verbunden" : "Nicht verbunden",
+                                    statusText: paymentMethodSettingsStore.settings.paypal.connected ? "Hinterlegt" : "Noch nicht hinterlegt",
                                     checkoutVisible: paymentMethodSettingsStore.settings.paypal.connected && paymentMethodSettingsStore.settings.paypal.enabled,
-                                    accountHintTitle: "PayPal Konto / Business-Mail",
+                                    accountHintTitle: "PayPal.Me Link oder Business-Mail",
+                                    accountHintPlaceholder: "z. B. https://paypal.me/deinname",
                                     accountHint: $paypalAccountHintDraft,
-                                    actionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "Verbindung aktualisieren" : "Mit PayPal verbinden",
-                                    secondaryActionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "Trennen" : nil,
+                                    actionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "PayPal aktualisieren" : "PayPal hinterlegen",
+                                    secondaryActionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "Entfernen" : nil,
                                     onPrimaryAction: { savePayPalConnection() },
-                                    onSecondaryAction: paymentMethodSettingsStore.settings.paypal.connected ? { disconnectPayPal() } : nil,
-                                    onToggleCheckoutVisible: { isVisible in
+                                    onSecondaryAction: paymentMethodSettingsStore.settings.paypal.connected ? { disconnectPayPal() } : nil
+                                ) { isVisible in
                                         setCheckoutVisibility(
                                             keyPath: \.paypal,
                                             isVisible: isVisible,
                                             providerName: "PayPal"
                                         )
-                                    }
-                                )
+                                }
+
+                                PaymentProviderSettingsCard(
+                                    colorScheme: effectiveColorScheme,
+                                    title: "Klarna",
+                                    statusText: paymentMethodSettingsStore.settings.klarna.connected ? "Verbunden" : "Nicht verbunden",
+                                    checkoutVisible: paymentMethodSettingsStore.settings.klarna.connected && paymentMethodSettingsStore.settings.klarna.enabled,
+                                    accountHintTitle: "Klarna Merchant / Store ID",
+                                    accountHintPlaceholder: "z. B. Klarna Merchant EU",
+                                    accountHint: $klarnaAccountHintDraft,
+                                    actionTitle: paymentMethodSettingsStore.settings.klarna.connected ? "Verbindung aktualisieren" : "Mit Klarna verbinden",
+                                    secondaryActionTitle: paymentMethodSettingsStore.settings.klarna.connected ? "Trennen" : nil,
+                                    onPrimaryAction: { saveKlarnaConnection() },
+                                    onSecondaryAction: paymentMethodSettingsStore.settings.klarna.connected ? { disconnectKlarna() } : nil
+                                ) { isVisible in
+                                        setCheckoutVisibility(
+                                            keyPath: \.klarna,
+                                            isVisible: isVisible,
+                                            providerName: "Klarna"
+                                        )
+                                }
 
                                 BankTransferSettingsCard(
                                     colorScheme: effectiveColorScheme,
@@ -362,6 +399,129 @@ struct SettingsView: View {
                                         setBankTransferVisibility(isVisible)
                                     }
                                 )
+                            }
+                        }
+
+                        SettingsSectionCard(title: "Versand & Rechnung", colorScheme: effectiveColorScheme) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text("Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.")
+                                    .font(.body)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                HStack(spacing: 10) {
+                                    SettingsBadge(
+                                        text: merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert",
+                                        colorScheme: effectiveColorScheme
+                                    )
+                                    SettingsBadge(
+                                        text: commerceSettingsStore.settings.invoice.supportEmail.takeIfNotBlank() ?? "Support offen",
+                                        colorScheme: effectiveColorScheme
+                                    )
+                                }
+
+                                Text("Versand")
+                                    .font(.headline)
+                                    .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                                SettingsInputField(
+                                    title: "Versand Deutschland (EUR)",
+                                    text: $domesticShippingDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. 4.90",
+                                    keyboardType: .decimalPad
+                                )
+
+                                SettingsInputField(
+                                    title: "Versand International (EUR)",
+                                    text: $internationalShippingDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. 11.90",
+                                    keyboardType: .decimalPad
+                                )
+
+                                SettingsInputField(
+                                    title: "Versand frei ab (EUR)",
+                                    text: $freeShippingThresholdDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. 89.00",
+                                    keyboardType: .decimalPad
+                                )
+
+                                SettingsInputField(
+                                    title: "Versandhinweis",
+                                    text: $shippingNotesDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. Versand innerhalb von 3-5 Werktagen"
+                                )
+
+                                Divider()
+                                    .padding(.vertical, 4)
+
+                                Text("Rechnung")
+                                    .font(.headline)
+                                    .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                                SettingsInputField(
+                                    title: "Firmenname",
+                                    text: $invoiceCompanyNameDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "Skydown Entertainment"
+                                )
+
+                                SettingsInputField(
+                                    title: "Firmenadresse",
+                                    text: $invoiceCompanyAddressDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "Strasse, PLZ Ort"
+                                )
+
+                                SettingsInputField(
+                                    title: "Steuernummer",
+                                    text: $invoiceTaxNumberDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "optional"
+                                )
+
+                                SettingsInputField(
+                                    title: "USt-IdNr.",
+                                    text: $invoiceVatIdDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "optional"
+                                )
+
+                                HStack(spacing: 10) {
+                                    SettingsInputField(
+                                        title: "MwSt. Satz (%)",
+                                        text: $invoiceTaxRateDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "19.0",
+                                        keyboardType: .decimalPad
+                                    )
+
+                                    SettingsInputField(
+                                        title: "Rechnungs-Praefix",
+                                        text: $invoicePrefixDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "SD"
+                                    )
+                                }
+
+                                SettingsInputField(
+                                    title: "Support / Rechnungs-Mail",
+                                    text: $invoiceSupportEmailDraft,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "skydownent@gmail.com",
+                                    keyboardType: .emailAddress
+                                )
+
+                                Button {
+                                    saveCommerceSettings()
+                                } label: {
+                                    Label("Versand & Rechnung speichern", systemImage: "shippingbox.and.arrow.backward")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppColors.accentMystic(for: effectiveColorScheme))
                             }
                         }
                     }
@@ -552,9 +712,13 @@ struct SettingsView: View {
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
+            syncCommerceDrafts(with: commerceSettingsStore.settings)
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
             syncPaymentDrafts(with: settings)
+        }
+        .onReceive(commerceSettingsStore.$settings) { settings in
+            syncCommerceDrafts(with: settings)
         }
     }
 
@@ -618,11 +782,60 @@ struct SettingsView: View {
     private func syncPaymentDrafts(with settings: PaymentMethodSettings) {
         stripeAccountHintDraft = settings.stripe.accountHint
         paypalAccountHintDraft = settings.paypal.accountHint
+        klarnaAccountHintDraft = settings.klarna.accountHint
         bankAccountHolderDraft = settings.bankTransfer.accountHolder
         bankIbanDraft = settings.bankTransfer.iban
         bankBicDraft = settings.bankTransfer.bic
         bankNameDraft = settings.bankTransfer.bankName
         bankInstructionsDraft = settings.bankTransfer.paymentInstructions
+    }
+
+    private func syncCommerceDrafts(with settings: CommerceSettings) {
+        domesticShippingDraft = settings.shipping.domesticCost.formattedCurrencyDraft
+        internationalShippingDraft = settings.shipping.internationalCost.formattedCurrencyDraft
+        freeShippingThresholdDraft = settings.shipping.freeShippingThreshold.formattedCurrencyDraft
+        shippingNotesDraft = settings.shipping.shippingNotes
+        invoiceCompanyNameDraft = settings.invoice.companyName
+        invoiceCompanyAddressDraft = settings.invoice.companyAddress
+        invoiceTaxNumberDraft = settings.invoice.taxNumber
+        invoiceVatIdDraft = settings.invoice.vatId
+        invoiceTaxRateDraft = settings.invoice.taxRate.formattedPercentDraft
+        invoicePrefixDraft = settings.invoice.invoicePrefix
+        invoiceSupportEmailDraft = settings.invoice.supportEmail
+    }
+
+    private func saveCommerceSettings() {
+        let domesticCost = domesticShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.domesticCost
+        let internationalCost = internationalShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.internationalCost
+        let freeShippingThreshold = freeShippingThresholdDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.freeShippingThreshold
+        let taxRate = invoiceTaxRateDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.invoice.taxRate
+
+        guard domesticCost >= 0, internationalCost >= 0, freeShippingThreshold >= 0, taxRate >= 0 else {
+            showToastMessage("Bitte nur positive Werte fuer Versand und MwSt. eintragen.", style: .error)
+            return
+        }
+
+        Task {
+            var updated = commerceSettingsStore.settings
+            updated.shipping.domesticCost = domesticCost
+            updated.shipping.internationalCost = internationalCost
+            updated.shipping.freeShippingThreshold = freeShippingThreshold
+            updated.shipping.shippingNotes = shippingNotesDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.invoice.companyName = invoiceCompanyNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.invoice.companyAddress = invoiceCompanyAddressDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.invoice.taxNumber = invoiceTaxNumberDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.invoice.vatId = invoiceVatIdDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.invoice.taxRate = taxRate
+            updated.invoice.invoicePrefix = invoicePrefixDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.invoice.supportEmail = invoiceSupportEmailDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            do {
+                try await commerceSettingsStore.save(updated)
+                showToastMessage("Versand- und Rechnungsdaten gespeichert.", style: .success)
+            } catch {
+                showToastMessage("Versand- und Rechnungsdaten konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
     }
 
     private func saveStripeConnection() {
@@ -657,6 +870,11 @@ struct SettingsView: View {
     }
 
     private func savePayPalConnection() {
+        guard paypalAccountHintDraft.takeIfNotBlank() != nil else {
+            showToastMessage("Bitte zuerst einen PayPal.Me-Link oder eine Business-Mail hinterlegen.", style: .error)
+            return
+        }
+
         Task {
             var updated = paymentMethodSettingsStore.settings
             updated.paypal.connected = true
@@ -667,6 +885,21 @@ struct SettingsView: View {
                 showToastMessage("PayPal verbunden.", style: .success)
             } catch {
                 showToastMessage("PayPal konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveKlarnaConnection() {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.klarna.connected = true
+            updated.klarna.accountHint = klarnaAccountHintDraft.takeIfNotBlank() ?? ""
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("Klarna verbunden.", style: .success)
+            } catch {
+                showToastMessage("Klarna konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -683,6 +916,22 @@ struct SettingsView: View {
                 showToastMessage("PayPal getrennt.", style: .success)
             } catch {
                 showToastMessage("PayPal konnte nicht getrennt werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func disconnectKlarna() {
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.klarna.connected = false
+            updated.klarna.enabled = false
+            updated.klarna.accountHint = ""
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("Klarna getrennt.", style: .success)
+            } catch {
+                showToastMessage("Klarna konnte nicht getrennt werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -770,6 +1019,7 @@ private struct SettingsInputField: View {
     @Binding var text: String
     let colorScheme: ColorScheme
     let placeholder: String
+    var keyboardType: UIKeyboardType = .default
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -778,6 +1028,8 @@ private struct SettingsInputField: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             TextField(placeholder, text: $text)
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(keyboardType == .emailAddress ? .never : .sentences)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background(AppColors.secondaryBackground(for: colorScheme))
@@ -796,6 +1048,7 @@ private struct PaymentProviderSettingsCard: View {
     let statusText: String
     let checkoutVisible: Bool
     let accountHintTitle: String
+    let accountHintPlaceholder: String
     @Binding var accountHint: String
     let actionTitle: String
     let secondaryActionTitle: String?
@@ -832,7 +1085,7 @@ private struct PaymentProviderSettingsCard: View {
                 title: accountHintTitle,
                 text: $accountHint,
                 colorScheme: colorScheme,
-                placeholder: title == "Stripe" ? "z. B. Skydown Merch Workspace" : "z. B. paypal@deinedomain.de"
+                placeholder: accountHintPlaceholder
             )
 
             SettingsToggleCard(
@@ -860,6 +1113,23 @@ private struct PaymentProviderSettingsCard: View {
         .padding(16)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private extension Double {
+    var formattedCurrencyDraft: String {
+        String(format: "%.2f", self)
+    }
+
+    var formattedPercentDraft: String {
+        String(format: "%.1f", self)
+    }
+}
+
+private extension String {
+    func parseLocalizedDouble() -> Double? {
+        let normalized = trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
+        return Double(normalized)
     }
 }
 

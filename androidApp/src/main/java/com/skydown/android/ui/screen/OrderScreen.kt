@@ -183,6 +183,10 @@ private fun formatOrderDate(timestampEpochMillis: Long): String {
     return SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date(timestampEpochMillis))
 }
 
+private fun formatCurrency(value: Double, decimals: Int = 2): String {
+    return String.format(Locale.US, "%.${decimals}f", value)
+}
+
 @Composable
 private fun OrdersOverviewCard(
     orderCount: Int,
@@ -217,6 +221,8 @@ private fun OrderCard(
     val title = order.customerName?.takeIf { it.isNotBlank() } ?: order.userEmail
     val contactEmail = order.customerEmail?.takeIf { it.isNotBlank() } ?: order.userEmail
     val whatsApp = order.whatsApp?.takeIf { it.isNotBlank() }
+    val shippingAddress = order.shippingAddress?.takeIf { it.isNotBlank() }
+    val paymentMethod = order.paymentMethod?.takeIf { it.isNotBlank() }
     val message = order.message?.takeIf { it.isNotBlank() }
     val totalItems = order.items.sumOf { it.quantity }
 
@@ -277,6 +283,20 @@ private fun OrderCard(
                 )
             }
 
+            shippingAddress?.let { value ->
+                OrderMetaRow(
+                    label = "Adresse",
+                    value = value,
+                )
+            }
+
+            paymentMethod?.let { value ->
+                OrderMetaRow(
+                    label = "Zahlart",
+                    value = value,
+                )
+            }
+
             if (order.userEmail != contactEmail) {
                 OrderMetaRow(
                     label = "Login-Mail",
@@ -305,6 +325,41 @@ private fun OrderCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
+                }
+            }
+
+            if (
+                order.subtotalAmount != null ||
+                order.shippingAmount != null ||
+                order.taxAmount != null ||
+                order.totalAmount != null
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            RoundedCornerShape(18.dp),
+                        )
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "Bestellsumme",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                    order.subtotalAmount?.let { OrderMetaRow(label = "Zwischensumme", value = "EUR ${formatCurrency(it)}") }
+                    order.shippingAmount?.let { OrderMetaRow(label = "Versand", value = "EUR ${formatCurrency(it)}") }
+                    val taxAmount = order.taxAmount
+                    val taxRate = order.taxRate
+                    if (taxAmount != null && taxRate != null) {
+                        OrderMetaRow(
+                            label = "inkl. MwSt.",
+                            value = "EUR ${formatCurrency(taxAmount)} bei ${formatCurrency(taxRate, decimals = 1)}%",
+                        )
+                    }
+                    order.totalAmount?.let { OrderMetaRow(label = "Gesamt", value = "EUR ${formatCurrency(it)}") }
                 }
             }
         }

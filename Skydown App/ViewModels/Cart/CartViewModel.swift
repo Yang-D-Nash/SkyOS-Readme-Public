@@ -55,10 +55,22 @@ class CartViewModel: ObservableObject {
         customerName: String,
         customerEmail: String,
         whatsApp: String,
+        shippingAddress: String,
         message: String,
+        paymentMethod: String?,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double,
+        isCheckoutAvailable: Bool,
     ) async -> Bool {
         guard !items.isEmpty else {
             showUserToast("Warenkorb ist leer.", style: .error)
+            return false
+        }
+        guard isCheckoutAvailable || authManager.userSession?.isAdmin == true else {
+            showUserToast("Der Merchandise-Store ist gerade pausiert.", style: .error)
             return false
         }
         guard let email = authManager.userSession?.email else {
@@ -67,13 +79,25 @@ class CartViewModel: ObservableObject {
         }
 
         do {
+            let paymentLine = paymentMethod?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .takeIfNotBlank()
+                .map { "Gewuenschte Zahlart: \($0)\n\n" }
+                ?? ""
             try await orderService.submitOrder(
                 userEmail: email,
                 customerName: customerName,
                 customerEmail: customerEmail,
                 whatsApp: whatsApp,
-                message: message,
-                items: items
+                shippingAddress: shippingAddress,
+                message: paymentLine + message,
+                items: items,
+                paymentMethod: paymentMethod,
+                subtotalAmount: subtotalAmount,
+                shippingAmount: shippingAmount,
+                taxRate: taxRate,
+                taxAmount: taxAmount,
+                totalAmount: totalAmount
             )
             clearCart()
             showUserToast("Bestellung erfolgreich abgeschickt!", style: .success)
@@ -89,5 +113,12 @@ class CartViewModel: ObservableObject {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+}
+
+private extension String {
+    func takeIfNotBlank() -> String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

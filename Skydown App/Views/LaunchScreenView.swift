@@ -153,18 +153,33 @@ private struct LaunchLandingView: View {
             VStack(alignment: .leading, spacing: 22) {
                 Spacer(minLength: 0)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Skydown x 22")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(AppColors.accent(for: colorScheme))
-
-                    Text("Wohin soll's zuerst gehen?")
-                        .font(.system(size: 42, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Du landest danach immer in der App und startest direkt im passenden Bereich.")
-                        .font(.headline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                BrandHeroSurface(
+                    colorScheme: colorScheme,
+                    eyebrow: "Skydown x Zweizwei",
+                    title: "Wohin soll's zuerst gehen?",
+                    subtitle: "Beide Brands fließen jetzt direkt in den Start der App ein und geben Home, Videography, Music und Merchandise einen klareren Premium-Rahmen.",
+                    detail: "Du bleibst danach in der App und startest direkt im passenden Bereich.",
+                    accent: AppColors.accent(for: colorScheme),
+                    secondaryAccent: AppColors.accentMystic(for: colorScheme),
+                    marks: [.skydown, .zweizwei]
+                ) {
+                    HStack(spacing: 10) {
+                        BrandHeroPill(
+                            text: "Merchandise",
+                            colorScheme: colorScheme,
+                            tint: AppColors.accentHighlight(for: colorScheme)
+                        )
+                        BrandHeroPill(
+                            text: "Zweizwei",
+                            colorScheme: colorScheme,
+                            tint: AppColors.spotify(for: colorScheme)
+                        )
+                        BrandHeroPill(
+                            text: "Skydown",
+                            colorScheme: colorScheme,
+                            tint: AppColors.accentMystic(for: colorScheme)
+                        )
+                    }
                 }
 
                 VStack(spacing: 14) {
@@ -230,7 +245,7 @@ private struct LaunchLandingButton: View {
             }
             .padding(SkydownLayout.heroPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColors.cardBackground(for: colorScheme))
+            .background(AppColors.cardBackground(for: colorScheme).opacity(0.96))
             .overlay {
                 RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
                     .stroke(accent.opacity(0.22), lineWidth: 1)

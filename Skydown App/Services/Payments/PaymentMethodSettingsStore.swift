@@ -26,6 +26,7 @@ struct BankTransferSettings: Equatable {
 struct PaymentMethodSettings: Equatable {
     var stripe: PaymentProviderSettings = .init()
     var paypal: PaymentProviderSettings = .init()
+    var klarna: PaymentProviderSettings = .init()
     var bankTransfer: BankTransferSettings = .init()
 
     static let `default` = PaymentMethodSettings()
@@ -37,6 +38,9 @@ struct PaymentMethodSettings: Equatable {
         }
         if paypal.connected && paypal.enabled {
             labels.append("PayPal")
+        }
+        if klarna.connected && klarna.enabled {
+            labels.append("Klarna")
         }
         if bankTransfer.enabled && bankTransfer.isConfigured {
             labels.append("Bankueberweisung")
@@ -84,10 +88,12 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
     private static func decode(_ data: [String: Any]) -> PaymentMethodSettings {
         let stripe = decodeProvider(data["stripe"] as? [String: Any])
         let paypal = decodeProvider(data["paypal"] as? [String: Any])
+        let klarna = decodeProvider(data["klarna"] as? [String: Any])
         let bankTransfer = decodeBankTransfer(data["bankTransfer"] as? [String: Any])
         return PaymentMethodSettings(
             stripe: stripe,
             paypal: paypal,
+            klarna: klarna,
             bankTransfer: bankTransfer
         )
     }
@@ -122,6 +128,11 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
                 "connected": settings.paypal.connected,
                 "enabled": settings.paypal.enabled,
                 "accountHint": settings.paypal.accountHint.trimmed
+            ],
+            "klarna": [
+                "connected": settings.klarna.connected,
+                "enabled": settings.klarna.enabled,
+                "accountHint": settings.klarna.accountHint.trimmed
             ],
             "bankTransfer": [
                 "enabled": settings.bankTransfer.enabled,

@@ -1,3 +1,5 @@
+// swiftlint:disable file_length
+
 import AuthenticationServices
 import CryptoKit
 import Foundation
@@ -308,7 +310,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             return nil
         }
 
-        let matchingArtist = artistsItems.first(where: { spotifyID(fromURI: $0["uri"] as? String) == artistID })
+        let matchingArtist = artistsItems.first { spotifyID(fromURI: $0["uri"] as? String) == artistID }
         let album = track["albumOfTrack"] as? [String: Any]
         let albumURI = album?["uri"] as? String
         let artworkURL = publicCoverArtURL(from: album?["coverArt"] as? [String: Any]) ?? artistArtworkURL
@@ -358,7 +360,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 return nil
             }
 
-            let matchingArtist = artistsItems.first(where: { spotifyID(fromURI: $0["uri"] as? String) == artistID })
+            let matchingArtist = artistsItems.first { spotifyID(fromURI: $0["uri"] as? String) == artistID }
             let previewURL = (((track["previews"] as? [String: Any])?["audioPreviews"] as? [String: Any])?["items"] as? [[String: Any]])?.first?["url"] as? String
 
             return Track(
@@ -399,7 +401,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             )
 
             for item in albumTracks where tracksByID[item.id] == nil {
-                let matchingArtist = item.artists.first(where: { $0.id == artistID })
+                let matchingArtist = item.artists.first { $0.id == artistID }
                 orderedTrackIDs.append(item.id)
                 tracksByID[item.id] = Track(
                     trackId: abs(item.id.hashValue),
@@ -464,7 +466,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             )
             let page = try decoder.decode(SpotifyAlbumTracksResponse.self, from: data).items
             tracks.append(contentsOf: page.filter { track in
-                track.artists.contains(where: { $0.id == artistID })
+                track.artists.contains { $0.id == artistID }
             })
 
             if page.count < SpotifyMusicConstants.albumTracksPageSize {
@@ -521,7 +523,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             throw SpotifyAuthError.invalidCallback
         }
 
-        let returnedState = components.queryItems?.first(where: { $0.name == "state" })?.value
+        let returnedState = components.queryItems?.first { $0.name == "state" }?.value
         guard returnedState == state else {
             throw SpotifyAuthError.invalidState
         }
@@ -542,7 +544,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "code_challenge", value: codeChallenge),
             URLQueryItem(name: "state", value: state),
-            URLQueryItem(name: "show_dialog", value: "true"),
+            URLQueryItem(name: "show_dialog", value: "true")
         ]
 
         guard let url = components?.url else {
@@ -581,7 +583,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             "code": code,
             "redirect_uri": SpotifyMusicConstants.redirectURI,
             "client_id": SpotifyMusicConstants.clientID,
-            "code_verifier": verifier,
+            "code_verifier": verifier
         ])
     }
 
@@ -589,7 +591,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         try await performTokenRequest([
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
-            "client_id": SpotifyMusicConstants.clientID,
+            "client_id": SpotifyMusicConstants.clientID
         ], fallbackRefreshToken: refreshToken)
     }
 
@@ -641,7 +643,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             URLQueryItem(name: "q", value: query),
             URLQueryItem(name: "type", value: "track"),
             URLQueryItem(name: "limit", value: "\(SpotifyMusicConstants.searchPageSize)"),
-            URLQueryItem(name: "offset", value: "\(offset)"),
+            URLQueryItem(name: "offset", value: "\(offset)")
         ]
 
         guard let url = components.url else {
@@ -686,7 +688,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     private func searchQueries(for artist: String) -> [String] {
         [
             "artist:\"\(artist)\"",
-            artist,
+            artist
         ]
     }
 
@@ -716,7 +718,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             URLQueryItem(name: "term", value: artist),
             URLQueryItem(name: "media", value: "music"),
             URLQueryItem(name: "entity", value: "song"),
-            URLQueryItem(name: "limit", value: "50"),
+            URLQueryItem(name: "limit", value: "50")
         ]
 
         if let attribute {
@@ -1048,8 +1050,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     private func publicCoverArtURL(from container: [String: Any]?) -> String? {
         let sources = container?["sources"] as? [[String: Any]]
         return sources?
-            .sorted { ($0["height"] as? Int ?? 0) > ($1["height"] as? Int ?? 0) }
-            .first?["url"] as? String
+            .max { ($0["height"] as? Int ?? 0) < ($1["height"] as? Int ?? 0) }?["url"] as? String
     }
 
     private func publicArtistName(from item: [String: Any]?) -> String? {

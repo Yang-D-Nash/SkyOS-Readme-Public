@@ -69,6 +69,7 @@ import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.model.resolve
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.ui.viewmodel.SettingsViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,11 +84,23 @@ fun SettingsScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var stripeAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var paypalAccountHintDraft by rememberSaveable { mutableStateOf("") }
+    var klarnaAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var bankAccountHolderDraft by rememberSaveable { mutableStateOf("") }
     var bankIbanDraft by rememberSaveable { mutableStateOf("") }
     var bankBicDraft by rememberSaveable { mutableStateOf("") }
     var bankNameDraft by rememberSaveable { mutableStateOf("") }
     var bankInstructionsDraft by rememberSaveable { mutableStateOf("") }
+    var domesticShippingDraft by rememberSaveable { mutableStateOf("") }
+    var internationalShippingDraft by rememberSaveable { mutableStateOf("") }
+    var freeShippingThresholdDraft by rememberSaveable { mutableStateOf("") }
+    var shippingNotesDraft by rememberSaveable { mutableStateOf("") }
+    var invoiceCompanyNameDraft by rememberSaveable { mutableStateOf("") }
+    var invoiceCompanyAddressDraft by rememberSaveable { mutableStateOf("") }
+    var invoiceTaxNumberDraft by rememberSaveable { mutableStateOf("") }
+    var invoiceVatIdDraft by rememberSaveable { mutableStateOf("") }
+    var invoiceTaxRateDraft by rememberSaveable { mutableStateOf("") }
+    var invoicePrefixDraft by rememberSaveable { mutableStateOf("") }
+    var invoiceSupportEmailDraft by rememberSaveable { mutableStateOf("") }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
@@ -98,11 +111,26 @@ fun SettingsScreen(
     LaunchedEffect(uiState.paymentMethods) {
         stripeAccountHintDraft = uiState.paymentMethods.stripe.accountHint
         paypalAccountHintDraft = uiState.paymentMethods.paypal.accountHint
+        klarnaAccountHintDraft = uiState.paymentMethods.klarna.accountHint
         bankAccountHolderDraft = uiState.paymentMethods.bankTransfer.accountHolder
         bankIbanDraft = uiState.paymentMethods.bankTransfer.iban
         bankBicDraft = uiState.paymentMethods.bankTransfer.bic
         bankNameDraft = uiState.paymentMethods.bankTransfer.bankName
         bankInstructionsDraft = uiState.paymentMethods.bankTransfer.paymentInstructions
+    }
+
+    LaunchedEffect(uiState.commerceSettings) {
+        domesticShippingDraft = formatDecimalDraft(uiState.commerceSettings.shipping.domesticCost)
+        internationalShippingDraft = formatDecimalDraft(uiState.commerceSettings.shipping.internationalCost)
+        freeShippingThresholdDraft = formatDecimalDraft(uiState.commerceSettings.shipping.freeShippingThreshold)
+        shippingNotesDraft = uiState.commerceSettings.shipping.shippingNotes
+        invoiceCompanyNameDraft = uiState.commerceSettings.invoice.companyName
+        invoiceCompanyAddressDraft = uiState.commerceSettings.invoice.companyAddress
+        invoiceTaxNumberDraft = uiState.commerceSettings.invoice.taxNumber
+        invoiceVatIdDraft = uiState.commerceSettings.invoice.vatId
+        invoiceTaxRateDraft = formatDecimalDraft(uiState.commerceSettings.invoice.taxRate, decimals = 1)
+        invoicePrefixDraft = uiState.commerceSettings.invoice.invoicePrefix
+        invoiceSupportEmailDraft = uiState.commerceSettings.invoice.supportEmail
     }
 
     LaunchedEffect(uiState.paymentFeedbackMessage) {
@@ -375,7 +403,7 @@ fun SettingsScreen(
                         SkydownCard(contentPadding = PaddingValues(18.dp)) {
                             SectionHeader("Zahlungen")
                             Text(
-                                text = "Verbinde Stripe, PayPal und Bankueberweisung getrennt vom Checkout. Erst danach werden sie fuer Kunden sichtbar geschaltet.",
+                                text = "PayPal und Bankueberweisung kannst du sofort als manuellen Checkout-Handoff nutzen. Stripe und Klarna bleiben vorerst vorbereitete Live-Provider fuer spaeter.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -405,8 +433,8 @@ fun SettingsScreen(
                                 enabledInCheckout = uiState.paymentMethods.paypal.connected &&
                                     uiState.paymentMethods.paypal.enabled,
                                 accountHint = paypalAccountHintDraft,
-                                accountHintLabel = "PayPal Konto / Business-Mail",
-                                accountHintPlaceholder = "z. B. paypal@deinedomain.de",
+                                accountHintLabel = "PayPal.Me Link oder Business-Mail",
+                                accountHintPlaceholder = "z. B. https://paypal.me/deinname",
                                 onAccountHintChange = { paypalAccountHintDraft = it },
                                 onSaveConnection = { viewModel.connectPayPal(paypalAccountHintDraft) },
                                 onDisconnect = if (uiState.paymentMethods.paypal.connected) {
@@ -415,6 +443,25 @@ fun SettingsScreen(
                                     null
                                 },
                                 onToggleEnabled = viewModel::setPayPalEnabled,
+                                modifier = Modifier.padding(top = 14.dp),
+                            )
+
+                            PaymentProviderAdminCard(
+                                title = "Klarna",
+                                connected = uiState.paymentMethods.klarna.connected,
+                                enabledInCheckout = uiState.paymentMethods.klarna.connected &&
+                                    uiState.paymentMethods.klarna.enabled,
+                                accountHint = klarnaAccountHintDraft,
+                                accountHintLabel = "Klarna Merchant / Store ID",
+                                accountHintPlaceholder = "z. B. Klarna Merchant EU",
+                                onAccountHintChange = { klarnaAccountHintDraft = it },
+                                onSaveConnection = { viewModel.connectKlarna(klarnaAccountHintDraft) },
+                                onDisconnect = if (uiState.paymentMethods.klarna.connected) {
+                                    { viewModel.disconnectKlarna() }
+                                } else {
+                                    null
+                                },
+                                onToggleEnabled = viewModel::setKlarnaEnabled,
                                 modifier = Modifier.padding(top = 14.dp),
                             )
 
@@ -444,6 +491,174 @@ fun SettingsScreen(
                                 onToggleEnabled = viewModel::setBankTransferEnabled,
                                 modifier = Modifier.padding(top = 14.dp),
                             )
+                        }
+                    }
+
+                    item {
+                        SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                            SectionHeader("Versand & Rechnung")
+                            Text(
+                                text = "Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+
+                            Text(
+                                text = "Versand",
+                                modifier = Modifier.padding(top = 16.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+
+                            OutlinedTextField(
+                                value = domesticShippingDraft,
+                                onValueChange = { domesticShippingDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                label = { Text("Versand Deutschland (EUR)") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = internationalShippingDraft,
+                                onValueChange = { internationalShippingDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Versand International (EUR)") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = freeShippingThresholdDraft,
+                                onValueChange = { freeShippingThresholdDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Versand frei ab (EUR)") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = shippingNotesDraft,
+                                onValueChange = { shippingNotesDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Versandhinweis") },
+                                minLines = 2,
+                                maxLines = 3,
+                            )
+
+                            Text(
+                                text = "Rechnung",
+                                modifier = Modifier.padding(top = 18.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+
+                            OutlinedTextField(
+                                value = invoiceCompanyNameDraft,
+                                onValueChange = { invoiceCompanyNameDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                label = { Text("Firmenname") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = invoiceCompanyAddressDraft,
+                                onValueChange = { invoiceCompanyAddressDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Firmenadresse") },
+                                minLines = 2,
+                                maxLines = 3,
+                            )
+                            OutlinedTextField(
+                                value = invoiceTaxNumberDraft,
+                                onValueChange = { invoiceTaxNumberDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Steuernummer") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = invoiceVatIdDraft,
+                                onValueChange = { invoiceVatIdDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("USt-IdNr.") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = invoiceTaxRateDraft,
+                                onValueChange = { invoiceTaxRateDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("MwSt. Satz (%)") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = invoicePrefixDraft,
+                                onValueChange = { invoicePrefixDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Rechnungs-Praefix") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = invoiceSupportEmailDraft,
+                                onValueChange = { invoiceSupportEmailDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Support / Rechnungs-Mail") },
+                                singleLine = true,
+                            )
+
+                            Button(
+                                onClick = {
+                                    val domesticCost = domesticShippingDraft.parseDecimalInput()
+                                        ?: uiState.commerceSettings.shipping.domesticCost
+                                    val internationalCost = internationalShippingDraft.parseDecimalInput()
+                                        ?: uiState.commerceSettings.shipping.internationalCost
+                                    val freeShippingThreshold = freeShippingThresholdDraft.parseDecimalInput()
+                                        ?: uiState.commerceSettings.shipping.freeShippingThreshold
+                                    val taxRate = invoiceTaxRateDraft.parseDecimalInput()
+                                        ?: uiState.commerceSettings.invoice.taxRate
+
+                                    viewModel.saveCommerceSettings(
+                                        uiState.commerceSettings.copy(
+                                            shipping = uiState.commerceSettings.shipping.copy(
+                                                domesticCost = domesticCost.coerceAtLeast(0.0),
+                                                internationalCost = internationalCost.coerceAtLeast(0.0),
+                                                freeShippingThreshold = freeShippingThreshold.coerceAtLeast(0.0),
+                                                shippingNotes = shippingNotesDraft.trim(),
+                                            ),
+                                            invoice = uiState.commerceSettings.invoice.copy(
+                                                companyName = invoiceCompanyNameDraft.trim(),
+                                                companyAddress = invoiceCompanyAddressDraft.trim(),
+                                                taxNumber = invoiceTaxNumberDraft.trim(),
+                                                vatId = invoiceVatIdDraft.trim(),
+                                                taxRate = taxRate.coerceAtLeast(0.0),
+                                                invoicePrefix = invoicePrefixDraft.trim(),
+                                                supportEmail = invoiceSupportEmailDraft.trim(),
+                                            ),
+                                        ),
+                                        successMessage = "Versand- und Rechnungsdaten gespeichert.",
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 14.dp),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text("Versand & Rechnung speichern")
+                            }
                         }
                     }
                 }
@@ -621,7 +836,10 @@ private fun PaymentProviderAdminCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = if (connected) "Verbunden" else "Nicht verbunden",
+                    text = when (title) {
+                        "PayPal" -> if (connected) "Hinterlegt" else "Noch nicht hinterlegt"
+                        else -> if (connected) "Verbunden" else "Nicht verbunden"
+                    },
                     color = if (connected) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -664,14 +882,19 @@ private fun PaymentProviderAdminCard(
                 onClick = onSaveConnection,
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text(if (connected) "Verbindung aktualisieren" else "Verbinden")
+                Text(
+                    when (title) {
+                        "PayPal" -> if (connected) "PayPal aktualisieren" else "PayPal hinterlegen"
+                        else -> if (connected) "Verbindung aktualisieren" else "Verbinden"
+                    },
+                )
             }
             onDisconnect?.let { disconnect ->
                 OutlinedButton(
                     onClick = disconnect,
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("Trennen")
+                    Text(if (title == "PayPal") "Entfernen" else "Trennen")
                 }
             }
         }
@@ -1092,4 +1315,12 @@ private fun openSupportEmail(
         subject = subject,
         body = body,
     )
+}
+
+private fun String.parseDecimalInput(): Double? {
+    return trim().replace(",", ".").toDoubleOrNull()
+}
+
+private fun formatDecimalDraft(value: Double, decimals: Int = 2): String {
+    return String.format(Locale.US, "%.${decimals}f", value)
 }

@@ -5,6 +5,8 @@
 //  Created by Yang D. Nash on 23.07.25.
 //
 
+// swiftlint:disable file_length
+
 import AVKit
 import SwiftUI
 
@@ -253,7 +255,7 @@ struct ShopView: View {
                 }
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Merch Hub")
+            .navigationTitle("Merchandise")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -334,49 +336,34 @@ private struct HomeHeroIntroCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Home")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Hier laufen Zweizwei, Skydown, Merchandise und Tools als globale Bereiche zusammen.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                Text("Entwickelt und koordiniert von Yang D. Nash als zentralem Ansprechpartner fuer Musik, Videography und Merchandise.")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppColors.accent(for: colorScheme))
-            }
-
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(AppColors.accent(for: colorScheme).opacity(0.16))
-                    .frame(width: 58, height: 58)
-
-                Image(systemName: "house.fill")
-                    .font(.title2)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
+        BrandHeroSurface(
+            colorScheme: colorScheme,
+            eyebrow: "Skydown x Zweizwei",
+            title: "Home",
+            subtitle: "Hier laufen Zweizwei, Skydown, Merchandise und Tools als gemeinsames High-End-System zusammen.",
+            detail: "Creative Direction, Produkt und Koordination liegen bei Yang D. Nash als zentralem Ansprechpartner fuer Musik, Videography und Merchandise.",
+            accent: AppColors.accent(for: colorScheme),
+            secondaryAccent: AppColors.accentMystic(for: colorScheme),
+            marks: [.skydown, .zweizwei]
+        ) {
+            HStack(spacing: 10) {
+                BrandHeroPill(
+                    text: "Home",
+                    colorScheme: colorScheme,
+                    tint: AppColors.accent(for: colorScheme)
+                )
+                BrandHeroPill(
+                    text: "Merchandise",
+                    colorScheme: colorScheme,
+                    tint: AppColors.accentHighlight(for: colorScheme)
+                )
+                BrandHeroPill(
+                    text: "Tools",
+                    colorScheme: colorScheme,
+                    tint: AppColors.accentMystic(for: colorScheme)
+                )
             }
         }
-        .padding(20)
-        .background(
-            LinearGradient(
-                colors: [
-                    AppColors.cardBackground(for: colorScheme),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 26)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
     }
 }
 
@@ -1070,31 +1057,22 @@ private struct ShopHeroCard: View {
     let onToggleStore: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Merch Hub")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Global Drops, Apparel & Cart.")
-                        .font(.body)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                    Text(isStoreOpen ? "Kaufen ist aktuell freigeschaltet." : "Kaufen ist aktuell pausiert.")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(isStoreOpen ? AppColors.accent(for: colorScheme) : AppColors.accentMystic(for: colorScheme))
-                }
-
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(AppColors.accent(for: colorScheme).opacity(0.16))
-                        .frame(width: 58, height: 58)
-
-                    Image(systemName: "bag.fill")
-                        .font(.title2)
-                        .foregroundColor(AppColors.accent(for: colorScheme))
+        BrandHeroSurface(
+            colorScheme: colorScheme,
+            eyebrow: "Global Store",
+            title: "Merchandise",
+            subtitle: "Drops, Apparel und direkter Checkout fuer Zweizwei und Skydown in einem gemeinsamen Store.",
+            detail: isStoreOpen ? "Der Store ist live und fuer Kunden sichtbar." : "Der Store ist aktuell pausiert und kann jederzeit wieder freigeschaltet werden.",
+            accent: AppColors.accentHighlight(for: colorScheme),
+            secondaryAccent: AppColors.accentMystic(for: colorScheme),
+            marks: [.skydown, .zweizwei]
+        ) {
+            HStack(spacing: 10) {
+                ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)
+                ShopBadge(text: isStoreOpen ? "Store offen" : "Store pausiert", colorScheme: colorScheme)
+                ShopBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
+                if isAdmin {
+                    ShopBadge(text: "Admin", colorScheme: colorScheme)
                 }
             }
 
@@ -1109,37 +1087,6 @@ private struct ShopHeroCard: View {
                 .disabled(isUpdatingStoreState)
             }
         }
-        .padding(20)
-        .background(cardBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: 26)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
-        .overlay(alignment: .bottomLeading) {
-            HStack(spacing: 10) {
-                ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)
-                ShopBadge(text: isStoreOpen ? "Store offen" : "Store pausiert", colorScheme: colorScheme)
-                ShopBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
-                if isAdmin {
-                    ShopBadge(text: "Admin", colorScheme: colorScheme)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 18)
-        }
-    }
-
-    private var cardBackground: some View {
-        LinearGradient(
-            colors: [
-                AppColors.cardBackground(for: colorScheme),
-                AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
     }
 }
 

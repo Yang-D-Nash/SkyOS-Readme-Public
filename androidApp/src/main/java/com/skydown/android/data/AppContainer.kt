@@ -25,6 +25,8 @@ object AppContainer {
     val aiImageClient: AiImageClient by lazy { AiImageClient() }
     val agentClient: AgentClient by lazy { AgentClient() }
     val paymentMethodsRepository: PaymentMethodsRepository by lazy { PaymentMethodsRepository() }
+    val commerceSettingsRepository: CommerceSettingsRepository by lazy { CommerceSettingsRepository() }
+    val merchStoreStatusRepository: MerchStoreStatusRepository by lazy { MerchStoreStatusRepository() }
 
     val authRepository: AuthRepository by lazy {
         if (useFirebaseRepositories) AndroidAuthRepository() else FakeAuthRepository()

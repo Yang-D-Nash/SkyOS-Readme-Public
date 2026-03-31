@@ -209,9 +209,19 @@ private struct OrdersOrderCard: View {
         return whatsApp
     }
 
+    private var shippingAddress: String? {
+        guard let shippingAddress = order.shippingAddress, !shippingAddress.isEmpty else { return nil }
+        return shippingAddress
+    }
+
     private var message: String? {
         guard let message = order.message, !message.isEmpty else { return nil }
         return message
+    }
+
+    private var paymentMethod: String? {
+        guard let paymentMethod = order.paymentMethod, !paymentMethod.isEmpty else { return nil }
+        return paymentMethod
     }
 
     private var totalItems: Int {
@@ -248,6 +258,22 @@ private struct OrdersOrderCard: View {
                     OrderMetaBlock(
                         label: "WhatsApp",
                         value: whatsApp,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let shippingAddress {
+                    OrderMetaBlock(
+                        label: "Adresse",
+                        value: shippingAddress,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let paymentMethod {
+                    OrderMetaBlock(
+                        label: "Zahlart",
+                        value: paymentMethod,
                         colorScheme: colorScheme
                     )
                 }
@@ -302,6 +328,31 @@ private struct OrdersOrderCard: View {
                     .background(AppColors.secondaryBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
+            }
+
+            if order.subtotalAmount != nil || order.totalAmount != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Bestellsumme")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    if let subtotalAmount = order.subtotalAmount {
+                        OrderMetaBlock(label: "Zwischensumme", value: String(format: "EUR %.2f", subtotalAmount), colorScheme: colorScheme)
+                    }
+                    if let shippingAmount = order.shippingAmount {
+                        OrderMetaBlock(label: "Versand", value: String(format: "EUR %.2f", shippingAmount), colorScheme: colorScheme)
+                    }
+                    if let taxAmount = order.taxAmount, let taxRate = order.taxRate {
+                        OrderMetaBlock(label: "inkl. MwSt.", value: String(format: "EUR %.2f bei %.1f%%", taxAmount, taxRate), colorScheme: colorScheme)
+                    }
+                    if let totalAmount = order.totalAmount {
+                        OrderMetaBlock(label: "Gesamt", value: String(format: "EUR %.2f", totalAmount), colorScheme: colorScheme)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.secondaryBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
             }
 
             HStack(spacing: 10) {

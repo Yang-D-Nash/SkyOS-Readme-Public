@@ -15,7 +15,14 @@ class OrderService(
         customerName: String,
         customerEmail: String,
         whatsApp: String,
+        shippingAddress: String,
         message: String,
+        paymentMethod: String,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double,
     ): Result<Unit> {
         if (items.isEmpty()) {
             return Result.failure(IllegalArgumentException("Warenkorb ist leer."))
@@ -26,6 +33,9 @@ class OrderService(
         if (customerName.isBlank() || customerEmail.isBlank()) {
             return Result.failure(IllegalArgumentException("Name und E-Mail sind erforderlich."))
         }
+        if (shippingAddress.isBlank()) {
+            return Result.failure(IllegalArgumentException("Adresse ist erforderlich."))
+        }
 
         return repository.submitOrder(
             userEmail = userEmail,
@@ -33,7 +43,14 @@ class OrderService(
             customerName = customerName,
             customerEmail = customerEmail,
             whatsApp = whatsApp,
+            shippingAddress = shippingAddress,
             message = message,
+            paymentMethod = paymentMethod,
+            subtotalAmount = subtotalAmount,
+            shippingAmount = shippingAmount,
+            taxRate = taxRate,
+            taxAmount = taxAmount,
+            totalAmount = totalAmount,
         )
     }
 

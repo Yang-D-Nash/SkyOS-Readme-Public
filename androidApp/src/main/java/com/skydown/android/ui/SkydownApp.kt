@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
@@ -54,6 +55,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.screen.AiHubScreen
 import com.skydown.android.ui.screen.BeatHubScreen
@@ -345,23 +349,20 @@ private fun LaunchLandingScreen(
                 .padding(horizontal = 20.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "Skydown x 22",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = "Wohin soll's zuerst gehen?",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Text(
-                    text = "Danach landest du immer in der App und startest direkt im passenden Bereich.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
-                )
+            BrandHeroCard(
+                eyebrow = "Skydown x Zweizwei",
+                title = "Wohin soll's zuerst gehen?",
+                subtitle = "Beide Brands fließen jetzt direkt in den Start der App ein und geben Home, Videography, Music und Merchandise einen klareren Premium-Rahmen.",
+                detail = "Du bleibst danach in der App und startest direkt im passenden Bereich.",
+                accent = MaterialTheme.colorScheme.primary,
+                secondaryAccent = MaterialTheme.colorScheme.secondary,
+                marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BrandPill(text = "Merchandise", tint = MaterialTheme.colorScheme.tertiary)
+                    BrandPill(text = "Zweizwei", tint = MaterialTheme.colorScheme.primary)
+                    BrandPill(text = "Skydown", tint = MaterialTheme.colorScheme.secondary)
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -445,17 +446,21 @@ private fun ZweizweiMusicLaneScreen(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text(
-                        text = "Zweizwei Music",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        text = "Hier hat Zweizwei seinen eigenen Musikbereich. Catalog, Beat Hub und NICMA Producer bleiben klar getrennt von Skydown Videography.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
-                    )
+                    BrandHeroCard(
+                        eyebrow = "Zweizwei",
+                        title = "Music",
+                        subtitle = "Catalog, Beat Hub und NICMA Producer bleiben klar als eigener Musikbereich gebündelt.",
+                        detail = "Die Identität von Zweizwei bleibt getrennt von Skydown Videography und Merchandise, aber die Navigation wirkt jetzt wie ein gemeinsames System.",
+                        accent = MaterialTheme.colorScheme.primary,
+                        secondaryAccent = MaterialTheme.colorScheme.secondary,
+                        marks = listOf(BrandArtwork.Zweizwei),
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            BrandPill(text = "Catalog", tint = MaterialTheme.colorScheme.primary)
+                            BrandPill(text = "Beat Hub", tint = MaterialTheme.colorScheme.secondary)
+                            BrandPill(text = "NICMA", tint = MaterialTheme.colorScheme.tertiary)
+                        }
+                    }
                     LaunchLandingButton(
                         title = "MUSIC CATALOG",
                         subtitle = "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",

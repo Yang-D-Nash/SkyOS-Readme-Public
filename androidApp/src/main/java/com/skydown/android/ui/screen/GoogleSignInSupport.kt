@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.skydown.android.ui.screen
 
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes

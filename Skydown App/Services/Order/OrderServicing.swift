@@ -8,8 +8,15 @@ protocol OrderServicing {
         customerName: String,
         customerEmail: String,
         whatsApp: String,
+        shippingAddress: String,
         message: String,
-        items: [CartItem]
+        items: [CartItem],
+        paymentMethod: String?,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double
     ) async throws
     func toggleCompleted(orderID: String, isCompleted: Bool) async throws
     func deleteOrder(orderID: String) async throws
@@ -60,8 +67,15 @@ final class FirebaseOrderService: OrderServicing {
         customerName: String,
         customerEmail: String,
         whatsApp: String,
+        shippingAddress: String,
         message: String,
-        items: [CartItem]
+        items: [CartItem],
+        paymentMethod: String?,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double
     ) async throws {
         let orderItems = items.map { item in
             [
@@ -76,6 +90,13 @@ final class FirebaseOrderService: OrderServicing {
             "customerName": customerName,
             "customerEmail": customerEmail,
             "whatsApp": whatsApp,
+            "shippingAddress": shippingAddress,
+            "paymentMethod": paymentMethod ?? "",
+            "subtotalAmount": subtotalAmount,
+            "shippingAmount": shippingAmount,
+            "taxRate": taxRate,
+            "taxAmount": taxAmount,
+            "totalAmount": totalAmount,
             "message": message,
             "items": orderItems,
             "isCompleted": false,
@@ -131,10 +152,24 @@ final class FirebaseOrderService: OrderServicing {
             customerName: data["customerName"] as? String,
             customerEmail: data["customerEmail"] as? String,
             whatsApp: data["whatsApp"] as? String,
+            shippingAddress: data["shippingAddress"] as? String,
+            paymentMethod: (data["paymentMethod"] as? String)?.takeIfNotBlank(),
+            subtotalAmount: data["subtotalAmount"] as? Double ?? (data["subtotalAmount"] as? NSNumber)?.doubleValue,
+            shippingAmount: data["shippingAmount"] as? Double ?? (data["shippingAmount"] as? NSNumber)?.doubleValue,
+            taxRate: data["taxRate"] as? Double ?? (data["taxRate"] as? NSNumber)?.doubleValue,
+            taxAmount: data["taxAmount"] as? Double ?? (data["taxAmount"] as? NSNumber)?.doubleValue,
+            totalAmount: data["totalAmount"] as? Double ?? (data["totalAmount"] as? NSNumber)?.doubleValue,
             message: data["message"] as? String,
             items: items,
             isCompleted: isCompleted,
             timestamp: timestamp
         )
+    }
+}
+
+private extension String {
+    func takeIfNotBlank() -> String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

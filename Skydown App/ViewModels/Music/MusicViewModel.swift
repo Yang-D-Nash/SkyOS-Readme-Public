@@ -5,6 +5,8 @@
 //  Created by Yang D. Nash on 26.07.25.
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import FirebaseFirestore
 import FirebaseStorage
@@ -728,7 +730,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             [
                 "id": item.id,
                 "title": item.title,
-                "detail": item.detail,
+                "detail": item.detail
             ]
         }
         let youtubeItems = config.youtubeItems.map { item in
@@ -736,7 +738,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                 "id": item.id,
                 "title": item.title,
                 "subtitle": item.subtitle,
-                "urlString": item.urlString,
+                "urlString": item.urlString
             ]
         }
 
@@ -747,7 +749,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                     "equipmentItems": equipmentItems,
                     "youtubeItems": youtubeItems,
                     "updatedAt": Timestamp(),
-                    "updatedBy": currentUser?.id ?? "",
+                    "updatedBy": currentUser?.id ?? ""
                 ],
                 merge: true
             )
@@ -940,11 +942,10 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         let title = (value["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let detail = (value["detail"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !title.isEmpty, !detail.isEmpty else { return nil }
+        let rawID = (value["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         return SkydownVideoEquipmentItem(
-            id: (value["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-                ? (value["id"] as? String)!
-                : UUID().uuidString,
+            id: rawID.isEmpty ? UUID().uuidString : rawID,
             title: title,
             detail: detail
         )
@@ -955,11 +956,10 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         let subtitle = (value["subtitle"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let urlString = (value["urlString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !title.isEmpty, !urlString.isEmpty else { return nil }
+        let rawID = (value["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         return SkydownYouTubeVideoItem(
-            id: (value["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-                ? (value["id"] as? String)!
-                : UUID().uuidString,
+            id: rawID.isEmpty ? UUID().uuidString : rawID,
             title: title,
             subtitle: subtitle,
             urlString: urlString

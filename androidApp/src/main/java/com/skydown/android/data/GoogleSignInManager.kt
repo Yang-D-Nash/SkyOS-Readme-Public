@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.skydown.android.data
 
 import android.content.Context

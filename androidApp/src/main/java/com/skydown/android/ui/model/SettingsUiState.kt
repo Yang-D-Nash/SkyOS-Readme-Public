@@ -2,6 +2,7 @@ package com.skydown.android.ui.model
 
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.data.AiVisualReferenceLibrarySettings
+import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.WorkflowAutomationSettings
 
@@ -19,6 +20,7 @@ data class SettingsUiState(
     val accountErrorMessage: String? = null,
     val aiVisualReferenceLibrary: AiVisualReferenceLibrarySettings = AiVisualReferenceLibrarySettings(),
     val workflowAutomationSettings: WorkflowAutomationSettings = WorkflowAutomationSettings(),
+    val commerceSettings: CommerceSettings = CommerceSettings(),
     val paymentMethods: PaymentMethodsSettings = PaymentMethodsSettings(),
     val paymentFeedbackMessage: String? = null,
     val isPaymentFeedbackError: Boolean = false,

@@ -27,12 +27,14 @@ data class BankTransferSettings(
 data class PaymentMethodsSettings(
     val stripe: PaymentProviderSettings = PaymentProviderSettings(),
     val paypal: PaymentProviderSettings = PaymentProviderSettings(),
+    val klarna: PaymentProviderSettings = PaymentProviderSettings(),
     val bankTransfer: BankTransferSettings = BankTransferSettings(),
 ) {
     val checkoutMethodLabels: List<String>
         get() = buildList {
             if (stripe.connected && stripe.enabled) add("Stripe")
             if (paypal.connected && paypal.enabled) add("PayPal")
+            if (klarna.connected && klarna.enabled) add("Klarna")
             if (bankTransfer.enabled && bankTransfer.isConfigured) add("Bankueberweisung")
         }
 }
@@ -68,6 +70,7 @@ class PaymentMethodsRepository(
 private fun Map<String, Any>.toPaymentMethodsSettings(): PaymentMethodsSettings {
     val stripe = (this["stripe"] as? Map<*, *>).orEmpty()
     val paypal = (this["paypal"] as? Map<*, *>).orEmpty()
+    val klarna = (this["klarna"] as? Map<*, *>).orEmpty()
     val bankTransfer = (this["bankTransfer"] as? Map<*, *>).orEmpty()
 
     return PaymentMethodsSettings(
@@ -80,6 +83,11 @@ private fun Map<String, Any>.toPaymentMethodsSettings(): PaymentMethodsSettings 
             connected = paypal["connected"] as? Boolean ?: false,
             enabled = paypal["enabled"] as? Boolean ?: false,
             accountHint = paypal["accountHint"] as? String ?: "",
+        ),
+        klarna = PaymentProviderSettings(
+            connected = klarna["connected"] as? Boolean ?: false,
+            enabled = klarna["enabled"] as? Boolean ?: false,
+            accountHint = klarna["accountHint"] as? String ?: "",
         ),
         bankTransfer = BankTransferSettings(
             enabled = bankTransfer["enabled"] as? Boolean ?: false,
@@ -103,6 +111,11 @@ private fun PaymentMethodsSettings.toMap(): Map<String, Any> {
             "connected" to paypal.connected,
             "enabled" to paypal.enabled,
             "accountHint" to paypal.accountHint.trim(),
+        ),
+        "klarna" to mapOf(
+            "connected" to klarna.connected,
+            "enabled" to klarna.enabled,
+            "accountHint" to klarna.accountHint.trim(),
         ),
         "bankTransfer" to mapOf(
             "enabled" to bankTransfer.enabled,

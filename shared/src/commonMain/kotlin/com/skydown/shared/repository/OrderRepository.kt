@@ -11,7 +11,14 @@ interface OrderRepository {
         customerName: String,
         customerEmail: String,
         whatsApp: String,
+        shippingAddress: String,
         message: String,
+        paymentMethod: String,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double,
     ): Result<Unit>
     suspend fun toggleCompleted(orderId: String, isCompleted: Boolean): Result<Unit>
     suspend fun deleteOrder(orderId: String): Result<Unit>

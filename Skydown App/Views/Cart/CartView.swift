@@ -12,6 +12,8 @@ struct CartView: View {
     @EnvironmentObject var cartVM: CartViewModel
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
+    @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
     let onOpenSettings: () -> Void
 
@@ -22,22 +24,71 @@ struct CartView: View {
     @State private var name = ""
     @State private var email = ""
     @State private var whatsApp = ""
+    @State private var shippingStreet = ""
+    @State private var shippingAddressExtra = ""
+    @State private var shippingPostalCode = ""
+    @State private var shippingCity = ""
+    @State private var shippingCountry = "Deutschland"
     @State private var message = "Ich interessiere mich für die Artikel in meinem Warenkorb."
     @State private var showConfirmationDialog = false
     @State private var isSubmitting = false
     @State private var showingLoginSheet = false
     @State private var orderMailDraft: OrderMailDraft?
+    @State private var selectedPaymentMethod = ""
 
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         !email.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !shippingStreet.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !shippingPostalCode.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !shippingCity.trimmingCharacters(in: .whitespaces).isEmpty &&
         !cartVM.items.isEmpty
+    }
+
+    private var availableCheckoutMethods: [String] {
+        paymentMethodSettingsStore.settings.checkoutMethodLabels
+    }
+
+    private var isAdmin: Bool {
+        authManager.userSession?.isAdmin == true
+    }
+
+    private var isCheckoutAvailable: Bool {
+        merchStoreStatusStore.status.isOpen || isAdmin
+    }
+
+    private var canSubmitOrder: Bool {
+        isCheckoutAvailable &&
+        isFormValid &&
+        (availableCheckoutMethods.isEmpty || !selectedPaymentMethod.isEmpty)
     }
 
     private var totalPrice: Double {
         cartVM.items.reduce(0.0) { partialResult, cartItem in
             partialResult + cartItem.item.price * Double(cartItem.quantity)
         }
+    }
+
+    private var pricingSummary: CartPricingSummary {
+        let settings = commerceSettingsStore.settings
+        let normalizedCountry = shippingCountry.trimmingCharacters(in: .whitespacesAndNewlines)
+        let baseShipping = settings.shipping.shippingCost(for: normalizedCountry)
+        let shippingCost = totalPrice >= settings.shipping.freeShippingThreshold && settings.shipping.freeShippingThreshold > 0
+            ? 0
+            : baseShipping
+        let total = totalPrice + shippingCost
+        let taxRate = settings.invoice.taxRate
+        let includedTax = taxRate > 0
+            ? total * (taxRate / (100 + taxRate))
+            : 0
+
+        return CartPricingSummary(
+            subtotal: totalPrice,
+            shipping: shippingCost,
+            taxRate: taxRate,
+            includedTax: includedTax,
+            total: total
+        )
     }
     
     var body: some View {
@@ -47,7 +98,7 @@ struct CartView: View {
                     CartHeroCard(
                         colorScheme: colorScheme,
                         itemCount: cartVM.items.count,
-                        totalPrice: totalPrice,
+                        totalPrice: pricingSummary.total,
                         isLoggedIn: authManager.userSession != nil
                     )
 
@@ -57,7 +108,8 @@ struct CartView: View {
                     ) {
                         PaymentMethodsCheckoutInfo(
                             colorScheme: colorScheme,
-                            settings: paymentMethodSettingsStore.settings
+                            settings: paymentMethodSettingsStore.settings,
+                            isCheckoutAvailable: isCheckoutAvailable
                         )
                     }
 
@@ -134,6 +186,94 @@ struct CartView: View {
                         }
 
                         CartSectionCard(
+                            title: "Lieferadresse",
+                            colorScheme: colorScheme
+                        ) {
+                            Text("Die Versandadresse wird fuer Rueckmeldung, Versand und Bestellabwicklung benoetigt.")
+                                .font(.body)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                            VStack(spacing: 10) {
+                                CartInputField(
+                                    title: "Strasse und Hausnummer*",
+                                    text: $shippingStreet,
+                                    colorScheme: colorScheme
+                                )
+                                CartInputField(
+                                    title: "Adresszusatz (optional)",
+                                    text: $shippingAddressExtra,
+                                    colorScheme: colorScheme
+                                )
+                                HStack(spacing: 10) {
+                                    CartInputField(
+                                        title: "PLZ*",
+                                        text: $shippingPostalCode,
+                                        colorScheme: colorScheme,
+                                        keyboard: .numbersAndPunctuation
+                                    )
+                                    CartInputField(
+                                        title: "Ort*",
+                                        text: $shippingCity,
+                                        colorScheme: colorScheme
+                                    )
+                                }
+                                CartInputField(
+                                    title: "Land",
+                                    text: $shippingCountry,
+                                    colorScheme: colorScheme
+                                )
+                            }
+                            .padding(.top, 4)
+                        }
+
+                        CartSectionCard(
+                            title: "Bestellsumme",
+                            colorScheme: colorScheme
+                        ) {
+                            PricingSummaryCard(
+                                colorScheme: colorScheme,
+                                summary: pricingSummary,
+                                shippingNote: commerceSettingsStore.settings.shipping.shippingNotes,
+                                companyName: commerceSettingsStore.settings.invoice.companyName
+                            )
+                        }
+
+                        if !isCheckoutAvailable {
+                            CartSectionCard(
+                                title: "Checkout pausiert",
+                                colorScheme: colorScheme
+                            ) {
+                                Text("Der Merchandise-Store ist gerade pausiert. Deine Auswahl bleibt sichtbar, aber neue Bestellungen werden erst wieder freigeschaltet, sobald der Store geoeffnet ist.")
+                                    .font(.body)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
+                        } else if !availableCheckoutMethods.isEmpty {
+                            CartSectionCard(
+                                title: "Zahlart waehlen",
+                                colorScheme: colorScheme
+                            ) {
+                                PaymentMethodSelectionCard(
+                                    colorScheme: colorScheme,
+                                    methods: availableCheckoutMethods,
+                                    selectedMethod: $selectedPaymentMethod
+                                )
+                            }
+
+                            if !selectedPaymentMethod.isEmpty {
+                                CartSectionCard(
+                                    title: "Zahlungsinfo",
+                                    colorScheme: colorScheme
+                                ) {
+                                    SelectedPaymentMethodInfoCard(
+                                        colorScheme: colorScheme,
+                                        settings: paymentMethodSettingsStore.settings,
+                                        selectedMethod: selectedPaymentMethod
+                                    )
+                                }
+                            }
+                        }
+
+                        CartSectionCard(
                             title: "Nachricht",
                             colorScheme: colorScheme
                         ) {
@@ -172,15 +312,21 @@ struct CartView: View {
                 if authManager.userSession != nil {
                     CartSubmitBar(
                         colorScheme: colorScheme,
-                        totalPrice: totalPrice,
-                        isFormValid: isFormValid,
+                        totalPrice: pricingSummary.total,
+                        isFormValid: canSubmitOrder,
                         isSubmitting: isSubmitting
                     ) {
                         showConfirmationDialog = true
                     }
                 }
             }
-            .onAppear(perform: populateContactDetails)
+            .onAppear {
+                populateContactDetails()
+                syncSelectedPaymentMethod(with: availableCheckoutMethods)
+            }
+            .onReceive(paymentMethodSettingsStore.$settings) { settings in
+                syncSelectedPaymentMethod(with: settings.checkoutMethodLabels)
+            }
         }
         .sheet(isPresented: $showingLoginSheet) {
             LoginView()
@@ -217,11 +363,27 @@ struct CartView: View {
         isSubmitting = true
         let draft = makeOrderMailDraft(items: cartVM.items)
 
+        guard availableCheckoutMethods.isEmpty || !selectedPaymentMethod.isEmpty else {
+            cartVM.showUserToast("Bitte waehle zuerst eine Zahlart aus.", style: .error)
+            isSubmitting = false
+            return
+        }
+
+        let shippingAddress = composedShippingAddress
+
         let didSubmit = await cartVM.submitCartAsOrder(
             customerName: name,
             customerEmail: email,
             whatsApp: whatsApp,
-            message: message
+            shippingAddress: shippingAddress,
+            message: message,
+            paymentMethod: selectedPaymentMethod,
+            subtotalAmount: pricingSummary.subtotal,
+            shippingAmount: pricingSummary.shipping,
+            taxRate: pricingSummary.taxRate,
+            taxAmount: pricingSummary.includedTax,
+            totalAmount: pricingSummary.total,
+            isCheckoutAvailable: isCheckoutAvailable
         )
 
         if didSubmit {
@@ -237,6 +399,19 @@ struct CartView: View {
         if name.isEmpty { name = user.username }
         if email.isEmpty { email = user.email }
         if whatsApp.isEmpty { whatsApp = user.whatsApp ?? "" }
+    }
+
+    private var composedShippingAddress: String {
+        let topLine = shippingStreet.trimmingCharacters(in: .whitespacesAndNewlines)
+        let extraLine = shippingAddressExtra.trimmingCharacters(in: .whitespacesAndNewlines)
+        let postalAndCity = [shippingPostalCode.trimmedForAddress, shippingCity.trimmedForAddress]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let country = shippingCountry.trimmedForAddress.isEmpty ? "Deutschland" : shippingCountry.trimmedForAddress
+
+        return [topLine, extraLine, postalAndCity, country]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
     }
 
     private var backgroundGradient: LinearGradient {
@@ -278,11 +453,19 @@ struct CartView: View {
         Name: \(name.isEmpty ? "Nicht angegeben" : name)
         E-Mail: \(email.isEmpty ? "Nicht angegeben" : email)
         WhatsApp: \(whatsApp.isEmpty ? "Nicht angegeben" : whatsApp)
+        Adresse:
+        \(composedShippingAddress.isEmpty ? "Nicht angegeben" : composedShippingAddress)
 
         Warenkorb:
         \(itemSummary)
 
-        Gesamt: \(String(format: "EUR %.2f", orderTotal))
+        Zwischensumme: \(String(format: "EUR %.2f", orderTotal))
+        Versand: \(String(format: "EUR %.2f", pricingSummary.shipping))
+        Enthaltene MwSt. (\(String(format: "%.1f", pricingSummary.taxRate))%): \(String(format: "EUR %.2f", pricingSummary.includedTax))
+        Gesamt: \(String(format: "EUR %.2f", pricingSummary.total))
+
+        Zahlart:
+        \(selectedPaymentMethod.isEmpty ? "Noch offen / per Rueckkontakt" : selectedPaymentMethod)
 
         Nachricht:
         \(message.isEmpty ? "Keine zusaetzliche Nachricht." : message)
@@ -308,15 +491,28 @@ struct CartView: View {
             UIApplication.shared.open(url)
         }
     }
+
+    private func syncSelectedPaymentMethod(with methods: [String]) {
+        if methods.isEmpty {
+            selectedPaymentMethod = ""
+        } else if !methods.contains(selectedPaymentMethod) {
+            selectedPaymentMethod = methods.first ?? ""
+        }
+    }
 }
 
 private struct PaymentMethodsCheckoutInfo: View {
     let colorScheme: ColorScheme
     let settings: PaymentMethodSettings
+    let isCheckoutAvailable: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if settings.checkoutMethodLabels.isEmpty {
+            if !isCheckoutAvailable {
+                Text("Der Merchandise-Store ist aktuell pausiert. Zahlarten und Checkout werden erst wieder aktiv, sobald der Store geoeffnet ist.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            } else if settings.checkoutMethodLabels.isEmpty {
                 Text("Aktuell ist noch keine Zahlart fuer Kunden sichtbar. Der Merch-Checkout bleibt bis dahin auf Anfrage und Rueckkontakt ausgelegt.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -345,6 +541,182 @@ private struct PaymentMethodsCheckoutInfo: View {
     }
 }
 
+private struct PricingSummaryCard: View {
+    let colorScheme: ColorScheme
+    let summary: CartPricingSummary
+    let shippingNote: String
+    let companyName: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            pricingLine("Zwischensumme", summary.subtotal)
+            pricingLine("Versand", summary.shipping)
+            pricingLine("inkl. MwSt. (\(String(format: "%.1f", summary.taxRate))%)", summary.includedTax)
+
+            Divider()
+
+            pricingLine("Gesamt", summary.total, isEmphasized: true)
+
+            if !shippingNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(shippingNote)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Text("Rechnung und Rueckmeldung laufen ueber \(companyName.takeIfNotBlank() ?? "Skydown Entertainment").")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+    }
+
+    @ViewBuilder
+    private func pricingLine(_ title: String, _ value: Double, isEmphasized: Bool = false) -> some View {
+        HStack {
+            Text(title)
+                .font(isEmphasized ? .headline : .subheadline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Spacer()
+            Text(String(format: "EUR %.2f", value))
+                .font(isEmphasized ? .headline.weight(.bold) : .subheadline.weight(.semibold))
+                .foregroundColor(isEmphasized ? AppColors.accent(for: colorScheme) : AppColors.text(for: colorScheme))
+        }
+    }
+}
+
+private struct PaymentMethodSelectionCard: View {
+    let colorScheme: ColorScheme
+    let methods: [String]
+    @Binding var selectedMethod: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Waehle die Zahlart, die fuer diese Bestellung vorbereitet werden soll.")
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 132), spacing: 10, alignment: .leading)],
+                alignment: .leading,
+                spacing: 10
+            ) {
+                ForEach(methods, id: \.self) { method in
+                    Button {
+                        selectedMethod = method
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: selectedMethod == method ? "checkmark.circle.fill" : "circle")
+                                .font(.subheadline.weight(.semibold))
+                            Text(method)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                        }
+                        .foregroundColor(
+                            selectedMethod == method
+                                ? AppColors.text(for: colorScheme)
+                                : AppColors.secondaryText(for: colorScheme)
+                        )
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(
+                                    selectedMethod == method
+                                        ? AppColors.accent(for: colorScheme).opacity(0.14)
+                                        : AppColors.secondaryBackground(for: colorScheme)
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(
+                                    selectedMethod == method
+                                        ? AppColors.accent(for: colorScheme)
+                                        : AppColors.accent(for: colorScheme).opacity(0.10),
+                                    lineWidth: 1
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if selectedMethod == "Klarna" {
+                Text("Klarna bleibt aktuell als vorbereiteter Checkout-Kanal sichtbar. Der echte Provider-Connect kann spaeter separat live geschaltet werden.")
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+        }
+    }
+}
+
+private struct SelectedPaymentMethodInfoCard: View {
+    let colorScheme: ColorScheme
+    let settings: PaymentMethodSettings
+    let selectedMethod: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            switch selectedMethod {
+            case "PayPal":
+                Text("PayPal wird hier als sicherer manueller Handoff genutzt. Fuer einen direkten Flow hinterlege am besten einen PayPal.Me-Link.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                if settings.paypal.accountHint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Im Admin-Bereich ist noch kein PayPal.Me-Link oder keine Business-Mail hinterlegt.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                } else {
+                    CartBadge(text: settings.paypal.accountHint, colorScheme: colorScheme)
+                }
+
+            case "Bankueberweisung":
+                Text("Die Bankueberweisung laeuft direkt und ohne Gateway-Kosten. Die hinterlegten Daten gelten fuer diese Bestellung.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    if !settings.bankTransfer.accountHolder.isEmpty {
+                        paymentInfoLine("Kontoinhaber", settings.bankTransfer.accountHolder)
+                    }
+                    if !settings.bankTransfer.bankName.isEmpty {
+                        paymentInfoLine("Bank", settings.bankTransfer.bankName)
+                    }
+                    if !settings.bankTransfer.iban.isEmpty {
+                        paymentInfoLine("IBAN", settings.bankTransfer.iban)
+                    }
+                    if !settings.bankTransfer.bic.isEmpty {
+                        paymentInfoLine("BIC", settings.bankTransfer.bic)
+                    }
+                    if !settings.bankTransfer.paymentInstructions.isEmpty {
+                        paymentInfoLine("Hinweis", settings.bankTransfer.paymentInstructions)
+                    }
+                }
+
+            case "Stripe", "Klarna":
+                Text("\(selectedMethod) ist bereits im Checkout sichtbar, bleibt aktuell aber ein vorbereiteter Provider. Der echte Live-Connect kann spaeter separat freigeschaltet werden.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            default:
+                EmptyView()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func paymentInfoLine(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+        }
+    }
+}
+
 private struct OrderMailDraft: Identifiable {
     let id = UUID()
     let subject: String
@@ -352,10 +724,22 @@ private struct OrderMailDraft: Identifiable {
     let preferredSendingEmailAddress: String?
 }
 
+private struct CartPricingSummary {
+    let subtotal: Double
+    let shipping: Double
+    let taxRate: Double
+    let includedTax: Double
+    let total: Double
+}
+
 private extension String {
     func takeIfNotBlank() -> String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    var trimmedForAddress: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

@@ -68,7 +68,7 @@ fun CartScreen(
     val appContext = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val totalPrice = uiState.items.sumOf { it.item.price * it.quantity }
+    val pricing = cartPricingSummary(uiState)
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         if (uiState.errorMessage != null || uiState.successMessage != null) {
@@ -123,7 +123,7 @@ fun CartScreen(
                 item {
                     CartOverviewCard(
                         itemCount = uiState.items.size,
-                        totalPrice = totalPrice,
+                        totalPrice = pricing.total,
                         isLoggedIn = uiState.isLoggedIn,
                     )
                 }
@@ -133,6 +133,7 @@ fun CartScreen(
                         methods = uiState.paymentMethods.checkoutMethodLabels,
                         bankTransferEnabled = uiState.paymentMethods.bankTransfer.enabled &&
                             uiState.paymentMethods.bankTransfer.isConfigured,
+                        isCheckoutAvailable = uiState.isStoreOpen || uiState.isAdmin,
                     )
                 }
 
@@ -165,6 +166,38 @@ fun CartScreen(
                         }
                     }
                 } else {
+                    if (uiState.isStoreOpen || uiState.isAdmin) {
+                        if (uiState.paymentMethods.checkoutMethodLabels.isNotEmpty()) {
+                            item {
+                                PaymentMethodSelectionCard(
+                                    methods = uiState.paymentMethods.checkoutMethodLabels,
+                                    selectedMethod = uiState.selectedPaymentMethod,
+                                    onSelect = viewModel::selectPaymentMethod,
+                                )
+                            }
+
+                            if (uiState.selectedPaymentMethod.isNotBlank()) {
+                                item {
+                                    PaymentMethodDetailCard(
+                                        selectedMethod = uiState.selectedPaymentMethod,
+                                        settings = uiState.paymentMethods,
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        item {
+                            SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                                SectionHeader("Checkout pausiert")
+                                Text(
+                                    text = "Der Merchandise-Store ist gerade pausiert. Deine Auswahl bleibt sichtbar, aber neue Bestellungen werden erst wieder freigeschaltet, sobald der Store geoeffnet ist.",
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                            }
+                        }
+                    }
+
                     item {
                         SkydownCard {
                             SectionHeader("Deine Auswahl")
@@ -233,6 +266,67 @@ fun CartScreen(
 
                     item {
                         SkydownCard {
+                            SectionHeader("Lieferadresse")
+                            Text(
+                                text = "Die Versandadresse wird fuer Rueckmeldung, Versand und Bestellabwicklung benoetigt.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                            OutlinedTextField(
+                                value = uiState.shippingStreet,
+                                onValueChange = viewModel::updateShippingStreet,
+                                label = { Text("Strasse und Hausnummer*") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 14.dp),
+                                singleLine = true,
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                            OutlinedTextField(
+                                value = uiState.shippingAddressExtra,
+                                onValueChange = viewModel::updateShippingAddressExtra,
+                                label = { Text("Adresszusatz (optional)") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                singleLine = true,
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                            OutlinedTextField(
+                                value = uiState.shippingPostalCode,
+                                onValueChange = viewModel::updateShippingPostalCode,
+                                label = { Text("PLZ*") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                singleLine = true,
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                            OutlinedTextField(
+                                value = uiState.shippingCity,
+                                onValueChange = viewModel::updateShippingCity,
+                                label = { Text("Ort*") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                singleLine = true,
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                            OutlinedTextField(
+                                value = uiState.shippingCountry,
+                                onValueChange = viewModel::updateShippingCountry,
+                                label = { Text("Land") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                singleLine = true,
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                        }
+                    }
+
+                    item {
+                        SkydownCard {
                             SectionHeader("Nachricht")
                             Text(
                                 text = "Optional fuer Hinweise zu Lieferung, Verfuegbarkeit oder Sonderwuenschen.",
@@ -250,6 +344,14 @@ fun CartScreen(
                                 shape = RoundedCornerShape(18.dp),
                             )
                         }
+                    }
+
+                    item {
+                        PricingSummaryCard(
+                            summary = pricing,
+                            shippingNote = uiState.commerceSettings.shipping.shippingNotes,
+                            companyName = uiState.commerceSettings.invoice.companyName,
+                        )
                     }
 
                     item {
@@ -375,10 +477,17 @@ private fun CartOverviewCard(
 private fun PaymentMethodAvailabilityCard(
     methods: List<String>,
     bankTransferEnabled: Boolean,
+    isCheckoutAvailable: Boolean,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Zahlungsarten")
-        if (methods.isEmpty()) {
+        if (!isCheckoutAvailable) {
+            Text(
+                text = "Der Merchandise-Store ist aktuell pausiert. Zahlarten und Checkout werden erst wieder aktiv, sobald der Store geoeffnet ist.",
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        } else if (methods.isEmpty()) {
             Text(
                 text = "Aktuell ist noch keine Zahlart fuer Kunden sichtbar. Der Merch-Checkout bleibt bis dahin auf Anfrage und Rueckkontakt ausgelegt.",
                 modifier = Modifier.padding(top = 8.dp),
@@ -408,6 +517,170 @@ private fun PaymentMethodAvailabilityCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         }
+    }
+}
+
+@Composable
+private fun PricingSummaryCard(
+    summary: CartPricingSummaryUi,
+    shippingNote: String,
+    companyName: String,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Bestellsumme")
+        PaymentInfoLine("Zwischensumme", "EUR ${formatCurrency(summary.subtotal)}")
+        PaymentInfoLine("Versand", "EUR ${formatCurrency(summary.shipping)}")
+        PaymentInfoLine(
+            "inkl. MwSt. (${formatCurrency(summary.taxRate, decimals = 1)}%)",
+            "EUR ${formatCurrency(summary.includedTax)}",
+        )
+        PaymentInfoLine("Gesamt", "EUR ${formatCurrency(summary.total)}")
+        if (shippingNote.isNotBlank()) {
+            Text(
+                text = shippingNote,
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        }
+        Text(
+            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Skydown Entertainment" }}.",
+            modifier = Modifier.padding(top = 10.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+    }
+}
+
+@Composable
+private fun PaymentMethodSelectionCard(
+    methods: List<String>,
+    selectedMethod: String,
+    onSelect: (String) -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Zahlart waehlen")
+        Text(
+            text = "Waehle die Zahlart, die fuer diese Bestellung vorbereitet werden soll.",
+            modifier = Modifier.padding(top = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+
+        Column(
+            modifier = Modifier.padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            methods.forEach { method ->
+                OutlinedButton(
+                    onClick = { onSelect(method) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(method)
+                        Text(if (selectedMethod == method) "Ausgewaehlt" else "Waehlen")
+                    }
+                }
+            }
+        }
+
+        if (selectedMethod == "Klarna") {
+            Text(
+                text = "Klarna bleibt aktuell als vorbereiteter Checkout-Kanal sichtbar. Der echte Provider-Connect kann spaeter separat live geschaltet werden.",
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaymentMethodDetailCard(
+    selectedMethod: String,
+    settings: com.skydown.android.data.PaymentMethodsSettings,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Zahlungsinfo")
+
+        when (selectedMethod) {
+            "PayPal" -> {
+                Text(
+                    text = "PayPal wird hier als sicherer manueller Handoff genutzt. Fuer einen direkten Flow hinterlege am besten einen PayPal.Me-Link.",
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+                if (settings.paypal.accountHint.isBlank()) {
+                    Text(
+                        text = "Im Admin-Bereich ist noch kein PayPal.Me-Link oder keine Business-Mail hinterlegt.",
+                        modifier = Modifier.padding(top = 12.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                } else {
+                    CartInfoPill(
+                        text = settings.paypal.accountHint,
+                    )
+                }
+            }
+
+            "Bankueberweisung" -> {
+                Text(
+                    text = "Die Bankueberweisung laeuft direkt und ohne Gateway-Kosten. Die hinterlegten Daten gelten fuer diese Bestellung.",
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+                Column(
+                    modifier = Modifier.padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (settings.bankTransfer.accountHolder.isNotBlank()) {
+                        PaymentInfoLine("Kontoinhaber", settings.bankTransfer.accountHolder)
+                    }
+                    if (settings.bankTransfer.bankName.isNotBlank()) {
+                        PaymentInfoLine("Bank", settings.bankTransfer.bankName)
+                    }
+                    if (settings.bankTransfer.iban.isNotBlank()) {
+                        PaymentInfoLine("IBAN", settings.bankTransfer.iban)
+                    }
+                    if (settings.bankTransfer.bic.isNotBlank()) {
+                        PaymentInfoLine("BIC", settings.bankTransfer.bic)
+                    }
+                    if (settings.bankTransfer.paymentInstructions.isNotBlank()) {
+                        PaymentInfoLine("Hinweis", settings.bankTransfer.paymentInstructions)
+                    }
+                }
+            }
+
+            "Stripe", "Klarna" -> {
+                Text(
+                    text = "$selectedMethod ist bereits im Checkout sichtbar, bleibt aktuell aber ein vorbereiteter Provider. Der echte Live-Connect kann spaeter separat freigeschaltet werden.",
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            else -> Unit
+        }
+    }
+}
+
+@Composable
+private fun PaymentInfoLine(
+    title: String,
+    value: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -486,6 +759,44 @@ private fun formatCurrency(value: Double): String {
     return String.format(Locale.US, "%.2f", value)
 }
 
+private fun formatCurrency(value: Double, decimals: Int): String {
+    return String.format(Locale.US, "%.${decimals}f", value)
+}
+
+private data class CartPricingSummaryUi(
+    val subtotal: Double,
+    val shipping: Double,
+    val taxRate: Double,
+    val includedTax: Double,
+    val total: Double,
+)
+
+private fun cartPricingSummary(
+    state: com.skydown.android.ui.model.CartUiState,
+): CartPricingSummaryUi {
+    val subtotal = state.items.sumOf { it.item.price * it.quantity }
+    val baseShipping = state.commerceSettings.shipping.shippingCostFor(state.shippingCountry)
+    val shipping = if (
+        state.commerceSettings.shipping.freeShippingThreshold > 0 &&
+        subtotal >= state.commerceSettings.shipping.freeShippingThreshold
+    ) {
+        0.0
+    } else {
+        baseShipping
+    }
+    val total = subtotal + shipping
+    val taxRate = state.commerceSettings.invoice.taxRate
+    val includedTax = if (taxRate > 0) total * (taxRate / (100.0 + taxRate)) else 0.0
+
+    return CartPricingSummaryUi(
+        subtotal = subtotal,
+        shipping = shipping,
+        taxRate = taxRate,
+        includedTax = includedTax,
+        total = total,
+    )
+}
+
 private fun openOrderEmail(
     context: Context,
     state: com.skydown.android.ui.model.CartUiState,
@@ -503,7 +814,15 @@ private fun openOrderEmail(
             "- ${cartItem.item.name} | Groesse: ${cartItem.size} | Menge: ${cartItem.quantity} | Preis: EUR ${formatCurrency(price)}"
         }
     }
-    val total = state.items.sumOf { cartItem -> cartItem.item.price * cartItem.quantity }
+    val pricing = cartPricingSummary(state)
+    val shippingAddress = listOf(
+        state.shippingStreet.trim(),
+        state.shippingAddressExtra.trim(),
+        listOf(state.shippingPostalCode.trim(), state.shippingCity.trim())
+            .filter { it.isNotBlank() }
+            .joinToString(" "),
+        state.shippingCountry.trim().ifBlank { "Deutschland" },
+    ).filter { it.isNotBlank() }.joinToString("\n")
     val body = """
         Hallo Skydown-Team,
 
@@ -512,11 +831,19 @@ private fun openOrderEmail(
         Name: ${state.name.ifBlank { "Nicht angegeben" }}
         E-Mail: ${state.email.ifBlank { "Nicht angegeben" }}
         WhatsApp: ${state.whatsApp.ifBlank { "Nicht angegeben" }}
+        Adresse:
+        ${shippingAddress.ifBlank { "Nicht angegeben" }}
 
         Warenkorb:
         $itemSummary
 
-        Gesamt: EUR ${formatCurrency(total)}
+        Zwischensumme: EUR ${formatCurrency(pricing.subtotal)}
+        Versand: EUR ${formatCurrency(pricing.shipping)}
+        Enthaltene MwSt. (${formatCurrency(pricing.taxRate, decimals = 1)}%): EUR ${formatCurrency(pricing.includedTax)}
+        Gesamt: EUR ${formatCurrency(pricing.total)}
+
+        Zahlart:
+        ${state.selectedPaymentMethod.ifBlank { "Noch offen / per Rueckkontakt" }}
 
         Nachricht:
         ${state.message.ifBlank { "Keine zusaetzliche Nachricht." }}
