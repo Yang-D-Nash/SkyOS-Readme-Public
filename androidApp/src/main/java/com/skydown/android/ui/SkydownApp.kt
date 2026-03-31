@@ -1,10 +1,17 @@
 package com.skydown.android.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
@@ -12,6 +19,8 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -29,7 +38,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -57,6 +68,8 @@ fun SkydownApp() {
     val navController = rememberNavController()
     val isCompactLayout = rememberIsCompactAppLayout()
     var showIntro by remember { mutableStateOf(true) }
+    var selectedEntryRoute by remember { mutableStateOf<String?>(null) }
+    var showN8NLanding by remember { mutableStateOf(false) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
     var showOrders by remember { mutableStateOf(false) }
     val authSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -87,7 +100,18 @@ fun SkydownApp() {
         IntroScreen(
             onFinished = { showIntro = false },
         )
+    } else if (showN8NLanding) {
+        N8NLaunchScreen(
+            onBack = { showN8NLanding = false },
+        )
+    } else if (selectedEntryRoute == null) {
+        LaunchLandingScreen(
+            onOpenMusic = { selectedEntryRoute = "music" },
+            onOpenVideography = { selectedEntryRoute = "video" },
+            onOpenN8N = { showN8NLanding = true },
+        )
     } else {
+        val startRoute = selectedEntryRoute ?: "home"
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
 
@@ -160,7 +184,7 @@ fun SkydownApp() {
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = "home",
+                startDestination = startRoute,
                 modifier = Modifier.padding(innerPadding),
             ) {
                 composable("home") {
@@ -252,4 +276,190 @@ private data class BottomDestination(
 private enum class AuthSheet {
     Login,
     Registration,
+}
+
+@Composable
+private fun LaunchLandingScreen(
+    onOpenMusic: () -> Unit,
+    onOpenVideography: () -> Unit,
+    onOpenN8N: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                        MaterialTheme.colorScheme.background,
+                    ),
+                ),
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Skydown x 22",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Choose your lane.",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = "Starte direkt im Musikbereich oder spring in den kompletten Videography-Hub.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                LaunchLandingButton(
+                    title = "MUSIK",
+                    subtitle = "Songs, Releases, Beats und der gesamte Music-Hub.",
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    onClick = onOpenMusic,
+                )
+                LaunchLandingButton(
+                    title = "VIDEOGRAPHY",
+                    subtitle = "Clips, Reels, Sessions und die komplette Video-Welt.",
+                    accentColor = MaterialTheme.colorScheme.tertiary,
+                    onClick = onOpenVideography,
+                )
+                LaunchLandingButton(
+                    title = "N8N TRIGGER",
+                    subtitle = "Leere Workflow-Landing-Page als Startpunkt fuer spaetere Automationen.",
+                    accentColor = MaterialTheme.colorScheme.secondary,
+                    onClick = onOpenN8N,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(1.dp))
+        }
+    }
+}
+
+@Composable
+private fun N8NLaunchScreen(
+    onBack: () -> Unit,
+) {
+    var hasTriggeredPlaceholder by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                        MaterialTheme.colorScheme.background,
+                    ),
+                ),
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Button(
+                onClick = onBack,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+                shape = RoundedCornerShape(999.dp),
+                elevation = null,
+            ) {
+                Text("Zurueck")
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    text = "N8N Trigger",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = "Hier kann spaeter dein automatisierter Workflow andocken. Im Moment bleibt der Bereich absichtlich leer und dient nur als Trigger-Startpunkt.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
+                )
+                LaunchLandingButton(
+                    title = "TRIGGER STARTEN",
+                    subtitle = if (hasTriggeredPlaceholder) {
+                        "Platzhalter wurde ausgelost. Hier kann als naechstes dein N8N-Webhook andocken."
+                    } else {
+                        "Aktuell noch ohne Webhook. Nutze den Button als sichtbaren Slot fuer den spaeteren N8N-Flow."
+                    },
+                    accentColor = MaterialTheme.colorScheme.secondary,
+                    onClick = { hasTriggeredPlaceholder = true },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(1.dp))
+        }
+    }
+}
+
+@Composable
+private fun LaunchLandingButton(
+    title: String,
+    subtitle: String,
+    accentColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        tonalElevation = 10.dp,
+        shadowElevation = 14.dp,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.24f)),
+    ) {
+        Button(
+            onClick = onClick,
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(22.dp),
+            elevation = null,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+        }
+    }
 }
