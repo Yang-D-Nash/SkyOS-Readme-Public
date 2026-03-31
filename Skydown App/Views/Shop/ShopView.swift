@@ -92,7 +92,7 @@ struct HomeView: View {
                 viewModel.refresh()
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Skydown x 22")
+            .navigationTitle("Hub")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -223,7 +223,7 @@ struct ShopView: View {
                 }
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Skydown Merch")
+            .navigationTitle("Merch Hub")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -303,12 +303,12 @@ private struct HomeHeroIntroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Skydown x 22")
+                Text("Hub")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Zweizwei Music und Skydown Videography laufen hier als getrennte Lanes.")
+                Text("Hier laufen Zweizwei, Skydown, Merch und Tools als globale Bereiche zusammen.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -998,12 +998,12 @@ private struct ShopHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Skydown Merch")
+                Text("Merch Hub")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Merch & Drops.")
+                Text("Global Drops, Apparel & Cart.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }

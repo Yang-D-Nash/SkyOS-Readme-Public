@@ -174,7 +174,12 @@ fun HomeScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { SkydownTopBarTitle("Skydown x 22") },
+                title = {
+                    SkydownTopBarTitle(
+                        "Hub",
+                        "Zweizwei, Skydown, Merch und Tools auf einen Blick.",
+                    )
+                },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -183,7 +188,7 @@ fun HomeScreen(
                         IconButton(onClick = viewModel::refresh) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Home aktualisieren",
+                                contentDescription = "Hub aktualisieren",
                             )
                         }
                     }
@@ -363,12 +368,12 @@ private fun HomeHeroCard() {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "Skydown x 22",
+                    text = "Hub",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Zweizwei Music und Skydown Videography laufen hier als getrennte Lanes.",
+                    text = "Hier laufen Zweizwei, Skydown, Merch und Tools als globale Bereiche zusammen.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )

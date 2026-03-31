@@ -5,15 +5,15 @@
 //  Created by Yang D. Nash on 21.08.25.
 //
 
-import SwiftUI
-import AVKit
 import AVFoundation
+import AVKit
+import SwiftUI
 
 struct LaunchScreenView: View {
     @State private var phase: LaunchPhase = .intro
     @State private var player: AVPlayer?
     @State private var hasCompletedIntro = false
-    
+
     var body: some View {
         Group {
             switch phase {
@@ -21,18 +21,12 @@ struct LaunchScreenView: View {
                 introContent
             case .landing:
                 LaunchLandingView(
-                    onOpenMusic: { openMusicLane() },
-                    onOpenVideography: { openVideographyLane() },
-                    onOpenN8N: { openN8NLanding() }
+                    onOpenMusic: { openShell(tab: .zweizwei) },
+                    onOpenVideography: { openShell(tab: .skydown) },
+                    onOpenN8N: { openShell(tab: .tools) }
                 )
-            case .n8n:
-                N8NLaunchView(onBack: { transitionBackToLanding() })
-            case .musicLane:
-                ZweizweiMusicLaneView(onBackToLanding: { transitionBackToLanding() })
-            case .videographyLane:
-                NavigationStack {
-                    VideoHubView(onBack: { transitionBackToLanding() })
-                }
+            case .shell(let initialTab):
+                MainTabView(initialTab: initialTab)
             }
         }
         .onAppear {
@@ -129,27 +123,9 @@ struct LaunchScreenView: View {
         }
     }
 
-    private func openMusicLane() {
+    private func openShell(tab: MainTab) {
         withAnimation(.easeInOut(duration: 0.3)) {
-            phase = .musicLane
-        }
-    }
-
-    private func openVideographyLane() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            phase = .videographyLane
-        }
-    }
-
-    private func openN8NLanding() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            phase = .n8n
-        }
-    }
-
-    private func transitionBackToLanding() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            phase = .landing
+            phase = .shell(tab)
         }
     }
 }
@@ -157,9 +133,7 @@ struct LaunchScreenView: View {
 private enum LaunchPhase {
     case intro
     case landing
-    case n8n
-    case musicLane
-    case videographyLane
+    case shell(MainTab)
 }
 
 private struct LaunchLandingView: View {
@@ -188,7 +162,7 @@ private struct LaunchLandingView: View {
                         .font(.system(size: 42, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Spring direkt in Zweizwei Music oder in die Skydown Videography-Welt der App.")
+                    Text("Du landest danach immer in der globalen App-Shell und startest nur im passenden Bereich.")
                         .font(.headline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -196,174 +170,23 @@ private struct LaunchLandingView: View {
                 VStack(spacing: 14) {
                     LaunchLandingButton(
                         title: "MUSIK",
-                        subtitle: "Zweizwei steht hier fuer Songs, Releases, Beats und den kompletten Music-Hub.",
+                        subtitle: "Startet direkt in Zweizwei Music innerhalb der globalen Shell.",
                         accent: AppColors.spotify(for: colorScheme),
                         action: onOpenMusic
                     )
 
                     LaunchLandingButton(
                         title: "VIDEOGRAPHY",
-                        subtitle: "Skydown buendelt hier Clips, Reels, Sessions und den gesamten Video-Hub.",
+                        subtitle: "Startet direkt in Skydown Videography innerhalb der globalen Shell.",
                         accent: AppColors.accentMystic(for: colorScheme),
                         action: onOpenVideography
                     )
 
                     LaunchLandingButton(
                         title: "N8N TRIGGER",
-                        subtitle: "Leere Workflow-Landing-Page als Startpunkt fuer spaetere Automationen.",
+                        subtitle: "Springt in den globalen Tools-Bereich, wo spaeter AI und N8N neutral andocken.",
                         accent: AppColors.accentHighlight(for: colorScheme),
                         action: onOpenN8N
-                    )
-                }
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.vertical, 28)
-        }
-    }
-}
-
-private struct ZweizweiMusicLaneView: View {
-    private enum Destination {
-        case hub
-        case catalog
-        case beatHub
-        case nicma
-    }
-
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var destination: Destination = .hub
-    let onBackToLanding: () -> Void
-
-    var body: some View {
-        switch destination {
-        case .hub:
-            laneHub
-        case .catalog:
-            MusicView(
-                brand: .zweizwei,
-                onBack: { destination = .hub }
-            )
-        case .beatHub:
-            NavigationStack {
-                BeatHubView(onBack: { destination = .hub })
-            }
-        case .nicma:
-            NavigationStack {
-                NicmaProducerView(onBack: { destination = .hub })
-            }
-        }
-    }
-
-    private var laneHub: some View {
-        ZStack {
-            AppColors.screenGradient(
-                for: colorScheme,
-                secondaryAccent: AppColors.spotify(for: colorScheme)
-            )
-            .ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 18) {
-                Button(action: onBackToLanding) {
-                    Label("Zurueck", systemImage: "chevron.left")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(AppColors.cardBackground(for: colorScheme))
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-
-                Spacer(minLength: 0)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Zweizwei Music")
-                        .font(.system(size: 38, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Hier lebt die eigene Musik-Logik: Catalog, Beat Hub und NICMA Producer Services laufen getrennt von Skydown Videography.")
-                        .font(.headline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                VStack(spacing: 14) {
-                    LaunchLandingButton(
-                        title: "MUSIC CATALOG",
-                        subtitle: "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
-                        accent: AppColors.spotify(for: colorScheme),
-                        action: { destination = .catalog }
-                    )
-
-                    LaunchLandingButton(
-                        title: "BEAT HUB",
-                        subtitle: "Eigene Beat-Logik, Preview-Library und Upload-/Listener-Flow.",
-                        accent: AppColors.accent(for: colorScheme),
-                        action: { destination = .beatHub }
-                    )
-
-                    LaunchLandingButton(
-                        title: "NICMA PRODUCER",
-                        subtitle: "Mixing, Mastering und Recording als eigener Music-Service.",
-                        accent: AppColors.accentMystic(for: colorScheme),
-                        action: { destination = .nicma }
-                    )
-                }
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.vertical, 28)
-        }
-    }
-}
-
-private struct N8NLaunchView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var hasTriggeredPlaceholder = false
-    let onBack: () -> Void
-
-    var body: some View {
-        ZStack {
-            AppColors.screenGradient(
-                for: colorScheme,
-                secondaryAccent: AppColors.accentMystic(for: colorScheme)
-            )
-            .ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 18) {
-                Button(action: onBack) {
-                    Label("Zurueck", systemImage: "chevron.left")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(AppColors.cardBackground(for: colorScheme))
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-
-                Spacer(minLength: 0)
-
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("N8N Trigger")
-                        .font(.system(size: 36, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Hier kann spaeter dein automatisierter Workflow andocken. Fuer jetzt bleibt der Bereich absichtlich leer und gibt dir nur einen sichtbaren Trigger-Startpunkt.")
-                        .font(.headline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                    LaunchLandingButton(
-                        title: "TRIGGER STARTEN",
-                        subtitle: hasTriggeredPlaceholder
-                            ? "Platzhalter wurde ausgelost. Hier kann als naechstes der N8N-Flow andocken."
-                            : "Aktuell noch ohne Webhook. Nutze den Button als Trigger-Slot fuer den spaeteren N8N-Workflow.",
-                        accent: AppColors.accentHighlight(for: colorScheme),
-                        action: {
-                            hasTriggeredPlaceholder = true
-                        }
                     )
                 }
 

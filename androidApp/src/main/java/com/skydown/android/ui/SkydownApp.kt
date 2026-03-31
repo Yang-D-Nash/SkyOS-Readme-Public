@@ -71,8 +71,7 @@ fun SkydownApp() {
     val navController = rememberNavController()
     val isCompactLayout = rememberIsCompactAppLayout()
     var showIntro by remember { mutableStateOf(true) }
-    var selectedEntryRoute by remember { mutableStateOf<String?>(null) }
-    var showN8NLanding by remember { mutableStateOf(false) }
+    var selectedEntryRoute by rememberSaveable { mutableStateOf<String?>(null) }
     var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
     var showOrders by remember { mutableStateOf(false) }
     val authSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -92,34 +91,22 @@ fun SkydownApp() {
         }
     }
     val destinations = listOf(
-        BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
-        BottomDestination("music", "Musik", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
-        BottomDestination("home", "Home", { Icon(Icons.Default.Home, contentDescription = null) }),
-        BottomDestination("video", "Video", { Icon(Icons.Default.Movie, contentDescription = null) }),
-        BottomDestination("ai", "KI", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }),
+        BottomDestination("home", "Hub", { Icon(Icons.Default.Home, contentDescription = null) }),
+        BottomDestination("music", "Zweizwei", { Icon(Icons.Default.MusicNote, contentDescription = null) }),
+        BottomDestination("video", "Skydown", { Icon(Icons.Default.Movie, contentDescription = null) }),
+        BottomDestination("shop", "Merch", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }),
+        BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }),
     )
 
     if (showIntro) {
         IntroScreen(
             onFinished = { showIntro = false },
         )
-    } else if (showN8NLanding) {
-        N8NLaunchScreen(
-            onBack = { showN8NLanding = false },
-        )
-    } else if (selectedEntryRoute == launchRouteZweizweiMusic) {
-        ZweizweiMusicLaneScreen(
-            onBackToLanding = { selectedEntryRoute = null },
-        )
-    } else if (selectedEntryRoute == launchRouteSkydownVideography) {
-        VideoHubScreen(
-            onBack = { selectedEntryRoute = null },
-        )
     } else if (selectedEntryRoute == null) {
         LaunchLandingScreen(
-            onOpenMusic = { selectedEntryRoute = launchRouteZweizweiMusic },
-            onOpenVideography = { selectedEntryRoute = launchRouteSkydownVideography },
-            onOpenN8N = { showN8NLanding = true },
+            onOpenMusic = { selectedEntryRoute = "music" },
+            onOpenVideography = { selectedEntryRoute = "video" },
+            onOpenN8N = { selectedEntryRoute = "ai" },
         )
     } else {
         val startRoute = selectedEntryRoute ?: "home"
@@ -212,7 +199,7 @@ fun SkydownApp() {
                     )
                 }
                 composable("music") {
-                    MusicScreen(
+                    ZweizweiMusicLaneScreen(
                         onOpenCart = openCart,
                         onOpenSettings = openSettings,
                     )
@@ -289,9 +276,6 @@ private enum class AuthSheet {
     Registration,
 }
 
-private const val launchRouteZweizweiMusic = "launch_zweizwei_music"
-private const val launchRouteSkydownVideography = "launch_skydown_videography"
-
 @Composable
 private fun LaunchLandingScreen(
     onOpenMusic: () -> Unit,
@@ -333,7 +317,7 @@ private fun LaunchLandingScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Starte direkt in Zweizwei Music oder spring in die Skydown-Videography-Welt.",
+                    text = "Danach landest du immer in der globalen App-Shell und startest nur im passenden Bereich.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
                 )
@@ -354,7 +338,7 @@ private fun LaunchLandingScreen(
                 )
                 LaunchLandingButton(
                     title = "N8N TRIGGER",
-                    subtitle = "Leere Workflow-Landing-Page als Startpunkt fuer spaetere Automationen.",
+                    subtitle = "Springt in den globalen Tools-Bereich, wo spaeter AI und N8N neutral andocken.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     onClick = onOpenN8N,
                 )
@@ -374,7 +358,9 @@ private enum class ZweizweiMusicDestination {
 
 @Composable
 private fun ZweizweiMusicLaneScreen(
-    onBackToLanding: () -> Unit,
+    onOpenCart: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onBackToLanding: (() -> Unit)? = null,
 ) {
     var destination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
 
@@ -401,16 +387,20 @@ private fun ZweizweiMusicLaneScreen(
                     .padding(horizontal = 20.dp, vertical = 28.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                Button(
-                    onClick = onBackToLanding,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                    shape = RoundedCornerShape(999.dp),
-                    elevation = null,
-                ) {
-                    Text("Zurueck")
+                if (onBackToLanding != null) {
+                    Button(
+                        onClick = onBackToLanding,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                        shape = RoundedCornerShape(999.dp),
+                        elevation = null,
+                    ) {
+                        Text("Zurueck")
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(1.dp))
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -451,6 +441,8 @@ private fun ZweizweiMusicLaneScreen(
 
         ZweizweiMusicDestination.Catalog -> MusicScreen(
             onBack = { destination = ZweizweiMusicDestination.Hub },
+            onOpenCart = onOpenCart,
+            onOpenSettings = onOpenSettings,
         )
 
         ZweizweiMusicDestination.BeatHub -> BeatHubScreen(
@@ -460,75 +452,6 @@ private fun ZweizweiMusicLaneScreen(
         ZweizweiMusicDestination.NicmaProducer -> NicmaProducerScreen(
             onBack = { destination = ZweizweiMusicDestination.Hub },
         )
-    }
-}
-
-@Composable
-private fun N8NLaunchScreen(
-    onBack: () -> Unit,
-) {
-    var hasTriggeredPlaceholder by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                        MaterialTheme.colorScheme.background,
-                    ),
-                ),
-            ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 28.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Button(
-                onClick = onBack,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                shape = RoundedCornerShape(999.dp),
-                elevation = null,
-            ) {
-                Text("Zurueck")
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(
-                    text = "N8N Trigger",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Text(
-                    text = "Hier kann spaeter dein automatisierter Workflow andocken. Im Moment bleibt der Bereich absichtlich leer und dient nur als Trigger-Startpunkt.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
-                )
-                LaunchLandingButton(
-                    title = "TRIGGER STARTEN",
-                    subtitle = if (hasTriggeredPlaceholder) {
-                        "Platzhalter wurde ausgelost. Hier kann als naechstes dein N8N-Webhook andocken."
-                    } else {
-                        "Aktuell noch ohne Webhook. Nutze den Button als sichtbaren Slot fuer den spaeteren N8N-Flow."
-                    },
-                    accentColor = MaterialTheme.colorScheme.secondary,
-                    onClick = { hasTriggeredPlaceholder = true },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(1.dp))
-        }
     }
 }
 

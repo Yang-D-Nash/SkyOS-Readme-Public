@@ -113,7 +113,7 @@ fun ShopScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { SkydownTopBarTitle("Skydown Merch", "Merch & Drops.") },
+                title = { SkydownTopBarTitle("Merch Hub", "Globale Drops, Apparel und Cart.") },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -122,7 +122,7 @@ fun ShopScreen(
                         IconButton(onClick = viewModel::refresh) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Shop aktualisieren",
+                                contentDescription = "Merch aktualisieren",
                             )
                         }
                     }
@@ -292,12 +292,12 @@ private fun ShopOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "Skydown Merch",
+                    text = "Merch Hub",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Merch & Drops.",
+                    text = "Globale Drops, Apparel und Cart.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )

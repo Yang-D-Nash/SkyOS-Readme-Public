@@ -56,13 +56,19 @@ fun AiHubScreen(
     onOpenSettings: () -> Unit,
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
+    var hasPreparedN8NTrigger by rememberSaveable { mutableStateOf(false) }
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { SkydownTopBarTitle(title = "KI") },
+                title = {
+                    SkydownTopBarTitle(
+                        title = "Tools",
+                        subtitle = "AI und N8N global fuer die ganze App.",
+                    )
+                },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -86,12 +92,22 @@ fun AiHubScreen(
                 .padding(innerPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                ToolsHubCard(
+                    hasPreparedN8NTrigger = hasPreparedN8NTrigger,
+                    onPrepareTrigger = { hasPreparedN8NTrigger = true },
+                    modifier = Modifier.padding(
+                        start = SkydownUiTokens.screenHorizontalPadding,
+                        top = SkydownUiTokens.screenTopPadding + 4.dp,
+                        end = SkydownUiTokens.screenHorizontalPadding,
+                        bottom = 12.dp,
+                    ),
+                )
+
                 if (currentUser == null) {
                     AiHubLoginCard(
                         onOpenLogin = onOpenLogin,
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = SkydownUiTokens.screenTopPadding + 4.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
                             bottom = 10.dp,
                         ),
@@ -102,7 +118,6 @@ fun AiHubScreen(
                         onSelectMode = { selectedMode -> mode = selectedMode },
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = SkydownUiTokens.screenTopPadding + 4.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
                             bottom = 12.dp,
                         ),
@@ -134,12 +149,12 @@ private fun AiHubLoginCard(
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "KI nur mit Konto",
+            text = "AI nur mit Konto",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Melde dich an und starte direkt mit Hooks, Captions, Briefings, Release-Plaenen oder Visual-Ideen in einem gemeinsamen Bereich.",
+            text = "Melde dich an und starte direkt mit Hooks, Captions, Briefings, Release-Plaenen oder Visual-Ideen im globalen Tools-Bereich.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -159,6 +174,50 @@ private fun AiHubLoginCard(
             shape = RoundedCornerShape(18.dp),
         ) {
             Text("Jetzt anmelden")
+        }
+    }
+}
+
+@Composable
+private fun ToolsHubCard(
+    hasPreparedN8NTrigger: Boolean,
+    onPrepareTrigger: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
+    ) {
+        Text(
+            text = "Global Tools",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = if (hasPreparedN8NTrigger) {
+                "Der Trigger-Slot ist vorbereitet. Hier kann als naechstes dein direkter N8N-Webhook global andocken."
+            } else {
+                "AI und Automationen bleiben hier neutral fuer die ganze App. So haengt der spaetere N8N-Flow nicht an Musik, Video oder Merch."
+            },
+            modifier = Modifier.padding(top = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AiHubBadge(text = "N8N", isAgent = false)
+            AiHubBadge(text = "Bot", isAgent = false)
+            AiHubBadge(text = "Agent", isAgent = true)
+        }
+        Button(
+            onClick = onPrepareTrigger,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text(if (hasPreparedN8NTrigger) "Trigger Slot bereit" else "Trigger Slot aktivieren")
         }
     }
 }

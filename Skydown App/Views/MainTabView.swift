@@ -8,11 +8,11 @@
 import SwiftUI
 
 enum MainTab: Hashable {
-    case shop
-    case music
-    case home
-    case video
-    case ai
+    case hub
+    case zweizwei
+    case skydown
+    case merch
+    case tools
 }
 
 private enum AIHubMode: String, CaseIterable, Identifiable {
@@ -31,11 +31,18 @@ private enum AIHubMode: String, CaseIterable, Identifiable {
     }
 }
 
+private enum ZweizweiDestination {
+    case hub
+    case catalog
+    case beatHub
+    case nicma
+}
+
 struct MainTabView: View {
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @Environment(\.colorScheme) private var systemColorScheme
     @EnvironmentObject private var services: AppServices
-    @State private var selectedTab: MainTab = .home
+    @State private var selectedTab: MainTab = .hub
     @State private var showingSettings = false
     @State private var showingCart = false
     @State private var showingLogin = false
@@ -55,7 +62,7 @@ struct MainTabView: View {
         preferredScheme ?? systemColorScheme
     }
 
-    init(initialTab: MainTab = .home) {
+    init(initialTab: MainTab = .hub) {
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -63,33 +70,22 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             Group {
                 DeferredView {
-                    ShopView(
-                        authManager: services.authManager,
-                        onOpenCart: { showingCart = true },
-                        onOpenSettings: { showingSettings = true },
-                        merchandiseService: services.merchandiseService
-                    )
-                }
-                .tabItem { Label("Shop", systemImage: "bag.fill") }
-                .tag(MainTab.shop)
-
-                DeferredView {
-                    MusicView(
-                        onOpenCart: { showingCart = true },
-                        onOpenSettings: { showingSettings = true }
-                    )
-                }
-                .tabItem { Label("Musik", systemImage: "music.note.list") }
-                .tag(MainTab.music)
-
-                DeferredView {
                     HomeView(
                         onOpenCart: { showingCart = true },
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Home", systemImage: "house.fill") }
-                .tag(MainTab.home)
+                .tabItem { Label("Hub", systemImage: "square.grid.2x2.fill") }
+                .tag(MainTab.hub)
+
+                DeferredView {
+                    ZweizweiTabView(
+                        onOpenCart: { showingCart = true },
+                        onOpenSettings: { showingSettings = true }
+                    )
+                }
+                .tabItem { Label("Zweizwei", systemImage: "music.note.list") }
+                .tag(MainTab.zweizwei)
 
                 DeferredView {
                     VideoHubTabView(
@@ -97,8 +93,20 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Video", systemImage: "video.fill") }
-                .tag(MainTab.video)
+                .tabItem { Label("Skydown", systemImage: "video.fill") }
+                .tag(MainTab.skydown)
+
+                DeferredView {
+                    ShopView(
+                        authManager: services.authManager,
+                        onOpenLogin: { showingLogin = true },
+                        onOpenCart: { showingCart = true },
+                        onOpenSettings: { showingSettings = true },
+                        merchandiseService: services.merchandiseService
+                    )
+                }
+                .tabItem { Label("Merch", systemImage: "bag.fill") }
+                .tag(MainTab.merch)
 
                 DeferredView {
                     AIHubView(
@@ -110,8 +118,8 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("KI", systemImage: "sparkles") }
-                .tag(MainTab.ai)
+                .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver.fill") }
+                .tag(MainTab.tools)
             }
             .toolbar(.visible, for: .tabBar)
             .toolbarBackground(.hidden, for: .tabBar)
@@ -198,6 +206,144 @@ struct AppSessionToolbarActions: View {
     }
 }
 
+private struct ZweizweiTabView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var destination: ZweizweiDestination = .hub
+    let onOpenCart: () -> Void
+    let onOpenSettings: () -> Void
+
+    var body: some View {
+        switch destination {
+        case .hub:
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Zweizwei Music")
+                                .font(.system(size: 38, weight: .black, design: .rounded))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+
+                            Text("Hier laeuft die eigene Music-Lane: Catalog, Beat Hub und NICMA Producer bleiben getrennt von Skydown Videography und Merch.")
+                                .font(.headline)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+                        .padding(SkydownLayout.heroPadding)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppColors.cardBackground(for: colorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                                .stroke(AppColors.spotify(for: colorScheme).opacity(0.22), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
+
+                        ShellActionCard(
+                            title: "MUSIC CATALOG",
+                            subtitle: "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
+                            accent: AppColors.spotify(for: colorScheme),
+                            action: { destination = .catalog }
+                        )
+
+                        ShellActionCard(
+                            title: "BEAT HUB",
+                            subtitle: "Eigene Beat-Logik, Preview-Library und Upload-/Listener-Flow.",
+                            accent: AppColors.accent(for: colorScheme),
+                            action: { destination = .beatHub }
+                        )
+
+                        ShellActionCard(
+                            title: "NICMA PRODUCER",
+                            subtitle: "Mixing, Mastering und Recording als eigener Music-Service.",
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            action: { destination = .nicma }
+                        )
+                    }
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, SkydownLayout.screenTopPadding)
+                    .padding(.bottom, SkydownLayout.screenBottomPadding)
+                }
+                .scrollIndicators(.hidden)
+                .background(
+                    AppColors.screenGradient(
+                        for: colorScheme,
+                        secondaryAccent: AppColors.spotify(for: colorScheme)
+                    )
+                    .ignoresSafeArea()
+                )
+                .navigationTitle("Zweizwei")
+                .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: colorScheme)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AppSessionToolbarActions(
+                            onOpenCart: onOpenCart,
+                            onOpenSettings: onOpenSettings
+                        )
+                    }
+                }
+            }
+        case .catalog:
+            MusicView(
+                brand: .zweizwei,
+                onBack: { destination = .hub },
+                onOpenCart: onOpenCart,
+                onOpenSettings: onOpenSettings
+            )
+        case .beatHub:
+            NavigationStack {
+                BeatHubView(onBack: { destination = .hub })
+            }
+        case .nicma:
+            NavigationStack {
+                NicmaProducerView(onBack: { destination = .hub })
+            }
+        }
+    }
+}
+
+private struct ShellActionCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let title: String
+    let subtitle: String
+    let accent: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(subtitle)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 12)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(accent)
+                    .padding(12)
+                    .background(accent.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .padding(SkydownLayout.heroPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColors.cardBackground(for: colorScheme))
+            .overlay {
+                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                    .stroke(accent.opacity(0.22), lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.26 : 0.08), radius: 18, y: 10)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct AIHubView: View {
     let aiChatService: AIChatServicing
     let agentChatService: AgentChatServicing
@@ -206,6 +352,7 @@ private struct AIHubView: View {
     let onOpenLogin: () -> Void
     let onOpenSettings: () -> Void
     @State private var mode: AIHubMode = .bot
+    @State private var hasPreparedN8NTrigger = false
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
 
@@ -228,13 +375,20 @@ private struct AIHubView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: SkydownLayout.sectionSpacing) {
+                ToolsHubCard(
+                    colorScheme: colorScheme,
+                    hasPreparedN8NTrigger: hasPreparedN8NTrigger,
+                    onTrigger: { hasPreparedN8NTrigger = true }
+                )
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.top, 12)
+
                 if authManager.userSession == nil {
                     AIHubLoginCard(
                         colorScheme: colorScheme,
                         onOpenLogin: onOpenLogin
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, 12)
                 } else {
                     AIHubControlCard(
                         mode: mode,
@@ -242,7 +396,6 @@ private struct AIHubView: View {
                         onSelectMode: { mode = $0 }
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, 12)
 
                     Group {
                         if mode == .bot {
@@ -269,7 +422,7 @@ private struct AIHubView: View {
                 )
                 .ignoresSafeArea()
             )
-            .navigationTitle("KI")
+            .navigationTitle("Tools")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -287,14 +440,10 @@ private struct AIHubView: View {
 private struct VideoHubTabView: View {
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
             VideoHubView()
-                .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
-                .navigationTitle("Videography")
-                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         AppSessionToolbarActions(
@@ -307,17 +456,61 @@ private struct VideoHubTabView: View {
     }
 }
 
+private struct ToolsHubCard: View {
+    let colorScheme: ColorScheme
+    let hasPreparedN8NTrigger: Bool
+    let onTrigger: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Global Tools")
+                .font(.title2.bold())
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text(
+                hasPreparedN8NTrigger
+                ? "Der Trigger-Slot ist vorbereitet. Hier kann als naechstes dein direkter N8N-Webhook andocken, ohne dass er an Musik, Video oder Merch gebunden ist."
+                : "AI und Automationen landen hier global fuer die ganze App. Damit bleibt N8N spaeter neutral und haengt nicht an einer einzelnen Lane."
+            )
+            .font(.body)
+            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 10) {
+                AIHubBadge(text: "N8N", color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: "Agent", color: AppColors.accentMystic(for: colorScheme))
+            }
+
+            Button(action: onTrigger) {
+                Text(hasPreparedN8NTrigger ? "Trigger Slot bereit" : "Trigger Slot aktivieren")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accentHighlight(for: colorScheme))
+        }
+        .padding(SkydownLayout.cardPadding)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+    }
+}
+
 private struct AIHubLoginCard: View {
     let colorScheme: ColorScheme
     let onOpenLogin: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("KI nur mit Konto")
+            Text("AI nur mit Konto")
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Melde dich an und starte direkt mit Hooks, Captions, Briefings, Release-Plaenen oder Visual-Ideen in einem gemeinsamen Bereich.")
+            Text("Melde dich an und starte direkt mit Hooks, Captions, Briefings, Release-Plaenen oder Visual-Ideen im globalen Tools-Bereich.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
