@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -51,11 +52,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.screen.AiHubScreen
+import com.skydown.android.ui.screen.BeatHubScreen
 import com.skydown.android.ui.screen.CartScreen
 import com.skydown.android.ui.screen.HomeScreen
 import com.skydown.android.ui.screen.IntroScreen
 import com.skydown.android.ui.screen.LoginScreen
 import com.skydown.android.ui.screen.MusicScreen
+import com.skydown.android.ui.screen.NicmaProducerScreen
 import com.skydown.android.ui.screen.OrderScreen
 import com.skydown.android.ui.screen.RegistrationScreen
 import com.skydown.android.ui.screen.SettingsScreen
@@ -104,10 +107,18 @@ fun SkydownApp() {
         N8NLaunchScreen(
             onBack = { showN8NLanding = false },
         )
+    } else if (selectedEntryRoute == launchRouteZweizweiMusic) {
+        ZweizweiMusicLaneScreen(
+            onBackToLanding = { selectedEntryRoute = null },
+        )
+    } else if (selectedEntryRoute == launchRouteSkydownVideography) {
+        VideoHubScreen(
+            onBack = { selectedEntryRoute = null },
+        )
     } else if (selectedEntryRoute == null) {
         LaunchLandingScreen(
-            onOpenMusic = { selectedEntryRoute = "music" },
-            onOpenVideography = { selectedEntryRoute = "video" },
+            onOpenMusic = { selectedEntryRoute = launchRouteZweizweiMusic },
+            onOpenVideography = { selectedEntryRoute = launchRouteSkydownVideography },
             onOpenN8N = { showN8NLanding = true },
         )
     } else {
@@ -278,6 +289,9 @@ private enum class AuthSheet {
     Registration,
 }
 
+private const val launchRouteZweizweiMusic = "launch_zweizwei_music"
+private const val launchRouteSkydownVideography = "launch_skydown_videography"
+
 @Composable
 private fun LaunchLandingScreen(
     onOpenMusic: () -> Unit,
@@ -319,7 +333,7 @@ private fun LaunchLandingScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Starte direkt im Musikbereich oder spring in den kompletten Videography-Hub.",
+                    text = "Starte direkt in Zweizwei Music oder spring in die Skydown-Videography-Welt.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
                 )
@@ -328,13 +342,13 @@ private fun LaunchLandingScreen(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 LaunchLandingButton(
                     title = "MUSIK",
-                    subtitle = "Songs, Releases, Beats und der gesamte Music-Hub.",
+                    subtitle = "Zweizwei steht hier fuer Songs, Releases, Beats und den kompletten Music-Hub.",
                     accentColor = MaterialTheme.colorScheme.primary,
                     onClick = onOpenMusic,
                 )
                 LaunchLandingButton(
                     title = "VIDEOGRAPHY",
-                    subtitle = "Clips, Reels, Sessions und die komplette Video-Welt.",
+                    subtitle = "Skydown buendelt hier Clips, Reels, Sessions und die komplette Video-Welt.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     onClick = onOpenVideography,
                 )
@@ -348,6 +362,104 @@ private fun LaunchLandingScreen(
 
             Spacer(modifier = Modifier.height(1.dp))
         }
+    }
+}
+
+private enum class ZweizweiMusicDestination {
+    Hub,
+    Catalog,
+    BeatHub,
+    NicmaProducer,
+}
+
+@Composable
+private fun ZweizweiMusicLaneScreen(
+    onBackToLanding: () -> Unit,
+) {
+    var destination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
+
+    when (destination) {
+        ZweizweiMusicDestination.Hub -> Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.background,
+                        ),
+                    ),
+                ),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Button(
+                    onClick = onBackToLanding,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    shape = RoundedCornerShape(999.dp),
+                    elevation = null,
+                ) {
+                    Text("Zurueck")
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = "Zweizwei Music",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Text(
+                        text = "Hier lebt die eigene Musik-Logik: Catalog, Beat Hub und NICMA Producer laufen getrennt von Skydown Videography.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
+                    )
+                    LaunchLandingButton(
+                        title = "MUSIC CATALOG",
+                        subtitle = "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        onClick = { destination = ZweizweiMusicDestination.Catalog },
+                    )
+                    LaunchLandingButton(
+                        title = "BEAT HUB",
+                        subtitle = "Eigene Beat-Logik, Preview-Library und Upload-/Listener-Flow.",
+                        accentColor = MaterialTheme.colorScheme.secondary,
+                        onClick = { destination = ZweizweiMusicDestination.BeatHub },
+                    )
+                    LaunchLandingButton(
+                        title = "NICMA PRODUCER",
+                        subtitle = "Mixing, Mastering und Recording als eigener Music-Service.",
+                        accentColor = MaterialTheme.colorScheme.tertiary,
+                        onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(1.dp))
+            }
+        }
+
+        ZweizweiMusicDestination.Catalog -> MusicScreen(
+            onBack = { destination = ZweizweiMusicDestination.Hub },
+        )
+
+        ZweizweiMusicDestination.BeatHub -> BeatHubScreen(
+            onBack = { destination = ZweizweiMusicDestination.Hub },
+        )
+
+        ZweizweiMusicDestination.NicmaProducer -> NicmaProducerScreen(
+            onBack = { destination = ZweizweiMusicDestination.Hub },
+        )
     }
 }
 

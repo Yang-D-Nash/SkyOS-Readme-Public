@@ -83,8 +83,8 @@ fun MusicScreen(
     initialTrackId: Int? = null,
     autoplaySelectedTrackPreview: Boolean = false,
     autoOpenSelectedTrackInSpotify: Boolean = false,
-    onOpenCart: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
+    onOpenCart: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
     viewModel: MusicViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -182,28 +182,43 @@ fun MusicScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Skydown Music",
-                        subtitle = "Artist waehlen, Preview starten oder Spotify direkt oeffnen.",
+                        title = "Zweizwei Music",
+                        subtitle = "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
                     )
                 },
                 actions = {
-                    AppTopBarSessionActions(
-                        onOpenCart = onOpenCart,
-                        onOpenSettings = onOpenSettings,
-                    ) {
-                        if (uiState.isSpotifyConnected) {
-                            IconButton(
-                                onClick = {
-                                    player.stop()
-                                    player.clearMediaItems()
-                                    viewModel.disconnectSpotify()
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = "Spotify trennen",
-                                )
+                    if (onOpenSettings != null) {
+                        AppTopBarSessionActions(
+                            onOpenCart = onOpenCart,
+                            onOpenSettings = onOpenSettings,
+                        ) {
+                            if (uiState.isSpotifyConnected) {
+                                IconButton(
+                                    onClick = {
+                                        player.stop()
+                                        player.clearMediaItems()
+                                        viewModel.disconnectSpotify()
+                                    },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                                        contentDescription = "Spotify trennen",
+                                    )
+                                }
                             }
+                        }
+                    } else if (uiState.isSpotifyConnected) {
+                        IconButton(
+                            onClick = {
+                                player.stop()
+                                player.clearMediaItems()
+                                viewModel.disconnectSpotify()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = "Spotify trennen",
+                            )
                         }
                     }
                 },
@@ -373,7 +388,7 @@ private fun MusicPlayerCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = track.artistName ?: "Skydown x 22",
+                    text = track.artistName ?: "Zweizwei",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )

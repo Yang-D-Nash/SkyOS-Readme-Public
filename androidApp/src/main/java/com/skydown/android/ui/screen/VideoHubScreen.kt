@@ -88,8 +88,8 @@ fun VideoHubScreen(
     onBack: (() -> Unit)? = null,
     initialSelectedVideoId: String? = null,
     autoplayInitialSelection: Boolean = false,
-    onOpenCart: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
+    onOpenCart: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
     viewModel: VideoHubViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -166,19 +166,21 @@ fun VideoHubScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Videography",
+                        title = "Skydown Videography",
                         subtitle = if (uiState.isAdmin) {
-                            "Admin Uploads, Home-Highlights und die komplette Videography-Library."
+                            "Admin Uploads, Home-Highlights und die komplette Skydown-Videography-Library."
                         } else {
-                            "Oeffentliche Videos direkt schauen, ohne Admin-Overhead."
+                            "Oeffentliche Skydown-Videos direkt schauen, ohne Admin-Overhead."
                         },
                     )
                 },
                 actions = {
-                    AppTopBarSessionActions(
-                        onOpenCart = onOpenCart,
-                        onOpenSettings = onOpenSettings,
-                    )
+                    if (onOpenSettings != null) {
+                        AppTopBarSessionActions(
+                            onOpenCart = onOpenCart,
+                            onOpenSettings = onOpenSettings,
+                        )
+                    }
                 },
                 navigationIcon = if (onBack != null) {
                     {
@@ -308,7 +310,7 @@ private fun VideoHubHeroCard(
                     text = if (isAdmin) {
                         "Hier landen Videoarbeiten fuer Reels, Clips, Sessions und Visuals. Admins koennen neue Dateien direkt nach Firebase Storage hochladen."
                     } else {
-                        "Hier laufen die oeffentlichen Videoarbeiten von Skydown x 22. Admin-Uploads gehen direkt ueber den internen Bereich."
+                        "Hier laufen die oeffentlichen Videoarbeiten von Skydown. Admin-Uploads gehen direkt ueber den internen Bereich."
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
@@ -365,7 +367,7 @@ private fun VideoEquipmentCard() {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Equipment & Software")
         Text(
-            text = "Damit direkt klar ist, womit Skydown x 22 die Videography umsetzt.",
+            text = "Damit direkt klar ist, womit Skydown die Videography umsetzt.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
