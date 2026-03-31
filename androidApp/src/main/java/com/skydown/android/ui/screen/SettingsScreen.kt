@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
@@ -29,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -74,6 +76,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onClose: (() -> Unit)? = null,
     onOpenLogin: () -> Unit = {},
     onOpenRegistration: () -> Unit = {},
     onOpenOrders: () -> Unit = {},
@@ -149,6 +152,16 @@ fun SettingsScreen(
                         title = "Einstellungen",
                         subtitle = "Konto, Rechtliches, Anzeige und Support sauber sortiert.",
                     )
+                },
+                navigationIcon = {
+                    onClose?.let { close ->
+                        IconButton(onClick = close) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Schliessen",
+                            )
+                        }
+                    }
                 },
                 colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,

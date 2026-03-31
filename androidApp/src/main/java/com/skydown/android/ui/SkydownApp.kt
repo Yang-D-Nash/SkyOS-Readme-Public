@@ -270,6 +270,7 @@ fun SkydownApp() {
                 }
                 composable("settings") {
                     SettingsScreen(
+                        onClose = { navController.popBackStack() },
                         onOpenLogin = { authSheet = AuthSheet.Login },
                         onOpenRegistration = { authSheet = AuthSheet.Registration },
                         onOpenOrders = { showOrders = true },
