@@ -49,6 +49,16 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    match /appConfig/{documentId} {
+      allow read: if documentId in [
+        "merchandiseStore",
+        "paymentMethods",
+        "commerceSettings"
+      ];
+
+      allow create, update, delete: if isAdmin();
+    }
+
     match /nicmaBeatHub/{beatId} {
       allow read: if isAdmin() || resource.data.isPublic == true;
       allow create, update, delete: if isAdmin();
