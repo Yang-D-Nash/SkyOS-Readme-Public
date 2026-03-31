@@ -8,9 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.VideoHubService
 import com.skydown.android.data.VideoHubUploadRequest
+import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoHubUiState
+import com.skydown.android.ui.model.VideoHubPublicConfig
+import com.skydown.android.ui.model.VideoYouTubeItem
 import com.skydown.shared.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,9 +30,11 @@ class VideoHubViewModel(
 
     private var currentUser: User? = null
     private var videoObservationCancellation: (() -> Unit)? = null
+    private var publicConfigObservationCancellation: (() -> Unit)? = null
     private var observedAdminState: Boolean? = null
 
     init {
+        observePublicConfig()
         viewModelScope.launch {
             AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collectLatest { user ->
@@ -60,6 +65,7 @@ class VideoHubViewModel(
 
     override fun onCleared() {
         videoObservationCancellation?.invoke()
+        publicConfigObservationCancellation?.invoke()
         super.onCleared()
     }
 
@@ -277,6 +283,169 @@ class VideoHubViewModel(
         _uiState.update { it.copy(feedbackMessage = null) }
     }
 
+    fun addEquipmentItem() {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    equipmentItems = state.publicConfig.equipmentItems + VideoEquipmentItem(
+                        id = java.util.UUID.randomUUID().toString(),
+                        title = "",
+                        detail = "",
+                    ),
+                ),
+            )
+        }
+    }
+
+    fun updateEquipmentItem(
+        itemId: String,
+        title: String? = null,
+        detail: String? = null,
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    equipmentItems = state.publicConfig.equipmentItems.map { item ->
+                        if (item.id != itemId) {
+                            item
+                        } else {
+                            item.copy(
+                                title = title ?: item.title,
+                                detail = detail ?: item.detail,
+                            )
+                        }
+                    },
+                ),
+            )
+        }
+    }
+
+    fun removeEquipmentItem(itemId: String) {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    equipmentItems = state.publicConfig.equipmentItems.filterNot { it.id == itemId },
+                ),
+            )
+        }
+    }
+
+    fun addYouTubeItem() {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    youtubeItems = state.publicConfig.youtubeItems + VideoYouTubeItem(
+                        id = java.util.UUID.randomUUID().toString(),
+                        title = "",
+                        subtitle = "",
+                        url = "",
+                    ),
+                ),
+            )
+        }
+    }
+
+    fun updateYouTubeItem(
+        itemId: String,
+        title: String? = null,
+        subtitle: String? = null,
+        url: String? = null,
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    youtubeItems = state.publicConfig.youtubeItems.map { item ->
+                        if (item.id != itemId) {
+                            item
+                        } else {
+                            item.copy(
+                                title = title ?: item.title,
+                                subtitle = subtitle ?: item.subtitle,
+                                url = url ?: item.url,
+                            )
+                        }
+                    },
+                ),
+            )
+        }
+    }
+
+    fun removeYouTubeItem(itemId: String) {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    youtubeItems = state.publicConfig.youtubeItems.filterNot { it.id == itemId },
+                ),
+            )
+        }
+    }
+
+    fun savePublicConfig() {
+        if (!_uiState.value.isAdmin) {
+            _uiState.update {
+                it.copy(
+                    feedbackMessage = "Nur Admins koennen die Videography-Daten bearbeiten.",
+                    feedbackIsError = true,
+                )
+            }
+            return
+        }
+
+        val sanitizedEquipment = _uiState.value.publicConfig.equipmentItems.mapNotNull { item ->
+            val title = item.title.trim()
+            val detail = item.detail.trim()
+            if (title.isBlank() || detail.isBlank()) {
+                null
+            } else {
+                item.copy(title = title, detail = detail)
+            }
+        }
+        val sanitizedYouTube = _uiState.value.publicConfig.youtubeItems.mapNotNull { item ->
+            val title = item.title.trim()
+            val subtitle = item.subtitle.trim()
+            val url = item.url.trim()
+            if (title.isBlank() || url.isBlank()) {
+                null
+            } else {
+                item.copy(title = title, subtitle = subtitle, url = url)
+            }
+        }
+        val config = VideoHubPublicConfig(
+            equipmentItems = sanitizedEquipment.ifEmpty { VideoHubPublicConfig.default().equipmentItems },
+            youtubeItems = sanitizedYouTube,
+        )
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isSavingPublicConfig = true,
+                    feedbackMessage = null,
+                )
+            }
+
+            runCatching {
+                videoHubService.savePublicConfig(config, currentUser)
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        publicConfig = config,
+                        isSavingPublicConfig = false,
+                        feedbackMessage = "Videography-Daten gespeichert.",
+                        feedbackIsError = false,
+                    )
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        isSavingPublicConfig = false,
+                        feedbackMessage = "Die Videography-Daten konnten nicht gespeichert werden.",
+                        feedbackIsError = true,
+                    )
+                }
+            }
+        }
+    }
+
     private fun observeVideos(isAdmin: Boolean) {
         observedAdminState = isAdmin
         _uiState.update { it.copy(isLoadingVideos = true, videos = emptyList()) }
@@ -294,6 +463,23 @@ class VideoHubViewModel(
                     it.copy(
                         isLoadingVideos = false,
                         feedbackMessage = "Die Videos konnten gerade nicht geladen werden.",
+                        feedbackIsError = true,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun observePublicConfig() {
+        publicConfigObservationCancellation?.invoke()
+        publicConfigObservationCancellation = videoHubService.observePublicConfig { result ->
+            result.onSuccess { config ->
+                _uiState.update { it.copy(publicConfig = config) }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        publicConfig = VideoHubPublicConfig.default(),
+                        feedbackMessage = "Die oeffentlichen Videography-Daten konnten nicht geladen werden.",
                         feedbackIsError = true,
                     )
                 }

@@ -39,12 +39,24 @@ struct VideoHubView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                 heroCard
+                collaborationsCard
+                VideoEquipmentCard(
+                    colorScheme: colorScheme,
+                    items: viewModel.publicConfig.equipmentItems
+                )
+                VideoYouTubeCard(
+                    colorScheme: colorScheme,
+                    items: viewModel.publicConfig.youtubeItems
+                )
                 playerCard
                 libraryCard
 
                 if viewModel.isAdmin {
                     formatCard
-                    VideoEquipmentCard(colorScheme: colorScheme)
+                    VideoPublicConfigEditorCard(
+                        colorScheme: colorScheme,
+                        viewModel: viewModel
+                    )
                     uploadCard
                 }
             }
@@ -100,6 +112,38 @@ struct VideoHubView: View {
             style: viewModel.toastStyle
         )
         .skydownKeyboardDismissToolbar()
+    }
+
+    @ViewBuilder
+    private var collaborationsCard: some View {
+        if !skydownProducedWithArtists.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Produced With")
+                    .font(.headline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text("Kuenstler und Acts, mit denen Skydown produktionell zusammengearbeitet hat.")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                ForEach(skydownProducedWithArtists) { artist in
+                    ProducedWithArtistRow(
+                        artist: artist,
+                        colorScheme: colorScheme
+                    )
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(AppColors.cardBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+            )
+        }
     }
 
     private func activateInitialSelectionIfNeeded(with videos: [SkydownVideoHubItem]) {
@@ -484,6 +528,7 @@ struct VideoHubLibraryRow: View {
 
 struct VideoEquipmentCard: View {
     let colorScheme: ColorScheme
+    let items: [SkydownVideoEquipmentItem]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -496,26 +541,13 @@ struct VideoEquipmentCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 10) {
-                VideoEquipmentRow(
-                    title: "Drohnen",
-                    detail: "DJI Neo und DJI Avata 2 fuer bewegte Luftshots und FPV-Looks.",
-                    colorScheme: colorScheme
-                )
-                VideoEquipmentRow(
-                    title: "Kamera",
-                    detail: "Sony FX30 mit Sigma 18-50 mm f/2.8 plus Gimbals fuer saubere Motion-Shots.",
-                    colorScheme: colorScheme
-                )
-                VideoEquipmentRow(
-                    title: "Mobile Capture",
-                    detail: "iPhone 16 Pro mit Apple Log fuer flexible schnelle Shoots.",
-                    colorScheme: colorScheme
-                )
-                VideoEquipmentRow(
-                    title: "Postproduktion",
-                    detail: "Adobe Premiere Pro, DaVinci Resolve Studio und Adobe After Effects.",
-                    colorScheme: colorScheme
-                )
+                ForEach(items) { item in
+                    VideoEquipmentRow(
+                        title: item.title,
+                        detail: item.detail,
+                        colorScheme: colorScheme
+                    )
+                }
             }
         }
         .padding(18)
@@ -527,6 +559,49 @@ struct VideoEquipmentCard: View {
         .overlay(
             RoundedRectangle(cornerRadius: 24)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+    }
+}
+
+struct VideoYouTubeCard: View {
+    let colorScheme: ColorScheme
+    let items: [SkydownYouTubeVideoItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("YouTube")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Hier koennen oeffentliche YouTube-Arbeiten, Making-ofs oder Musikvideos gesammelt werden.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            if items.isEmpty {
+                Text("Noch keine YouTube-Videos hinterlegt.")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .padding(.top, 4)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        VideoYouTubeRow(
+                            item: item,
+                            colorScheme: colorScheme
+                        )
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
 }
@@ -550,6 +625,260 @@ struct VideoEquipmentRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+struct ProducedWithArtistRow: View {
+    let artist: SkydownProducedWithArtist
+    let colorScheme: ColorScheme
+
+    private var spotifyURL: URL? {
+        guard let spotifyArtistID = artist.spotifyArtistID, !spotifyArtistID.isEmpty else {
+            return nil
+        }
+
+        return URL(string: "https://open.spotify.com/artist/\(spotifyArtistID)")
+    }
+
+    private var instagramURL: URL? {
+        guard let instagramURLString = artist.instagramURLString, !instagramURLString.isEmpty else {
+            return nil
+        }
+
+        return URL(string: instagramURLString)
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(artist.name)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(artist.role)
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                if let spotifyURL {
+                    Link(destination: spotifyURL) {
+                        Text("Spotify")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.spotify(for: colorScheme))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(AppColors.spotify(for: colorScheme).opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                if let instagramURL {
+                    Link(destination: instagramURL) {
+                        Text("Instagram")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+struct VideoYouTubeRow: View {
+    let item: SkydownYouTubeVideoItem
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                if !item.subtitle.isEmpty {
+                    Text(item.subtitle)
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            }
+
+            Spacer()
+
+            if let url = URL(string: item.urlString), !item.urlString.isEmpty {
+                Link(destination: url) {
+                    Label("Oeffnen", systemImage: "play.rectangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+struct VideoPublicConfigEditorCard: View {
+    let colorScheme: ColorScheme
+    @ObservedObject var viewModel: SkydownVideoHubViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Videography Editor")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Admins steuern hier die oeffentliche Equipment-Liste und die YouTube-Sparte fuer alle Nutzer.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Equipment")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                ForEach(Array(viewModel.publicConfig.equipmentItems.enumerated()), id: \.element.id) { _, item in
+                    VStack(alignment: .leading, spacing: 8) {
+                        NicmaUploadField(
+                            title: "Titel",
+                            text: Binding(
+                                get: { item.title },
+                                set: { viewModel.updateEquipmentItem(item.id, title: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "Detail",
+                            text: Binding(
+                                get: { item.detail },
+                                set: { viewModel.updateEquipmentItem(item.id, detail: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        Button(role: .destructive) {
+                            viewModel.removeEquipmentItem(item.id)
+                        } label: {
+                            Label("Eintrag entfernen", systemImage: "trash")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .padding(14)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
+
+                Button {
+                    viewModel.addEquipmentItem()
+                } label: {
+                    Label("Equipment hinzufuegen", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColors.accent(for: colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("YouTube")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                ForEach(Array(viewModel.publicConfig.youtubeItems.enumerated()), id: \.element.id) { _, item in
+                    VStack(alignment: .leading, spacing: 8) {
+                        NicmaUploadField(
+                            title: "Titel",
+                            text: Binding(
+                                get: { item.title },
+                                set: { viewModel.updateYouTubeItem(item.id, title: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "Untertitel",
+                            text: Binding(
+                                get: { item.subtitle },
+                                set: { viewModel.updateYouTubeItem(item.id, subtitle: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "URL",
+                            text: Binding(
+                                get: { item.urlString },
+                                set: { viewModel.updateYouTubeItem(item.id, urlString: $0) }
+                            ),
+                            colorScheme: colorScheme,
+                            keyboard: .URL,
+                            autocapitalization: .never
+                        )
+                        Button(role: .destructive) {
+                            viewModel.removeYouTubeItem(item.id)
+                        } label: {
+                            Label("Eintrag entfernen", systemImage: "trash")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .padding(14)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
+
+                Button {
+                    viewModel.addYouTubeItem()
+                } label: {
+                    Label("YouTube-Video hinzufuegen", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColors.accentHighlight(for: colorScheme))
+            }
+
+            Button {
+                Task {
+                    await viewModel.savePublicConfig()
+                }
+            } label: {
+                if viewModel.isSavingPublicConfig {
+                    ProgressView()
+                        .tint(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                } else {
+                    Label("Oeffentliche Daten speichern", systemImage: "square.and.arrow.down.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accentMystic(for: colorScheme))
+            .disabled(viewModel.isSavingPublicConfig)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
     }
 }
 

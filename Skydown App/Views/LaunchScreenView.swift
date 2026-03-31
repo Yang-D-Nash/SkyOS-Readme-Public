@@ -23,7 +23,7 @@ struct LaunchScreenView: View {
                 LaunchLandingView(
                     onOpenMusic: { openShell(tab: .zweizwei) },
                     onOpenVideography: { openShell(tab: .skydown) },
-                    onOpenN8N: { openShell(tab: .tools) }
+                    onOpenShop: { openShell(tab: .merch) }
                 )
             case .shell(let initialTab):
                 MainTabView(initialTab: initialTab)
@@ -140,7 +140,7 @@ private struct LaunchLandingView: View {
     @Environment(\.colorScheme) private var colorScheme
     let onOpenMusic: () -> Void
     let onOpenVideography: () -> Void
-    let onOpenN8N: () -> Void
+    let onOpenShop: () -> Void
 
     var body: some View {
         ZStack {
@@ -183,10 +183,10 @@ private struct LaunchLandingView: View {
                     )
 
                     LaunchLandingButton(
-                        title: "N8N TRIGGER",
-                        subtitle: "Springt in den globalen Tools-Bereich, wo spaeter AI und N8N neutral andocken.",
+                        title: "SHOP",
+                        subtitle: "Oeffnet direkt den globalen Merchandise-Bereich innerhalb der App-Shell.",
                         accent: AppColors.accentHighlight(for: colorScheme),
-                        action: onOpenN8N
+                        action: onOpenShop
                     )
                 }
 

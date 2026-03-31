@@ -18,13 +18,16 @@ struct HomeView: View {
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
+    let onOpenWorkflow: (() -> Void)?
 
     init(
         onOpenCart: @escaping () -> Void = {},
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        onOpenWorkflow: (() -> Void)? = nil
     ) {
         self.onOpenCart = onOpenCart
         self.onOpenSettings = onOpenSettings
+        self.onOpenWorkflow = onOpenWorkflow
     }
 
     var body: some View {
@@ -96,7 +99,18 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if let onOpenWorkflow {
+                        Button(action: onOpenWorkflow) {
+                            Image(systemName: "arrow.triangle.branch")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .padding(10)
+                                .background(AppColors.secondaryBackground(for: colorScheme))
+                                .clipShape(Circle())
+                        }
+                    }
+
                     AppSessionToolbarActions(
                         onOpenCart: onOpenCart,
                         onOpenSettings: onOpenSettings

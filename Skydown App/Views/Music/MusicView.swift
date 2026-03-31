@@ -36,9 +36,9 @@ enum MusicExperienceBrand {
     var artists: [String] {
         switch self {
         case .skydown:
-            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
+            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
         case .zweizwei:
-            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
+            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
         }
     }
 

@@ -10,7 +10,6 @@ data class MusicUiState(
         "MAVE",
         "JANNO",
         "TANGAJOE007",
-        "Toprack941",
     ),
     val tracks: List<Track> = emptyList(),
     val currentlyPlayingId: Int? = null,

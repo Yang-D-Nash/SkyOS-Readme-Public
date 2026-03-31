@@ -610,15 +610,21 @@ protocol SkydownVideoHubServicing {
         isAdmin: Bool,
         _ onChange: @escaping @MainActor (Result<[SkydownVideoHubItem], Error>) -> Void
     ) -> () -> Void
+    func observePublicConfig(
+        _ onChange: @escaping @MainActor (Result<SkydownVideoHubPublicConfig, Error>) -> Void
+    ) -> () -> Void
     func uploadVideos(_ request: SkydownVideoUploadRequest, currentUser: User?) async throws
     func setHomeFeaturedVideo(_ video: SkydownVideoHubItem?) async throws
     func deleteVideo(_ video: SkydownVideoHubItem) async throws
+    func savePublicConfig(_ config: SkydownVideoHubPublicConfig, currentUser: User?) async throws
 }
 
 final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
     private let firestore: Firestore
     private let storage: Storage
     private let collectionName = "videographyHub"
+    private let configCollectionName = "videographyHubMeta"
+    private let configDocumentID = "publicConfig"
 
     init(storage: Storage = Storage.storage()) {
         self.firestore = Firestore.firestore()
@@ -649,6 +655,32 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                 onChange(.success(videos))
             }
         }
+
+        return {
+            listener.remove()
+        }
+    }
+
+    func observePublicConfig(
+        _ onChange: @escaping @MainActor (Result<SkydownVideoHubPublicConfig, Error>) -> Void
+    ) -> () -> Void {
+        let listener = firestore.collection(configCollectionName)
+            .document(configDocumentID)
+            .addSnapshotListener { [weak self] snapshot, error in
+                Task { @MainActor in
+                    if let error {
+                        onChange(.failure(error))
+                        return
+                    }
+
+                    guard let self else {
+                        onChange(.success(.default))
+                        return
+                    }
+
+                    onChange(.success(self.mapPublicConfig(snapshot: snapshot)))
+                }
+            }
 
         return {
             listener.remove()
@@ -689,6 +721,36 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         }
 
         try await batch.commit()
+    }
+
+    func savePublicConfig(_ config: SkydownVideoHubPublicConfig, currentUser: User?) async throws {
+        let equipmentItems = config.equipmentItems.map { item in
+            [
+                "id": item.id,
+                "title": item.title,
+                "detail": item.detail,
+            ]
+        }
+        let youtubeItems = config.youtubeItems.map { item in
+            [
+                "id": item.id,
+                "title": item.title,
+                "subtitle": item.subtitle,
+                "urlString": item.urlString,
+            ]
+        }
+
+        try await firestore.collection(configCollectionName)
+            .document(configDocumentID)
+            .setData(
+                [
+                    "equipmentItems": equipmentItems,
+                    "youtubeItems": youtubeItems,
+                    "updatedAt": Timestamp(),
+                    "updatedBy": currentUser?.id ?? "",
+                ],
+                merge: true
+            )
     }
 
     private func upload(
@@ -857,6 +919,52 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
 
         return cleaned.isEmpty ? "Video Upload" : cleaned
     }
+
+    private func mapPublicConfig(snapshot: DocumentSnapshot?) -> SkydownVideoHubPublicConfig {
+        guard let data = snapshot?.data() else {
+            return .default
+        }
+
+        let equipmentItems = (data["equipmentItems"] as? [[String: Any]])?
+            .compactMap { mapEquipmentItem($0) } ?? SkydownVideoHubPublicConfig.default.equipmentItems
+        let youtubeItems = (data["youtubeItems"] as? [[String: Any]])?
+            .compactMap { mapYouTubeItem($0) } ?? SkydownVideoHubPublicConfig.default.youtubeItems
+
+        return SkydownVideoHubPublicConfig(
+            equipmentItems: equipmentItems.isEmpty ? SkydownVideoHubPublicConfig.default.equipmentItems : equipmentItems,
+            youtubeItems: youtubeItems
+        )
+    }
+
+    private func mapEquipmentItem(_ value: [String: Any]) -> SkydownVideoEquipmentItem? {
+        let title = (value["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let detail = (value["detail"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !title.isEmpty, !detail.isEmpty else { return nil }
+
+        return SkydownVideoEquipmentItem(
+            id: (value["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? (value["id"] as? String)!
+                : UUID().uuidString,
+            title: title,
+            detail: detail
+        )
+    }
+
+    private func mapYouTubeItem(_ value: [String: Any]) -> SkydownYouTubeVideoItem? {
+        let title = (value["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let subtitle = (value["subtitle"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let urlString = (value["urlString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !title.isEmpty, !urlString.isEmpty else { return nil }
+
+        return SkydownYouTubeVideoItem(
+            id: (value["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? (value["id"] as? String)!
+                : UUID().uuidString,
+            title: title,
+            subtitle: subtitle,
+            urlString: urlString
+        )
+    }
 }
 
 private func stageSecurityScopedUploadFile(
@@ -904,7 +1012,9 @@ final class SkydownVideoHubViewModel: ObservableObject {
     @Published var videos: [SkydownVideoHubItem] = []
     @Published var isLoadingVideos = true
     @Published var isUploading = false
+    @Published var isSavingPublicConfig = false
     @Published var isAdmin = false
+    @Published var publicConfig: SkydownVideoHubPublicConfig = .default
     @Published var validationMessage: String?
     @Published var showToast = false
     @Published var toastMessage = ""
@@ -914,14 +1024,17 @@ final class SkydownVideoHubViewModel: ObservableObject {
     private var currentUser: User?
     private var allVideos: [SkydownVideoHubItem] = []
     private var observationCancellation: (() -> Void)?
+    private var configObservationCancellation: (() -> Void)?
     private var observedAdminState: Bool?
 
     deinit {
         observationCancellation?()
+        configObservationCancellation?()
     }
 
     init(service: SkydownVideoHubServicing = FirebaseSkydownVideoHubService()) {
         self.service = service
+        observePublicConfig()
     }
 
     var canUpload: Bool {
@@ -1058,6 +1171,103 @@ final class SkydownVideoHubViewModel: ObservableObject {
         }
     }
 
+    func addEquipmentItem() {
+        publicConfig.equipmentItems.append(
+            SkydownVideoEquipmentItem(
+                id: UUID().uuidString,
+                title: "",
+                detail: ""
+            )
+        )
+    }
+
+    func removeEquipmentItem(_ itemID: String) {
+        publicConfig.equipmentItems.removeAll { $0.id == itemID }
+    }
+
+    func updateEquipmentItem(_ itemID: String, title: String? = nil, detail: String? = nil) {
+        guard let index = publicConfig.equipmentItems.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        if let title {
+            publicConfig.equipmentItems[index].title = title
+        }
+
+        if let detail {
+            publicConfig.equipmentItems[index].detail = detail
+        }
+    }
+
+    func addYouTubeItem() {
+        publicConfig.youtubeItems.append(
+            SkydownYouTubeVideoItem(
+                id: UUID().uuidString,
+                title: "",
+                subtitle: "",
+                urlString: ""
+            )
+        )
+    }
+
+    func removeYouTubeItem(_ itemID: String) {
+        publicConfig.youtubeItems.removeAll { $0.id == itemID }
+    }
+
+    func updateYouTubeItem(_ itemID: String, title: String? = nil, subtitle: String? = nil, urlString: String? = nil) {
+        guard let index = publicConfig.youtubeItems.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        if let title {
+            publicConfig.youtubeItems[index].title = title
+        }
+
+        if let subtitle {
+            publicConfig.youtubeItems[index].subtitle = subtitle
+        }
+
+        if let urlString {
+            publicConfig.youtubeItems[index].urlString = urlString
+        }
+    }
+
+    func savePublicConfig() async {
+        guard isAdmin else {
+            showUserToast("Nur Admins koennen die Videography-Daten bearbeiten.", style: .info)
+            return
+        }
+
+        let sanitizedEquipment = publicConfig.equipmentItems.compactMap { item -> SkydownVideoEquipmentItem? in
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let detail = item.detail.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty, !detail.isEmpty else { return nil }
+            return SkydownVideoEquipmentItem(id: item.id, title: title, detail: detail)
+        }
+        let sanitizedYouTube = publicConfig.youtubeItems.compactMap { item -> SkydownYouTubeVideoItem? in
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let subtitle = item.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let urlString = item.urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty, !urlString.isEmpty else { return nil }
+            return SkydownYouTubeVideoItem(id: item.id, title: title, subtitle: subtitle, urlString: urlString)
+        }
+
+        let config = SkydownVideoHubPublicConfig(
+            equipmentItems: sanitizedEquipment.isEmpty ? SkydownVideoHubPublicConfig.default.equipmentItems : sanitizedEquipment,
+            youtubeItems: sanitizedYouTube
+        )
+
+        isSavingPublicConfig = true
+        do {
+            try await service.savePublicConfig(config, currentUser: currentUser)
+            publicConfig = config
+            showUserToast("Videography-Daten gespeichert.", style: .success)
+        } catch {
+            showUserToast("Die Videography-Daten konnten nicht gespeichert werden.", style: .error)
+        }
+        isSavingPublicConfig = false
+    }
+
     private func resolveSelectedFile(from url: URL) -> SkydownSelectedVideoFile? {
         let hasAccess = url.startAccessingSecurityScopedResource()
         defer {
@@ -1105,6 +1315,21 @@ final class SkydownVideoHubViewModel: ObservableObject {
     private func applyVisibleVideos() {
         videos = isAdmin ? allVideos : allVideos.filter(\.isPublic)
         isLoadingVideos = false
+    }
+
+    private func observePublicConfig() {
+        configObservationCancellation?()
+        configObservationCancellation = service.observePublicConfig { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let config):
+                publicConfig = config
+            case .failure:
+                publicConfig = .default
+                showUserToast("Die oeffentlichen Videography-Daten konnten nicht geladen werden.", style: .error)
+            }
+        }
     }
 
     private func showUserToast(_ message: String, style: ToastStyle) {

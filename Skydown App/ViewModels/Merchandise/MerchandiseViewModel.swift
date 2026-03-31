@@ -182,7 +182,7 @@ final class HomeViewModel: ObservableObject {
 
     private let musicService: MusicServicing
     private let firestore = Firestore.firestore()
-    private let featuredArtists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
+    private let featuredArtists = ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
 
     init(musicService: MusicServicing = SpotifyMusicService()) {
         self.musicService = musicService

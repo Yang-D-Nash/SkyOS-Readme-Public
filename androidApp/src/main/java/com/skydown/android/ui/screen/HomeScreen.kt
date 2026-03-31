@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -85,6 +86,7 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     onOpenCart: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onOpenWorkflow: (() -> Unit)? = null,
     viewModel: HomeViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -185,10 +187,18 @@ fun HomeScreen(
                         onOpenCart = onOpenCart,
                         onOpenSettings = onOpenSettings,
                     ) {
-                        IconButton(onClick = viewModel::refresh) {
+                        IconButton(onClick = onOpenWorkflow ?: viewModel::refresh) {
                             Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Hub aktualisieren",
+                                imageVector = if (onOpenWorkflow != null) {
+                                    Icons.Default.AutoAwesome
+                                } else {
+                                    Icons.Default.Refresh
+                                },
+                                contentDescription = if (onOpenWorkflow != null) {
+                                    "Workflow oeffnen"
+                                } else {
+                                    "Hub aktualisieren"
+                                },
                             )
                         }
                     }

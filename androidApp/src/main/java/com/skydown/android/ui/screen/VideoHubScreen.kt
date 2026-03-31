@@ -1,5 +1,7 @@
 package com.skydown.android.ui.screen
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -74,8 +76,11 @@ import com.skydown.android.ui.component.dismissKeyboardOnTap
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
+import com.skydown.android.ui.model.VideoYouTubeItem
+import com.skydown.android.ui.model.skydownProducedWithArtists
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -221,13 +226,69 @@ fun VideoHubScreen(
                     VideoHubHeroCard(isAdmin = uiState.isAdmin)
                 }
 
+                item {
+                    VideoCollaborationsCard(
+                        onOpenLink = { url -> openExternalLink(context, url) },
+                    )
+                }
+
+                item {
+                    VideoEquipmentCard(items = uiState.publicConfig.equipmentItems)
+                }
+
+                item {
+                    VideoYouTubeCard(
+                        items = uiState.publicConfig.youtubeItems,
+                        onOpenLink = { url -> openExternalLink(context, url) },
+                    )
+                }
+
+                item {
+                    VideoPlayerCard(
+                        video = selectedVideo,
+                        player = player,
+                    )
+                }
+
+                item {
+                    VideoLibraryCard(
+                        uiState = uiState,
+                        selectedVideoId = selectedVideoId,
+                        onSelectVideo = { video -> selectedVideoId = video.id },
+                        onToggleHomeFeatured = viewModel::toggleHomeFeatured,
+                        onDeleteVideo = viewModel::deleteVideo,
+                    )
+                }
+
                 if (uiState.isAdmin) {
                     item {
                         VideoFormatCard()
                     }
 
                     item {
-                        VideoEquipmentCard()
+                        VideoPublicConfigEditorCard(
+                            uiState = uiState,
+                            onAddEquipment = viewModel::addEquipmentItem,
+                            onUpdateEquipmentTitle = { itemId, value ->
+                                viewModel.updateEquipmentItem(itemId, title = value)
+                            },
+                            onUpdateEquipmentDetail = { itemId, value ->
+                                viewModel.updateEquipmentItem(itemId, detail = value)
+                            },
+                            onRemoveEquipment = viewModel::removeEquipmentItem,
+                            onAddYouTube = viewModel::addYouTubeItem,
+                            onUpdateYouTubeTitle = { itemId, value ->
+                                viewModel.updateYouTubeItem(itemId, title = value)
+                            },
+                            onUpdateYouTubeSubtitle = { itemId, value ->
+                                viewModel.updateYouTubeItem(itemId, subtitle = value)
+                            },
+                            onUpdateYouTubeUrl = { itemId, value ->
+                                viewModel.updateYouTubeItem(itemId, url = value)
+                            },
+                            onRemoveYouTube = viewModel::removeYouTubeItem,
+                            onSave = viewModel::savePublicConfig,
+                        )
                     }
 
                     item {
@@ -255,23 +316,6 @@ fun VideoHubScreen(
                             },
                         )
                     }
-                }
-
-                item {
-                    VideoPlayerCard(
-                        video = selectedVideo,
-                        player = player,
-                    )
-                }
-
-                item {
-                    VideoLibraryCard(
-                        uiState = uiState,
-                        selectedVideoId = selectedVideoId,
-                        onSelectVideo = { video -> selectedVideoId = video.id },
-                        onToggleHomeFeatured = viewModel::toggleHomeFeatured,
-                        onDeleteVideo = viewModel::deleteVideo,
-                    )
                 }
             }
 
@@ -363,7 +407,36 @@ private fun VideoFormatCard() {
 }
 
 @Composable
-private fun VideoEquipmentCard() {
+private fun VideoCollaborationsCard(
+    onOpenLink: (String) -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Produced With")
+        Text(
+            text = "Kuenstler und Acts, mit denen Skydown produktionell zusammengearbeitet hat.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+
+        Column(
+            modifier = Modifier.padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            skydownProducedWithArtists.forEach { artist ->
+                ProducedWithArtistRow(
+                    artist = artist,
+                    onOpenLink = onOpenLink,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoEquipmentCard(
+    items: List<VideoEquipmentItem>,
+) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Equipment & Software")
         Text(
@@ -377,22 +450,49 @@ private fun VideoEquipmentCard() {
             modifier = Modifier.padding(top = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            VideoEquipmentRow(
-                title = "Drohnen",
-                detail = "DJI Neo und DJI Avata 2 fuer bewegte Luftshots und FPV-Looks.",
+            items.forEach { item ->
+                VideoEquipmentRow(
+                    title = item.title,
+                    detail = item.detail,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoYouTubeCard(
+    items: List<VideoYouTubeItem>,
+    onOpenLink: (String) -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("YouTube")
+        Text(
+            text = "Hier koennen oeffentliche YouTube-Arbeiten, Making-ofs oder Musikvideos gesammelt werden.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+
+        if (items.isEmpty()) {
+            Text(
+                text = "Noch keine YouTube-Videos hinterlegt.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier.padding(top = 14.dp),
             )
-            VideoEquipmentRow(
-                title = "Kamera",
-                detail = "Sony FX30 mit Sigma 18-50 mm f/2.8 plus Gimbals fuer saubere Motion-Shots.",
-            )
-            VideoEquipmentRow(
-                title = "Mobile Capture",
-                detail = "iPhone 16 Pro mit Apple Log fuer flexible schnelle Shoots.",
-            )
-            VideoEquipmentRow(
-                title = "Postproduktion",
-                detail = "Adobe Premiere Pro, DaVinci Resolve Studio und Adobe After Effects.",
-            )
+        } else {
+            Column(
+                modifier = Modifier.padding(top = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items.forEach { item ->
+                    VideoYouTubeRow(
+                        item = item,
+                        onOpenLink = onOpenLink,
+                    )
+                }
+            }
         }
     }
 }
@@ -420,6 +520,239 @@ private fun VideoEquipmentRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
+    }
+}
+
+@Composable
+private fun VideoPublicConfigEditorCard(
+    uiState: com.skydown.android.ui.model.VideoHubUiState,
+    onAddEquipment: () -> Unit,
+    onUpdateEquipmentTitle: (String, String) -> Unit,
+    onUpdateEquipmentDetail: (String, String) -> Unit,
+    onRemoveEquipment: (String) -> Unit,
+    onAddYouTube: () -> Unit,
+    onUpdateYouTubeTitle: (String, String) -> Unit,
+    onUpdateYouTubeSubtitle: (String, String) -> Unit,
+    onUpdateYouTubeUrl: (String, String) -> Unit,
+    onRemoveYouTube: (String) -> Unit,
+    onSave: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Videography Editor")
+        Text(
+            text = "Admins steuern hier die oeffentliche Equipment-Liste und die YouTube-Sparte fuer alle Nutzer.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+
+        Text(
+            text = "Equipment",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+        Column(
+            modifier = Modifier.padding(top = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            uiState.publicConfig.equipmentItems.forEach { item ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = item.title,
+                        onValueChange = { onUpdateEquipmentTitle(item.id, it) },
+                        label = { Text("Titel") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.detail,
+                        onValueChange = { onUpdateEquipmentDetail(item.id, it) },
+                        label = { Text("Detail") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                    )
+                    OutlinedButton(
+                        onClick = { onRemoveEquipment(item.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Eintrag entfernen")
+                    }
+                }
+            }
+        }
+
+        OutlinedButton(
+            onClick = onAddEquipment,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+        ) {
+            Text("Equipment hinzufuegen")
+        }
+
+        Text(
+            text = "YouTube",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 18.dp),
+        )
+        Column(
+            modifier = Modifier.padding(top = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            uiState.publicConfig.youtubeItems.forEach { item ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = item.title,
+                        onValueChange = { onUpdateYouTubeTitle(item.id, it) },
+                        label = { Text("Titel") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.subtitle,
+                        onValueChange = { onUpdateYouTubeSubtitle(item.id, it) },
+                        label = { Text("Untertitel") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.url,
+                        onValueChange = { onUpdateYouTubeUrl(item.id, it) },
+                        label = { Text("URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedButton(
+                        onClick = { onRemoveYouTube(item.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Eintrag entfernen")
+                    }
+                }
+            }
+        }
+
+        OutlinedButton(
+            onClick = onAddYouTube,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+        ) {
+            Text("YouTube-Video hinzufuegen")
+        }
+
+        Button(
+            onClick = onSave,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            if (uiState.isSavingPublicConfig) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                Text("Oeffentliche Daten speichern")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProducedWithArtistRow(
+    artist: com.skydown.android.ui.model.ProducedWithArtist,
+    onOpenLink: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = artist.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = artist.role,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            artist.spotifyArtistId?.takeIf { it.isNotBlank() }?.let { spotifyArtistId ->
+                TextButton(onClick = { onOpenLink("https://open.spotify.com/artist/$spotifyArtistId") }) {
+                    Text("Spotify")
+                }
+            }
+            artist.instagramUrl?.takeIf { it.isNotBlank() }?.let { instagramUrl ->
+                TextButton(onClick = { onOpenLink(instagramUrl) }) {
+                    Text("Instagram")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoYouTubeRow(
+    item: VideoYouTubeItem,
+    onOpenLink: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            if (item.subtitle.isNotBlank()) {
+                Text(
+                    text = item.subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+        }
+
+        TextButton(onClick = { onOpenLink(item.url) }) {
+            Text("Oeffnen")
+        }
     }
 }
 

@@ -10,7 +10,10 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.skydown.android.ui.model.SelectedVideoFile
+import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.VideoHubItem
+import com.skydown.android.ui.model.VideoHubPublicConfig
+import com.skydown.android.ui.model.VideoYouTubeItem
 import com.skydown.shared.model.User
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
@@ -28,6 +31,8 @@ class VideoHubService(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) {
     private val collectionName = "videographyHub"
+    private val configCollectionName = "videographyHubMeta"
+    private val configDocumentId = "publicConfig"
 
     fun observeVideos(
         isAdmin: Boolean,
@@ -50,6 +55,23 @@ class VideoHubService(
                     )
 
                 onChange(Result.success(videos))
+            }
+
+        return { listener.remove() }
+    }
+
+    fun observePublicConfig(
+        onChange: (Result<VideoHubPublicConfig>) -> Unit,
+    ): () -> Unit {
+        val listener = firestore.collection(configCollectionName)
+            .document(configDocumentId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onChange(Result.failure(error))
+                    return@addSnapshotListener
+                }
+
+                onChange(Result.success(mapPublicConfig(snapshot?.data)))
             }
 
         return { listener.remove() }
@@ -104,6 +126,40 @@ class VideoHubService(
         }
 
         batch.commit().await()
+    }
+
+    suspend fun savePublicConfig(
+        config: VideoHubPublicConfig,
+        currentUser: User?,
+    ) {
+        val equipmentItems = config.equipmentItems.map { item ->
+            mapOf(
+                "id" to item.id,
+                "title" to item.title,
+                "detail" to item.detail,
+            )
+        }
+        val youtubeItems = config.youtubeItems.map { item ->
+            mapOf(
+                "id" to item.id,
+                "title" to item.title,
+                "subtitle" to item.subtitle,
+                "url" to item.url,
+            )
+        }
+
+        firestore.collection(configCollectionName)
+            .document(configDocumentId)
+            .set(
+                mapOf(
+                    "equipmentItems" to equipmentItems,
+                    "youtubeItems" to youtubeItems,
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                    "updatedBy" to currentUser?.id.orEmpty(),
+                ),
+                SetOptions.merge(),
+            )
+            .await()
     }
 
     private suspend fun uploadSingleFile(
@@ -248,5 +304,52 @@ class VideoHubService(
         }
 
         return baseCollection.whereEqualTo("isPublic", true)
+    }
+
+    private fun mapPublicConfig(data: Map<String, Any>?): VideoHubPublicConfig {
+        if (data == null) {
+            return VideoHubPublicConfig.default()
+        }
+
+        val equipmentItems = (data["equipmentItems"] as? List<*>)
+            ?.mapNotNull { value -> mapEquipmentItem(value as? Map<*, *>) }
+            ?.ifEmpty { null }
+            ?: VideoHubPublicConfig.default().equipmentItems
+        val youtubeItems = (data["youtubeItems"] as? List<*>)
+            ?.mapNotNull { value -> mapYouTubeItem(value as? Map<*, *>) }
+            ?: emptyList()
+
+        return VideoHubPublicConfig(
+            equipmentItems = equipmentItems,
+            youtubeItems = youtubeItems,
+        )
+    }
+
+    private fun mapEquipmentItem(value: Map<*, *>?): VideoEquipmentItem? {
+        val map = value ?: return null
+        val title = (map["title"] as? String)?.trim().orEmpty()
+        val detail = (map["detail"] as? String)?.trim().orEmpty()
+        if (title.isBlank() || detail.isBlank()) return null
+
+        return VideoEquipmentItem(
+            id = ((map["id"] as? String)?.trim()).takeUnless { it.isNullOrBlank() } ?: UUID.randomUUID().toString(),
+            title = title,
+            detail = detail,
+        )
+    }
+
+    private fun mapYouTubeItem(value: Map<*, *>?): VideoYouTubeItem? {
+        val map = value ?: return null
+        val title = (map["title"] as? String)?.trim().orEmpty()
+        val subtitle = (map["subtitle"] as? String)?.trim().orEmpty()
+        val url = ((map["url"] as? String) ?: (map["urlString"] as? String)).orEmpty().trim()
+        if (title.isBlank() || url.isBlank()) return null
+
+        return VideoYouTubeItem(
+            id = ((map["id"] as? String)?.trim()).takeUnless { it.isNullOrBlank() } ?: UUID.randomUUID().toString(),
+            title = title,
+            subtitle = subtitle,
+            url = url,
+        )
     }
 }

@@ -28,7 +28,6 @@ class HomeViewModel : ViewModel() {
         "MAVE",
         "JANNO",
         "TANGAJOE007",
-        "Toprack941",
     )
 
     init {
