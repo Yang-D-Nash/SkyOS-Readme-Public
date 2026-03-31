@@ -7,6 +7,69 @@
 
 import SwiftUI
 
+enum MusicExperienceBrand {
+    case skydown
+    case zweizwei
+
+    var navigationTitle: String {
+        switch self {
+        case .skydown:
+            return "Skydown Music"
+        case .zweizwei:
+            return "Zweizwei Music"
+        }
+    }
+
+    var heroTitle: String {
+        navigationTitle
+    }
+
+    var heroSubtitle: String {
+        switch self {
+        case .skydown:
+            return "Artist waehlen, Preview starten oder Spotify direkt oeffnen."
+        case .zweizwei:
+            return "Zweizwei steuert Releases, Artists, Beats und den kompletten Music-Flow."
+        }
+    }
+
+    var artists: [String] {
+        switch self {
+        case .skydown:
+            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
+        case .zweizwei:
+            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
+        }
+    }
+
+    var fallbackArtistName: String {
+        switch self {
+        case .skydown:
+            return "Skydown"
+        case .zweizwei:
+            return "Zweizwei"
+        }
+    }
+
+    var workflowTitle: String? {
+        switch self {
+        case .skydown:
+            return nil
+        case .zweizwei:
+            return "Zweizwei Workflow"
+        }
+    }
+
+    var workflowSubtitle: String? {
+        switch self {
+        case .skydown:
+            return nil
+        case .zweizwei:
+            return "Spring direkt aus dem Music-Katalog in Beat Hub oder NICMA Producer."
+        }
+    }
+}
+
 struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
@@ -16,33 +79,39 @@ struct MusicView: View {
     @State private var hasHandledInitialSelection = false
     @Environment(\.colorScheme) private var colorScheme
 
-    let onOpenCart: () -> Void
-    let onOpenSettings: () -> Void
+    let brand: MusicExperienceBrand
+    let onBack: (() -> Void)?
+    let onOpenCart: (() -> Void)?
+    let onOpenSettings: (() -> Void)?
     private let initialArtist: String?
     private let initialTrackID: Int?
     private let autoplaySelectedTrackPreview: Bool
     private let autoPresentSelectedTrackSpotifyPlayer: Bool
 
     init(
+        brand: MusicExperienceBrand = .skydown,
         initialArtist: String? = nil,
         initialTrackID: Int? = nil,
         autoplaySelectedTrackPreview: Bool = false,
         autoPresentSelectedTrackSpotifyPlayer: Bool = false,
-        onOpenCart: @escaping () -> Void = {},
-        onOpenSettings: @escaping () -> Void = {}
+        onBack: (() -> Void)? = nil,
+        onOpenCart: (() -> Void)? = nil,
+        onOpenSettings: (() -> Void)? = nil
     ) {
+        self.brand = brand
+        self.onBack = onBack
         self.initialArtist = initialArtist
         self.initialTrackID = initialTrackID
         self.autoplaySelectedTrackPreview = autoplaySelectedTrackPreview
         self.autoPresentSelectedTrackSpotifyPlayer = autoPresentSelectedTrackSpotifyPlayer
         self.onOpenCart = onOpenCart
         self.onOpenSettings = onOpenSettings
-        _selectedArtist = State(initialValue: initialArtist ?? "Yang D. Nash")
+        _selectedArtist = State(initialValue: initialArtist ?? brand.artists.first ?? "Yang D. Nash")
         _selectedTrackID = State(initialValue: initialTrackID)
     }
 
     private var artists: [String] {
-        ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007", "Toprack941"]
+        brand.artists
     }
 
     private var spotifyStatusText: String {
@@ -69,6 +138,7 @@ struct MusicView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     heroCard
+                    workflowCard
                     artistsCard
                     spotifyCard
                     musicPlayerCard
@@ -80,15 +150,36 @@ struct MusicView: View {
             }
             .scrollIndicators(.hidden)
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Skydown Music")
+            .navigationTitle(brand.navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    AppSessionToolbarActions(
-                        onOpenCart: onOpenCart,
-                        onOpenSettings: onOpenSettings
-                    )
+                if let onBack {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: onBack) {
+                            Image(systemName: "chevron.left")
+                                .font(.headline.weight(.bold))
+                        }
+                    }
+                }
+
+                if let onOpenSettings {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AppSessionToolbarActions(
+                            onOpenCart: onOpenCart,
+                            onOpenSettings: onOpenSettings
+                        )
+                    }
+                } else if viewModel.isSpotifyConnected {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            audioManager.stop()
+                            viewModel.disconnectSpotify()
+                        } label: {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.subheadline.weight(.bold))
+                        }
+                    }
                 }
             }
             .task(id: selectedArtist) {
@@ -129,14 +220,14 @@ struct MusicView: View {
 
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Skydown Music")
+            Text(brand.heroTitle)
                 .font(.largeTitle.bold())
 
             Text(selectedArtist)
                 .font(.headline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Artist waehlen, Preview starten oder Spotify direkt oeffnen.")
+            Text(brand.heroSubtitle)
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -150,6 +241,65 @@ struct MusicView: View {
             RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private var workflowCard: some View {
+        if let workflowTitle = brand.workflowTitle,
+           let workflowSubtitle = brand.workflowSubtitle {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(workflowTitle)
+                    .font(.headline)
+
+                Text(workflowSubtitle)
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                HStack(spacing: 10) {
+                    NavigationLink {
+                        BeatHubView()
+                    } label: {
+                        workflowButtonLabel(
+                            title: "Beat Hub oeffnen",
+                            accent: AppColors.accent(for: colorScheme),
+                            textColor: .white
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        NicmaProducerView()
+                    } label: {
+                        workflowButtonLabel(
+                            title: "NICMA Producer oeffnen",
+                            accent: AppColors.spotifySurface(for: colorScheme),
+                            textColor: AppColors.text(for: colorScheme)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(SkydownLayout.cardPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                    .fill(AppColors.cardBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+            )
+        }
+    }
+
+    private func workflowButtonLabel(title: String, accent: Color, textColor: Color) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundColor(textColor)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(accent)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     private var artistsCard: some View {
@@ -328,7 +478,7 @@ struct MusicView: View {
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: colorScheme))
 
-                        Text(selectedTrack.artistName ?? "Skydown x 22")
+                        Text(selectedTrack.artistName ?? brand.fallbackArtistName)
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

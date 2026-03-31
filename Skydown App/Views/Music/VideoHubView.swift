@@ -17,13 +17,16 @@ struct VideoHubView: View {
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
     @State private var hasHandledInitialSelection = false
+    let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
     private let autoplayInitialSelection: Bool
 
     init(
+        onBack: (() -> Void)? = nil,
         initialSelectedVideoID: String? = nil,
         autoplayInitialSelection: Bool = false
     ) {
+        self.onBack = onBack
         self.initialSelectedVideoID = initialSelectedVideoID
         self.autoplayInitialSelection = autoplayInitialSelection
     }
@@ -59,9 +62,19 @@ struct VideoHubView: View {
             )
             .ignoresSafeArea()
         )
-        .navigationTitle("Videography")
+        .navigationTitle("Skydown Videography")
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            if let onBack {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.headline.weight(.bold))
+                    }
+                }
+            }
+        }
         .task {
             viewModel.configure(currentUser: authManager.userSession)
         }
@@ -114,14 +127,14 @@ struct VideoHubView: View {
 
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Videography")
+            Text("Skydown Videography")
                 .font(.largeTitle.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             Text(
                 viewModel.isAdmin
                 ? "Hier landen Reels, Clips, Sessions und Visuals. Als Admin kannst du hochladen, loeschen und ein Home-Video festlegen."
-                : "Hier laufen die oeffentlichen Videos von Skydown x 22. Einfach Clip waehlen und direkt anschauen."
+                : "Hier laufen die oeffentlichen Videos von Skydown. Einfach Clip waehlen und direkt anschauen."
             )
             .font(.body)
             .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -330,7 +343,7 @@ struct VideoHubView: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if viewModel.isLoadingVideos {
-                ProgressView("Videography wird geladen ...")
+                ProgressView("Skydown Videography wird geladen ...")
             } else if viewModel.videos.isEmpty {
                 Text(
                     viewModel.isAdmin
@@ -478,7 +491,7 @@ struct VideoEquipmentCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Damit direkt klar ist, womit Skydown x 22 die Videography umsetzt.")
+            Text("Damit direkt klar ist, womit Skydown die Videography umsetzt.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

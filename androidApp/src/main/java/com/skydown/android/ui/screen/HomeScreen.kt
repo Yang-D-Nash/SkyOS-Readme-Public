@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -367,7 +368,7 @@ private fun HomeHeroCard() {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Hip Hop, Music, Video.",
+                    text = "Zweizwei Music und Skydown Videography laufen hier als getrennte Lanes.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -398,7 +399,7 @@ private fun HomeLatestReleaseCard(
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Neuester Release")
+        SectionHeader("Zweizwei Release")
         val track = uiState.featuredTrack
 
         if (track == null) {
@@ -435,7 +436,7 @@ private fun HomeLatestReleaseCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = track.artistName ?: "Skydown x 22",
+                    text = track.artistName ?: "Zweizwei",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -513,7 +514,7 @@ private fun HomeLatestBeatCard(
     onPlayToggle: (FeaturedBeatHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Neuester Beat")
+        SectionHeader("Zweizwei Beat")
         val beat = uiState.featuredBeat
 
         if (beat == null) {
@@ -598,7 +599,7 @@ private fun HomeLatestVideoCard(
     onPlayToggle: (FeaturedVideoHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Video Highlight")
+        SectionHeader("Skydown Video Highlight")
         val video = uiState.featuredVideo
 
         if (video == null) {
@@ -708,10 +709,10 @@ private fun HomeStoryCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Links")
+        SectionHeader("Lanes")
 
         Text(
-            text = "Hier laufen die direkten Social-Links, der Beat Hub und NICMA MUSIC zusammen. Der Musik-Tab bleibt damit wirklich nur fuer Releases und Tracks reserviert.",
+            text = "Zweizwei und Skydown bleiben hier bewusst getrennt, damit Musik- und Videography-Logik nicht wieder in einer Sammelkarte landen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -719,107 +720,143 @@ private fun HomeStoryCard(
 
         Column(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
-                onClick = {
-                    openExternalLink(context, "https://www.instagram.com/y.d.nash/")
-                },
-                modifier = Modifier.fillMaxWidth(),
+            HomeLaneSection(
+                title = "Zweizwei Music",
+                subtitle = "Releases, Artists, Beat Hub und NICMA Producer laufen ueber die Zweizwei-Schiene.",
             ) {
-                Icon(
-                    imageVector = Icons.Default.Language,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "Yang D. Nash auf Instagram",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-
-            OutlinedButton(
-                onClick = {
-                    openExternalLink(context, "https://www.instagram.com/zweizwei_music/")
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "22 auf Instagram",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-
-            OutlinedButton(
-                onClick = {
-                    openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "Skydown auf Instagram",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-
-            OutlinedButton(
-                onClick = { onOpenBeatHub() },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "Beat Hub oeffnen",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-
-            OutlinedButton(
-                onClick = {
-                    onOpenNicma()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "NICMA MUSIC oeffnen",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-
-            OutlinedButton(
-                onClick = {
-                    openEmailDraft(
-                        context = context,
-                        recipients = listOf("skydownent@gmail.com"),
-                        subject = "Skydown x 22 Kontakt",
-                        body = "",
+                Button(
+                    onClick = {
+                        openExternalLink(context, "https://www.instagram.com/y.d.nash/")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Language,
+                        contentDescription = null,
                     )
-                },
-                modifier = Modifier.fillMaxWidth(),
+                    Text(
+                        text = "Yang D. Nash auf Instagram",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        openExternalLink(context, "https://www.instagram.com/zweizwei_music/")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "22 auf Instagram",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { onOpenBeatHub() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.GraphicEq,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Beat Hub oeffnen",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { onOpenNicma() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.GraphicEq,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "NICMA MUSIC oeffnen",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+
+            HomeLaneSection(
+                title = "Skydown Videography",
+                subtitle = "Visuals, Clips und Brand-Kontakt bleiben auf der Skydown-Schiene.",
             ) {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = null,
-                )
-                Text(
-                    text = "Kontakt per E-Mail",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
+                OutlinedButton(
+                    onClick = {
+                        openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Skydown auf Instagram",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        openEmailDraft(
+                            context = context,
+                            recipients = listOf("skydownent@gmail.com"),
+                            subject = "Skydown Videography Kontakt",
+                            body = "",
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Kontakt per E-Mail",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun HomeLaneSection(
+    title: String,
+    subtitle: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+        content()
     }
 }
 

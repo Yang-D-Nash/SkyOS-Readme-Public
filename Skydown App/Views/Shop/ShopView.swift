@@ -308,7 +308,7 @@ private struct HomeHeroIntroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Hip Hop, Music, Video.")
+                Text("Zweizwei Music und Skydown Videography laufen hier als getrennte Lanes.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -352,7 +352,7 @@ private struct HomeLatestReleaseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Neuester Release")
+            Text("Zweizwei Release")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -377,7 +377,7 @@ private struct HomeLatestReleaseCard: View {
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: colorScheme))
 
-                        Text(track.artistName ?? "Skydown x 22")
+                        Text(track.artistName ?? "Zweizwei")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -456,7 +456,7 @@ private struct HomeLatestBeatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Neuester Beat")
+            Text("Zweizwei Beat")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -526,7 +526,7 @@ private struct HomeLatestVideoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Video Highlight")
+            Text("Skydown Video Highlight")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -626,78 +626,90 @@ private struct HomeStoryCard: View {
     let onOpenNicma: () -> Void
     @Environment(\.openURL) private var openURL
 
-    private let contactEmailURL = URL(string: "mailto:skydownent@gmail.com?subject=Skydown%20x%2022%20Kontakt")
+    private let contactEmailURL = URL(string: "mailto:skydownent@gmail.com?subject=Skydown%20Videography%20Kontakt")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Links")
+            Text("Lanes")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier laufen die direkten Social-Links, der Beat Hub und NICMA MUSIC zusammen. Der Musik-Tab bleibt damit auf beiden Plattformen wirklich nur fuer Releases und Tracks reserviert.")
+            Text("Zweizwei und Skydown bleiben hier bewusst getrennt, damit Musik- und Videography-Logik nicht wieder in einer Sammelkarte landen.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            VStack(spacing: 10) {
-                HomeActionButton(
-                    title: "Yang D. Nash auf Instagram",
-                    icon: "camera.fill",
-                    colorScheme: colorScheme,
-                    isPrimary: true
+            VStack(spacing: 12) {
+                HomeLaneSection(
+                    title: "Zweizwei Music",
+                    subtitle: "Releases, Artists, Beat Hub und NICMA Producer laufen ueber die Zweizwei-Schiene.",
+                    colorScheme: colorScheme
                 ) {
-                    if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
-                        openURL(url)
+                    HomeActionButton(
+                        title: "Yang D. Nash auf Instagram",
+                        icon: "camera.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: true
+                    ) {
+                        if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
+                            openURL(url)
+                        }
+                    }
+
+                    HomeActionButton(
+                        title: "22 auf Instagram",
+                        icon: "person.2.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: false
+                    ) {
+                        if let url = zweizweiInstagramDestination.url {
+                            openURL(url)
+                        }
+                    }
+
+                    HomeActionButton(
+                        title: "Beat Hub oeffnen",
+                        icon: "waveform.circle.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: false
+                    ) {
+                        onOpenBeatHub()
+                    }
+
+                    HomeActionButton(
+                        title: "NICMA MUSIC oeffnen",
+                        icon: "slider.horizontal.3",
+                        colorScheme: colorScheme,
+                        isPrimary: false
+                    ) {
+                        onOpenNicma()
                     }
                 }
 
-                HomeActionButton(
-                    title: "22 auf Instagram",
-                    icon: "person.2.fill",
-                    colorScheme: colorScheme,
-                    isPrimary: false
+                HomeLaneSection(
+                    title: "Skydown Videography",
+                    subtitle: "Visuals, Clips und Brand-Kontakt bleiben auf der Skydown-Schiene.",
+                    colorScheme: colorScheme
                 ) {
-                    if let url = zweizweiInstagramDestination.url {
-                        openURL(url)
+                    HomeActionButton(
+                        title: "Skydown auf Instagram",
+                        icon: "sparkles.tv.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: false
+                    ) {
+                        if let url = skydownMusicInstagramDestination.url {
+                            openURL(url)
+                        }
                     }
-                }
 
-                HomeActionButton(
-                    title: "Skydown auf Instagram",
-                    icon: "sparkles.tv.fill",
-                    colorScheme: colorScheme,
-                    isPrimary: false
-                ) {
-                    if let url = skydownMusicInstagramDestination.url {
-                        openURL(url)
-                    }
-                }
-
-                HomeActionButton(
-                    title: "Beat Hub oeffnen",
-                    icon: "waveform.circle.fill",
-                    colorScheme: colorScheme,
-                    isPrimary: false
-                ) {
-                    onOpenBeatHub()
-                }
-
-                HomeActionButton(
-                    title: "NICMA MUSIC oeffnen",
-                    icon: "slider.horizontal.3",
-                    colorScheme: colorScheme,
-                    isPrimary: false
-                ) {
-                    onOpenNicma()
-                }
-
-                HomeActionButton(
-                    title: "Kontakt per E-Mail",
-                    icon: "envelope.fill",
-                    colorScheme: colorScheme,
-                    isPrimary: false
-                ) {
-                    if let contactEmailURL {
-                        openURL(contactEmailURL)
+                    HomeActionButton(
+                        title: "Kontakt per E-Mail",
+                        icon: "envelope.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: false
+                    ) {
+                        if let contactEmailURL {
+                            openURL(contactEmailURL)
+                        }
                     }
                 }
             }
@@ -709,6 +721,48 @@ private struct HomeStoryCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct HomeLaneSection<Content: View>: View {
+    let title: String
+    let subtitle: String
+    let colorScheme: ColorScheme
+    let content: Content
+
+    init(
+        title: String,
+        subtitle: String,
+        colorScheme: ColorScheme,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.colorScheme = colorScheme
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            VStack(spacing: 10) {
+                content
+            }
+        }
+        .padding(14)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 

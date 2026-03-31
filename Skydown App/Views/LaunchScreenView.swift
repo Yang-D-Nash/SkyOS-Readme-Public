@@ -21,14 +21,18 @@ struct LaunchScreenView: View {
                 introContent
             case .landing:
                 LaunchLandingView(
-                    onOpenMusic: { openApp(tab: .music) },
-                    onOpenVideography: { openApp(tab: .video) },
+                    onOpenMusic: { openMusicLane() },
+                    onOpenVideography: { openVideographyLane() },
                     onOpenN8N: { openN8NLanding() }
                 )
             case .n8n:
                 N8NLaunchView(onBack: { transitionBackToLanding() })
-            case .main(let initialTab):
-                MainTabView(initialTab: initialTab)
+            case .musicLane:
+                ZweizweiMusicLaneView(onBackToLanding: { transitionBackToLanding() })
+            case .videographyLane:
+                NavigationStack {
+                    VideoHubView(onBack: { transitionBackToLanding() })
+                }
             }
         }
         .onAppear {
@@ -125,9 +129,15 @@ struct LaunchScreenView: View {
         }
     }
 
-    private func openApp(tab: MainTab) {
+    private func openMusicLane() {
         withAnimation(.easeInOut(duration: 0.3)) {
-            phase = .main(tab)
+            phase = .musicLane
+        }
+    }
+
+    private func openVideographyLane() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            phase = .videographyLane
         }
     }
 
@@ -148,7 +158,8 @@ private enum LaunchPhase {
     case intro
     case landing
     case n8n
-    case main(MainTab)
+    case musicLane
+    case videographyLane
 }
 
 private struct LaunchLandingView: View {
@@ -177,7 +188,7 @@ private struct LaunchLandingView: View {
                         .font(.system(size: 42, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Spring direkt in Musik oder in die Videography-Welt der App.")
+                    Text("Spring direkt in Zweizwei Music oder in die Skydown Videography-Welt der App.")
                         .font(.headline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -185,14 +196,14 @@ private struct LaunchLandingView: View {
                 VStack(spacing: 14) {
                     LaunchLandingButton(
                         title: "MUSIK",
-                        subtitle: "Songs, Releases, Beats und der komplette Music-Hub.",
+                        subtitle: "Zweizwei steht hier fuer Songs, Releases, Beats und den kompletten Music-Hub.",
                         accent: AppColors.spotify(for: colorScheme),
                         action: onOpenMusic
                     )
 
                     LaunchLandingButton(
                         title: "VIDEOGRAPHY",
-                        subtitle: "Clips, Reels, Sessions und der gesamte Video-Hub.",
+                        subtitle: "Skydown buendelt hier Clips, Reels, Sessions und den gesamten Video-Hub.",
                         accent: AppColors.accentMystic(for: colorScheme),
                         action: onOpenVideography
                     )
@@ -202,6 +213,101 @@ private struct LaunchLandingView: View {
                         subtitle: "Leere Workflow-Landing-Page als Startpunkt fuer spaetere Automationen.",
                         accent: AppColors.accentHighlight(for: colorScheme),
                         action: onOpenN8N
+                    )
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.vertical, 28)
+        }
+    }
+}
+
+private struct ZweizweiMusicLaneView: View {
+    private enum Destination {
+        case hub
+        case catalog
+        case beatHub
+        case nicma
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var destination: Destination = .hub
+    let onBackToLanding: () -> Void
+
+    var body: some View {
+        switch destination {
+        case .hub:
+            laneHub
+        case .catalog:
+            MusicView(
+                brand: .zweizwei,
+                onBack: { destination = .hub }
+            )
+        case .beatHub:
+            NavigationStack {
+                BeatHubView(onBack: { destination = .hub })
+            }
+        case .nicma:
+            NavigationStack {
+                NicmaProducerView(onBack: { destination = .hub })
+            }
+        }
+    }
+
+    private var laneHub: some View {
+        ZStack {
+            AppColors.screenGradient(
+                for: colorScheme,
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
+            .ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 18) {
+                Button(action: onBackToLanding) {
+                    Label("Zurueck", systemImage: "chevron.left")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(AppColors.cardBackground(for: colorScheme))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Zweizwei Music")
+                        .font(.system(size: 38, weight: .black, design: .rounded))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Hier lebt die eigene Musik-Logik: Catalog, Beat Hub und NICMA Producer Services laufen getrennt von Skydown Videography.")
+                        .font(.headline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                VStack(spacing: 14) {
+                    LaunchLandingButton(
+                        title: "MUSIC CATALOG",
+                        subtitle: "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
+                        accent: AppColors.spotify(for: colorScheme),
+                        action: { destination = .catalog }
+                    )
+
+                    LaunchLandingButton(
+                        title: "BEAT HUB",
+                        subtitle: "Eigene Beat-Logik, Preview-Library und Upload-/Listener-Flow.",
+                        accent: AppColors.accent(for: colorScheme),
+                        action: { destination = .beatHub }
+                    )
+
+                    LaunchLandingButton(
+                        title: "NICMA PRODUCER",
+                        subtitle: "Mixing, Mastering und Recording als eigener Music-Service.",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        action: { destination = .nicma }
                     )
                 }
 

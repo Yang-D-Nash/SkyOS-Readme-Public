@@ -9,6 +9,11 @@ import SwiftUI
 
 struct NicmaProducerView: View {
     @Environment(\.colorScheme) private var colorScheme
+    let onBack: (() -> Void)?
+
+    init(onBack: (() -> Void)? = nil) {
+        self.onBack = onBack
+    }
 
     private var inquiryMailURL: URL? {
         URL(string: "mailto:nicoheine@me.com?subject=NICMA%20MUSIC%20Anfrage")
@@ -28,6 +33,16 @@ struct NicmaProducerView: View {
         .navigationTitle("NICMA MUSIC")
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            if let onBack {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.headline.weight(.bold))
+                    }
+                }
+            }
+        }
     }
 
     private var heroCard: some View {

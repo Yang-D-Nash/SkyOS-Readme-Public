@@ -15,6 +15,11 @@ struct BeatHubView: View {
     @StateObject private var viewModel = NicmaProducerViewModel()
     @StateObject private var playbackManager = BeatPlaybackManager()
     @State private var showingFileImporter = false
+    let onBack: (() -> Void)?
+
+    init(onBack: (() -> Void)? = nil) {
+        self.onBack = onBack
+    }
 
     var body: some View {
         ScrollView {
@@ -40,6 +45,16 @@ struct BeatHubView: View {
         .navigationTitle("Beat Hub")
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            if let onBack {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.headline.weight(.bold))
+                    }
+                }
+            }
+        }
         .task {
             viewModel.configure(currentUser: authManager.userSession)
         }
