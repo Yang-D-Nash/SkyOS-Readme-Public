@@ -395,31 +395,32 @@ class ShopViewModel : ViewModel() {
         AppContainer.refreshCurrentUser()
         val itemsResult = merchandiseService.loadItems()
         val user = AppContainer.authService.currentUser()
+        val isAdmin = user?.isAdmin == true
         val resolvedItems = itemsResult.getOrDefault(emptyList())
         allItems = resolvedItems
         if (resolvedItems.isNotEmpty()) {
             hasAttemptedAutomaticShopifySync = false
         }
-        val fallbackItems = if (resolvedItems.isEmpty()) {
+        val fallbackItems = if (resolvedItems.isEmpty() || (!isAdmin && !hasVisibleShopifyItems(resolvedItems, isAdmin = false))) {
             shopifyPublicCatalogClient.fetchCatalog().getOrDefault(emptyList())
         } else {
             emptyList()
         }
-        val visibleItems = if (resolvedItems.isNotEmpty()) resolvedItems else fallbackItems
+        val visibleItems = if (fallbackItems.isNotEmpty()) fallbackItems else resolvedItems
         _uiState.update {
             it.copy(
-                items = filterVisibleItems(visibleItems, isAdmin = user?.isAdmin == true),
+                items = filterVisibleItems(visibleItems, isAdmin = isAdmin),
                 isLoggedIn = user != null,
-                isAdmin = user?.isAdmin == true,
+                isAdmin = isAdmin,
                 errorMessage = itemsResult.exceptionOrNull()?.message,
             )
         }
 
-        if (resolvedItems.isEmpty() && fallbackItems.isNotEmpty()) {
+        if (fallbackItems.isNotEmpty()) {
             allItems = fallbackItems
         }
 
-        if (user?.isAdmin == true && resolvedItems.isEmpty() && fallbackItems.isEmpty()) {
+        if (isAdmin && resolvedItems.isEmpty() && fallbackItems.isEmpty()) {
             maybeAutoSyncShopify()
         }
     }
@@ -475,6 +476,15 @@ class ShopViewModel : ViewModel() {
                     .thenBy { it.sortOrder }
                     .thenBy { it.name.lowercase() },
             )
+    }
+
+    private fun hasVisibleShopifyItems(items: List<MerchandiseItem>, isAdmin: Boolean): Boolean {
+        return items.any { item ->
+            (isAdmin || item.isVisibleInApp) &&
+                item.source == "shopify" &&
+                item.shopifySyncActive &&
+                !item.shopifyProductId.isNullOrBlank()
+        }
     }
 
     private suspend fun maybeAutoSyncShopify() {

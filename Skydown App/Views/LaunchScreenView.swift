@@ -245,7 +245,6 @@ private struct LaunchLandingView: View {
 
                 VStack(spacing: 12) {
                     LaunchLandingButton(
-                        step: "01",
                         eyebrow: "Listen & Artists",
                         title: "Music",
                         subtitle: "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
@@ -255,7 +254,6 @@ private struct LaunchLandingView: View {
                     )
 
                     LaunchLandingButton(
-                        step: "02",
                         eyebrow: "Clips & Reels",
                         title: "Videos",
                         subtitle: "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
@@ -265,7 +263,6 @@ private struct LaunchLandingView: View {
                     )
 
                     LaunchLandingButton(
-                        step: "03",
                         eyebrow: "Store",
                         title: "Merch",
                         subtitle: "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
@@ -290,7 +287,6 @@ private struct LaunchLandingView: View {
 
 private struct LaunchLandingButton: View {
     @Environment(\.colorScheme) private var colorScheme
-    let step: String
     let eyebrow: String
     let title: String
     let subtitle: String
@@ -301,31 +297,25 @@ private struct LaunchLandingButton: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 14) {
-                VStack(spacing: 12) {
-                    Text(step)
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(accent)
-
-                    Image(brandMark.rawValue)
-                        .resizable()
-                        .scaledToFit()
-                        .padding(6)
-                        .frame(width: 48, height: 48)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.88),
-                                            accent.opacity(colorScheme == .dark ? 0.18 : 0.10)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                Image(brandMark.rawValue)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(6)
+                    .frame(width: 52, height: 52)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.88),
+                                        accent.opacity(colorScheme == .dark ? 0.18 : 0.10)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
                                 )
-                        )
-                        .shadow(color: accent.opacity(0.34), radius: 16, y: 8)
-                }
+                            )
+                    )
+                    .shadow(color: accent.opacity(0.34), radius: 16, y: 8)
 
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 5) {

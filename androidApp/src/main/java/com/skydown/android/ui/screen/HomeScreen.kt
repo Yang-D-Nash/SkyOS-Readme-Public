@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -492,6 +493,10 @@ private fun HomeLatestReleaseCard(
                 Button(
                     onClick = { onPlayToggle(track) },
                     modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -508,6 +513,14 @@ private fun HomeLatestReleaseCard(
                 OutlinedButton(
                     onClick = { onOpenSpotify(track) },
                     modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                    ),
                 ) {
                     Icon(
                         imageVector = Icons.Default.MusicNote,
@@ -593,6 +606,14 @@ private fun HomeLatestBeatCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                ),
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -704,6 +725,10 @@ private fun HomeLatestVideoCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -847,12 +872,12 @@ private fun HomeStoryLinkButton(
         interactionSource = interactionSource,
         shape = RoundedCornerShape(16.dp),
         color = androidx.compose.ui.graphics.Color.Transparent,
-        tonalElevation = if (isPrimary) 8.dp else 4.dp,
-        shadowElevation = if (isPrimary) 10.dp else 6.dp,
+        tonalElevation = if (isPrimary) 6.dp else 4.dp,
+        shadowElevation = if (isPrimary) 7.dp else 5.dp,
         border = BorderStroke(
             1.dp,
             if (isPrimary) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
             } else {
                 MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f)
             },
@@ -865,8 +890,9 @@ private fun HomeStoryLinkButton(
                     Brush.linearGradient(
                         colors = if (isPrimary) {
                             listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.tertiary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.64f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.10f),
                             )
                         } else {
                             listOf(

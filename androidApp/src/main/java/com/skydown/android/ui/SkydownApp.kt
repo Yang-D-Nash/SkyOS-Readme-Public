@@ -471,7 +471,6 @@ private fun LaunchLandingScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 LaunchLandingChoiceCard(
-                    step = "01",
                     eyebrow = "Listen & Artists",
                     title = "Music",
                     subtitle = "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
@@ -480,7 +479,6 @@ private fun LaunchLandingScreen(
                     onClick = onOpenMusic,
                 )
                 LaunchLandingChoiceCard(
-                    step = "02",
                     eyebrow = "Clips & Reels",
                     title = "Videos",
                     subtitle = "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
@@ -489,7 +487,6 @@ private fun LaunchLandingScreen(
                     onClick = onOpenVideography,
                 )
                 LaunchLandingChoiceCard(
-                    step = "03",
                     eyebrow = "Store",
                     title = "Merch",
                     subtitle = "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
@@ -512,7 +509,6 @@ private fun LaunchLandingScreen(
 
 @Composable
 private fun LaunchLandingChoiceCard(
-    step: String,
     eyebrow: String,
     title: String,
     subtitle: String,
@@ -539,39 +535,28 @@ private fun LaunchLandingChoiceCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = step,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = accentColor,
-                    fontWeight = FontWeight.Bold,
-                )
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
-                                    accentColor.copy(alpha = 0.12f),
-                                ),
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
+                                accentColor.copy(alpha = 0.12f),
                             ),
-                            RoundedCornerShape(14.dp),
                         ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        painter = painterResource(id = artwork.drawableRes),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .padding(4.dp),
-                        contentScale = ContentScale.Fit,
-                    )
-                }
+                        RoundedCornerShape(16.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(id = artwork.drawableRes),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .padding(4.dp),
+                    contentScale = ContentScale.Fit,
+                )
             }
 
             Column(

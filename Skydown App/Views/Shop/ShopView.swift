@@ -1009,15 +1009,15 @@ private struct HomeActionButton: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(
                         isPrimary
-                        ? AppColors.accentHighlight(for: colorScheme).opacity(0.28)
+                        ? AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12)
                         : AppColors.accentMystic(for: colorScheme).opacity(0.16),
                         lineWidth: 1
                     )
             )
             .shadow(
-                color: shadowTint.opacity(isPrimary ? 0.24 : 0.12),
-                radius: isPrimary ? 16 : 10,
-                y: isPrimary ? 8 : 5
+                color: shadowTint.opacity(isPrimary ? 0.16 : 0.12),
+                radius: isPrimary ? 12 : 10,
+                y: isPrimary ? 6 : 5
             )
         }
         .buttonStyle(.plain)
@@ -1058,8 +1058,9 @@ private struct HomeActionButton: View {
         if isPrimary {
             return LinearGradient(
                 colors: [
-                    AppColors.accent(for: colorScheme),
-                    AppColors.accentMystic(for: colorScheme)
+                    AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.82 : 0.88),
+                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.68 : 0.74),
+                    AppColors.primaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.06)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

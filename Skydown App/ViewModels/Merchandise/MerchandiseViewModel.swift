@@ -74,16 +74,23 @@ final class MerchandiseViewModel: ObservableObject {
             case .success(let items):
                 self.allItems = items
                 self.merchandiseItems = self.filterVisibleItems(items)
-                if items.isEmpty {
+                if self.shouldLoadShopifyFallback(for: items) {
                     self.handleEmptyCatalogSnapshot()
                 } else {
                     self.hasAttemptedAutomaticShopifySync = false
                 }
             case .failure(let error):
-                print("Dev Fehler fetchData:", error.localizedDescription)
-                self.showUserToast("Fehler beim Laden der Artikel: \(error.localizedDescription)", style: .error)
-                self.merchandiseItems = []
-                self.allItems = []
+                Task { @MainActor in
+                    let loadedFallback = await self.loadPublicCatalogFallback(showToast: false)
+                    if loadedFallback {
+                        return
+                    }
+
+                    print("Dev Fehler fetchData:", error.localizedDescription)
+                    self.showUserToast("Fehler beim Laden der Artikel: \(error.localizedDescription)", style: .error)
+                    self.merchandiseItems = []
+                    self.allItems = []
+                }
             }
         }
     }
@@ -252,6 +259,27 @@ final class MerchandiseViewModel: ObservableObject {
         }
     }
 
+    private func shouldLoadShopifyFallback(for items: [MerchandiseItem]) -> Bool {
+        if items.isEmpty {
+            return true
+        }
+
+        if canManageMerchandise {
+            return merchandiseItems.isEmpty
+        }
+
+        return !hasVisibleShopifyItems(items)
+    }
+
+    private func hasVisibleShopifyItems(_ items: [MerchandiseItem]) -> Bool {
+        items.contains { item in
+            item.isVisibleInApp &&
+                item.source == "shopify" &&
+                item.shopifySyncActive &&
+                item.shopifyProductId?.isEmpty == false
+        }
+    }
+
     private func loadPublicCatalogFallback(showToast: Bool) async -> Bool {
         do {
             let items = try await publicShopifyCatalogService.fetchCatalog()
@@ -387,12 +415,88 @@ final class HomeViewModel: ObservableObject {
             return collectedTracks
         }
 
-        return trackGroups
-            .flatMap { $0 }
-            .filter { !($0.releaseDate ?? "").isEmpty }
-            .max { lhs, rhs in
-                (lhs.releaseDate ?? "") < (rhs.releaseDate ?? "")
+        let tracks = trackGroups.flatMap { $0 }
+        guard !tracks.isEmpty else { return nil }
+
+        var bestTrack = tracks.first
+        for track in tracks.dropFirst() {
+            guard let currentBest = bestTrack else {
+                bestTrack = track
+                continue
             }
+
+            if compareTracksForHomePriority(track, currentBest) {
+                bestTrack = track
+            }
+        }
+
+        return bestTrack
+    }
+
+    private func compareTracksForHomePriority(_ lhs: Track, _ rhs: Track) -> Bool {
+        let lhsDate = parsedTrackReleaseDate(lhs.releaseDate)
+        let rhsDate = parsedTrackReleaseDate(rhs.releaseDate)
+
+        if lhsDate != rhsDate {
+            return (lhsDate ?? .distantPast) > (rhsDate ?? .distantPast)
+        }
+
+        let lhsHasPlayback = !(lhs.previewUrl ?? "").isEmpty || !(lhs.externalURL ?? "").isEmpty
+        let rhsHasPlayback = !(rhs.previewUrl ?? "").isEmpty || !(rhs.externalURL ?? "").isEmpty
+        if lhsHasPlayback != rhsHasPlayback {
+            return lhsHasPlayback && !rhsHasPlayback
+        }
+
+        return lhs.trackName.localizedCaseInsensitiveCompare(rhs.trackName) == .orderedAscending
+    }
+
+    private func parsedTrackReleaseDate(_ value: String?) -> Date? {
+        guard let rawValue = value?.trimmingCharacters(in: .whitespacesAndNewlines), !rawValue.isEmpty else {
+            return nil
+        }
+
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = isoFormatter.date(from: rawValue) {
+            return date
+        }
+
+        let fallbackISOFormatter = ISO8601DateFormatter()
+        if let date = fallbackISOFormatter.date(from: rawValue) {
+            return date
+        }
+
+        let formatters: [DateFormatter] = [
+            {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                formatter.dateFormat = "yyyy-MM-dd"
+                return formatter
+            }(),
+            {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                formatter.dateFormat = "yyyy-MM"
+                return formatter
+            }(),
+            {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                formatter.dateFormat = "yyyy"
+                return formatter
+            }()
+        ]
+
+        for formatter in formatters {
+            if let date = formatter.date(from: rawValue) {
+                return date
+            }
+        }
+
+        return nil
     }
 
     private func loadLatestBeat() async -> FeaturedHomeBeat? {

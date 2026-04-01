@@ -97,9 +97,42 @@ class HomeViewModel : ViewModel() {
                 .flatten()
         }
 
-        return tracks
-            .filter { !it.releaseDate.orEmpty().isBlank() }
-            .maxByOrNull { it.releaseDate.orEmpty() }
+        if (tracks.isEmpty()) return null
+
+        return tracks.sortedWith(::compareTracksForHomePriority).firstOrNull()
+    }
+
+    private fun compareTracksForHomePriority(lhs: Track, rhs: Track): Int {
+        val lhsDate = parsedTrackReleaseDate(lhs.releaseDate)
+        val rhsDate = parsedTrackReleaseDate(rhs.releaseDate)
+
+        if (lhsDate != rhsDate) {
+            return when {
+                lhsDate == null -> 1
+                rhsDate == null -> -1
+                lhsDate > rhsDate -> -1
+                else -> 1
+            }
+        }
+
+        val lhsHasPlayback = !lhs.previewUrl.isNullOrBlank() || !lhs.externalUrl.isNullOrBlank()
+        val rhsHasPlayback = !rhs.previewUrl.isNullOrBlank() || !rhs.externalUrl.isNullOrBlank()
+        if (lhsHasPlayback != rhsHasPlayback) {
+            return if (lhsHasPlayback) -1 else 1
+        }
+
+        return lhs.trackName.lowercase().compareTo(rhs.trackName.lowercase())
+    }
+
+    private fun parsedTrackReleaseDate(value: String?): Long? {
+        val rawValue = value?.trim().orEmpty()
+        if (rawValue.isBlank()) return null
+
+        return runCatching { java.time.Instant.parse(rawValue).toEpochMilli() }.getOrNull()
+            ?: runCatching { java.time.OffsetDateTime.parse(rawValue).toInstant().toEpochMilli() }.getOrNull()
+            ?: runCatching { java.time.LocalDate.parse(rawValue).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
+            ?: runCatching { java.time.YearMonth.parse(rawValue).atDay(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
+            ?: runCatching { java.time.Year.parse(rawValue).atDay(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
     }
 
     private suspend fun loadLatestBeat(): FeaturedBeatHighlight? {
