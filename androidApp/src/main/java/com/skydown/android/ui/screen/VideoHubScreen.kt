@@ -368,8 +368,8 @@ private fun VideoHubHeroCard(
     BrandHeroCard(
         eyebrow = "Video",
         title = "Video",
-        subtitle = "Reels, Clips, Equipment, YouTube und neue Uploads an einem Ort.",
-        detail = "Hier wechselst du schnell zwischen Watch, Equipment, YouTube und Kollaborationen.",
+        subtitle = "Wenn du schauen willst, bist du hier richtig: Reels, Clips und neue Uploads.",
+        detail = "Von hier kommst du ohne Umwege weiter zu YouTube, Equipment oder Kontakt.",
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),

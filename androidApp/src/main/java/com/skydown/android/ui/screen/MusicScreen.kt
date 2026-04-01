@@ -188,7 +188,7 @@ fun MusicScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Music",
-                        subtitle = "Artists, Releases, Preview-Playback und Spotify an einem Ort.",
+                        subtitle = "Waehle einen Artist, hoer kurz rein oder oeffne Spotify ohne Umwege.",
                     )
                 },
                 actions = {

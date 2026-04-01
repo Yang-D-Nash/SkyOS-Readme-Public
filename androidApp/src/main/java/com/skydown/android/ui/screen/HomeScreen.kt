@@ -183,8 +183,8 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        "Home",
-                        "Musik, Videos, Shop und Tools auf einen Blick.",
+                        "Sky²²",
+                        "Alles Wichtige fuer dich auf einen Blick.",
                     )
                 },
                 actions = {
@@ -374,10 +374,10 @@ private fun HomeAnimatedItem(
 @Composable
 private fun HomeHeroCard() {
     BrandHeroCard(
-        eyebrow = "Sky²²",
-        title = "Home",
-        subtitle = "Von hier aus kommst du direkt zu Musik, Videos, Shop und Tools.",
-        detail = "Alles Wichtige startet hier und bleibt unten jederzeit erreichbar.",
+        eyebrow = "Sky²² Home",
+        title = "Sky²²",
+        subtitle = "Hier siehst du sofort, was neu ist und wohin du als Naechstes willst.",
+        detail = "Musik, Videos, Shop und Tools sind von hier aus nur einen Tap entfernt.",
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
         marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
@@ -723,14 +723,14 @@ private fun HomeStoryCard(
         ) {
             HomeStoryLinkButton(
                 title = "Kontakt & Support",
-                subtitle = "Direkter Draht zu Yang D. Nash.",
+                subtitle = "Wenn du etwas starten oder kurz klaeren willst.",
                 isPrimary = true,
                 onClick = { openExternalLink(context, homePrimaryContactLink.url) },
             )
 
             HomeLaneSection(
                 title = "Music",
-                subtitle = "Artists, Label, Beats und Studio-Services direkt erreichbar.",
+                subtitle = "Hier kommst du direkt zu Artists, Beats und Studio.",
             ) {
                 homeZweizweiSocialLinks.forEachIndexed { index, link ->
                     val isPrimary = index == 0
@@ -763,7 +763,7 @@ private fun HomeStoryCard(
 
             HomeLaneSection(
                 title = "Video",
-                subtitle = "Clips, Reels und Kontakt direkt von hier.",
+                subtitle = "Hier findest du Clips, Reels und den schnellsten Weg zum Kontakt.",
             ) {
                 HomeStoryLinkButton(
                     title = "Video auf Instagram",

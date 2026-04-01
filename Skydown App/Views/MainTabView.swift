@@ -252,8 +252,8 @@ private struct ZweizweiTabView: View {
                             colorScheme: colorScheme,
                             eyebrow: "Music",
                             title: "Music",
-                            subtitle: "Songs, Artists, Beats und Studio-Services bleiben hier zusammen.",
-                            detail: "So findest du schneller von Releases zu Beats oder direkt weiter zum Studio.",
+                            subtitle: "Wenn du gerade Musik suchst, bist du hier genau richtig.",
+                            detail: "Hier kannst du reinhoeren, Artists entdecken oder direkt weiter zu Beats und Studio gehen.",
                             accent: AppColors.spotify(for: colorScheme),
                             secondaryAccent: AppColors.accent(for: colorScheme),
                             marks: [.zweizwei]
@@ -279,7 +279,7 @@ private struct ZweizweiTabView: View {
 
                         ShellActionCard(
                             title: "Songs & Artists",
-                            subtitle: "Artists, Releases und direkte Spotify-Wege an einem Ort.",
+                            subtitle: "Zum Hoeren, Stoebern und direkten Weiterklicken.",
                             accent: AppColors.spotify(for: colorScheme)
                         ) {
                             destination = .catalog
@@ -287,7 +287,7 @@ private struct ZweizweiTabView: View {
 
                         ShellActionCard(
                             title: "Beat Library",
-                            subtitle: "Beats schnell anhoeren, vergleichen und direkt weitergehen.",
+                            subtitle: "Wenn du schnell ein Gefuehl fuer Beats bekommen willst.",
                             accent: AppColors.accent(for: colorScheme)
                         ) {
                             destination = .beatHub
@@ -295,7 +295,7 @@ private struct ZweizweiTabView: View {
 
                         ShellActionCard(
                             title: "Studio Services",
-                            subtitle: "Recording, Mixing und Mastering klar als eigener Bereich.",
+                            subtitle: "Wenn du Recording, Mixing oder Mastering anfragen willst.",
                             accent: AppColors.accentMystic(for: colorScheme)
                         ) {
                             destination = .nicma

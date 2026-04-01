@@ -27,9 +27,9 @@ enum MusicExperienceBrand {
     var heroSubtitle: String {
         switch self {
         case .skydown:
-            return "Artists waehlen, Songs anspielen oder direkt zu Spotify wechseln."
+            return "Waehle einen Artist, hoer kurz rein oder spring direkt zu Spotify."
         case .zweizwei:
-            return "Songs, Artists, Beats und Studio-Services bleiben hier an einem Ort."
+            return "Wenn du gerade Musik suchst, kannst du hier direkt reinhoeren oder weiterklicken."
         }
     }
 
@@ -56,7 +56,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Music Shortcuts"
+            return "Direkt weiter"
         }
     }
 
@@ -65,7 +65,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Spring direkt weiter zu Beats oder Studio-Services."
+            return "Wenn du direkt zu Beats oder ins Studio willst."
         }
     }
 }

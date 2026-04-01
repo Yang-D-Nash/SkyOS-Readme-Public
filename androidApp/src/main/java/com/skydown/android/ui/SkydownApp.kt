@@ -390,13 +390,13 @@ private fun LaunchLandingScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Starte da, was du gerade brauchst.",
+                    text = "Sky²²",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Musik, Videos und Shop bleiben danach ganz normal unten erreichbar. Hier waehltst du nur deinen ersten Einstieg.",
+                    text = "Such dir einfach aus, womit du anfangen willst. Unten kannst du danach jederzeit weiterwechseln.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.74f),
                 )
@@ -407,7 +407,7 @@ private fun LaunchLandingScreen(
                     step = "01",
                     eyebrow = "Listen & Artists",
                     title = "Music",
-                    subtitle = "Songs, Artists, Beats und Studio-Services an einem Ort.",
+                    subtitle = "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                     accentColor = MaterialTheme.colorScheme.primary,
                     onClick = onOpenMusic,
                 )
@@ -415,7 +415,7 @@ private fun LaunchLandingScreen(
                     step = "02",
                     eyebrow = "Clips & Reels",
                     title = "Video",
-                    subtitle = "Reels, Produktionen, Equipment und neue Uploads direkt in der App.",
+                    subtitle = "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     onClick = onOpenVideography,
                 )
@@ -423,7 +423,7 @@ private fun LaunchLandingScreen(
                     step = "03",
                     eyebrow = "Store",
                     title = "Shop",
-                    subtitle = "Produkte ansehen, gross durchblaettern und direkt bestellen.",
+                    subtitle = "Wenn du stoebern, Produkte gross ansehen oder direkt bestellen willst.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     onClick = onOpenShop,
                 )
@@ -563,8 +563,8 @@ private fun ZweizweiMusicLaneScreen(
                     BrandHeroCard(
                         eyebrow = "Music",
                         title = "Music",
-                        subtitle = "Songs, Artists, Beats und Studio-Services bleiben hier zusammen.",
-                        detail = "So findest du schneller von Releases zu Beats oder direkt weiter zum Studio.",
+                        subtitle = "Wenn du gerade Musik suchst, bist du hier genau richtig.",
+                        detail = "Hier kannst du reinhoeren, Artists entdecken oder direkt weiter zu Beats und Studio gehen.",
                         accent = MaterialTheme.colorScheme.primary,
                         secondaryAccent = MaterialTheme.colorScheme.secondary,
                         marks = listOf(BrandArtwork.Zweizwei),
@@ -577,19 +577,19 @@ private fun ZweizweiMusicLaneScreen(
                     }
                     LaunchLandingButton(
                         title = "Songs & Artists",
-                        subtitle = "Artists, Releases und direkte Spotify-Wege an einem Ort.",
+                        subtitle = "Zum Hoeren, Stoebern und direkten Weiterklicken.",
                         accentColor = MaterialTheme.colorScheme.primary,
                         onClick = { destination = ZweizweiMusicDestination.Catalog },
                     )
                     LaunchLandingButton(
                         title = "Beat Library",
-                        subtitle = "Beats schnell anhoeren, vergleichen und direkt weitergehen.",
+                        subtitle = "Wenn du schnell ein Gefuehl fuer Beats bekommen willst.",
                         accentColor = MaterialTheme.colorScheme.secondary,
                         onClick = { destination = ZweizweiMusicDestination.BeatHub },
                     )
                     LaunchLandingButton(
                         title = "Studio Services",
-                        subtitle = "Recording, Mixing und Mastering klar als eigener Bereich.",
+                        subtitle = "Wenn du Recording, Mixing oder Mastering anfragen willst.",
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                     )

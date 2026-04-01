@@ -95,7 +95,7 @@ struct HomeView: View {
                 viewModel.refresh()
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Home")
+            .navigationTitle("Sky²²")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -338,10 +338,10 @@ private struct HomeHeroIntroCard: View {
     var body: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: "Sky²²",
-            title: "Home",
-            subtitle: "Von hier aus kommst du direkt zu Musik, Videos, Shop und Tools.",
-            detail: "Alles Wichtige startet hier und bleibt unten jederzeit erreichbar.",
+            eyebrow: "Sky²² Home",
+            title: "Sky²²",
+            subtitle: "Hier siehst du sofort, was neu ist und wohin du als Naechstes willst.",
+            detail: "Musik, Videos, Shop und Tools sind von hier aus nur einen Tap entfernt.",
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydown, .zweizwei]
@@ -665,7 +665,7 @@ private struct HomeStoryCard: View {
             VStack(spacing: 12) {
                 HomeActionButton(
                     title: "Kontakt & Support",
-                    subtitle: "Direkter Draht zu Yang D. Nash.",
+                    subtitle: "Wenn du etwas starten oder kurz klaeren willst.",
                     colorScheme: colorScheme,
                     isPrimary: true
                 ) {
@@ -676,7 +676,7 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Music",
-                    subtitle: "Artists, Label, Beats und Studio-Services direkt erreichbar.",
+                    subtitle: "Hier kommst du direkt zu Artists, Beats und Studio.",
                     colorScheme: colorScheme
                 ) {
                     ForEach(homeZweizweiInstagramDestinations) { destination in
@@ -715,7 +715,7 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Video",
-                    subtitle: "Clips, Reels und Kontakt direkt von hier.",
+                    subtitle: "Hier findest du Clips, Reels und den schnellsten Weg zum Kontakt.",
                     colorScheme: colorScheme
                 ) {
                     HomeActionButton(
@@ -1098,8 +1098,8 @@ private struct ShopHeroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Store",
             title: "Shop",
-            subtitle: "Produkte entdecken, gross ansehen und direkt bestellen.",
-            detail: isStoreOpen ? "Der Store ist offen und bereit fuer neue Bestellungen." : "Produkte bleiben sichtbar. Neue Bestellungen starten wieder, sobald der Store geoeffnet wird.",
+            subtitle: "Stoeber in Ruhe, schau dir Produkte gross an und bestell direkt in der App.",
+            detail: isStoreOpen ? "Der Shop ist offen, du kannst direkt loslegen." : "Du kannst schon stoebbern. Bestellen geht wieder, sobald der Shop geoeffnet ist.",
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydown, .zweizwei]

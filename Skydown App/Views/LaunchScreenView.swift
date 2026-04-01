@@ -171,11 +171,11 @@ private struct LaunchLandingView: View {
                         .tracking(1.6)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                    Text("Starte da, was du gerade brauchst.")
+                    Text("Sky²²")
                         .font(.system(size: 38, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Musik, Videos und Shop bleiben danach ganz normal unten erreichbar. Hier waehlst du nur deinen ersten Einstieg.")
+                    Text("Such dir einfach aus, womit du anfangen willst. Unten kannst du danach jederzeit weiterwechseln.")
                         .font(.body.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
@@ -186,7 +186,7 @@ private struct LaunchLandingView: View {
                         step: "01",
                         eyebrow: "Listen & Artists",
                         title: "Music",
-                        subtitle: "Songs, Artists, Beats und Studio-Services an einem Ort.",
+                        subtitle: "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                         accent: AppColors.spotify(for: colorScheme),
                         action: onOpenMusic
                     )
@@ -195,7 +195,7 @@ private struct LaunchLandingView: View {
                         step: "02",
                         eyebrow: "Clips & Reels",
                         title: "Video",
-                        subtitle: "Reels, Produktionen, Equipment und neue Uploads direkt in der App.",
+                        subtitle: "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                         accent: AppColors.accentMystic(for: colorScheme),
                         action: onOpenVideography
                     )
@@ -204,7 +204,7 @@ private struct LaunchLandingView: View {
                         step: "03",
                         eyebrow: "Store",
                         title: "Shop",
-                        subtitle: "Produkte ansehen, gross durchblaettern und direkt bestellen.",
+                        subtitle: "Wenn du stoebbern, Produkte gross ansehen oder direkt bestellen willst.",
                         accent: AppColors.accentHighlight(for: colorScheme),
                         action: onOpenShop
                     )

@@ -306,11 +306,11 @@ private fun ShopOverviewCard(
     BrandHeroCard(
         eyebrow = "Store",
         title = "Shop",
-        subtitle = "Produkte entdecken, gross ansehen und direkt bestellen.",
+        subtitle = "Stoeber in Ruhe, schau dir Produkte gross an und bestell direkt in der App.",
         detail = if (uiState.isStoreOpen) {
-            "Der Store ist offen und bereit fuer neue Bestellungen."
+            "Der Shop ist offen, du kannst direkt loslegen."
         } else {
-            "Produkte bleiben sichtbar. Neue Bestellungen starten wieder, sobald der Store geoeffnet wird."
+            "Du kannst schon stoebern. Bestellen geht wieder, sobald der Shop geoeffnet ist."
         },
         accent = MaterialTheme.colorScheme.tertiary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
