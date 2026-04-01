@@ -885,7 +885,7 @@ private fun VideoYouTubePlayerDialog(
     onDismiss: () -> Unit,
     onOpenExternal: (String) -> Unit,
 ) {
-    val embedUrl = remember(item.url) { youtubeEmbedUrl(item.url) }
+    val playbackUrl = remember(item.url) { youtubePlaybackUrl(item.url) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -928,7 +928,7 @@ private fun VideoYouTubePlayerDialog(
                 }
             }
 
-            if (embedUrl != null) {
+            if (playbackUrl != null) {
                 AndroidView(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -942,12 +942,12 @@ private fun VideoYouTubePlayerDialog(
                             settings.javaScriptEnabled = true
                             settings.domStorageEnabled = true
                             settings.mediaPlaybackRequiresUserGesture = false
-                            loadUrl(embedUrl)
+                            loadUrl(playbackUrl)
                         }
                     },
                     update = { webView ->
-                        if (webView.url != embedUrl) {
-                            webView.loadUrl(embedUrl)
+                        if (webView.url != playbackUrl) {
+                            webView.loadUrl(playbackUrl)
                         }
                     },
                 )
@@ -984,20 +984,51 @@ private fun VideoYouTubePlayerDialog(
     }
 }
 
-private fun youtubeEmbedUrl(rawUrl: String): String? {
-    val videoId = resolvedYouTubeVideoId(rawUrl) ?: return null
-    return "https://www.youtube.com/embed/$videoId?playsinline=1&rel=0"
+private fun youtubePlaybackUrl(rawUrl: String): String? {
+    val normalizedUrl = normalizedYouTubeUrl(rawUrl) ?: return null
+    val videoId = resolvedYouTubeVideoId(rawUrl, normalizedUrl)
+    return if (videoId != null) {
+        "https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1"
+    } else {
+        normalizedUrl
+    }
 }
 
-private fun resolvedYouTubeVideoId(rawUrl: String): String? {
-    val uri = Uri.parse(rawUrl)
+private fun normalizedYouTubeUrl(rawUrl: String): String? {
+    val trimmed = rawUrl.trim()
+    if (trimmed.isBlank()) return null
+    return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        trimmed
+    } else {
+        "https://$trimmed"
+    }
+}
+
+private fun resolvedYouTubeVideoId(rawUrl: String, normalizedUrl: String): String? {
+    val uri = Uri.parse(normalizedUrl)
     val host = uri.host?.lowercase(Locale.ROOT).orEmpty()
 
-    return when {
-        "youtu.be" in host -> uri.lastPathSegment
-        uri.path?.contains("/embed/") == true || uri.path?.contains("/shorts/") == true -> uri.lastPathSegment
-        else -> uri.getQueryParameter("v")
-    }?.takeIf { it.isNotBlank() }
+    when {
+        "youtu.be" in host -> {
+            uri.pathSegments.firstOrNull()?.takeIfYouTubeId()?.let { return it }
+        }
+        uri.path?.contains("/embed/") == true ||
+            uri.path?.contains("/shorts/") == true ||
+            uri.path?.contains("/live/") == true -> {
+            uri.lastPathSegment?.takeIfYouTubeId()?.let { return it }
+        }
+    }
+
+    uri.getQueryParameter("v")?.takeIfYouTubeId()?.let { return it }
+    uri.getQueryParameter("vi")?.takeIfYouTubeId()?.let { return it }
+
+    val pattern = Regex("""(?:(?<=v=)|(?<=vi=)|(?<=/embed/)|(?<=/shorts/)|(?<=youtu\.be/)|(?<=/live/))([A-Za-z0-9_-]{11})""")
+    return pattern.find(rawUrl.trim())?.groupValues?.getOrNull(1)?.takeIfYouTubeId()
+}
+
+private fun String.takeIfYouTubeId(): String? {
+    val trimmed = trim()
+    return trimmed.takeIf { it.length == 11 }
 }
 
 @Composable
