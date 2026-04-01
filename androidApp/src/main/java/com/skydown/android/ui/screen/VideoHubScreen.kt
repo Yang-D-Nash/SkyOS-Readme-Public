@@ -138,7 +138,7 @@ fun VideoHubScreen(
         onDispose { player.release() }
     }
 
-    LaunchedEffect(selectedVideo?.downloadUrl, shouldAutoplaySelection, showReelViewer) {
+    LaunchedEffect(selectedVideo?.downloadUrl, shouldAutoplaySelection) {
         val url = selectedVideo?.downloadUrl
         if (url.isNullOrBlank()) {
             player.stop()
@@ -258,7 +258,7 @@ fun VideoHubScreen(
                         player = player,
                         onOpenReel = if (selectedVideo != null) {
                             {
-                                shouldAutoplaySelection = true
+                                player.pause()
                                 showReelViewer = true
                             }
                         } else {
@@ -274,7 +274,7 @@ fun VideoHubScreen(
                         onSelectVideo = { video -> selectedVideoId = video.id },
                         onOpenReel = { video ->
                             selectedVideoId = video.id
-                            shouldAutoplaySelection = true
+                            player.pause()
                             showReelViewer = true
                         },
                         onToggleHomeFeatured = viewModel::toggleHomeFeatured,
@@ -355,12 +355,8 @@ fun VideoHubScreen(
                 VideoReelViewerDialog(
                     videos = uiState.videos,
                     selectedVideoId = selectedVideoId,
-                    player = player,
                     onSelectVideo = { video -> selectedVideoId = video.id },
-                    onDismiss = {
-                        showReelViewer = false
-                        player.pause()
-                    },
+                    onDismiss = { showReelViewer = false },
                 )
             }
         }
@@ -1209,10 +1205,15 @@ private fun VideoLibraryRow(
 private fun VideoReelViewerDialog(
     videos: List<VideoHubItem>,
     selectedVideoId: String?,
-    player: ExoPlayer,
     onSelectVideo: (VideoHubItem) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val reelPlayer = remember(context) {
+        ExoPlayer.Builder(context).build().apply {
+            playWhenReady = true
+        }
+    }
     val initialPage = remember(videos, selectedVideoId) {
         videos.indexOfFirst { it.id == selectedVideoId }.takeIf { it >= 0 } ?: 0
     }
@@ -1222,7 +1223,23 @@ private fun VideoReelViewerDialog(
     )
 
     LaunchedEffect(pagerState.currentPage, videos) {
-        videos.getOrNull(pagerState.currentPage)?.let(onSelectVideo)
+        val video = videos.getOrNull(pagerState.currentPage)
+        video?.let(onSelectVideo)
+        val url = video?.downloadUrl
+        if (url.isNullOrBlank()) {
+            reelPlayer.stop()
+            reelPlayer.clearMediaItems()
+        } else {
+            reelPlayer.setMediaItem(MediaItem.fromUri(url))
+            reelPlayer.prepare()
+            reelPlayer.play()
+        }
+    }
+
+    DisposableEffect(reelPlayer) {
+        onDispose {
+            reelPlayer.release()
+        }
     }
 
     Dialog(
@@ -1249,11 +1266,11 @@ private fun VideoReelViewerDialog(
                             factory = { playerContext ->
                                 PlayerView(playerContext).apply {
                                     useController = false
-                                    this.player = player
+                                    this.player = reelPlayer
                                 }
                             },
                             update = { view ->
-                                view.player = player
+                                view.player = reelPlayer
                             },
                         )
                     } else {

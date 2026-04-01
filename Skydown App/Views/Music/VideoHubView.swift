@@ -122,8 +122,7 @@ struct VideoHubView: View {
             if !viewModel.videos.isEmpty {
                 VideoReelViewer(
                     videos: viewModel.videos,
-                    initialIndex: selectedVideoIndex,
-                    playbackManager: playbackManager
+                    initialIndex: selectedVideoIndex
                 )
             }
         }
@@ -392,7 +391,7 @@ struct VideoHubView: View {
                 }
 
                 Button {
-                    playbackManager.play(video: selectedVideo)
+                    playbackManager.player.pause()
                     showingReelViewer = true
                 } label: {
                     Label("Im Reel-Modus oeffnen", systemImage: "rectangle.portrait.and.arrow.right")
@@ -453,7 +452,8 @@ struct VideoHubView: View {
                         onSelect: { playbackManager.load(video: video) },
                         onPlayToggle: { playbackManager.togglePlayback(for: video) },
                         onOpenReel: {
-                            playbackManager.play(video: video)
+                            playbackManager.load(video: video)
+                            playbackManager.player.pause()
                             showingReelViewer = true
                         },
                         onToggleHomeFeatured: {
@@ -590,18 +590,16 @@ struct VideoHubLibraryRow: View {
 private struct VideoReelViewer: View {
     let videos: [SkydownVideoHubItem]
     let initialIndex: Int
-    @ObservedObject var playbackManager: VideoPlaybackManager
     @Environment(\.dismiss) private var dismiss
     @State private var currentIndex: Int
+    @State private var player = AVPlayer()
 
     init(
         videos: [SkydownVideoHubItem],
-        initialIndex: Int,
-        playbackManager: VideoPlaybackManager
+        initialIndex: Int
     ) {
         self.videos = videos
         self.initialIndex = initialIndex
-        self.playbackManager = playbackManager
         _currentIndex = State(initialValue: initialIndex)
     }
 
@@ -615,7 +613,7 @@ private struct VideoReelViewer: View {
                     ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
                         ZStack(alignment: .bottomLeading) {
                             if index == currentIndex {
-                                VideoPlayer(player: playbackManager.player)
+                                VideoPlayer(player: player)
                                     .ignoresSafeArea()
                             } else {
                                 Rectangle()
@@ -713,14 +711,23 @@ private struct VideoReelViewer: View {
             playCurrent()
         }
         .onDisappear {
-            playbackManager.player.pause()
-            playbackManager.playingVideoID = nil
+            player.pause()
+            player.replaceCurrentItem(with: nil)
         }
     }
 
     private func playCurrent() {
-        guard videos.indices.contains(currentIndex) else { return }
-        playbackManager.play(video: videos[currentIndex])
+        guard videos.indices.contains(currentIndex),
+              let url = URL(string: videos[currentIndex].downloadURL) else {
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+            return
+        }
+
+        player.pause()
+        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+        player.seek(to: .zero)
+        player.play()
     }
 }
 
