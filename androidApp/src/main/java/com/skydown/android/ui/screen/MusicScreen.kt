@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,6 +84,7 @@ import com.skydown.android.ui.viewmodel.MusicViewModel
 @Composable
 fun MusicScreen(
     onBack: (() -> Unit)? = null,
+    onOpenBeatHub: (() -> Unit)? = null,
     initialArtist: String? = null,
     initialTrackId: Int? = null,
     autoplaySelectedTrackPreview: Boolean = false,
@@ -188,7 +190,7 @@ fun MusicScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Music",
-                        subtitle = "Waehle einen Artist, hoer kurz rein oder oeffne Spotify ohne Umwege.",
+                        subtitle = "Waehle einen Artist, hoer kurz rein oder spring direkt zu Spotify.",
                     )
                 },
                 actions = {
@@ -242,6 +244,24 @@ fun MusicScreen(
                 colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
+        },
+        floatingActionButton = {
+            onOpenBeatHub?.let { openBeatHub ->
+                ExtendedFloatingActionButton(
+                    onClick = openBeatHub,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.GraphicEq,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Beat Hub",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
         },
     ) { innerPadding ->
         Box(

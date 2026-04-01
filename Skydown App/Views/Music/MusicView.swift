@@ -29,7 +29,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return "Waehle einen Artist, hoer kurz rein oder spring direkt zu Spotify."
         case .zweizwei:
-            return "Wenn du gerade Musik suchst, kannst du hier direkt reinhoeren oder weiterklicken."
+            return "Entdecke Releases, hoer direkt rein und spring von hier weiter zu allem, was du brauchst."
         }
     }
 
@@ -56,7 +56,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Direkt weiter"
+            return "Studio Services"
         }
     }
 
@@ -65,7 +65,16 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Wenn du direkt zu Beats oder ins Studio willst."
+            return "Wenn du Recording, Mixing oder Mastering anfragen willst."
+        }
+    }
+
+    var showsBeatHubShortcut: Bool {
+        switch self {
+        case .skydown:
+            return false
+        case .zweizwei:
+            return true
         }
     }
 }
@@ -147,13 +156,30 @@ struct MusicView: View {
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.top, SkydownLayout.screenTopPadding)
-                .padding(.bottom, SkydownLayout.screenBottomPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 88 : 0))
             }
             .scrollIndicators(.hidden)
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle(brand.navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
+            .overlay(alignment: .bottomTrailing) {
+                if brand.showsBeatHubShortcut {
+                    NavigationLink {
+                        BeatHubView()
+                    } label: {
+                        MusicShortcutFab(
+                            title: "Beat Hub",
+                            systemImage: "waveform.circle.fill",
+                            tint: AppColors.accent(for: colorScheme),
+                            textColor: .white
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, SkydownLayout.screenHorizontalPadding)
+                    .padding(.bottom, 20)
+                }
+            }
             .toolbar {
                 if let onBack {
                     ToolbarItem(placement: .topBarLeading) {
@@ -255,29 +281,16 @@ struct MusicView: View {
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                HStack(spacing: 10) {
-                    NavigationLink {
-                        BeatHubView()
-                    } label: {
-                        workflowButtonLabel(
-                            title: "Beats oeffnen",
-                            accent: AppColors.accent(for: colorScheme),
-                            textColor: .white
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    NavigationLink {
-                        NicmaProducerView()
-                    } label: {
-                        workflowButtonLabel(
-                            title: "Studio oeffnen",
-                            accent: AppColors.spotifySurface(for: colorScheme),
-                            textColor: AppColors.text(for: colorScheme)
-                        )
-                    }
-                    .buttonStyle(.plain)
+                NavigationLink {
+                    NicmaProducerView()
+                } label: {
+                    workflowButtonLabel(
+                        title: "Zum Studio",
+                        accent: AppColors.spotifySurface(for: colorScheme),
+                        textColor: AppColors.text(for: colorScheme)
+                    )
                 }
+                .buttonStyle(.plain)
             }
             .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -643,6 +656,29 @@ struct MusicView: View {
         case .zweizwei:
             return [zweizweiInstagramDestination] + artistDestinations
         }
+    }
+}
+
+private struct MusicShortcutFab: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let textColor: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.headline.weight(.bold))
+
+            Text(title)
+                .font(.subheadline.weight(.bold))
+        }
+        .foregroundColor(textColor)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(tint)
+        .clipShape(Capsule())
+        .shadow(color: tint.opacity(0.24), radius: 16, y: 8)
     }
 }
 

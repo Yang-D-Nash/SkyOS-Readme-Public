@@ -396,7 +396,7 @@ private fun LaunchLandingScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Such dir einfach aus, womit du anfangen willst. Unten kannst du danach jederzeit weiterwechseln.",
+                    text = "Waehle den Bereich, mit dem du gerade starten willst. Unten kannst du spaeter jederzeit wechseln.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.74f),
                 )
@@ -423,14 +423,14 @@ private fun LaunchLandingScreen(
                     step = "03",
                     eyebrow = "Store",
                     title = "Shop",
-                    subtitle = "Wenn du stoebern, Produkte gross ansehen oder direkt bestellen willst.",
+                    subtitle = "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     onClick = onOpenShop,
                 )
             }
 
             Text(
-                text = "Danach bleibst du im normalen App-Flow und kannst unten jederzeit wechseln.",
+                text = "Danach wechselst du unten jederzeit dorthin, wo du weitermachen willst.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
             )
@@ -563,8 +563,8 @@ private fun ZweizweiMusicLaneScreen(
                     BrandHeroCard(
                         eyebrow = "Music",
                         title = "Music",
-                        subtitle = "Wenn du gerade Musik suchst, bist du hier genau richtig.",
-                        detail = "Hier kannst du reinhoeren, Artists entdecken oder direkt weiter zu Beats und Studio gehen.",
+                        subtitle = "Hier findest du Releases, Artists und alles rund ums Produzieren.",
+                        detail = "Hoer rein, entdecke Artists und geh von hier direkt weiter zu Beats oder Studio.",
                         accent = MaterialTheme.colorScheme.primary,
                         secondaryAccent = MaterialTheme.colorScheme.secondary,
                         marks = listOf(BrandArtwork.Zweizwei),
@@ -577,7 +577,7 @@ private fun ZweizweiMusicLaneScreen(
                     }
                     LaunchLandingButton(
                         title = "Songs & Artists",
-                        subtitle = "Zum Hoeren, Stoebern und direkten Weiterklicken.",
+                        subtitle = "Zum Entdecken, Hoeren und direkten Weitergehen.",
                         accentColor = MaterialTheme.colorScheme.primary,
                         onClick = { destination = ZweizweiMusicDestination.Catalog },
                     )
@@ -601,6 +601,7 @@ private fun ZweizweiMusicLaneScreen(
 
         ZweizweiMusicDestination.Catalog -> MusicScreen(
             onBack = { destination = ZweizweiMusicDestination.Hub },
+            onOpenBeatHub = { destination = ZweizweiMusicDestination.BeatHub },
             onOpenCart = onOpenCart,
             onOpenSettings = onOpenSettings,
         )

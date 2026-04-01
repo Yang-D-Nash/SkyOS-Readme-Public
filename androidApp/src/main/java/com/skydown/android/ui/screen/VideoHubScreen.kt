@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
@@ -52,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -95,6 +98,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,6 +131,8 @@ fun VideoHubScreen(
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
     }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: uiState.videos.firstOrNull()
     val videoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -209,6 +215,44 @@ fun VideoHubScreen(
                 colors = skydownTopBarColors(),
             )
         },
+        floatingActionButton = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.End,
+            ) {
+                if (uiState.isAdmin) {
+                    FloatingActionButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(VideoHubListIndex.uploadSection(uiState.isAdmin))
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Movie,
+                            contentDescription = "Zum Upload",
+                        )
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(VideoHubListIndex.youtubeSection)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Zu YouTube",
+                    )
+                }
+            }
+        },
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -226,6 +270,7 @@ fun VideoHubScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
+                state = listState,
                 contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -361,6 +406,14 @@ fun VideoHubScreen(
     }
 }
 
+private object VideoHubListIndex {
+    const val youtubeSection = 3
+
+    fun uploadSection(isAdmin: Boolean): Int {
+        return if (isAdmin) 8 else youtubeSection
+    }
+}
+
 @Composable
 private fun VideoHubHeroCard(
     isAdmin: Boolean,
@@ -369,7 +422,7 @@ private fun VideoHubHeroCard(
         eyebrow = "Video",
         title = "Video",
         subtitle = "Wenn du schauen willst, bist du hier richtig: Reels, Clips und neue Uploads.",
-        detail = "Von hier kommst du ohne Umwege weiter zu YouTube, Equipment oder Kontakt.",
+        detail = "Von hier aus gehst du direkt weiter zu YouTube, Equipment oder Kontakt.",
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),
@@ -983,7 +1036,7 @@ private fun VideoPlayerCard(
                     .padding(top = 14.dp),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text("Im Reel-Modus oeffnen")
+                Text("Im Reel ansehen")
             }
         }
 
@@ -1188,7 +1241,7 @@ private fun VideoLibraryRow(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text("Im Reel oeffnen")
+                Text("Direkt im Reel")
             }
         }
     }

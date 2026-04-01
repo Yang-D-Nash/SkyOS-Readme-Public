@@ -147,11 +147,11 @@ fun TrackRow(
                     Text(
                         text = when {
                             hasPreview && hasDirectSpotifyTrack -> "Preview hier oder Spotify Player direkt in der App."
-                            hasPreview && hasSpotifyArtistLink -> "Preview hier oder den Artist direkt auf Spotify oeffnen."
+                            hasPreview && hasSpotifyArtistLink -> "Preview hier oder direkt zum Artist auf Spotify."
                             hasPreview && hasSpotifySearch -> "Preview hier oder den Song in Spotify suchen."
                             hasPreview -> "Preview direkt in der App."
                             hasDirectSpotifyTrack -> "Spotify Player direkt in der App."
-                            hasSpotifyArtistLink -> "Artist direkt auf Spotify oeffnen."
+                            hasSpotifyArtistLink -> "Direkt zum Artist auf Spotify."
                             hasSpotifySearch -> "Song in Spotify suchen."
                             else -> "Aktuell kein Spotify-Link verfuegbar."
                         },

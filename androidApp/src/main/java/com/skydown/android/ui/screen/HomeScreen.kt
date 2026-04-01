@@ -185,7 +185,7 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "Sky²²",
-                        "Alles Wichtige fuer dich auf einen Blick.",
+                        "Alles, was fuer dich gerade wichtig ist, auf einen Blick.",
                     )
                 },
                 actions = {
@@ -399,7 +399,7 @@ private fun HomeLatestReleaseCard(
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Latest Release")
+        SectionHeader("Gerade neu")
         val track = uiState.featuredTrack
 
         if (track == null) {
@@ -514,7 +514,7 @@ private fun HomeLatestBeatCard(
     onPlayToggle: (FeaturedBeatHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Beat Highlight")
+        SectionHeader("Beat im Fokus")
         val beat = uiState.featuredBeat
 
         if (beat == null) {
@@ -599,7 +599,7 @@ private fun HomeLatestVideoCard(
     onPlayToggle: (FeaturedVideoHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Video Highlight")
+        SectionHeader("Video im Fokus")
         val video = uiState.featuredVideo
 
         if (video == null) {
@@ -709,10 +709,10 @@ private fun HomeStoryCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Schnellzugriff")
+        SectionHeader("Direkt weiter")
 
         Text(
-            text = "Wenn du direkt weiter willst, findest du hier Kontakt, Artists, Beats und Studio-Services ohne Umwege.",
+            text = "Hier findest du Kontakt, Artists, Beats und Studio gesammelt an einem Ort.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -748,14 +748,14 @@ private fun HomeStoryCard(
                 }
 
                 HomeStoryLinkButton(
-                    title = "Beats oeffnen",
-                    subtitle = "Wenn du direkt zu Beats und Previews willst.",
+                    title = "Zu den Beats",
+                    subtitle = "Wenn du direkt zu Beats und Previews springen willst.",
                     isPrimary = false,
                     onClick = onOpenBeatHub,
                 )
 
                 HomeStoryLinkButton(
-                    title = "Studio oeffnen",
+                    title = "Zum Studio",
                     subtitle = "Fuer Recording, Mixing und Mastering.",
                     isPrimary = false,
                     onClick = onOpenNicma,
@@ -924,7 +924,7 @@ private fun homeSpotifyActionLabel(track: com.skydown.shared.model.Track): Strin
     return when {
         homeResolvedSpotifyTrackId(track) != null -> "Song auf Spotify"
         homeResolvedSpotifyArtistId(track) != null -> "Artist auf Spotify"
-        else -> "Spotify oeffnen"
+        else -> "Auf Spotify ansehen"
     }
 }
 

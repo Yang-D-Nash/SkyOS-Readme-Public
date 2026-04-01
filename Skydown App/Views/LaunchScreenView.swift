@@ -175,7 +175,7 @@ private struct LaunchLandingView: View {
                         .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Such dir einfach aus, womit du anfangen willst. Unten kannst du danach jederzeit weiterwechseln.")
+                    Text("Waehle den Bereich, mit dem du gerade starten willst. Unten kannst du spaeter jederzeit wechseln.")
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
@@ -204,13 +204,13 @@ private struct LaunchLandingView: View {
                         step: "03",
                         eyebrow: "Store",
                         title: "Shop",
-                        subtitle: "Wenn du stoebbern, Produkte gross ansehen oder direkt bestellen willst.",
+                        subtitle: "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                         accent: AppColors.accentHighlight(for: colorScheme),
                         action: onOpenShop
                     )
                 }
 
-                Text("Danach bleibst du im normalen App-Flow und kannst unten jederzeit wechseln.")
+                Text("Danach wechselst du unten jederzeit dorthin, wo du weitermachen willst.")
                     .font(.caption.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)

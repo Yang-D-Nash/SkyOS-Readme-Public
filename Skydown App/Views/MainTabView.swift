@@ -249,8 +249,8 @@ private struct ZweizweiTabView: View {
                             colorScheme: colorScheme,
                             eyebrow: "Music",
                             title: "Music",
-                            subtitle: "Wenn du gerade Musik suchst, bist du hier genau richtig.",
-                            detail: "Hier kannst du reinhoeren, Artists entdecken oder direkt weiter zu Beats und Studio gehen.",
+                            subtitle: "Hier findest du Releases, Artists und alles rund ums Produzieren.",
+                            detail: "Hoer rein, entdecke Artists und geh von hier direkt weiter zu Beats oder Studio.",
                             accent: AppColors.spotify(for: colorScheme),
                             secondaryAccent: AppColors.accent(for: colorScheme),
                             marks: [.zweizwei]

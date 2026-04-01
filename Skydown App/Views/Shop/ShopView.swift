@@ -340,8 +340,8 @@ private struct HomeHeroIntroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Sky²² Home",
             title: "Sky²²",
-            subtitle: "Hier siehst du sofort, was neu ist und wohin du als Naechstes willst.",
-            detail: "Musik, Videos, Shop und Tools sind von hier aus nur einen Tap entfernt.",
+            subtitle: "Hier landet direkt das, was fuer dich gerade wichtig ist.",
+            detail: "Musik, Video, Shop und Tools sind von hier aus sofort griffbereit.",
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydown, .zweizwei]
@@ -376,7 +376,7 @@ private struct HomeLatestReleaseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Latest Release")
+            Text("Gerade neu")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -481,7 +481,7 @@ private struct HomeLatestBeatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Beat Highlight")
+            Text("Beat im Fokus")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -552,7 +552,7 @@ private struct HomeLatestVideoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Video Highlight")
+            Text("Video im Fokus")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -621,7 +621,7 @@ private struct HomeLatestVideoCard: View {
 
                     if let videoURL = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
                         HomeActionButton(
-                            title: "Original-Datei oeffnen",
+                            title: "Original ansehen",
                             icon: "video.fill",
                             colorScheme: colorScheme,
                             isPrimary: false
@@ -657,11 +657,11 @@ private struct HomeStoryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Schnellzugriff")
+            Text("Direkt weiter")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Wenn du direkt weiter willst, findest du hier Kontakt, Artists, Beats und Studio-Services ohne Umwege.")
+            Text("Hier findest du Kontakt, Artists, Beats und Studio gesammelt an einem Ort.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -698,8 +698,8 @@ private struct HomeStoryCard: View {
                     }
 
                     HomeActionButton(
-                        title: "Beats oeffnen",
-                        subtitle: "Wenn du direkt zu Beats und Previews willst.",
+                        title: "Zu den Beats",
+                        subtitle: "Wenn du direkt zu Beats und Previews springen willst.",
                         colorScheme: colorScheme,
                         isPrimary: false
                     ) {
@@ -707,7 +707,7 @@ private struct HomeStoryCard: View {
                     }
 
                     HomeActionButton(
-                        title: "Studio oeffnen",
+                        title: "Zum Studio",
                         subtitle: "Fuer Recording, Mixing und Mastering.",
                         colorScheme: colorScheme,
                         isPrimary: false
@@ -916,7 +916,7 @@ private func homeSpotifyActionTitle(for track: Track) -> String {
         return "Artist auf Spotify"
     }
 
-    return "Spotify oeffnen"
+    return "Auf Spotify ansehen"
 }
 
 private extension FeaturedHomeBeat {
@@ -1121,8 +1121,8 @@ private struct ShopHeroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Store",
             title: "Shop",
-            subtitle: "Stoeber in Ruhe, schau dir Produkte gross an und bestell direkt in der App.",
-            detail: isStoreOpen ? "Der Shop ist offen, du kannst direkt loslegen." : "Du kannst schon stoebbern. Bestellen geht wieder, sobald der Shop geoeffnet ist.",
+            subtitle: "Entdecke Produkte, schau sie dir gross an und bestell direkt in der App.",
+            detail: isStoreOpen ? "Der Shop ist offen und bereit fuer deine Bestellung." : "Du kannst Produkte schon ansehen. Bestellen geht wieder, sobald der Store offen ist.",
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydown, .zweizwei]

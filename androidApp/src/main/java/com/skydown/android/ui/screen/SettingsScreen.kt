@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -110,6 +111,20 @@ fun SettingsScreen(
     val showDeleteAccountDialog = rememberSaveable {
         mutableStateOf(false)
     }
+    var activeAdminWorkspaceKey by rememberSaveable { mutableStateOf(AdminWorkspaceSection.Overview.name) }
+    val activeAdminWorkspace = AdminWorkspaceSection.valueOf(activeAdminWorkspaceKey)
+    val connectedPaymentMethodCount = listOf(
+        uiState.paymentMethods.stripe.connected,
+        uiState.paymentMethods.paypal.connected,
+        uiState.paymentMethods.klarna.connected,
+        uiState.paymentMethods.bankTransfer.isConfigured,
+    ).count { it }
+    val visiblePaymentMethodCount = listOf(
+        uiState.paymentMethods.stripe.connected && uiState.paymentMethods.stripe.enabled,
+        uiState.paymentMethods.paypal.connected && uiState.paymentMethods.paypal.enabled,
+        uiState.paymentMethods.klarna.connected && uiState.paymentMethods.klarna.enabled,
+        uiState.paymentMethods.bankTransfer.isConfigured && uiState.paymentMethods.bankTransfer.enabled,
+    ).count { it }
 
     LaunchedEffect(uiState.paymentMethods) {
         stripeAccountHintDraft = uiState.paymentMethods.stripe.accountHint
@@ -291,16 +306,11 @@ fun SettingsScreen(
                     SkydownCard(contentPadding = PaddingValues(18.dp)) {
                         SectionHeader("Admin")
                         Text(
-                            text = if (uiState.isAdmin) "Bestellungen verfuegbar" else "Keine Admin-Berechtigung",
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = if (uiState.isAdmin) {
-                                MaterialTheme.colorScheme.primary
+                            text = if (uiState.isAdmin) {
+                                "Die Admin-Werkzeuge sind jetzt in kurze Bereiche aufgeteilt, damit du Zahlungen, Versand oder Visuals direkt erreichst."
                             } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                "Admin-Bereiche werden erst mit passender Berechtigung aktiv."
                             },
-                        )
-                        Text(
-                            text = "Admin-Bereiche bleiben auf Android sichtbar, aber nur mit passender Berechtigung aktiv.",
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -316,361 +326,425 @@ fun SettingsScreen(
                         }
 
                         if (uiState.isAdmin) {
-                            Text(
-                                text = "Visual Reference Pack",
-                                modifier = Modifier.padding(top = 16.dp),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            SettingsToggleRow(
-                                title = "Referenzbibliothek aktiv",
-                                body = "Drive-Link, Benennungs-Praefix und bis zu 5 Referenzhinweise fuer Visual-Prompts auf diesem Admin-Geraet.",
-                                checked = uiState.aiVisualReferenceLibrary.isEnabled,
-                                onCheckedChange = viewModel::updateAiVisualReferenceEnabled,
-                                modifier = Modifier.padding(top = 10.dp),
-                            )
-                            OutlinedTextField(
-                                value = uiState.aiVisualReferenceLibrary.storageLink,
-                                onValueChange = viewModel::updateAiVisualStorageLink,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                label = { Text("Drive- oder Asset-Link") },
-                                placeholder = { Text("https://drive.google.com/...") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = uiState.aiVisualReferenceLibrary.namingPrefix,
-                                onValueChange = viewModel::updateAiVisualNamingPrefix,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Benennungs-Praefix") },
-                                placeholder = { Text("z. B. skydown_drop_") },
-                                singleLine = true,
-                            )
-                            uiState.aiVisualReferenceLibrary.referenceHints.forEachIndexed { index, referenceHint ->
-                                OutlinedTextField(
-                                    value = referenceHint,
-                                    onValueChange = { value ->
-                                        viewModel.updateAiVisualReferenceHint(index, value)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 10.dp),
-                                    label = { Text("Referenz ${index + 1}") },
-                                    placeholder = {
-                                        Text("z. B. Charakter, Outfit, Shot, Element oder Mood")
-                                    },
-                                    minLines = 2,
-                                    maxLines = 3,
-                                )
+                            LazyRow(
+                                modifier = Modifier.padding(top = 14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                items(AdminWorkspaceSection.entries, key = { it.name }) { section ->
+                                    AdminWorkspaceChip(
+                                        title = section.label,
+                                        selected = activeAdminWorkspace == section,
+                                        onClick = { activeAdminWorkspaceKey = section.name },
+                                    )
+                                }
                             }
 
-                            Text(
-                                text = "Workflow Google Verbindung",
-                                modifier = Modifier.padding(top = 18.dp),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            SettingsToggleRow(
-                                title = "Google fuer Automationen separat halten",
-                                body = "Das normale Google-Login der App bleibt getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.",
-                                checked = uiState.workflowAutomationSettings.keepsGoogleSeparate,
-                                onCheckedChange = viewModel::updateWorkflowKeepsGoogleSeparate,
-                                modifier = Modifier.padding(top = 10.dp),
-                            )
-                            SettingsToggleRow(
-                                title = "Automation-Google vorbereitet",
-                                body = "Markiert, dass ein separates Google-Konto fuer Workflows spaeter angebunden werden soll.",
-                                checked = uiState.workflowAutomationSettings.isPrepared,
-                                onCheckedChange = viewModel::updateWorkflowPrepared,
-                                modifier = Modifier.padding(top = 10.dp),
-                            )
-                            OutlinedTextField(
-                                value = uiState.workflowAutomationSettings.googleAccountHint,
-                                onValueChange = viewModel::updateWorkflowGoogleAccountHint,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                label = { Text("Automation Google Konto") },
-                                placeholder = { Text("z. B. automation@deinedomain.de") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = uiState.workflowAutomationSettings.googleScopeHint,
-                                onValueChange = viewModel::updateWorkflowGoogleScopeHint,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Google Scope / Einsatz") },
-                                placeholder = { Text("z. B. Drive, Sheets, Calendar") },
-                                singleLine = true,
-                            )
-                        }
-                    }
-                }
-
-                if (uiState.isAdmin) {
-                    item {
-                        SkydownCard(contentPadding = PaddingValues(18.dp)) {
-                            SectionHeader("Zahlungen")
-                            Text(
-                                text = "PayPal und Bankueberweisung kannst du sofort als manuellen Checkout-Handoff nutzen. Stripe und Klarna bleiben vorerst vorbereitete Live-Provider fuer spaeter.",
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
-
-                            PaymentProviderAdminCard(
-                                title = "Stripe",
-                                connected = uiState.paymentMethods.stripe.connected,
-                                enabledInCheckout = uiState.paymentMethods.stripe.connected &&
-                                    uiState.paymentMethods.stripe.enabled,
-                                accountHint = stripeAccountHintDraft,
-                                accountHintLabel = "Stripe Konto / Workspace",
-                                accountHintPlaceholder = "z. B. Skydown Merch Workspace",
-                                onAccountHintChange = { stripeAccountHintDraft = it },
-                                onSaveConnection = { viewModel.connectStripe(stripeAccountHintDraft) },
-                                onDisconnect = if (uiState.paymentMethods.stripe.connected) {
-                                    { viewModel.disconnectStripe() }
-                                } else {
-                                    null
-                                },
-                                onToggleEnabled = viewModel::setStripeEnabled,
-                                modifier = Modifier.padding(top = 16.dp),
-                            )
-
-                            PaymentProviderAdminCard(
-                                title = "PayPal",
-                                connected = uiState.paymentMethods.paypal.connected,
-                                enabledInCheckout = uiState.paymentMethods.paypal.connected &&
-                                    uiState.paymentMethods.paypal.enabled,
-                                accountHint = paypalAccountHintDraft,
-                                accountHintLabel = "PayPal.Me Link oder Business-Mail",
-                                accountHintPlaceholder = "z. B. https://paypal.me/deinname",
-                                onAccountHintChange = { paypalAccountHintDraft = it },
-                                onSaveConnection = { viewModel.connectPayPal(paypalAccountHintDraft) },
-                                onDisconnect = if (uiState.paymentMethods.paypal.connected) {
-                                    { viewModel.disconnectPayPal() }
-                                } else {
-                                    null
-                                },
-                                onToggleEnabled = viewModel::setPayPalEnabled,
+                            AdminWorkspaceSummaryCard(
+                                title = activeAdminWorkspace.label,
+                                subtitle = activeAdminWorkspace.subtitle,
                                 modifier = Modifier.padding(top = 14.dp),
                             )
 
-                            PaymentProviderAdminCard(
-                                title = "Klarna",
-                                connected = uiState.paymentMethods.klarna.connected,
-                                enabledInCheckout = uiState.paymentMethods.klarna.connected &&
-                                    uiState.paymentMethods.klarna.enabled,
-                                accountHint = klarnaAccountHintDraft,
-                                accountHintLabel = "Klarna Merchant / Store ID",
-                                accountHintPlaceholder = "z. B. Klarna Merchant EU",
-                                onAccountHintChange = { klarnaAccountHintDraft = it },
-                                onSaveConnection = { viewModel.connectKlarna(klarnaAccountHintDraft) },
-                                onDisconnect = if (uiState.paymentMethods.klarna.connected) {
-                                    { viewModel.disconnectKlarna() }
-                                } else {
-                                    null
-                                },
-                                onToggleEnabled = viewModel::setKlarnaEnabled,
-                                modifier = Modifier.padding(top = 14.dp),
-                            )
+                            when (activeAdminWorkspace) {
+                                AdminWorkspaceSection.Overview -> {
+                                    Text(
+                                        text = "Heute im Blick",
+                                        modifier = Modifier.padding(top = 16.dp),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    LazyRow(
+                                        modifier = Modifier.padding(top = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        item {
+                                            SettingsBadge(
+                                                text = "$connectedPaymentMethodCount Zahlarten verbunden",
+                                                icon = Icons.Default.CheckCircle,
+                                                isActive = connectedPaymentMethodCount > 0,
+                                            )
+                                        }
+                                        item {
+                                            SettingsBadge(
+                                                text = "$visiblePaymentMethodCount im Checkout sichtbar",
+                                                icon = Icons.Default.CheckCircle,
+                                                isActive = visiblePaymentMethodCount > 0,
+                                            )
+                                        }
+                                        item {
+                                            SettingsBadge(
+                                                text = if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus",
+                                                icon = Icons.Default.Palette,
+                                                isActive = uiState.aiVisualReferenceLibrary.isEnabled,
+                                            )
+                                        }
+                                        item {
+                                            SettingsBadge(
+                                                text = if (uiState.workflowAutomationSettings.isPrepared) "Automation vorbereitet" else "Automation offen",
+                                                icon = Icons.Default.Settings,
+                                                isActive = uiState.workflowAutomationSettings.isPrepared,
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = "Waehle oben einfach den Bereich, den du gerade brauchst. So bleibt die Settings-Seite kurz und du springst direkt in die passende Aufgabe.",
+                                        modifier = Modifier.padding(top = 12.dp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                    )
+                                }
 
-                            BankTransferAdminCard(
-                                configured = uiState.paymentMethods.bankTransfer.isConfigured,
-                                enabledInCheckout = uiState.paymentMethods.bankTransfer.enabled &&
-                                    uiState.paymentMethods.bankTransfer.isConfigured,
-                                accountHolder = bankAccountHolderDraft,
-                                iban = bankIbanDraft,
-                                bic = bankBicDraft,
-                                bankName = bankNameDraft,
-                                paymentInstructions = bankInstructionsDraft,
-                                onAccountHolderChange = { bankAccountHolderDraft = it },
-                                onIbanChange = { bankIbanDraft = it },
-                                onBicChange = { bankBicDraft = it },
-                                onBankNameChange = { bankNameDraft = it },
-                                onPaymentInstructionsChange = { bankInstructionsDraft = it },
-                                onSave = {
-                                    viewModel.saveBankTransfer(
+                                AdminWorkspaceSection.Payments -> {
+                                    Text(
+                                        text = "PayPal und Bankueberweisung kannst du sofort als manuellen Checkout-Handoff nutzen. Stripe und Klarna bleiben vorerst vorbereitete Live-Provider fuer spaeter.",
+                                        modifier = Modifier.padding(top = 16.dp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                    )
+
+                                    PaymentProviderAdminCard(
+                                        title = "Stripe",
+                                        connected = uiState.paymentMethods.stripe.connected,
+                                        enabledInCheckout = uiState.paymentMethods.stripe.connected &&
+                                            uiState.paymentMethods.stripe.enabled,
+                                        accountHint = stripeAccountHintDraft,
+                                        accountHintLabel = "Stripe Konto / Workspace",
+                                        accountHintPlaceholder = "z. B. Skydown Merch Workspace",
+                                        onAccountHintChange = { stripeAccountHintDraft = it },
+                                        onSaveConnection = { viewModel.connectStripe(stripeAccountHintDraft) },
+                                        onDisconnect = if (uiState.paymentMethods.stripe.connected) {
+                                            { viewModel.disconnectStripe() }
+                                        } else {
+                                            null
+                                        },
+                                        onToggleEnabled = viewModel::setStripeEnabled,
+                                        modifier = Modifier.padding(top = 16.dp),
+                                    )
+
+                                    PaymentProviderAdminCard(
+                                        title = "PayPal",
+                                        connected = uiState.paymentMethods.paypal.connected,
+                                        enabledInCheckout = uiState.paymentMethods.paypal.connected &&
+                                            uiState.paymentMethods.paypal.enabled,
+                                        accountHint = paypalAccountHintDraft,
+                                        accountHintLabel = "PayPal.Me Link oder Business-Mail",
+                                        accountHintPlaceholder = "z. B. https://paypal.me/deinname",
+                                        onAccountHintChange = { paypalAccountHintDraft = it },
+                                        onSaveConnection = { viewModel.connectPayPal(paypalAccountHintDraft) },
+                                        onDisconnect = if (uiState.paymentMethods.paypal.connected) {
+                                            { viewModel.disconnectPayPal() }
+                                        } else {
+                                            null
+                                        },
+                                        onToggleEnabled = viewModel::setPayPalEnabled,
+                                        modifier = Modifier.padding(top = 14.dp),
+                                    )
+
+                                    PaymentProviderAdminCard(
+                                        title = "Klarna",
+                                        connected = uiState.paymentMethods.klarna.connected,
+                                        enabledInCheckout = uiState.paymentMethods.klarna.connected &&
+                                            uiState.paymentMethods.klarna.enabled,
+                                        accountHint = klarnaAccountHintDraft,
+                                        accountHintLabel = "Klarna Merchant / Store ID",
+                                        accountHintPlaceholder = "z. B. Klarna Merchant EU",
+                                        onAccountHintChange = { klarnaAccountHintDraft = it },
+                                        onSaveConnection = { viewModel.connectKlarna(klarnaAccountHintDraft) },
+                                        onDisconnect = if (uiState.paymentMethods.klarna.connected) {
+                                            { viewModel.disconnectKlarna() }
+                                        } else {
+                                            null
+                                        },
+                                        onToggleEnabled = viewModel::setKlarnaEnabled,
+                                        modifier = Modifier.padding(top = 14.dp),
+                                    )
+
+                                    BankTransferAdminCard(
+                                        configured = uiState.paymentMethods.bankTransfer.isConfigured,
+                                        enabledInCheckout = uiState.paymentMethods.bankTransfer.enabled &&
+                                            uiState.paymentMethods.bankTransfer.isConfigured,
                                         accountHolder = bankAccountHolderDraft,
                                         iban = bankIbanDraft,
                                         bic = bankBicDraft,
                                         bankName = bankNameDraft,
                                         paymentInstructions = bankInstructionsDraft,
+                                        onAccountHolderChange = { bankAccountHolderDraft = it },
+                                        onIbanChange = { bankIbanDraft = it },
+                                        onBicChange = { bankBicDraft = it },
+                                        onBankNameChange = { bankNameDraft = it },
+                                        onPaymentInstructionsChange = { bankInstructionsDraft = it },
+                                        onSave = {
+                                            viewModel.saveBankTransfer(
+                                                accountHolder = bankAccountHolderDraft,
+                                                iban = bankIbanDraft,
+                                                bic = bankBicDraft,
+                                                bankName = bankNameDraft,
+                                                paymentInstructions = bankInstructionsDraft,
+                                            )
+                                        },
+                                        onToggleEnabled = viewModel::setBankTransferEnabled,
+                                        modifier = Modifier.padding(top = 14.dp),
                                     )
-                                },
-                                onToggleEnabled = viewModel::setBankTransferEnabled,
-                                modifier = Modifier.padding(top = 14.dp),
-                            )
-                        }
-                    }
+                                }
 
-                    item {
-                        SkydownCard(contentPadding = PaddingValues(18.dp)) {
-                            SectionHeader("Versand & Rechnung")
-                            Text(
-                                text = "Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.",
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
-
-                            Text(
-                                text = "Versand",
-                                modifier = Modifier.padding(top = 16.dp),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-
-                            OutlinedTextField(
-                                value = domesticShippingDraft,
-                                onValueChange = { domesticShippingDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                label = { Text("Versand Deutschland (EUR)") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = internationalShippingDraft,
-                                onValueChange = { internationalShippingDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Versand International (EUR)") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = freeShippingThresholdDraft,
-                                onValueChange = { freeShippingThresholdDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Versand frei ab (EUR)") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = shippingNotesDraft,
-                                onValueChange = { shippingNotesDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Versandhinweis") },
-                                minLines = 2,
-                                maxLines = 3,
-                            )
-
-                            Text(
-                                text = "Rechnung",
-                                modifier = Modifier.padding(top = 18.dp),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-
-                            OutlinedTextField(
-                                value = invoiceCompanyNameDraft,
-                                onValueChange = { invoiceCompanyNameDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                label = { Text("Firmenname") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = invoiceCompanyAddressDraft,
-                                onValueChange = { invoiceCompanyAddressDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Firmenadresse") },
-                                minLines = 2,
-                                maxLines = 3,
-                            )
-                            OutlinedTextField(
-                                value = invoiceTaxNumberDraft,
-                                onValueChange = { invoiceTaxNumberDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Steuernummer") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = invoiceVatIdDraft,
-                                onValueChange = { invoiceVatIdDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("USt-IdNr.") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = invoiceTaxRateDraft,
-                                onValueChange = { invoiceTaxRateDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("MwSt. Satz (%)") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = invoicePrefixDraft,
-                                onValueChange = { invoicePrefixDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Rechnungs-Praefix") },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = invoiceSupportEmailDraft,
-                                onValueChange = { invoiceSupportEmailDraft = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp),
-                                label = { Text("Support / Rechnungs-Mail") },
-                                singleLine = true,
-                            )
-
-                            Button(
-                                onClick = {
-                                    val domesticCost = domesticShippingDraft.parseDecimalInput()
-                                        ?: uiState.commerceSettings.shipping.domesticCost
-                                    val internationalCost = internationalShippingDraft.parseDecimalInput()
-                                        ?: uiState.commerceSettings.shipping.internationalCost
-                                    val freeShippingThreshold = freeShippingThresholdDraft.parseDecimalInput()
-                                        ?: uiState.commerceSettings.shipping.freeShippingThreshold
-                                    val taxRate = invoiceTaxRateDraft.parseDecimalInput()
-                                        ?: uiState.commerceSettings.invoice.taxRate
-
-                                    viewModel.saveCommerceSettings(
-                                        uiState.commerceSettings.copy(
-                                            shipping = uiState.commerceSettings.shipping.copy(
-                                                domesticCost = domesticCost.coerceAtLeast(0.0),
-                                                internationalCost = internationalCost.coerceAtLeast(0.0),
-                                                freeShippingThreshold = freeShippingThreshold.coerceAtLeast(0.0),
-                                                shippingNotes = shippingNotesDraft.trim(),
-                                            ),
-                                            invoice = uiState.commerceSettings.invoice.copy(
-                                                companyName = invoiceCompanyNameDraft.trim(),
-                                                companyAddress = invoiceCompanyAddressDraft.trim(),
-                                                taxNumber = invoiceTaxNumberDraft.trim(),
-                                                vatId = invoiceVatIdDraft.trim(),
-                                                taxRate = taxRate.coerceAtLeast(0.0),
-                                                invoicePrefix = invoicePrefixDraft.trim(),
-                                                supportEmail = invoiceSupportEmailDraft.trim(),
-                                            ),
-                                        ),
-                                        successMessage = "Versand- und Rechnungsdaten gespeichert.",
+                                AdminWorkspaceSection.Commerce -> {
+                                    Text(
+                                        text = "Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.",
+                                        modifier = Modifier.padding(top = 16.dp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                     )
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 14.dp),
-                                shape = RoundedCornerShape(18.dp),
-                            ) {
-                                Text("Versand & Rechnung speichern")
+
+                                    Text(
+                                        text = "Versand",
+                                        modifier = Modifier.padding(top = 16.dp),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+
+                                    OutlinedTextField(
+                                        value = domesticShippingDraft,
+                                        onValueChange = { domesticShippingDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 12.dp),
+                                        label = { Text("Versand Deutschland (EUR)") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = internationalShippingDraft,
+                                        onValueChange = { internationalShippingDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Versand International (EUR)") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = freeShippingThresholdDraft,
+                                        onValueChange = { freeShippingThresholdDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Versand frei ab (EUR)") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = shippingNotesDraft,
+                                        onValueChange = { shippingNotesDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Versandhinweis") },
+                                        minLines = 2,
+                                        maxLines = 3,
+                                    )
+
+                                    Text(
+                                        text = "Rechnung",
+                                        modifier = Modifier.padding(top = 18.dp),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+
+                                    OutlinedTextField(
+                                        value = invoiceCompanyNameDraft,
+                                        onValueChange = { invoiceCompanyNameDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 12.dp),
+                                        label = { Text("Firmenname") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = invoiceCompanyAddressDraft,
+                                        onValueChange = { invoiceCompanyAddressDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Firmenadresse") },
+                                        minLines = 2,
+                                        maxLines = 3,
+                                    )
+                                    OutlinedTextField(
+                                        value = invoiceTaxNumberDraft,
+                                        onValueChange = { invoiceTaxNumberDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Steuernummer") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = invoiceVatIdDraft,
+                                        onValueChange = { invoiceVatIdDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("USt-IdNr.") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = invoiceTaxRateDraft,
+                                        onValueChange = { invoiceTaxRateDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("MwSt. Satz (%)") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = invoicePrefixDraft,
+                                        onValueChange = { invoicePrefixDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Rechnungs-Praefix") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = invoiceSupportEmailDraft,
+                                        onValueChange = { invoiceSupportEmailDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Support / Rechnungs-Mail") },
+                                        singleLine = true,
+                                    )
+
+                                    Button(
+                                        onClick = {
+                                            val domesticCost = domesticShippingDraft.parseDecimalInput()
+                                                ?: uiState.commerceSettings.shipping.domesticCost
+                                            val internationalCost = internationalShippingDraft.parseDecimalInput()
+                                                ?: uiState.commerceSettings.shipping.internationalCost
+                                            val freeShippingThreshold = freeShippingThresholdDraft.parseDecimalInput()
+                                                ?: uiState.commerceSettings.shipping.freeShippingThreshold
+                                            val taxRate = invoiceTaxRateDraft.parseDecimalInput()
+                                                ?: uiState.commerceSettings.invoice.taxRate
+
+                                            viewModel.saveCommerceSettings(
+                                                uiState.commerceSettings.copy(
+                                                    shipping = uiState.commerceSettings.shipping.copy(
+                                                        domesticCost = domesticCost.coerceAtLeast(0.0),
+                                                        internationalCost = internationalCost.coerceAtLeast(0.0),
+                                                        freeShippingThreshold = freeShippingThreshold.coerceAtLeast(0.0),
+                                                        shippingNotes = shippingNotesDraft.trim(),
+                                                    ),
+                                                    invoice = uiState.commerceSettings.invoice.copy(
+                                                        companyName = invoiceCompanyNameDraft.trim(),
+                                                        companyAddress = invoiceCompanyAddressDraft.trim(),
+                                                        taxNumber = invoiceTaxNumberDraft.trim(),
+                                                        vatId = invoiceVatIdDraft.trim(),
+                                                        taxRate = taxRate.coerceAtLeast(0.0),
+                                                        invoicePrefix = invoicePrefixDraft.trim(),
+                                                        supportEmail = invoiceSupportEmailDraft.trim(),
+                                                    ),
+                                                ),
+                                                successMessage = "Versand- und Rechnungsdaten gespeichert.",
+                                            )
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 14.dp),
+                                        shape = RoundedCornerShape(18.dp),
+                                    ) {
+                                        Text("Versand & Rechnung speichern")
+                                    }
+                                }
+
+                                AdminWorkspaceSection.Visuals -> {
+                                    Text(
+                                        text = "Visual Reference Pack",
+                                        modifier = Modifier.padding(top = 16.dp),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    SettingsToggleRow(
+                                        title = "Referenzbibliothek aktiv",
+                                        body = "Drive-Link, Benennungs-Praefix und bis zu 5 Referenzhinweise fuer Visual-Prompts auf diesem Admin-Geraet.",
+                                        checked = uiState.aiVisualReferenceLibrary.isEnabled,
+                                        onCheckedChange = viewModel::updateAiVisualReferenceEnabled,
+                                        modifier = Modifier.padding(top = 10.dp),
+                                    )
+                                    OutlinedTextField(
+                                        value = uiState.aiVisualReferenceLibrary.storageLink,
+                                        onValueChange = viewModel::updateAiVisualStorageLink,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 12.dp),
+                                        label = { Text("Drive- oder Asset-Link") },
+                                        placeholder = { Text("https://drive.google.com/...") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = uiState.aiVisualReferenceLibrary.namingPrefix,
+                                        onValueChange = viewModel::updateAiVisualNamingPrefix,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Benennungs-Praefix") },
+                                        placeholder = { Text("z. B. skydown_drop_") },
+                                        singleLine = true,
+                                    )
+                                    uiState.aiVisualReferenceLibrary.referenceHints.forEachIndexed { index, referenceHint ->
+                                        OutlinedTextField(
+                                            value = referenceHint,
+                                            onValueChange = { value ->
+                                                viewModel.updateAiVisualReferenceHint(index, value)
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 10.dp),
+                                            label = { Text("Referenz ${index + 1}") },
+                                            placeholder = {
+                                                Text("z. B. Charakter, Outfit, Shot, Element oder Mood")
+                                            },
+                                            minLines = 2,
+                                            maxLines = 3,
+                                        )
+                                    }
+                                }
+
+                                AdminWorkspaceSection.Automation -> {
+                                    Text(
+                                        text = "Workflow Google Verbindung",
+                                        modifier = Modifier.padding(top = 16.dp),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    SettingsToggleRow(
+                                        title = "Google fuer Automationen separat halten",
+                                        body = "Das normale Google-Login der App bleibt getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.",
+                                        checked = uiState.workflowAutomationSettings.keepsGoogleSeparate,
+                                        onCheckedChange = viewModel::updateWorkflowKeepsGoogleSeparate,
+                                        modifier = Modifier.padding(top = 10.dp),
+                                    )
+                                    SettingsToggleRow(
+                                        title = "Automation-Google vorbereitet",
+                                        body = "Markiert, dass ein separates Google-Konto fuer Workflows spaeter angebunden werden soll.",
+                                        checked = uiState.workflowAutomationSettings.isPrepared,
+                                        onCheckedChange = viewModel::updateWorkflowPrepared,
+                                        modifier = Modifier.padding(top = 10.dp),
+                                    )
+                                    OutlinedTextField(
+                                        value = uiState.workflowAutomationSettings.googleAccountHint,
+                                        onValueChange = viewModel::updateWorkflowGoogleAccountHint,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 12.dp),
+                                        label = { Text("Automation Google Konto") },
+                                        placeholder = { Text("z. B. automation@deinedomain.de") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = uiState.workflowAutomationSettings.googleScopeHint,
+                                        onValueChange = viewModel::updateWorkflowGoogleScopeHint,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Google Scope / Einsatz") },
+                                        placeholder = { Text("z. B. Drive, Sheets, Calendar") },
+                                        singleLine = true,
+                                    )
+                                }
                             }
                         }
                     }
@@ -1298,6 +1372,89 @@ private fun SettingsBadge(
             text = text,
             color = contentColor,
             style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+private enum class AdminWorkspaceSection(
+    val label: String,
+    val subtitle: String,
+) {
+    Overview(
+        label = "Uebersicht",
+        subtitle = "Schneller Status fuer Zahlarten, Visuals und Automationen.",
+    ),
+    Payments(
+        label = "Zahlungen",
+        subtitle = "Provider verbinden und fuer den Checkout sichtbar schalten.",
+    ),
+    Commerce(
+        label = "Versand",
+        subtitle = "Versandkosten, MwSt. und Rechnungsdaten gesammelt pflegen.",
+    ),
+    Visuals(
+        label = "Visuals",
+        subtitle = "Drive-Link, Referenzhinweise und Namensschema pflegen.",
+    ),
+    Automation(
+        label = "Automation",
+        subtitle = "Das getrennte Google-Setup fuer Workflows vorbereiten.",
+    ),
+}
+
+@Composable
+private fun AdminWorkspaceChip(
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+            contentColor = if (selected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        ),
+    ) {
+        Text(
+            text = title,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun AdminWorkspaceSummaryCard(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
     }
 }

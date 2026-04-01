@@ -43,33 +43,56 @@ struct VideoHubView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                heroCard
-                collaborationsCard
-                VideoEquipmentCard(
-                    colorScheme: colorScheme,
-                    items: viewModel.publicConfig.equipmentItems
-                )
-                VideoYouTubeCard(
-                    colorScheme: colorScheme,
-                    items: viewModel.publicConfig.youtubeItems
-                )
-                playerCard
-                libraryCard
-
-                if viewModel.isAdmin {
-                    formatCard
-                    VideoPublicConfigEditorCard(
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                    heroCard
+                    collaborationsCard
+                    VideoEquipmentCard(
                         colorScheme: colorScheme,
-                        viewModel: viewModel
+                        items: viewModel.publicConfig.equipmentItems
                     )
-                    uploadCard
+                    .id(VideoHubQuickActionTarget.equipment.sectionID)
+                    VideoYouTubeCard(
+                        colorScheme: colorScheme,
+                        items: viewModel.publicConfig.youtubeItems
+                    )
+                    .id(VideoHubQuickActionTarget.youtube.sectionID)
+                    playerCard
+                    libraryCard
+
+                    if viewModel.isAdmin {
+                        formatCard
+                        VideoPublicConfigEditorCard(
+                            colorScheme: colorScheme,
+                            viewModel: viewModel
+                        )
+                        uploadCard
+                            .id(VideoHubQuickActionTarget.upload.sectionID)
+                    }
                 }
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding + 110)
             }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, SkydownLayout.screenTopPadding)
-            .padding(.bottom, SkydownLayout.screenBottomPadding)
+            .overlay(alignment: .bottomTrailing) {
+                VideoHubQuickActionDock(
+                    colorScheme: colorScheme,
+                    showsUpload: viewModel.isAdmin,
+                    onOpenYouTube: {
+                        withAnimation(.snappy(duration: 0.35)) {
+                            proxy.scrollTo(VideoHubQuickActionTarget.youtube.sectionID, anchor: .top)
+                        }
+                    },
+                    onOpenUpload: {
+                        withAnimation(.snappy(duration: 0.35)) {
+                            proxy.scrollTo(VideoHubQuickActionTarget.upload.sectionID, anchor: .top)
+                        }
+                    }
+                )
+                .padding(.trailing, SkydownLayout.screenHorizontalPadding)
+                .padding(.bottom, 20)
+            }
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -189,7 +212,7 @@ struct VideoHubView: View {
             eyebrow: "Video",
             title: "Video",
             subtitle: "Wenn du schauen willst, bist du hier richtig: Reels, Clips und neue Uploads.",
-            detail: "Von hier kommst du ohne Umwege weiter zu YouTube, Equipment oder Kontakt.",
+            detail: "Von hier aus gehst du direkt weiter zu YouTube, Equipment oder Kontakt.",
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
@@ -390,7 +413,7 @@ struct VideoHubView: View {
                     playbackManager.player.pause()
                     showingReelViewer = true
                 } label: {
-                    Label("Im Reel-Modus oeffnen", systemImage: "rectangle.portrait.and.arrow.right")
+                    Label("Im Reel ansehen", systemImage: "rectangle.portrait.and.arrow.right")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -552,7 +575,7 @@ struct VideoHubLibraryRow: View {
                 }
             } else {
                 Button(action: onOpenReel) {
-                    Label("Im Reel oeffnen", systemImage: "play.rectangle.fill")
+                    Label("Direkt im Reel", systemImage: "play.rectangle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -804,6 +827,79 @@ struct VideoYouTubeCard: View {
             RoundedRectangle(cornerRadius: 24)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
+    }
+}
+
+private enum VideoHubQuickActionTarget {
+    case equipment
+    case youtube
+    case upload
+
+    var sectionID: String {
+        switch self {
+        case .equipment:
+            return "video-equipment-section"
+        case .youtube:
+            return "video-youtube-section"
+        case .upload:
+            return "video-upload-section"
+        }
+    }
+}
+
+private struct VideoHubQuickActionDock: View {
+    let colorScheme: ColorScheme
+    let showsUpload: Bool
+    let onOpenYouTube: () -> Void
+    let onOpenUpload: () -> Void
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 10) {
+            if showsUpload {
+                VideoHubQuickActionButton(
+                    title: "Upload",
+                    systemImage: "arrow.up.circle.fill",
+                    tint: AppColors.accent(for: colorScheme),
+                    textColor: .white,
+                    action: onOpenUpload
+                )
+            }
+
+            VideoHubQuickActionButton(
+                title: "YouTube",
+                systemImage: "play.rectangle.fill",
+                tint: AppColors.accentHighlight(for: colorScheme),
+                textColor: AppColors.text(for: colorScheme),
+                action: onOpenYouTube
+            )
+        }
+    }
+}
+
+private struct VideoHubQuickActionButton: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let textColor: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.headline.weight(.bold))
+
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+            }
+            .foregroundColor(textColor)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(tint)
+            .clipShape(Capsule())
+            .shadow(color: tint.opacity(0.22), radius: 14, y: 8)
+        }
+        .buttonStyle(.plain)
     }
 }
 
