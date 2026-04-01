@@ -3,29 +3,28 @@
 
     <attribution
         android:tag="core"
-        android:label="Core app interactions" />
+        android:label="@string/attribution_core" />
 
     <attribution
         android:tag="media"
-        android:label="Media playback and video" />
+        android:label="@string/attribution_media" />
 
     <attribution
         android:tag="auth"
-        android:label="Authentication and sign-in" />
+        android:label="@string/attribution_auth" />
 
     <attribution
         android:tag="commerce"
-        android:label="Merchandise and checkout" />
+        android:label="@string/attribution_commerce" />
 
     <attribution
         android:tag="ai"
-        android:label="AI and automation tools" />
+        android:label="@string/attribution_ai" />
 
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
-        android:attributionTags="core|media|auth|commerce|ai"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -35,7 +34,7 @@
         android:theme="@style/Theme.Skydown">
         <activity
             android:name=".MainActivity"
-            android:attributionTags="core|media|auth|commerce|ai"
+            android:attributionTags="core"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.Skydown">

@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -93,8 +94,9 @@ fun MusicScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
-    val player = remember {
-        ExoPlayer.Builder(context).build().apply {
+    val mediaContext = remember(context) { context.mediaAttributionContext() }
+    val player = remember(mediaContext) {
+        ExoPlayer.Builder(mediaContext).build().apply {
             playWhenReady = true
         }
     }

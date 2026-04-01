@@ -62,6 +62,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -111,13 +112,14 @@ fun HomeScreen(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val context = LocalContext.current
-    val audioPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
+    val mediaContext = remember(context) { context.mediaAttributionContext() }
+    val audioPlayer = remember(mediaContext) {
+        ExoPlayer.Builder(mediaContext).build().apply {
             playWhenReady = true
         }
     }
-    val videoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
+    val videoPlayer = remember(mediaContext) {
+        ExoPlayer.Builder(mediaContext).build().apply {
             playWhenReady = false
         }
     }

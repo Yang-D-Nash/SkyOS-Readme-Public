@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
@@ -346,7 +347,8 @@ private fun LaunchLandingScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 48.dp, end = (-28).dp)
+                .padding(top = 48.dp)
+                .offset(x = 28.dp)
                 .width(220.dp)
                 .height(220.dp)
                 .background(
@@ -358,7 +360,8 @@ private fun LaunchLandingScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = (-36).dp, bottom = 56.dp)
+                .padding(bottom = 56.dp)
+                .offset(x = (-36).dp)
                 .width(200.dp)
                 .height(200.dp)
                 .background(

@@ -23,6 +23,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.skydown.android.data.mediaAttributionContext
 import kotlinx.coroutines.delay
 
 @Composable
@@ -30,13 +31,14 @@ fun IntroScreen(
     onFinished: () -> Unit,
 ) {
     val context = LocalContext.current
+    val mediaContext = remember(context) { context.mediaAttributionContext() }
     val currentOnFinished = rememberUpdatedState(onFinished)
     var hasFinished by remember { mutableStateOf(false) }
-    val uri = remember(context) {
-        Uri.parse("android.resource://${context.packageName}/${com.skydown.android.R.raw.intro_launch}")
+    val uri = remember(mediaContext) {
+        Uri.parse("android.resource://${mediaContext.packageName}/${com.skydown.android.R.raw.intro_launch}")
     }
-    val player = remember(context, uri) {
-        ExoPlayer.Builder(context).build().apply {
+    val player = remember(mediaContext, uri) {
+        ExoPlayer.Builder(mediaContext).build().apply {
             setMediaItem(MediaItem.fromUri(uri))
             setAudioAttributes(
                 AudioAttributes.Builder()
