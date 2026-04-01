@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SkydownCard(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(18.dp),
+    contentPadding: PaddingValues = PaddingValues(SkydownUiTokens.cardPadding),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
@@ -27,14 +27,14 @@ fun SkydownCard(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 10.dp,
+                elevation = 8.dp,
                 shape = shape,
             )
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.90f))
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                 shape = shape,
             )
             .padding(contentPadding),

@@ -1,5 +1,6 @@
 package com.skydown.android.ui.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Settings
@@ -38,13 +40,15 @@ fun RowScope.AppTopBarSessionActions(
     val initials = displayName.firstOrNull()?.uppercase() ?: "G"
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
-        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+        tonalElevation = 4.dp,
     ) {
         Row(
             modifier = Modifier.padding(
                 horizontal = if (compactLayout) 8.dp else 10.dp,
-                vertical = if (compactLayout) 6.dp else 8.dp,
+                vertical = if (compactLayout) 5.dp else 7.dp,
             ),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -55,7 +59,7 @@ fun RowScope.AppTopBarSessionActions(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (compactLayout) 22.dp else 24.dp)
+                        .size(if (compactLayout) 22.dp else 23.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
@@ -71,7 +75,7 @@ fun RowScope.AppTopBarSessionActions(
                 if (!compactLayout) {
                     Text(
                         text = displayName,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -108,12 +112,14 @@ private fun SessionIconAction(
     compactLayout: Boolean,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
         shape = CircleShape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+        tonalElevation = 4.dp,
     ) {
         IconButton(
             onClick = onClick,
-            modifier = Modifier.size(if (compactLayout) 38.dp else 40.dp),
+            modifier = Modifier.size(if (compactLayout) 36.dp else 38.dp),
         ) {
             Icon(
                 imageVector = imageVector,

@@ -162,26 +162,26 @@ private struct LaunchLandingView: View {
                 .blur(radius: 56)
                 .offset(x: -140, y: 260)
 
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 22) {
                 Spacer(minLength: 0)
 
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Sky²²")
                         .font(.caption.weight(.semibold))
                         .tracking(1.6)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                     Text("Sky²²")
-                        .font(.system(size: 38, weight: .black, design: .rounded))
+                        .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
                     Text("Such dir einfach aus, womit du anfangen willst. Unten kannst du danach jederzeit weiterwechseln.")
-                        .font(.body.weight(.medium))
+                        .font(.subheadline.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                VStack(spacing: 14) {
+                VStack(spacing: 12) {
                     LaunchLandingButton(
                         step: "01",
                         eyebrow: "Listen & Artists",
@@ -211,14 +211,14 @@ private struct LaunchLandingView: View {
                 }
 
                 Text("Danach bleibst du im normalen App-Flow und kannst unten jederzeit wechseln.")
-                    .font(.footnote.weight(.medium))
+                    .font(.caption.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
 
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.vertical, 32)
+            .padding(.vertical, 28)
         }
     }
 }
@@ -234,7 +234,7 @@ private struct LaunchLandingButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(step)
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
@@ -247,35 +247,32 @@ private struct LaunchLandingButton: View {
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                         Text(title)
-                            .font(.system(size: 28, weight: .black, design: .rounded))
+                            .font(.system(size: 24, weight: .black, design: .rounded))
                             .foregroundColor(AppColors.text(for: colorScheme))
                     }
 
                     Text(subtitle)
-                        .font(.subheadline.weight(.medium))
+                        .font(.footnote.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .multilineTextAlignment(.leading)
                 }
             }
-            .padding(22)
+            .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(AppColors.cardBackground(for: colorScheme).opacity(0.94))
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(accent.opacity(0.18), lineWidth: 1)
-            }
             .overlay(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                     .fill(accent)
                     .frame(width: 4)
-                    .padding(.vertical, 18)
+                    .padding(.vertical, 16)
                     .padding(.leading, 10)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.20 : 0.06), radius: 16, y: 10)
+            .skydownPanelSurface(
+                colorScheme: colorScheme,
+                accent: accent,
+                cornerRadius: 24,
+                shadowRadius: 14,
+                shadowYOffset: 8
+            )
         }
         .buttonStyle(.plain)
     }

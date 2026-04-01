@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
@@ -397,7 +398,7 @@ private fun HomeLatestReleaseCard(
     onPlayToggle: (com.skydown.shared.model.Track) -> Unit,
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         SectionHeader("Latest Release")
         val track = uiState.featuredTrack
 
@@ -512,7 +513,7 @@ private fun HomeLatestBeatCard(
     isPlaying: Boolean,
     onPlayToggle: (FeaturedBeatHighlight) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         SectionHeader("Beat Highlight")
         val beat = uiState.featuredBeat
 
@@ -597,7 +598,7 @@ private fun HomeLatestVideoCard(
     isPlaying: Boolean,
     onPlayToggle: (FeaturedVideoHighlight) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         SectionHeader("Video Highlight")
         val video = uiState.featuredVideo
 
@@ -707,7 +708,7 @@ private fun HomeStoryCard(
     onOpenNicma: () -> Unit,
 ) {
     val context = LocalContext.current
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         SectionHeader("Schnellzugriff")
 
         Text(
@@ -718,7 +719,7 @@ private fun HomeStoryCard(
         )
 
         Column(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             HomeStoryLinkButton(
@@ -825,6 +826,8 @@ private fun HomeStoryLinkButton(
         Button(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
         ) {
             content()
         }
@@ -832,6 +835,8 @@ private fun HomeStoryLinkButton(
         OutlinedButton(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
         ) {
             content()
         }
@@ -847,15 +852,15 @@ private fun HomeLaneSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.extraLarge)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f))
-            .padding(14.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = subtitle,

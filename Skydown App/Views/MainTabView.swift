@@ -135,10 +135,7 @@ struct MainTabView: View {
                     .tag(MainTab.tools)
                 }
             }
-            .toolbar(.visible, for: .tabBar)
-            .toolbarBackground(.visible, for: .tabBar)
-            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-            .toolbarColorScheme(currentScheme, for: .tabBar)
+            .skydownTabBarChrome(colorScheme: currentScheme)
         }
         .accentColor(AppColors.accent(for: currentScheme))
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
@@ -196,7 +193,7 @@ struct AppSessionToolbarActions: View {
                 ZStack {
                     Circle()
                         .fill(AppColors.accent(for: colorScheme).opacity(0.14))
-                        .frame(width: 26, height: 26)
+                        .frame(width: 24, height: 24)
 
                     Text(initials)
                         .font(.caption.weight(.bold))
@@ -204,33 +201,33 @@ struct AppSessionToolbarActions: View {
                 }
 
                 Text(displayName)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                     .lineLimit(1)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(AppColors.secondaryBackground(for: colorScheme))
-            .clipShape(Capsule())
+            .padding(.vertical, 5)
+            .skydownCapsuleSurface(
+                colorScheme: colorScheme,
+                accent: AppColors.accent(for: colorScheme)
+            )
 
             if let onOpenCart {
                 Button(action: onOpenCart) {
                     Image(systemName: "bag.fill")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.footnote.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
-                        .padding(10)
-                        .background(AppColors.secondaryBackground(for: colorScheme))
-                        .clipShape(Circle())
+                        .padding(9)
+                        .skydownCapsuleSurface(colorScheme: colorScheme)
                 }
             }
 
             Button(action: onOpenSettings) {
                 Image(systemName: "gearshape.fill")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
-                    .padding(10)
-                    .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(Circle())
+                    .padding(9)
+                    .skydownCapsuleSurface(colorScheme: colorScheme)
             }
         }
     }
@@ -359,23 +356,23 @@ private struct ShellActionCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.system(size: 24, weight: .black, design: .rounded))
+                    .font(.system(size: 20, weight: .black, design: .rounded))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 Text(subtitle)
-                    .font(.subheadline.weight(.medium))
+                    .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .multilineTextAlignment(.leading)
             }
             .padding(SkydownLayout.heroPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColors.cardBackground(for: colorScheme))
-            .overlay {
-                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
-                    .stroke(accent.opacity(0.22), lineWidth: 1)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.26 : 0.08), radius: 18, y: 10)
+            .skydownPanelSurface(
+                colorScheme: colorScheme,
+                accent: accent,
+                cornerRadius: SkydownLayout.heroCornerRadius,
+                shadowRadius: 14,
+                shadowYOffset: 8
+            )
         }
         .buttonStyle(.plain)
     }
@@ -655,13 +652,14 @@ private struct AIHubCompactHeader: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(12)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(accent.opacity(0.14), lineWidth: 1)
+        .padding(10)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: accent,
+            cornerRadius: 18,
+            shadowRadius: 10,
+            shadowYOffset: 6
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -715,6 +713,7 @@ private struct AIWorkflowWorkspaceCard: View {
 }
 
 private struct AIHubBadge: View {
+    @Environment(\.colorScheme) private var colorScheme
     let text: String
     let color: Color
 
@@ -722,10 +721,9 @@ private struct AIHubBadge: View {
         Text(text)
             .font(.caption.weight(.semibold))
             .foregroundColor(color)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.12))
-            .clipShape(Capsule())
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .skydownCapsuleSurface(colorScheme: colorScheme, accent: color)
     }
 }
 

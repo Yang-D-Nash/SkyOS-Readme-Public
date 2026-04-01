@@ -15,13 +15,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 object SkydownUiTokens {
-    val screenHorizontalPadding = 16.dp
-    val screenTopPadding = 10.dp
-    val screenBottomPadding = 28.dp
-    val cardPadding = 18.dp
-    val heroPadding = 20.dp
-    val cardCornerRadius = 24.dp
-    val heroCornerRadius = 26.dp
+    val screenHorizontalPadding = 14.dp
+    val screenTopPadding = 8.dp
+    val screenBottomPadding = 24.dp
+    val cardPadding = 16.dp
+    val heroPadding = 18.dp
+    val cardCornerRadius = 22.dp
+    val heroCornerRadius = 24.dp
 }
 
 fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingValues(
@@ -50,7 +50,7 @@ fun skydownScreenBrush(
 @Composable
 fun skydownTopBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
     containerColor = Color.Transparent,
-    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
     navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
     titleContentColor = MaterialTheme.colorScheme.onSurface,
     actionIconContentColor = MaterialTheme.colorScheme.onSurface,

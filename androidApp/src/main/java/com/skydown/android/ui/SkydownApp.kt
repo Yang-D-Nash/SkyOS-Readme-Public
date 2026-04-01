@@ -375,13 +375,13 @@ private fun LaunchLandingScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterVertically),
+                .padding(horizontal = 18.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp, Alignment.CenterVertically),
         ) {
             Spacer(modifier = Modifier.height(1.dp))
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
                     text = "Sky²²",
@@ -391,18 +391,18 @@ private fun LaunchLandingScreen(
                 )
                 Text(
                     text = "Sky²²",
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = "Such dir einfach aus, womit du anfangen willst. Unten kannst du danach jederzeit weiterwechseln.",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.74f),
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 LaunchLandingChoiceCard(
                     step = "01",
                     eyebrow = "Listen & Artists",
@@ -431,7 +431,7 @@ private fun LaunchLandingScreen(
 
             Text(
                 text = "Danach bleibst du im normalen App-Flow und kannst unten jederzeit wechseln.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
             )
 
@@ -450,24 +450,24 @@ private fun LaunchLandingChoiceCard(
     onClick: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        tonalElevation = 10.dp,
-        shadowElevation = 14.dp,
+        tonalElevation = 8.dp,
+        shadowElevation = 10.dp,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
         onClick = onClick,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 22.dp, vertical = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
         ) {
             Box(
                 modifier = Modifier
                     .width(4.dp)
-                    .height(96.dp)
+                    .height(82.dp)
                     .background(accentColor, RoundedCornerShape(999.dp)),
             )
 
@@ -490,14 +490,14 @@ private fun LaunchLandingChoiceCard(
                     )
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Black,
                     )
                 }
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
@@ -540,7 +540,7 @@ private fun ZweizweiMusicLaneScreen(
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 28.dp),
+                    .padding(horizontal = 18.dp, vertical = 22.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 if (onBackToLanding != null) {
@@ -623,20 +623,20 @@ private fun LaunchLandingButton(
     onClick: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        tonalElevation = 10.dp,
-        shadowElevation = 14.dp,
+        tonalElevation = 8.dp,
+        shadowElevation = 10.dp,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.24f)),
     ) {
         Button(
             onClick = onClick,
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = androidx.compose.ui.graphics.Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onSurface,
             ),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(22.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp),
             elevation = null,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -646,12 +646,12 @@ private fun LaunchLandingButton(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }

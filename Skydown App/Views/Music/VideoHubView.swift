@@ -148,15 +148,14 @@ struct VideoHubView: View {
                     )
                 }
             }
-            .padding(18)
+            .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(AppColors.cardBackground(for: colorScheme))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+            .skydownPanelSurface(
+                colorScheme: colorScheme,
+                accent: AppColors.accentMystic(for: colorScheme),
+                cornerRadius: SkydownLayout.cardCornerRadius,
+                shadowRadius: 12,
+                shadowYOffset: 6
             )
         }
     }
@@ -218,15 +217,14 @@ struct VideoHubView: View {
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
         )
     }
 

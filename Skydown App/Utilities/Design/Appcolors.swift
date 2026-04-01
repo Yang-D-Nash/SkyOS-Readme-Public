@@ -35,7 +35,7 @@ struct AppColors {
         case .light:
             return Color(red: 169/255, green: 198/255, blue: 231/255)
         case .dark:
-            return Color(red: 234/255, green: 242/255, blue: 1.0)
+            return Color(red: 220/255, green: 233/255, blue: 246/255)
         @unknown default:
             return Color(red: 169/255, green: 198/255, blue: 231/255)
         }

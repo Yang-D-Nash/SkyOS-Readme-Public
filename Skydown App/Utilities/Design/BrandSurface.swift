@@ -50,25 +50,25 @@ struct BrandHeroSurface<Footer: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(eyebrow.uppercased())
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .tracking(1.4)
                         .foregroundColor(accent)
 
                     Text(title)
-                        .font(.system(size: 34, weight: .black, design: .rounded))
+                        .font(.system(size: 30, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
                     Text(subtitle)
-                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.footnote.weight(.semibold))
                             .foregroundColor(AppColors.text(for: colorScheme).opacity(0.86))
                     }
                 }
@@ -83,7 +83,7 @@ struct BrandHeroSurface<Footer: View>: View {
                             )
                         }
                     }
-                    .frame(width: 112)
+                    .frame(width: 96)
                 }
             }
 
@@ -93,52 +93,26 @@ struct BrandHeroSurface<Footer: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             ZStack {
-                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
-                    .fill(AppColors.cardBackground(for: colorScheme))
-
-                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                accent.opacity(colorScheme == .dark ? 0.22 : 0.16),
-                                secondaryAccent.opacity(colorScheme == .dark ? 0.14 : 0.10),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
                 Circle()
-                    .fill(accent.opacity(colorScheme == .dark ? 0.18 : 0.12))
-                    .frame(width: 220, height: 220)
-                    .blur(radius: 50)
-                    .offset(x: 140, y: -70)
-
-                Circle()
-                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.16 : 0.10))
-                    .frame(width: 180, height: 180)
+                    .fill(accent.opacity(colorScheme == .dark ? 0.14 : 0.08))
+                    .frame(width: 190, height: 190)
                     .blur(radius: 44)
-                    .offset(x: -120, y: 120)
+                    .offset(x: 130, y: -74)
+
+                Circle()
+                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.12 : 0.08))
+                    .frame(width: 150, height: 150)
+                    .blur(radius: 42)
+                    .offset(x: -110, y: 102)
             }
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            accent.opacity(0.26),
-                            secondaryAccent.opacity(0.18),
-                            Color.white.opacity(colorScheme == .dark ? 0.08 : 0.48)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        }
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.30 : 0.10), radius: 22, y: 10)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: accent,
+            cornerRadius: SkydownLayout.heroCornerRadius,
+            shadowRadius: 16,
+            shadowYOffset: 8
+        )
     }
 }
 
@@ -151,16 +125,9 @@ struct BrandHeroPill: View {
         Text(text)
             .font(.caption.weight(.semibold))
             .foregroundColor(tint)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(tint.opacity(0.16), lineWidth: 1)
-            )
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .skydownCapsuleSurface(colorScheme: colorScheme, accent: tint)
     }
 }
 
@@ -175,7 +142,7 @@ private struct BrandMarkTile: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .frame(height: 64)
+                .frame(height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Text(mark.label)
@@ -183,9 +150,9 @@ private struct BrandMarkTile: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .lineLimit(1)
         }
-        .padding(12)
+        .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -198,7 +165,7 @@ private struct BrandMarkTile: View {
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(accent.opacity(0.20), lineWidth: 1)
         )
     }

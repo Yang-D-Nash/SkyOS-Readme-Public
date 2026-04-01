@@ -222,7 +222,7 @@ struct MusicView: View {
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(brand.heroTitle)
-                .font(.largeTitle.bold())
+                .font(.system(size: 28, weight: .black, design: .rounded))
 
             Text(selectedArtist)
                 .font(.headline.weight(.semibold))
@@ -234,13 +234,12 @@ struct MusicView: View {
         }
         .padding(SkydownLayout.heroPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.heroCornerRadius,
+            shadowRadius: 14,
+            shadowYOffset: 8
         )
     }
 

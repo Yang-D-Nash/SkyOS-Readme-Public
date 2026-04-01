@@ -83,22 +83,22 @@ fun BrandHeroCard(
                 shape = shape,
             )
             .padding(SkydownUiTokens.heroPadding),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .size(180.dp)
-                    .blur(48.dp)
-                    .background(accent.copy(alpha = 0.12f), CircleShape),
+                    .size(160.dp)
+                    .blur(42.dp)
+                    .background(accent.copy(alpha = 0.10f), CircleShape),
             )
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .size(140.dp)
-                    .blur(42.dp)
-                    .background(secondaryAccent.copy(alpha = 0.10f), CircleShape),
+                    .size(120.dp)
+                    .blur(38.dp)
+                    .background(secondaryAccent.copy(alpha = 0.08f), CircleShape),
             )
 
             Row(
@@ -118,7 +118,7 @@ fun BrandHeroCard(
                     )
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Black,
                     )
@@ -140,8 +140,8 @@ fun BrandHeroCard(
                 if (marks.isNotEmpty()) {
                     Column(
                         modifier = Modifier
-                            .width(112.dp)
-                            .height(168.dp),
+                            .width(96.dp)
+                            .height(150.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         marks.take(2).forEach { mark ->
@@ -214,7 +214,7 @@ private fun BrandArtworkTile(
             contentDescription = mark.label,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(56.dp)
                 .clip(RoundedCornerShape(14.dp)),
             contentScale = ContentScale.Fit,
         )

@@ -454,13 +454,14 @@ private struct HomeLatestReleaseCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
-        .padding(18)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 
     private func homeReleaseLine(for track: Track) -> String {
@@ -531,13 +532,14 @@ private struct HomeLatestBeatCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
-        .padding(18)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -634,13 +636,14 @@ private struct HomeLatestVideoCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
-        .padding(18)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -742,13 +745,14 @@ private struct HomeStoryCard: View {
                 }
             }
         }
-        .padding(18)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -773,24 +777,25 @@ private struct HomeLaneSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             Text(subtitle)
-                .font(.subheadline)
+                .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 10) {
                 content
             }
         }
-        .padding(14)
-        .background(AppColors.secondaryBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+        .padding(SkydownLayout.cardPadding - 2)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.buttonCornerRadius + 2,
+            shadowRadius: 8,
+            shadowYOffset: 4
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -963,17 +968,17 @@ private struct HomeActionButton: View {
             HStack(alignment: .top, spacing: 10) {
                 if let icon {
                     Image(systemName: icon)
-                        .font(.subheadline.weight(.bold))
-                        .frame(width: 18)
+                        .font(.footnote.weight(.bold))
+                        .frame(width: 16)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.footnote.weight(.semibold))
 
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
-                            .font(.caption.weight(.medium))
+                            .font(.caption2.weight(.medium))
                             .foregroundColor(
                                 isPrimary
                                     ? Color.white.opacity(0.82)
@@ -986,28 +991,46 @@ private struct HomeActionButton: View {
                 Spacer()
             }
             .foregroundColor(isPrimary ? .white : AppColors.text(for: colorScheme))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(
-                        isPrimary
-                        ? AppColors.accent(for: colorScheme)
-                        : AppColors.secondaryBackground(for: colorScheme)
-                    )
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(buttonFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 16)
                     .stroke(
                         isPrimary
-                        ? AppColors.accent(for: colorScheme)
-                        : AppColors.accent(for: colorScheme).opacity(0.16),
+                        ? AppColors.accentHighlight(for: colorScheme).opacity(0.22)
+                        : AppColors.accent(for: colorScheme).opacity(0.12),
                         lineWidth: 1
                     )
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private var buttonFill: LinearGradient {
+        if isPrimary {
+            return LinearGradient(
+                colors: [
+                    AppColors.accent(for: colorScheme),
+                    AppColors.accentMystic(for: colorScheme)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [
+                AppColors.secondaryBackground(for: colorScheme).opacity(0.86),
+                AppColors.cardBackground(for: colorScheme).opacity(0.88)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
 
@@ -1151,13 +1174,13 @@ private struct ShopInfoCard: View {
                 .tint(AppColors.accent(for: colorScheme))
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
     }
 }
 
