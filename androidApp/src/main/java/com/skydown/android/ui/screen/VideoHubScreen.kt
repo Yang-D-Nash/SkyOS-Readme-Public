@@ -359,13 +359,6 @@ fun VideoHubScreen(
 
                 if (uiState.isAdmin) {
                     item {
-                        VideoUploadStatusCard(
-                            isUploading = uiState.isUploading,
-                            onOpenUpload = { showUploadSheet = true },
-                        )
-                    }
-
-                    item {
                         VideoFormatCard()
                     }
 
@@ -507,34 +500,6 @@ private fun VideoFormatCard() {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 10.dp),
         )
-    }
-}
-
-@Composable
-private fun VideoUploadStatusCard(
-    isUploading: Boolean,
-    onOpenUpload: () -> Unit,
-) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Upload")
-        Text(
-            text = if (isUploading) {
-                "Dein Video-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
-            } else {
-                "Uploads oeffnen jetzt als Overlay, damit die Seite schneller und sauberer bleibt."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        OutlinedButton(
-            onClick = onOpenUpload,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text("Upload oeffnen")
-        }
     }
 }
 

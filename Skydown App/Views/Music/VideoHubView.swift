@@ -65,7 +65,6 @@ struct VideoHubView: View {
                     libraryCard
 
                     if viewModel.isAdmin {
-                        uploadStatusCard
                         formatCard
                         VideoPublicConfigEditorCard(
                             colorScheme: colorScheme,
@@ -236,49 +235,6 @@ struct VideoHubView: View {
                 shadowYOffset: 6
             )
         }
-    }
-
-    private var uploadStatusCard: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Upload")
-                    .font(.headline)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text(
-                    viewModel.isUploading
-                    ? "Dein Video-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
-                    : "Uploads oeffnen jetzt als Overlay, damit die Seite schneller und sauberer bleibt."
-                )
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-
-            Spacer()
-
-            Button {
-                showingUploadSheet = true
-            } label: {
-                Text("Oeffnen")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(AppColors.accent(for: colorScheme))
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-        )
     }
 
     private func activateInitialSelectionIfNeeded(with videos: [SkydownVideoHubItem]) {

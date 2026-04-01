@@ -217,21 +217,10 @@ fun BeatHubScreen(
                 }
 
                 item {
-                    if (uiState.isAdmin) {
-                        BeatHubUploadStatusCard(
-                            isUploading = uiState.isUploading,
-                            onOpenUpload = { showUploadSheet = true },
-                        )
-                    } else {
-                        BeatHubListenerCard()
-                    }
-                }
-
-                item {
-                        BeatHubLibrarySection(
-                            uiState = uiState,
-                            currentBeatId = currentBeatId,
-                            onPlayToggle = { beat ->
+                    BeatHubLibrarySection(
+                        uiState = uiState,
+                        currentBeatId = currentBeatId,
+                        onPlayToggle = { beat ->
                             if (beat.isPlayable) {
                                 if (currentBeatId == beat.id) {
                                     player.stop()
@@ -244,12 +233,12 @@ fun BeatHubScreen(
                                     currentBeatId = beat.id
                                 }
                             }
-                            },
-                            onVisibilityToggle = viewModel::toggleBeatVisibility,
-                            onDeleteBeat = viewModel::deleteBeat,
-                        )
-                    }
+                        },
+                        onVisibilityToggle = viewModel::toggleBeatVisibility,
+                        onDeleteBeat = viewModel::deleteBeat,
+                    )
                 }
+            }
 
             ToastHost(
                 message = uiState.feedbackMessage,
@@ -350,55 +339,6 @@ private fun BeatHubHeroCard(
             BeatHubBadge(text = if (isAdmin) "Upload" else "Curated", isActive = true)
             BeatHubBadge(text = "Listen", isActive = false)
             BeatHubBadge(text = if (isAdmin) "Admin aktiv" else "Public Beats", isActive = false)
-        }
-    }
-}
-
-@Composable
-private fun BeatHubListenerCard() {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Listening Only")
-        Text(
-            text = "Dieser Bereich ist fuer Horer gedacht. Neue Uploads und die Pflege der Library bleiben im Admin-Bereich.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
-
-        Row(
-            modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            BeatHubBadge(text = "Public Beats", isActive = true)
-            BeatHubBadge(text = "Preview", isActive = false)
-        }
-    }
-}
-
-@Composable
-private fun BeatHubUploadStatusCard(
-    isUploading: Boolean,
-    onOpenUpload: () -> Unit,
-) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Upload")
-        Text(
-            text = if (isUploading) {
-                "Dein Beat-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
-            } else {
-                "Uploads oeffnen jetzt als Overlay, damit der Beat Hub im Horen und Sichten ruhig bleibt."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        OutlinedButton(
-            onClick = onOpenUpload,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text("Upload oeffnen")
         }
     }
 }

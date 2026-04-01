@@ -50,7 +50,7 @@ struct AIView: View {
     private var content: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
+                LazyVStack(alignment: .leading, spacing: showsNavigation ? 12 : 10) {
                     if showsNavigation && viewModel.messages.isEmpty {
                         AIHeroCard(
                             colorScheme: colorScheme,
@@ -92,8 +92,8 @@ struct AIView: View {
                 }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, showsNavigation ? 6 : 6)
-            .padding(.bottom, showsNavigation ? 12 : 20)
+            .padding(.top, showsNavigation ? 6 : 2)
+            .padding(.bottom, showsNavigation ? 12 : 14)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .simultaneousGesture(

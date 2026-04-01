@@ -50,7 +50,7 @@ struct AgentView: View {
     private var content: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
+                LazyVStack(alignment: .leading, spacing: showsNavigation ? 12 : 10) {
                     if showsNavigation && viewModel.messages.isEmpty {
                         AgentHeroCard(
                             colorScheme: colorScheme,
@@ -86,8 +86,8 @@ struct AgentView: View {
                 }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, showsNavigation ? 6 : 6)
-            .padding(.bottom, showsNavigation ? 12 : 20)
+            .padding(.top, showsNavigation ? 6 : 2)
+            .padding(.bottom, showsNavigation ? 12 : 14)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .simultaneousGesture(

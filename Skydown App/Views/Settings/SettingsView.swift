@@ -15,6 +15,7 @@ struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @StateObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
@@ -366,6 +367,10 @@ struct SettingsView: View {
         authManager.userSession?.isAdmin == true
     }
 
+    private var usesSidebarAdminWorkspace: Bool {
+        horizontalSizeClass == .regular
+    }
+
     private var connectedPaymentMethodCount: Int {
         var count = 0
         if paymentMethodSettingsStore.settings.stripe.connected { count += 1 }
@@ -402,410 +407,436 @@ struct SettingsView: View {
                 .disabled(!isAdminUser)
 
                 if isAdminUser {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(SettingsAdminWorkspaceSection.allCases) { section in
-                                SettingsAdminWorkspaceChip(
-                                    title: section.rawValue,
-                                    isSelected: activeAdminWorkspace == section,
-                                    colorScheme: effectiveColorScheme
-                                ) {
-                                    activeAdminWorkspace = section
+                    if usesSidebarAdminWorkspace {
+                        HStack(alignment: .top, spacing: 14) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(SettingsAdminWorkspaceSection.allCases) { section in
+                                    SettingsAdminWorkspaceSidebarButton(
+                                        section: section,
+                                        isSelected: activeAdminWorkspace == section,
+                                        colorScheme: effectiveColorScheme
+                                    ) {
+                                        activeAdminWorkspace = section
+                                    }
                                 }
                             }
+                            .frame(width: 190, alignment: .topLeading)
+
+                            adminWorkspaceContent
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    } else {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(SettingsAdminWorkspaceSection.allCases) { section in
+                                    SettingsAdminWorkspaceChip(
+                                        section: section,
+                                        isSelected: activeAdminWorkspace == section,
+                                        colorScheme: effectiveColorScheme
+                                    ) {
+                                        activeAdminWorkspace = section
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+
+                        adminWorkspaceContent
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var adminWorkspaceContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SettingsAdminWorkspaceSummaryCard(
+                section: activeAdminWorkspace,
+                colorScheme: effectiveColorScheme
+            )
+
+            switch activeAdminWorkspace {
+            case .overview:
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Heute im Blick")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            SettingsBadge(
+                                text: merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "\(connectedPaymentMethodCount) Zahlarten verbunden",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "\(visiblePaymentMethodCount) im Checkout sichtbar",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: workflowAutomationSettings.settings.isPrepared ? "Automation vorbereitet" : "Automation offen",
+                                colorScheme: effectiveColorScheme
+                            )
                         }
                         .padding(.vertical, 2)
                     }
 
-                    SettingsAdminWorkspaceSummaryCard(
-                        title: activeAdminWorkspace.rawValue,
-                        subtitle: activeAdminWorkspace.subtitle,
-                        colorScheme: effectiveColorScheme
+                    Text(usesSidebarAdminWorkspace ? "Waehle links den Bereich, den du gerade brauchst. So bleibt alles kompakt und du landest direkt in der passenden Aufgabe." : "Waehle oben einfach den Bereich, den du gerade brauchst. Dadurch bleibt der Admin-Teil kurz und du springst direkt in die passende Aufgabe.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                }
+
+            case .payments:
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("PayPal und Bankueberweisung kannst du sofort als manuellen Checkout-Handoff nutzen. Stripe und Klarna bleiben vorerst vorbereitete Live-Provider fuer spaeter.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    PaymentProviderSettingsCard(
+                        colorScheme: effectiveColorScheme,
+                        title: "Stripe",
+                        statusText: paymentMethodSettingsStore.settings.stripe.connected ? "Verbunden" : "Nicht verbunden",
+                        checkoutVisible: paymentMethodSettingsStore.settings.stripe.connected && paymentMethodSettingsStore.settings.stripe.enabled,
+                        accountHintTitle: "Stripe Konto / Workspace",
+                        accountHintPlaceholder: "z. B. Skydown Merch Workspace",
+                        accountHint: $stripeAccountHintDraft,
+                        actionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Verbindung aktualisieren" : "Mit Stripe verbinden",
+                        secondaryActionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Trennen" : nil,
+                        onPrimaryAction: { saveStripeConnection() },
+                        onSecondaryAction: paymentMethodSettingsStore.settings.stripe.connected ? { disconnectStripe() } : nil
+                    ) { isVisible in
+                        setCheckoutVisibility(
+                            keyPath: \.stripe,
+                            isVisible: isVisible,
+                            providerName: "Stripe"
+                        )
+                    }
+
+                    PaymentProviderSettingsCard(
+                        colorScheme: effectiveColorScheme,
+                        title: "PayPal",
+                        statusText: paymentMethodSettingsStore.settings.paypal.connected ? "Hinterlegt" : "Noch nicht hinterlegt",
+                        checkoutVisible: paymentMethodSettingsStore.settings.paypal.connected && paymentMethodSettingsStore.settings.paypal.enabled,
+                        accountHintTitle: "PayPal.Me Link oder Business-Mail",
+                        accountHintPlaceholder: "z. B. https://paypal.me/deinname",
+                        accountHint: $paypalAccountHintDraft,
+                        actionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "PayPal aktualisieren" : "PayPal hinterlegen",
+                        secondaryActionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "Entfernen" : nil,
+                        onPrimaryAction: { savePayPalConnection() },
+                        onSecondaryAction: paymentMethodSettingsStore.settings.paypal.connected ? { disconnectPayPal() } : nil
+                    ) { isVisible in
+                        setCheckoutVisibility(
+                            keyPath: \.paypal,
+                            isVisible: isVisible,
+                            providerName: "PayPal"
+                        )
+                    }
+
+                    PaymentProviderSettingsCard(
+                        colorScheme: effectiveColorScheme,
+                        title: "Klarna",
+                        statusText: paymentMethodSettingsStore.settings.klarna.connected ? "Verbunden" : "Nicht verbunden",
+                        checkoutVisible: paymentMethodSettingsStore.settings.klarna.connected && paymentMethodSettingsStore.settings.klarna.enabled,
+                        accountHintTitle: "Klarna Merchant / Store ID",
+                        accountHintPlaceholder: "z. B. Klarna Merchant EU",
+                        accountHint: $klarnaAccountHintDraft,
+                        actionTitle: paymentMethodSettingsStore.settings.klarna.connected ? "Verbindung aktualisieren" : "Mit Klarna verbinden",
+                        secondaryActionTitle: paymentMethodSettingsStore.settings.klarna.connected ? "Trennen" : nil,
+                        onPrimaryAction: { saveKlarnaConnection() },
+                        onSecondaryAction: paymentMethodSettingsStore.settings.klarna.connected ? { disconnectKlarna() } : nil
+                    ) { isVisible in
+                        setCheckoutVisibility(
+                            keyPath: \.klarna,
+                            isVisible: isVisible,
+                            providerName: "Klarna"
+                        )
+                    }
+
+                    BankTransferSettingsCard(
+                        colorScheme: effectiveColorScheme,
+                        isConfigured: paymentMethodSettingsStore.settings.bankTransfer.isConfigured,
+                        checkoutVisible: paymentMethodSettingsStore.settings.bankTransfer.enabled && paymentMethodSettingsStore.settings.bankTransfer.isConfigured,
+                        accountHolder: $bankAccountHolderDraft,
+                        iban: $bankIbanDraft,
+                        bic: $bankBicDraft,
+                        bankName: $bankNameDraft,
+                        paymentInstructions: $bankInstructionsDraft,
+                        onSave: { saveBankTransferDetails() },
+                        onToggleCheckoutVisible: { isVisible in
+                            setBankTransferVisibility(isVisible)
+                        }
+                    )
+                }
+
+            case .commerce:
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(
+                            text: merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert",
+                            colorScheme: effectiveColorScheme
+                        )
+                        SettingsBadge(
+                            text: commerceSettingsStore.settings.invoice.supportEmail.takeIfNotBlank() ?? "Support offen",
+                            colorScheme: effectiveColorScheme
+                        )
+                    }
+
+                    Text("Versand")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                    SettingsInputField(
+                        title: "Versand Deutschland (EUR)",
+                        text: $domesticShippingDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. 4.90",
+                        keyboardType: .decimalPad
                     )
 
-                    switch activeAdminWorkspace {
-                    case .overview:
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Heute im Blick")
-                                .font(.headline)
-                                .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                    SettingsInputField(
+                        title: "Versand EU (EUR)",
+                        text: $euShippingDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. 6.90",
+                        keyboardType: .decimalPad
+                    )
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    SettingsBadge(
-                                        text: merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert",
-                                        colorScheme: effectiveColorScheme
-                                    )
-                                    SettingsBadge(
-                                        text: "\(connectedPaymentMethodCount) Zahlarten verbunden",
-                                        colorScheme: effectiveColorScheme
-                                    )
-                                    SettingsBadge(
-                                        text: "\(visiblePaymentMethodCount) im Checkout sichtbar",
-                                        colorScheme: effectiveColorScheme
-                                    )
-                                    SettingsBadge(
-                                        text: aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus",
-                                        colorScheme: effectiveColorScheme
-                                    )
-                                    SettingsBadge(
-                                        text: workflowAutomationSettings.settings.isPrepared ? "Automation vorbereitet" : "Automation offen",
-                                        colorScheme: effectiveColorScheme
-                                    )
-                                }
-                                .padding(.vertical, 2)
-                            }
+                    SettingsInputField(
+                        title: "Versand International (EUR)",
+                        text: $internationalShippingDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. 11.90",
+                        keyboardType: .decimalPad
+                    )
 
-                            Text("Waehle oben einfach den Bereich, den du gerade brauchst. Dadurch bleibt der Admin-Teil kurz und du springst direkt in die passende Aufgabe.")
-                                .font(.footnote)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                        }
+                    SettingsInputField(
+                        title: "Versand frei ab (EUR)",
+                        text: $freeShippingThresholdDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. 89.00",
+                        keyboardType: .decimalPad
+                    )
 
-                    case .payments:
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("PayPal und Bankueberweisung kannst du sofort als manuellen Checkout-Handoff nutzen. Stripe und Klarna bleiben vorerst vorbereitete Live-Provider fuer spaeter.")
-                                .font(.body)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    SettingsInputField(
+                        title: "Versandhinweis",
+                        text: $shippingNotesDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Versand innerhalb von 3-5 Werktagen"
+                    )
 
-                            PaymentProviderSettingsCard(
-                                colorScheme: effectiveColorScheme,
-                                title: "Stripe",
-                                statusText: paymentMethodSettingsStore.settings.stripe.connected ? "Verbunden" : "Nicht verbunden",
-                                checkoutVisible: paymentMethodSettingsStore.settings.stripe.connected && paymentMethodSettingsStore.settings.stripe.enabled,
-                                accountHintTitle: "Stripe Konto / Workspace",
-                                accountHintPlaceholder: "z. B. Skydown Merch Workspace",
-                                accountHint: $stripeAccountHintDraft,
-                                actionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Verbindung aktualisieren" : "Mit Stripe verbinden",
-                                secondaryActionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Trennen" : nil,
-                                onPrimaryAction: { saveStripeConnection() },
-                                onSecondaryAction: paymentMethodSettingsStore.settings.stripe.connected ? { disconnectStripe() } : nil
-                            ) { isVisible in
-                                setCheckoutVisibility(
-                                    keyPath: \.stripe,
-                                    isVisible: isVisible,
-                                    providerName: "Stripe"
-                                )
-                            }
+                    Divider()
+                        .padding(.vertical, 4)
 
-                            PaymentProviderSettingsCard(
-                                colorScheme: effectiveColorScheme,
-                                title: "PayPal",
-                                statusText: paymentMethodSettingsStore.settings.paypal.connected ? "Hinterlegt" : "Noch nicht hinterlegt",
-                                checkoutVisible: paymentMethodSettingsStore.settings.paypal.connected && paymentMethodSettingsStore.settings.paypal.enabled,
-                                accountHintTitle: "PayPal.Me Link oder Business-Mail",
-                                accountHintPlaceholder: "z. B. https://paypal.me/deinname",
-                                accountHint: $paypalAccountHintDraft,
-                                actionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "PayPal aktualisieren" : "PayPal hinterlegen",
-                                secondaryActionTitle: paymentMethodSettingsStore.settings.paypal.connected ? "Entfernen" : nil,
-                                onPrimaryAction: { savePayPalConnection() },
-                                onSecondaryAction: paymentMethodSettingsStore.settings.paypal.connected ? { disconnectPayPal() } : nil
-                            ) { isVisible in
-                                setCheckoutVisibility(
-                                    keyPath: \.paypal,
-                                    isVisible: isVisible,
-                                    providerName: "PayPal"
-                                )
-                            }
+                    Text("Rechnung")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                            PaymentProviderSettingsCard(
-                                colorScheme: effectiveColorScheme,
-                                title: "Klarna",
-                                statusText: paymentMethodSettingsStore.settings.klarna.connected ? "Verbunden" : "Nicht verbunden",
-                                checkoutVisible: paymentMethodSettingsStore.settings.klarna.connected && paymentMethodSettingsStore.settings.klarna.enabled,
-                                accountHintTitle: "Klarna Merchant / Store ID",
-                                accountHintPlaceholder: "z. B. Klarna Merchant EU",
-                                accountHint: $klarnaAccountHintDraft,
-                                actionTitle: paymentMethodSettingsStore.settings.klarna.connected ? "Verbindung aktualisieren" : "Mit Klarna verbinden",
-                                secondaryActionTitle: paymentMethodSettingsStore.settings.klarna.connected ? "Trennen" : nil,
-                                onPrimaryAction: { saveKlarnaConnection() },
-                                onSecondaryAction: paymentMethodSettingsStore.settings.klarna.connected ? { disconnectKlarna() } : nil
-                            ) { isVisible in
-                                setCheckoutVisibility(
-                                    keyPath: \.klarna,
-                                    isVisible: isVisible,
-                                    providerName: "Klarna"
-                                )
-                            }
+                    SettingsInputField(
+                        title: "Firmenname",
+                        text: $invoiceCompanyNameDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Skydown Entertainment"
+                    )
 
-                            BankTransferSettingsCard(
-                                colorScheme: effectiveColorScheme,
-                                isConfigured: paymentMethodSettingsStore.settings.bankTransfer.isConfigured,
-                                checkoutVisible: paymentMethodSettingsStore.settings.bankTransfer.enabled && paymentMethodSettingsStore.settings.bankTransfer.isConfigured,
-                                accountHolder: $bankAccountHolderDraft,
-                                iban: $bankIbanDraft,
-                                bic: $bankBicDraft,
-                                bankName: $bankNameDraft,
-                                paymentInstructions: $bankInstructionsDraft,
-                                onSave: { saveBankTransferDetails() },
-                                onToggleCheckoutVisible: { isVisible in
-                                    setBankTransferVisibility(isVisible)
-                                }
-                            )
-                        }
+                    SettingsInputField(
+                        title: "Firmenadresse",
+                        text: $invoiceCompanyAddressDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Strasse, PLZ Ort"
+                    )
 
-                    case .commerce:
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.")
-                                .font(.body)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    SettingsInputField(
+                        title: "Steuernummer",
+                        text: $invoiceTaxNumberDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "optional"
+                    )
 
-                            HStack(spacing: 10) {
-                                SettingsBadge(
-                                    text: merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert",
-                                    colorScheme: effectiveColorScheme
-                                )
-                                SettingsBadge(
-                                    text: commerceSettingsStore.settings.invoice.supportEmail.takeIfNotBlank() ?? "Support offen",
-                                    colorScheme: effectiveColorScheme
-                                )
-                            }
+                    SettingsInputField(
+                        title: "USt-IdNr.",
+                        text: $invoiceVatIdDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "optional"
+                    )
 
-                            Text("Versand")
-                                .font(.headline)
-                                .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                    HStack(spacing: 10) {
+                        SettingsInputField(
+                            title: "MwSt. Satz (%)",
+                            text: $invoiceTaxRateDraft,
+                            colorScheme: effectiveColorScheme,
+                            placeholder: "19.0",
+                            keyboardType: .decimalPad
+                        )
 
-                            SettingsInputField(
-                                title: "Versand Deutschland (EUR)",
-                                text: $domesticShippingDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. 4.90",
-                                keyboardType: .decimalPad
-                            )
+                        SettingsInputField(
+                            title: "Rechnungs-Praefix",
+                            text: $invoicePrefixDraft,
+                            colorScheme: effectiveColorScheme,
+                            placeholder: "SD"
+                        )
+                    }
 
-                            SettingsInputField(
-                                title: "Versand EU (EUR)",
-                                text: $euShippingDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. 6.90",
-                                keyboardType: .decimalPad
-                            )
+                    SettingsInputField(
+                        title: "Support / Rechnungs-Mail",
+                        text: $invoiceSupportEmailDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "skydownent@gmail.com",
+                        keyboardType: .emailAddress
+                    )
 
-                            SettingsInputField(
-                                title: "Versand International (EUR)",
-                                text: $internationalShippingDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. 11.90",
-                                keyboardType: .decimalPad
-                            )
+                    Button {
+                        saveCommerceSettings()
+                    } label: {
+                        Label("Versand & Rechnung speichern", systemImage: "shippingbox.and.arrow.backward")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accentMystic(for: effectiveColorScheme))
+                }
 
-                            SettingsInputField(
-                                title: "Versand frei ab (EUR)",
-                                text: $freeShippingThresholdDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. 89.00",
-                                keyboardType: .decimalPad
-                            )
-
-                            SettingsInputField(
-                                title: "Versandhinweis",
-                                text: $shippingNotesDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. Versand innerhalb von 3-5 Werktagen"
-                            )
-
-                            Divider()
-                                .padding(.vertical, 4)
-
-                            Text("Rechnung")
-                                .font(.headline)
-                                .foregroundColor(AppColors.text(for: effectiveColorScheme))
-
-                            SettingsInputField(
-                                title: "Firmenname",
-                                text: $invoiceCompanyNameDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "Skydown Entertainment"
-                            )
-
-                            SettingsInputField(
-                                title: "Firmenadresse",
-                                text: $invoiceCompanyAddressDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "Strasse, PLZ Ort"
-                            )
-
-                            SettingsInputField(
-                                title: "Steuernummer",
-                                text: $invoiceTaxNumberDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "optional"
-                            )
-
-                            SettingsInputField(
-                                title: "USt-IdNr.",
-                                text: $invoiceVatIdDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "optional"
-                            )
-
-                            HStack(spacing: 10) {
-                                SettingsInputField(
-                                    title: "MwSt. Satz (%)",
-                                    text: $invoiceTaxRateDraft,
-                                    colorScheme: effectiveColorScheme,
-                                    placeholder: "19.0",
-                                    keyboardType: .decimalPad
-                                )
-
-                                SettingsInputField(
-                                    title: "Rechnungs-Praefix",
-                                    text: $invoicePrefixDraft,
-                                    colorScheme: effectiveColorScheme,
-                                    placeholder: "SD"
-                                )
-                            }
-
-                            SettingsInputField(
-                                title: "Support / Rechnungs-Mail",
-                                text: $invoiceSupportEmailDraft,
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "skydownent@gmail.com",
-                                keyboardType: .emailAddress
-                            )
-
-                            Button {
-                                saveCommerceSettings()
-                            } label: {
-                                Label("Versand & Rechnung speichern", systemImage: "shippingbox.and.arrow.backward")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppColors.accentMystic(for: effectiveColorScheme))
-                        }
-
-                    case .visuals:
-                        VStack(alignment: .leading, spacing: 12) {
-                            Toggle(
-                                "Visual Reference Pack aktiv",
-                                isOn: Binding(
-                                    get: { aiVisualReferenceLibrary.settings.isEnabled },
-                                    set: { isEnabled in
-                                        aiVisualReferenceLibrary.update { settings in
-                                            settings.isEnabled = isEnabled
-                                        }
-                                    }
-                                )
-                            )
-
-                            Text("Lokal auf diesem Admin-Geraet gespeichert. Drive-Link und Referenzhinweise helfen der KI bei Benennung und Stilrichtung; echtes Drive-Sync folgt spaeter.")
-                                .font(.footnote)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
-                            SettingsInputField(
-                                title: "Drive- oder Asset-Link",
-                                text: Binding(
-                                    get: { aiVisualReferenceLibrary.settings.storageLink },
-                                    set: { value in
-                                        aiVisualReferenceLibrary.update { settings in
-                                            settings.storageLink = value
-                                        }
-                                    }
-                                ),
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "https://drive.google.com/..."
-                            )
-
-                            SettingsInputField(
-                                title: "Benennungs-Praefix",
-                                text: Binding(
-                                    get: { aiVisualReferenceLibrary.settings.namingPrefix },
-                                    set: { value in
-                                        aiVisualReferenceLibrary.update { settings in
-                                            settings.namingPrefix = value
-                                        }
-                                    }
-                                ),
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. skydown_drop_"
-                            )
-
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Referenzhinweise")
-                                    .font(.headline)
-                                    .foregroundColor(AppColors.text(for: effectiveColorScheme))
-
-                                Text("Bis zu 5 kurze Hinweise fuer Charaktere, Elemente, Moodboards oder Shots.")
-                                    .font(.footnote)
-                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
-                                ForEach(Array(aiVisualReferenceLibrary.settings.referenceHints.indices), id: \.self) { index in
-                                    SettingsInputField(
-                                        title: "Referenz \(index + 1)",
-                                        text: Binding(
-                                            get: { aiVisualReferenceLibrary.settings.referenceHints[index] },
-                                            set: { value in
-                                                aiVisualReferenceLibrary.update { settings in
-                                                    guard settings.referenceHints.indices.contains(index) else { return }
-                                                    settings.referenceHints[index] = value
-                                                }
-                                            }
-                                        ),
-                                        colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. Close-up Charakter mit starker Seitenkante und dunklem Hintergrund"
-                                    )
+            case .visuals:
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle(
+                        "Visual Reference Pack aktiv",
+                        isOn: Binding(
+                            get: { aiVisualReferenceLibrary.settings.isEnabled },
+                            set: { isEnabled in
+                                aiVisualReferenceLibrary.update { settings in
+                                    settings.isEnabled = isEnabled
                                 }
                             }
-                        }
+                        )
+                    )
 
-                    case .automation:
-                        VStack(alignment: .leading, spacing: 12) {
-                            Toggle(
-                                "Google fuer Automationen separat halten",
-                                isOn: Binding(
-                                    get: { workflowAutomationSettings.settings.keepsGoogleSeparate },
-                                    set: { isEnabled in
-                                        workflowAutomationSettings.update { settings in
-                                            settings.keepsGoogleSeparate = isEnabled
-                                        }
-                                    }
-                                )
-                            )
+                    Text("Lokal auf diesem Admin-Geraet gespeichert. Drive-Link und Referenzhinweise helfen der KI bei Benennung und Stilrichtung; echtes Drive-Sync folgt spaeter.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                            Toggle(
-                                "Automation-Google vorbereitet",
-                                isOn: Binding(
-                                    get: { workflowAutomationSettings.settings.isPrepared },
-                                    set: { isPrepared in
-                                        workflowAutomationSettings.update { settings in
-                                            settings.isPrepared = isPrepared
-                                        }
-                                    }
-                                )
-                            )
+                    SettingsInputField(
+                        title: "Drive- oder Asset-Link",
+                        text: Binding(
+                            get: { aiVisualReferenceLibrary.settings.storageLink },
+                            set: { value in
+                                aiVisualReferenceLibrary.update { settings in
+                                    settings.storageLink = value
+                                }
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "https://drive.google.com/..."
+                    )
 
-                            Text("Das normale Google-Login der App bleibt damit getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.")
-                                .font(.footnote)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    SettingsInputField(
+                        title: "Benennungs-Praefix",
+                        text: Binding(
+                            get: { aiVisualReferenceLibrary.settings.namingPrefix },
+                            set: { value in
+                                aiVisualReferenceLibrary.update { settings in
+                                    settings.namingPrefix = value
+                                }
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. skydown_drop_"
+                    )
 
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Referenzhinweise")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                        Text("Bis zu 5 kurze Hinweise fuer Charaktere, Elemente, Moodboards oder Shots.")
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                        ForEach(Array(aiVisualReferenceLibrary.settings.referenceHints.indices), id: \.self) { index in
                             SettingsInputField(
-                                title: "Automation Google Konto",
+                                title: "Referenz \(index + 1)",
                                 text: Binding(
-                                    get: { workflowAutomationSettings.settings.googleAccountHint },
+                                    get: { aiVisualReferenceLibrary.settings.referenceHints[index] },
                                     set: { value in
-                                        workflowAutomationSettings.update { settings in
-                                            settings.googleAccountHint = value
+                                        aiVisualReferenceLibrary.update { settings in
+                                            guard settings.referenceHints.indices.contains(index) else { return }
+                                            settings.referenceHints[index] = value
                                         }
                                     }
                                 ),
                                 colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. automation@deinedomain.de"
-                            )
-
-                            SettingsInputField(
-                                title: "Google Scope / Einsatz",
-                                text: Binding(
-                                    get: { workflowAutomationSettings.settings.googleScopeHint },
-                                    set: { value in
-                                        workflowAutomationSettings.update { settings in
-                                            settings.googleScopeHint = value
-                                        }
-                                    }
-                                ),
-                                colorScheme: effectiveColorScheme,
-                                placeholder: "z. B. Drive, Sheets, Calendar"
+                                placeholder: "z. B. Close-up Charakter mit starker Seitenkante und dunklem Hintergrund"
                             )
                         }
                     }
+                }
+
+            case .automation:
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle(
+                        "Google fuer Automationen separat halten",
+                        isOn: Binding(
+                            get: { workflowAutomationSettings.settings.keepsGoogleSeparate },
+                            set: { isEnabled in
+                                workflowAutomationSettings.update { settings in
+                                    settings.keepsGoogleSeparate = isEnabled
+                                }
+                            }
+                        )
+                    )
+
+                    Toggle(
+                        "Automation-Google vorbereitet",
+                        isOn: Binding(
+                            get: { workflowAutomationSettings.settings.isPrepared },
+                            set: { isPrepared in
+                                workflowAutomationSettings.update { settings in
+                                    settings.isPrepared = isPrepared
+                                }
+                            }
+                        )
+                    )
+
+                    Text("Das normale Google-Login der App bleibt damit getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    SettingsInputField(
+                        title: "Automation Google Konto",
+                        text: Binding(
+                            get: { workflowAutomationSettings.settings.googleAccountHint },
+                            set: { value in
+                                workflowAutomationSettings.update { settings in
+                                    settings.googleAccountHint = value
+                                }
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. automation@deinedomain.de"
+                    )
+
+                    SettingsInputField(
+                        title: "Google Scope / Einsatz",
+                        text: Binding(
+                            get: { workflowAutomationSettings.settings.googleScopeHint },
+                            set: { value in
+                                workflowAutomationSettings.update { settings in
+                                    settings.googleScopeHint = value
+                                }
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Drive, Sheets, Calendar"
+                    )
                 }
             }
         }
@@ -1509,6 +1540,21 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var iconName: String {
+        switch self {
+        case .overview:
+            return "square.grid.2x2.fill"
+        case .payments:
+            return "creditcard.fill"
+        case .commerce:
+            return "shippingbox.fill"
+        case .visuals:
+            return "photo.stack.fill"
+        case .automation:
+            return "bolt.fill"
+        }
+    }
+
     var subtitle: String {
         switch self {
         case .overview:
@@ -1526,52 +1572,110 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
 }
 
 private struct SettingsAdminWorkspaceChip: View {
-    let title: String
+    let section: SettingsAdminWorkspaceSection
     let isSelected: Bool
     let colorScheme: ColorScheme
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    Capsule()
-                        .fill(
-                            isSelected
-                            ? AppColors.accent(for: colorScheme)
-                            : AppColors.secondaryBackground(for: colorScheme)
-                        )
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(
-                            AppColors.accent(for: colorScheme).opacity(isSelected ? 1 : 0.14),
-                            lineWidth: 1
-                        )
-                )
+            HStack(spacing: 8) {
+                Image(systemName: section.iconName)
+                    .font(.caption.weight(.bold))
+                Text(section.rawValue)
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(
+                        isSelected
+                        ? AppColors.accent(for: colorScheme)
+                        : AppColors.secondaryBackground(for: colorScheme)
+                    )
+            )
+            .overlay(
+                Capsule()
+                    .stroke(
+                        AppColors.accent(for: colorScheme).opacity(isSelected ? 1 : 0.14),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsAdminWorkspaceSidebarButton: View {
+    let section: SettingsAdminWorkspaceSection
+    let isSelected: Bool
+    let colorScheme: ColorScheme
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                Image(systemName: section.iconName)
+                    .font(.subheadline.weight(.bold))
+                    .frame(width: 20)
+
+                Text(section.rawValue)
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.leading)
+
+                Spacer(minLength: 0)
+            }
+            .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(
+                        isSelected
+                        ? AppColors.accent(for: colorScheme)
+                        : AppColors.secondaryBackground(for: colorScheme)
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(
+                        AppColors.accent(for: colorScheme).opacity(isSelected ? 1 : 0.14),
+                        lineWidth: 1
+                    )
+            )
         }
         .buttonStyle(.plain)
     }
 }
 
 private struct SettingsAdminWorkspaceSummaryCard: View {
-    let title: String
-    let subtitle: String
+    let section: SettingsAdminWorkspaceSection
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.accent(for: colorScheme).opacity(0.12))
+                    .frame(width: 34, height: 34)
 
-            Text(subtitle)
-                .font(.footnote)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Image(systemName: section.iconName)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(section.rawValue)
+                    .font(.headline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(section.subtitle)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)

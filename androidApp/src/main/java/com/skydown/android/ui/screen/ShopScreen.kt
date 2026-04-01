@@ -28,7 +28,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
@@ -37,7 +36,6 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -101,7 +99,6 @@ fun ShopScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    var showAddSheet by rememberSaveable { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<MerchandiseItem?>(null) }
     var itemPendingDelete by remember { mutableStateOf<MerchandiseItem?>(null) }
 
@@ -134,20 +131,6 @@ fun ShopScreen(
                 colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
             )
-        },
-        floatingActionButton = {
-            if (uiState.isAdmin) {
-                FloatingActionButton(
-                    onClick = { showAddSheet = true },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Artikel hinzufuegen",
-                    )
-                }
-            }
         },
     ) { innerPadding ->
         Box(
@@ -213,30 +196,6 @@ fun ShopScreen(
                         },
                     )
                 }
-            }
-
-            if (showAddSheet) {
-                MerchandiseEditorSheet(
-                    isSaving = uiState.isSaving,
-                    initialItem = null,
-                    onDismiss = { showAddSheet = false },
-                    onSave = { name, description, price, available, isVisibleInApp, featured, sortOrder, customBadge, customImageOverride, imageDataList ->
-                        viewModel.addItem(
-                            name = name,
-                            description = description,
-                            priceInput = price,
-                            available = available,
-                            isVisibleInApp = isVisibleInApp,
-                            featured = featured,
-                            sortOrderInput = sortOrder,
-                            customBadge = customBadge,
-                            customImageOverride = customImageOverride,
-                            imageDataList = imageDataList,
-                        ) {
-                            showAddSheet = false
-                        }
-                    },
-                )
             }
 
             editingItem?.let { item ->
@@ -401,6 +360,15 @@ private fun ShopOverviewCard(
                     }
                 }
             }
+        }
+
+        if (uiState.isAdmin) {
+            Text(
+                text = "Produkte und Varianten kommen aus Shopify. Hier in der App verwaltest du nur Sichtbarkeit, Reihenfolge und Zusatzinfos.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier.padding(top = 12.dp),
+            )
         }
     }
 }

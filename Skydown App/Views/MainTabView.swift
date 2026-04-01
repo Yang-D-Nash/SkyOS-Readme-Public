@@ -407,7 +407,7 @@ private struct AIHubView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: SkydownLayout.sectionSpacing) {
+            VStack(spacing: 10) {
                 if authManager.userSession == nil {
                     AIHubLoginCard(
                         colorScheme: colorScheme,
@@ -437,7 +437,7 @@ private struct AIHubView: View {
                         }
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, 12)
+                    .padding(.top, 8)
 
                     Group {
                         if showsWorkflowWorkspace {
@@ -447,6 +447,7 @@ private struct AIHubView: View {
                             ) {
                                 showsWorkflowWorkspace = false
                             }
+                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                         } else if mode == .bot {
                             AIView(
                                 aiChatService: aiChatService,
@@ -603,7 +604,7 @@ private struct AIHubCompactHeader: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 7) {
             ForEach(AIHubMode.allCases) { currentMode in
                 Button {
                     onSelectMode(currentMode)
@@ -614,7 +615,7 @@ private struct AIHubCompactHeader: View {
                             .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 9)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
                             .fill(
@@ -641,7 +642,7 @@ private struct AIHubCompactHeader: View {
                 }
                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                 .padding(.horizontal, 12)
-                .frame(height: 44)
+                .frame(height: 42)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
                         .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
@@ -649,7 +650,7 @@ private struct AIHubCompactHeader: View {
             }
             .buttonStyle(SkydownTactileButtonStyle())
         }
-        .padding(10)
+        .padding(8)
         .skydownPanelSurface(
             colorScheme: colorScheme,
             accent: accent,
@@ -666,7 +667,7 @@ private struct AIWorkflowWorkspaceCard: View {
     let onClose: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("Automation")
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))

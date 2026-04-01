@@ -257,6 +257,7 @@ fun SkydownApp() {
                 }
                 composable("cart") {
                     CartScreen(
+                        onBack = { navController.popBackStack() },
                         onOpenLogin = { authSheet = AuthSheet.Login },
                         onOpenSettings = openSettings,
                     )

@@ -13,6 +13,7 @@ import MessageUI
 struct CartView: View {
     @EnvironmentObject var cartVM: CartViewModel
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
@@ -315,6 +316,15 @@ struct CartView: View {
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.headline.weight(.bold))
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(onOpenSettings: onOpenSettings)
                 }

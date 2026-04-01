@@ -116,7 +116,7 @@ fun AiHubScreen(
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 10.dp,
+                            bottom = 8.dp,
                         ),
                     )
                 } else if (!hasAiAccess) {
@@ -129,7 +129,7 @@ fun AiHubScreen(
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 10.dp,
+                            bottom = 8.dp,
                         ),
                     )
                 } else {
@@ -143,9 +143,9 @@ fun AiHubScreen(
                         onToggleWorkflow = onToggleWorkflow,
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = SkydownUiTokens.screenTopPadding + 4.dp,
+                            top = SkydownUiTokens.screenTopPadding + 2.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 12.dp,
+                            bottom = 8.dp,
                         ),
                     )
 
@@ -267,10 +267,10 @@ private fun AiHubCompactHeader(
 
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(10.dp),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AiHubModeButton(
@@ -289,7 +289,7 @@ private fun AiHubCompactHeader(
             OutlinedButton(
                 onClick = onToggleWorkflow,
                 shape = RoundedCornerShape(18.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
             ) {
                 Text(if (showsWorkflowWorkspace) "Zur KI" else "Automation")
             }

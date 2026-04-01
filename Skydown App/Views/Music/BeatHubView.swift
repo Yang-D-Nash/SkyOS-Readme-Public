@@ -26,13 +26,6 @@ struct BeatHubView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 heroCard
-
-                if viewModel.isAdmin {
-                    uploadStatusCard
-                } else {
-                    listeningCard
-                }
-
                 beatsCard
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -266,76 +259,6 @@ struct BeatHubView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 24)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-        )
-    }
-
-    private var uploadStatusCard: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Upload")
-                    .font(.headline)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text(
-                    viewModel.isUploading
-                    ? "Dein Beat-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
-                    : "Uploads oeffnen jetzt als Overlay, damit du im Hub schneller bei den Beats bleibst."
-                )
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-
-            Spacer()
-
-            Button {
-                showingUploadSheet = true
-            } label: {
-                Text("Oeffnen")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(AppColors.accent(for: colorScheme))
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-        )
-    }
-
-    private var listeningCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Listening Only")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Der Beat Hub ist fuer Horer gedacht. Neue Uploads und die Pflege der Library bleiben im Admin-Bereich.")
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            HStack(spacing: 8) {
-                MusicBadge(text: "Public Beats", isAccent: true)
-                MusicBadge(text: "Preview", isAccent: false)
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
     }
 

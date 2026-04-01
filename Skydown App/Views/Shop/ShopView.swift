@@ -148,7 +148,6 @@ struct ShopView: View {
     private let onOpenLogin: () -> Void
     private let onOpenCart: () -> Void
     private let onOpenSettings: () -> Void
-    @State private var showingAddSheet = false
     @State private var editingItem: MerchandiseItem?
     @State private var selectedItem: MerchandiseItem?
     @State private var itemToDelete: MerchandiseItem?
@@ -228,8 +227,10 @@ struct ShopView: View {
                             if viewModel.merchandiseItems.isEmpty {
                                 ShopInfoCard(
                                     colorScheme: colorScheme,
-                                    title: "Noch keine Artikel",
-                                    message: "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
+                                    title: "Noch keine Shopify-Produkte",
+                                    message: isAdmin
+                                        ? "Sobald du den Shopify-Sync startest, tauchen die Produkte hier mit ihren Varianten automatisch auf."
+                                        : "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
                                 )
                             }
 
@@ -267,15 +268,6 @@ struct ShopView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 10) {
-                        if isAdmin {
-                            Button {
-                                showingAddSheet = true
-                            } label: {
-                                Image(systemName: "plus")
-                                    .font(.headline)
-                            }
-                        }
-
                         AppSessionToolbarActions(
                             onOpenCart: onOpenCart,
                             onOpenSettings: onOpenSettings
@@ -287,12 +279,6 @@ struct ShopView: View {
                 if viewModel.merchandiseItems.isEmpty {
                     viewModel.fetchData()
                 }
-            }
-            .sheet(isPresented: $showingAddSheet) {
-                MerchEditView(viewModel: viewModel)
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .background(AppColors.primaryBackground(for: colorScheme))
             }
             .sheet(item: $editingItem) { item in
                 MerchEditView(viewModel: viewModel, merchandiseItem: item)
@@ -1165,6 +1151,12 @@ private struct ShopHeroCard: View {
                         .disabled(isSyncingCatalog)
                     }
                 }
+            }
+
+            if isAdmin {
+                Text("Produkte und Varianten kommen aus Shopify. In der App steuerst du nur Sichtbarkeit, Reihenfolge und Zusatzinfos.")
+                    .font(.footnote.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
     }

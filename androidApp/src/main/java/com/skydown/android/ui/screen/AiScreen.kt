@@ -194,16 +194,16 @@ fun AiScreen(
                     top = if (showTopBar) {
                         innerPadding.calculateTopPadding() + 4.dp
                     } else {
-                        6.dp
+                        2.dp
                     },
                     end = SkydownUiTokens.screenHorizontalPadding,
                     bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
                         8.dp
                     } else {
-                        12.dp
+                        10.dp
                     },
                 ),
-                verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
+                verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
             ) {
                 if (showTopBar && uiState.messages.isEmpty()) {
                     item {
@@ -238,7 +238,7 @@ fun AiScreen(
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 12.dp))
+                        Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 8.dp))
                     }
                 } else {
                     item {
