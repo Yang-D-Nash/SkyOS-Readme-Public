@@ -11,6 +11,7 @@ struct MerchandiseItemView: View {
     let item: MerchandiseItem
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedImageIndex = 0
+    @State private var showingFullscreenGallery = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,7 +23,7 @@ struct MerchandiseItemView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 320)
+                                .frame(height: 360)
                                 .clipped()
                         } placeholder: {
                             RoundedRectangle(cornerRadius: 24)
@@ -35,7 +36,7 @@ struct MerchandiseItemView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .automatic))
-                .frame(height: 320)
+                .frame(height: 360)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
@@ -78,6 +79,21 @@ struct MerchandiseItemView: View {
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
                 .padding(18)
+
+                Button {
+                    showingFullscreenGallery = true
+                } label: {
+                    Label("Vollbild", systemImage: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(AppColors.cardBackground(for: colorScheme).opacity(0.92))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
 
             HStack(alignment: .top, spacing: 10) {
@@ -85,6 +101,81 @@ struct MerchandiseItemView: View {
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .lineLimit(3)
+            }
+        }
+        .fullScreenCover(isPresented: $showingFullscreenGallery) {
+            MerchandiseFullscreenGalleryView(
+                itemName: item.name,
+                imageURLs: item.imageURLs,
+                selectedImageIndex: $selectedImageIndex
+            )
+        }
+    }
+}
+
+private struct MerchandiseFullscreenGalleryView: View {
+    let itemName: String
+    let imageURLs: [String]
+    @Binding var selectedImageIndex: Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color.black
+                .ignoresSafeArea()
+
+            TabView(selection: $selectedImageIndex) {
+                ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, urlString in
+                    ZStack {
+                        Color.black
+                            .ignoresSafeArea()
+
+                        AsyncImage(url: URL(string: urlString)) { image in
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 40)
+                        } placeholder: {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                    }
+                    .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .automatic))
+
+            VStack(spacing: 12) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(itemName)
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+
+                        Text("\(selectedImageIndex + 1) von \(max(imageURLs.count, 1))")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.72))
+                    }
+
+                    Spacer()
+
+                    Button(action: { dismiss() }, label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(width: 42, height: 42)
+                            .background(Color.white.opacity(0.14))
+                            .clipShape(Circle())
+                    })
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+
+                Spacer()
             }
         }
     }

@@ -59,7 +59,7 @@ fun MerchandiseCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(328.dp)
+                    .height(360.dp)
                     .clip(RoundedCornerShape(24.dp)),
             ) {
                 HorizontalPager(

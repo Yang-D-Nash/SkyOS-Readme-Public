@@ -150,71 +150,83 @@ private struct LaunchLandingView: View {
             )
             .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 22) {
+            Circle()
+                .fill(AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.20 : 0.12))
+                .frame(width: 260, height: 260)
+                .blur(radius: 50)
+                .offset(x: 150, y: -280)
+
+            Circle()
+                .fill(AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.10))
+                .frame(width: 240, height: 240)
+                .blur(radius: 56)
+                .offset(x: -140, y: 260)
+
+            VStack(alignment: .leading, spacing: 28) {
                 Spacer(minLength: 0)
 
-                BrandHeroSurface(
-                    colorScheme: colorScheme,
-                    eyebrow: "Skydown x Zweizwei",
-                    title: "Wohin soll's zuerst gehen?",
-                    subtitle: "Beide Brands fließen jetzt direkt in den Start der App ein und geben Home, Videography, Music und Merchandise einen klareren Premium-Rahmen.",
-                    detail: "Du bleibst danach in der App und startest direkt im passenden Bereich.",
-                    accent: AppColors.accent(for: colorScheme),
-                    secondaryAccent: AppColors.accentMystic(for: colorScheme),
-                    marks: [.skydown, .zweizwei]
-                ) {
-                    HStack(spacing: 10) {
-                        BrandHeroPill(
-                            text: "Merchandise",
-                            colorScheme: colorScheme,
-                            tint: AppColors.accentHighlight(for: colorScheme)
-                        )
-                        BrandHeroPill(
-                            text: "Zweizwei",
-                            colorScheme: colorScheme,
-                            tint: AppColors.spotify(for: colorScheme)
-                        )
-                        BrandHeroPill(
-                            text: "Skydown",
-                            colorScheme: colorScheme,
-                            tint: AppColors.accentMystic(for: colorScheme)
-                        )
-                    }
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Skydown x Zweizwei")
+                        .font(.caption.weight(.semibold))
+                        .tracking(1.6)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    Text("Waehle einfach deinen Einstieg.")
+                        .font(.system(size: 38, weight: .black, design: .rounded))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Du kannst spaeter jederzeit zwischen den Bereichen wechseln. Hier entscheidest du nur, womit du jetzt anfangen willst.")
+                        .font(.body.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 VStack(spacing: 14) {
                     LaunchLandingButton(
-                        title: "MUSIK",
-                        subtitle: "Du startest direkt im Zweizwei-Musikbereich.",
+                        step: "01",
+                        eyebrow: "Zweizwei",
+                        title: "Music",
+                        subtitle: "Releases, Artists, Beat Hub und NICMA ohne Umweg.",
                         accent: AppColors.spotify(for: colorScheme),
                         action: onOpenMusic
                     )
 
                     LaunchLandingButton(
-                        title: "VIDEOGRAPHY",
-                        subtitle: "Du startest direkt bei Skydown Videography.",
+                        step: "02",
+                        eyebrow: "Skydown",
+                        title: "Videography",
+                        subtitle: "Reels, Equipment, Produktionen und aktuelle Videoarbeiten.",
                         accent: AppColors.accentMystic(for: colorScheme),
                         action: onOpenVideography
                     )
 
                     LaunchLandingButton(
-                        title: "SHOP",
-                        subtitle: "Du landest direkt im Merchandise-Bereich.",
+                        step: "03",
+                        eyebrow: "Global Store",
+                        title: "Merchandise",
+                        subtitle: "Drops, Produkte und direkter Einstieg in den Shop.",
                         accent: AppColors.accentHighlight(for: colorScheme),
                         action: onOpenShop
                     )
                 }
 
+                Text("Danach bleibst du im normalen App-Flow und kannst unten jederzeit weiterwechseln.")
+                    .font(.footnote.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .padding(.top, 4)
+
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.vertical, 28)
+            .padding(.vertical, 32)
         }
     }
 }
 
 private struct LaunchLandingButton: View {
     @Environment(\.colorScheme) private var colorScheme
+    let step: String
+    let eyebrow: String
     let title: String
     let subtitle: String
     let accent: Color
@@ -222,36 +234,48 @@ private struct LaunchLandingButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.system(size: 24, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: colorScheme))
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(step)
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(accent)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(eyebrow.uppercased())
+                            .font(.caption.weight(.semibold))
+                            .tracking(1.2)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        Text(title)
+                            .font(.system(size: 28, weight: .black, design: .rounded))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                    }
 
                     Text(subtitle)
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .multilineTextAlignment(.leading)
                 }
-
-                Spacer(minLength: 12)
-
-                Image(systemName: "arrow.up.right")
-                    .font(.title3.weight(.bold))
-                    .foregroundColor(accent)
-                    .padding(12)
-                    .background(accent.opacity(0.14))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .padding(SkydownLayout.heroPadding)
+            .padding(22)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColors.cardBackground(for: colorScheme).opacity(0.96))
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(AppColors.cardBackground(for: colorScheme).opacity(0.94))
+            )
             .overlay {
-                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
-                    .stroke(accent.opacity(0.22), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(accent.opacity(0.18), lineWidth: 1)
             }
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.26 : 0.08), radius: 18, y: 10)
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(accent)
+                    .frame(width: 4)
+                    .padding(.vertical, 18)
+                    .padding(.leading, 10)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.20 : 0.06), radius: 16, y: 10)
         }
         .buttonStyle(.plain)
     }

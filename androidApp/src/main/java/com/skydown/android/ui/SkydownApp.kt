@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -342,52 +343,161 @@ private fun LaunchLandingScreen(
                 ),
             ),
     ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 48.dp, end = (-28).dp)
+                .width(220.dp)
+                .height(220.dp)
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                    RoundedCornerShape(999.dp),
+                ),
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = (-36).dp, bottom = 56.dp)
+                .width(200.dp)
+                .height(200.dp)
+                .background(
+                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                    RoundedCornerShape(999.dp),
+                ),
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 28.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 20.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterVertically),
         ) {
-            BrandHeroCard(
-                eyebrow = "Skydown x Zweizwei",
-                title = "Wohin soll's zuerst gehen?",
-                subtitle = "Beide Brands fließen jetzt direkt in den Start der App ein und geben Home, Videography, Music und Merchandise einen klareren Premium-Rahmen.",
-                detail = "Du bleibst danach in der App und startest direkt im passenden Bereich.",
-                accent = MaterialTheme.colorScheme.primary,
-                secondaryAccent = MaterialTheme.colorScheme.secondary,
-                marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
+            Spacer(modifier = Modifier.height(1.dp))
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BrandPill(text = "Merchandise", tint = MaterialTheme.colorScheme.tertiary)
-                    BrandPill(text = "Zweizwei", tint = MaterialTheme.colorScheme.primary)
-                    BrandPill(text = "Skydown", tint = MaterialTheme.colorScheme.secondary)
-                }
+                Text(
+                    text = "Skydown x Zweizwei",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Waehle einfach deinen Einstieg.",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = "Du kannst spaeter jederzeit zwischen den Bereichen wechseln. Hier entscheidest du nur, womit du jetzt anfangen willst.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.74f),
+                )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                LaunchLandingButton(
-                    title = "MUSIK",
-                    subtitle = "Du startest direkt im Zweizwei-Musikbereich.",
+                LaunchLandingChoiceCard(
+                    step = "01",
+                    eyebrow = "Zweizwei",
+                    title = "Music",
+                    subtitle = "Releases, Artists, Beat Hub und NICMA ohne Umweg.",
                     accentColor = MaterialTheme.colorScheme.primary,
                     onClick = onOpenMusic,
                 )
-                LaunchLandingButton(
-                    title = "VIDEOGRAPHY",
-                    subtitle = "Du startest direkt bei Skydown Videography.",
+                LaunchLandingChoiceCard(
+                    step = "02",
+                    eyebrow = "Skydown",
+                    title = "Videography",
+                    subtitle = "Reels, Equipment, Produktionen und aktuelle Videoarbeiten.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     onClick = onOpenVideography,
                 )
-                LaunchLandingButton(
-                    title = "SHOP",
-                    subtitle = "Du landest direkt im Merchandise-Bereich.",
+                LaunchLandingChoiceCard(
+                    step = "03",
+                    eyebrow = "Global Store",
+                    title = "Merchandise",
+                    subtitle = "Drops, Produkte und direkter Einstieg in den Shop.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     onClick = onOpenShop,
                 )
             }
 
+            Text(
+                text = "Danach bleibst du im normalen App-Flow und kannst unten jederzeit weiterwechseln.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
+            )
+
             Spacer(modifier = Modifier.height(1.dp))
+        }
+    }
+}
+
+@Composable
+private fun LaunchLandingChoiceCard(
+    step: String,
+    eyebrow: String,
+    title: String,
+    subtitle: String,
+    accentColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        tonalElevation = 10.dp,
+        shadowElevation = 14.dp,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 22.dp, vertical = 22.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(96.dp)
+                    .background(accentColor, RoundedCornerShape(999.dp)),
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = step,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = accentColor,
+                    fontWeight = FontWeight.Bold,
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(
+                        text = eyebrow.uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
         }
     }
 }
@@ -450,8 +560,8 @@ private fun ZweizweiMusicLaneScreen(
                     BrandHeroCard(
                         eyebrow = "Zweizwei",
                         title = "Music",
-                        subtitle = "Catalog, Beat Hub und NICMA Producer bleiben klar als eigener Musikbereich gebündelt.",
-                        detail = "Die Identität von Zweizwei bleibt getrennt von Skydown Videography und Merchandise, aber die Navigation wirkt jetzt wie ein gemeinsames System.",
+                        subtitle = "Hier findest du Releases, Artists, Beats und den direkten Weg zu den wichtigsten Zweizwei-Bereichen.",
+                        detail = "Alles bleibt klar nach Musik sortiert, ohne dass du zwischen Menues suchen musst.",
                         accent = MaterialTheme.colorScheme.primary,
                         secondaryAccent = MaterialTheme.colorScheme.secondary,
                         marks = listOf(BrandArtwork.Zweizwei),
@@ -463,20 +573,20 @@ private fun ZweizweiMusicLaneScreen(
                         }
                     }
                     LaunchLandingButton(
-                        title = "MUSIC CATALOG",
-                        subtitle = "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
+                        title = "Music Catalog",
+                        subtitle = "Artists, Releases und direkte Spotify-Wege an einem Ort.",
                         accentColor = MaterialTheme.colorScheme.primary,
                         onClick = { destination = ZweizweiMusicDestination.Catalog },
                     )
                     LaunchLandingButton(
-                        title = "BEAT HUB",
-                        subtitle = "Eigene Beat-Logik, Preview-Library und Upload-/Listener-Flow.",
+                        title = "Beat Hub",
+                        subtitle = "Beats schnell anhoeren, vergleichen und direkt weitergehen.",
                         accentColor = MaterialTheme.colorScheme.secondary,
                         onClick = { destination = ZweizweiMusicDestination.BeatHub },
                     )
                     LaunchLandingButton(
-                        title = "NICMA PRODUCER",
-                        subtitle = "Mixing, Mastering und Recording als eigener Music-Service.",
+                        title = "NICMA Producer",
+                        subtitle = "Recording, Mixing und Mastering klar als eigener Service.",
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                     )

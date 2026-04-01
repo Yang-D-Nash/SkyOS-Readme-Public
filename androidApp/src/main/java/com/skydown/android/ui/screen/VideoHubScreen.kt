@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -19,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -61,6 +64,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
@@ -115,6 +120,7 @@ fun VideoHubScreen(
         Unit
     }
     var selectedVideoId by rememberSaveable { mutableStateOf(initialSelectedVideoId) }
+    var showReelViewer by rememberSaveable { mutableStateOf(false) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
@@ -132,7 +138,7 @@ fun VideoHubScreen(
         onDispose { player.release() }
     }
 
-    LaunchedEffect(selectedVideo?.downloadUrl) {
+    LaunchedEffect(selectedVideo?.downloadUrl, shouldAutoplaySelection, showReelViewer) {
         val url = selectedVideo?.downloadUrl
         if (url.isNullOrBlank()) {
             player.stop()
@@ -140,7 +146,7 @@ fun VideoHubScreen(
         } else {
             player.setMediaItem(MediaItem.fromUri(url))
             player.prepare()
-            if (shouldAutoplaySelection) {
+            if (shouldAutoplaySelection || showReelViewer) {
                 player.play()
                 shouldAutoplaySelection = false
             } else {
@@ -250,6 +256,14 @@ fun VideoHubScreen(
                     VideoPlayerCard(
                         video = selectedVideo,
                         player = player,
+                        onOpenReel = if (selectedVideo != null) {
+                            {
+                                shouldAutoplaySelection = true
+                                showReelViewer = true
+                            }
+                        } else {
+                            null
+                        },
                     )
                 }
 
@@ -258,6 +272,11 @@ fun VideoHubScreen(
                         uiState = uiState,
                         selectedVideoId = selectedVideoId,
                         onSelectVideo = { video -> selectedVideoId = video.id },
+                        onOpenReel = { video ->
+                            selectedVideoId = video.id
+                            shouldAutoplaySelection = true
+                            showReelViewer = true
+                        },
                         onToggleHomeFeatured = viewModel::toggleHomeFeatured,
                         onDeleteVideo = viewModel::deleteVideo,
                     )
@@ -331,6 +350,19 @@ fun VideoHubScreen(
                         top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
                     ),
             )
+
+            if (showReelViewer && uiState.videos.isNotEmpty()) {
+                VideoReelViewerDialog(
+                    videos = uiState.videos,
+                    selectedVideoId = selectedVideoId,
+                    player = player,
+                    onSelectVideo = { video -> selectedVideoId = video.id },
+                    onDismiss = {
+                        showReelViewer = false
+                        player.pause()
+                    },
+                )
+            }
         }
     }
 }
@@ -347,7 +379,7 @@ private fun VideoHubHeroCard(
         } else {
             "Hier laufen die oeffentlichen Videoarbeiten von Skydown mit Equipment, YouTube-Bereich und aktuellen Kollaborationen."
         },
-        detail = "Der Bereich ist jetzt klarer als eigener Premium-Hub fuer Skydown produziert.",
+        detail = "Alles ist so angeordnet, dass du schnell von Clips zu Equipment, YouTube und Kollaborationen kommst.",
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),
@@ -871,9 +903,17 @@ private fun VideoUploadCard(
 private fun VideoPlayerCard(
     video: VideoHubItem?,
     player: ExoPlayer,
+    onOpenReel: (() -> Unit)?,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Player")
+        SectionHeader("Reel Player")
+
+        Text(
+            text = "Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
 
         if (video == null) {
             Text(
@@ -885,35 +925,77 @@ private fun VideoPlayerCard(
             return@SkydownCard
         }
 
-        Text(
-            text = video.title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Text(
-            text = video.projectName,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            modifier = Modifier.padding(top = 4.dp),
-        )
-
-        AndroidView(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
+                .height(560.dp)
                 .padding(top = 14.dp)
-                .clip(RoundedCornerShape(20.dp)),
-            factory = { playerContext ->
-                PlayerView(playerContext).apply {
-                    useController = true
-                    this.player = player
+                .clip(RoundedCornerShape(24.dp)),
+        ) {
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { playerContext ->
+                    PlayerView(playerContext).apply {
+                        useController = true
+                        this.player = player
+                    }
+                },
+                update = { view ->
+                    view.player = player
+                },
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f),
+                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.76f),
+                            ),
+                        ),
+                    ),
+            )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VideoPill(text = "Reel", isActive = true)
+                    VideoPill(text = video.projectName, isActive = false)
                 }
-            },
-            update = { view ->
-                view.player = player
-            },
-        )
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                if (video.notes.isNotBlank()) {
+                    Text(
+                        text = video.notes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
+                    )
+                }
+            }
+        }
+
+        onOpenReel?.let { openReel ->
+            Button(
+                onClick = openReel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text("Im Reel-Modus oeffnen")
+            }
+        }
 
         if (video.notes.isNotBlank()) {
             Text(
@@ -931,6 +1013,7 @@ private fun VideoLibraryCard(
     uiState: com.skydown.android.ui.model.VideoHubUiState,
     selectedVideoId: String?,
     onSelectVideo: (VideoHubItem) -> Unit,
+    onOpenReel: (VideoHubItem) -> Unit,
     onToggleHomeFeatured: (VideoHubItem) -> Unit,
     onDeleteVideo: (VideoHubItem) -> Unit,
 ) {
@@ -982,6 +1065,7 @@ private fun VideoLibraryCard(
                             isSelected = video.id == selectedVideoId,
                             isAdmin = uiState.isAdmin,
                             onSelect = { onSelectVideo(video) },
+                            onOpenReel = { onOpenReel(video) },
                             onToggleHomeFeatured = { onToggleHomeFeatured(video) },
                             onDelete = { onDeleteVideo(video) },
                         )
@@ -998,6 +1082,7 @@ private fun VideoLibraryRow(
     isSelected: Boolean,
     isAdmin: Boolean,
     onSelect: () -> Unit,
+    onOpenReel: () -> Unit,
     onToggleHomeFeatured: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -1067,15 +1152,15 @@ private fun VideoLibraryRow(
             }
         }
 
-        Button(
-            onClick = onSelect,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            Text(if (isSelected) "Im Player" else "Im Player laden")
-        }
-
         if (isAdmin) {
+            Button(
+                onClick = onSelect,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text(if (isSelected) "Im Player" else "Im Player laden")
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(
                     onClick = onToggleHomeFeatured,
@@ -1104,6 +1189,186 @@ private fun VideoLibraryRow(
                     Text(
                         text = "Loeschen",
                         modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+        } else {
+            Button(
+                onClick = onOpenReel,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text("Im Reel oeffnen")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun VideoReelViewerDialog(
+    videos: List<VideoHubItem>,
+    selectedVideoId: String?,
+    player: ExoPlayer,
+    onSelectVideo: (VideoHubItem) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val initialPage = remember(videos, selectedVideoId) {
+        videos.indexOfFirst { it.id == selectedVideoId }.takeIf { it >= 0 } ?: 0
+    }
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { videos.size.coerceAtLeast(1) },
+    )
+
+    LaunchedEffect(pagerState.currentPage, videos) {
+        videos.getOrNull(pagerState.currentPage)?.let(onSelectVideo)
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(androidx.compose.ui.graphics.Color.Black),
+        ) {
+            VerticalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                val video = videos.getOrNull(page)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomStart,
+                ) {
+                    if (video != null && page == pagerState.currentPage) {
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize(),
+                            factory = { playerContext ->
+                                PlayerView(playerContext).apply {
+                                    useController = false
+                                    this.player = player
+                                }
+                            },
+                            update = { view ->
+                                view.player = player
+                            },
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.16f),
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                            androidx.compose.ui.graphics.Color.Black,
+                                        ),
+                                    ),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(56.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                )
+                                if (video != null) {
+                                    Text(
+                                        text = video.title,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.20f),
+                                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.84f),
+                                    ),
+                                ),
+                            ),
+                    )
+
+                    video?.let {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(horizontal = 22.dp, vertical = 30.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = it.projectName.uppercase(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                            )
+                            Text(
+                                text = it.title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            if (it.notes.isNotBlank()) {
+                                Text(
+                                    text = it.notes,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Skydown Reel",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Text(
+                        text = "${pagerState.currentPage + 1} von ${videos.size}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.18f)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schliessen",
+                        tint = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
             }

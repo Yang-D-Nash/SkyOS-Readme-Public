@@ -374,8 +374,8 @@ private fun HomeHeroCard() {
     BrandHeroCard(
         eyebrow = "Skydown x Zweizwei",
         title = "Home",
-        subtitle = "Hier laufen Zweizwei, Skydown, Merchandise und Tools als gemeinsames High-End-System zusammen.",
-        detail = "Creative Direction, Produkt und Koordination liegen bei Yang D. Nash als zentralem Ansprechpartner fuer Musik, Videography und Merchandise.",
+        subtitle = "Von hier aus kommst du direkt zu Releases, Beats, Video-Highlights, Merch und Tools.",
+        detail = "Yang D. Nash haelt die Wege kurz und bleibt dein zentraler Ansprechpartner fuer Musik, Visuals und Merchandise.",
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
         marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
@@ -706,10 +706,10 @@ private fun HomeStoryCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Bereiche")
+        SectionHeader("Schnellzugriff")
 
         Text(
-            text = "Zweizwei und Skydown behalten hier jeweils ihren eigenen Fokus, damit Musik und Videography sauber getrennt bleiben.",
+            text = "Wenn du direkt weiter willst, findest du hier Ansprechpartner, Artists, Beat Hub, NICMA und den Weg zu Skydown ohne Umwege.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -719,126 +719,63 @@ private fun HomeStoryCard(
             modifier = Modifier.padding(top = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-                Button(
-                    onClick = { openExternalLink(context, homePrimaryContactLink.url) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Language,
-                        contentDescription = null,
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text(homePrimaryContactLink.title)
-                        Text(
-                            text = homePrimaryContactLink.subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
-                        )
-                    }
-                }
+            HomeStoryLinkButton(
+                title = "Yang D. Nash kontaktieren",
+                subtitle = "Direkter Draht fuer Musik, Visuals und Merchandise.",
+                isPrimary = true,
+                onClick = { openExternalLink(context, homePrimaryContactLink.url) },
+            )
 
-                HomeLaneSection(
-                    title = "Zweizwei Music",
-                    subtitle = "Releases, Artists, Beat Hub und NICMA Producer bleiben hier im Zweizwei-Bereich gebuendelt.",
-                ) {
-                    homeZweizweiSocialLinks.forEachIndexed { index, link ->
-                        val isPrimary = index == 0
-                        val buttonContent: @Composable () -> Unit = {
-                            Icon(
-                                imageVector = if (isPrimary) Icons.Default.Language else Icons.Default.Person,
-                                contentDescription = null,
-                            )
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                Text(link.title)
-                                Text(
-                                    text = link.subtitle,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isPrimary) {
-                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
-                                    },
-                                )
-                            }
-                        }
-
-                        if (isPrimary) {
-                            Button(
-                                onClick = { openExternalLink(context, link.url) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                buttonContent()
-                            }
+            HomeLaneSection(
+                title = "Zweizwei Music",
+                subtitle = "Hier kommst du direkt zu den Artists, zum Label und weiter in Beat Hub oder NICMA.",
+            ) {
+                homeZweizweiSocialLinks.forEachIndexed { index, link ->
+                    val isPrimary = index == 0
+                    HomeStoryLinkButton(
+                        title = link.title,
+                        subtitle = if (isPrimary) {
+                            "Label, Releases und Updates auf einen Blick."
                         } else {
-                            OutlinedButton(
-                                onClick = { openExternalLink(context, link.url) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                buttonContent()
-                            }
-                        }
-                    }
-
-                OutlinedButton(
-                    onClick = { onOpenBeatHub() },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.GraphicEq,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Beat Hub oeffnen",
-                        modifier = Modifier.padding(start = 8.dp),
+                            "Direkt zum Profil von ${link.title}."
+                        },
+                        isPrimary = isPrimary,
+                        onClick = { openExternalLink(context, link.url) },
                     )
                 }
 
-                OutlinedButton(
-                    onClick = { onOpenNicma() },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.GraphicEq,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "NICMA MUSIC oeffnen",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                HomeStoryLinkButton(
+                    title = "Beat Hub oeffnen",
+                    subtitle = "Wenn du direkt zu Beats und Previews willst.",
+                    isPrimary = false,
+                    onClick = onOpenBeatHub,
+                )
+
+                HomeStoryLinkButton(
+                    title = "NICMA MUSIC oeffnen",
+                    subtitle = "Fuer Recording, Mixing und Mastering.",
+                    isPrimary = false,
+                    onClick = onOpenNicma,
+                )
             }
 
             HomeLaneSection(
                 title = "Skydown Videography",
-                subtitle = "Visuals, Clips und Kontakt laufen hier gesammelt im Skydown-Bereich.",
+                subtitle = "Hier startest du direkt in den Videography-Kontakt und in den oeffentlichen Skydown-Kanal.",
             ) {
-                OutlinedButton(
+                HomeStoryLinkButton(
+                    title = "Skydown auf Instagram",
+                    subtitle = "Fuer aktuelle Visuals, Clips und Updates.",
+                    isPrimary = false,
                     onClick = {
                         openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Skydown auf Instagram",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                )
 
-                OutlinedButton(
+                HomeStoryLinkButton(
+                    title = "Kontakt per E-Mail",
+                    subtitle = "Fuer Anfragen rund um Videography und Produktion.",
+                    isPrimary = false,
                     onClick = {
                         openEmailDraft(
                             context = context,
@@ -847,18 +784,54 @@ private fun HomeStoryCard(
                             body = "",
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Kontakt per E-Mail",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeStoryLinkButton(
+    title: String,
+    subtitle: String,
+    isPrimary: Boolean,
+    onClick: () -> Unit,
+) {
+    val content: @Composable () -> Unit = {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isPrimary) {
+                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f)
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+                },
+            )
+        }
+    }
+
+    if (isPrimary) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            content()
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            content()
         }
     }
 }
@@ -987,6 +960,11 @@ private val homeZweizweiSocialLinks = listOf(
         url = "https://www.instagram.com/zweizwei_music/",
     ),
     HomeSocialLink(
+        title = "JANNO",
+        subtitle = "@janno_official_",
+        url = "https://www.instagram.com/janno_official_/",
+    ),
+    HomeSocialLink(
         title = "ThaDude",
         subtitle = "@thadude_offizielle",
         url = "https://www.instagram.com/thadude_offizielle/",
@@ -995,11 +973,6 @@ private val homeZweizweiSocialLinks = listOf(
         title = "MAVE",
         subtitle = "@mave__official",
         url = "https://www.instagram.com/mave__official/",
-    ),
-    HomeSocialLink(
-        title = "JANNO",
-        subtitle = "@janno_official_",
-        url = "https://www.instagram.com/janno_official_/",
     ),
     HomeSocialLink(
         title = "TANGAJOE007",

@@ -26,10 +26,10 @@ class HomeViewModel : ViewModel() {
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val featuredArtists = listOf(
+        "JANNO",
         "Yang D. Nash",
         "ThaDude",
         "MAVE",
-        "JANNO",
         "TANGAJOE007",
     )
 

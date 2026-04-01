@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 //
 //  VideoHubView.swift
 //  Skydown App
@@ -16,6 +17,7 @@ struct VideoHubView: View {
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
+    @State private var showingReelViewer = false
     @State private var hasHandledInitialSelection = false
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
@@ -33,6 +35,11 @@ struct VideoHubView: View {
 
     private var selectedVideo: SkydownVideoHubItem? {
         viewModel.videos.first { $0.id == playbackManager.selectedVideoID } ?? viewModel.videos.first
+    }
+
+    private var selectedVideoIndex: Int {
+        guard let selectedVideo else { return 0 }
+        return viewModel.videos.firstIndex { $0.id == selectedVideo.id } ?? 0
     }
 
     var body: some View {
@@ -111,6 +118,15 @@ struct VideoHubView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .fullScreenCover(isPresented: $showingReelViewer) {
+            if !viewModel.videos.isEmpty {
+                VideoReelViewer(
+                    videos: viewModel.videos,
+                    initialIndex: selectedVideoIndex,
+                    playbackManager: playbackManager
+                )
+            }
+        }
         .skydownKeyboardDismissToolbar()
     }
 
@@ -177,7 +193,7 @@ struct VideoHubView: View {
             subtitle: viewModel.isAdmin
                 ? "Reels, Clips, Sessions und Visuals bleiben zentral steuerbar. Admins koennen Uploads, Home-Highlights und oeffentliche Listen direkt pflegen."
                 : "Hier laufen die oeffentlichen Videoarbeiten von Skydown mit Equipment, YouTube-Bereich und aktuellen Kollaborationen.",
-            detail: "Der Bereich ist jetzt klarer als eigener Premium-Hub fuer Skydown produziert.",
+            detail: "Alles ist so angeordnet, dass du schnell von Clips zu Equipment, YouTube und Kollaborationen kommst.",
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
@@ -330,22 +346,62 @@ struct VideoHubView: View {
 
     private var playerCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Player")
+            Text("Reel Player")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
+            Text("Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
             if let selectedVideo {
-                Text(selectedVideo.title)
-                    .font(.title3.weight(.bold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
+                ZStack(alignment: .bottomLeading) {
+                    VideoPlayer(player: playbackManager.player)
+                        .frame(height: 560)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
 
-                Text(selectedVideo.projectName)
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            Color.black.opacity(0.24),
+                            Color.black.opacity(0.78)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
 
-                VideoPlayer(player: playbackManager.player)
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            MusicBadge(text: "Reel", isAccent: true)
+                            MusicBadge(text: selectedVideo.projectName, isAccent: false)
+                        }
+
+                        Text(selectedVideo.title)
+                            .font(.title3.weight(.bold))
+                            .foregroundColor(.white)
+
+                        if !selectedVideo.notes.isEmpty {
+                            Text(selectedVideo.notes)
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.78))
+                                .lineLimit(3)
+                        }
+                    }
+                    .padding(18)
+                }
+
+                Button {
+                    playbackManager.play(video: selectedVideo)
+                    showingReelViewer = true
+                } label: {
+                    Label("Im Reel-Modus oeffnen", systemImage: "rectangle.portrait.and.arrow.right")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accentMystic(for: colorScheme))
 
                 if !selectedVideo.notes.isEmpty {
                     Text(selectedVideo.notes)
@@ -396,6 +452,10 @@ struct VideoHubView: View {
                         colorScheme: colorScheme,
                         onSelect: { playbackManager.load(video: video) },
                         onPlayToggle: { playbackManager.togglePlayback(for: video) },
+                        onOpenReel: {
+                            playbackManager.play(video: video)
+                            showingReelViewer = true
+                        },
                         onToggleHomeFeatured: {
                             Task {
                                 await viewModel.toggleHomeFeatured(video)
@@ -431,6 +491,7 @@ struct VideoHubLibraryRow: View {
     let colorScheme: ColorScheme
     let onSelect: () -> Void
     let onPlayToggle: () -> Void
+    let onOpenReel: () -> Void
     let onToggleHomeFeatured: () -> Void
     let onDelete: () -> Void
 
@@ -477,19 +538,29 @@ struct VideoHubLibraryRow: View {
                 }
             }
 
-            HStack(spacing: 10) {
-                Button(action: onSelect) {
-                    Label(isSelected ? "Im Player" : "Auswaehlen", systemImage: "rectangle.on.rectangle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+            if isAdmin {
+                HStack(spacing: 10) {
+                    Button(action: onSelect) {
+                        Label(isSelected ? "Im Player" : "Auswaehlen", systemImage: "rectangle.on.rectangle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
 
-                Button(action: onPlayToggle) {
-                    Label(isPlaying ? "Stoppen" : "Abspielen", systemImage: isPlaying ? "stop.fill" : "play.fill")
+                    Button(action: onPlayToggle) {
+                        Label(isPlaying ? "Stoppen" : "Abspielen", systemImage: isPlaying ? "stop.fill" : "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: colorScheme))
+                    .disabled(!video.isPlayable)
+                }
+            } else {
+                Button(action: onOpenReel) {
+                    Label("Im Reel oeffnen", systemImage: "play.rectangle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(AppColors.accent(for: colorScheme))
+                .tint(AppColors.accentMystic(for: colorScheme))
                 .disabled(!video.isPlayable)
             }
 
@@ -513,6 +584,143 @@ struct VideoHubLibraryRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct VideoReelViewer: View {
+    let videos: [SkydownVideoHubItem]
+    let initialIndex: Int
+    @ObservedObject var playbackManager: VideoPlaybackManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentIndex: Int
+
+    init(
+        videos: [SkydownVideoHubItem],
+        initialIndex: Int,
+        playbackManager: VideoPlaybackManager
+    ) {
+        self.videos = videos
+        self.initialIndex = initialIndex
+        self.playbackManager = playbackManager
+        _currentIndex = State(initialValue: initialIndex)
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                Color.black
+                    .ignoresSafeArea()
+
+                TabView(selection: $currentIndex) {
+                    ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
+                        ZStack(alignment: .bottomLeading) {
+                            if index == currentIndex {
+                                VideoPlayer(player: playbackManager.player)
+                                    .ignoresSafeArea()
+                            } else {
+                                Rectangle()
+                                    .fill(Color.black)
+                                    .overlay {
+                                        VStack(spacing: 12) {
+                                            Image(systemName: "play.rectangle.fill")
+                                                .font(.system(size: 48, weight: .bold))
+                                                .foregroundColor(.white.opacity(0.72))
+
+                                            Text(video.title)
+                                                .font(.headline.weight(.bold))
+                                                .foregroundColor(.white)
+
+                                            Text(video.projectName)
+                                                .font(.subheadline)
+                                                .foregroundColor(.white.opacity(0.68))
+                                        }
+                                    }
+                            }
+
+                            LinearGradient(
+                                colors: [
+                                    .clear,
+                                    Color.black.opacity(0.20),
+                                    Color.black.opacity(0.84)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(video.projectName.uppercased())
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.white.opacity(0.72))
+
+                                Text(video.title)
+                                    .font(.title2.weight(.bold))
+                                    .foregroundColor(.white)
+
+                                if !video.notes.isEmpty {
+                                    Text(video.notes)
+                                        .font(.subheadline)
+                                        .foregroundColor(.white.opacity(0.78))
+                                        .lineLimit(4)
+                                }
+                            }
+                            .padding(.horizontal, 22)
+                            .padding(.bottom, 34)
+                        }
+                        .rotationEffect(.degrees(90))
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .tag(index)
+                    }
+                }
+                .frame(width: proxy.size.height, height: proxy.size.width)
+                .rotationEffect(.degrees(-90))
+                .offset(
+                    x: (proxy.size.width - proxy.size.height) / 2,
+                    y: (proxy.size.height - proxy.size.width) / 2
+                )
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Skydown Reel")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+
+                        Text("\(currentIndex + 1) von \(videos.count)")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.72))
+                    }
+
+                    Spacer()
+
+                    Button(action: { dismiss() }, label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.14))
+                            .clipShape(Circle())
+                    })
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+            }
+        }
+        .onAppear {
+            playCurrent()
+        }
+        .onChange(of: currentIndex) { _, _ in
+            playCurrent()
+        }
+        .onDisappear {
+            playbackManager.player.pause()
+            playbackManager.playingVideoID = nil
+        }
+    }
+
+    private func playCurrent() {
+        guard videos.indices.contains(currentIndex) else { return }
+        playbackManager.play(video: videos[currentIndex])
     }
 }
 
@@ -947,10 +1155,7 @@ final class VideoPlaybackManager: ObservableObject {
         guard video.isPlayable else { return }
 
         if selectedVideoID != video.id || player.currentItem == nil {
-            load(video: video)
-            observePlaybackFinished()
-            player.play()
-            playingVideoID = video.id
+            play(video: video)
             return
         }
 
@@ -962,6 +1167,14 @@ final class VideoPlaybackManager: ObservableObject {
             player.play()
             playingVideoID = video.id
         }
+    }
+
+    func play(video: SkydownVideoHubItem) {
+        guard video.isPlayable else { return }
+        load(video: video)
+        observePlaybackFinished()
+        player.play()
+        playingVideoID = video.id
     }
 
     func stop() {

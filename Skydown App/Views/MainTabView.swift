@@ -94,7 +94,7 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Zweizwei", systemImage: "music.note.list") }
+                .tabItem { Label("Zweizwei", systemImage: "music.note") }
                 .tag(MainTab.zweizwei)
 
                 DeferredView {
@@ -107,7 +107,7 @@ struct MainTabView: View {
                         } : nil
                     )
                 }
-                .tabItem { Label("Home", systemImage: "square.grid.2x2.fill") }
+                .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(MainTab.hub)
 
                 DeferredView {
@@ -131,7 +131,7 @@ struct MainTabView: View {
                             onOpenSettings: { showingSettings = true }
                         )
                     }
-                    .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver.fill") }
+                    .tabItem { Label("Tools", systemImage: "sparkles") }
                     .tag(MainTab.tools)
                 }
             }
@@ -252,8 +252,8 @@ private struct ZweizweiTabView: View {
                             colorScheme: colorScheme,
                             eyebrow: "Zweizwei",
                             title: "Music",
-                            subtitle: "Catalog, Beat Hub und NICMA Producer bleiben klar als eigener Musikbereich gebündelt.",
-                            detail: "Die Identität von Zweizwei bleibt getrennt von Skydown Videography und Merchandise, aber die Navigation wirkt jetzt wie ein gemeinsames System.",
+                            subtitle: "Hier findest du Releases, Artists, Beats und den direkten Weg zu den wichtigsten Zweizwei-Bereichen.",
+                            detail: "Alles bleibt klar nach Musik sortiert, ohne dass du zwischen Menues suchen musst.",
                             accent: AppColors.spotify(for: colorScheme),
                             secondaryAccent: AppColors.accent(for: colorScheme),
                             marks: [.zweizwei]
@@ -278,24 +278,24 @@ private struct ZweizweiTabView: View {
                         }
 
                         ShellActionCard(
-                            title: "MUSIC CATALOG",
-                            subtitle: "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
+                            title: "Music Catalog",
+                            subtitle: "Artists, Releases und direkte Spotify-Wege an einem Ort.",
                             accent: AppColors.spotify(for: colorScheme)
                         ) {
                             destination = .catalog
                         }
 
                         ShellActionCard(
-                            title: "BEAT HUB",
-                            subtitle: "Eigene Beat-Logik, Preview-Library und Upload-/Listener-Flow.",
+                            title: "Beat Hub",
+                            subtitle: "Beats schnell anhoeren, vergleichen und direkt weitergehen.",
                             accent: AppColors.accent(for: colorScheme)
                         ) {
                             destination = .beatHub
                         }
 
                         ShellActionCard(
-                            title: "NICMA PRODUCER",
-                            subtitle: "Mixing, Mastering und Recording als eigener Music-Service.",
+                            title: "NICMA Producer",
+                            subtitle: "Recording, Mixing und Mastering klar als eigener Service.",
                             accent: AppColors.accentMystic(for: colorScheme)
                         ) {
                             destination = .nicma
@@ -357,26 +357,15 @@ private struct ShellActionCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.system(size: 24, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: colorScheme))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.system(size: 24, weight: .black, design: .rounded))
+                    .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text(subtitle)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .multilineTextAlignment(.leading)
-                }
-
-                Spacer(minLength: 12)
-
-                Image(systemName: "arrow.up.right")
-                    .font(.title3.weight(.bold))
-                    .foregroundColor(accent)
-                    .padding(12)
-                    .background(accent.opacity(0.14))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                Text(subtitle)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .multilineTextAlignment(.leading)
             }
             .padding(SkydownLayout.heroPadding)
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -15,12 +15,12 @@ data class MusicInstagramDestination(
 )
 
 data class MusicUiState(
-    val selectedArtist: String = "Yang D. Nash",
+    val selectedArtist: String = "JANNO",
     val availableArtists: List<String> = listOf(
+        "JANNO",
         "Yang D. Nash",
         "ThaDude",
         "MAVE",
-        "JANNO",
         "TANGAJOE007",
     ),
     val tracks: List<Track> = emptyList(),

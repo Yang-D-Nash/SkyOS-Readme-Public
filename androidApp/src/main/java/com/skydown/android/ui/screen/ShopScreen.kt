@@ -7,6 +7,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -584,6 +585,7 @@ private fun MerchandiseDetailSheet(
 ) {
     val scrollState = rememberScrollState()
     val pagerState = rememberPagerState(pageCount = { item.imageUrls.size.coerceAtLeast(1) })
+    var fullscreenGalleryInitialPage by rememberSaveable { mutableStateOf<Int?>(null) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -607,7 +609,9 @@ private fun MerchandiseDetailSheet(
             ) {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { fullscreenGalleryInitialPage = pagerState.currentPage },
                 ) { page ->
                     Box(modifier = Modifier.fillMaxSize()) {
                         AsyncImage(
@@ -672,10 +676,21 @@ private fun MerchandiseDetailSheet(
                     )
                 }
 
+                TextButton(
+                    onClick = { fullscreenGalleryInitialPage = pagerState.currentPage },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 20.dp, bottom = 18.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)),
+                ) {
+                    Text("Vollbild")
+                }
+
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(20.dp),
+                        .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 64.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
@@ -785,6 +800,96 @@ private fun MerchandiseDetailSheet(
             }
 
             Box(modifier = Modifier.height(2.dp))
+        }
+    }
+
+    fullscreenGalleryInitialPage?.let { page ->
+        MerchandiseImageViewerDialog(
+            itemName = item.name,
+            imageUrls = item.imageUrls,
+            initialPage = page,
+            onDismiss = { fullscreenGalleryInitialPage = null },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MerchandiseImageViewerDialog(
+    itemName: String,
+    imageUrls: List<String>,
+    initialPage: Int,
+    onDismiss: () -> Unit,
+) {
+    val safeInitialPage = initialPage.coerceIn(0, imageUrls.lastIndex.coerceAtLeast(0))
+    val pagerState = rememberPagerState(
+        initialPage = safeInitialPage,
+        pageCount = { imageUrls.size.coerceAtLeast(1) },
+    )
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.94f)),
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = imageUrls.getOrNull(page),
+                        contentDescription = itemName,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 48.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = itemName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Text(
+                        text = "${pagerState.currentPage + 1} von ${imageUrls.size.coerceAtLeast(1)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schliessen",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
         }
     }
 }

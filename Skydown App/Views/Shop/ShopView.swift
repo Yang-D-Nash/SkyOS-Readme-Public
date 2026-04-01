@@ -340,8 +340,8 @@ private struct HomeHeroIntroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Skydown x Zweizwei",
             title: "Home",
-            subtitle: "Hier laufen Zweizwei, Skydown, Merchandise und Tools als gemeinsames High-End-System zusammen.",
-            detail: "Creative Direction, Produkt und Koordination liegen bei Yang D. Nash als zentralem Ansprechpartner fuer Musik, Videography und Merchandise.",
+            subtitle: "Von hier aus kommst du direkt zu Releases, Beats, Video-Highlights, Merch und Tools.",
+            detail: "Yang D. Nash haelt die Wege kurz und bleibt dein zentraler Ansprechpartner fuer Musik, Visuals und Merchandise.",
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydown, .zweizwei]
@@ -654,18 +654,18 @@ private struct HomeStoryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Bereiche")
+            Text("Schnellzugriff")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Zweizwei und Skydown behalten hier jeweils ihren eigenen Fokus, damit Musik und Videography sauber getrennt bleiben.")
+            Text("Wenn du direkt weiter willst, findest du hier Ansprechpartner, Artists, Beat Hub, NICMA und den Weg zu Skydown ohne Umwege.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 12) {
                 HomeActionButton(
-                    title: "Yang D. Nash • Ansprechpartner",
-                    icon: "person.crop.circle.badge.checkmark",
+                    title: "Yang D. Nash kontaktieren",
+                    subtitle: "Direkter Draht fuer Musik, Visuals und Merchandise.",
                     colorScheme: colorScheme,
                     isPrimary: true
                 ) {
@@ -676,13 +676,15 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Zweizwei Music",
-                    subtitle: "Releases, Artists, Beat Hub und NICMA Producer bleiben hier im Zweizwei-Bereich gebuendelt.",
+                    subtitle: "Hier kommst du direkt zu den Artists, zum Label und weiter in Beat Hub oder NICMA.",
                     colorScheme: colorScheme
                 ) {
                     ForEach(homeZweizweiInstagramDestinations) { destination in
                         HomeActionButton(
                             title: destination.title,
-                            icon: destination.id == zweizweiInstagramDestination.id ? "music.note.house.fill" : "person.2.fill",
+                            subtitle: destination.id == zweizweiInstagramDestination.id
+                                ? "Label, Releases und Updates auf einen Blick."
+                                : "Direkt zum Profil von \(destination.title).",
                             colorScheme: colorScheme,
                             isPrimary: destination.id == zweizweiInstagramDestination.id
                         ) {
@@ -694,7 +696,7 @@ private struct HomeStoryCard: View {
 
                     HomeActionButton(
                         title: "Beat Hub oeffnen",
-                        icon: "waveform.circle.fill",
+                        subtitle: "Wenn du direkt zu Beats und Previews willst.",
                         colorScheme: colorScheme,
                         isPrimary: false
                     ) {
@@ -703,7 +705,7 @@ private struct HomeStoryCard: View {
 
                     HomeActionButton(
                         title: "NICMA MUSIC oeffnen",
-                        icon: "slider.horizontal.3",
+                        subtitle: "Fuer Recording, Mixing und Mastering.",
                         colorScheme: colorScheme,
                         isPrimary: false
                     ) {
@@ -713,12 +715,12 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Skydown Videography",
-                    subtitle: "Visuals, Clips und Kontakt laufen hier gesammelt im Skydown-Bereich.",
+                    subtitle: "Hier startest du direkt in den Videography-Kontakt und in den oeffentlichen Skydown-Kanal.",
                     colorScheme: colorScheme
                 ) {
                     HomeActionButton(
                         title: "Skydown auf Instagram",
-                        icon: "sparkles.tv.fill",
+                        subtitle: "Fuer aktuelle Visuals, Clips und Updates.",
                         colorScheme: colorScheme,
                         isPrimary: false
                     ) {
@@ -729,7 +731,7 @@ private struct HomeStoryCard: View {
 
                     HomeActionButton(
                         title: "Kontakt per E-Mail",
-                        icon: "envelope.fill",
+                        subtitle: "Fuer Anfragen rund um Videography und Produktion.",
                         colorScheme: colorScheme,
                         isPrimary: false
                     ) {
@@ -794,15 +796,22 @@ private struct HomeLaneSection<Content: View>: View {
 
 private let homeFeaturedArtists = [
     "Zweizwei Music",
+    "JANNO",
     "ThaDude",
     "MAVE",
-    "JANNO",
     "TANGAJOE007",
     "Toprack941"
 ]
 
 private let homeZweizweiInstagramDestinations: [MusicInstagramDestination] = [
     zweizweiInstagramDestination,
+    MusicInstagramDestination(
+        id: "artist_janno_home",
+        title: "JANNO",
+        handle: "@janno_official_",
+        urlString: "https://www.instagram.com/janno_official_/",
+        helper: "Zweizwei Artist"
+    ),
     MusicInstagramDestination(
         id: "artist_thadude_home",
         title: "ThaDude",
@@ -815,13 +824,6 @@ private let homeZweizweiInstagramDestinations: [MusicInstagramDestination] = [
         title: "MAVE",
         handle: "@mave__official",
         urlString: "https://www.instagram.com/mave__official/",
-        helper: "Zweizwei Artist"
-    ),
-    MusicInstagramDestination(
-        id: "artist_janno_home",
-        title: "JANNO",
-        handle: "@janno_official_",
-        urlString: "https://www.instagram.com/janno_official_/",
         helper: "Zweizwei Artist"
     ),
     MusicInstagramDestination(
@@ -934,18 +936,53 @@ private extension FeaturedHomeBeat {
 
 private struct HomeActionButton: View {
     let title: String
-    let icon: String
+    let subtitle: String?
+    let icon: String?
     let colorScheme: ColorScheme
     let isPrimary: Bool
     let action: () -> Void
 
+    init(
+        title: String,
+        subtitle: String? = nil,
+        icon: String? = nil,
+        colorScheme: ColorScheme,
+        isPrimary: Bool,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.icon = icon
+        self.colorScheme = colorScheme
+        self.isPrimary = isPrimary
+        self.action = action
+    }
+
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.subheadline.weight(.bold))
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
+            HStack(alignment: .top, spacing: 10) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.subheadline.weight(.bold))
+                        .frame(width: 18)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.caption.weight(.medium))
+                            .foregroundColor(
+                                isPrimary
+                                    ? Color.white.opacity(0.82)
+                                    : AppColors.secondaryText(for: colorScheme)
+                            )
+                            .multilineTextAlignment(.leading)
+                    }
+                }
+
                 Spacer()
             }
             .foregroundColor(isPrimary ? .white : AppColors.text(for: colorScheme))

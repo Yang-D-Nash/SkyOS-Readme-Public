@@ -38,7 +38,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
         case .zweizwei:
-            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
+            return ["JANNO", "Yang D. Nash", "ThaDude", "MAVE", "TANGAJOE007"]
         }
     }
 
