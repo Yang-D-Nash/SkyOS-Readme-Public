@@ -1,19 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <attribution
+        android:tag="core"
+        android:label="Core app interactions" />
+
+    <attribution
+        android:tag="media"
+        android:label="Media playback and video" />
+
+    <attribution
+        android:tag="auth"
+        android:label="Authentication and sign-in" />
+
+    <attribution
+        android:tag="commerce"
+        android:label="Merchandise and checkout" />
+
+    <attribution
+        android:tag="ai"
+        android:label="AI and automation tools" />
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
+        android:attributionTags="core|media|auth|commerce|ai"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="Skydown"
+        android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Skydown">
         <activity
             android:name=".MainActivity"
+            android:attributionTags="core|media|auth|commerce|ai"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.Skydown">
