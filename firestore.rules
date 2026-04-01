@@ -69,6 +69,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /videographyHubMeta/{documentId} {
+      allow read: if documentId == "publicConfig";
+      allow create, update, delete: if isAdmin() && documentId == "publicConfig";
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
