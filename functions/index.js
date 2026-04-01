@@ -482,13 +482,26 @@ async function fetchAllShopifyProductsViaAdminApi(token, config) {
 
   if (config?.collectionHandle) {
     const normalizedCollectionHandle = config.collectionHandle.toLowerCase();
+    const filteredProducts = products.filter((product) => {
+      const collections = product?.collections?.nodes || [];
+      return collections.some((collection) =>
+        `${collection?.handle || ""}`.trim().toLowerCase() === normalizedCollectionHandle,
+      );
+    });
+
+    if (filteredProducts.length === 0 && products.length > 0) {
+      logger.warn("Shopify Admin API collection filter returned no products. Falling back to all products.", {
+        storeDomain: config?.storeDomain,
+        collectionHandle: normalizedCollectionHandle,
+      });
+      return {
+        products,
+        currencyCode,
+      };
+    }
+
     return {
-      products: products.filter((product) => {
-        const collections = product?.collections?.nodes || [];
-        return collections.some((collection) =>
-          `${collection?.handle || ""}`.trim().toLowerCase() === normalizedCollectionHandle,
-        );
-      }),
+      products: filteredProducts,
       currencyCode,
     };
   }
@@ -524,6 +537,7 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
   const requestedCollectionHandle = nonEmptyString(config?.collectionHandle);
   let rawProducts = [];
   let syncSource = "public_storefront";
+  let usedCollectionFallback = false;
 
   try {
     rawProducts = await fetchAllPages(requestedCollectionHandle);
@@ -541,6 +555,16 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
       error: error instanceof Error ? error.message : "unknown_error",
     });
     rawProducts = await fetchAllPages(null);
+    usedCollectionFallback = true;
+  }
+
+  if (requestedCollectionHandle && rawProducts.length === 0) {
+    logger.warn("Shopify public collection sync returned no products. Falling back to all public products.", {
+      storeDomain: config?.storeDomain,
+      collectionHandle: requestedCollectionHandle,
+    });
+    rawProducts = await fetchAllPages(null);
+    usedCollectionFallback = true;
   }
 
   const products = rawProducts
@@ -550,7 +574,7 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
   return {
     products,
     currencyCode: "EUR",
-    syncSource,
+    syncSource: usedCollectionFallback ? "public_storefront_fallback" : syncSource,
   };
 }
 

@@ -24,6 +24,7 @@ final class MerchandiseViewModel: ObservableObject {
     private let merchandiseService: MerchandiseServicing
     private let merchStoreStatusService: MerchStoreStatusServicing
     private let shopifySyncService: ShopifyMerchSyncServicing
+    private let publicShopifyCatalogService: PublicShopifyCatalogServicing
     private let authManager: AuthManager
     private var stopObservingItems: (() -> Void)?
     private var stopObservingStoreStatus: (() -> Void)?
@@ -38,11 +39,13 @@ final class MerchandiseViewModel: ObservableObject {
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
         merchStoreStatusService: MerchStoreStatusServicing = FirestoreMerchStoreStatusService(),
         shopifySyncService: ShopifyMerchSyncServicing = FirebaseFunctionsShopifyMerchSyncService(),
+        publicShopifyCatalogService: PublicShopifyCatalogServicing = PublicShopifyCatalogService(),
         authManager: AuthManager
     ) {
         self.merchandiseService = merchandiseService
         self.merchStoreStatusService = merchStoreStatusService
         self.shopifySyncService = shopifySyncService
+        self.publicShopifyCatalogService = publicShopifyCatalogService
         self.authManager = authManager
 
         Task { [weak self] in
@@ -141,7 +144,10 @@ final class MerchandiseViewModel: ObservableObject {
             )
             fetchData()
         } catch {
-            showUserToast("Shopify-Sync fehlgeschlagen: \(error.localizedDescription)", style: .error)
+            let loadedFallback = await loadPublicCatalogFallback(showToast: automatic == false)
+            if !loadedFallback {
+                showUserToast("Shopify-Sync fehlgeschlagen: \(error.localizedDescription)", style: .error)
+            }
         }
     }
 
@@ -231,13 +237,34 @@ final class MerchandiseViewModel: ObservableObject {
     }
 
     private func handleEmptyCatalogSnapshot() {
-        guard canManageMerchandise else { return }
-        guard !isSyncingCatalog else { return }
-        guard !hasAttemptedAutomaticShopifySync else { return }
-
-        hasAttemptedAutomaticShopifySync = true
         Task {
+            let loadedFallback = await loadPublicCatalogFallback(showToast: false)
+            guard canManageMerchandise else { return }
+            guard !isSyncingCatalog else { return }
+            guard !hasAttemptedAutomaticShopifySync else { return }
+            if loadedFallback {
+                hasAttemptedAutomaticShopifySync = true
+                return
+            }
+
+            hasAttemptedAutomaticShopifySync = true
             await syncShopifyCatalog(automatic: true)
+        }
+    }
+
+    private func loadPublicCatalogFallback(showToast: Bool) async -> Bool {
+        do {
+            let items = try await publicShopifyCatalogService.fetchCatalog()
+            guard !items.isEmpty else { return false }
+
+            allItems = items
+            merchandiseItems = filterVisibleItems(items)
+            if showToast {
+                showUserToast("Shopify-Katalog direkt aus dem Store geladen.", style: .success)
+            }
+            return true
+        } catch {
+            return false
         }
     }
 

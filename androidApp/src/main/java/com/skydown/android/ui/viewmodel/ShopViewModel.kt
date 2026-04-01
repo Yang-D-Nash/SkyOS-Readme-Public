@@ -21,6 +21,7 @@ class ShopViewModel : ViewModel() {
     private val merchandiseService = AppContainer.merchandiseService
     private val merchStoreStatusRepository = MerchStoreStatusRepository()
     private val shopifyMerchSyncClient = AppContainer.shopifyMerchSyncClient
+    private val shopifyPublicCatalogClient = AppContainer.shopifyPublicCatalogClient
     private val _uiState = MutableStateFlow(
         ShopUiState(),
     )
@@ -399,16 +400,26 @@ class ShopViewModel : ViewModel() {
         if (resolvedItems.isNotEmpty()) {
             hasAttemptedAutomaticShopifySync = false
         }
+        val fallbackItems = if (resolvedItems.isEmpty()) {
+            shopifyPublicCatalogClient.fetchCatalog().getOrDefault(emptyList())
+        } else {
+            emptyList()
+        }
+        val visibleItems = if (resolvedItems.isNotEmpty()) resolvedItems else fallbackItems
         _uiState.update {
             it.copy(
-                items = filterVisibleItems(resolvedItems, isAdmin = user?.isAdmin == true),
+                items = filterVisibleItems(visibleItems, isAdmin = user?.isAdmin == true),
                 isLoggedIn = user != null,
                 isAdmin = user?.isAdmin == true,
                 errorMessage = itemsResult.exceptionOrNull()?.message,
             )
         }
 
-        if (user?.isAdmin == true && resolvedItems.isEmpty()) {
+        if (resolvedItems.isEmpty() && fallbackItems.isNotEmpty()) {
+            allItems = fallbackItems
+        }
+
+        if (user?.isAdmin == true && resolvedItems.isEmpty() && fallbackItems.isEmpty()) {
             maybeAutoSyncShopify()
         }
     }
@@ -498,11 +509,22 @@ class ShopViewModel : ViewModel() {
                 )
             }
         } else {
+            val fallbackItems = shopifyPublicCatalogClient.fetchCatalog().getOrDefault(emptyList())
             _uiState.update {
                 it.copy(
                     isSyncingCatalog = false,
-                    toastMessage = syncResult.exceptionOrNull()?.message ?: "Shopify-Sync fehlgeschlagen.",
-                    isErrorToast = true,
+                    items = if (fallbackItems.isNotEmpty()) {
+                        allItems = fallbackItems
+                        filterVisibleItems(fallbackItems, isAdmin = it.isAdmin)
+                    } else {
+                        it.items
+                    },
+                    toastMessage = if (fallbackItems.isNotEmpty()) {
+                        "Shopify-Katalog direkt aus dem Store geladen."
+                    } else {
+                        syncResult.exceptionOrNull()?.message ?: "Shopify-Sync fehlgeschlagen."
+                    },
+                    isErrorToast = fallbackItems.isEmpty(),
                 )
             }
         }

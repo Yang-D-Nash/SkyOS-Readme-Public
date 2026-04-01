@@ -25,6 +25,7 @@ object AppContainer {
     val aiImageClient: AiImageClient by lazy { AiImageClient() }
     val agentClient: AgentClient by lazy { AgentClient() }
     val shopifyMerchSyncClient: ShopifyMerchSyncClient by lazy { ShopifyMerchSyncClient() }
+    val shopifyPublicCatalogClient: ShopifyPublicCatalogClient by lazy { ShopifyPublicCatalogClient() }
     val merchOrderPaymentClient: MerchOrderPaymentClient by lazy { MerchOrderPaymentClient() }
     val paymentMethodsRepository: PaymentMethodsRepository by lazy { PaymentMethodsRepository() }
     val commerceSettingsRepository: CommerceSettingsRepository by lazy { CommerceSettingsRepository() }
