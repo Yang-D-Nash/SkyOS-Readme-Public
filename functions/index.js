@@ -32,6 +32,64 @@ const SHOPIFY_VARIANT_OPTION_KEYS = {
   size: ["size", "groesse", "größe"],
   color: ["color", "colour", "farbe"],
 };
+const SHOPIFY_STOREFRONT_PRODUCT_FIELDS = `
+  id
+  title
+  description
+  handle
+  featuredImage {
+    url
+  }
+  images(first: 10) {
+    nodes {
+      url
+    }
+  }
+  variants(first: 100) {
+    nodes {
+      id
+      title
+      sku
+      availableForSale
+      price {
+        amount
+        currencyCode
+      }
+      selectedOptions {
+        name
+        value
+      }
+    }
+  }
+`;
+const SHOPIFY_STOREFRONT_PRODUCTS_QUERY = `
+  query AppProducts($cursor: String) {
+    products(first: 100, after: $cursor) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        ${SHOPIFY_STOREFRONT_PRODUCT_FIELDS}
+      }
+    }
+  }
+`;
+const SHOPIFY_STOREFRONT_COLLECTION_PRODUCTS_QUERY = `
+  query AppCollectionProducts($handle: String!, $cursor: String) {
+    collection(handle: $handle) {
+      products(first: 100, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          ${SHOPIFY_STOREFRONT_PRODUCT_FIELDS}
+        }
+      }
+    }
+  }
+`;
 
 const agentTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -162,9 +220,8 @@ async function loadShopifyAdminConfig() {
 
   return {
     storeDomain,
-    storefrontURL: configuredStorefrontURL || buildStorefrontURL(storeDomain, collectionHandle || null),
+    storefrontAccessToken: nonEmptyString(data.storefrontAccessToken) || "",
     collectionHandle,
-    collectionTitle: nonEmptyString(data.collectionTitle) || "",
   };
 }
 
@@ -184,6 +241,10 @@ async function loadShopifyAdminToken() {
 
 function getShopifyGraphqlUrl(storeDomain) {
   return `https://${getShopifyDomain(storeDomain)}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
+}
+
+function getShopifyStorefrontGraphqlUrl(storeDomain) {
+  return `https://${getShopifyDomain(storeDomain)}/api/${SHOPIFY_API_VERSION}/graphql.json`;
 }
 
 async function shopifyGraphqlRequest({query, variables = {}, token, storeDomain}) {
@@ -209,6 +270,41 @@ async function shopifyGraphqlRequest({query, variables = {}, token, storeDomain}
 
   if (Array.isArray(payload.errors) && payload.errors.length > 0) {
     logger.error("Shopify GraphQL top-level errors.", {errors: payload.errors});
+    throw new Error(payload.errors.map((error) => error.message).join(" | "));
+  }
+
+  return payload.data;
+}
+
+async function shopifyStorefrontGraphqlRequest({query, variables = {}, token, storeDomain}) {
+  const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  };
+
+  if (token) {
+    headers["X-Shopify-Storefront-Access-Token"] = token;
+  }
+
+  const response = await fetch(getShopifyStorefrontGraphqlUrl(storeDomain), {
+    method: "POST",
+    headers,
+    body: JSON.stringify({query, variables}),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    logger.error("Shopify Storefront GraphQL request failed.", {
+      status: response.status,
+      statusText: response.statusText,
+      body: payload,
+    });
+    throw new Error(`Shopify Storefront API Fehler (${response.status} ${response.statusText}).`);
+  }
+
+  if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+    logger.error("Shopify Storefront GraphQL top-level errors.", {errors: payload.errors});
     throw new Error(payload.errors.map((error) => error.message).join(" | "));
   }
 
@@ -246,7 +342,7 @@ async function shopifyPublicProductsRequest({storeDomain, collectionHandle = nul
       body: payload,
     });
     if (response.status === 401 || response.status === 403) {
-      throw new Error("Der Shopify-Store ist nicht oeffentlich lesbar. Hinterlege einen Admin API Token in den Shopify-Admin-Einstellungen der App oder oeffne den Storefront-Produktfeed.");
+      throw new Error("Der Shopify-Store ist nicht oeffentlich lesbar. Hinterlege einen Storefront Access Token in den Shopify-Einstellungen der App oder oeffne den Produktfeed.");
     }
     throw new Error(`Shopify Storefront Fehler (${response.status} ${response.statusText}).`);
   }
@@ -321,6 +417,11 @@ function readSelectedOption(variant, keys) {
 }
 
 function normalizeShopifyVariant(variant, currencyCode) {
+  const priceValue = typeof variant?.price === "object" && variant?.price !== null ?
+    variant.price.amount :
+    variant?.price;
+  const variantCurrencyCode = nonEmptyString(variant?.price?.currencyCode) || currencyCode || "EUR";
+
   return {
     id: extractNumericId(variant.id) || variant.id,
     title: variant.title || "",
@@ -328,8 +429,8 @@ function normalizeShopifyVariant(variant, currencyCode) {
     color: readSelectedOption(variant, SHOPIFY_VARIANT_OPTION_KEYS.color),
     shopifyVariantId: variant.id,
     sku: nonEmptyString(variant.sku) || "",
-    price: parsePrice(variant.price),
-    currency: currencyCode || "EUR",
+    price: parsePrice(priceValue),
+    currency: variantCurrencyCode,
     availableForSale: Boolean(variant.availableForSale),
   };
 }
@@ -509,6 +610,66 @@ async function fetchAllShopifyProductsViaAdminApi(token, config) {
   return {products, currencyCode};
 }
 
+async function fetchAllShopifyProductsViaStorefrontApi(config) {
+  const fetchConnection = async (collectionHandle = null) => {
+    const products = [];
+    let hasNextPage = true;
+    let cursor = null;
+
+    while (hasNextPage) {
+      const data = await shopifyStorefrontGraphqlRequest({
+        query: collectionHandle ?
+          SHOPIFY_STOREFRONT_COLLECTION_PRODUCTS_QUERY :
+          SHOPIFY_STOREFRONT_PRODUCTS_QUERY,
+        variables: collectionHandle ?
+          {handle: collectionHandle, cursor} :
+          {cursor},
+        token: nonEmptyString(config?.storefrontAccessToken) || "",
+        storeDomain: config?.storeDomain,
+      });
+
+      const connection = collectionHandle ?
+        data?.collection?.products :
+        data?.products;
+
+      if (!connection) {
+        return [];
+      }
+
+      products.push(
+        ...((connection?.nodes || []).filter((product) => (product?.variants?.nodes || []).length > 0)),
+      );
+      hasNextPage = Boolean(connection?.pageInfo?.hasNextPage);
+      cursor = connection?.pageInfo?.endCursor || null;
+    }
+
+    return products;
+  };
+
+  const requestedCollectionHandle = nonEmptyString(config?.collectionHandle);
+  let products = await fetchConnection(requestedCollectionHandle);
+  let syncSource = requestedCollectionHandle ? "storefront_collection" : "storefront_api";
+
+  if (requestedCollectionHandle && products.length === 0) {
+    logger.warn("Shopify Storefront collection returned no products. Falling back to all storefront products.", {
+      storeDomain: config?.storeDomain,
+      collectionHandle: requestedCollectionHandle,
+    });
+    products = await fetchConnection(null);
+    syncSource = "storefront_api_fallback";
+  }
+
+  const currencyCode = nonEmptyString(
+      products[0]?.variants?.nodes?.[0]?.price?.currencyCode,
+  ) || "EUR";
+
+  return {
+    products,
+    currencyCode,
+    syncSource,
+  };
+}
+
 async function fetchAllShopifyProductsViaPublicStorefront(config) {
   const fetchAllPages = async (collectionHandle = null) => {
     const products = [];
@@ -579,6 +740,17 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
 }
 
 async function fetchAllShopifyProducts(token, config) {
+  try {
+    return await fetchAllShopifyProductsViaStorefrontApi(config);
+  } catch (error) {
+    logger.warn("Shopify Storefront API sync failed.", {
+      storeDomain: config?.storeDomain,
+      collectionHandle: config?.collectionHandle || null,
+      hasStorefrontToken: Boolean(nonEmptyString(config?.storefrontAccessToken)),
+      error: error instanceof Error ? error.message : "unknown_error",
+    });
+  }
+
   if (token) {
     try {
       const result = await fetchAllShopifyProductsViaAdminApi(token, config);
@@ -605,7 +777,7 @@ async function runShopifyMerchSync() {
   logger.info("Shopify merch sync started.", {
     storeDomain: config.storeDomain,
     collectionHandle: config.collectionHandle || null,
-    storefrontURL: config.storefrontURL,
+    hasStorefrontToken: Boolean(config.storefrontAccessToken),
   });
 
   const firestore = admin.firestore();
@@ -681,9 +853,7 @@ async function runShopifyMerchSync() {
     deactivatedCount,
     currencyCode,
     storeDomain: config.storeDomain,
-    storefrontURL: config.storefrontURL,
     collectionHandle: config.collectionHandle,
-    collectionTitle: config.collectionTitle,
     syncSource,
   };
 }

@@ -51,8 +51,8 @@ struct AIView: View {
         VStack(spacing: 0) {
             if featureFlags.isAIEnabled {
                 if viewModel.messages.isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Spacer(minLength: showsNavigation ? 18 : 10)
+                    VStack(alignment: .leading, spacing: 14) {
+                        Spacer(minLength: showsNavigation ? 8 : 4)
 
                         AIEmptyStateHeader(colorScheme: colorScheme)
 
@@ -68,10 +68,11 @@ struct AIView: View {
                             onPromptSelected: viewModel.generateVisual
                         )
 
-                        Spacer(minLength: 24)
+                        Spacer(minLength: 12)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.bottom, 6)
                 } else {
                     ScrollViewReader { proxy in
                         ScrollView {
@@ -89,8 +90,8 @@ struct AIView: View {
                                     .id("chat-end")
                             }
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, showsNavigation ? 10 : 6)
-                            .padding(.bottom, 12)
+                            .padding(.top, showsNavigation ? 6 : 2)
+                            .padding(.bottom, 6)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .scrollIndicators(.hidden)
@@ -517,7 +518,7 @@ private struct AIComposerBar: View {
                     .lineLimit(1...4)
                     .focused(isFocused)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
                             .fill(AppColors.secondaryBackground(for: colorScheme))
@@ -532,7 +533,7 @@ private struct AIComposerBar: View {
                             Image(systemName: composerMode == .text ? "arrow.up.circle.fill" : "sparkles")
                                 .font(.title3.weight(.bold))
                                 .foregroundColor(.white)
-                                .frame(width: 46, height: 46)
+                                .frame(width: 44, height: 44)
                                 .background(
                                     Circle()
                                         .fill(
@@ -554,8 +555,8 @@ private struct AIComposerBar: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
             .background(
                 Rectangle()
                     .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))

@@ -8,15 +8,11 @@ import kotlinx.coroutines.tasks.await
 
 data class ShopifyAdminSettings(
     val storeDomain: String = "k5t1sc-ps.myshopify.com",
-    val storefrontUrl: String = "https://k5t1sc-ps.myshopify.com",
+    val storefrontAccessToken: String = "",
     val collectionHandle: String = "",
-    val collectionTitle: String = "",
-    val adminApiToken: String = "",
 ) {
     val activeCollectionLabel: String
-        get() = collectionTitle.trim().ifBlank {
-            collectionHandle.trim().ifBlank { "Alle Produkte" }
-        }
+        get() = collectionHandle.trim().ifBlank { "Alle Produkte" }
 
     val hasCollectionFilter: Boolean
         get() = collectionHandle.isNotBlank()
@@ -27,8 +23,6 @@ class ShopifyAdminSettingsRepository(
 ) {
     private val collectionName = "appConfig"
     private val documentName = "shopifyMerch"
-    private val privateCollectionName = "adminConfig"
-    private val privateDocumentName = "shopifyMerchPrivate"
 
     fun observeSettings(onChange: (Result<ShopifyAdminSettings>) -> Unit): ListenerRegistration {
         return firestore.collection(collectionName).document(documentName).addSnapshotListener { snapshot, error ->
@@ -47,20 +41,6 @@ class ShopifyAdminSettingsRepository(
                 settings.toMap(),
                 SetOptions.merge(),
             ).await()
-            firestore.collection(privateCollectionName).document(privateDocumentName).set(
-                mapOf(
-                    "adminApiToken" to settings.adminApiToken.trim(),
-                    "updatedAt" to FieldValue.serverTimestamp(),
-                ),
-                SetOptions.merge(),
-            ).await()
-        }
-    }
-
-    suspend fun fetchAdminApiToken(): Result<String> {
-        return runCatching {
-            val snapshot = firestore.collection(privateCollectionName).document(privateDocumentName).get().await()
-            (snapshot.getString("adminApiToken") ?: "").trim()
         }
     }
 }
@@ -74,33 +54,28 @@ private fun Map<String, Any>.toShopifyAdminSettings(): ShopifyAdminSettings {
         value = this["collectionHandle"] as? String,
         fallbackUrl = configuredStorefrontUrl,
     ).orEmpty()
-    val normalizedStorefrontUrl = configuredStorefrontUrl
-        ?: deriveStorefrontUrl(normalizedDomain, normalizedCollectionHandle)
 
     return ShopifyAdminSettings(
         storeDomain = normalizedDomain,
-        storefrontUrl = normalizedStorefrontUrl,
+        storefrontAccessToken = (this["storefrontAccessToken"] as? String).orEmpty().trim(),
         collectionHandle = normalizedCollectionHandle,
-        collectionTitle = (this["collectionTitle"] as? String).orEmpty().trim(),
     )
 }
 
 private fun ShopifyAdminSettings.toMap(): Map<String, Any> {
     val normalizedDomain = normalizeStoreDomain(storeDomain)
-        ?: normalizeStoreDomain(storefrontUrl)
         ?: ShopifyAdminSettings().storeDomain
     val normalizedCollectionHandle = normalizeCollectionHandle(
         value = collectionHandle,
-        fallbackUrl = storefrontUrl,
+        fallbackUrl = null,
     ).orEmpty()
-    val normalizedStorefrontUrl = normalizeUrlString(storefrontUrl)
-        ?: deriveStorefrontUrl(normalizedDomain, normalizedCollectionHandle)
 
     return mapOf(
         "storeDomain" to normalizedDomain,
-        "storefrontURL" to normalizedStorefrontUrl,
+        "storefrontAccessToken" to storefrontAccessToken.trim(),
         "collectionHandle" to normalizedCollectionHandle,
-        "collectionTitle" to collectionTitle.trim(),
+        "storefrontURL" to FieldValue.delete(),
+        "collectionTitle" to FieldValue.delete(),
         "updatedAt" to FieldValue.serverTimestamp(),
     )
 }
@@ -150,12 +125,4 @@ private fun normalizeCollectionHandle(value: String?, fallbackUrl: String?): Str
     }
 
     return parts[collectionsIndex + 1].trim().ifBlank { null }
-}
-
-private fun deriveStorefrontUrl(storeDomain: String, collectionHandle: String): String {
-    return if (collectionHandle.isNotBlank()) {
-        "https://$storeDomain/collections/$collectionHandle"
-    } else {
-        "https://$storeDomain"
-    }
 }

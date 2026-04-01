@@ -6,6 +6,7 @@ import com.skydown.shared.model.MerchandiseVariant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -17,20 +18,20 @@ class ShopifyPublicCatalogClient(
         val config = loadConfig()
         var products = fetchProducts(
             storeDomain = config.storeDomain,
+            storefrontAccessToken = config.storefrontAccessToken,
             collectionHandle = config.collectionHandle,
         )
 
         if (products.isEmpty() && !config.collectionHandle.isNullOrBlank()) {
             products = fetchProducts(
                 storeDomain = config.storeDomain,
+                storefrontAccessToken = config.storefrontAccessToken,
                 collectionHandle = null,
             )
         }
 
         products
-            .mapNotNull { product ->
-                product.toMerchandiseItem()
-            }
+            .mapNotNull { product -> product.toMerchandiseItem() }
             .sortedBy { it.name.lowercase() }
     }
 
@@ -47,90 +48,233 @@ class ShopifyPublicCatalogClient(
 
         return ShopifyPublicCatalogConfig(
             storeDomain = storeDomain,
+            storefrontAccessToken = snapshot.getString("storefrontAccessToken").orEmpty().trim(),
             collectionHandle = collectionHandle,
         )
     }
 
     private suspend fun fetchProducts(
         storeDomain: String,
+        storefrontAccessToken: String,
         collectionHandle: String?,
-    ): List<ShopifyPublicProduct> = withContext(Dispatchers.IO) {
-        val path = if (!collectionHandle.isNullOrBlank()) {
-            "/collections/$collectionHandle/products.json"
-        } else {
-            "/products.json"
+    ): List<ShopifyStorefrontProduct> {
+        val products = mutableListOf<ShopifyStorefrontProduct>()
+        var cursor: String? = null
+        var hasNextPage = true
+
+        while (hasNextPage) {
+            val page = fetchProductConnection(
+                storeDomain = storeDomain,
+                storefrontAccessToken = storefrontAccessToken,
+                collectionHandle = collectionHandle,
+                cursor = cursor,
+            )
+            products += page.products
+            hasNextPage = page.hasNextPage
+            cursor = page.endCursor
         }
-        val url = URL("https://$storeDomain$path?limit=250")
+
+        return products
+    }
+
+    private suspend fun fetchProductConnection(
+        storeDomain: String,
+        storefrontAccessToken: String,
+        collectionHandle: String?,
+        cursor: String?,
+    ): ShopifyStorefrontProductPage = withContext(Dispatchers.IO) {
+        val url = URL("https://$storeDomain/api/2026-01/graphql.json")
         val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
+            requestMethod = "POST"
             connectTimeout = 15000
             readTimeout = 15000
+            doOutput = true
             setRequestProperty("Accept", "application/json")
+            setRequestProperty("Content-Type", "application/json")
+            if (storefrontAccessToken.isNotBlank()) {
+                setRequestProperty("X-Shopify-Storefront-Access-Token", storefrontAccessToken)
+            }
+        }
+
+        val variables = JSONObject().apply {
+            put("cursor", cursor ?: JSONObject.NULL)
+            if (!collectionHandle.isNullOrBlank()) {
+                put("handle", collectionHandle)
+            }
+        }
+        val payload = JSONObject().apply {
+            put(
+                "query",
+                if (collectionHandle.isNullOrBlank()) {
+                    SHOPIFY_STOREFRONT_PRODUCTS_QUERY
+                } else {
+                    SHOPIFY_STOREFRONT_COLLECTION_PRODUCTS_QUERY
+                },
+            )
+            put("variables", variables)
+        }
+
+        connection.outputStream.bufferedWriter().use { writer ->
+            writer.write(payload.toString())
         }
 
         try {
             val statusCode = connection.responseCode
+            val responseStream = if (statusCode in 200..299) connection.inputStream else connection.errorStream
+            val responseText = responseStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            val root = if (responseText.isNotBlank()) JSONObject(responseText) else JSONObject()
+            val errors = root.optJSONArray("errors")
+
             if (statusCode !in 200..299) {
-                throw IllegalStateException("Shopify-Store antwortet mit $statusCode.")
+                throw IllegalStateException(graphQlErrorMessage(errors, "Shopify-Store antwortet mit $statusCode."))
+            }
+            if (errors != null && errors.length() > 0) {
+                throw IllegalStateException(graphQlErrorMessage(errors, "Shopify Storefront GraphQL Fehler."))
             }
 
-            val responseText = connection.inputStream.bufferedReader().use { it.readText() }
-            val root = JSONObject(responseText)
-            val products = root.optJSONArray("products") ?: return@withContext emptyList()
+            val data = root.optJSONObject("data")
+            val productsConnection = if (collectionHandle.isNullOrBlank()) {
+                data?.optJSONObject("products")
+            } else {
+                data?.optJSONObject("collection")?.optJSONObject("products")
+            } ?: return@withContext ShopifyStorefrontProductPage.EMPTY
 
-            buildList {
-                for (index in 0 until products.length()) {
-                    val rawProduct = products.optJSONObject(index) ?: continue
-                    add(ShopifyPublicProduct.fromJson(rawProduct))
+            val pageInfo = productsConnection.optJSONObject("pageInfo")
+            val nodes = productsConnection.optJSONArray("nodes") ?: JSONArray()
+            val products = buildList {
+                for (index in 0 until nodes.length()) {
+                    val product = nodes.optJSONObject(index) ?: continue
+                    add(ShopifyStorefrontProduct.fromJson(product))
                 }
             }
+
+            ShopifyStorefrontProductPage(
+                products = products,
+                hasNextPage = pageInfo?.optBoolean("hasNextPage") == true,
+                endCursor = pageInfo?.optString("endCursor").takeUnless { it.isNullOrBlank() },
+            )
         } finally {
             connection.disconnect()
         }
     }
 }
 
+private const val SHOPIFY_STOREFRONT_PRODUCT_FIELDS = """
+id
+title
+description
+handle
+featuredImage {
+  url
+}
+images(first: 10) {
+  nodes {
+    url
+  }
+}
+variants(first: 100) {
+  nodes {
+    id
+    title
+    sku
+    availableForSale
+    price {
+      amount
+      currencyCode
+    }
+    selectedOptions {
+      name
+      value
+    }
+  }
+}
+"""
+
+private val SHOPIFY_STOREFRONT_PRODUCTS_QUERY = """
+query AppProducts(${ '$' }cursor: String) {
+  products(first: 100, after: ${ '$' }cursor) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+""" + SHOPIFY_STOREFRONT_PRODUCT_FIELDS + """
+    }
+  }
+}
+"""
+
+private val SHOPIFY_STOREFRONT_COLLECTION_PRODUCTS_QUERY = """
+query AppCollectionProducts(${ '$' }handle: String!, ${ '$' }cursor: String) {
+  collection(handle: ${ '$' }handle) {
+    products(first: 100, after: ${ '$' }cursor) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+""" + SHOPIFY_STOREFRONT_PRODUCT_FIELDS + """
+      }
+    }
+  }
+}
+"""
+
 private data class ShopifyPublicCatalogConfig(
     val storeDomain: String,
+    val storefrontAccessToken: String,
     val collectionHandle: String?,
 )
 
-private data class ShopifyPublicProduct(
-    val id: Long,
+private data class ShopifyStorefrontProductPage(
+    val products: List<ShopifyStorefrontProduct>,
+    val hasNextPage: Boolean,
+    val endCursor: String?,
+) {
+    companion object {
+        val EMPTY = ShopifyStorefrontProductPage(
+            products = emptyList(),
+            hasNextPage = false,
+            endCursor = null,
+        )
+    }
+}
+
+private data class ShopifyStorefrontProduct(
+    val id: String,
     val title: String,
-    val bodyHtml: String,
+    val description: String,
     val handle: String,
     val imageUrls: List<String>,
-    val options: List<String>,
-    val variants: List<ShopifyPublicVariant>,
+    val variants: List<ShopifyStorefrontVariant>,
 ) {
     fun toMerchandiseItem(): MerchandiseItem? {
         if (variants.isEmpty()) return null
 
         val mappedVariants = variants.map { variant ->
             MerchandiseVariant(
-                id = "gid://shopify/ProductVariant/${variant.id}",
+                id = variant.id,
                 title = variant.title,
-                size = variant.resolveOptionValue(options, setOf("size", "groesse", "größe")),
-                color = variant.resolveOptionValue(options, setOf("color", "colour", "farbe")),
-                shopifyVariantId = "gid://shopify/ProductVariant/${variant.id}",
+                size = variant.resolveOptionValue(setOf("size", "groesse", "größe")),
+                color = variant.resolveOptionValue(setOf("color", "colour", "farbe")),
+                shopifyVariantId = variant.id,
                 sku = variant.sku,
-                price = variant.price.toDoubleOrNull() ?: 0.0,
-                currency = "EUR",
-                availableForSale = variant.isAvailable,
+                price = variant.price.amount.toDoubleOrNull() ?: 0.0,
+                currency = variant.price.currencyCode,
+                availableForSale = variant.availableForSale,
             )
         }
 
         return MerchandiseItem(
-            id = "shopify_$id",
+            id = "shopify_${id.substringAfterLast("/")}",
             name = title,
             price = mappedVariants.firstOrNull()?.price ?: 0.0,
-            description = bodyHtml.stripHtml(),
+            description = description,
             imageUrls = imageUrls.distinct(),
             available = mappedVariants.any { it.availableForSale },
-            currency = "EUR",
+            currency = mappedVariants.firstOrNull()?.currency ?: "EUR",
             sku = mappedVariants.firstOrNull()?.sku,
-            shopifyProductId = "gid://shopify/Product/$id",
+            shopifyProductId = id,
             shopifyHandle = handle,
             availableForSale = mappedVariants.any { it.availableForSale },
             shopifySyncActive = true,
@@ -145,97 +289,119 @@ private data class ShopifyPublicProduct(
     }
 
     companion object {
-        fun fromJson(json: JSONObject): ShopifyPublicProduct {
-            val imagesArray = json.optJSONArray("images")
+        fun fromJson(json: JSONObject): ShopifyStorefrontProduct {
+            val featuredImage = json.optJSONObject("featuredImage")?.optString("url").takeUnless { it.isNullOrBlank() }
+            val imageNodes = json.optJSONObject("images")?.optJSONArray("nodes")
             val imageUrls = buildList {
-                json.optJSONObject("image")?.optString("src")?.takeIf { it.isNotBlank() }?.let(::add)
-                if (imagesArray != null) {
-                    for (index in 0 until imagesArray.length()) {
-                        imagesArray.optJSONObject(index)?.optString("src")
-                            ?.takeIf { it.isNotBlank() }
+                featuredImage?.let(::add)
+                if (imageNodes != null) {
+                    for (index in 0 until imageNodes.length()) {
+                        imageNodes.optJSONObject(index)?.optString("url")
+                            ?.takeUnless { it.isNullOrBlank() }
                             ?.let(::add)
                     }
                 }
             }
 
-            val optionsArray = json.optJSONArray("options")
-            val options = buildList {
-                if (optionsArray != null) {
-                    for (index in 0 until optionsArray.length()) {
-                        optionsArray.optJSONObject(index)?.optString("name")
-                            ?.takeIf { it.isNotBlank() }
-                            ?.let { add(it.lowercase()) }
-                    }
-                }
-            }
-
-            val variantsArray = json.optJSONArray("variants")
+            val variantsNodes = json.optJSONObject("variants")?.optJSONArray("nodes")
             val variants = buildList {
-                if (variantsArray != null) {
-                    for (index in 0 until variantsArray.length()) {
-                        variantsArray.optJSONObject(index)?.let { add(ShopifyPublicVariant.fromJson(it)) }
+                if (variantsNodes != null) {
+                    for (index in 0 until variantsNodes.length()) {
+                        variantsNodes.optJSONObject(index)?.let { add(ShopifyStorefrontVariant.fromJson(it)) }
                     }
                 }
             }
 
-            return ShopifyPublicProduct(
-                id = json.optLong("id"),
+            return ShopifyStorefrontProduct(
+                id = json.optString("id"),
                 title = json.optString("title"),
-                bodyHtml = json.optString("body_html"),
+                description = json.optString("description"),
                 handle = json.optString("handle"),
                 imageUrls = imageUrls,
-                options = options,
                 variants = variants,
             )
         }
     }
 }
 
-private data class ShopifyPublicVariant(
-    val id: Long,
+private data class ShopifyStorefrontVariant(
+    val id: String,
     val title: String,
-    val price: String,
     val sku: String?,
-    val available: Boolean?,
-    val inventoryQuantity: Int?,
-    val option1: String?,
-    val option2: String?,
-    val option3: String?,
+    val availableForSale: Boolean,
+    val price: ShopifyStorefrontMoney,
+    val selectedOptions: List<ShopifyStorefrontSelectedOption>,
 ) {
-    val isAvailable: Boolean
-        get() = available ?: inventoryQuantity?.let { it > 0 } ?: true
-
-    fun resolveOptionValue(optionNames: List<String>, supportedKeys: Set<String>): String? {
-        val values = listOf(option1, option2, option3)
-        optionNames.forEachIndexed { index, optionName ->
-            if (supportedKeys.contains(optionName) && index < values.size) {
-                return values[index]?.trim()?.takeIf { it.isNotEmpty() }
-            }
-        }
-        return null
+    fun resolveOptionValue(supportedKeys: Set<String>): String? {
+        return selectedOptions.firstOrNull { option ->
+            supportedKeys.contains(option.name.lowercase())
+        }?.value?.trim()?.takeIf { it.isNotEmpty() }
     }
 
     companion object {
-        fun fromJson(json: JSONObject): ShopifyPublicVariant {
-            return ShopifyPublicVariant(
-                id = json.optLong("id"),
+        fun fromJson(json: JSONObject): ShopifyStorefrontVariant {
+            val selectedOptionsArray = json.optJSONArray("selectedOptions")
+            val selectedOptions = buildList {
+                if (selectedOptionsArray != null) {
+                    for (index in 0 until selectedOptionsArray.length()) {
+                        selectedOptionsArray.optJSONObject(index)?.let {
+                            add(
+                                ShopifyStorefrontSelectedOption(
+                                    name = it.optString("name"),
+                                    value = it.optString("value"),
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+
+            return ShopifyStorefrontVariant(
+                id = json.optString("id"),
                 title = json.optString("title"),
-                price = json.optString("price"),
                 sku = json.optString("sku").takeIf { it.isNotBlank() },
-                available = if (json.has("available")) json.optBoolean("available") else null,
-                inventoryQuantity = if (json.has("inventory_quantity")) json.optInt("inventory_quantity") else null,
-                option1 = json.optString("option1").takeIf { it.isNotBlank() },
-                option2 = json.optString("option2").takeIf { it.isNotBlank() },
-                option3 = json.optString("option3").takeIf { it.isNotBlank() },
+                availableForSale = json.optBoolean("availableForSale"),
+                price = ShopifyStorefrontMoney.fromJson(json.optJSONObject("price") ?: JSONObject()),
+                selectedOptions = selectedOptions,
             )
         }
     }
 }
 
-private fun String.stripHtml(): String {
-    return replace(Regex("<[^>]+>"), " ")
-        .replace(Regex("\\s+"), " ")
-        .trim()
+private data class ShopifyStorefrontMoney(
+    val amount: String,
+    val currencyCode: String,
+) {
+    companion object {
+        fun fromJson(json: JSONObject): ShopifyStorefrontMoney {
+            return ShopifyStorefrontMoney(
+                amount = json.optString("amount"),
+                currencyCode = json.optString("currencyCode").ifBlank { "EUR" },
+            )
+        }
+    }
+}
+
+private data class ShopifyStorefrontSelectedOption(
+    val name: String,
+    val value: String,
+)
+
+private fun graphQlErrorMessage(errors: JSONArray?, fallback: String): String {
+    if (errors == null || errors.length() == 0) {
+        return fallback
+    }
+
+    val messages = buildList {
+        for (index in 0 until errors.length()) {
+            val message = errors.optJSONObject(index)?.optString("message").orEmpty().trim()
+            if (message.isNotBlank()) {
+                add(message)
+            }
+        }
+    }
+
+    return messages.joinToString(" | ").ifBlank { fallback }
 }
 
 private fun normalizeStoreDomain(value: String?): String? {

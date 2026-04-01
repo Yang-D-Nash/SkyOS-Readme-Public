@@ -111,10 +111,8 @@ fun SettingsScreen(
     var invoicePrefixDraft by rememberSaveable { mutableStateOf("") }
     var invoiceSupportEmailDraft by rememberSaveable { mutableStateOf("") }
     var shopifyStoreDomainDraft by rememberSaveable { mutableStateOf("") }
-    var shopifyStorefrontUrlDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyStorefrontAccessTokenDraft by rememberSaveable { mutableStateOf("") }
     var shopifyCollectionHandleDraft by rememberSaveable { mutableStateOf("") }
-    var shopifyCollectionTitleDraft by rememberSaveable { mutableStateOf("") }
-    var shopifyAdminApiTokenDraft by rememberSaveable { mutableStateOf("") }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
@@ -165,10 +163,8 @@ fun SettingsScreen(
 
     LaunchedEffect(uiState.shopifyAdminSettings) {
         shopifyStoreDomainDraft = uiState.shopifyAdminSettings.storeDomain
-        shopifyStorefrontUrlDraft = uiState.shopifyAdminSettings.storefrontUrl
+        shopifyStorefrontAccessTokenDraft = uiState.shopifyAdminSettings.storefrontAccessToken
         shopifyCollectionHandleDraft = uiState.shopifyAdminSettings.collectionHandle
-        shopifyCollectionTitleDraft = uiState.shopifyAdminSettings.collectionTitle
-        shopifyAdminApiTokenDraft = uiState.shopifyAdminSettings.adminApiToken
     }
 
     LaunchedEffect(uiState.paymentFeedbackMessage) {
@@ -241,7 +237,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Shopify -> {
                 Text(
-                    text = "Der Shopify-Sync und die spaetere Order-Erstellung nutzen genau diese Angaben. Wenn du eine andere Kollektion live schalten willst, reicht hier Link oder Handle anzupassen und danach den Sync zu starten.",
+                    text = "Fuer den Merch-Katalog braucht die App nur die Store-Domain, deinen Storefront Access Token und optional einen Collection-Handle. Danach laedt der Shop direkt aus Shopify.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -264,15 +260,14 @@ fun SettingsScreen(
                     singleLine = true,
                 )
                 OutlinedTextField(
-                    value = shopifyStorefrontUrlDraft,
-                    onValueChange = { shopifyStorefrontUrlDraft = it },
+                    value = shopifyStorefrontAccessTokenDraft,
+                    onValueChange = { shopifyStorefrontAccessTokenDraft = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Store- oder Collection-Link") },
-                    placeholder = { Text("https://.../collections/dein-drop") },
-                    minLines = 2,
-                    maxLines = 3,
+                    label = { Text("Storefront Access Token") },
+                    placeholder = { Text("shpat_... oder storefront token") },
+                    singleLine = true,
                 )
                 OutlinedTextField(
                     value = shopifyCollectionHandleDraft,
@@ -284,29 +279,9 @@ fun SettingsScreen(
                     placeholder = { Text("z. B. spring-drop-2026") },
                     singleLine = true,
                 )
-                OutlinedTextField(
-                    value = shopifyCollectionTitleDraft,
-                    onValueChange = { shopifyCollectionTitleDraft = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    label = { Text("Collection-Label in der App") },
-                    placeholder = { Text("z. B. Spring Drop 2026") },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = shopifyAdminApiTokenDraft,
-                    onValueChange = { shopifyAdminApiTokenDraft = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    label = { Text("Admin API Token (privat)") },
-                    placeholder = { Text("shpat_...") },
-                    singleLine = true,
-                )
 
                 Text(
-                    text = "Dieser Token wird admin-only gespeichert und hilft dem Sync auch dann, wenn dein Shopify-Store oeffentlich gesperrt ist.",
+                    text = "Den Collection-Handle kannst du leer lassen, dann nimmt die App den ganzen veroeffentlichten Store.",
                     modifier = Modifier.padding(top = 10.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -326,10 +301,8 @@ fun SettingsScreen(
                         viewModel.saveShopifyAdminSettings(
                             uiState.shopifyAdminSettings.copy(
                                 storeDomain = shopifyStoreDomainDraft.trim(),
-                                storefrontUrl = shopifyStorefrontUrlDraft.trim(),
+                                storefrontAccessToken = shopifyStorefrontAccessTokenDraft.trim(),
                                 collectionHandle = shopifyCollectionHandleDraft.trim(),
-                                collectionTitle = shopifyCollectionTitleDraft.trim(),
-                                adminApiToken = shopifyAdminApiTokenDraft.trim(),
                             ),
                         )
                     },
@@ -948,11 +921,22 @@ fun SettingsScreen(
                         )
                         OutlinedButton(
                             onClick = {
-                                activeLegalDocument.value = SettingsLegalDocumentType.PrivacyPolicy
+                                activeLegalDocument.value = SettingsLegalDocumentType.TermsAndConditions
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("AGB")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                activeLegalDocument.value = SettingsLegalDocumentType.PrivacyPolicy
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
                             Text("Datenschutzbestimmungen")
@@ -994,7 +978,7 @@ fun SettingsScreen(
                             Text("Support-Anfrage senden")
                         }
                         Text(
-                            text = "Support und rechtliche Hinweise sind hier direkt aus der App erreichbar.",
+                            text = "Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.",
                             modifier = Modifier.padding(top = 10.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )

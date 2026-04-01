@@ -82,6 +82,10 @@ import com.skydown.android.ui.screen.RegistrationScreen
 import com.skydown.android.ui.screen.SettingsScreen
 import com.skydown.android.ui.screen.ShopScreen
 import com.skydown.android.ui.screen.VideoHubScreen
+import com.skydown.android.ui.theme.BackgroundDark
+import com.skydown.android.ui.theme.SurfaceDark
+import com.skydown.android.ui.theme.TextDark
+import com.skydown.android.ui.theme.TextMutedDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -347,10 +351,11 @@ private fun LaunchLandingScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                        MaterialTheme.colorScheme.background,
+                        BackgroundDark,
+                        SurfaceDark,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                        BackgroundDark,
                     ),
                 ),
             ),
@@ -363,7 +368,7 @@ private fun LaunchLandingScreen(
                 .width(220.dp)
                 .height(220.dp)
                 .background(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
                     RoundedCornerShape(999.dp),
                 ),
         )
@@ -376,7 +381,7 @@ private fun LaunchLandingScreen(
                 .width(200.dp)
                 .height(200.dp)
                 .background(
-                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
                     RoundedCornerShape(999.dp),
                 ),
         )
@@ -397,25 +402,25 @@ private fun LaunchLandingScreen(
                 Text(
                     text = "Sky²²",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
+                    color = TextMutedDark,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     text = "Sky²²",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = TextDark,
                 )
                 Text(
                     text = "Waehle den Bereich, mit dem du gerade starten willst. Unten kannst du spaeter jederzeit wechseln.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.74f),
+                    color = TextMutedDark,
                 )
             }
 
             Surface(
                 shape = RoundedCornerShape(26.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                color = SurfaceDark.copy(alpha = 0.94f),
                 tonalElevation = 10.dp,
                 shadowElevation = 12.dp,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.20f)),
@@ -457,13 +462,13 @@ private fun LaunchLandingScreen(
                         Text(
                             text = "Ein Ort fuer Musik, Videos und Merchandise.",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = TextDark,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text = "Starte dort, wo du gerade weitermachen willst. Alles andere bleibt unten fuer dich direkt erreichbar.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            color = TextMutedDark,
                         )
                     }
                 }
@@ -499,7 +504,7 @@ private fun LaunchLandingScreen(
             Text(
                 text = "Danach wechselst du unten jederzeit dorthin, wo du weitermachen willst.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
+                color = TextMutedDark,
             )
 
             Spacer(modifier = Modifier.height(1.dp))
@@ -520,7 +525,7 @@ private fun LaunchLandingChoiceCard(
 
     Surface(
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        color = SurfaceDark.copy(alpha = 0.95f),
         tonalElevation = 8.dp,
         shadowElevation = 10.dp,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
@@ -541,8 +546,8 @@ private fun LaunchLandingChoiceCard(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
-                                accentColor.copy(alpha = 0.12f),
+                                SurfaceDark.copy(alpha = 0.98f),
+                                accentColor.copy(alpha = 0.14f),
                             ),
                         ),
                         RoundedCornerShape(16.dp),
@@ -567,20 +572,20 @@ private fun LaunchLandingChoiceCard(
                     Text(
                         text = eyebrow.uppercase(),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                        color = TextMutedDark,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = TextDark,
                         fontWeight = FontWeight.Black,
                     )
                 }
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    color = TextMutedDark,
                 )
             }
         }

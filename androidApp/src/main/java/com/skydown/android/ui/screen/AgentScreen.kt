@@ -129,14 +129,6 @@ fun AgentScreen(
                             subtitle = "Briefings, To-dos, Release-Plaene und Struktur.",
                         )
                     },
-                    actions = {
-                        Icon(
-                            imageVector = Icons.Default.Bolt,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.padding(end = 16.dp),
-                        )
-                    },
                     colors = skydownTopBarColors(),
                     scrollBehavior = scrollBehavior,
                 )
@@ -181,9 +173,9 @@ fun AgentScreen(
                         .fillMaxSize()
                         .padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = innerPadding.calculateTopPadding() + if (showTopBar) 8.dp else 4.dp,
+                            top = innerPadding.calculateTopPadding() + if (showTopBar) 4.dp else 2.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = innerPadding.calculateBottomPadding() + 8.dp,
+                            bottom = innerPadding.calculateBottomPadding() + 4.dp,
                         ),
                     verticalArrangement = Arrangement.Bottom,
                 ) {
@@ -202,15 +194,15 @@ fun AgentScreen(
                     contentPadding = PaddingValues(
                         start = SkydownUiTokens.screenHorizontalPadding,
                         top = if (showTopBar) {
-                            innerPadding.calculateTopPadding() + 4.dp
+                            innerPadding.calculateTopPadding() + 2.dp
                         } else {
-                            4.dp
+                            2.dp
                         },
                         end = SkydownUiTokens.screenHorizontalPadding,
                         bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
-                            8.dp
+                            4.dp
                         } else {
-                            10.dp
+                            8.dp
                         },
                     ),
                     verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),

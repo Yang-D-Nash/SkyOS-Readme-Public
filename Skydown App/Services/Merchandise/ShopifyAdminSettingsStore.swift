@@ -3,15 +3,13 @@ import FirebaseFirestore
 
 struct ShopifyAdminSettings: Equatable {
     var storeDomain: String = "k5t1sc-ps.myshopify.com"
-    var storefrontURL: String = "https://k5t1sc-ps.myshopify.com"
+    var storefrontAccessToken: String = ""
     var collectionHandle: String = ""
-    var collectionTitle: String = ""
-    var adminApiToken: String = ""
 
     static let `default` = ShopifyAdminSettings()
 
     var activeCollectionLabel: String {
-        collectionTitle.trimmedNonEmpty ?? collectionHandle.trimmedNonEmpty ?? "Alle Produkte"
+        collectionHandle.trimmedNonEmpty ?? "Alle Produkte"
     }
 
     var hasCollectionFilter: Bool {
@@ -22,11 +20,6 @@ struct ShopifyAdminSettings: Equatable {
 protocol ShopifyAdminSettingsServicing {
     func observeSettings(_ onChange: @escaping @MainActor (Result<ShopifyAdminSettings, Error>) -> Void) -> () -> Void
     func updateSettings(_ settings: ShopifyAdminSettings) async throws
-}
-
-protocol ShopifyAdminPrivateSettingsServicing {
-    func fetchAdminApiToken() async throws -> String
-    func updateAdminApiToken(_ token: String) async throws
 }
 
 final class FirestoreShopifyAdminSettingsService: ShopifyAdminSettingsServicing {
@@ -68,57 +61,30 @@ final class FirestoreShopifyAdminSettingsService: ShopifyAdminSettingsServicing 
             data["collectionHandle"] as? String,
             fallbackURL: configuredStorefrontURL
         ) ?? ""
-        let normalizedStorefrontURL = configuredStorefrontURL
-            ?? deriveStorefrontURL(storeDomain: normalizedDomain, collectionHandle: normalizedCollectionHandle)
 
         return ShopifyAdminSettings(
             storeDomain: normalizedDomain,
-            storefrontURL: normalizedStorefrontURL,
-            collectionHandle: normalizedCollectionHandle,
-            collectionTitle: (data["collectionTitle"] as? String)?.trimmed ?? ""
+            storefrontAccessToken: (data["storefrontAccessToken"] as? String)?.trimmed ?? "",
+            collectionHandle: normalizedCollectionHandle
         )
     }
 
     private static func encode(_ settings: ShopifyAdminSettings) -> [String: Any] {
         let normalizedDomain = normalizeStoreDomain(settings.storeDomain)
-            ?? normalizeStoreDomain(settings.storefrontURL)
             ?? ShopifyAdminSettings.default.storeDomain
         let normalizedCollectionHandle = normalizeCollectionHandle(
             settings.collectionHandle,
-            fallbackURL: settings.storefrontURL
+            fallbackURL: nil
         ) ?? ""
-        let normalizedStorefrontURL = normalizeURLString(settings.storefrontURL)
-            ?? deriveStorefrontURL(storeDomain: normalizedDomain, collectionHandle: normalizedCollectionHandle)
 
         return [
             "storeDomain": normalizedDomain,
-            "storefrontURL": normalizedStorefrontURL,
+            "storefrontAccessToken": settings.storefrontAccessToken.trimmed,
             "collectionHandle": normalizedCollectionHandle,
-            "collectionTitle": settings.collectionTitle.trimmed,
+            "storefrontURL": FieldValue.delete(),
+            "collectionTitle": FieldValue.delete(),
             "updatedAt": FieldValue.serverTimestamp()
         ]
-    }
-}
-
-final class FirestoreShopifyPrivateSettingsService: ShopifyAdminPrivateSettingsServicing {
-    private let firestore: Firestore
-    private let collectionName = "adminConfig"
-    private let documentName = "shopifyMerchPrivate"
-
-    init(firestore: Firestore = Firestore.firestore()) {
-        self.firestore = firestore
-    }
-
-    func fetchAdminApiToken() async throws -> String {
-        let snapshot = try await firestore.collection(collectionName).document(documentName).getDocument()
-        return (snapshot.data()?["adminApiToken"] as? String)?.trimmed ?? ""
-    }
-
-    func updateAdminApiToken(_ token: String) async throws {
-        try await firestore.collection(collectionName).document(documentName).setData([
-            "adminApiToken": token.trimmed,
-            "updatedAt": FieldValue.serverTimestamp()
-        ], merge: true)
     }
 }
 
@@ -130,31 +96,15 @@ final class ShopifyAdminSettingsStore: ObservableObject {
     @Published private(set) var lastErrorMessage: String?
 
     private let service: ShopifyAdminSettingsServicing
-    private let privateService: ShopifyAdminPrivateSettingsServicing
     private var stopObserving: (() -> Void)?
 
-    init(
-        service: ShopifyAdminSettingsServicing = FirestoreShopifyAdminSettingsService(),
-        privateService: ShopifyAdminPrivateSettingsServicing = FirestoreShopifyPrivateSettingsService()
-    ) {
+    init(service: ShopifyAdminSettingsServicing = FirestoreShopifyAdminSettingsService()) {
         self.service = service
-        self.privateService = privateService
         startObserving()
     }
 
     func save(_ settings: ShopifyAdminSettings) async throws {
         try await service.updateSettings(settings)
-        try await privateService.updateAdminApiToken(settings.adminApiToken)
-        self.settings.adminApiToken = settings.adminApiToken.trimmed
-    }
-
-    func reloadAdminApiToken() async {
-        do {
-            settings.adminApiToken = try await privateService.fetchAdminApiToken()
-        } catch {
-            guard !Self.isPermissionError(error) else { return }
-            lastErrorMessage = error.localizedDescription
-        }
     }
 
     private func startObserving() {
@@ -164,24 +114,12 @@ final class ShopifyAdminSettingsStore: ObservableObject {
 
             switch result {
             case .success(let settings):
-                var updatedSettings = settings
-                updatedSettings.adminApiToken = self.settings.adminApiToken
-                self.settings = updatedSettings
+                self.settings = settings
                 self.lastErrorMessage = nil
             case .failure(let error):
                 self.lastErrorMessage = error.localizedDescription
             }
         }
-
-        Task { [weak self] in
-            await self?.reloadAdminApiToken()
-        }
-    }
-
-    private static func isPermissionError(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        return nsError.localizedDescription.localizedCaseInsensitiveContains("permission")
-            || nsError.localizedDescription.localizedCaseInsensitiveContains("berechtigung")
     }
 
     deinit {
@@ -253,14 +191,6 @@ private func normalizeCollectionHandle(_ value: String?, fallbackURL: String?) -
     }
 
     return pathComponents[collectionsIndex + 1].trimmed
-}
-
-private func deriveStorefrontURL(storeDomain: String, collectionHandle: String) -> String {
-    if let collectionHandle = collectionHandle.trimmedNonEmpty {
-        return "https://\(storeDomain)/collections/\(collectionHandle)"
-    }
-
-    return "https://\(storeDomain)"
 }
 
 private extension String {

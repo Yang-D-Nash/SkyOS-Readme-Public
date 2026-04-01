@@ -30,6 +30,7 @@ struct SettingsView: View {
     @State private var activeAlert: SettingsAlert?
     @State private var showingLoginSheet = false
     @State private var showingRegistrationSheet = false
+    @State private var showingTermsAndConditions = false
     @State private var showingPrivacyPolicy = false
     @State private var showingTermsOfService = false
     @State private var showingOrders = false
@@ -60,10 +61,8 @@ struct SettingsView: View {
     @State private var invoicePrefixDraft = ""
     @State private var invoiceSupportEmailDraft = ""
     @State private var shopifyStoreDomainDraft = ""
-    @State private var shopifyStorefrontURLDraft = ""
+    @State private var shopifyStorefrontAccessTokenDraft = ""
     @State private var shopifyCollectionHandleDraft = ""
-    @State private var shopifyCollectionTitleDraft = ""
-    @State private var shopifyAdminApiTokenDraft = ""
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -80,6 +79,20 @@ struct SettingsView: View {
             return version
         }
         return "\(version) (\(build))"
+    }
+
+    private var shopifyCatalogURL: URL? {
+        let normalizedDomain = shopifyAdminSettingsStore.settings.storeDomain
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "https://", with: "")
+            .replacingOccurrences(of: "http://", with: "")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard !normalizedDomain.isEmpty else { return nil }
+
+        let handle = shopifyAdminSettingsStore.settings.collectionHandle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let path = handle.isEmpty ? "" : "/collections/\(handle)"
+        return URL(string: "https://\(normalizedDomain)\(path)")
     }
 
     var body: some View {
@@ -211,6 +224,11 @@ struct SettingsView: View {
                                 .font(.headline)
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
+                            Button("AGB") {
+                                showingTermsAndConditions = true
+                            }
+                            .buttonStyle(.bordered)
+
                             Button("Datenschutzbestimmungen") {
                                 showingPrivacyPolicy = true
                             }
@@ -248,7 +266,7 @@ struct SettingsView: View {
                             .buttonStyle(.borderedProminent)
                             .tint(AppColors.accent(for: effectiveColorScheme))
 
-                            Text("Weitere rechtliche Infos folgen direkt in einem der naechsten Updates.")
+                            Text("Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.")
                                 .font(.footnote)
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                         }
@@ -288,6 +306,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingOrders) {
             OrderView()
+        }
+        .sheet(isPresented: $showingTermsAndConditions) {
+            PolicyView(title: "AGB", text: .termsAndConditionsText)
         }
         .sheet(isPresented: $showingPrivacyPolicy) {
             PolicyView(title: "Datenschutzbestimmungen", text: .privacyPolicyText)
@@ -387,12 +408,6 @@ struct SettingsView: View {
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
-            if isAdminUser {
-                Task {
-                    await shopifyAdminSettingsStore.reloadAdminApiToken()
-                    syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
-                }
-            }
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
             syncPaymentDrafts(with: settings)
@@ -519,7 +534,7 @@ struct SettingsView: View {
 
             case .shopify:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Der Shopify-Sync und die spaetere Order-Erstellung nutzen genau diese Angaben. Wenn du eine andere Kollektion live schalten willst, reicht hier Link oder Handle anzupassen und danach den Sync zu starten.")
+                    Text("Fuer den Merch-Katalog braucht die App nur die Store-Domain, deinen Storefront Access Token und optional einen Collection-Handle. Danach laedt der Shop direkt aus Shopify.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -531,11 +546,11 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
-                        title: "Store- oder Collection-Link",
-                        text: $shopifyStorefrontURLDraft,
+                        title: "Storefront Access Token",
+                        text: $shopifyStorefrontAccessTokenDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "https://.../collections/dein-drop",
-                        keyboardType: .URL
+                        placeholder: "shpat_... oder storefront token",
+                        keyboardType: .asciiCapable
                     )
 
                     SettingsInputField(
@@ -545,22 +560,7 @@ struct SettingsView: View {
                         placeholder: "z. B. spring-drop-2026"
                     )
 
-                    SettingsInputField(
-                        title: "Collection-Label in der App",
-                        text: $shopifyCollectionTitleDraft,
-                        colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Spring Drop 2026"
-                    )
-
-                    SettingsInputField(
-                        title: "Admin API Token (privat)",
-                        text: $shopifyAdminApiTokenDraft,
-                        colorScheme: effectiveColorScheme,
-                        placeholder: "shpat_...",
-                        keyboardType: .asciiCapable
-                    )
-
-                    Text("Dieser Token wird admin-only gespeichert und nutzt den Sync auch dann, wenn dein Shopify-Store oeffentlich gesperrt ist.")
+                    Text("Den Collection-Handle kannst du leer lassen, dann nimmt die App den ganzen veroeffentlichten Store.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -579,8 +579,7 @@ struct SettingsView: View {
                         .buttonStyle(.borderedProminent)
                         .tint(AppColors.accent(for: effectiveColorScheme))
 
-                        if let storefrontURL = shopifyAdminSettingsStore.settings.storefrontURL.takeIfNotBlank(),
-                           let url = URL(string: storefrontURL) {
+                        if let url = shopifyCatalogURL {
                             Button {
                                 UIApplication.shared.open(url)
                             } label: {
@@ -1038,10 +1037,8 @@ struct SettingsView: View {
 
     private func syncShopifyDrafts(with settings: ShopifyAdminSettings) {
         shopifyStoreDomainDraft = settings.storeDomain
-        shopifyStorefrontURLDraft = settings.storefrontURL
+        shopifyStorefrontAccessTokenDraft = settings.storefrontAccessToken
         shopifyCollectionHandleDraft = settings.collectionHandle
-        shopifyCollectionTitleDraft = settings.collectionTitle
-        shopifyAdminApiTokenDraft = settings.adminApiToken
     }
 
     private func saveCommerceSettings() {
@@ -1084,15 +1081,13 @@ struct SettingsView: View {
         Task {
             var updated = shopifyAdminSettingsStore.settings
             updated.storeDomain = shopifyStoreDomainDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.storefrontURL = shopifyStorefrontURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.storefrontAccessToken = shopifyStorefrontAccessTokenDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.collectionHandle = shopifyCollectionHandleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.collectionTitle = shopifyCollectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.adminApiToken = shopifyAdminApiTokenDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
             do {
                 try await shopifyAdminSettingsStore.save(updated)
                 showToastMessage(
-                    "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, diese Kollektion und deinen privaten Token.",
+                    "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, deinen Storefront Token und optional die Collection.",
                     style: .success
                 )
             } catch {

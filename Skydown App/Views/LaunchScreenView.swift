@@ -154,27 +154,35 @@ private enum LaunchPhase {
 }
 
 private struct LaunchLandingView: View {
-    @Environment(\.colorScheme) private var colorScheme
     let onOpenMusic: () -> Void
     let onOpenVideography: () -> Void
     let onOpenShop: () -> Void
 
+    private var hubColorScheme: ColorScheme { .dark }
+
     var body: some View {
         ZStack {
-            AppColors.screenGradient(
-                for: colorScheme,
-                secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+            LinearGradient(
+                colors: [
+                    Color(red: 3/255, green: 9/255, blue: 17/255),
+                    Color(red: 7/255, green: 18/255, blue: 31/255),
+                    AppColors.accent(for: hubColorScheme).opacity(0.28),
+                    AppColors.accentMystic(for: hubColorScheme).opacity(0.20),
+                    Color(red: 4/255, green: 10/255, blue: 19/255)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
 
             Circle()
-                .fill(AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.20 : 0.12))
+                .fill(AppColors.accent(for: hubColorScheme).opacity(0.22))
                 .frame(width: 260, height: 260)
                 .blur(radius: 50)
                 .offset(x: 150, y: -280)
 
             Circle()
-                .fill(AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.10))
+                .fill(AppColors.accentMystic(for: hubColorScheme).opacity(0.18))
                 .frame(width: 240, height: 240)
                 .blur(radius: 56)
                 .offset(x: -140, y: 260)
@@ -186,15 +194,15 @@ private struct LaunchLandingView: View {
                     Text("Sky²²")
                         .font(.caption.weight(.semibold))
                         .tracking(1.6)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
 
                     Text("Sky²²")
                         .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .foregroundColor(AppColors.text(for: hubColorScheme))
 
                     Text("Waehle den Bereich, mit dem du gerade starten willst. Unten kannst du spaeter jederzeit wechseln.")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -209,8 +217,8 @@ private struct LaunchLandingView: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.92 : 0.82),
-                                            AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.10)
+                                            AppColors.cardBackground(for: hubColorScheme).opacity(0.94),
+                                            AppColors.accentHighlight(for: hubColorScheme).opacity(0.16)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -219,25 +227,25 @@ private struct LaunchLandingView: View {
                         )
                         .overlay {
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.24), lineWidth: 1)
+                                .stroke(AppColors.accentHighlight(for: hubColorScheme).opacity(0.22), lineWidth: 1)
                         }
-                        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 10)
+                        .shadow(color: .black.opacity(0.24), radius: 18, y: 10)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Ein Ort fuer Musik, Videos und Merch.")
                             .font(.headline.weight(.bold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .foregroundColor(AppColors.text(for: hubColorScheme))
 
                         Text("Steig genau dort ein, wo du gerade weitermachen willst. Alles andere bleibt unten fuer dich direkt erreichbar.")
                             .font(.footnote.weight(.medium))
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .padding(14)
                 .skydownPanelSurface(
-                    colorScheme: colorScheme,
-                    accent: AppColors.accentHighlight(for: colorScheme),
+                    colorScheme: hubColorScheme,
+                    accent: AppColors.accentHighlight(for: hubColorScheme),
                     cornerRadius: 24,
                     shadowRadius: 14,
                     shadowYOffset: 8
@@ -248,7 +256,7 @@ private struct LaunchLandingView: View {
                         eyebrow: "Listen & Artists",
                         title: "Music",
                         subtitle: "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
-                        accent: AppColors.spotify(for: colorScheme),
+                        accent: AppColors.spotify(for: hubColorScheme),
                         brandMark: .zweizwei,
                         action: onOpenMusic
                     )
@@ -257,7 +265,7 @@ private struct LaunchLandingView: View {
                         eyebrow: "Clips & Reels",
                         title: "Videos",
                         subtitle: "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
-                        accent: AppColors.accentMystic(for: colorScheme),
+                        accent: AppColors.accentMystic(for: hubColorScheme),
                         brandMark: .skydown,
                         action: onOpenVideography
                     )
@@ -266,7 +274,7 @@ private struct LaunchLandingView: View {
                         eyebrow: "Store",
                         title: "Merch",
                         subtitle: "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
-                        accent: AppColors.accentHighlight(for: colorScheme),
+                        accent: AppColors.accentHighlight(for: hubColorScheme),
                         brandMark: .skydownX22,
                         action: onOpenShop
                     )
@@ -274,7 +282,7 @@ private struct LaunchLandingView: View {
 
                 Text("Danach wechselst du unten jederzeit dorthin, wo du weitermachen willst.")
                     .font(.caption.weight(.medium))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
                     .padding(.top, 4)
 
                 Spacer(minLength: 0)
@@ -286,13 +294,14 @@ private struct LaunchLandingView: View {
 }
 
 private struct LaunchLandingButton: View {
-    @Environment(\.colorScheme) private var colorScheme
     let eyebrow: String
     let title: String
     let subtitle: String
     let accent: Color
     let brandMark: BrandMark
     let action: () -> Void
+
+    private var hubColorScheme: ColorScheme { .dark }
 
     var body: some View {
         Button(action: action) {
@@ -307,8 +316,8 @@ private struct LaunchLandingButton: View {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.88),
-                                        accent.opacity(colorScheme == .dark ? 0.18 : 0.10)
+                                        AppColors.cardBackground(for: hubColorScheme).opacity(0.96),
+                                        accent.opacity(0.16)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -322,16 +331,16 @@ private struct LaunchLandingButton: View {
                         Text(eyebrow.uppercased())
                             .font(.caption.weight(.semibold))
                             .tracking(1.2)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
 
                         Text(title)
                             .font(.system(size: 24, weight: .black, design: .rounded))
-                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .foregroundColor(AppColors.text(for: hubColorScheme))
                     }
 
                     Text(subtitle)
                         .font(.footnote.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
                         .multilineTextAlignment(.leading)
                 }
             }
@@ -345,7 +354,7 @@ private struct LaunchLandingButton: View {
                     .padding(.leading, 10)
             }
             .skydownPanelSurface(
-                colorScheme: colorScheme,
+                colorScheme: hubColorScheme,
                 accent: accent,
                 cornerRadius: 24,
                 shadowRadius: 14,

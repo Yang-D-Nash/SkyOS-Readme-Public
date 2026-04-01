@@ -252,6 +252,25 @@ struct MusicInstagramHubCard: View {
                 if let url = destination.url {
                     Link(destination: url) {
                         HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                AppColors.instagramStart(for: colorScheme),
+                                                AppColors.instagramEnd(for: colorScheme)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 42, height: 42)
+
+                                Image(systemName: "camera.fill")
+                                    .font(.footnote.weight(.bold))
+                                    .foregroundColor(.white)
+                            }
+
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(destination.title)
                                     .font(.headline)
@@ -263,22 +282,29 @@ struct MusicInstagramHubCard: View {
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
-
-                            Image(systemName: "arrow.up.forward.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(AppColors.accent(for: colorScheme))
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(AppColors.secondaryBackground(for: colorScheme))
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    AppColors.secondaryBackground(for: colorScheme),
+                                    AppColors.instagramStart(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.06),
+                                    AppColors.instagramEnd(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.05)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18)
-                                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+                                .stroke(AppColors.instagramStart(for: colorScheme).opacity(0.14), lineWidth: 1)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                 }
             }
         }

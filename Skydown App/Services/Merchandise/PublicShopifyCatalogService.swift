@@ -23,26 +23,26 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
 
         var products = try await fetchProducts(
             storeDomain: config.storeDomain,
+            storefrontAccessToken: config.storefrontAccessToken,
             collectionHandle: requestedHandle
         )
 
         if products.isEmpty, requestedHandle != nil {
             products = try await fetchProducts(
                 storeDomain: config.storeDomain,
+                storefrontAccessToken: config.storefrontAccessToken,
                 collectionHandle: nil
             )
         }
 
         return products
-            .compactMap { product in
-                mapToMerchandiseItem(product)
-            }
+            .compactMap(mapToMerchandiseItem)
             .sorted {
                 $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
     }
 
-    private func loadConfig() async throws -> ShopifyPublicCatalogConfig {
+    private func loadConfig() async throws -> ShopifyStorefrontCatalogConfig {
         let snapshot = try await firestore.collection("appConfig").document("shopifyMerch").getDocument()
         let data = snapshot.data() ?? [:]
         let storefrontURL = normalizeURL(data["storefrontURL"] as? String)
@@ -54,84 +54,146 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             fallbackURL: storefrontURL
         )
 
-        return ShopifyPublicCatalogConfig(
+        return ShopifyStorefrontCatalogConfig(
             storeDomain: storeDomain,
+            storefrontAccessToken: ((data["storefrontAccessToken"] as? String) ?? "").trimmed,
             collectionHandle: collectionHandle
         )
     }
 
     private func fetchProducts(
         storeDomain: String,
+        storefrontAccessToken: String,
         collectionHandle: String?
-    ) async throws -> [ShopifyPublicProduct] {
-        let path = collectionHandle.flatMap { handle in
-            handle.isEmpty ? nil : "/collections/\(handle)/products.json"
-        } ?? "/products.json"
-        guard let url = URL(string: "https://\(storeDomain)\(path)?limit=250") else {
+    ) async throws -> [ShopifyStorefrontProduct] {
+        var products: [ShopifyStorefrontProduct] = []
+        var cursor: String?
+        var hasNextPage = true
+
+        while hasNextPage {
+            let connection = try await fetchProductConnection(
+                storeDomain: storeDomain,
+                storefrontAccessToken: storefrontAccessToken,
+                collectionHandle: collectionHandle,
+                cursor: cursor
+            )
+
+            products.append(contentsOf: connection.nodes)
+            hasNextPage = connection.pageInfo.hasNextPage
+            cursor = connection.pageInfo.endCursor
+        }
+
+        return products
+    }
+
+    private func fetchProductConnection(
+        storeDomain: String,
+        storefrontAccessToken: String,
+        collectionHandle: String?,
+        cursor: String?
+    ) async throws -> ShopifyStorefrontProductConnection {
+        guard let url = URL(string: "https://\(storeDomain)/api/2026-01/graphql.json") else {
             throw URLError(.badURL)
         }
 
-        let (data, response) = try await session.data(from: url)
+        let query = collectionHandle == nil
+            ? shopifyStorefrontProductsQuery
+            : shopifyStorefrontCollectionProductsQuery
+        var variables: [String: Any] = ["cursor": cursor ?? NSNull()]
+        if let collectionHandle {
+            variables["handle"] = collectionHandle
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if storefrontAccessToken.isEmpty == false {
+            request.setValue(storefrontAccessToken, forHTTPHeaderField: "X-Shopify-Storefront-Access-Token")
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "query": query,
+            "variables": variables
+        ])
+
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
 
+        let decoder = JSONDecoder()
+        let payload = try decoder.decode(ShopifyStorefrontEnvelope.self, from: data)
+
         guard (200...299).contains(httpResponse.statusCode) else {
+            let message = payload.errors?.map(\.message).joined(separator: " | ")
+                ?? "Shopify-Store antwortet mit \(httpResponse.statusCode)."
             throw NSError(
                 domain: "PublicShopifyCatalogService",
                 code: httpResponse.statusCode,
-                userInfo: [
-                    NSLocalizedDescriptionKey: "Shopify-Store antwortet mit \(httpResponse.statusCode)."
-                ]
+                userInfo: [NSLocalizedDescriptionKey: message]
             )
         }
 
-        let decoder = JSONDecoder()
-        let payload = try decoder.decode(ShopifyPublicCatalogResponse.self, from: data)
-        return payload.products
+        if let errors = payload.errors, errors.isEmpty == false {
+            throw NSError(
+                domain: "PublicShopifyCatalogService",
+                code: 0,
+                userInfo: [NSLocalizedDescriptionKey: errors.map(\.message).joined(separator: " | ")]
+            )
+        }
+
+        if let connection = payload.data?.products {
+            return connection
+        }
+
+        if let connection = payload.data?.collection?.products {
+            return connection
+        }
+
+        return ShopifyStorefrontProductConnection(
+            nodes: [],
+            pageInfo: ShopifyStorefrontPageInfo(hasNextPage: false, endCursor: nil)
+        )
     }
 
-    private func mapToMerchandiseItem(_ product: ShopifyPublicProduct) -> MerchandiseItem? {
-        let variants = product.variants.map { variant in
+    private func mapToMerchandiseItem(_ product: ShopifyStorefrontProduct) -> MerchandiseItem? {
+        let variants = product.variants.nodes.map { variant in
             MerchandiseVariant(
-                id: "gid://shopify/ProductVariant/\(variant.id)",
+                id: variant.id,
                 title: variant.title,
                 size: selectedOptionValue(
                     optionNameCandidates: ["size", "groesse", "größe"],
-                    variant: variant,
-                    optionDefinitions: product.options
+                    selectedOptions: variant.selectedOptions
                 ),
                 color: selectedOptionValue(
                     optionNameCandidates: ["color", "colour", "farbe"],
-                    variant: variant,
-                    optionDefinitions: product.options
+                    selectedOptions: variant.selectedOptions
                 ),
-                shopifyVariantId: "gid://shopify/ProductVariant/\(variant.id)",
+                shopifyVariantId: variant.id,
                 sku: variant.sku?.trimmedNonEmpty,
-                price: Double(variant.price) ?? 0,
-                currency: "EUR",
-                availableForSale: variant.isAvailable
+                price: Double(variant.price.amount) ?? 0,
+                currency: variant.price.currencyCode,
+                availableForSale: variant.availableForSale
             )
         }
 
-        guard !variants.isEmpty else { return nil }
+        guard variants.isEmpty == false else { return nil }
 
-        let images = ([product.image?.src] + product.images.map(\.src))
+        let images = ([product.featuredImage?.url] + product.images.nodes.map { $0.url })
             .compactMap { $0?.trimmedNonEmpty }
             .removingDuplicates()
         let firstVariant = variants.first
-        let isAvailable = variants.contains(where: \.availableForSale)
+        let isAvailable = variants.contains { $0.availableForSale }
 
         return MerchandiseItem(
-            id: "shopify_\(product.id)",
+            id: "shopify_\(extractNumericId(from: product.id) ?? product.id)",
             name: product.title,
             price: firstVariant?.price ?? 0,
-            description: product.bodyHTML?.strippingHTML() ?? "",
+            description: product.description,
             imageURLs: images,
             available: isAvailable,
-            currency: "EUR",
+            currency: firstVariant?.currency ?? "EUR",
             sku: firstVariant?.sku,
-            shopifyProductId: "gid://shopify/Product/\(product.id)",
+            shopifyProductId: product.id,
             shopifyHandle: product.handle,
             availableForSale: isAvailable,
             shopifySyncActive: true,
@@ -147,20 +209,11 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
 
     private func selectedOptionValue(
         optionNameCandidates: [String],
-        variant: ShopifyPublicVariant,
-        optionDefinitions: [ShopifyPublicOption]
+        selectedOptions: [ShopifyStorefrontSelectedOption]
     ) -> String? {
-        let optionValues = [variant.option1, variant.option2, variant.option3]
-        guard !optionDefinitions.isEmpty else { return nil }
-
-        for (index, option) in optionDefinitions.enumerated() where index < optionValues.count {
-            let normalizedName = option.name.lowercased()
-            if optionNameCandidates.contains(normalizedName) {
-                return optionValues[index]?.trimmedNonEmpty
-            }
-        }
-
-        return nil
+        selectedOptions.first { option in
+            optionNameCandidates.contains(option.name.lowercased())
+        }?.value.trimmedNonEmpty
     }
 
     private func normalizeStoreDomain(_ value: String?) -> String? {
@@ -172,7 +225,7 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             .first
             .map(String.init)?
             .lowercased()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 
     private func normalizeURL(_ value: String?) -> String? {
@@ -212,97 +265,168 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
 
         return components[index + 1].trimmedNonEmpty
     }
+
+    private func extractNumericId(from gid: String) -> String? {
+        gid.split(separator: "/").last.map(String.init)
+    }
 }
 
-private struct ShopifyPublicCatalogConfig {
+private let shopifyStorefrontProductFields = """
+id
+title
+description
+handle
+featuredImage {
+  url
+}
+images(first: 10) {
+  nodes {
+    url
+  }
+}
+variants(first: 100) {
+  nodes {
+    id
+    title
+    sku
+    availableForSale
+    price {
+      amount
+      currencyCode
+    }
+    selectedOptions {
+      name
+      value
+    }
+  }
+}
+"""
+
+private let shopifyStorefrontProductsQuery = """
+query AppProducts($cursor: String) {
+  products(first: 100, after: $cursor) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+\(shopifyStorefrontProductFields)
+    }
+  }
+}
+"""
+
+private let shopifyStorefrontCollectionProductsQuery = """
+query AppCollectionProducts($handle: String!, $cursor: String) {
+  collection(handle: $handle) {
+    products(first: 100, after: $cursor) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+\(shopifyStorefrontProductFields)
+      }
+    }
+  }
+}
+"""
+
+private struct ShopifyStorefrontCatalogConfig {
     let storeDomain: String
+    let storefrontAccessToken: String
     let collectionHandle: String?
 }
 
-private struct ShopifyPublicCatalogResponse: Decodable {
-    let products: [ShopifyPublicProduct]
+private struct ShopifyStorefrontEnvelope: Decodable {
+    let data: ShopifyStorefrontCatalogData?
+    let errors: [ShopifyStorefrontGraphQLError]?
 }
 
-private struct ShopifyPublicProduct: Decodable {
-    let id: Int64
+private struct ShopifyStorefrontCatalogData: Decodable {
+    let products: ShopifyStorefrontProductConnection?
+    let collection: ShopifyStorefrontCollection?
+}
+
+private struct ShopifyStorefrontCollection: Decodable {
+    let products: ShopifyStorefrontProductConnection?
+}
+
+private struct ShopifyStorefrontProductConnection: Decodable {
+    let nodes: [ShopifyStorefrontProduct]
+    let pageInfo: ShopifyStorefrontPageInfo
+}
+
+private struct ShopifyStorefrontPageInfo: Decodable {
+    let hasNextPage: Bool
+    let endCursor: String?
+}
+
+private struct ShopifyStorefrontProduct: Decodable {
+    let id: String
     let title: String
-    let bodyHTML: String?
+    let description: String
     let handle: String
-    let image: ShopifyPublicImage?
-    let images: [ShopifyPublicImage]
-    let variants: [ShopifyPublicVariant]
-    let options: [ShopifyPublicOption]
-
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case bodyHTML = "body_html"
-        case handle
-        case image
-        case images
-        case variants
-        case options
-    }
+    let featuredImage: ShopifyStorefrontImage?
+    let images: ShopifyStorefrontImageConnection
+    let variants: ShopifyStorefrontVariantConnection
 }
 
-private struct ShopifyPublicImage: Decodable {
-    let src: String?
+private struct ShopifyStorefrontImageConnection: Decodable {
+    let nodes: [ShopifyStorefrontImage]
 }
 
-private struct ShopifyPublicOption: Decodable {
-    let name: String
+private struct ShopifyStorefrontImage: Decodable {
+    let url: String?
 }
 
-private struct ShopifyPublicVariant: Decodable {
-    let id: Int64
+private struct ShopifyStorefrontVariantConnection: Decodable {
+    let nodes: [ShopifyStorefrontVariant]
+}
+
+private struct ShopifyStorefrontVariant: Decodable {
+    let id: String
     let title: String
-    let price: String
     let sku: String?
-    let available: Bool?
-    let inventoryQuantity: Int?
-    let option1: String?
-    let option2: String?
-    let option3: String?
+    let availableForSale: Bool
+    let price: ShopifyStorefrontMoney
+    let selectedOptions: [ShopifyStorefrontSelectedOption]
+}
 
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case price
-        case sku
-        case available
-        case inventoryQuantity = "inventory_quantity"
-        case option1
-        case option2
-        case option3
-    }
+private struct ShopifyStorefrontMoney: Decodable {
+    let amount: String
+    let currencyCode: String
+}
 
-    var isAvailable: Bool {
-        if let available {
-            return available
-        }
-        if let inventoryQuantity {
-            return inventoryQuantity > 0
-        }
-        return true
-    }
+private struct ShopifyStorefrontSelectedOption: Decodable {
+    let name: String
+    let value: String
+}
+
+private struct ShopifyStorefrontGraphQLError: Decodable {
+    let message: String
 }
 
 private extension String {
-    var trimmedNonEmpty: String? {
-        let value = trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
+    var trimmed: String {
+        trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 
-    func strippingHTML() -> String {
-        replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+    var trimmedNonEmpty: String? {
+        let value = trimmed
+        return value.isEmpty ? nil : value
     }
 }
 
 private extension Array where Element == String {
     func removingDuplicates() -> [String] {
         var seen = Set<String>()
-        return filter { seen.insert($0).inserted }
+        return filter { value in
+            if seen.contains(value) {
+                return false
+            }
+            seen.insert(value)
+            return true
+        }
     }
 }

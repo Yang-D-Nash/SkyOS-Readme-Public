@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -764,8 +765,8 @@ private fun HomeStoryCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             HomeStoryLinkButton(
-                title = "Kontakt & Support",
-                subtitle = "Wenn du etwas starten oder kurz klaeren willst.",
+                title = "Direkter Kontakt",
+                subtitle = "Du landest direkt bei Yang D. Nash fuer Rueckfragen und Starts.",
                 isPrimary = true,
                 onClick = { openExternalLink(context, homePrimaryContactLink.url) },
             )
@@ -877,9 +878,9 @@ private fun HomeStoryLinkButton(
         border = BorderStroke(
             1.dp,
             if (isPrimary) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                Color.White.copy(alpha = 0.10f)
             } else {
-                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
             },
         ),
     ) {
@@ -890,15 +891,15 @@ private fun HomeStoryLinkButton(
                     Brush.linearGradient(
                         colors = if (isPrimary) {
                             listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.64f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.10f),
+                                Color(0xFF0A1624),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.50f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.20f),
                             )
                         } else {
                             listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
                             )
                         },
                     ),

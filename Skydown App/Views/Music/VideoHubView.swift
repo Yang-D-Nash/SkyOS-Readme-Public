@@ -1013,7 +1013,7 @@ struct ProducedWithArtistRow: View {
             HStack(spacing: 8) {
                 if let spotifyURL {
                     SocialLinkButton(
-                        title: "Spotify",
+                        accessibilityTitle: "Spotify",
                         systemImage: "music.note",
                         foregroundColor: .white,
                         background: LinearGradient(
@@ -1030,7 +1030,7 @@ struct ProducedWithArtistRow: View {
 
                 if let instagramURL {
                     SocialLinkButton(
-                        title: "Instagram",
+                        accessibilityTitle: "Instagram",
                         systemImage: "camera.fill",
                         foregroundColor: .white,
                         background: LinearGradient(
@@ -1048,13 +1048,26 @@ struct ProducedWithArtistRow: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.secondaryBackground(for: colorScheme))
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.94 : 0.98),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.70)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
 private struct SocialLinkButton<Background: View>: View {
-    let title: String
+    let accessibilityTitle: String
     let systemImage: String
     let foregroundColor: Color
     let background: Background
@@ -1062,14 +1075,19 @@ private struct SocialLinkButton<Background: View>: View {
 
     var body: some View {
         Link(destination: destination) {
-            Label(title, systemImage: systemImage)
-                .font(.caption.weight(.bold))
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .bold))
                 .foregroundColor(foregroundColor)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 9)
+                .frame(width: 40, height: 40)
                 .background(background)
-                .clipShape(Capsule())
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
         }
+        .accessibilityLabel(accessibilityTitle)
         .buttonStyle(.plain)
         .skydownTactileAction()
     }

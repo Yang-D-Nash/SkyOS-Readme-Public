@@ -17,12 +17,10 @@ class ShopifyMerchSyncClient(
             val created = (data?.get("createdCount") as? Number)?.toInt() ?: 0
             val updated = (data?.get("updatedCount") as? Number)?.toInt() ?: 0
             val deactivated = (data?.get("deactivatedCount") as? Number)?.toInt() ?: 0
-            val collectionTitle = (data?.get("collectionTitle") as? String).orEmpty().trim()
             val collectionHandle = (data?.get("collectionHandle") as? String).orEmpty().trim()
-            val collectionLabel = listOf(collectionTitle, collectionHandle).firstOrNull { it.isNotBlank() }
 
-            if (collectionLabel != null) {
-                "Shopify-Sync abgeschlossen: $collectionLabel, $synced Produkte, $created neu, $updated aktualisiert, $deactivated ausgeblendet."
+            if (collectionHandle.isNotBlank()) {
+                "Shopify-Sync abgeschlossen: $collectionHandle, $synced Produkte, $created neu, $updated aktualisiert, $deactivated ausgeblendet."
             } else {
                 "Shopify-Sync abgeschlossen: $synced Produkte, $created neu, $updated aktualisiert, $deactivated ausgeblendet."
             }

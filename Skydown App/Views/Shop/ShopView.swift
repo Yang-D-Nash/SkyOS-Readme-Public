@@ -668,8 +668,9 @@ private struct HomeStoryCard: View {
 
             VStack(spacing: 12) {
                 HomeActionButton(
-                    title: "Kontakt & Support",
-                    subtitle: "Wenn du etwas starten oder kurz klaeren willst.",
+                    title: "Direkter Kontakt",
+                    subtitle: "Du landest direkt bei Yang D. Nash fuer Rueckfragen und Starts.",
+                    icon: "person.crop.circle.fill",
                     colorScheme: colorScheme,
                     isPrimary: true
                 ) {
@@ -698,23 +699,25 @@ private struct HomeStoryCard: View {
                         }
                     }
 
-                    HomeActionButton(
-                        title: "Zu den Beats",
-                        subtitle: "Wenn du direkt zu Beats und Previews springen willst.",
-                        colorScheme: colorScheme,
-                        isPrimary: false
-                    ) {
-                        onOpenBeatHub()
-                    }
+                        HomeActionButton(
+                            title: "Zu den Beats",
+                            subtitle: "Wenn du direkt zu Beats und Previews springen willst.",
+                            icon: "waveform",
+                            colorScheme: colorScheme,
+                            isPrimary: false
+                        ) {
+                            onOpenBeatHub()
+                        }
 
-                    HomeActionButton(
-                        title: "Zum Studio",
-                        subtitle: "Fuer Recording, Mixing und Mastering.",
-                        colorScheme: colorScheme,
-                        isPrimary: false
-                    ) {
-                        onOpenNicma()
-                    }
+                        HomeActionButton(
+                            title: "Zum Studio",
+                            subtitle: "Fuer Recording, Mixing und Mastering.",
+                            icon: "slider.horizontal.3",
+                            colorScheme: colorScheme,
+                            isPrimary: false
+                        ) {
+                            onOpenNicma()
+                        }
                 }
 
                 HomeLaneSection(
@@ -725,6 +728,7 @@ private struct HomeStoryCard: View {
                     HomeActionButton(
                         title: "Video auf Instagram",
                         subtitle: "Fuer aktuelle Visuals, Clips und Updates.",
+                        icon: "camera.fill",
                         colorScheme: colorScheme,
                         isPrimary: false
                     ) {
@@ -736,6 +740,7 @@ private struct HomeStoryCard: View {
                     HomeActionButton(
                         title: "Kontakt per E-Mail",
                         subtitle: "Fuer Anfragen rund um Videography und Produktion.",
+                        icon: "envelope.fill",
                         colorScheme: colorScheme,
                         isPrimary: false
                     ) {
@@ -1009,15 +1014,15 @@ private struct HomeActionButton: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(
                         isPrimary
-                        ? AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12)
-                        : AppColors.accentMystic(for: colorScheme).opacity(0.16),
+                        ? Color.white.opacity(colorScheme == .dark ? 0.12 : 0.08)
+                        : AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08),
                         lineWidth: 1
                     )
             )
             .shadow(
-                color: shadowTint.opacity(isPrimary ? 0.16 : 0.12),
-                radius: isPrimary ? 12 : 10,
-                y: isPrimary ? 6 : 5
+                color: shadowTint.opacity(isPrimary ? 0.12 : 0.08),
+                radius: isPrimary ? 10 : 8,
+                y: isPrimary ? 5 : 4
             )
         }
         .buttonStyle(.plain)
@@ -1025,7 +1030,7 @@ private struct HomeActionButton: View {
     }
 
     private var iconTint: Color {
-        isPrimary ? .white : AppColors.accentMystic(for: colorScheme)
+        isPrimary ? .white : AppColors.accent(for: colorScheme)
     }
 
     private var iconBackground: LinearGradient {
@@ -1042,8 +1047,8 @@ private struct HomeActionButton: View {
 
         return LinearGradient(
             colors: [
-                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.14),
-                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.08)
+                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.11),
+                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.07)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -1051,16 +1056,16 @@ private struct HomeActionButton: View {
     }
 
     private var shadowTint: Color {
-        isPrimary ? AppColors.accent(for: colorScheme) : AppColors.accentMystic(for: colorScheme)
+        isPrimary ? AppColors.accent(for: colorScheme) : AppColors.accent(for: colorScheme)
     }
 
     private var buttonFill: LinearGradient {
         if isPrimary {
             return LinearGradient(
                 colors: [
-                    AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.82 : 0.88),
-                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.68 : 0.74),
-                    AppColors.primaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.06)
+                    Color(red: 8/255, green: 22/255, blue: 38/255).opacity(colorScheme == .dark ? 0.96 : 0.92),
+                    AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.56 : 0.48),
+                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.18)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -1069,9 +1074,9 @@ private struct HomeActionButton: View {
 
         return LinearGradient(
             colors: [
-                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.94 : 0.96),
-                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.10),
-                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.06)
+                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.98),
+                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.82 : 0.72),
+                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.05)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing

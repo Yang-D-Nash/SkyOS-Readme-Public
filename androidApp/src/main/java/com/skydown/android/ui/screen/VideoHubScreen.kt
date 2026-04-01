@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
@@ -817,7 +818,7 @@ private fun ProducedWithArtistRow(
             artist.instagramUrl?.takeIf { it.isNotBlank() }?.let { instagramUrl ->
                 SocialActionChip(
                     title = "Instagram",
-                    icon = Icons.Default.Movie,
+                    icon = Icons.Default.CameraAlt,
                     gradient = Brush.linearGradient(
                         colors = listOf(
                             InstagramPurple,
@@ -841,9 +842,10 @@ private fun SocialActionChip(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
-    Row(
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .size(40.dp)
+            .clip(CircleShape)
             .background(gradient)
             .clickable(
                 interactionSource = interactionSource,
@@ -851,21 +853,14 @@ private fun SocialActionChip(
                 onClick = onClick,
             )
             .skydownPressable(interactionSource)
-            .padding(horizontal = 13.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(10.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = title,
             tint = Color.White,
-            modifier = Modifier.size(14.dp),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
+            modifier = Modifier.size(18.dp),
         )
     }
 }

@@ -51,8 +51,8 @@ struct AgentView: View {
         VStack(spacing: 0) {
             if featureFlags.isAIEnabled {
                 if viewModel.messages.isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Spacer(minLength: showsNavigation ? 18 : 10)
+                    VStack(alignment: .leading, spacing: 14) {
+                        Spacer(minLength: showsNavigation ? 8 : 4)
 
                         AgentEmptyStateHeader(colorScheme: colorScheme)
 
@@ -62,10 +62,11 @@ struct AgentView: View {
                             onPromptSelected: viewModel.sendPrompt
                         )
 
-                        Spacer(minLength: 24)
+                        Spacer(minLength: 12)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.bottom, 6)
                 } else {
                     ScrollViewReader { proxy in
                         ScrollView {
@@ -83,8 +84,8 @@ struct AgentView: View {
                                     .id("agent-chat-end")
                             }
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, showsNavigation ? 10 : 6)
-                            .padding(.bottom, 12)
+                            .padding(.top, showsNavigation ? 6 : 2)
+                            .padding(.bottom, 6)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .scrollIndicators(.hidden)
@@ -416,7 +417,7 @@ private struct AgentComposerBar: View {
                 .lineLimit(1...4)
                 .focused(isFocused)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
                         .fill(AppColors.secondaryBackground(for: colorScheme))
@@ -444,7 +445,7 @@ private struct AgentComposerBar: View {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title3.weight(.bold))
                             .foregroundColor(.white)
-                            .frame(width: 46, height: 46)
+                            .frame(width: 44, height: 44)
                             .background(
                                 Circle()
                                     .fill(
@@ -465,8 +466,8 @@ private struct AgentComposerBar: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
             .background(
                 Rectangle()
                     .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
