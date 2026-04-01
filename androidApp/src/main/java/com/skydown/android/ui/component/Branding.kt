@@ -202,7 +202,7 @@ private fun BrandArtworkTile(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -213,8 +213,8 @@ private fun BrandArtworkTile(
             )
             .border(
                 width = 1.dp,
-                color = accent.copy(alpha = 0.22f),
-                shape = RoundedCornerShape(18.dp),
+                color = accent.copy(alpha = 0.16f),
+                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -225,7 +225,7 @@ private fun BrandArtworkTile(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(if (isFeatured) 84.dp else 56.dp)
-                .clip(RoundedCornerShape(14.dp)),
+                .clip(RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)),
             contentScale = ContentScale.Fit,
         )
         Text(

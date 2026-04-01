@@ -11,6 +11,7 @@ data class ShopifyAdminSettings(
     val storefrontUrl: String = "https://k5t1sc-ps.myshopify.com",
     val collectionHandle: String = "",
     val collectionTitle: String = "",
+    val adminApiToken: String = "",
 ) {
     val activeCollectionLabel: String
         get() = collectionTitle.trim().ifBlank {
@@ -26,6 +27,8 @@ class ShopifyAdminSettingsRepository(
 ) {
     private val collectionName = "appConfig"
     private val documentName = "shopifyMerch"
+    private val privateCollectionName = "adminConfig"
+    private val privateDocumentName = "shopifyMerchPrivate"
 
     fun observeSettings(onChange: (Result<ShopifyAdminSettings>) -> Unit): ListenerRegistration {
         return firestore.collection(collectionName).document(documentName).addSnapshotListener { snapshot, error ->
@@ -44,6 +47,20 @@ class ShopifyAdminSettingsRepository(
                 settings.toMap(),
                 SetOptions.merge(),
             ).await()
+            firestore.collection(privateCollectionName).document(privateDocumentName).set(
+                mapOf(
+                    "adminApiToken" to settings.adminApiToken.trim(),
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                ),
+                SetOptions.merge(),
+            ).await()
+        }
+    }
+
+    suspend fun fetchAdminApiToken(): Result<String> {
+        return runCatching {
+            val snapshot = firestore.collection(privateCollectionName).document(privateDocumentName).get().await()
+            (snapshot.getString("adminApiToken") ?: "").trim()
         }
     }
 }

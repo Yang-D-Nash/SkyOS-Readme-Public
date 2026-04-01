@@ -179,7 +179,7 @@ private struct BrandMarkTile: View {
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
                 .frame(height: isFeatured ? 84 : 56)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
 
             Text(mark.label)
                 .font((isFeatured ? Font.caption.weight(.bold) : Font.caption.weight(.semibold)))
@@ -188,7 +188,7 @@ private struct BrandMarkTile: View {
         }
         .padding(isFeatured ? 12 : 10)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -201,8 +201,8 @@ private struct BrandMarkTile: View {
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(accent.opacity(0.20), lineWidth: 1)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
+                .stroke(accent.opacity(0.16), lineWidth: 1)
         )
     }
 }

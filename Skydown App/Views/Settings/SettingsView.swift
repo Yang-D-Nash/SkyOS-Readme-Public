@@ -63,6 +63,7 @@ struct SettingsView: View {
     @State private var shopifyStorefrontURLDraft = ""
     @State private var shopifyCollectionHandleDraft = ""
     @State private var shopifyCollectionTitleDraft = ""
+    @State private var shopifyAdminApiTokenDraft = ""
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -386,6 +387,12 @@ struct SettingsView: View {
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
+            if isAdminUser {
+                Task {
+                    await shopifyAdminSettingsStore.reloadAdminApiToken()
+                    syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
+                }
+            }
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
             syncPaymentDrafts(with: settings)
@@ -544,6 +551,18 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         placeholder: "z. B. Spring Drop 2026"
                     )
+
+                    SettingsInputField(
+                        title: "Admin API Token (privat)",
+                        text: $shopifyAdminApiTokenDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "shpat_...",
+                        keyboardType: .asciiCapable
+                    )
+
+                    Text("Dieser Token wird admin-only gespeichert und nutzt den Sync auch dann, wenn dein Shopify-Store oeffentlich gesperrt ist.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     SettingsBadge(
                         text: shopifyAdminSettingsStore.settings.hasCollectionFilter
@@ -1022,6 +1041,7 @@ struct SettingsView: View {
         shopifyStorefrontURLDraft = settings.storefrontURL
         shopifyCollectionHandleDraft = settings.collectionHandle
         shopifyCollectionTitleDraft = settings.collectionTitle
+        shopifyAdminApiTokenDraft = settings.adminApiToken
     }
 
     private func saveCommerceSettings() {
@@ -1067,11 +1087,12 @@ struct SettingsView: View {
             updated.storefrontURL = shopifyStorefrontURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.collectionHandle = shopifyCollectionHandleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.collectionTitle = shopifyCollectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.adminApiToken = shopifyAdminApiTokenDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
             do {
                 try await shopifyAdminSettingsStore.save(updated)
                 showToastMessage(
-                    "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store und diese Kollektion.",
+                    "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, diese Kollektion und deinen privaten Token.",
                     style: .success
                 )
             } catch {
@@ -1271,7 +1292,11 @@ private struct SettingsInputField: View {
 
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
-                .textInputAutocapitalization(keyboardType == .emailAddress ? .never : .sentences)
+                .textInputAutocapitalization(
+                    keyboardType == .emailAddress || keyboardType == .asciiCapable || keyboardType == .URL
+                        ? .never
+                        : .sentences
+                )
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background(AppColors.secondaryBackground(for: colorScheme))

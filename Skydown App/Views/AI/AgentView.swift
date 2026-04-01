@@ -235,13 +235,13 @@ private struct AgentDisabledCard: View {
                 }
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
     }
 }
 
@@ -272,7 +272,7 @@ private struct AgentQuickPromptCard: View {
                                 .padding(.vertical, 12)
                                 .frame(width: 230, alignment: .leading)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 18)
+                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
                                         .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
                                 )
                         })
@@ -281,13 +281,13 @@ private struct AgentQuickPromptCard: View {
                 }
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
     }
 }
 
@@ -350,9 +350,9 @@ private struct AgentMessageBubble: View {
             .padding(.vertical, 14)
             .frame(maxWidth: 360, alignment: .leading)
             .background(bubbleBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
             .overlay(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
                     .stroke(
                         isUser
                             ? Color.clear
@@ -418,7 +418,7 @@ private struct AgentComposerBar: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
                         .fill(AppColors.secondaryBackground(for: colorScheme))
                 )
                 .foregroundColor(AppColors.text(for: colorScheme))

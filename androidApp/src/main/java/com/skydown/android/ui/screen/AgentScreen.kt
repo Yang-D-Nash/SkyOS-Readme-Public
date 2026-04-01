@@ -373,7 +373,7 @@ private fun AgentQuickPromptCard(
                         horizontal = 12.dp,
                         vertical = if (compactLayout) 8.dp else 10.dp,
                     ),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                 ) {
                     Text(
                         text = prompt,
@@ -396,10 +396,10 @@ private fun AgentMessageBubble(
     val context = LocalContext.current
     val isUser = message.role == AgentMessageRole.User
     val bubbleShape = RoundedCornerShape(
-        topStart = 24.dp,
-        topEnd = 24.dp,
-        bottomStart = if (isUser) 24.dp else 8.dp,
-        bottomEnd = if (isUser) 8.dp else 24.dp,
+        topStart = SkydownUiTokens.cardCornerRadius,
+        topEnd = SkydownUiTokens.cardCornerRadius,
+        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 10.dp,
+        bottomEnd = if (isUser) 10.dp else SkydownUiTokens.cardCornerRadius,
     )
 
     Row(

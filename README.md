@@ -67,13 +67,19 @@ Shopify is used as the external merch catalog + fulfillment bridge to PODpartner
 - the app calculates the customer-facing shipping price itself
 - Cloud Functions create the Shopify order after payment is confirmed
 
-### Required Firebase Functions Secret
+### Shopify Auth For Sync + Order Creation
 
-Set the Shopify Admin token before deploying the merch flow:
+There are now two supported ways to provide the Shopify Admin API token:
 
 ```bash
-firebase functions:secrets:set SHOPIFY_ADMIN_ACCESS_TOKEN
+export SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...
 ```
+
+Important:
+
+- Admins can also save the token inside the app; it is stored in Firestore under `adminConfig/shopifyMerchPrivate` and is only readable/writable for admins.
+- `syncShopifyMerch` first tries the Admin API token, then falls back to the public Shopify storefront feed.
+- `confirmMerchOrderPayment` + automatic Shopify `orderCreate` require the Admin token.
 
 Optional environment override:
 

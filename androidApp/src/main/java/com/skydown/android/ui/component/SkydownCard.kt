@@ -36,7 +36,7 @@ fun SkydownCard(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 10.dp,
+                elevation = 8.dp,
                 shape = shape,
             )
             .clip(shape)
@@ -44,8 +44,8 @@ fun SkydownCard(
                 Brush.linearGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.05f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.07f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.04f),
                     ),
                 ),
             )
@@ -53,9 +53,9 @@ fun SkydownCard(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
                     ),
                 ),
                 shape = shape,

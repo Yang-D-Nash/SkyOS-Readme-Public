@@ -22,11 +22,12 @@ const ai = genkit({
 });
 
 const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
-const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
 const SHOPIFY_CONFIG_COLLECTION = "appConfig";
 const SHOPIFY_CONFIG_DOCUMENT = "shopifyMerch";
+const SHOPIFY_PRIVATE_CONFIG_COLLECTION = "adminConfig";
+const SHOPIFY_PRIVATE_CONFIG_DOCUMENT = "shopifyMerchPrivate";
 const SHOPIFY_VARIANT_OPTION_KEYS = {
   size: ["size", "groesse", "größe"],
   color: ["color", "colour", "farbe"],
@@ -167,6 +168,20 @@ async function loadShopifyAdminConfig() {
   };
 }
 
+async function loadShopifyAdminToken() {
+  const envToken = nonEmptyString(process.env.SHOPIFY_ADMIN_ACCESS_TOKEN);
+  if (envToken) {
+    return envToken;
+  }
+
+  const snapshot = await admin.firestore()
+      .collection(SHOPIFY_PRIVATE_CONFIG_COLLECTION)
+      .doc(SHOPIFY_PRIVATE_CONFIG_DOCUMENT)
+      .get();
+
+  return nonEmptyString(snapshot.data()?.adminApiToken) || "";
+}
+
 function getShopifyGraphqlUrl(storeDomain) {
   return `https://${getShopifyDomain(storeDomain)}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
 }
@@ -198,6 +213,45 @@ async function shopifyGraphqlRequest({query, variables = {}, token, storeDomain}
   }
 
   return payload.data;
+}
+
+function getShopifyPublicProductsUrl({storeDomain, collectionHandle = null, sinceId = null}) {
+  const basePath = collectionHandle
+    ? `/collections/${collectionHandle}/products.json`
+    : "/products.json";
+  const url = new URL(`https://${getShopifyDomain(storeDomain)}${basePath}`);
+  url.searchParams.set("limit", "250");
+  if (sinceId) {
+    url.searchParams.set("since_id", `${sinceId}`);
+  }
+  return url.toString();
+}
+
+async function shopifyPublicProductsRequest({storeDomain, collectionHandle = null, sinceId = null}) {
+  const url = getShopifyPublicProductsUrl({storeDomain, collectionHandle, sinceId});
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    logger.error("Shopify public products request failed.", {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      body: payload,
+    });
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Der Shopify-Store ist nicht oeffentlich lesbar. Hinterlege einen Admin API Token in den Shopify-Admin-Einstellungen der App oder oeffne den Storefront-Produktfeed.");
+    }
+    throw new Error(`Shopify Storefront Fehler (${response.status} ${response.statusText}).`);
+  }
+
+  return Array.isArray(payload?.products) ? payload.products : [];
 }
 
 function extractNumericId(gid) {
@@ -244,6 +298,16 @@ function uniqueStrings(values) {
     seen.add(normalized);
     return true;
   });
+}
+
+function buildSelectedOptionsFromPublicVariant(variant, productOptions) {
+  const optionValues = [variant?.option1, variant?.option2, variant?.option3];
+  return (Array.isArray(productOptions) ? productOptions : [])
+      .map((option, index) => ({
+        name: nonEmptyString(option?.name) || `Option ${index + 1}`,
+        value: nonEmptyString(optionValues[index]) || "",
+      }))
+      .filter((option) => option.value);
 }
 
 function readSelectedOption(variant, keys) {
@@ -303,7 +367,48 @@ function normalizeShopifyProduct(product, currencyCode, existingData = {}) {
   };
 }
 
-async function fetchAllShopifyProducts(token, config) {
+function normalizePublicShopifyProduct(product) {
+  const images = uniqueStrings([
+    product?.image?.src,
+    ...(Array.isArray(product?.images) ? product.images.map((image) => image?.src) : []),
+  ]);
+
+  const variants = (Array.isArray(product?.variants) ? product.variants : []).map((variant) => {
+    const inventoryQuantity = Number(variant?.inventory_quantity);
+    const availableForSale = typeof variant?.available === "boolean"
+      ? variant.available
+      : !Number.isFinite(inventoryQuantity) || inventoryQuantity > 0;
+
+    return {
+      id: `gid://shopify/ProductVariant/${variant.id}`,
+      title: variant?.title || "",
+      sku: nonEmptyString(variant?.sku) || "",
+      price: parsePrice(variant?.price),
+      availableForSale,
+      selectedOptions: buildSelectedOptionsFromPublicVariant(variant, product?.options),
+    };
+  });
+
+  return {
+    id: `gid://shopify/Product/${product.id}`,
+    title: product?.title || "Unbenanntes Produkt",
+    description: stripHtml(product?.body_html || ""),
+    descriptionHtml: product?.body_html || "",
+    handle: product?.handle || "",
+    featuredImage: images[0] ? {url: images[0]} : null,
+    images: {
+      nodes: images.map((url) => ({url})),
+    },
+    collections: {
+      nodes: [],
+    },
+    variants: {
+      nodes: variants,
+    },
+  };
+}
+
+async function fetchAllShopifyProductsViaAdminApi(token, config) {
   const query = `
     query FetchMerchProducts($cursor: String) {
       shop {
@@ -391,12 +496,86 @@ async function fetchAllShopifyProducts(token, config) {
   return {products, currencyCode};
 }
 
-async function runShopifyMerchSync() {
-  const token = shopifyAdminAccessToken.value();
-  if (!token) {
-    throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN ist nicht konfiguriert.");
+async function fetchAllShopifyProductsViaPublicStorefront(config) {
+  const fetchAllPages = async (collectionHandle = null) => {
+    const products = [];
+    let sinceId = null;
+    let hasNextPage = true;
+
+    while (hasNextPage) {
+      const pageProducts = await shopifyPublicProductsRequest({
+        storeDomain: config?.storeDomain,
+        collectionHandle,
+        sinceId,
+      });
+
+      products.push(...pageProducts);
+      if (pageProducts.length < 250) {
+        hasNextPage = false;
+      } else {
+        sinceId = pageProducts[pageProducts.length - 1]?.id || null;
+        hasNextPage = Boolean(sinceId);
+      }
+    }
+
+    return products;
+  };
+
+  const requestedCollectionHandle = nonEmptyString(config?.collectionHandle);
+  let rawProducts = [];
+  let syncSource = "public_storefront";
+
+  try {
+    rawProducts = await fetchAllPages(requestedCollectionHandle);
+    if (requestedCollectionHandle) {
+      syncSource = "public_collection";
+    }
+  } catch (error) {
+    if (!requestedCollectionHandle) {
+      throw error;
+    }
+
+    logger.warn("Shopify public collection sync failed. Falling back to all public products.", {
+      storeDomain: config?.storeDomain,
+      collectionHandle: requestedCollectionHandle,
+      error: error instanceof Error ? error.message : "unknown_error",
+    });
+    rawProducts = await fetchAllPages(null);
   }
 
+  const products = rawProducts
+      .map((product) => normalizePublicShopifyProduct(product))
+      .filter((product) => (product?.variants?.nodes || []).length > 0);
+
+  return {
+    products,
+    currencyCode: "EUR",
+    syncSource,
+  };
+}
+
+async function fetchAllShopifyProducts(token, config) {
+  if (token) {
+    try {
+      const result = await fetchAllShopifyProductsViaAdminApi(token, config);
+      return {
+        ...result,
+        syncSource: "admin_api",
+      };
+    } catch (error) {
+      logger.warn("Shopify Admin API sync failed. Falling back to public storefront sync.", {
+        storeDomain: config?.storeDomain,
+        collectionHandle: config?.collectionHandle || null,
+        error: error instanceof Error ? error.message : "unknown_error",
+      });
+    }
+  }
+
+  return fetchAllShopifyProductsViaPublicStorefront(config);
+}
+
+async function runShopifyMerchSync() {
+  const token = await loadShopifyAdminToken();
   const config = await loadShopifyAdminConfig();
 
   logger.info("Shopify merch sync started.", {
@@ -420,7 +599,7 @@ async function runShopifyMerchSync() {
     existingByDocumentId.set(document.id, document);
   });
 
-  const {products, currencyCode} = await fetchAllShopifyProducts(token, config);
+  const {products, currencyCode, syncSource} = await fetchAllShopifyProducts(token, config);
   const batch = firestore.batch();
   let createdCount = 0;
   let updatedCount = 0;
@@ -466,6 +645,7 @@ async function runShopifyMerchSync() {
     createdCount,
     updatedCount,
     deactivatedCount,
+    syncSource,
     storeDomain: config.storeDomain,
     collectionHandle: config.collectionHandle || null,
   });
@@ -480,6 +660,7 @@ async function runShopifyMerchSync() {
     storefrontURL: config.storefrontURL,
     collectionHandle: config.collectionHandle,
     collectionTitle: config.collectionTitle,
+    syncSource,
   };
 }
 
@@ -639,9 +820,9 @@ function buildShopifyOrderInput(orderId, data) {
 }
 
 async function createShopifyOrder({orderId, data}) {
-  const token = shopifyAdminAccessToken.value();
+  const token = await loadShopifyAdminToken();
   if (!token) {
-    throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN ist nicht konfiguriert.");
+    throw new Error("Kein Shopify Admin API Token hinterlegt.");
   }
   const config = await loadShopifyAdminConfig();
 
@@ -858,7 +1039,6 @@ exports.skydownAgent = onCallGenkit({
 exports.syncShopifyMerch = onCall({
   region: "us-central1",
   timeoutSeconds: 120,
-  secrets: [shopifyAdminAccessToken],
 }, async (request) => {
   await assertAdmin(request.auth);
   return runShopifyMerchSync();
@@ -868,7 +1048,6 @@ exports.processConfirmedMerchOrders = onDocumentWritten({
   document: "orders/{orderId}",
   region: "us-central1",
   timeoutSeconds: 120,
-  secrets: [shopifyAdminAccessToken],
 }, async (event) => {
   const beforeData = event.data?.before?.data() || null;
   const afterData = event.data?.after?.data() || null;

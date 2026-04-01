@@ -15,13 +15,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 object SkydownUiTokens {
-    val screenHorizontalPadding = 14.dp
-    val screenTopPadding = 8.dp
-    val screenBottomPadding = 24.dp
-    val cardPadding = 16.dp
+    val screenHorizontalPadding = 16.dp
+    val screenTopPadding = 10.dp
+    val screenBottomPadding = 22.dp
+    val cardPadding = 15.dp
     val heroPadding = 18.dp
-    val cardCornerRadius = 22.dp
-    val heroCornerRadius = 24.dp
+    val cardCornerRadius = 24.dp
+    val heroCornerRadius = 28.dp
+    val buttonCornerRadius = 18.dp
 }
 
 fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingValues(

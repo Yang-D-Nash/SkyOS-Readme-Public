@@ -114,6 +114,7 @@ fun SettingsScreen(
     var shopifyStorefrontUrlDraft by rememberSaveable { mutableStateOf("") }
     var shopifyCollectionHandleDraft by rememberSaveable { mutableStateOf("") }
     var shopifyCollectionTitleDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyAdminApiTokenDraft by rememberSaveable { mutableStateOf("") }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
@@ -167,6 +168,7 @@ fun SettingsScreen(
         shopifyStorefrontUrlDraft = uiState.shopifyAdminSettings.storefrontUrl
         shopifyCollectionHandleDraft = uiState.shopifyAdminSettings.collectionHandle
         shopifyCollectionTitleDraft = uiState.shopifyAdminSettings.collectionTitle
+        shopifyAdminApiTokenDraft = uiState.shopifyAdminSettings.adminApiToken
     }
 
     LaunchedEffect(uiState.paymentFeedbackMessage) {
@@ -292,6 +294,22 @@ fun SettingsScreen(
                     placeholder = { Text("z. B. Spring Drop 2026") },
                     singleLine = true,
                 )
+                OutlinedTextField(
+                    value = shopifyAdminApiTokenDraft,
+                    onValueChange = { shopifyAdminApiTokenDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Admin API Token (privat)") },
+                    placeholder = { Text("shpat_...") },
+                    singleLine = true,
+                )
+
+                Text(
+                    text = "Dieser Token wird admin-only gespeichert und hilft dem Sync auch dann, wenn dein Shopify-Store oeffentlich gesperrt ist.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
 
                 Text(
                     text = if (uiState.shopifyAdminSettings.hasCollectionFilter) {
@@ -311,6 +329,7 @@ fun SettingsScreen(
                                 storefrontUrl = shopifyStorefrontUrlDraft.trim(),
                                 collectionHandle = shopifyCollectionHandleDraft.trim(),
                                 collectionTitle = shopifyCollectionTitleDraft.trim(),
+                                adminApiToken = shopifyAdminApiTokenDraft.trim(),
                             ),
                         )
                     },

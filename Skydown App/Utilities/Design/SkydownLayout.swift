@@ -8,15 +8,15 @@
 import SwiftUI
 
 enum SkydownLayout {
-    static let screenHorizontalPadding: CGFloat = 14
-    static let screenTopPadding: CGFloat = 12
-    static let screenBottomPadding: CGFloat = 24
+    static let screenHorizontalPadding: CGFloat = 16
+    static let screenTopPadding: CGFloat = 10
+    static let screenBottomPadding: CGFloat = 22
     static let sectionSpacing: CGFloat = 14
-    static let cardPadding: CGFloat = 16
+    static let cardPadding: CGFloat = 15
     static let heroPadding: CGFloat = 18
-    static let cardCornerRadius: CGFloat = 22
-    static let heroCornerRadius: CGFloat = 24
-    static let buttonCornerRadius: CGFloat = 16
+    static let cardCornerRadius: CGFloat = 24
+    static let heroCornerRadius: CGFloat = 28
+    static let buttonCornerRadius: CGFloat = 18
 }
 
 struct SkydownTactileButtonStyle: ButtonStyle {
@@ -75,7 +75,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
     let shadowYOffset: CGFloat
 
     private var strokeColor: Color {
-        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.18 : 0.12)
+        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.15 : 0.10)
     }
 
     @ViewBuilder
@@ -104,7 +104,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                 }
                 .clipShape(shape)
                 .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.18 : 0.06),
+                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.05),
                     radius: shadowRadius,
                     y: shadowYOffset
                 )
@@ -136,7 +136,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                 }
                 .clipShape(shape)
                 .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.18 : 0.06),
+                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.05),
                     radius: shadowRadius,
                     y: shadowYOffset
                 )

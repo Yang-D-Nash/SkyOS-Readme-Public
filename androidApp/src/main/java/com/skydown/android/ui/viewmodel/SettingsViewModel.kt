@@ -53,6 +53,16 @@ class SettingsViewModel : ViewModel() {
                         accountErrorMessage = null,
                     )
                 }
+
+                if (user?.isAdmin == true) {
+                    loadShopifyAdminToken()
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            shopifyAdminSettings = it.shopifyAdminSettings.copy(adminApiToken = ""),
+                        )
+                    }
+                }
             }
         }
 
@@ -175,8 +185,9 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             val result = shopifyAdminSettingsRepository.updateSettings(settings)
             if (result.isSuccess) {
+                _uiState.update { it.copy(shopifyAdminSettings = settings) }
                 showPaymentFeedback(
-                    message = "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store und diese Kollektion.",
+                    message = "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, diese Kollektion und den privaten Token.",
                     isError = false,
                 )
             } else {
@@ -185,6 +196,32 @@ class SettingsViewModel : ViewModel() {
                     isError = true,
                 )
             }
+        }
+    }
+
+    private fun loadShopifyAdminToken() {
+        viewModelScope.launch {
+            shopifyAdminSettingsRepository.fetchAdminApiToken()
+                .onSuccess { token ->
+                    _uiState.update {
+                        it.copy(
+                            shopifyAdminSettings = it.shopifyAdminSettings.copy(adminApiToken = token),
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    val message = error.message.orEmpty()
+                    if (
+                        message.contains("permission", ignoreCase = true) ||
+                        message.contains("berechtigung", ignoreCase = true)
+                    ) {
+                        return@launch
+                    }
+                    showPaymentFeedback(
+                        message = error.message ?: "Shopify-Token konnte nicht geladen werden.",
+                        isError = true,
+                    )
+                }
         }
     }
 

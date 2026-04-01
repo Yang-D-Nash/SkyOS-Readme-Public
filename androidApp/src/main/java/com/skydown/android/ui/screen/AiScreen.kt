@@ -389,7 +389,7 @@ private fun QuickPromptCard(
                         horizontal = 12.dp,
                         vertical = if (compactLayout) 8.dp else 10.dp,
                     ),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                 ) {
                     Text(
                         text = prompt,
@@ -424,7 +424,7 @@ private fun VisualPromptCard(
                         horizontal = 12.dp,
                         vertical = if (compactLayout) 8.dp else 10.dp,
                     ),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                 ) {
                     Text(
                         text = prompt.label,
@@ -446,10 +446,10 @@ private fun AiMessageBubble(
     val context = LocalContext.current
     val isUser = message.role == AiMessageRole.User
     val bubbleShape = RoundedCornerShape(
-        topStart = 24.dp,
-        topEnd = 24.dp,
-        bottomStart = if (isUser) 24.dp else 8.dp,
-        bottomEnd = if (isUser) 8.dp else 24.dp,
+        topStart = SkydownUiTokens.cardCornerRadius,
+        topEnd = SkydownUiTokens.cardCornerRadius,
+        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 10.dp,
+        bottomEnd = if (isUser) 10.dp else SkydownUiTokens.cardCornerRadius,
     )
 
     Row(
@@ -532,7 +532,7 @@ private fun AiMessageBubble(
                             .fillMaxWidth()
                             .padding(top = 12.dp)
                             .height(220.dp)
-                            .clip(RoundedCornerShape(18.dp)),
+                            .clip(RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)),
                     )
                 }
 
@@ -621,7 +621,7 @@ private fun AiComposerBar(
                     Button(
                         onClick = { onComposerModeChange(AiComposerMode.Text) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                     ) {
                         Text("Text")
                     }
@@ -629,7 +629,7 @@ private fun AiComposerBar(
                     OutlinedButton(
                         onClick = { onComposerModeChange(AiComposerMode.Text) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                     ) {
                         Text("Text")
                     }
@@ -639,7 +639,7 @@ private fun AiComposerBar(
                     Button(
                         onClick = { onComposerModeChange(AiComposerMode.Visual) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                     ) {
                         Text("Visual")
                     }
@@ -647,7 +647,7 @@ private fun AiComposerBar(
                     OutlinedButton(
                         onClick = { onComposerModeChange(AiComposerMode.Visual) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                     ) {
                         Text("Visual")
                     }
