@@ -159,6 +159,8 @@ fun OrderScreen(
                     items(uiState.orders, key = { it.id.orEmpty() }) { order ->
                         OrderCard(
                             order = order,
+                            isConfirmingPayment = uiState.confirmingPaymentOrderIds.contains(order.id.orEmpty()),
+                            onConfirmPayment = { viewModel.confirmPayment(order.id.orEmpty()) },
                             onToggleCompleted = { viewModel.toggleCompleted(order.id.orEmpty()) },
                             onDelete = { viewModel.deleteOrder(order.id.orEmpty()) },
                         )
@@ -215,6 +217,8 @@ private fun OrdersOverviewCard(
 @Composable
 private fun OrderCard(
     order: Order,
+    isConfirmingPayment: Boolean,
+    onConfirmPayment: () -> Unit,
     onToggleCompleted: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -223,6 +227,12 @@ private fun OrderCard(
     val whatsApp = order.whatsApp?.takeIf { it.isNotBlank() }
     val shippingAddress = order.shippingAddress?.takeIf { it.isNotBlank() }
     val paymentMethod = order.paymentMethod?.takeIf { it.isNotBlank() }
+    val paymentStatus = order.paymentStatus?.takeIf { it.isNotBlank() }
+    val shippingZone = order.shippingZone?.takeIf { it.isNotBlank() }
+    val fulfillmentProvider = order.fulfillmentProvider?.takeIf { it.isNotBlank() }
+    val fulfillmentStatus = order.fulfillmentStatus?.takeIf { it.isNotBlank() }
+    val shopifyOrderName = order.shopifyOrderName?.takeIf { it.isNotBlank() }
+    val shopifySyncStatus = order.shopifySyncStatus?.takeIf { it.isNotBlank() }
     val message = order.message?.takeIf { it.isNotBlank() }
     val totalItems = order.items.sumOf { it.quantity }
 
@@ -265,6 +275,12 @@ private fun OrderCard(
                 text = "$totalItems Teile",
                 isAccent = false,
             )
+            paymentStatus?.let { status ->
+                OrderStatusPill(
+                    text = status,
+                    isAccent = false,
+                )
+            }
         }
 
         Column(
@@ -293,6 +309,48 @@ private fun OrderCard(
             paymentMethod?.let { value ->
                 OrderMetaRow(
                     label = "Zahlart",
+                    value = value,
+                )
+            }
+
+            paymentStatus?.let { value ->
+                OrderMetaRow(
+                    label = "Zahlstatus",
+                    value = value,
+                )
+            }
+
+            shippingZone?.let { value ->
+                OrderMetaRow(
+                    label = "Versandzone",
+                    value = value,
+                )
+            }
+
+            fulfillmentProvider?.let { value ->
+                OrderMetaRow(
+                    label = "Fulfillment",
+                    value = value,
+                )
+            }
+
+            fulfillmentStatus?.let { value ->
+                OrderMetaRow(
+                    label = "Fulfillment-Status",
+                    value = value,
+                )
+            }
+
+            shopifyOrderName?.let { value ->
+                OrderMetaRow(
+                    label = "Shopify Order",
+                    value = value,
+                )
+            }
+
+            shopifySyncStatus?.let { value ->
+                OrderMetaRow(
+                    label = "Shopify Sync",
                     value = value,
                 )
             }
@@ -389,11 +447,29 @@ private fun OrderCard(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             )
                         }
+                        item.color?.takeIf { it.isNotBlank() }?.let { color ->
+                            Text(
+                                text = "Farbe $color",
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            )
+                        }
                     }
-                    Text(
-                        text = "x${item.quantity}",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "x${item.quantity}",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+                        item.unitPrice?.let { unitPrice ->
+                            Text(
+                                text = "EUR ${formatCurrency(unitPrice)}",
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -404,6 +480,19 @@ private fun OrderCard(
                 .padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (paymentStatus != "confirmed") {
+                FilledTonalButton(
+                    onClick = onConfirmPayment,
+                    modifier = Modifier.weight(1f),
+                    enabled = !isConfirmingPayment,
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text(
+                        text = if (isConfirmingPayment) "Bestaetige..." else "Zahlung bestaetigen",
+                    )
+                }
+            }
+
             FilledTonalButton(
                 onClick = onToggleCompleted,
                 modifier = Modifier.weight(1f),

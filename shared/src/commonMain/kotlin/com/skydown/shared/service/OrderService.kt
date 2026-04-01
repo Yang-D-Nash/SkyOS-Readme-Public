@@ -2,6 +2,7 @@ package com.skydown.shared.service
 
 import com.skydown.shared.model.CartItem
 import com.skydown.shared.model.Order
+import com.skydown.shared.model.OrderSubmission
 import com.skydown.shared.repository.OrderRepository
 
 class OrderService(
@@ -9,49 +10,24 @@ class OrderService(
 ) {
     suspend fun loadOrders(): Result<List<Order>> = repository.loadOrders()
 
-    suspend fun submitOrder(
-        userEmail: String,
-        items: List<CartItem>,
-        customerName: String,
-        customerEmail: String,
-        whatsApp: String,
-        shippingAddress: String,
-        message: String,
-        paymentMethod: String,
-        subtotalAmount: Double,
-        shippingAmount: Double,
-        taxRate: Double,
-        taxAmount: Double,
-        totalAmount: Double,
-    ): Result<Unit> {
-        if (items.isEmpty()) {
+    suspend fun submitOrder(submission: OrderSubmission): Result<String> {
+        if (submission.items.isEmpty()) {
             return Result.failure(IllegalArgumentException("Warenkorb ist leer."))
         }
-        if (userEmail.isBlank()) {
+        if (submission.userEmail.isBlank()) {
             return Result.failure(IllegalArgumentException("Benutzer nicht angemeldet."))
         }
-        if (customerName.isBlank() || customerEmail.isBlank()) {
+        if (submission.customerName.isBlank() || submission.customerEmail.isBlank()) {
             return Result.failure(IllegalArgumentException("Name und E-Mail sind erforderlich."))
         }
-        if (shippingAddress.isBlank()) {
+        if (submission.shippingAddress.isBlank()) {
             return Result.failure(IllegalArgumentException("Adresse ist erforderlich."))
         }
+        if (submission.shippingZone.isBlank() || submission.shippingCountryCode.isBlank()) {
+            return Result.failure(IllegalArgumentException("Versandzone und Land muessen gesetzt sein."))
+        }
 
-        return repository.submitOrder(
-            userEmail = userEmail,
-            items = items,
-            customerName = customerName,
-            customerEmail = customerEmail,
-            whatsApp = whatsApp,
-            shippingAddress = shippingAddress,
-            message = message,
-            paymentMethod = paymentMethod,
-            subtotalAmount = subtotalAmount,
-            shippingAmount = shippingAmount,
-            taxRate = taxRate,
-            taxAmount = taxAmount,
-            totalAmount = totalAmount,
-        )
+        return repository.submitOrder(submission)
     }
 
     suspend fun toggleCompleted(orderId: String, isCompleted: Boolean): Result<Unit> {

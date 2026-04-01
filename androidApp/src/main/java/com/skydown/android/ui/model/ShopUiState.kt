@@ -13,4 +13,5 @@ data class ShopUiState(
     val isErrorToast: Boolean = false,
     val isSaving: Boolean = false,
     val isUpdatingStoreState: Boolean = false,
+    val isSyncingCatalog: Boolean = false,
 )

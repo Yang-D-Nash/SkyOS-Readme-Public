@@ -12,6 +12,7 @@ class OrderViewModel: ObservableObject {
     @Published var orders: [Order] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published private(set) var confirmingPaymentOrderIDs: Set<String> = []
 
     @Published var toastMessage = ""
     @Published var showToast = false
@@ -67,6 +68,30 @@ class OrderViewModel: ObservableObject {
         } catch {
             print("Dev Fehler deleteOrder:", error.localizedDescription)
             let msg = "Löschen fehlgeschlagen: \(error.localizedDescription)"
+            errorMessage = msg
+            showUserToast(msg, style: .error)
+        }
+    }
+
+    func confirmPayment(for order: Order) async {
+        guard let id = order.id else { return }
+        guard order.paymentStatus != "confirmed" else {
+            showUserToast("Diese Bestellung ist bereits als bezahlt markiert.", style: .info)
+            return
+        }
+
+        confirmingPaymentOrderIDs.insert(id)
+        defer { confirmingPaymentOrderIDs.remove(id) }
+
+        do {
+            try await orderService.confirmPayment(
+                orderID: id,
+                paymentMethod: order.paymentMethod,
+                paymentReference: nil
+            )
+            showUserToast("Zahlung bestaetigt. Shopify und Fulfillment werden jetzt vorbereitet.", style: .success)
+        } catch {
+            let msg = "Zahlung konnte nicht bestaetigt werden: \(error.localizedDescription)"
             errorMessage = msg
             showUserToast(msg, style: .error)
         }

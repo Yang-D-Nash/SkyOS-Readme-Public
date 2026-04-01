@@ -9,27 +9,49 @@ object CartUseCase {
         currentItems: List<CartItem>,
         item: MerchandiseItem,
         size: String,
+        color: String? = null,
         quantity: Int,
+        shopifyVariantId: String? = null,
+        sku: String? = null,
+        unitPrice: Double? = null,
     ): List<CartItem> {
         val mutableItems = currentItems.toMutableList()
-        val existingIndex = mutableItems.indexOfFirst { it.item.id == item.id && it.size == size }
+        val normalizedColor = color?.trim()?.takeIf { it.isNotEmpty() }
+        val existingIndex = mutableItems.indexOfFirst {
+            it.item.id == item.id &&
+                it.size == size &&
+                it.color.equals(normalizedColor, ignoreCase = true)
+        }
 
         if (existingIndex >= 0) {
             val existingItem = mutableItems[existingIndex]
             mutableItems[existingIndex] = existingItem.copy(quantity = existingItem.quantity + quantity)
         } else {
-            mutableItems += CartItem(item = item, size = size, quantity = quantity)
+            mutableItems += CartItem(
+                item = item,
+                size = size,
+                color = normalizedColor,
+                quantity = quantity,
+                shopifyVariantId = shopifyVariantId,
+                sku = sku,
+                unitPrice = unitPrice,
+            )
         }
 
         return mutableItems
     }
 
-    fun removeItem(currentItems: List<CartItem>, itemId: String, size: String): List<CartItem> {
-        return currentItems.filterNot { it.item.id == itemId && it.size == size }
+    fun removeItem(currentItems: List<CartItem>, itemId: String, size: String, color: String? = null): List<CartItem> {
+        return currentItems.filterNot {
+            it.item.id == itemId &&
+                it.size == size &&
+                it.color.equals(color?.trim()?.takeIf { value -> value.isNotEmpty() }, ignoreCase = true)
+        }
     }
 
-    fun buildContactMessage(itemName: String, size: String, quantity: Int): String {
-        return "Hallo, ich bin an '$itemName' in Groesse $size x$quantity interessiert."
+    fun buildContactMessage(itemName: String, size: String, color: String?, quantity: Int): String {
+        val colorPart = color?.takeIf { it.isNotBlank() }?.let { " in $it" }.orEmpty()
+        return "Hallo, ich bin an '$itemName' in Groesse $size$colorPart x$quantity interessiert."
     }
 
     fun validateContact(request: ContactRequest): String? {

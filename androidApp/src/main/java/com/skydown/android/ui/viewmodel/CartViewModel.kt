@@ -3,10 +3,13 @@ package com.skydown.android.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AppCartStore
+import com.skydown.android.data.ShippingService
 import com.skydown.android.ui.model.CartUiState
 import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.shared.model.ContactRequest
-import com.skydown.shared.model.sampleMerchandiseItems
+import com.skydown.shared.model.OrderSubmission
+import com.skydown.shared.model.ShippingAddressData
 import com.skydown.shared.usecase.CartUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,19 +26,9 @@ class CartViewModel : ViewModel() {
     private var commerceSettingsListener: ListenerRegistration? = null
     private var merchStoreStatusListener: ListenerRegistration? = null
     private var paymentMethodsListener: ListenerRegistration? = null
-    private val initialItems = listOf(
-        CartUseCase.addItem(
-            currentItems = emptyList(),
-            item = sampleMerchandiseItems().first(),
-            size = "M",
-            quantity = 1,
-        ).first(),
-    )
-
     private val _uiState = MutableStateFlow(
         CartUiState(
             isLoggedIn = false,
-            items = initialItems,
         ),
     )
     val uiState: StateFlow<CartUiState> = _uiState.asStateFlow()
@@ -54,6 +47,12 @@ class CartViewModel : ViewModel() {
                         shippingCountry = if (it.shippingCountry.isBlank()) "Deutschland" else it.shippingCountry,
                     )
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            AppCartStore.items.collect { items ->
+                _uiState.update { it.copy(items = items) }
             }
         }
 
@@ -132,9 +131,16 @@ class CartViewModel : ViewModel() {
         _uiState.update { it.copy(selectedPaymentMethod = value, errorMessage = null, successMessage = null) }
     }
 
-    fun removeItem(itemId: String, size: String) {
+    fun removeItem(itemId: String, size: String, color: String? = null) {
         _uiState.update {
-            it.copy(items = CartUseCase.removeItem(it.items, itemId = itemId, size = size))
+            val updatedItems = CartUseCase.removeItem(
+                currentItems = it.items,
+                itemId = itemId,
+                size = size,
+                color = color,
+            )
+            AppCartStore.setItems(updatedItems)
+            it.copy(items = updatedItems)
         }
     }
 
@@ -167,28 +173,74 @@ class CartViewModel : ViewModel() {
             }
             return Result.failure(IllegalStateException("Merchandise-Store pausiert."))
         }
+        val mixedFulfillmentError = mixedFulfillmentError(state)
+        if (mixedFulfillmentError != null) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = mixedFulfillmentError,
+                    successMessage = null,
+                )
+            }
+            return Result.failure(IllegalStateException(mixedFulfillmentError))
+        }
         _uiState.update { it.copy(isSubmitting = true, errorMessage = null, successMessage = null) }
         val shippingAddress = composeShippingAddress(state)
-        val pricing = pricingSummary(state)
+        val pricing = pricingSummary(state).getOrElse { error ->
+            _uiState.update {
+                it.copy(
+                    isSubmitting = false,
+                    errorMessage = error.message,
+                    successMessage = null,
+                )
+            }
+            return Result.failure(error)
+        }
         val paymentLine = state.selectedPaymentMethod
             .takeIf { it.isNotBlank() }
             ?.let { "Gewuenschte Zahlart: $it\n\n" }
             .orEmpty()
+        val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
+            _uiState.update {
+                it.copy(
+                    isSubmitting = false,
+                    errorMessage = error.message,
+                    successMessage = null,
+                )
+            }
+            return Result.failure(error)
+        }
         val result = orderService.submitOrder(
-            userEmail = state.email,
-            items = state.items,
-            customerName = state.name,
-            customerEmail = state.email,
-            whatsApp = state.whatsApp,
-            shippingAddress = shippingAddress,
-            message = paymentLine + state.message,
-            paymentMethod = state.selectedPaymentMethod,
-            subtotalAmount = pricing.subtotal,
-            shippingAmount = pricing.shipping,
-            taxRate = pricing.taxRate,
-            taxAmount = pricing.includedTax,
-            totalAmount = pricing.total,
+            OrderSubmission(
+                userEmail = state.email,
+                items = state.items,
+                customerName = state.name,
+                customerEmail = state.email,
+                whatsApp = state.whatsApp,
+                shippingAddress = shippingAddress,
+                shippingAddressData = ShippingAddressData(
+                    address1 = state.shippingStreet.trim(),
+                    address2 = state.shippingAddressExtra.trim(),
+                    city = state.shippingCity.trim(),
+                    zip = state.shippingPostalCode.trim(),
+                    countryCode = countryCode,
+                    countryName = state.shippingCountry.trim(),
+                ),
+                shippingZone = pricing.zone.name,
+                shippingCountryCode = countryCode,
+                message = paymentLine + state.message,
+                paymentMethod = state.selectedPaymentMethod,
+                paymentStatus = "pending",
+                subtotalAmount = pricing.subtotal,
+                shippingAmount = pricing.shipping,
+                taxRate = pricing.taxRate,
+                taxAmount = pricing.includedTax,
+                totalAmount = pricing.total,
+                fulfillmentProvider = deriveFulfillmentProvider(state.items),
+            ),
         )
+        if (result.isSuccess) {
+            AppCartStore.clear()
+        }
         _uiState.update {
             it.copy(
                 isSubmitting = false,
@@ -202,7 +254,7 @@ class CartViewModel : ViewModel() {
                 successMessage = if (result.isSuccess) "Bestellung erfolgreich abgeschickt!" else null,
             )
         }
-        return result
+        return result.map { }
     }
 
     fun clearMessages() {
@@ -233,28 +285,44 @@ class CartViewModel : ViewModel() {
             .joinToString("\n")
     }
 
-    private fun pricingSummary(state: CartUiState): CartPricingSummary {
-        val subtotal = state.items.sumOf { it.item.price * it.quantity }
-        val baseShipping = state.commerceSettings.shipping.shippingCostFor(state.shippingCountry)
-        val shipping = if (
-            state.commerceSettings.shipping.freeShippingThreshold > 0 &&
-            subtotal >= state.commerceSettings.shipping.freeShippingThreshold
-        ) {
-            0.0
-        } else {
-            baseShipping
-        }
-        val total = subtotal + shipping
+    private fun pricingSummary(state: CartUiState): Result<CartPricingSummary> {
+        val subtotal = state.items.sumOf { (it.unitPrice ?: it.item.price) * it.quantity }
+        val countryCode = ShippingService.resolveCountryCode(state.shippingCountry)
+            .getOrElse { return Result.failure(it) }
+        val shippingQuote = ShippingService.calculateShippingPrice(
+            settings = state.commerceSettings.shipping,
+            countryCode = countryCode,
+            items = state.items,
+            subtotal = subtotal,
+        ).getOrElse { return Result.failure(it) }
+        val total = subtotal + shippingQuote.price
         val taxRate = state.commerceSettings.invoice.taxRate
         val includedTax = if (taxRate > 0) total * (taxRate / (100.0 + taxRate)) else 0.0
 
-        return CartPricingSummary(
-            subtotal = subtotal,
-            shipping = shipping,
-            taxRate = taxRate,
-            includedTax = includedTax,
-            total = total,
+        return Result.success(
+            CartPricingSummary(
+                subtotal = subtotal,
+                shipping = shippingQuote.price,
+                taxRate = taxRate,
+                includedTax = includedTax,
+                total = total,
+                zone = shippingQuote.zone,
+                countryCode = shippingQuote.countryCode,
+            ),
         )
+    }
+
+    private fun deriveFulfillmentProvider(items: List<com.skydown.shared.model.CartItem>): String {
+        return if (items.any { !it.shopifyVariantId.isNullOrBlank() }) "podpartner" else "manual"
+    }
+
+    private fun mixedFulfillmentError(state: CartUiState): String? {
+        val hasShopifyItems = state.items.any { !it.shopifyVariantId.isNullOrBlank() }
+        val hasLegacyItems = state.items.any { it.shopifyVariantId.isNullOrBlank() }
+        if (hasShopifyItems && hasLegacyItems) {
+            return "Bitte trenne Shopify-Merch und interne Legacy-Artikel in zwei Bestellungen."
+        }
+        return null
     }
 }
 
@@ -264,4 +332,6 @@ private data class CartPricingSummary(
     val taxRate: Double,
     val includedTax: Double,
     val total: Double,
+    val zone: com.skydown.android.data.ShippingZone,
+    val countryCode: String,
 )

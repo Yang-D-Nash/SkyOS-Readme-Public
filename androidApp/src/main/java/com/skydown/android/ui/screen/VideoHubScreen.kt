@@ -9,6 +9,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +68,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -90,6 +94,7 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.dismissKeyboardOnTap
+import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
@@ -98,6 +103,10 @@ import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoYouTubeItem
 import com.skydown.android.ui.model.skydownProducedWithArtists
+import com.skydown.android.ui.theme.InstagramOrange
+import com.skydown.android.ui.theme.InstagramPink
+import com.skydown.android.ui.theme.InstagramPurple
+import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -534,7 +543,7 @@ private fun VideoCollaborationsCard(
     onOpenLink: (String) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Collaborators")
+        SectionHeader("Produced with")
         Text(
             text = "Artists und Creatives, mit denen in Produktionen zusammengearbeitet wurde.",
             style = MaterialTheme.typography.bodyMedium,
@@ -828,16 +837,71 @@ private fun ProducedWithArtistRow(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             artist.spotifyArtistId?.takeIf { it.isNotBlank() }?.let { spotifyArtistId ->
-                TextButton(onClick = { onOpenLink("https://open.spotify.com/artist/$spotifyArtistId") }) {
-                    Text("Spotify")
-                }
+                SocialActionChip(
+                    title = "Spotify",
+                    icon = Icons.Default.PlayArrow,
+                    gradient = Brush.linearGradient(
+                        colors = listOf(
+                            SpotifyGreen,
+                            SpotifyGreen.copy(alpha = 0.72f),
+                        ),
+                    ),
+                    onClick = { onOpenLink("https://open.spotify.com/artist/$spotifyArtistId") },
+                )
             }
             artist.instagramUrl?.takeIf { it.isNotBlank() }?.let { instagramUrl ->
-                TextButton(onClick = { onOpenLink(instagramUrl) }) {
-                    Text("Instagram")
-                }
+                SocialActionChip(
+                    title = "Instagram",
+                    icon = Icons.Default.Movie,
+                    gradient = Brush.linearGradient(
+                        colors = listOf(
+                            InstagramPurple,
+                            InstagramPink,
+                            InstagramOrange,
+                        ),
+                    ),
+                    onClick = { onOpenLink(instagramUrl) },
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun SocialActionChip(
+    title: String,
+    icon: ImageVector,
+    gradient: Brush,
+    onClick: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(gradient)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .skydownPressable(interactionSource)
+            .padding(horizontal = 13.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 

@@ -15,6 +15,7 @@ final class MerchandiseViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isStoreOpen = true
     @Published var isUpdatingStoreState = false
+    @Published var isSyncingCatalog = false
 
     // Toast
     @Published var toastMessage = ""
@@ -22,9 +23,11 @@ final class MerchandiseViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
     private let merchandiseService: MerchandiseServicing
     private let merchStoreStatusService: MerchStoreStatusServicing
+    private let shopifySyncService: ShopifyMerchSyncServicing
     private let authManager: AuthManager
     private var stopObservingItems: (() -> Void)?
     private var stopObservingStoreStatus: (() -> Void)?
+    private var allItems: [MerchandiseItem] = []
 
     private var canManageMerchandise: Bool {
         authManager.userSession?.isAdmin == true
@@ -33,11 +36,20 @@ final class MerchandiseViewModel: ObservableObject {
     init(
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
         merchStoreStatusService: MerchStoreStatusServicing = FirestoreMerchStoreStatusService(),
+        shopifySyncService: ShopifyMerchSyncServicing = FirebaseFunctionsShopifyMerchSyncService(),
         authManager: AuthManager
     ) {
         self.merchandiseService = merchandiseService
         self.merchStoreStatusService = merchStoreStatusService
+        self.shopifySyncService = shopifySyncService
         self.authManager = authManager
+
+        Task { [weak self] in
+            for await _ in authManager.$userSession.values {
+                guard let self else { return }
+                self.merchandiseItems = self.filterVisibleItems(self.allItems)
+            }
+        }
     }
 
     func fetchData() {
@@ -53,14 +65,16 @@ final class MerchandiseViewModel: ObservableObject {
 
             switch result {
             case .success(let items):
-                self.merchandiseItems = items
-                if items.isEmpty {
+                self.allItems = items
+                self.merchandiseItems = self.filterVisibleItems(items)
+                if self.merchandiseItems.isEmpty {
                     self.showUserToast("Keine Artikel gefunden.", style: .error)
                 }
             case .failure(let error):
                 print("Dev Fehler fetchData:", error.localizedDescription)
                 self.showUserToast("Fehler beim Laden der Artikel: \(error.localizedDescription)", style: .error)
                 self.merchandiseItems = []
+                self.allItems = []
             }
         }
     }
@@ -101,6 +115,24 @@ final class MerchandiseViewModel: ObservableObject {
             print("Dev Fehler addMerchandise:", error.localizedDescription)
             showUserToast("Fehler beim Hinzufügen des Artikels: \(error.localizedDescription)", style: .error)
             return false
+        }
+    }
+
+    func syncShopifyCatalog() async {
+        guard canManageMerchandise else {
+            showUserToast("Nur Admins duerfen den Shopify-Sync starten.", style: .error)
+            return
+        }
+
+        isSyncingCatalog = true
+        defer { isSyncingCatalog = false }
+
+        do {
+            let message = try await shopifySyncService.triggerSync()
+            showUserToast(message, style: .success)
+            fetchData()
+        } catch {
+            showUserToast("Shopify-Sync fehlgeschlagen: \(error.localizedDescription)", style: .error)
         }
     }
 
@@ -187,6 +219,10 @@ final class MerchandiseViewModel: ObservableObject {
                 self.showUserToast("Store-Status konnte nicht geladen werden: \(error.localizedDescription)", style: .error)
             }
         }
+    }
+
+    private func filterVisibleItems(_ items: [MerchandiseItem]) -> [MerchandiseItem] {
+        items.filter { canManageMerchandise || $0.isVisibleInApp }
     }
 
     deinit {

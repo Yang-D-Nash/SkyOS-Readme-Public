@@ -3,9 +3,11 @@ package com.skydown.android.data.repository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.skydown.shared.model.MerchandiseItem
+import com.skydown.shared.model.MerchandiseVariant
 import com.skydown.shared.model.User
 import com.skydown.shared.repository.MerchandiseRepository
 import kotlinx.coroutines.tasks.await
@@ -20,7 +22,11 @@ class AndroidMerchandiseRepository(
         return runCatching {
             firestore.collection("merchandise").get().await().documents.mapNotNull { document ->
                 document.toSharedMerchandiseItem()
-            }.sortedBy { it.name }
+            }.sortedWith(
+                compareBy<MerchandiseItem> { !it.featured }
+                    .thenBy { it.sortOrder }
+                    .thenBy { it.name.lowercase() },
+            )
         }.recoverCatching { error ->
             if (error is FirebaseFirestoreException && error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
                 throw IllegalStateException("Merch kann aktuell nicht geladen werden. Bitte zuerst anmelden oder die Firestore-Leserechte pruefen.")
@@ -57,7 +63,10 @@ class AndroidMerchandiseRepository(
             val updatedImageUrls = replacementImageUrls ?: item.imageUrls
 
             documentReference
-                .set(merchandisePayload(item = item, imageUrls = updatedImageUrls))
+                .set(
+                    merchandisePayload(item = item, imageUrls = updatedImageUrls),
+                    SetOptions.merge(),
+                )
                 .await()
 
             if (replacementImageUrls != null) {
@@ -106,14 +115,41 @@ class AndroidMerchandiseRepository(
     }
 
     private fun merchandisePayload(item: MerchandiseItem, imageUrls: List<String>): Map<String, Any> {
-        return mapOf(
+        val payload = mutableMapOf<String, Any>(
             "name" to item.name,
             "price" to item.price,
             "description" to item.description,
             "imageUrls" to imageUrls,
             "imageURLs" to imageUrls,
             "available" to item.available,
+            "currency" to item.currency,
+            "availableForSale" to item.availableForSale,
+            "variants" to item.variants.map { variant ->
+                buildMap<String, Any> {
+                    put("id", variant.id)
+                    put("title", variant.title)
+                    variant.size?.let { put("size", it) }
+                    variant.color?.let { put("color", it) }
+                    variant.shopifyVariantId?.let { put("shopifyVariantId", it) }
+                    variant.sku?.let { put("sku", it) }
+                    put("price", variant.price)
+                    put("currency", variant.currency)
+                    put("availableForSale", variant.availableForSale)
+                }
+            },
+            "source" to item.source,
+            "isVisibleInApp" to item.isVisibleInApp,
+            "featured" to item.featured,
+            "sortOrder" to item.sortOrder,
+            "customBadge" to item.customBadge,
+            "customImageOverride" to item.customImageOverride,
         )
+
+        item.sku?.let { payload["sku"] = it }
+        item.shopifyProductId?.let { payload["shopifyProductId"] = it }
+        item.shopifyHandle?.let { payload["shopifyHandle"] = it }
+
+        return payload
     }
 }
 
@@ -128,5 +164,30 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSharedMerchandiseIt
             ?: (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String }
             ?: emptyList(),
         available = data["available"] as? Boolean ?: true,
+        currency = data["currency"] as? String ?: "EUR",
+        sku = data["sku"] as? String,
+        shopifyProductId = data["shopifyProductId"] as? String,
+        shopifyHandle = data["shopifyHandle"] as? String,
+        availableForSale = data["availableForSale"] as? Boolean ?: (data["available"] as? Boolean ?: true),
+        variants = (data["variants"] as? List<*>)?.mapNotNull { rawVariant ->
+            val variant = rawVariant as? Map<*, *> ?: return@mapNotNull null
+            MerchandiseVariant(
+                id = variant["id"] as? String ?: "",
+                title = variant["title"] as? String ?: "",
+                size = variant["size"] as? String,
+                color = variant["color"] as? String,
+                shopifyVariantId = variant["shopifyVariantId"] as? String,
+                sku = variant["sku"] as? String,
+                price = (variant["price"] as? Number)?.toDouble() ?: 0.0,
+                currency = variant["currency"] as? String ?: "EUR",
+                availableForSale = variant["availableForSale"] as? Boolean ?: true,
+            )
+        } ?: emptyList(),
+        source = data["source"] as? String ?: "manual",
+        isVisibleInApp = data["isVisibleInApp"] as? Boolean ?: true,
+        featured = data["featured"] as? Boolean ?: false,
+        sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
+        customBadge = data["customBadge"] as? String ?: "",
+        customImageOverride = data["customImageOverride"] as? String ?: "",
     )
 }

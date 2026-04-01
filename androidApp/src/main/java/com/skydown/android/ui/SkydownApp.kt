@@ -430,7 +430,7 @@ private fun LaunchLandingScreen(
                             ),
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.sky22_brand_logo),
+                            painter = painterResource(id = R.drawable.skydown_x22_brand_logo),
                             contentDescription = "Sky²² Logo",
                             modifier = Modifier
                                 .align(Alignment.Center)

@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseFunctions
 
 protocol OrderServicing {
     func observeOrders(_ onChange: @escaping @MainActor (Result<[Order], Error>) -> Void) -> () -> Void
@@ -9,14 +10,24 @@ protocol OrderServicing {
         customerEmail: String,
         whatsApp: String,
         shippingAddress: String,
+        shippingAddressData: ShippingAddressData,
+        shippingZone: String,
+        shippingCountryCode: String,
         message: String,
         items: [CartItem],
         paymentMethod: String?,
+        paymentStatus: String,
         subtotalAmount: Double,
         shippingAmount: Double,
         taxRate: Double,
         taxAmount: Double,
-        totalAmount: Double
+        totalAmount: Double,
+        fulfillmentProvider: String
+    ) async throws -> String
+    func confirmPayment(
+        orderID: String,
+        paymentMethod: String?,
+        paymentReference: String?
     ) async throws
     func toggleCompleted(orderID: String, isCompleted: Bool) async throws
     func deleteOrder(orderID: String) async throws
@@ -24,9 +35,14 @@ protocol OrderServicing {
 
 final class FirebaseOrderService: OrderServicing {
     private let firestore: Firestore
+    private let functions: Functions
 
-    init(firestore: Firestore = Firestore.firestore()) {
+    init(
+        firestore: Firestore = Firestore.firestore(),
+        functions: Functions = Functions.functions(region: "us-central1")
+    ) {
         self.firestore = firestore
+        self.functions = functions
     }
 
     func observeOrders(_ onChange: @escaping @MainActor (Result<[Order], Error>) -> Void) -> () -> Void {
@@ -68,21 +84,39 @@ final class FirebaseOrderService: OrderServicing {
         customerEmail: String,
         whatsApp: String,
         shippingAddress: String,
+        shippingAddressData: ShippingAddressData,
+        shippingZone: String,
+        shippingCountryCode: String,
         message: String,
         items: [CartItem],
         paymentMethod: String?,
+        paymentStatus: String,
         subtotalAmount: Double,
         shippingAmount: Double,
         taxRate: Double,
         taxAmount: Double,
-        totalAmount: Double
-    ) async throws {
+        totalAmount: Double,
+        fulfillmentProvider: String
+    ) async throws -> String {
         let orderItems = items.map { item in
             [
+                "productId": item.item.id as Any,
                 "name": item.item.name,
                 "quantity": item.quantity,
-                "size": item.size
+                "size": item.size,
+                "color": item.color as Any,
+                "shopifyVariantId": item.shopifyVariantId as Any,
+                "sku": item.sku as Any,
+                "unitPrice": item.unitPrice ?? item.item.price
             ]
+        }
+
+        let initialShopifySyncStatus: String
+        switch fulfillmentProvider {
+        case "podpartner":
+            initialShopifySyncStatus = paymentStatus == "confirmed" ? "pending_submission" : "awaiting_payment"
+        default:
+            initialShopifySyncStatus = "not_required"
         }
 
         let orderData: [String: Any] = [
@@ -91,19 +125,56 @@ final class FirebaseOrderService: OrderServicing {
             "customerEmail": customerEmail,
             "whatsApp": whatsApp,
             "shippingAddress": shippingAddress,
+            "shippingAddressData": [
+                "address1": shippingAddressData.address1,
+                "address2": shippingAddressData.address2,
+                "city": shippingAddressData.city,
+                "zip": shippingAddressData.zip,
+                "countryCode": shippingAddressData.countryCode,
+                "countryName": shippingAddressData.countryName
+            ],
+            "shippingZone": shippingZone,
+            "shippingCountryCode": shippingCountryCode,
             "paymentMethod": paymentMethod ?? "",
+            "paymentStatus": paymentStatus,
             "subtotalAmount": subtotalAmount,
             "shippingAmount": shippingAmount,
+            "shippingPriceCharged": shippingAmount,
             "taxRate": taxRate,
             "taxAmount": taxAmount,
             "totalAmount": totalAmount,
+            "fulfillmentProvider": fulfillmentProvider,
+            "fulfillmentStatus": fulfillmentProvider == "podpartner" ? "pending" : "manual_review",
+            "shopifySyncStatus": initialShopifySyncStatus,
             "message": message,
             "items": orderItems,
             "isCompleted": false,
             "timestamp": Timestamp()
         ]
 
-        try await firestore.collection("orders").addDocument(data: orderData)
+        return try await firestore.collection("orders").addDocument(data: orderData).documentID
+    }
+
+    func confirmPayment(
+        orderID: String,
+        paymentMethod: String?,
+        paymentReference: String?
+    ) async throws {
+        var payload: [String: Any] = [
+            "orderId": orderID
+        ]
+
+        if let paymentMethod = paymentMethod?.takeIfNotBlank() {
+            payload["paymentMethod"] = paymentMethod
+        }
+
+        if let paymentReference = paymentReference?.takeIfNotBlank() {
+            payload["paymentReference"] = paymentReference
+        }
+
+        _ = try await functions
+            .httpsCallable("confirmMerchOrderPayment")
+            .call(payload)
     }
 
     func toggleCompleted(orderID: String, isCompleted: Bool) async throws {
@@ -142,7 +213,12 @@ final class FirebaseOrderService: OrderServicing {
             return OrderItem(
                 name: name,
                 quantity: itemData["quantity"] as? Int ?? 1,
-                size: itemData["size"] as? String
+                size: itemData["size"] as? String,
+                color: itemData["color"] as? String,
+                productId: itemData["productId"] as? String,
+                shopifyVariantId: itemData["shopifyVariantId"] as? String,
+                sku: itemData["sku"] as? String,
+                unitPrice: itemData["unitPrice"] as? Double ?? (itemData["unitPrice"] as? NSNumber)?.doubleValue
             )
         }
 
@@ -153,12 +229,22 @@ final class FirebaseOrderService: OrderServicing {
             customerEmail: data["customerEmail"] as? String,
             whatsApp: data["whatsApp"] as? String,
             shippingAddress: data["shippingAddress"] as? String,
+            shippingAddressData: data["shippingAddressData"].toShippingAddressData(),
+            shippingZone: data["shippingZone"] as? String,
+            shippingCountryCode: data["shippingCountryCode"] as? String,
             paymentMethod: (data["paymentMethod"] as? String)?.takeIfNotBlank(),
+            paymentStatus: data["paymentStatus"] as? String,
             subtotalAmount: data["subtotalAmount"] as? Double ?? (data["subtotalAmount"] as? NSNumber)?.doubleValue,
             shippingAmount: data["shippingAmount"] as? Double ?? (data["shippingAmount"] as? NSNumber)?.doubleValue,
+            shippingPriceCharged: data["shippingPriceCharged"] as? Double ?? (data["shippingPriceCharged"] as? NSNumber)?.doubleValue,
             taxRate: data["taxRate"] as? Double ?? (data["taxRate"] as? NSNumber)?.doubleValue,
             taxAmount: data["taxAmount"] as? Double ?? (data["taxAmount"] as? NSNumber)?.doubleValue,
             totalAmount: data["totalAmount"] as? Double ?? (data["totalAmount"] as? NSNumber)?.doubleValue,
+            fulfillmentProvider: data["fulfillmentProvider"] as? String,
+            fulfillmentStatus: data["fulfillmentStatus"] as? String,
+            shopifyOrderId: data["shopifyOrderId"] as? String,
+            shopifyOrderName: data["shopifyOrderName"] as? String,
+            shopifySyncStatus: data["shopifySyncStatus"] as? String,
             message: data["message"] as? String,
             items: items,
             isCompleted: isCompleted,
@@ -171,5 +257,27 @@ private extension String {
     func takeIfNotBlank() -> String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private extension Any? {
+    func toShippingAddressData() -> ShippingAddressData? {
+        guard let data = self as? [String: Any],
+              let address1 = data["address1"] as? String,
+              let city = data["city"] as? String,
+              let zip = data["zip"] as? String,
+              let countryCode = data["countryCode"] as? String,
+              let countryName = data["countryName"] as? String else {
+            return nil
+        }
+
+        return ShippingAddressData(
+            address1: address1,
+            address2: data["address2"] as? String ?? "",
+            city: city,
+            zip: zip,
+            countryCode: countryCode,
+            countryName: countryName
+        )
     }
 }

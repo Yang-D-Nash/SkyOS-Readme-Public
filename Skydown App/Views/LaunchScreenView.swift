@@ -66,6 +66,23 @@ struct LaunchScreenView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 12)
                 }
+
+                VStack {
+                    Spacer()
+
+                    Image(BrandMark.skydownX22.rawValue)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 88, height: 88)
+                        .padding(10)
+                        .background(.black.opacity(0.28))
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .stroke(.white.opacity(0.08), lineWidth: 1)
+                        }
+                        .padding(.bottom, 28)
+                }
             }
             .onAppear {
                 configureIntroAudioSession()
@@ -182,7 +199,7 @@ private struct LaunchLandingView: View {
                 }
 
                 HStack(alignment: .center, spacing: 14) {
-                    Image(BrandMark.sky22.rawValue)
+                    Image(BrandMark.skydownX22.rawValue)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 72, height: 72)

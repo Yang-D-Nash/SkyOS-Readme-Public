@@ -52,6 +52,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.data.ShippingService
 import com.skydown.android.ui.viewmodel.CartViewModel
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -213,13 +214,14 @@ fun CartScreen(
                         }
                     }
 
-                    items(uiState.items, key = { "${it.item.id}-${it.size}" }) { cartItem ->
+                    items(uiState.items, key = { "${it.item.id}-${it.size}-${it.color.orEmpty()}" }) { cartItem ->
                         CartItemCard(
                             name = cartItem.item.name,
                             size = cartItem.size,
+                            color = cartItem.color,
                             quantity = cartItem.quantity,
-                            price = cartItem.item.price * cartItem.quantity,
-                            onRemove = { viewModel.removeItem(cartItem.item.id.orEmpty(), cartItem.size) },
+                            price = (cartItem.unitPrice ?: cartItem.item.price) * cartItem.quantity,
+                            onRemove = { viewModel.removeItem(cartItem.item.id.orEmpty(), cartItem.size, cartItem.color) },
                         )
                     }
 
@@ -529,12 +531,20 @@ private fun PricingSummaryCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Bestellsumme")
         PaymentInfoLine("Zwischensumme", "EUR ${formatCurrency(summary.subtotal)}")
+        PaymentInfoLine("Versandzone", summary.zoneLabel)
         PaymentInfoLine("Versand", "EUR ${formatCurrency(summary.shipping)}")
         PaymentInfoLine(
             "inkl. MwSt. (${formatCurrency(summary.taxRate, decimals = 1)}%)",
             "EUR ${formatCurrency(summary.includedTax)}",
         )
         PaymentInfoLine("Gesamt", "EUR ${formatCurrency(summary.total)}")
+        summary.shippingError?.let { error ->
+            Text(
+                text = error,
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
         if (shippingNote.isNotBlank()) {
             Text(
                 text = shippingNote,
@@ -688,6 +698,7 @@ private fun PaymentInfoLine(
 private fun CartItemCard(
     name: String,
     size: String,
+    color: String?,
     quantity: Int,
     price: Double,
     onRemove: () -> Unit,
@@ -709,6 +720,9 @@ private fun CartItemCard(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CartInfoPill(text = "Groesse $size")
+                    color?.takeIf { it.isNotBlank() }?.let {
+                        CartInfoPill(text = it)
+                    }
                     CartInfoPill(text = "x$quantity")
                 }
             }
@@ -769,21 +783,35 @@ private data class CartPricingSummaryUi(
     val taxRate: Double,
     val includedTax: Double,
     val total: Double,
+    val zoneLabel: String,
+    val shippingError: String? = null,
 )
 
 private fun cartPricingSummary(
     state: com.skydown.android.ui.model.CartUiState,
 ): CartPricingSummaryUi {
-    val subtotal = state.items.sumOf { it.item.price * it.quantity }
-    val baseShipping = state.commerceSettings.shipping.shippingCostFor(state.shippingCountry)
-    val shipping = if (
-        state.commerceSettings.shipping.freeShippingThreshold > 0 &&
-        subtotal >= state.commerceSettings.shipping.freeShippingThreshold
-    ) {
-        0.0
-    } else {
-        baseShipping
+    val subtotal = state.items.sumOf { (it.unitPrice ?: it.item.price) * it.quantity }
+    if (state.items.isEmpty()) {
+        return CartPricingSummaryUi(
+            subtotal = 0.0,
+            shipping = 0.0,
+            taxRate = state.commerceSettings.invoice.taxRate,
+            includedTax = 0.0,
+            total = 0.0,
+            zoneLabel = "Noch offen",
+        )
     }
+    val countryCodeResult = ShippingService.resolveCountryCode(state.shippingCountry)
+    val quoteResult = countryCodeResult.mapCatching { countryCode ->
+        ShippingService.calculateShippingPrice(
+            settings = state.commerceSettings.shipping,
+            countryCode = countryCode,
+            items = state.items,
+            subtotal = subtotal,
+        ).getOrThrow()
+    }
+    val shippingQuote = quoteResult.getOrNull()
+    val shipping = shippingQuote?.price ?: 0.0
     val total = subtotal + shipping
     val taxRate = state.commerceSettings.invoice.taxRate
     val includedTax = if (taxRate > 0) total * (taxRate / (100.0 + taxRate)) else 0.0
@@ -794,6 +822,8 @@ private fun cartPricingSummary(
         taxRate = taxRate,
         includedTax = includedTax,
         total = total,
+        zoneLabel = shippingQuote?.zone?.name ?: "Land pruefen",
+        shippingError = quoteResult.exceptionOrNull()?.message,
     )
 }
 
@@ -810,8 +840,9 @@ private fun openOrderEmail(
         "- Keine Artikel"
     } else {
         state.items.joinToString(separator = "\n") { cartItem ->
-            val price = cartItem.item.price * cartItem.quantity
-            "- ${cartItem.item.name} | Groesse: ${cartItem.size} | Menge: ${cartItem.quantity} | Preis: EUR ${formatCurrency(price)}"
+            val price = (cartItem.unitPrice ?: cartItem.item.price) * cartItem.quantity
+            val colorPart = cartItem.color?.takeIf { it.isNotBlank() }?.let { " | Farbe: $it" }.orEmpty()
+            "- ${cartItem.item.name} | Groesse: ${cartItem.size}$colorPart | Menge: ${cartItem.quantity} | Preis: EUR ${formatCurrency(price)}"
         }
     }
     val pricing = cartPricingSummary(state)

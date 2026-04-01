@@ -381,7 +381,7 @@ private fun HomeHeroCard() {
         detail = "Musik, Videos, Merchandise und Tools bleiben von hier aus sofort in Reichweite.",
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
-        marks = listOf(BrandArtwork.Sky22),
+        marks = listOf(BrandArtwork.Combined),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)

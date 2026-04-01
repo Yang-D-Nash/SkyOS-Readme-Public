@@ -39,6 +39,10 @@ struct OrderView: View {
                             OrdersOrderCard(
                                 order: order,
                                 colorScheme: colorScheme,
+                                isConfirmingPayment: viewModel.confirmingPaymentOrderIDs.contains(order.id ?? ""),
+                                onConfirmPayment: {
+                                    Task { await viewModel.confirmPayment(for: order) }
+                                },
                                 onToggleCompleted: {
                                     Task { await viewModel.toggleCompleted(for: order) }
                                 },
@@ -187,6 +191,8 @@ private struct OrdersSectionCard<Content: View>: View {
 private struct OrdersOrderCard: View {
     let order: Order
     let colorScheme: ColorScheme
+    let isConfirmingPayment: Bool
+    let onConfirmPayment: () -> Void
     let onToggleCompleted: () -> Void
     let onDelete: () -> Void
 
@@ -224,6 +230,30 @@ private struct OrdersOrderCard: View {
         return paymentMethod
     }
 
+    private var paymentStatus: String? {
+        order.paymentStatus?.takeIfNotBlank()
+    }
+
+    private var shippingZone: String? {
+        order.shippingZone?.takeIfNotBlank()
+    }
+
+    private var fulfillmentProvider: String? {
+        order.fulfillmentProvider?.takeIfNotBlank()
+    }
+
+    private var fulfillmentStatus: String? {
+        order.fulfillmentStatus?.takeIfNotBlank()
+    }
+
+    private var shopifyOrderName: String? {
+        order.shopifyOrderName?.takeIfNotBlank()
+    }
+
+    private var shopifySyncStatus: String? {
+        order.shopifySyncStatus?.takeIfNotBlank()
+    }
+
     private var totalItems: Int {
         order.items.reduce(0) { partialResult, item in
             partialResult + item.quantity
@@ -241,6 +271,12 @@ private struct OrdersOrderCard: View {
                     text: "\(totalItems) Teile",
                     colorScheme: colorScheme
                 )
+                if let paymentStatus {
+                    OrdersBadge(
+                        text: paymentStatus,
+                        colorScheme: colorScheme
+                    )
+                }
                 Spacer()
                 Text(order.timestamp, style: .date)
                     .font(.caption)
@@ -274,6 +310,54 @@ private struct OrdersOrderCard: View {
                     OrderMetaBlock(
                         label: "Zahlart",
                         value: paymentMethod,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let paymentStatus {
+                    OrderMetaBlock(
+                        label: "Zahlstatus",
+                        value: paymentStatus,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let shippingZone {
+                    OrderMetaBlock(
+                        label: "Versandzone",
+                        value: shippingZone,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let fulfillmentProvider {
+                    OrderMetaBlock(
+                        label: "Fulfillment",
+                        value: fulfillmentProvider,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let fulfillmentStatus {
+                    OrderMetaBlock(
+                        label: "Fulfillment-Status",
+                        value: fulfillmentStatus,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let shopifyOrderName {
+                    OrderMetaBlock(
+                        label: "Shopify Order",
+                        value: shopifyOrderName,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let shopifySyncStatus {
+                    OrderMetaBlock(
+                        label: "Shopify Sync",
+                        value: shopifySyncStatus,
                         colorScheme: colorScheme
                     )
                 }
@@ -316,13 +400,27 @@ private struct OrdersOrderCard: View {
                                     .font(.caption)
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             }
+
+                            if let color = item.color?.takeIfNotBlank() {
+                                Text("Farbe: \(color)")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
                         }
 
                         Spacer()
 
-                        Text("x\(item.quantity)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("x\(item.quantity)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                            if let unitPrice = item.unitPrice {
+                                Text(String(format: "EUR %.2f", unitPrice))
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
+                        }
                     }
                     .padding(14)
                     .background(AppColors.secondaryBackground(for: colorScheme))
@@ -356,6 +454,18 @@ private struct OrdersOrderCard: View {
             }
 
             HStack(spacing: 10) {
+                if paymentStatus != "confirmed" {
+                    Button(action: onConfirmPayment) {
+                        Label(
+                            isConfirmingPayment ? "Bestaetige..." : "Zahlung bestaetigen",
+                            systemImage: "creditcard.and.123"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isConfirmingPayment)
+                }
+
                 Button(action: onToggleCompleted) {
                     Label(
                         order.isCompleted ? "Wieder öffnen" : "Als erledigt markieren",
@@ -412,5 +522,12 @@ private struct OrdersBadge: View {
             .background(AppColors.accent(for: colorScheme).opacity(0.12))
             .foregroundColor(AppColors.accent(for: colorScheme))
             .clipShape(Capsule())
+    }
+}
+
+private extension String {
+    func takeIfNotBlank() -> String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

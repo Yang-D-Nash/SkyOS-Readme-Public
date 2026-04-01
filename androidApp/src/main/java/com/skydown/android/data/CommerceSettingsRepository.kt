@@ -8,19 +8,11 @@ import kotlinx.coroutines.tasks.await
 
 data class CommerceShippingSettings(
     val domesticCost: Double = 4.90,
+    val euCost: Double = 6.90,
     val internationalCost: Double = 11.90,
     val freeShippingThreshold: Double = 89.0,
     val shippingNotes: String = "",
-) {
-    fun shippingCostFor(country: String): Double {
-        val normalizedCountry = country.trim().lowercase()
-        val isDomestic = normalizedCountry.isBlank() ||
-            normalizedCountry.contains("deutschland") ||
-            normalizedCountry.contains("germany")
-        val baseCost = if (isDomestic) domesticCost else internationalCost
-        return baseCost.coerceAtLeast(0.0)
-    }
-}
+)
 
 data class CommerceInvoiceSettings(
     val companyName: String = "Skydown Entertainment",
@@ -71,6 +63,9 @@ private fun Map<String, Any>.toCommerceSettings(): CommerceSettings {
     return CommerceSettings(
         shipping = CommerceShippingSettings(
             domesticCost = shipping["domesticCost"].asDouble(4.90),
+            euCost = shipping["euCost"].asDouble(
+                shipping["internationalCost"].asDouble(6.90),
+            ),
             internationalCost = shipping["internationalCost"].asDouble(11.90),
             freeShippingThreshold = shipping["freeShippingThreshold"].asDouble(89.0),
             shippingNotes = shipping["shippingNotes"] as? String ?: "",
@@ -91,6 +86,7 @@ private fun CommerceSettings.toMap(): Map<String, Any> {
     return mapOf(
         "shipping" to mapOf(
             "domesticCost" to shipping.domesticCost,
+            "euCost" to shipping.euCost,
             "internationalCost" to shipping.internationalCost,
             "freeShippingThreshold" to shipping.freeShippingThreshold,
             "shippingNotes" to shipping.shippingNotes.trim(),

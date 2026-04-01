@@ -30,3 +30,6 @@ val OutlineDark = Color(0xFF243245)
 
 val SpotifyGreen = Color(0xFF1ED760)
 val SpotifyGreenContainer = Color(0xFF123C25)
+val InstagramPurple = Color(0xFF833AB4)
+val InstagramPink = Color(0xFFE1306C)
+val InstagramOrange = Color(0xFFF77737)

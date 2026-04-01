@@ -8,4 +8,9 @@ data class OrderItem(
     val name: String,
     val quantity: Int,
     val size: String? = null,
+    val color: String? = null,
+    val productId: String? = null,
+    val shopifyVariantId: String? = null,
+    val sku: String? = null,
+    val unitPrice: Double? = null,
 )

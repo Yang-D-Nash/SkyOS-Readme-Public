@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,7 +45,12 @@ fun MerchandiseCard(
     onDelete: ((MerchandiseItem) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val pagerState = rememberPagerState(pageCount = { item.imageUrls.size.coerceAtLeast(1) })
+    val displayImageUrls = remember(item.imageUrls, item.customImageOverride) {
+        item.customImageOverride.takeIf { it.isNotBlank() }
+            ?.let { listOf(it) + item.imageUrls.filterNot { url -> url == it } }
+            ?: item.imageUrls
+    }
+    val pagerState = rememberPagerState(pageCount = { displayImageUrls.size.coerceAtLeast(1) })
     val hasAdminActions = onEdit != null || onDelete != null
 
     SkydownCard(
@@ -67,7 +73,7 @@ fun MerchandiseCard(
                     modifier = Modifier.fillMaxSize(),
                 ) { page ->
                     AsyncImage(
-                        model = item.imageUrls.getOrNull(page),
+                        model = displayImageUrls.getOrNull(page),
                         contentDescription = item.name,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
@@ -98,9 +104,15 @@ fun MerchandiseCard(
                         text = if (item.available) "Drop live" else "Sold out",
                         isAccent = item.available,
                     )
-                    if (item.imageUrls.size > 1) {
+                    if (displayImageUrls.size > 1) {
                         MerchStatePill(
-                            text = "${item.imageUrls.size} Bilder",
+                            text = "${displayImageUrls.size} Bilder",
+                            isAccent = false,
+                        )
+                    }
+                    if (item.customBadge.isNotBlank()) {
+                        MerchStatePill(
+                            text = item.customBadge,
                             isAccent = false,
                         )
                     }
@@ -126,14 +138,14 @@ fun MerchandiseCard(
                     )
                 }
 
-                if (item.imageUrls.size > 1) {
+                if (displayImageUrls.size > 1) {
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(18.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        repeat(item.imageUrls.size) { index ->
+                        repeat(displayImageUrls.size) { index ->
                             Box(
                                 modifier = Modifier
                                     .size(if (pagerState.currentPage == index) 9.dp else 8.dp)

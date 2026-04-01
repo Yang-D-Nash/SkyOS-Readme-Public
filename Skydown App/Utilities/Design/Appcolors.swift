@@ -118,6 +118,28 @@ struct AppColors {
         }
     }
 
+    static func instagramStart(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return Color(red: 131/255, green: 58/255, blue: 180/255)
+        case .dark:
+            return Color(red: 176/255, green: 92/255, blue: 255/255)
+        @unknown default:
+            return Color(red: 131/255, green: 58/255, blue: 180/255)
+        }
+    }
+
+    static func instagramEnd(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return Color(red: 253/255, green: 29/255, blue: 29/255)
+        case .dark:
+            return Color(red: 255/255, green: 154/255, blue: 111/255)
+        @unknown default:
+            return Color(red: 253/255, green: 29/255, blue: 29/255)
+        }
+    }
+
     static func screenGradient(
         for colorScheme: ColorScheme,
         secondaryAccent: Color? = nil

@@ -7,4 +7,5 @@ data class OrderUiState(
     val orders: List<Order> = emptyList(),
     val errorMessage: String? = null,
     val successMessage: String? = null,
+    val confirmingPaymentOrderIds: Set<String> = emptySet(),
 )

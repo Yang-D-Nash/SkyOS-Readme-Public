@@ -12,8 +12,20 @@ struct OrderItem: Codable, Identifiable {
     var name: String
     var quantity: Int
     var size: String?
+    var color: String?
+    var productId: String?
+    var shopifyVariantId: String?
+    var sku: String?
+    var unitPrice: Double?
 
     enum CodingKeys: String, CodingKey {
-        case name, quantity, size
+        case name
+        case quantity
+        case size
+        case color
+        case productId
+        case shopifyVariantId
+        case sku
+        case unitPrice
     }
 }

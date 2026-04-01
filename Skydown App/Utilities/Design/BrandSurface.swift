@@ -4,17 +4,20 @@ enum BrandMark: String, Identifiable {
     case sky22 = "Sky22BrandLogo"
     case skydown = "SkydownBrandLogo"
     case zweizwei = "ZweizweiBrandLogo"
+    case skydownX22 = "SkydownX22BrandLogo"
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .sky22:
-            return "Sky²²"
+            return "22"
         case .skydown:
             return "Skydown"
         case .zweizwei:
             return "Zweizwei"
+        case .skydownX22:
+            return "Sky²²"
         }
     }
 }

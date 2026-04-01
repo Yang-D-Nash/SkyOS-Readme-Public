@@ -33,7 +33,15 @@ final class FirebaseMerchandiseService: MerchandiseServicing {
 
                 let items = snapshot?.documents.compactMap { document in
                     document.toMerchandiseItem()
-                }.sorted { $0.name < $1.name } ?? []
+                }.sorted {
+                    if $0.featured != $1.featured {
+                        return $0.featured && !$1.featured
+                    }
+                    if $0.sortOrder != $1.sortOrder {
+                        return $0.sortOrder < $1.sortOrder
+                    }
+                    return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                } ?? []
 
                 onChange(.success(items))
             }
@@ -99,7 +107,7 @@ final class FirebaseMerchandiseService: MerchandiseServicing {
 
         try await firestore.collection("merchandise").document(itemID).setData(
             merchandisePayload(for: item, imageURLs: updatedImageURLs),
-            merge: false
+            merge: true
         )
 
         if !imageDataList.isEmpty {
@@ -121,7 +129,31 @@ final class FirebaseMerchandiseService: MerchandiseServicing {
             "description": item.description,
             "imageURLs": imageURLs,
             "imageUrls": imageURLs,
-            "available": item.available
+            "available": item.available,
+            "currency": item.currency,
+            "sku": item.sku as Any,
+            "shopifyProductId": item.shopifyProductId as Any,
+            "shopifyHandle": item.shopifyHandle as Any,
+            "availableForSale": item.availableForSale,
+            "variants": item.variants.map { variant in
+                [
+                    "id": variant.id,
+                    "title": variant.title,
+                    "size": variant.size as Any,
+                    "color": variant.color as Any,
+                    "shopifyVariantId": variant.shopifyVariantId as Any,
+                    "sku": variant.sku as Any,
+                    "price": variant.price,
+                    "currency": variant.currency,
+                    "availableForSale": variant.availableForSale
+                ]
+            },
+            "source": item.source,
+            "isVisibleInApp": item.isVisibleInApp,
+            "featured": item.featured,
+            "sortOrder": item.sortOrder,
+            "customBadge": item.customBadge,
+            "customImageOverride": item.customImageOverride
         ]
     }
 
@@ -157,7 +189,31 @@ private extension DocumentSnapshot {
             price: priceNumber.doubleValue,
             description: data["description"] as? String ?? "",
             imageURLs: imageURLs,
-            available: data["available"] as? Bool ?? true
+            available: data["available"] as? Bool ?? true,
+            currency: data["currency"] as? String ?? "EUR",
+            sku: data["sku"] as? String,
+            shopifyProductId: data["shopifyProductId"] as? String,
+            shopifyHandle: data["shopifyHandle"] as? String,
+            availableForSale: data["availableForSale"] as? Bool ?? (data["available"] as? Bool ?? true),
+            variants: (data["variants"] as? [[String: Any]])?.map { rawVariant in
+                MerchandiseVariant(
+                    id: rawVariant["id"] as? String ?? UUID().uuidString,
+                    title: rawVariant["title"] as? String ?? "",
+                    size: rawVariant["size"] as? String,
+                    color: rawVariant["color"] as? String,
+                    shopifyVariantId: rawVariant["shopifyVariantId"] as? String,
+                    sku: rawVariant["sku"] as? String,
+                    price: (rawVariant["price"] as? NSNumber)?.doubleValue ?? 0,
+                    currency: rawVariant["currency"] as? String ?? "EUR",
+                    availableForSale: rawVariant["availableForSale"] as? Bool ?? true
+                )
+            } ?? [],
+            source: data["source"] as? String ?? "manual",
+            isVisibleInApp: data["isVisibleInApp"] as? Bool ?? true,
+            featured: data["featured"] as? Bool ?? false,
+            sortOrder: (data["sortOrder"] as? NSNumber)?.intValue ?? 0,
+            customBadge: data["customBadge"] as? String ?? "",
+            customImageOverride: data["customImageOverride"] as? String ?? ""
         )
     }
 }

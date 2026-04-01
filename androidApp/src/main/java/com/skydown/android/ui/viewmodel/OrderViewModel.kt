@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 
 class OrderViewModel : ViewModel() {
     private val orderService = AppContainer.orderService
+    private val merchOrderPaymentClient = AppContainer.merchOrderPaymentClient
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
@@ -53,6 +54,50 @@ class OrderViewModel : ViewModel() {
                 )
             }
             loadOrders()
+        }
+    }
+
+    fun confirmPayment(orderId: String) {
+        viewModelScope.launch {
+            val currentOrder = _uiState.value.orders.firstOrNull { it.id == orderId } ?: return@launch
+            if (currentOrder.paymentStatus == "confirmed") {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = null,
+                        successMessage = "Diese Bestellung ist bereits als bezahlt markiert.",
+                    )
+                }
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(
+                    confirmingPaymentOrderIds = it.confirmingPaymentOrderIds + orderId,
+                    errorMessage = null,
+                    successMessage = null,
+                )
+            }
+
+            val result = merchOrderPaymentClient.confirmPayment(
+                orderId = orderId,
+                paymentMethod = currentOrder.paymentMethod,
+            )
+
+            _uiState.update {
+                it.copy(
+                    confirmingPaymentOrderIds = it.confirmingPaymentOrderIds - orderId,
+                    errorMessage = result.exceptionOrNull()?.message,
+                    successMessage = if (result.isSuccess) {
+                        result.getOrNull()
+                    } else {
+                        null
+                    },
+                )
+            }
+
+            if (result.isSuccess) {
+                loadOrders()
+            }
         }
     }
 

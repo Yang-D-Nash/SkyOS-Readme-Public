@@ -3,22 +3,10 @@ import FirebaseFirestore
 
 struct CommerceShippingSettings: Equatable {
     var domesticCost: Double = 4.90
+    var euCost: Double = 6.90
     var internationalCost: Double = 11.90
     var freeShippingThreshold: Double = 89.0
     var shippingNotes: String = ""
-
-    func shippingCost(for country: String) -> Double {
-        let normalizedCountry = country
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-
-        let isDomestic = normalizedCountry.isEmpty ||
-            normalizedCountry.contains("deutschland") ||
-            normalizedCountry.contains("germany")
-
-        let baseCost = isDomestic ? domesticCost : internationalCost
-        return max(baseCost, 0)
-    }
 }
 
 struct CommerceInvoiceSettings: Equatable {
@@ -80,6 +68,10 @@ final class FirestoreCommerceSettingsService: CommerceSettingsServicing {
         return CommerceSettings(
             shipping: CommerceShippingSettings(
                 domesticCost: decodeDouble(shipping["domesticCost"], fallback: 4.90),
+                euCost: decodeDouble(
+                    shipping["euCost"],
+                    fallback: decodeDouble(shipping["internationalCost"], fallback: 6.90)
+                ),
                 internationalCost: decodeDouble(shipping["internationalCost"], fallback: 11.90),
                 freeShippingThreshold: decodeDouble(shipping["freeShippingThreshold"], fallback: 89.0),
                 shippingNotes: shipping["shippingNotes"] as? String ?? ""
@@ -100,6 +92,7 @@ final class FirestoreCommerceSettingsService: CommerceSettingsServicing {
         [
             "shipping": [
                 "domesticCost": settings.shipping.domesticCost,
+                "euCost": settings.shipping.euCost,
                 "internationalCost": settings.shipping.internationalCost,
                 "freeShippingThreshold": settings.shipping.freeShippingThreshold,
                 "shippingNotes": settings.shipping.shippingNotes.trimmed

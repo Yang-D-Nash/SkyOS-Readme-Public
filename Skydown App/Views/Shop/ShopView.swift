@@ -194,9 +194,15 @@ struct ShopView: View {
                                 isLoggedIn: authManager.userSession != nil,
                                 isAdmin: isAdmin,
                                 isUpdatingStoreState: viewModel.isUpdatingStoreState,
+                                isSyncingCatalog: viewModel.isSyncingCatalog,
                                 onToggleStore: isAdmin ? {
                                     Task {
                                         await viewModel.toggleStoreOpen()
+                                    }
+                                } : nil,
+                                onSyncShopify: isAdmin ? {
+                                    Task {
+                                        await viewModel.syncShopifyCatalog()
                                     }
                                 } : nil
                             )
@@ -344,7 +350,7 @@ private struct HomeHeroIntroCard: View {
             detail: "Musik, Videos, Merchandise und Tools bleiben von hier aus sofort in Reichweite.",
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: [.sky22]
+            marks: [.skydownX22]
         ) {
             HStack(spacing: 10) {
                 BrandHeroPill(
@@ -1114,7 +1120,9 @@ private struct ShopHeroCard: View {
     let isLoggedIn: Bool
     let isAdmin: Bool
     let isUpdatingStoreState: Bool
+    let isSyncingCatalog: Bool
     let onToggleStore: (() -> Void)?
+    let onSyncShopify: (() -> Void)?
 
     var body: some View {
         BrandHeroSurface(
@@ -1125,7 +1133,7 @@ private struct ShopHeroCard: View {
             detail: isStoreOpen ? "Der Shop ist offen und bereit fuer deine Bestellung." : "Du kannst Produkte schon ansehen. Bestellen geht wieder, sobald der Store offen ist.",
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: [.sky22]
+            marks: [.skydownX22]
         ) {
             HStack(spacing: 10) {
                 ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)
@@ -1133,15 +1141,30 @@ private struct ShopHeroCard: View {
                 ShopBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
             }
 
-            if let onToggleStore {
-                Button(action: onToggleStore) {
-                    Text(isUpdatingStoreState ? "Store wird aktualisiert..." : (isStoreOpen ? "Store schliessen" : "Store oeffnen"))
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
+            if onToggleStore != nil || onSyncShopify != nil {
+                HStack(spacing: 10) {
+                    if let onToggleStore {
+                        Button(action: onToggleStore) {
+                            Text(isUpdatingStoreState ? "Store wird aktualisiert..." : (isStoreOpen ? "Store schliessen" : "Store oeffnen"))
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(isStoreOpen ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
+                        .disabled(isUpdatingStoreState)
+                    }
+
+                    if let onSyncShopify {
+                        Button(action: onSyncShopify) {
+                            Text(isSyncingCatalog ? "Sync läuft..." : "Shopify syncen")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(AppColors.accentHighlight(for: colorScheme))
+                        .disabled(isSyncingCatalog)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(isStoreOpen ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
-                .disabled(isUpdatingStoreState)
             }
         }
     }

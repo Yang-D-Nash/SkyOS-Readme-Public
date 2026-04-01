@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AppCartStore
 import com.skydown.android.data.MerchStoreStatusRepository
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.shared.model.MerchandiseItem
+import com.skydown.shared.usecase.CartUseCase
+import com.skydown.shared.usecase.MerchandiseVariantResolver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,11 +20,13 @@ import kotlinx.coroutines.launch
 class ShopViewModel : ViewModel() {
     private val merchandiseService = AppContainer.merchandiseService
     private val merchStoreStatusRepository = MerchStoreStatusRepository()
+    private val shopifyMerchSyncClient = AppContainer.shopifyMerchSyncClient
     private val _uiState = MutableStateFlow(
         ShopUiState(),
     )
     val uiState: StateFlow<ShopUiState> = _uiState.asStateFlow()
     private var storeStatusListener: ListenerRegistration? = null
+    private var allItems: List<MerchandiseItem> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -36,6 +41,7 @@ class ShopViewModel : ViewModel() {
                         isAdmin = user?.isAdmin == true,
                     )
                 }
+                applyVisibleItems()
             }
         }
     }
@@ -92,6 +98,81 @@ class ShopViewModel : ViewModel() {
         _uiState.update { it.copy(toastMessage = null) }
     }
 
+    fun syncShopifyCatalog() {
+        if (!_uiState.value.isAdmin) {
+            _uiState.update {
+                it.copy(
+                    toastMessage = "Nur Admins duerfen den Shopify-Sync starten.",
+                    isErrorToast = true,
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncingCatalog = true) }
+            val result = shopifyMerchSyncClient.triggerSync()
+            _uiState.update {
+                it.copy(
+                    isSyncingCatalog = false,
+                    toastMessage = result.getOrElse { error ->
+                        error.message ?: "Shopify-Sync fehlgeschlagen."
+                    },
+                    isErrorToast = result.isFailure,
+                )
+            }
+            if (result.isSuccess) {
+                refreshState()
+            }
+        }
+    }
+
+    fun addSelectionToCart(
+        item: MerchandiseItem,
+        size: String,
+        color: String?,
+        quantity: Int,
+    ): Result<Unit> {
+        return runCatching {
+            val variant = if (!item.shopifyProductId.isNullOrBlank() && item.variants.isNotEmpty()) {
+                MerchandiseVariantResolver.resolveVariant(
+                    item = item,
+                    size = size,
+                    color = color,
+                ).getOrThrow()
+            } else {
+                null
+            }
+
+            AppCartStore.update { currentItems ->
+                CartUseCase.addItem(
+                    currentItems = currentItems,
+                    item = item,
+                    size = size,
+                    color = color,
+                    quantity = quantity,
+                    shopifyVariantId = variant?.shopifyVariantId,
+                    sku = variant?.sku,
+                    unitPrice = variant?.price,
+                )
+            }
+
+            _uiState.update {
+                it.copy(
+                    toastMessage = "Zum Warenkorb hinzugefuegt.",
+                    isErrorToast = false,
+                )
+            }
+        }.onFailure { error ->
+            _uiState.update {
+                it.copy(
+                    toastMessage = error.message ?: "Die Variante konnte nicht hinzugefuegt werden.",
+                    isErrorToast = true,
+                )
+            }
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             refreshState()
@@ -103,10 +184,16 @@ class ShopViewModel : ViewModel() {
         description: String,
         priceInput: String,
         available: Boolean,
+        isVisibleInApp: Boolean,
+        featured: Boolean,
+        sortOrderInput: String,
+        customBadge: String,
+        customImageOverride: String,
         imageDataList: List<ByteArray>,
         onSuccess: () -> Unit,
     ) {
         val price = priceInput.toDoubleOrNull()
+        val sortOrder = sortOrderInput.toIntOrNull() ?: 0
         if (name.isBlank() || description.isBlank() || price == null || imageDataList.isEmpty()) {
             _uiState.update {
                 it.copy(
@@ -127,6 +214,11 @@ class ShopViewModel : ViewModel() {
                     description = description.trim(),
                     imageUrls = emptyList(),
                     available = available,
+                    isVisibleInApp = isVisibleInApp,
+                    featured = featured,
+                    sortOrder = sortOrder,
+                    customBadge = customBadge.trim(),
+                    customImageOverride = customImageOverride.trim(),
                 ),
                 imageDataList = imageDataList,
             )
@@ -159,12 +251,18 @@ class ShopViewModel : ViewModel() {
         description: String,
         priceInput: String,
         available: Boolean,
+        isVisibleInApp: Boolean,
+        featured: Boolean,
+        sortOrderInput: String,
+        customBadge: String,
+        customImageOverride: String,
         imageDataList: List<ByteArray>,
         onSuccess: () -> Unit,
     ) {
         val trimmedName = name.trim()
         val trimmedDescription = description.trim()
         val price = priceInput.toDoubleOrNull()
+        val sortOrder = sortOrderInput.toIntOrNull() ?: item.sortOrder
         if (trimmedName.isBlank() || trimmedDescription.isBlank() || price == null) {
             _uiState.update {
                 it.copy(
@@ -184,6 +282,11 @@ class ShopViewModel : ViewModel() {
                     description = trimmedDescription,
                     price = price,
                     available = available,
+                    isVisibleInApp = isVisibleInApp,
+                    featured = featured,
+                    sortOrder = sortOrder,
+                    customBadge = customBadge.trim(),
+                    customImageOverride = customImageOverride.trim(),
                 ),
                 imageDataList = imageDataList,
             )
@@ -290,9 +393,11 @@ class ShopViewModel : ViewModel() {
         AppContainer.refreshCurrentUser()
         val itemsResult = merchandiseService.loadItems()
         val user = AppContainer.authService.currentUser()
+        val resolvedItems = itemsResult.getOrDefault(emptyList())
+        allItems = resolvedItems
         _uiState.update {
             it.copy(
-                items = itemsResult.getOrDefault(emptyList()),
+                items = filterVisibleItems(resolvedItems, isAdmin = user?.isAdmin == true),
                 isLoggedIn = user != null,
                 isAdmin = user?.isAdmin == true,
                 errorMessage = itemsResult.exceptionOrNull()?.message,
@@ -319,5 +424,23 @@ class ShopViewModel : ViewModel() {
     override fun onCleared() {
         storeStatusListener?.remove()
         super.onCleared()
+    }
+
+    private fun applyVisibleItems() {
+        _uiState.update {
+            it.copy(
+                items = filterVisibleItems(allItems, isAdmin = it.isAdmin),
+            )
+        }
+    }
+
+    private fun filterVisibleItems(items: List<MerchandiseItem>, isAdmin: Boolean): List<MerchandiseItem> {
+        return items
+            .filter { isAdmin || it.isVisibleInApp }
+            .sortedWith(
+                compareBy<MerchandiseItem> { !it.featured }
+                    .thenBy { it.sortOrder }
+                    .thenBy { it.name.lowercase() },
+            )
     }
 }

@@ -181,15 +181,15 @@ fun AgentScreen(
                 contentPadding = PaddingValues(
                     start = SkydownUiTokens.screenHorizontalPadding,
                     top = if (showTopBar) {
-                        innerPadding.calculateTopPadding() + SkydownUiTokens.screenTopPadding
+                        innerPadding.calculateTopPadding() + 4.dp
                     } else {
-                        8.dp
+                        6.dp
                     },
                     end = SkydownUiTokens.screenHorizontalPadding,
-                    bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding + if (showTopBar) {
-                        0.dp
-                    } else {
+                    bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
                         8.dp
+                    } else {
+                        12.dp
                     },
                 ),
                 verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),

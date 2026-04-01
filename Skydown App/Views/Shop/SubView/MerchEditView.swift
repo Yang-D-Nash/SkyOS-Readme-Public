@@ -17,6 +17,11 @@ struct MerchEditView: View {
     @State private var description: String = ""
     @State private var price: String = ""
     @State private var available: Bool = true
+    @State private var isVisibleInApp: Bool = true
+    @State private var featured: Bool = false
+    @State private var sortOrder: String = "0"
+    @State private var customBadge: String = ""
+    @State private var customImageOverride: String = ""
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var selectedImageData: [Data] = []
     @State private var selectedPreviewImages: [Image] = []
@@ -25,6 +30,10 @@ struct MerchEditView: View {
     @State private var validationMessage: String?
 
     var merchandiseItem: MerchandiseItem?
+
+    private var isShopifySyncedItem: Bool {
+        merchandiseItem?.source == "shopify"
+    }
 
     private var isFormValid: Bool {
         guard Double(price) != nil else { return false }
@@ -41,17 +50,20 @@ struct MerchEditView: View {
                 Section("Name") {
                     TextField("Name", text: $name)
                         .foregroundColor(AppColors.text(for: environmentColorScheme))
+                        .disabled(isShopifySyncedItem)
                 }
 
                 Section("Beschreibung") {
                     TextField("Beschreibung", text: $description)
                         .foregroundColor(AppColors.text(for: environmentColorScheme))
+                        .disabled(isShopifySyncedItem)
                 }
 
                 Section("Preis") {
                     TextField("Preis", text: $price)
                         .keyboardType(.decimalPad)
                         .foregroundColor(AppColors.text(for: environmentColorScheme))
+                        .disabled(isShopifySyncedItem)
                 }
 
                 Section("Verfügbarkeit") {
@@ -59,76 +71,104 @@ struct MerchEditView: View {
                         .tint(AppColors.accent(for: environmentColorScheme))
                 }
 
-                Section(merchandiseItem == nil ? "Bilder" : "Bilder") {
-                    if let merchandiseItem {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(merchandiseItem.imageURLs, id: \.self) { imageURL in
-                                    AsyncImage(url: URL(string: imageURL)) { image in
+                if isShopifySyncedItem {
+                    Section("Shopify-Sync") {
+                        Text("Titel, Beschreibung, Preis und Varianten kommen hier aus Shopify. In der App bearbeitest du nur Sichtbarkeit, Sortierung und optionale Overrides.")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                    }
+                }
+
+                Section("App-Anzeige") {
+                    Toggle("In App sichtbar", isOn: $isVisibleInApp)
+                        .tint(AppColors.accent(for: environmentColorScheme))
+                    Toggle("Featured", isOn: $featured)
+                        .tint(AppColors.accentMystic(for: environmentColorScheme))
+
+                    TextField("Sortierung", text: $sortOrder)
+                        .keyboardType(.numberPad)
+                        .foregroundColor(AppColors.text(for: environmentColorScheme))
+
+                    TextField("Badge (optional)", text: $customBadge)
+                        .foregroundColor(AppColors.text(for: environmentColorScheme))
+
+                    TextField("Custom Image URL (optional)", text: $customImageOverride)
+                        .textInputAutocapitalization(.never)
+                        .foregroundColor(AppColors.text(for: environmentColorScheme))
+                }
+
+                if !isShopifySyncedItem {
+                    Section(merchandiseItem == nil ? "Bilder" : "Bilder") {
+                        if let merchandiseItem {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(merchandiseItem.imageURLs, id: \.self) { imageURL in
+                                        AsyncImage(url: URL(string: imageURL)) { image in
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 110, height: 110)
+                                                .clipped()
+                                                .cornerRadius(10)
+                                        } placeholder: {
+                                            ProgressView()
+                                                .frame(width: 110, height: 110)
+                                                .background(Color(.systemGray6))
+                                                .cornerRadius(10)
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+
+                        PhotosPicker(
+                            selection: $selectedPhotoItems,
+                            maxSelectionCount: 10,
+                            matching: .images
+                        ) {
+                            Label(
+                                merchandiseItem == nil ? "Bilder auswählen" : "Bilder ersetzen",
+                                systemImage: "photo.on.rectangle.angled"
+                            )
+                            .foregroundColor(AppColors.accent(for: environmentColorScheme))
+                        }
+
+                        if isLoadingImages {
+                            ProgressView("Bilder werden geladen ...")
+                                .font(.footnote)
+                        }
+
+                        if !selectedPreviewImages.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(Array(selectedPreviewImages.enumerated()), id: \.offset) { _, image in
                                         image
                                             .resizable()
                                             .aspectRatio(contentMode: .fill)
                                             .frame(width: 110, height: 110)
                                             .clipped()
                                             .cornerRadius(10)
-                                    } placeholder: {
-                                        ProgressView()
-                                            .frame(width: 110, height: 110)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(10)
                                     }
                                 }
+                                .padding(.vertical, 4)
                             }
-                            .padding(.vertical, 4)
-                        }
-                    }
-
-                    PhotosPicker(
-                        selection: $selectedPhotoItems,
-                        maxSelectionCount: 10,
-                        matching: .images
-                    ) {
-                        Label(
-                            merchandiseItem == nil ? "Bilder auswählen" : "Bilder ersetzen",
-                            systemImage: "photo.on.rectangle.angled"
-                        )
-                        .foregroundColor(AppColors.accent(for: environmentColorScheme))
-                    }
-
-                    if isLoadingImages {
-                        ProgressView("Bilder werden geladen ...")
-                            .font(.footnote)
-                    }
-
-                    if !selectedPreviewImages.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(Array(selectedPreviewImages.enumerated()), id: \.offset) { _, image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 110, height: 110)
-                                        .clipped()
-                                        .cornerRadius(10)
-                                }
+                            if merchandiseItem != nil {
+                                Text("Neue Bilder ersetzen beim Speichern die bestehende Galerie.")
+                                    .font(.footnote)
+                                    .foregroundColor(.gray)
                             }
-                            .padding(.vertical, 4)
-                        }
-                        if merchandiseItem != nil {
-                            Text("Neue Bilder ersetzen beim Speichern die bestehende Galerie.")
+                        } else if merchandiseItem == nil {
+                            Text("Wähle mindestens ein Bild aus deiner Fotomediathek aus.")
                                 .font(.footnote)
                                 .foregroundColor(.gray)
                         }
-                    } else if merchandiseItem == nil {
-                        Text("Wähle mindestens ein Bild aus deiner Fotomediathek aus.")
-                            .font(.footnote)
-                            .foregroundColor(.gray)
-                    }
 
-                    if selectedPhotoItems.isEmpty && validationMessage == "Bitte mindestens ein Bild auswählen." {
-                        Text("Bitte mindestens ein Bild auswählen.")
-                            .font(.footnote)
-                            .foregroundColor(.red)
+                        if selectedPhotoItems.isEmpty && validationMessage == "Bitte mindestens ein Bild auswählen." {
+                            Text("Bitte mindestens ein Bild auswählen.")
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                        }
                     }
                 }
 
@@ -157,9 +197,24 @@ struct MerchEditView: View {
                                     price: priceValue,
                                     description: description.trimmingCharacters(in: .whitespacesAndNewlines),
                                     imageURLs: item.imageURLs,
-                                    available: available
+                                    available: available,
+                                    currency: item.currency,
+                                    sku: item.sku,
+                                    shopifyProductId: item.shopifyProductId,
+                                    shopifyHandle: item.shopifyHandle,
+                                    availableForSale: item.availableForSale,
+                                    variants: item.variants,
+                                    source: item.source,
+                                    isVisibleInApp: isVisibleInApp,
+                                    featured: featured,
+                                    sortOrder: Int(sortOrder) ?? item.sortOrder,
+                                    customBadge: customBadge,
+                                    customImageOverride: customImageOverride
                                 )
-                                let didSave = await viewModel.updateMerchandise(updatedItem, imageDataList: selectedImageData)
+                                let didSave = await viewModel.updateMerchandise(
+                                    updatedItem,
+                                    imageDataList: isShopifySyncedItem ? [] : selectedImageData
+                                )
                                 if didSave {
                                     dismiss()
                                 }
@@ -175,7 +230,12 @@ struct MerchEditView: View {
                                     price: priceValue,
                                     description: description.trimmingCharacters(in: .whitespacesAndNewlines),
                                     imageURLs: [],
-                                    available: available
+                                    available: available,
+                                    isVisibleInApp: isVisibleInApp,
+                                    featured: featured,
+                                    sortOrder: Int(sortOrder) ?? 0,
+                                    customBadge: customBadge,
+                                    customImageOverride: customImageOverride
                                 )
                                 let didSave = await viewModel.addMerchandise(newItem, imageDataList: selectedImageData)
                                 if didSave {
@@ -202,6 +262,11 @@ struct MerchEditView: View {
                     description = item.description
                     price = String(item.price)
                     available = item.available
+                    isVisibleInApp = item.isVisibleInApp
+                    featured = item.featured
+                    sortOrder = String(item.sortOrder)
+                    customBadge = item.customBadge
+                    customImageOverride = item.customImageOverride
                 }
             }
             .background(AppColors.primaryBackground(for: environmentColorScheme).edgesIgnoringSafeArea(.all))

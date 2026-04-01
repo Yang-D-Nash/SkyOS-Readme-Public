@@ -88,6 +88,7 @@ import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
+import com.skydown.shared.usecase.MerchandiseVariantResolver
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -169,6 +170,11 @@ fun ShopScreen(
                         } else {
                             null
                         },
+                        onSyncShopify = if (uiState.isAdmin) {
+                            viewModel::syncShopifyCatalog
+                        } else {
+                            null
+                        },
                     )
                 }
 
@@ -214,12 +220,17 @@ fun ShopScreen(
                     isSaving = uiState.isSaving,
                     initialItem = null,
                     onDismiss = { showAddSheet = false },
-                    onSave = { name, description, price, available, imageDataList ->
+                    onSave = { name, description, price, available, isVisibleInApp, featured, sortOrder, customBadge, customImageOverride, imageDataList ->
                         viewModel.addItem(
                             name = name,
                             description = description,
                             priceInput = price,
                             available = available,
+                            isVisibleInApp = isVisibleInApp,
+                            featured = featured,
+                            sortOrderInput = sortOrder,
+                            customBadge = customBadge,
+                            customImageOverride = customImageOverride,
                             imageDataList = imageDataList,
                         ) {
                             showAddSheet = false
@@ -233,13 +244,18 @@ fun ShopScreen(
                     isSaving = uiState.isSaving,
                     initialItem = item,
                     onDismiss = { editingItem = null },
-                    onSave = { name, description, price, available, imageDataList ->
+                    onSave = { name, description, price, available, isVisibleInApp, featured, sortOrder, customBadge, customImageOverride, imageDataList ->
                         viewModel.updateItem(
                             item = item,
                             name = name,
                             description = description,
                             priceInput = price,
                             available = available,
+                            isVisibleInApp = isVisibleInApp,
+                            featured = featured,
+                            sortOrderInput = sortOrder,
+                            customBadge = customBadge,
+                            customImageOverride = customImageOverride,
                             imageDataList = imageDataList,
                         ) {
                             editingItem = null
@@ -255,6 +271,17 @@ fun ShopScreen(
                     isAdmin = uiState.isAdmin,
                     isSaving = uiState.isSaving,
                     onDismiss = viewModel::dismissSelectedItem,
+                    onAddToCart = { size, color, quantity ->
+                        val result = viewModel.addSelectionToCart(
+                            item = item,
+                            size = size,
+                            color = color,
+                            quantity = quantity,
+                        )
+                        if (result.isSuccess) {
+                            viewModel.dismissSelectedItem()
+                        }
+                    },
                     onEdit = {
                         viewModel.dismissSelectedItem()
                         editingItem = item
@@ -302,6 +329,7 @@ fun ShopScreen(
 private fun ShopOverviewCard(
     uiState: ShopUiState,
     onToggleStore: (() -> Unit)? = null,
+    onSyncShopify: (() -> Unit)? = null,
 ) {
     BrandHeroCard(
         eyebrow = "Store",
@@ -314,7 +342,7 @@ private fun ShopOverviewCard(
         },
         accent = MaterialTheme.colorScheme.tertiary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
-        marks = listOf(BrandArtwork.Sky22),
+        marks = listOf(BrandArtwork.Combined),
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -336,24 +364,42 @@ private fun ShopOverviewCard(
             )
         }
 
-        onToggleStore?.let { toggleStore ->
-            Button(
-                onClick = toggleStore,
+        if (onToggleStore != null || onSyncShopify != null) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
-                enabled = !uiState.isUpdatingStoreState,
-                shape = RoundedCornerShape(18.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    if (uiState.isUpdatingStoreState) {
-                        "Store wird aktualisiert..."
-                    } else if (uiState.isStoreOpen) {
-                        "Store schliessen"
-                    } else {
-                        "Store oeffnen"
-                    },
-                )
+                onToggleStore?.let { toggleStore ->
+                    Button(
+                        onClick = toggleStore,
+                        modifier = Modifier.weight(1f),
+                        enabled = !uiState.isUpdatingStoreState,
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text(
+                            if (uiState.isUpdatingStoreState) {
+                                "Store wird aktualisiert..."
+                            } else if (uiState.isStoreOpen) {
+                                "Store schliessen"
+                            } else {
+                                "Store oeffnen"
+                            },
+                        )
+                    }
+                }
+
+                onSyncShopify?.let { syncShopify ->
+                    Button(
+                        onClick = syncShopify,
+                        modifier = Modifier.weight(1f),
+                        enabled = !uiState.isSyncingCatalog,
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text(if (uiState.isSyncingCatalog) "Sync laeuft..." else "Shopify syncen")
+                    }
+                }
             }
         }
     }
@@ -409,16 +455,22 @@ private fun MerchandiseEditorSheet(
     isSaving: Boolean,
     initialItem: MerchandiseItem?,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, Boolean, List<ByteArray>) -> Unit,
+    onSave: (String, String, String, Boolean, Boolean, Boolean, String, String, String, List<ByteArray>) -> Unit,
 ) {
     val context = LocalContext.current
     var name by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.name.orEmpty()) }
     var description by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.description.orEmpty()) }
     var price by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.price?.toString().orEmpty()) }
     var available by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.available ?: true) }
+    var isVisibleInApp by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.isVisibleInApp ?: true) }
+    var featured by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.featured ?: false) }
+    var sortOrder by rememberSaveable(initialItem?.id) { mutableStateOf((initialItem?.sortOrder ?: 0).toString()) }
+    var customBadge by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.customBadge.orEmpty()) }
+    var customImageOverride by rememberSaveable(initialItem?.id) { mutableStateOf(initialItem?.customImageOverride.orEmpty()) }
     var localError by rememberSaveable(initialItem?.id) { mutableStateOf<String?>(null) }
     val selectedUris = remember(initialItem?.id) { mutableStateListOf<Uri>() }
     val existingImageUrls = initialItem?.imageUrls.orEmpty()
+    val isShopifySyncedItem = initialItem?.source == "shopify"
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(10),
     ) { uris ->
@@ -448,6 +500,7 @@ private fun MerchandiseEditorSheet(
                 label = { Text("Name") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                enabled = !isShopifySyncedItem,
             )
             OutlinedTextField(
                 value = description,
@@ -455,6 +508,7 @@ private fun MerchandiseEditorSheet(
                 label = { Text("Beschreibung") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
+                enabled = !isShopifySyncedItem,
             )
             OutlinedTextField(
                 value = price,
@@ -462,7 +516,15 @@ private fun MerchandiseEditorSheet(
                 label = { Text("Preis") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                enabled = !isShopifySyncedItem,
             )
+
+            if (isShopifySyncedItem) {
+                Text(
+                    text = "Titel, Beschreibung, Preis und Varianten werden aus Shopify synchronisiert. Hier bearbeitest du nur App-Sichtbarkeit und Overrides.",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -476,18 +538,66 @@ private fun MerchandiseEditorSheet(
                 )
             }
 
-            Button(
-                onClick = {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                    )
-                },
-                shape = RoundedCornerShape(18.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(if (initialItem == null) "Bilder auswaehlen" else "Bilder ersetzen")
+                Text("In App sichtbar")
+                Switch(
+                    checked = isVisibleInApp,
+                    onCheckedChange = { isVisibleInApp = it },
+                )
             }
 
-            if (selectedUris.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Featured")
+                Switch(
+                    checked = featured,
+                    onCheckedChange = { featured = it },
+                )
+            }
+
+            OutlinedTextField(
+                value = sortOrder,
+                onValueChange = { sortOrder = it },
+                label = { Text("Sortierung") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = customBadge,
+                onValueChange = { customBadge = it },
+                label = { Text("Badge (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = customImageOverride,
+                onValueChange = { customImageOverride = it },
+                label = { Text("Custom Image URL (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+
+            if (!isShopifySyncedItem) {
+                Button(
+                    onClick = {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text(if (initialItem == null) "Bilder auswaehlen" else "Bilder ersetzen")
+                }
+            }
+
+            if (!isShopifySyncedItem && selectedUris.isNotEmpty()) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(selectedUris, key = { it.toString() }) { uri ->
                         AsyncImage(
@@ -506,7 +616,7 @@ private fun MerchandiseEditorSheet(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     )
                 }
-            } else if (existingImageUrls.isNotEmpty()) {
+            } else if (!isShopifySyncedItem && existingImageUrls.isNotEmpty()) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(existingImageUrls, key = { it }) { imageUrl ->
                         AsyncImage(
@@ -519,7 +629,7 @@ private fun MerchandiseEditorSheet(
                         )
                     }
                 }
-            } else {
+            } else if (!isShopifySyncedItem) {
                 Text(
                     text = "Waehle mindestens ein Bild aus dem nativen Android Photo Picker.",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -552,7 +662,18 @@ private fun MerchandiseEditorSheet(
                             localError = "Bitte mindestens ein Bild auswaehlen."
                         } else {
                             localError = null
-                            onSave(name, description, price, available, imageDataList)
+                            onSave(
+                                name,
+                                description,
+                                price,
+                                available,
+                                isVisibleInApp,
+                                featured,
+                                sortOrder,
+                                customBadge,
+                                customImageOverride,
+                                imageDataList,
+                            )
                         }
                     },
                     enabled = !isSaving,
@@ -573,12 +694,31 @@ private fun MerchandiseDetailSheet(
     isAdmin: Boolean,
     isSaving: Boolean,
     onDismiss: () -> Unit,
+    onAddToCart: (String, String?, Int) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val pagerState = rememberPagerState(pageCount = { item.imageUrls.size.coerceAtLeast(1) })
     var fullscreenGalleryInitialPage by rememberSaveable { mutableStateOf<Int?>(null) }
+    val sizeOptions = remember(item.id, item.variants) {
+        MerchandiseVariantResolver.availableSizes(item).ifEmpty {
+            listOf("XS", "S", "M", "L", "XL")
+        }
+    }
+    var selectedSize by rememberSaveable(item.id) { mutableStateOf(sizeOptions.firstOrNull().orEmpty()) }
+    val colorOptions = remember(item.id, item.variants, selectedSize) {
+        MerchandiseVariantResolver.availableColors(item, selectedSize)
+    }
+    var selectedColor by rememberSaveable(item.id) { mutableStateOf(colorOptions.firstOrNull().orEmpty()) }
+    var quantity by rememberSaveable(item.id) { mutableStateOf(1) }
+
+    LaunchedEffect(item.id, colorOptions) {
+        if (selectedColor.isNotBlank() && colorOptions.any { it.equals(selectedColor, ignoreCase = true) }) {
+            return@LaunchedEffect
+        }
+        selectedColor = colorOptions.firstOrNull().orEmpty()
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -738,6 +878,13 @@ private fun MerchandiseDetailSheet(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    item.customBadge.takeIf { it.isNotBlank() }?.let { badge ->
+                        ShopBadge(
+                            text = badge,
+                            icon = Icons.Default.Sync,
+                            isActive = true,
+                        )
+                    }
                     ShopBadge(
                         text = if (item.available) "Verfuegbar" else "Pause",
                         icon = if (item.available) Icons.Default.CheckCircle else Icons.Default.Sync,
@@ -756,6 +903,63 @@ private fun MerchandiseDetailSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
+                }
+
+                if (!isAdmin) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = "Variante waehlen",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            sizeOptions.forEach { size ->
+                                FilterPill(
+                                    text = size,
+                                    selected = selectedSize.equals(size, ignoreCase = true),
+                                    onTap = { selectedSize = size },
+                                )
+                            }
+                        }
+
+                        if (colorOptions.isNotEmpty()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                colorOptions.forEach { color ->
+                                    FilterPill(
+                                        text = color,
+                                        selected = selectedColor.equals(color, ignoreCase = true),
+                                        onTap = { selectedColor = color },
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Menge",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                            TextButton(onClick = { if (quantity > 1) quantity -= 1 }) {
+                                Text("-")
+                            }
+                            Text(
+                                text = quantity.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            TextButton(onClick = { if (quantity < 10) quantity += 1 }) {
+                                Text("+")
+                            }
+                        }
+                    }
                 }
             }
 
@@ -781,14 +985,26 @@ private fun MerchandiseDetailSheet(
                     }
                 }
             } else {
-                Button(
-                    onClick = onDismiss,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("Schliessen")
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Schliessen")
+                    }
+                    Button(
+                        onClick = { onAddToCart(selectedSize, selectedColor.takeIf { it.isNotBlank() }, quantity) },
+                        modifier = Modifier.weight(1f),
+                        enabled = item.available && isStoreOpen && selectedSize.isNotBlank(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text("In den Warenkorb")
+                    }
                 }
             }
 
@@ -802,6 +1018,38 @@ private fun MerchandiseDetailSheet(
             imageUrls = item.imageUrls,
             initialPage = page,
             onDismiss = { fullscreenGalleryInitialPage = null },
+        )
+    }
+}
+
+@Composable
+private fun FilterPill(
+    text: String,
+    selected: Boolean,
+    onTap: () -> Unit,
+) {
+    val background = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    }
+    val content = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(background)
+            .clickable(onClick = onTap)
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = content,
         )
     }
 }

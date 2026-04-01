@@ -211,7 +211,7 @@ struct VideoHubView: View {
     private var collaborationsCard: some View {
         if !skydownProducedWithArtists.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Collaborators")
+                Text("Produced with")
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -1056,27 +1056,37 @@ struct ProducedWithArtistRow: View {
 
             HStack(spacing: 8) {
                 if let spotifyURL {
-                    Link(destination: spotifyURL) {
-                        Text("Spotify")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(AppColors.spotify(for: colorScheme))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(AppColors.spotify(for: colorScheme).opacity(0.12))
-                            .clipShape(Capsule())
-                    }
+                    SocialLinkButton(
+                        title: "Spotify",
+                        systemImage: "music.note",
+                        foregroundColor: .white,
+                        background: LinearGradient(
+                            colors: [
+                                AppColors.spotify(for: colorScheme),
+                                AppColors.spotify(for: colorScheme).opacity(0.72)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        destination: spotifyURL
+                    )
                 }
 
                 if let instagramURL {
-                    Link(destination: instagramURL) {
-                        Text("Instagram")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
-                            .clipShape(Capsule())
-                    }
+                    SocialLinkButton(
+                        title: "Instagram",
+                        systemImage: "camera.fill",
+                        foregroundColor: .white,
+                        background: LinearGradient(
+                            colors: [
+                                AppColors.instagramStart(for: colorScheme),
+                                AppColors.instagramEnd(for: colorScheme)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        destination: instagramURL
+                    )
                 }
             }
         }
@@ -1084,6 +1094,28 @@ struct ProducedWithArtistRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct SocialLinkButton<Background: View>: View {
+    let title: String
+    let systemImage: String
+    let foregroundColor: Color
+    let background: Background
+    let destination: URL
+
+    var body: some View {
+        Link(destination: destination) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.bold))
+                .foregroundColor(foregroundColor)
+                .padding(.horizontal, 13)
+                .padding(.vertical, 9)
+                .background(background)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 

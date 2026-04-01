@@ -50,7 +50,7 @@ struct AIView: View {
     private var content: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: 12) {
                     if showsNavigation && viewModel.messages.isEmpty {
                         AIHeroCard(
                             colorScheme: colorScheme,
@@ -92,7 +92,7 @@ struct AIView: View {
                 }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, showsNavigation ? SkydownLayout.screenTopPadding : 8)
+            .padding(.top, showsNavigation ? 6 : 6)
             .padding(.bottom, showsNavigation ? 12 : 20)
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
@@ -144,8 +144,7 @@ private struct AIHeroCard: View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Skydown x 22 Bot")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 Text("Direkte Captions, Hooks, Skripte und Visual-Ideen. Frag unten einfach los oder starte mit einem brauchbaren Prompt.")
@@ -156,10 +155,10 @@ private struct AIHeroCard: View {
             ZStack {
                 Circle()
                     .fill(AppColors.accent(for: colorScheme).opacity(0.16))
-                    .frame(width: 58, height: 58)
+                    .frame(width: 54, height: 54)
 
                 Image(systemName: "sparkles")
-                    .font(.title2)
+                    .font(.title3.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
             }
         }

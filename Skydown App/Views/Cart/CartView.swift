@@ -5,6 +5,8 @@
 //  Created by Yang D. Nash on 19.08.25.
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 import MessageUI
 
@@ -65,17 +67,24 @@ struct CartView: View {
 
     private var totalPrice: Double {
         cartVM.items.reduce(0.0) { partialResult, cartItem in
-            partialResult + cartItem.item.price * Double(cartItem.quantity)
+            partialResult + cartItem.effectiveUnitPrice * Double(cartItem.quantity)
         }
     }
 
     private var pricingSummary: CartPricingSummary {
         let settings = commerceSettingsStore.settings
-        let normalizedCountry = shippingCountry.trimmingCharacters(in: .whitespacesAndNewlines)
-        let baseShipping = settings.shipping.shippingCost(for: normalizedCountry)
-        let shippingCost = totalPrice >= settings.shipping.freeShippingThreshold && settings.shipping.freeShippingThreshold > 0
-            ? 0
-            : baseShipping
+        let shippingQuote = (try? ShippingService.calculateShippingPrice(
+            settings: settings.shipping,
+            countryCode: ShippingService.resolveCountryCode(from: shippingCountry),
+            items: cartVM.items,
+            subtotal: totalPrice
+        )) ?? ShippingQuote(
+            zone: .international,
+            countryCode: "--",
+            price: 0,
+            freeShippingApplied: false
+        )
+        let shippingCost = shippingQuote.price
         let total = totalPrice + shippingCost
         let taxRate = settings.invoice.taxRate
         let includedTax = taxRate > 0
@@ -87,7 +96,9 @@ struct CartView: View {
             shipping: shippingCost,
             taxRate: taxRate,
             includedTax: includedTax,
-            total: total
+            total: total,
+            zoneLabel: shippingQuote.zone.rawValue,
+            shippingError: shippingQuote.countryCode == "--" ? "Das Lieferland konnte noch nicht eindeutig erkannt werden." : nil
         )
     }
     
@@ -368,6 +379,11 @@ struct CartView: View {
             isSubmitting = false
             return
         }
+        if let shippingError = pricingSummary.shippingError {
+            cartVM.showUserToast(shippingError, style: .error)
+            isSubmitting = false
+            return
+        }
 
         let shippingAddress = composedShippingAddress
 
@@ -438,11 +454,12 @@ struct CartView: View {
         let itemSummary = items.isEmpty
             ? "- Keine Artikel"
             : items.map { cartItem in
-                let linePrice = cartItem.item.price * Double(cartItem.quantity)
-                return "- \(cartItem.item.name) | Groesse: \(cartItem.size) | Menge: \(cartItem.quantity) | Preis: \(String(format: "EUR %.2f", linePrice))"
+                let linePrice = cartItem.effectiveUnitPrice * Double(cartItem.quantity)
+                let colorPart = cartItem.color?.takeIfNotBlank().map { " | Farbe: \($0)" } ?? ""
+                return "- \(cartItem.item.name) | Groesse: \(cartItem.size)\(colorPart) | Menge: \(cartItem.quantity) | Preis: \(String(format: "EUR %.2f", linePrice))"
             }.joined(separator: "\n")
         let orderTotal = items.reduce(0.0) { partialResult, cartItem in
-            partialResult + cartItem.item.price * Double(cartItem.quantity)
+            partialResult + cartItem.effectiveUnitPrice * Double(cartItem.quantity)
         }
         let subject = preferredEmail.map { "Neue Bestellung - \($0)" } ?? "Neue Bestellung"
         let body = """
@@ -460,6 +477,7 @@ struct CartView: View {
         \(itemSummary)
 
         Zwischensumme: \(String(format: "EUR %.2f", orderTotal))
+        Versandzone: \(pricingSummary.zoneLabel)
         Versand: \(String(format: "EUR %.2f", pricingSummary.shipping))
         Enthaltene MwSt. (\(String(format: "%.1f", pricingSummary.taxRate))%): \(String(format: "EUR %.2f", pricingSummary.includedTax))
         Gesamt: \(String(format: "EUR %.2f", pricingSummary.total))
@@ -550,12 +568,19 @@ private struct PricingSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             pricingLine("Zwischensumme", summary.subtotal)
+            pricingTextLine("Versandzone", summary.zoneLabel)
             pricingLine("Versand", summary.shipping)
             pricingLine("inkl. MwSt. (\(String(format: "%.1f", summary.taxRate))%)", summary.includedTax)
 
             Divider()
 
             pricingLine("Gesamt", summary.total, isEmphasized: true)
+
+            if let shippingError = summary.shippingError {
+                Text(shippingError)
+                    .font(.footnote)
+                    .foregroundColor(.red)
+            }
 
             if !shippingNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(shippingNote)
@@ -579,6 +604,19 @@ private struct PricingSummaryCard: View {
             Text(String(format: "EUR %.2f", value))
                 .font(isEmphasized ? .headline.weight(.bold) : .subheadline.weight(.semibold))
                 .foregroundColor(isEmphasized ? AppColors.accent(for: colorScheme) : AppColors.text(for: colorScheme))
+        }
+    }
+
+    @ViewBuilder
+    private func pricingTextLine(_ title: String, _ value: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Spacer()
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
         }
     }
 }
@@ -730,6 +768,8 @@ private struct CartPricingSummary {
     let taxRate: Double
     let includedTax: Double
     let total: Double
+    let zoneLabel: String
+    let shippingError: String?
 }
 
 private extension String {
@@ -852,13 +892,16 @@ private struct CartItemCard: View {
 
                     HStack(spacing: 8) {
                         CartBadge(text: "Größe \(cartItem.size)", colorScheme: colorScheme)
+                        if let color = cartItem.color?.takeIfNotBlank() {
+                            CartBadge(text: color, colorScheme: colorScheme)
+                        }
                         CartBadge(text: "x\(cartItem.quantity)", colorScheme: colorScheme)
                     }
                 }
 
                 Spacer()
 
-                Text(String(format: "EUR %.2f", cartItem.item.price * Double(cartItem.quantity)))
+                Text(String(format: "EUR %.2f", cartItem.effectiveUnitPrice * Double(cartItem.quantity)))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
             }

@@ -13,11 +13,18 @@ struct MerchandiseItemView: View {
     @State private var selectedImageIndex = 0
     @State private var showingFullscreenGallery = false
 
+    private var displayImageURLs: [String] {
+        if let customOverride = item.customImageOverride.takeIfNotBlank() {
+            return [customOverride] + item.imageURLs.filter { $0 != customOverride }
+        }
+        return item.imageURLs
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .bottomLeading) {
                 TabView(selection: $selectedImageIndex) {
-                    ForEach(Array(item.imageURLs.enumerated()), id: \.offset) { index, urlString in
+                    ForEach(Array(displayImageURLs.enumerated()), id: \.offset) { index, urlString in
                         AsyncImage(url: URL(string: urlString)) { image in
                             image
                                 .resizable()
@@ -61,9 +68,16 @@ struct MerchandiseItemView: View {
                             colorScheme: colorScheme,
                             isAccent: item.available
                         )
-                        if item.imageURLs.count > 1 {
+                        if displayImageURLs.count > 1 {
                             MerchInfoBadge(
-                                text: "\(item.imageURLs.count) Bilder",
+                                text: "\(displayImageURLs.count) Bilder",
+                                colorScheme: colorScheme,
+                                isAccent: false
+                            )
+                        }
+                        if let customBadge = item.customBadge.takeIfNotBlank() {
+                            MerchInfoBadge(
+                                text: customBadge,
                                 colorScheme: colorScheme,
                                 isAccent: false
                             )
@@ -106,7 +120,7 @@ struct MerchandiseItemView: View {
         .fullScreenCover(isPresented: $showingFullscreenGallery) {
             MerchandiseFullscreenGalleryView(
                 itemName: item.name,
-                imageURLs: item.imageURLs,
+                imageURLs: displayImageURLs,
                 selectedImageIndex: $selectedImageIndex
             )
         }
@@ -178,6 +192,13 @@ private struct MerchandiseFullscreenGalleryView: View {
                 Spacer()
             }
         }
+    }
+}
+
+private extension String {
+    func takeIfNotBlank() -> String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

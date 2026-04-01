@@ -46,6 +46,7 @@ struct SettingsView: View {
     @State private var bankNameDraft = ""
     @State private var bankInstructionsDraft = ""
     @State private var domesticShippingDraft = ""
+    @State private var euShippingDraft = ""
     @State private var internationalShippingDraft = ""
     @State private var freeShippingThresholdDraft = ""
     @State private var shippingNotesDraft = ""
@@ -572,6 +573,14 @@ struct SettingsView: View {
                             )
 
                             SettingsInputField(
+                                title: "Versand EU (EUR)",
+                                text: $euShippingDraft,
+                                colorScheme: effectiveColorScheme,
+                                placeholder: "z. B. 6.90",
+                                keyboardType: .decimalPad
+                            )
+
+                            SettingsInputField(
                                 title: "Versand International (EUR)",
                                 text: $internationalShippingDraft,
                                 colorScheme: effectiveColorScheme,
@@ -868,6 +877,7 @@ struct SettingsView: View {
 
     private func syncCommerceDrafts(with settings: CommerceSettings) {
         domesticShippingDraft = settings.shipping.domesticCost.formattedCurrencyDraft
+        euShippingDraft = settings.shipping.euCost.formattedCurrencyDraft
         internationalShippingDraft = settings.shipping.internationalCost.formattedCurrencyDraft
         freeShippingThresholdDraft = settings.shipping.freeShippingThreshold.formattedCurrencyDraft
         shippingNotesDraft = settings.shipping.shippingNotes
@@ -882,11 +892,12 @@ struct SettingsView: View {
 
     private func saveCommerceSettings() {
         let domesticCost = domesticShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.domesticCost
+        let euCost = euShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.euCost
         let internationalCost = internationalShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.internationalCost
         let freeShippingThreshold = freeShippingThresholdDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.freeShippingThreshold
         let taxRate = invoiceTaxRateDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.invoice.taxRate
 
-        guard domesticCost >= 0, internationalCost >= 0, freeShippingThreshold >= 0, taxRate >= 0 else {
+        guard domesticCost >= 0, euCost >= 0, internationalCost >= 0, freeShippingThreshold >= 0, taxRate >= 0 else {
             showToastMessage("Bitte nur positive Werte fuer Versand und MwSt. eintragen.", style: .error)
             return
         }
@@ -894,6 +905,7 @@ struct SettingsView: View {
         Task {
             var updated = commerceSettingsStore.settings
             updated.shipping.domesticCost = domesticCost
+            updated.shipping.euCost = euCost
             updated.shipping.internationalCost = internationalCost
             updated.shipping.freeShippingThreshold = freeShippingThreshold
             updated.shipping.shippingNotes = shippingNotesDraft.trimmingCharacters(in: .whitespacesAndNewlines)

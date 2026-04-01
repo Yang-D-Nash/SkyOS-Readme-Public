@@ -19,12 +19,14 @@ struct CartItemSectionView: View {
                     HStack {
                         VStack(alignment: .leading) {
                             Text(cartItem.item.name)
-                            Text("Größe: \(cartItem.size), Anzahl: \(cartItem.quantity)")
+                            Text(
+                                "Größe: \(cartItem.size)\(cartItem.color.map { ", Farbe: \($0)" } ?? ""), Anzahl: \(cartItem.quantity)"
+                            )
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                         }
                         Spacer()
-                        Text(String(format: "€ %.2f", cartItem.item.price * Double(cartItem.quantity)))
+                        Text(String(format: "€ %.2f", cartItem.effectiveUnitPrice * Double(cartItem.quantity)))
                     }
                 }
                 .onDelete { indexSet in

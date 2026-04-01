@@ -95,6 +95,7 @@ fun SettingsScreen(
     var bankNameDraft by rememberSaveable { mutableStateOf("") }
     var bankInstructionsDraft by rememberSaveable { mutableStateOf("") }
     var domesticShippingDraft by rememberSaveable { mutableStateOf("") }
+    var euShippingDraft by rememberSaveable { mutableStateOf("") }
     var internationalShippingDraft by rememberSaveable { mutableStateOf("") }
     var freeShippingThresholdDraft by rememberSaveable { mutableStateOf("") }
     var shippingNotesDraft by rememberSaveable { mutableStateOf("") }
@@ -139,6 +140,7 @@ fun SettingsScreen(
 
     LaunchedEffect(uiState.commerceSettings) {
         domesticShippingDraft = formatDecimalDraft(uiState.commerceSettings.shipping.domesticCost)
+        euShippingDraft = formatDecimalDraft(uiState.commerceSettings.shipping.euCost)
         internationalShippingDraft = formatDecimalDraft(uiState.commerceSettings.shipping.internationalCost)
         freeShippingThresholdDraft = formatDecimalDraft(uiState.commerceSettings.shipping.freeShippingThreshold)
         shippingNotesDraft = uiState.commerceSettings.shipping.shippingNotes
@@ -509,6 +511,15 @@ fun SettingsScreen(
                                         singleLine = true,
                                     )
                                     OutlinedTextField(
+                                        value = euShippingDraft,
+                                        onValueChange = { euShippingDraft = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 10.dp),
+                                        label = { Text("Versand EU (EUR)") },
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
                                         value = internationalShippingDraft,
                                         onValueChange = { internationalShippingDraft = it },
                                         modifier = Modifier
@@ -613,6 +624,8 @@ fun SettingsScreen(
                                         onClick = {
                                             val domesticCost = domesticShippingDraft.parseDecimalInput()
                                                 ?: uiState.commerceSettings.shipping.domesticCost
+                                            val euCost = euShippingDraft.parseDecimalInput()
+                                                ?: uiState.commerceSettings.shipping.euCost
                                             val internationalCost = internationalShippingDraft.parseDecimalInput()
                                                 ?: uiState.commerceSettings.shipping.internationalCost
                                             val freeShippingThreshold = freeShippingThresholdDraft.parseDecimalInput()
@@ -624,6 +637,7 @@ fun SettingsScreen(
                                                 uiState.commerceSettings.copy(
                                                     shipping = uiState.commerceSettings.shipping.copy(
                                                         domesticCost = domesticCost.coerceAtLeast(0.0),
+                                                        euCost = euCost.coerceAtLeast(0.0),
                                                         internationalCost = internationalCost.coerceAtLeast(0.0),
                                                         freeShippingThreshold = freeShippingThreshold.coerceAtLeast(0.0),
                                                         shippingNotes = shippingNotesDraft.trim(),

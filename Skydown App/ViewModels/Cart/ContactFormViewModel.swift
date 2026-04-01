@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 class ContactFormViewModel: ObservableObject {
     @Published var selectedSize = "M"
+    @Published var selectedColor = ""
     @Published var selectedQuantity = 1
     @Published var name = ""
     @Published var email = ""
@@ -38,7 +39,8 @@ class ContactFormViewModel: ObservableObject {
     }
 
     func updateMessage() {
-        message = "Hallo, ich bin an '\(item.name)' in Größe \(selectedSize) x\(selectedQuantity) interessiert."
+        let colorPart = selectedColor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : " in \(selectedColor)"
+        message = "Hallo, ich bin an '\(item.name)' in Größe \(selectedSize)\(colorPart) x\(selectedQuantity) interessiert."
     }
 
     func addToCart() {
@@ -47,6 +49,20 @@ class ContactFormViewModel: ObservableObject {
             return
         }
 
-        cartVM.addItem(item, size: selectedSize, quantity: selectedQuantity)
+        let variant = try? MerchandiseVariantResolver.resolveVariant(for: item, size: selectedSize, color: selectedColor)
+        cartVM.addItem(
+            item,
+            size: selectedSize,
+            color: selectedColor.trimmedNonEmpty,
+            quantity: selectedQuantity,
+            resolvedVariant: variant
+        )
+    }
+}
+
+private extension String {
+    var trimmedNonEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

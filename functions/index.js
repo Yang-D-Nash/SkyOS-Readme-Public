@@ -2,9 +2,10 @@
 
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
-const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {enableFirebaseTelemetry} = require("@genkit-ai/firebase");
-const {onCallGenkit, HttpsError} = require("firebase-functions/https");
+const {onCallGenkit} = require("firebase-functions/https");
+const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const {genkit, z} = require("genkit");
 const {vertexAI} = require("@genkit-ai/google-genai");
@@ -21,6 +22,13 @@ const ai = genkit({
 });
 
 const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
+const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
+const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
+const SHOPIFY_API_VERSION = "2026-01";
+const SHOPIFY_VARIANT_OPTION_KEYS = {
+  size: ["size", "groesse", "größe"],
+  color: ["color", "colour", "farbe"],
+};
 
 const agentTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -57,6 +65,576 @@ async function isAdminAuth(auth) {
   const userSnapshot = await admin.firestore().doc(`users/${auth.uid}`).get();
   return userSnapshot.exists && userSnapshot.data()?.isAdmin === true;
 }
+
+async function assertAdmin(auth) {
+  if (!(await isAdminAuth(auth))) {
+    throw new HttpsError("permission-denied", "Nur Admins duerfen diese Aktion ausfuehren.");
+  }
+}
+
+function getShopifyDomain() {
+  return (process.env.SHOPIFY_STORE_DOMAIN || SHOPIFY_STORE_DOMAIN_DEFAULT).trim();
+}
+
+function getShopifyGraphqlUrl() {
+  return `https://${getShopifyDomain()}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
+}
+
+async function shopifyGraphqlRequest({query, variables = {}, token}) {
+  const response = await fetch(getShopifyGraphqlUrl(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": token,
+    },
+    body: JSON.stringify({query, variables}),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    logger.error("Shopify GraphQL request failed.", {
+      status: response.status,
+      statusText: response.statusText,
+      body: payload,
+    });
+    throw new Error(`Shopify API Fehler (${response.status} ${response.statusText}).`);
+  }
+
+  if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+    logger.error("Shopify GraphQL top-level errors.", {errors: payload.errors});
+    throw new Error(payload.errors.map((error) => error.message).join(" | "));
+  }
+
+  return payload.data;
+}
+
+function extractNumericId(gid) {
+  if (typeof gid !== "string") {
+    return "";
+  }
+
+  const parts = gid.split("/");
+  return parts[parts.length - 1] || gid;
+}
+
+function buildShopifyMerchDocumentId(productId) {
+  const numericId = extractNumericId(productId);
+  return numericId ? `shopify_${numericId}` : `shopify_${Buffer.from(productId).toString("base64url")}`;
+}
+
+function parsePrice(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function stripHtml(value) {
+  return typeof value === "string"
+    ? value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+    : "";
+}
+
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function uniqueStrings(values) {
+  const seen = new Set();
+  return values.filter((value) => {
+    if (typeof value !== "string" || !value.trim()) {
+      return false;
+    }
+
+    const normalized = value.trim();
+    if (seen.has(normalized)) {
+      return false;
+    }
+
+    seen.add(normalized);
+    return true;
+  });
+}
+
+function readSelectedOption(variant, keys) {
+  const selectedOptions = Array.isArray(variant?.selectedOptions) ? variant.selectedOptions : [];
+  const match = selectedOptions.find((option) => {
+    const optionName = `${option?.name || ""}`.trim().toLowerCase();
+    return keys.includes(optionName);
+  });
+
+  return nonEmptyString(match?.value) || undefined;
+}
+
+function normalizeShopifyVariant(variant, currencyCode) {
+  return {
+    id: extractNumericId(variant.id) || variant.id,
+    title: variant.title || "",
+    size: readSelectedOption(variant, SHOPIFY_VARIANT_OPTION_KEYS.size),
+    color: readSelectedOption(variant, SHOPIFY_VARIANT_OPTION_KEYS.color),
+    shopifyVariantId: variant.id,
+    sku: nonEmptyString(variant.sku) || "",
+    price: parsePrice(variant.price),
+    currency: currencyCode || "EUR",
+    availableForSale: Boolean(variant.availableForSale),
+  };
+}
+
+function normalizeShopifyProduct(product, currencyCode, existingData = {}) {
+  const images = uniqueStrings([
+    product?.featuredImage?.url,
+    ...(product?.images?.nodes || []).map((image) => image?.url),
+  ]);
+  const variants = (product?.variants?.nodes || []).map((variant) => normalizeShopifyVariant(variant, currencyCode));
+  const firstVariant = variants[0];
+  const availableForSale = variants.some((variant) => variant.availableForSale);
+
+  return {
+    name: product.title || "Unbenanntes Produkt",
+    price: firstVariant?.price ?? 0,
+    description: stripHtml(product.description || product.descriptionHtml || ""),
+    imageURLs: images,
+    imageUrls: images,
+    available: availableForSale,
+    currency: currencyCode || firstVariant?.currency || "EUR",
+    sku: nonEmptyString(firstVariant?.sku) || "",
+    shopifyProductId: product.id,
+    shopifyHandle: nonEmptyString(product.handle) || "",
+    availableForSale,
+    variants,
+    source: "shopify",
+    isVisibleInApp: typeof existingData.isVisibleInApp === "boolean" ? existingData.isVisibleInApp : true,
+    featured: typeof existingData.featured === "boolean" ? existingData.featured : false,
+    sortOrder: Number.isFinite(existingData.sortOrder) ? existingData.sortOrder : 0,
+    customBadge: typeof existingData.customBadge === "string" ? existingData.customBadge : "",
+    customImageOverride: typeof existingData.customImageOverride === "string" ? existingData.customImageOverride : "",
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
+async function fetchAllShopifyProducts(token) {
+  const query = `
+    query FetchMerchProducts($cursor: String) {
+      shop {
+        currencyCode
+      }
+      products(first: 50, after: $cursor, sortKey: UPDATED_AT) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          title
+          description
+          descriptionHtml
+          handle
+          status
+          featuredImage {
+            url
+          }
+          images(first: 10) {
+            nodes {
+              url
+            }
+          }
+          variants(first: 100) {
+            nodes {
+              id
+              title
+              sku
+              price
+              availableForSale
+              selectedOptions {
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const products = [];
+  let hasNextPage = true;
+  let cursor = null;
+  let currencyCode = "EUR";
+
+  while (hasNextPage) {
+    const data = await shopifyGraphqlRequest({
+      query,
+      variables: {cursor},
+      token,
+    });
+
+    currencyCode = data?.shop?.currencyCode || currencyCode;
+    const connection = data?.products;
+    products.push(
+      ...(connection?.nodes || []).filter((product) => (product?.variants?.nodes || []).length > 0),
+    );
+    hasNextPage = Boolean(connection?.pageInfo?.hasNextPage);
+    cursor = connection?.pageInfo?.endCursor || null;
+  }
+
+  return {products, currencyCode};
+}
+
+async function runShopifyMerchSync() {
+  const token = shopifyAdminAccessToken.value();
+  if (!token) {
+    throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN ist nicht konfiguriert.");
+  }
+
+  logger.info("Shopify merch sync started.", {
+    storeDomain: getShopifyDomain(),
+  });
+
+  const firestore = admin.firestore();
+  const merchandiseCollection = firestore.collection("merchandise");
+  const existingSnapshot = await merchandiseCollection.get();
+  const existingByProductId = new Map();
+  const existingByDocumentId = new Map();
+
+  existingSnapshot.docs.forEach((document) => {
+    const data = document.data();
+    const productId = nonEmptyString(data.shopifyProductId);
+    if (productId) {
+      existingByProductId.set(productId, document);
+    }
+    existingByDocumentId.set(document.id, document);
+  });
+
+  const {products, currencyCode} = await fetchAllShopifyProducts(token);
+  const batch = firestore.batch();
+  let createdCount = 0;
+  let updatedCount = 0;
+
+  products.forEach((product) => {
+    const existingDocument = existingByProductId.get(product.id)
+      || existingByDocumentId.get(buildShopifyMerchDocumentId(product.id));
+    const documentRef = existingDocument
+      ? existingDocument.ref
+      : merchandiseCollection.doc(buildShopifyMerchDocumentId(product.id));
+    const payload = normalizeShopifyProduct(product, currencyCode, existingDocument?.data() || {});
+
+    batch.set(documentRef, payload, {merge: true});
+    if (existingDocument) {
+      updatedCount += 1;
+    } else {
+      createdCount += 1;
+    }
+  });
+
+  if (products.length > 0) {
+    await batch.commit();
+  }
+
+  logger.info("Shopify merch sync completed.", {
+    syncedCount: products.length,
+    createdCount,
+    updatedCount,
+    storeDomain: getShopifyDomain(),
+  });
+
+  return {
+    syncedCount: products.length,
+    createdCount,
+    updatedCount,
+    currencyCode,
+  };
+}
+
+function ensureShippingAddress(data) {
+  const shippingAddress = data?.shippingAddressData;
+  if (!shippingAddress || typeof shippingAddress !== "object") {
+    throw new Error("Lieferadresse fehlt.");
+  }
+
+  const address1 = nonEmptyString(shippingAddress.address1);
+  const city = nonEmptyString(shippingAddress.city);
+  const zip = nonEmptyString(shippingAddress.zip);
+  const countryCode = nonEmptyString(shippingAddress.countryCode);
+
+  if (!address1 || !city || !zip || !countryCode) {
+    throw new Error("Lieferadresse ist unvollstaendig.");
+  }
+
+  return {
+    address1,
+    address2: nonEmptyString(shippingAddress.address2) || "",
+    city,
+    zip,
+    countryCode,
+    countryName: nonEmptyString(shippingAddress.countryName) || countryCode,
+  };
+}
+
+function splitCustomerName(customerName) {
+  const trimmed = nonEmptyString(customerName) || "";
+  if (!trimmed) {
+    return {firstName: "", lastName: ""};
+  }
+
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) {
+    return {firstName: parts[0], lastName: ""};
+  }
+
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1],
+  };
+}
+
+function buildOrderNote(orderId, data) {
+  const message = nonEmptyString(data.message) || "Keine Zusatznachricht.";
+  const paymentMethod = nonEmptyString(data.paymentMethod) || "Nicht angegeben";
+  const shippingZone = nonEmptyString(data.shippingZone) || "Unbekannt";
+  const shippingAmount = parsePrice(data.shippingAmount);
+
+  return [
+    `App-Order: ${orderId}`,
+    `Payment Method: ${paymentMethod}`,
+    `Shipping Zone: ${shippingZone}`,
+    `Shipping Charged: ${shippingAmount.toFixed(2)} ${nonEmptyString(data.currency) || "EUR"}`,
+    "",
+    "Customer Note:",
+    message,
+  ].join("\n");
+}
+
+function buildShopifyOrderInput(orderId, data) {
+  const shippingAddress = ensureShippingAddress(data);
+  const lineItems = (Array.isArray(data.items) ? data.items : []).map((item, index) => {
+    const variantId = nonEmptyString(item?.shopifyVariantId);
+    const quantity = Number(item?.quantity || 0);
+
+    if (!variantId) {
+      throw new Error(`shopifyVariantId fehlt fuer Artikel ${index + 1}.`);
+    }
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new Error(`Menge fuer Artikel ${index + 1} ist ungueltig.`);
+    }
+
+    return {
+      variantId,
+      quantity,
+      taxable: true,
+      requiresShipping: true,
+      sku: nonEmptyString(item?.sku) || undefined,
+    };
+  });
+
+  if (lineItems.length === 0) {
+    throw new Error("Es wurden keine gueltigen Shopify-Artikel fuer die Order gefunden.");
+  }
+
+  const {firstName, lastName} = splitCustomerName(data.customerName);
+  const email = nonEmptyString(data.customerEmail) || nonEmptyString(data.userEmail);
+  if (!email) {
+    throw new Error("Kunden-E-Mail fehlt.");
+  }
+
+  const currencyCode = nonEmptyString(data.currency) || "EUR";
+  const shippingAmount = parsePrice(data.shippingAmount);
+  const taxAmount = parsePrice(data.taxAmount);
+  const taxRate = parsePrice(data.taxRate) / 100;
+
+  return {
+    email,
+    phone: nonEmptyString(data.whatsApp) || undefined,
+    sourceIdentifier: orderId,
+    sourceName: "skydown_app",
+    note: buildOrderNote(orderId, data),
+    financialStatus: "PAID",
+    fulfillmentStatus: "UNFULFILLED",
+    shippingAddress: {
+      firstName,
+      lastName,
+      address1: shippingAddress.address1,
+      address2: shippingAddress.address2,
+      city: shippingAddress.city,
+      zip: shippingAddress.zip,
+      countryCode: shippingAddress.countryCode,
+    },
+    billingAddress: {
+      firstName,
+      lastName,
+      address1: shippingAddress.address1,
+      address2: shippingAddress.address2,
+      city: shippingAddress.city,
+      zip: shippingAddress.zip,
+      countryCode: shippingAddress.countryCode,
+    },
+    lineItems,
+    shippingLines: [
+      {
+        title: `App Shipping ${nonEmptyString(data.shippingZone) || ""}`.trim(),
+        code: nonEmptyString(data.shippingZone) || "app_shipping",
+        source: "Skydown App",
+        priceSet: {
+          shopMoney: {
+            amount: shippingAmount.toFixed(2),
+            currencyCode,
+          },
+        },
+      },
+    ],
+    taxesIncluded: taxAmount > 0,
+    taxLines: taxAmount > 0 ? [
+      {
+        title: "VAT",
+        rate: Number(taxRate.toFixed(4)),
+        priceSet: {
+          shopMoney: {
+            amount: taxAmount.toFixed(2),
+            currencyCode,
+          },
+        },
+      },
+    ] : undefined,
+    tags: ["skydown-app", "podpartner", nonEmptyString(data.shippingZone) || "unknown-zone"],
+    test: false,
+  };
+}
+
+async function createShopifyOrder({orderId, data}) {
+  const token = shopifyAdminAccessToken.value();
+  if (!token) {
+    throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN ist nicht konfiguriert.");
+  }
+
+  const mutation = `
+    mutation CreateExternalOrder($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
+      orderCreate(order: $order, options: $options) {
+        userErrors {
+          field
+          message
+        }
+        order {
+          id
+          name
+          displayFinancialStatus
+          lineItems(first: 10) {
+            nodes {
+              title
+              quantity
+              variant {
+                id
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    order: buildShopifyOrderInput(orderId, data),
+    options: {
+      sendReceipt: false,
+      sendFulfillmentReceipt: false,
+      inventoryBehaviour: "BYPASS",
+    },
+  };
+
+  const response = await shopifyGraphqlRequest({
+    query: mutation,
+    variables,
+    token,
+  });
+  const result = response?.orderCreate;
+  const userErrors = result?.userErrors || [];
+
+  if (userErrors.length > 0) {
+    throw new Error(userErrors.map((error) => `${error.field?.join(".") || "order"}: ${error.message}`).join(" | "));
+  }
+
+  if (!result?.order?.id) {
+    throw new Error("Shopify hat keine Order-ID zurueckgegeben.");
+  }
+
+  return {
+    shopifyOrderId: result.order.id,
+    shopifyOrderName: result.order.name || "",
+  };
+}
+
+function shouldSubmitToShopify(beforeData, afterData) {
+  if (!afterData || afterData.fulfillmentProvider !== "podpartner") {
+    return false;
+  }
+
+  if (afterData.paymentStatus !== "confirmed") {
+    return false;
+  }
+
+  if (afterData.shopifyOrderId || afterData.shopifySyncStatus === "submitted") {
+    return false;
+  }
+
+  if (beforeData?.paymentStatus === "confirmed" && beforeData?.shopifySyncStatus === afterData.shopifySyncStatus) {
+    return false;
+  }
+
+  return true;
+}
+
+exports.confirmMerchOrderPayment = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Du musst angemeldet sein.");
+  }
+
+  const orderId = nonEmptyString(request.data?.orderId);
+  if (!orderId) {
+    throw new HttpsError("invalid-argument", "orderId fehlt.");
+  }
+
+  const orderRef = admin.firestore().doc(`orders/${orderId}`);
+  const orderSnapshot = await orderRef.get();
+  if (!orderSnapshot.exists) {
+    throw new HttpsError("not-found", "Bestellung wurde nicht gefunden.");
+  }
+
+  const orderData = orderSnapshot.data() || {};
+  const isAdmin = await isAdminAuth(request.auth);
+  const authEmail = `${request.auth.token?.email || ""}`.trim().toLowerCase();
+  const orderEmail = `${orderData.userEmail || ""}`.trim().toLowerCase();
+
+  if (!isAdmin && (!authEmail || authEmail !== orderEmail)) {
+    throw new HttpsError("permission-denied", "Du darfst diese Bestellung nicht bestaetigen.");
+  }
+
+  const paymentMethod = nonEmptyString(request.data?.paymentMethod)
+    || nonEmptyString(orderData.paymentMethod)
+    || "Extern bezahlt";
+  const paymentReference = nonEmptyString(request.data?.paymentReference);
+  const requiresShopifySubmission = orderData.fulfillmentProvider === "podpartner";
+
+  await orderRef.set({
+    paymentMethod,
+    paymentStatus: "confirmed",
+    shopifySyncStatus: requiresShopifySubmission ? "pending_submission" : (orderData.shopifySyncStatus || "not_required"),
+    paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+    paymentReference: paymentReference || admin.firestore.FieldValue.delete(),
+  }, {merge: true});
+
+  logger.info("Merch payment confirmed.", {
+    orderId,
+    paymentMethod,
+    requiresShopifySubmission,
+  });
+
+  return {
+    message: requiresShopifySubmission
+      ? "Zahlung bestaetigt. Shopify-Order wird jetzt erstellt."
+      : "Zahlung bestaetigt.",
+  };
+});
 
 function responseFrameworkHint(prompt) {
   const lower = prompt.toLowerCase();
@@ -134,6 +712,82 @@ exports.skydownAgent = onCallGenkit({
   timeoutSeconds: 60,
   authPolicy: isAdminAuth,
 }, skydownAgentFlow);
+
+exports.syncShopifyMerch = onCall({
+  region: "us-central1",
+  timeoutSeconds: 120,
+  secrets: [shopifyAdminAccessToken],
+}, async (request) => {
+  await assertAdmin(request.auth);
+  return runShopifyMerchSync();
+});
+
+exports.processConfirmedMerchOrders = onDocumentWritten({
+  document: "orders/{orderId}",
+  region: "us-central1",
+  timeoutSeconds: 120,
+  secrets: [shopifyAdminAccessToken],
+}, async (event) => {
+  const beforeData = event.data?.before?.data() || null;
+  const afterData = event.data?.after?.data() || null;
+  const orderId = event.params.orderId;
+
+  if (!afterData) {
+    return;
+  }
+
+  if (!shouldSubmitToShopify(beforeData, afterData)) {
+    return;
+  }
+
+  const orderRef = admin.firestore().doc(`orders/${orderId}`);
+
+  logger.info("Shopify order submission started.", {
+    orderId,
+    shippingZone: afterData.shippingZone || null,
+    fulfillmentProvider: afterData.fulfillmentProvider || null,
+  });
+
+  try {
+    await orderRef.set({
+      shopifySyncStatus: "submitting",
+      shopifySyncError: admin.firestore.FieldValue.delete(),
+      shopifySyncUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    const {shopifyOrderId, shopifyOrderName} = await createShopifyOrder({
+      orderId,
+      data: afterData,
+    });
+
+    await orderRef.set({
+      shopifyOrderId,
+      shopifyOrderName,
+      shopifySyncStatus: "submitted",
+      fulfillmentStatus: "submitted_to_shopify",
+      shopifySyncUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    logger.info("Shopify order created successfully.", {
+      orderId,
+      shopifyOrderId,
+      shopifyOrderName,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unbekannter Shopify-Fehler.";
+    logger.error("Shopify order creation failed.", {
+      orderId,
+      error: errorMessage,
+    });
+
+    await orderRef.set({
+      shopifySyncStatus: "failed",
+      fulfillmentStatus: "submission_failed",
+      shopifySyncError: errorMessage,
+      shopifySyncUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+  }
+});
 
 function formatOrderItems(items) {
   if (!Array.isArray(items) || items.length === 0) {

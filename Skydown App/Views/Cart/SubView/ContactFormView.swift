@@ -18,8 +18,8 @@ struct ContactFormView: View {
     @State private var alertType: AlertType?
 
     @State private var selectedSize = "M"
+    @State private var selectedColor = ""
     @State private var selectedQuantity = 1
-    private let availableSizes = ["XS", "S", "M", "L", "XL"]
     private let availableQuantities = Array(1...10)
     
     @State private var showToast = false
@@ -31,13 +31,41 @@ struct ContactFormView: View {
         var id: Int { hashValue }
     }
 
-    private var isFormValid: Bool { !selectedSize.isEmpty && selectedQuantity > 0 }
+    private var availableSizes: [String] {
+        let resolved = MerchandiseVariantResolver.availableSizes(for: item)
+        return resolved.isEmpty ? ["XS", "S", "M", "L", "XL"] : resolved
+    }
+
+    private var availableColors: [String] {
+        MerchandiseVariantResolver.availableColors(for: item, size: selectedSize)
+    }
+
+    private var resolvedVariant: MerchandiseVariant? {
+        guard !item.variants.isEmpty else { return nil }
+        return try? MerchandiseVariantResolver.resolveVariant(
+            for: item,
+            size: selectedSize,
+            color: selectedColor.trimmedNonEmpty
+        )
+    }
+
+    private var isFormValid: Bool {
+        !selectedSize.isEmpty &&
+        selectedQuantity > 0 &&
+        (item.variants.isEmpty || resolvedVariant != nil)
+    }
     private var canOrder: Bool {
         isFormValid && authManager.userSession != nil && storeIsOpen && item.available
     }
     
     private func addToCart() {
-        cartVM.addItem(item, size: selectedSize, quantity: selectedQuantity)
+        cartVM.addItem(
+            item,
+            size: selectedSize,
+            color: selectedColor.trimmedNonEmpty,
+            quantity: selectedQuantity,
+            resolvedVariant: resolvedVariant
+        )
         toastMessage = "Artikel erfolgreich zum Warenkorb hinzugefügt"
         toastStyle = .success
         showToast = true
@@ -89,6 +117,42 @@ struct ContactFormView: View {
                                     )
                             )
                             .foregroundColor(selectedSize == size ? .white : AppColors.text(for: colorScheme))
+                        }
+                    }
+                }
+
+                if !availableColors.isEmpty {
+                    ContactSectionCard(title: "Farbe", colorScheme: colorScheme) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 10)], spacing: 10) {
+                            ForEach(availableColors, id: \.self) { color in
+                                Button {
+                                    selectedColor = color
+                                } label: {
+                                    Text(color)
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                }
+                                .buttonStyle(.plain)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(
+                                            selectedColor == color
+                                            ? AppColors.accentMystic(for: colorScheme)
+                                            : AppColors.secondaryBackground(for: colorScheme)
+                                        )
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(
+                                            selectedColor == color
+                                            ? AppColors.accentMystic(for: colorScheme)
+                                            : AppColors.accentMystic(for: colorScheme).opacity(0.14),
+                                            lineWidth: 1
+                                        )
+                                )
+                                .foregroundColor(selectedColor == color ? .white : AppColors.text(for: colorScheme))
+                            }
                         }
                     }
                 }
@@ -148,6 +212,12 @@ struct ContactFormView: View {
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
+                } else if !item.variants.isEmpty && resolvedVariant == nil {
+                    ContactSectionCard(title: "Variante fehlt", colorScheme: colorScheme) {
+                        Text("Diese Auswahl ist aktuell nicht verfuegbar. Bitte pruefe Größe und Farbe noch einmal.")
+                            .font(.body)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -193,6 +263,15 @@ struct ContactFormView: View {
                 secondaryButton: .cancel()
             )
         }
+        .onAppear {
+            selectedSize = availableSizes.first ?? "M"
+            selectedColor = availableColors.first ?? ""
+        }
+        .onChange(of: selectedSize) {
+            if !availableColors.contains(selectedColor) {
+                selectedColor = availableColors.first ?? ""
+            }
+        }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
     }
 
@@ -222,6 +301,14 @@ struct ContactFormView: View {
         return "In Warenkorb legen"
     }
 }
+
+private extension String {
+    var trimmedNonEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 #Preview {
     let authManager = AuthManager()
     let cartVM = CartViewModel(authManager: authManager)
