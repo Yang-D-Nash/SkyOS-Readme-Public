@@ -38,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -109,6 +110,7 @@ fun BeatHubScreen(
             viewModel.setSelectedFiles(context, uris)
         },
     )
+    var showUploadSheet by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(onBack = onBack)
 
@@ -168,6 +170,25 @@ fun BeatHubScreen(
                         )
                     }
                 },
+                actions = {
+                    if (uiState.isUploading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+
+                    if (uiState.isAdmin) {
+                        IconButton(onClick = { showUploadSheet = true }) {
+                            Icon(
+                                imageVector = Icons.Default.CloudUpload,
+                                contentDescription = "Upload oeffnen",
+                            )
+                        }
+                    }
+                },
                 colors = skydownTopBarColors(),
             )
         },
@@ -197,27 +218,9 @@ fun BeatHubScreen(
 
                 item {
                     if (uiState.isAdmin) {
-                        BeatHubUploadCard(
-                            uiState = uiState,
-                            onBeatTitleChanged = viewModel::updateBeatTitle,
-                            onArtistNameChanged = viewModel::updateArtistName,
-                            onEmailChanged = viewModel::updateEmail,
-                            onNotesChanged = viewModel::updateNotes,
-                            onPickFiles = {
-                                dismissKeyboard()
-                                pickerLauncher.launch(
-                                    arrayOf(
-                                        "audio/*",
-                                        "application/zip",
-                                        "application/x-zip-compressed",
-                                    ),
-                                )
-                            },
-                            onRemoveFile = viewModel::removeFile,
-                            onUpload = {
-                                dismissKeyboard()
-                                viewModel.upload(context)
-                            },
+                        BeatHubUploadStatusCard(
+                            isUploading = uiState.isUploading,
+                            onOpenUpload = { showUploadSheet = true },
                         )
                     } else {
                         BeatHubListenerCard()
@@ -255,6 +258,43 @@ fun BeatHubScreen(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp),
             )
+
+            if (showUploadSheet && uiState.isAdmin) {
+                ModalBottomSheet(
+                    onDismissRequest = { showUploadSheet = false },
+                    containerColor = MaterialTheme.colorScheme.background,
+                ) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 36.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        item {
+                            BeatHubUploadCard(
+                                uiState = uiState,
+                                onBeatTitleChanged = viewModel::updateBeatTitle,
+                                onArtistNameChanged = viewModel::updateArtistName,
+                                onEmailChanged = viewModel::updateEmail,
+                                onNotesChanged = viewModel::updateNotes,
+                                onPickFiles = {
+                                    dismissKeyboard()
+                                    pickerLauncher.launch(
+                                        arrayOf(
+                                            "audio/*",
+                                            "application/zip",
+                                            "application/x-zip-compressed",
+                                        ),
+                                    )
+                                },
+                                onRemoveFile = viewModel::removeFile,
+                                onUpload = {
+                                    dismissKeyboard()
+                                    viewModel.upload(context)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -331,6 +371,34 @@ private fun BeatHubListenerCard() {
         ) {
             BeatHubBadge(text = "Public Beats", isActive = true)
             BeatHubBadge(text = "Preview", isActive = false)
+        }
+    }
+}
+
+@Composable
+private fun BeatHubUploadStatusCard(
+    isUploading: Boolean,
+    onOpenUpload: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Upload")
+        Text(
+            text = if (isUploading) {
+                "Dein Beat-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
+            } else {
+                "Uploads oeffnen jetzt als Overlay, damit der Beat Hub im Horen und Sichten ruhig bleibt."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        OutlinedButton(
+            onClick = onOpenUpload,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+        ) {
+            Text("Upload oeffnen")
         }
     }
 }

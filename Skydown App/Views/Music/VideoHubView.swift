@@ -17,7 +17,9 @@ struct VideoHubView: View {
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
+    @State private var showingUploadSheet = false
     @State private var showingReelViewer = false
+    @State private var selectedYouTubeItem: SkydownYouTubeVideoItem?
     @State private var hasHandledInitialSelection = false
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
@@ -52,28 +54,28 @@ struct VideoHubView: View {
                         colorScheme: colorScheme,
                         items: viewModel.publicConfig.equipmentItems
                     )
-                    .id(VideoHubQuickActionTarget.equipment.sectionID)
                     VideoYouTubeCard(
                         colorScheme: colorScheme,
                         items: viewModel.publicConfig.youtubeItems
-                    )
+                    ) { item in
+                        selectedYouTubeItem = item
+                    }
                     .id(VideoHubQuickActionTarget.youtube.sectionID)
                     playerCard
                     libraryCard
 
                     if viewModel.isAdmin {
+                        uploadStatusCard
                         formatCard
                         VideoPublicConfigEditorCard(
                             colorScheme: colorScheme,
                             viewModel: viewModel
                         )
-                        uploadCard
-                            .id(VideoHubQuickActionTarget.upload.sectionID)
                     }
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.top, SkydownLayout.screenTopPadding)
-                .padding(.bottom, SkydownLayout.screenBottomPadding + 110)
+                .padding(.bottom, SkydownLayout.screenBottomPadding + 92)
             }
             .overlay(alignment: .bottomTrailing) {
                 VideoHubQuickActionDock(
@@ -85,9 +87,7 @@ struct VideoHubView: View {
                         }
                     },
                     onOpenUpload: {
-                        withAnimation(.snappy(duration: 0.35)) {
-                            proxy.scrollTo(VideoHubQuickActionTarget.upload.sectionID, anchor: .top)
-                        }
+                        showingUploadSheet = true
                     }
                 )
                 .padding(.trailing, SkydownLayout.screenHorizontalPadding)
@@ -116,6 +116,22 @@ struct VideoHubView: View {
                     }
                 }
             }
+
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if viewModel.isUploading {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                if viewModel.isAdmin {
+                    Button {
+                        showingUploadSheet = true
+                    } label: {
+                        Image(systemName: "arrow.up.circle")
+                            .font(.headline.weight(.semibold))
+                    }
+                }
+            }
         }
         .task {
             viewModel.configure(currentUser: authManager.userSession)
@@ -141,6 +157,45 @@ struct VideoHubView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .sheet(isPresented: $showingUploadSheet) {
+            NavigationStack {
+                ScrollView {
+                    uploadCard
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .skydownDismissKeyboardOnTap()
+                .background(
+                    AppColors.screenGradient(
+                        for: colorScheme,
+                        secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                    )
+                    .ignoresSafeArea()
+                )
+                .navigationTitle("Video Upload")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Schliessen") {
+                            showingUploadSheet = false
+                        }
+                    }
+
+                    if viewModel.isUploading {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.large])
+        }
+        .sheet(item: $selectedYouTubeItem) { item in
+            YouTubeEmbedPlayerView(item: item)
+        }
         .fullScreenCover(isPresented: $showingReelViewer) {
             if !viewModel.videos.isEmpty {
                 VideoReelViewer(
@@ -181,6 +236,49 @@ struct VideoHubView: View {
                 shadowYOffset: 6
             )
         }
+    }
+
+    private var uploadStatusCard: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Upload")
+                    .font(.headline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(
+                    viewModel.isUploading
+                    ? "Dein Video-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
+                    : "Uploads oeffnen jetzt als Overlay, damit die Seite schneller und sauberer bleibt."
+                )
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Spacer()
+
+            Button {
+                showingUploadSheet = true
+            } label: {
+                Text("Oeffnen")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(AppColors.accent(for: colorScheme))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
     }
 
     private func activateInitialSelectionIfNeeded(with videos: [SkydownVideoHubItem]) {
@@ -790,6 +888,7 @@ struct VideoEquipmentCard: View {
 struct VideoYouTubeCard: View {
     let colorScheme: ColorScheme
     let items: [SkydownYouTubeVideoItem]
+    let onPlayItem: (SkydownYouTubeVideoItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -812,7 +911,9 @@ struct VideoYouTubeCard: View {
                         VideoYouTubeRow(
                             item: item,
                             colorScheme: colorScheme
-                        )
+                        ) {
+                            onPlayItem(item)
+                        }
                     }
                 }
             }
@@ -831,18 +932,12 @@ struct VideoYouTubeCard: View {
 }
 
 private enum VideoHubQuickActionTarget {
-    case equipment
     case youtube
-    case upload
 
     var sectionID: String {
         switch self {
-        case .equipment:
-            return "video-equipment-section"
         case .youtube:
             return "video-youtube-section"
-        case .upload:
-            return "video-upload-section"
         }
     }
 }
@@ -995,6 +1090,7 @@ struct ProducedWithArtistRow: View {
 struct VideoYouTubeRow: View {
     let item: SkydownYouTubeVideoItem
     let colorScheme: ColorScheme
+    let onPlay: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -1012,17 +1108,16 @@ struct VideoYouTubeRow: View {
 
             Spacer()
 
-            if let url = URL(string: item.urlString), !item.urlString.isEmpty {
-                Link(destination: url) {
-                    Label("Oeffnen", systemImage: "play.rectangle.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
-                        .clipShape(Capsule())
-                }
+            Button(action: onPlay) {
+                Label("Abspielen", systemImage: "play.rectangle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                    .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)

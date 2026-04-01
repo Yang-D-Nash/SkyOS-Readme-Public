@@ -15,6 +15,7 @@ struct BeatHubView: View {
     @StateObject private var viewModel = NicmaProducerViewModel()
     @StateObject private var playbackManager = BeatPlaybackManager()
     @State private var showingFileImporter = false
+    @State private var showingUploadSheet = false
     let onBack: (() -> Void)?
 
     init(onBack: (() -> Void)? = nil) {
@@ -27,7 +28,7 @@ struct BeatHubView: View {
                 heroCard
 
                 if viewModel.isAdmin {
-                    uploadCard
+                    uploadStatusCard
                 } else {
                     listeningCard
                 }
@@ -54,6 +55,22 @@ struct BeatHubView: View {
                     }
                 }
             }
+
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if viewModel.isUploading {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                if viewModel.isAdmin {
+                    Button {
+                        showingUploadSheet = true
+                    } label: {
+                        Image(systemName: "arrow.up.circle")
+                            .font(.headline.weight(.semibold))
+                    }
+                }
+            }
         }
         .task {
             viewModel.configure(currentUser: authManager.userSession)
@@ -76,6 +93,36 @@ struct BeatHubView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .sheet(isPresented: $showingUploadSheet) {
+            NavigationStack {
+                ScrollView {
+                    uploadCard
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .skydownDismissKeyboardOnTap()
+                .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+                .navigationTitle("Beat Upload")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Schliessen") {
+                            showingUploadSheet = false
+                        }
+                    }
+
+                    if viewModel.isUploading {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.large])
+        }
         .skydownKeyboardDismissToolbar()
     }
 
@@ -209,6 +256,49 @@ struct BeatHubView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .disabled(!viewModel.canUpload)
             .opacity(viewModel.canUpload ? 1 : 0.6)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+    }
+
+    private var uploadStatusCard: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Upload")
+                    .font(.headline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(
+                    viewModel.isUploading
+                    ? "Dein Beat-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
+                    : "Uploads oeffnen jetzt als Overlay, damit du im Hub schneller bei den Beats bleibst."
+                )
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Spacer()
+
+            Button {
+                showingUploadSheet = true
+            } label: {
+                Text("Oeffnen")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(AppColors.accent(for: colorScheme))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -110,4 +110,10 @@ val skydownProducedWithArtists = listOf(
         role = "Collaborator",
         instagramUrl = "https://www.instagram.com/sincity.neo/",
     ),
+    ProducedWithArtist(
+        id = "produced-with-phil",
+        name = "Phil",
+        role = "Collaborator",
+        instagramUrl = "https://www.instagram.com/philip_beau/",
+    ),
 )

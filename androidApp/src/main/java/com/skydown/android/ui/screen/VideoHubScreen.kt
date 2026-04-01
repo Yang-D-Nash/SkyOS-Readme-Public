@@ -2,6 +2,9 @@ package com.skydown.android.ui.screen
 
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -37,11 +40,13 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -127,7 +132,9 @@ fun VideoHubScreen(
     }
     var selectedVideoId by rememberSaveable { mutableStateOf(initialSelectedVideoId) }
     var showReelViewer by rememberSaveable { mutableStateOf(false) }
+    var showUploadSheet by rememberSaveable { mutableStateOf(false) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
+    var selectedYouTubeItem by remember { mutableStateOf<VideoYouTubeItem?>(null) }
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
     }
@@ -193,6 +200,24 @@ fun VideoHubScreen(
                     )
                 },
                 actions = {
+                    if (uiState.isUploading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+
+                    if (uiState.isAdmin) {
+                        IconButton(onClick = { showUploadSheet = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Movie,
+                                contentDescription = "Upload oeffnen",
+                            )
+                        }
+                    }
+
                     if (onOpenSettings != null) {
                         AppTopBarSessionActions(
                             onOpenCart = onOpenCart,
@@ -223,9 +248,7 @@ fun VideoHubScreen(
                 if (uiState.isAdmin) {
                     FloatingActionButton(
                         onClick = {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(VideoHubListIndex.uploadSection(uiState.isAdmin))
-                            }
+                            showUploadSheet = true
                         },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -291,7 +314,7 @@ fun VideoHubScreen(
                 item {
                     VideoYouTubeCard(
                         items = uiState.publicConfig.youtubeItems,
-                        onOpenLink = { url -> openExternalLink(context, url) },
+                        onPlayItem = { item -> selectedYouTubeItem = item },
                     )
                 }
 
@@ -327,6 +350,13 @@ fun VideoHubScreen(
 
                 if (uiState.isAdmin) {
                     item {
+                        VideoUploadStatusCard(
+                            isUploading = uiState.isUploading,
+                            onOpenUpload = { showUploadSheet = true },
+                        )
+                    }
+
+                    item {
                         VideoFormatCard()
                     }
 
@@ -355,32 +385,6 @@ fun VideoHubScreen(
                             onSave = viewModel::savePublicConfig,
                         )
                     }
-
-                    item {
-                        VideoUploadCard(
-                            uiState = uiState,
-                            onUpdateTitle = viewModel::updateTitle,
-                            onUpdateProjectName = viewModel::updateProjectName,
-                            onUpdateEmail = viewModel::updateEmail,
-                            onUpdateNotes = viewModel::updateNotes,
-                            onPickFiles = {
-                                dismissKeyboard()
-                                videoPickerLauncher.launch(
-                                    arrayOf(
-                                        "video/mp4",
-                                        "video/quicktime",
-                                        "video/x-m4v",
-                                        "video/*",
-                                    ),
-                                )
-                            },
-                            onRemoveFile = viewModel::removeFile,
-                            onUpload = {
-                                dismissKeyboard()
-                                viewModel.upload(context)
-                            },
-                        )
-                    }
                 }
             }
 
@@ -402,16 +406,58 @@ fun VideoHubScreen(
                     onDismiss = { showReelViewer = false },
                 )
             }
+
+            if (showUploadSheet && uiState.isAdmin) {
+                ModalBottomSheet(
+                    onDismissRequest = { showUploadSheet = false },
+                    containerColor = MaterialTheme.colorScheme.background,
+                ) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 36.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        item {
+                            VideoUploadCard(
+                                uiState = uiState,
+                                onUpdateTitle = viewModel::updateTitle,
+                                onUpdateProjectName = viewModel::updateProjectName,
+                                onUpdateEmail = viewModel::updateEmail,
+                                onUpdateNotes = viewModel::updateNotes,
+                                onPickFiles = {
+                                    dismissKeyboard()
+                                    videoPickerLauncher.launch(
+                                        arrayOf(
+                                            "video/mp4",
+                                            "video/quicktime",
+                                            "video/x-m4v",
+                                            "video/*",
+                                        ),
+                                    )
+                                },
+                                onRemoveFile = viewModel::removeFile,
+                                onUpload = {
+                                    dismissKeyboard()
+                                    viewModel.upload(context)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            selectedYouTubeItem?.let { item ->
+                VideoYouTubePlayerDialog(
+                    item = item,
+                    onDismiss = { selectedYouTubeItem = null },
+                    onOpenExternal = { url -> openExternalLink(context, url) },
+                )
+            }
         }
     }
 }
 
 private object VideoHubListIndex {
     const val youtubeSection = 3
-
-    fun uploadSection(isAdmin: Boolean): Int {
-        return if (isAdmin) 8 else youtubeSection
-    }
 }
 
 @Composable
@@ -452,6 +498,34 @@ private fun VideoFormatCard() {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 10.dp),
         )
+    }
+}
+
+@Composable
+private fun VideoUploadStatusCard(
+    isUploading: Boolean,
+    onOpenUpload: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Upload")
+        Text(
+            text = if (isUploading) {
+                "Dein Video-Upload laeuft gerade. Den Fortschritt siehst du oben direkt in der App-Bar."
+            } else {
+                "Uploads oeffnen jetzt als Overlay, damit die Seite schneller und sauberer bleibt."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        OutlinedButton(
+            onClick = onOpenUpload,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+        ) {
+            Text("Upload oeffnen")
+        }
     }
 }
 
@@ -512,7 +586,7 @@ private fun VideoEquipmentCard(
 @Composable
 private fun VideoYouTubeCard(
     items: List<VideoYouTubeItem>,
-    onOpenLink: (String) -> Unit,
+    onPlayItem: (VideoYouTubeItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("YouTube")
@@ -538,7 +612,7 @@ private fun VideoYouTubeCard(
                 items.forEach { item ->
                     VideoYouTubeRow(
                         item = item,
-                        onOpenLink = onOpenLink,
+                        onPlay = { onPlayItem(item) },
                     )
                 }
             }
@@ -770,7 +844,7 @@ private fun ProducedWithArtistRow(
 @Composable
 private fun VideoYouTubeRow(
     item: VideoYouTubeItem,
-    onOpenLink: (String) -> Unit,
+    onPlay: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -799,10 +873,131 @@ private fun VideoYouTubeRow(
             }
         }
 
-        TextButton(onClick = { onOpenLink(item.url) }) {
-            Text("Oeffnen")
+        TextButton(onClick = onPlay) {
+            Text("Abspielen")
         }
     }
+}
+
+@Composable
+private fun VideoYouTubePlayerDialog(
+    item: VideoYouTubeItem,
+    onDismiss: () -> Unit,
+    onOpenExternal: (String) -> Unit,
+) {
+    val embedUrl = remember(item.url) { youtubeEmbedUrl(item.url) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        SkydownCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(18.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (item.subtitle.isNotBlank()) {
+                        Text(
+                            text = item.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                    }
+                }
+
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dialog schliessen",
+                    )
+                }
+            }
+
+            if (embedUrl != null) {
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(420.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .padding(top = 12.dp),
+                    factory = { playerContext ->
+                        WebView(playerContext).apply {
+                            webViewClient = WebViewClient()
+                            webChromeClient = WebChromeClient()
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.mediaPlaybackRequiresUserGesture = false
+                            loadUrl(embedUrl)
+                        }
+                    },
+                    update = { webView ->
+                        if (webView.url != embedUrl) {
+                            webView.loadUrl(embedUrl)
+                        }
+                    },
+                )
+            } else {
+                Text(
+                    text = "Der YouTube Player konnte fuer dieses Video nicht aufgebaut werden.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                FilledTonalButton(
+                    onClick = { onOpenExternal(item.url) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("In YouTube oeffnen")
+                }
+
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Schliessen")
+                }
+            }
+        }
+    }
+}
+
+private fun youtubeEmbedUrl(rawUrl: String): String? {
+    val videoId = resolvedYouTubeVideoId(rawUrl) ?: return null
+    return "https://www.youtube.com/embed/$videoId?playsinline=1&rel=0"
+}
+
+private fun resolvedYouTubeVideoId(rawUrl: String): String? {
+    val uri = Uri.parse(rawUrl)
+    val host = uri.host?.lowercase(Locale.ROOT).orEmpty()
+
+    return when {
+        "youtu.be" in host -> uri.lastPathSegment
+        uri.path?.contains("/embed/") == true || uri.path?.contains("/shorts/") == true -> uri.lastPathSegment
+        else -> uri.getQueryParameter("v")
+    }?.takeIf { it.isNotBlank() }
 }
 
 @Composable
