@@ -28,6 +28,7 @@ final class MerchandiseViewModel: ObservableObject {
     private var stopObservingItems: (() -> Void)?
     private var stopObservingStoreStatus: (() -> Void)?
     private var allItems: [MerchandiseItem] = []
+    private var hasAttemptedAutomaticShopifySync = false
 
     private var canManageMerchandise: Bool {
         authManager.userSession?.isAdmin == true
@@ -55,6 +56,9 @@ final class MerchandiseViewModel: ObservableObject {
     func fetchData() {
         isLoading = true
         errorMessage = nil
+        if canManageMerchandise && allItems.isEmpty {
+            hasAttemptedAutomaticShopifySync = false
+        }
 
         stopObservingItems?()
         observeStoreStatusIfNeeded()
@@ -67,8 +71,10 @@ final class MerchandiseViewModel: ObservableObject {
             case .success(let items):
                 self.allItems = items
                 self.merchandiseItems = self.filterVisibleItems(items)
-                if self.merchandiseItems.isEmpty {
-                    self.showUserToast("Keine Artikel gefunden.", style: .error)
+                if items.isEmpty {
+                    self.handleEmptyCatalogSnapshot()
+                } else {
+                    self.hasAttemptedAutomaticShopifySync = false
                 }
             case .failure(let error):
                 print("Dev Fehler fetchData:", error.localizedDescription)
@@ -118,7 +124,7 @@ final class MerchandiseViewModel: ObservableObject {
         }
     }
 
-    func syncShopifyCatalog() async {
+    func syncShopifyCatalog(automatic: Bool = false) async {
         guard canManageMerchandise else {
             showUserToast("Nur Admins duerfen den Shopify-Sync starten.", style: .error)
             return
@@ -129,7 +135,10 @@ final class MerchandiseViewModel: ObservableObject {
 
         do {
             let message = try await shopifySyncService.triggerSync()
-            showUserToast(message, style: .success)
+            showUserToast(
+                automatic ? "Shopify-Katalog wurde neu geladen." : message,
+                style: .success
+            )
             fetchData()
         } catch {
             showUserToast("Shopify-Sync fehlgeschlagen: \(error.localizedDescription)", style: .error)
@@ -221,10 +230,24 @@ final class MerchandiseViewModel: ObservableObject {
         }
     }
 
+    private func handleEmptyCatalogSnapshot() {
+        guard canManageMerchandise else { return }
+        guard !isSyncingCatalog else { return }
+        guard !hasAttemptedAutomaticShopifySync else { return }
+
+        hasAttemptedAutomaticShopifySync = true
+        Task {
+            await syncShopifyCatalog(automatic: true)
+        }
+    }
+
     private func filterVisibleItems(_ items: [MerchandiseItem]) -> [MerchandiseItem] {
-        let visibleItems = items.filter { canManageMerchandise || $0.isVisibleInApp }
+        let activeItems = items.filter { item in
+            item.source != "shopify" || item.shopifySyncActive
+        }
+        let visibleItems = activeItems.filter { canManageMerchandise || $0.isVisibleInApp }
         let hasVisibleShopifyItems = visibleItems.contains { item in
-            item.source == "shopify" && item.shopifyProductId?.isEmpty == false
+            item.source == "shopify" && item.shopifySyncActive && item.shopifyProductId?.isEmpty == false
         }
 
         let prioritizedItems: [MerchandiseItem]
@@ -232,7 +255,7 @@ final class MerchandiseViewModel: ObservableObject {
             prioritizedItems = visibleItems
         } else if hasVisibleShopifyItems {
             prioritizedItems = visibleItems.filter { item in
-                item.source == "shopify" && item.shopifyProductId?.isEmpty == false
+                item.source == "shopify" && item.shopifySyncActive && item.shopifyProductId?.isEmpty == false
             }
         } else {
             prioritizedItems = visibleItems

@@ -135,6 +135,7 @@ final class FirebaseMerchandiseService: MerchandiseServicing {
             "shopifyProductId": item.shopifyProductId as Any,
             "shopifyHandle": item.shopifyHandle as Any,
             "availableForSale": item.availableForSale,
+            "shopifySyncActive": item.shopifySyncActive,
             "variants": item.variants.map { variant in
                 [
                     "id": variant.id,
@@ -195,6 +196,7 @@ private extension DocumentSnapshot {
             shopifyProductId: data["shopifyProductId"] as? String,
             shopifyHandle: data["shopifyHandle"] as? String,
             availableForSale: data["availableForSale"] as? Bool ?? (data["available"] as? Bool ?? true),
+            shopifySyncActive: data["shopifySyncActive"] as? Bool ?? true,
             variants: (data["variants"] as? [[String: Any]])?.map { rawVariant in
                 MerchandiseVariant(
                     id: rawVariant["id"] as? String ?? UUID().uuidString,

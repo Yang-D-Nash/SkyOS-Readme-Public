@@ -48,82 +48,89 @@ struct AIView: View {
     }
 
     private var content: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: showsNavigation ? 12 : 10) {
-                    if showsNavigation && viewModel.messages.isEmpty {
-                        AIHeroCard(
+        VStack(spacing: 0) {
+            if featureFlags.isAIEnabled {
+                if viewModel.messages.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Spacer(minLength: showsNavigation ? 18 : 10)
+
+                        AIEmptyStateHeader(colorScheme: colorScheme)
+
+                        AIQuickPromptCard(
                             colorScheme: colorScheme,
-                            badges: featureFlags.isAIEnabled
-                                ? ["X22 Bot", "Creative Assist"]
-                                : ["X22 Bot", "Kurz pausiert"]
+                            prompts: viewModel.quickPrompts,
+                            onPromptSelected: viewModel.sendPrompt
                         )
+
+                        AIVisualPromptCard(
+                            colorScheme: colorScheme,
+                            prompts: viewModel.visualPrompts,
+                            onPromptSelected: viewModel.generateVisual
+                        )
+
+                        Spacer(minLength: 24)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                } else {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 10) {
+                                ForEach(viewModel.messages) { message in
+                                    AIMessageBubble(
+                                        message: message,
+                                        colorScheme: colorScheme
+                                    )
+                                    .id(message.id)
+                                }
 
-                    if featureFlags.isAIEnabled {
-                        if viewModel.messages.isEmpty {
-                            AIQuickPromptCard(
-                                colorScheme: colorScheme,
-                                prompts: viewModel.quickPrompts,
-                                onPromptSelected: viewModel.sendPrompt
-                            )
-
-                            AIVisualPromptCard(
-                                colorScheme: colorScheme,
-                                prompts: viewModel.visualPrompts,
-                                onPromptSelected: viewModel.generateVisual
-                            )
+                                Color.clear
+                                    .frame(height: 4)
+                                    .id("chat-end")
+                            }
+                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                            .padding(.top, showsNavigation ? 10 : 6)
+                            .padding(.bottom, 12)
                         }
-
-                        ForEach(viewModel.messages) { message in
-                            AIMessageBubble(
-                                message: message,
-                                colorScheme: colorScheme
-                            )
-                            .id(message.id)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .scrollIndicators(.hidden)
+                        .scrollDismissesKeyboard(.interactively)
+                        .simultaneousGesture(
+                            TapGesture().onEnded {
+                                isComposerFocused = false
+                            }
+                        )
+                        .onChange(of: viewModel.messages.count) { _, _ in
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                proxy.scrollTo("chat-end", anchor: .bottom)
+                            }
                         }
-
-                        Color.clear
-                            .frame(height: 4)
-                            .id("chat-end")
-                    } else {
-                        AIDisabledCard(colorScheme: colorScheme)
                     }
                 }
-            }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, showsNavigation ? 6 : 2)
-            .padding(.bottom, showsNavigation ? 12 : 14)
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    isComposerFocused = false
-                }
-            )
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if featureFlags.isAIEnabled {
-                    AIComposerBar(
-                        colorScheme: colorScheme,
-                        draft: $viewModel.draft,
-                        composerMode: $viewModel.composerMode,
-                        isFocused: $isComposerFocused,
-                        isSending: viewModel.isSending,
-                        onReset: viewModel.resetConversation,
-                        onSend: viewModel.sendDraft
-                    )
+            } else {
+                VStack {
+                    Spacer(minLength: 24)
+                    AIDisabledCard(colorScheme: colorScheme)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    Spacer()
                 }
             }
-            .onChange(of: viewModel.messages.count) { _, _ in
-                if featureFlags.isAIEnabled {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        proxy.scrollTo("chat-end", anchor: .bottom)
-                    }
-                }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if featureFlags.isAIEnabled {
+                AIComposerBar(
+                    colorScheme: colorScheme,
+                    draft: $viewModel.draft,
+                    composerMode: $viewModel.composerMode,
+                    isFocused: $isComposerFocused,
+                    isSending: viewModel.isSending,
+                    onReset: viewModel.resetConversation,
+                    onSend: viewModel.sendDraft
+                )
             }
-            .task {
-                await featureFlags.refresh()
-            }
+        }
+        .task {
+            await featureFlags.refresh()
         }
         .background(backgroundGradient.ignoresSafeArea())
     }
@@ -133,6 +140,22 @@ struct AIView: View {
             for: colorScheme,
             secondaryAccent: AppColors.accentMystic(for: colorScheme)
         )
+    }
+}
+
+private struct AIEmptyStateHeader: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Was moechtest du heute erstellen?")
+                .font(.system(size: 28, weight: .black, design: .rounded))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Frag direkt los, starte mit einem Prompt oder wechsel unten auf Visual, wenn du sofort etwas generieren willst.")
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
     }
 }
 
@@ -391,7 +414,7 @@ private struct AIMessageBubble: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .frame(maxWidth: 320, alignment: .leading)
+            .frame(maxWidth: 360, alignment: .leading)
             .background(bubbleBackground)
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(
@@ -460,13 +483,28 @@ private struct AIComposerBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 12) {
-                Picker("Modus", selection: $composerMode) {
-                    ForEach(AIComposerMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    Picker("Modus", selection: $composerMode) {
+                        ForEach(AIComposerMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
+                    .pickerStyle(.segmented)
+
+                    Button(action: onReset) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .frame(width: 38, height: 38)
+                            .background(
+                                Circle()
+                                    .fill(AppColors.secondaryBackground(for: colorScheme))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSending)
                 }
-                .pickerStyle(.segmented)
 
                 HStack(alignment: .bottom, spacing: 10) {
                     TextField(
@@ -512,19 +550,6 @@ private struct AIComposerBar: View {
                         .buttonStyle(.plain)
                         .disabled(trimmedDraft.isEmpty || isSending)
                         .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
-
-                        Button(action: onReset) {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .frame(width: 38, height: 38)
-                                .background(
-                                    Circle()
-                                        .fill(AppColors.secondaryBackground(for: colorScheme))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isSending)
                     }
                 }
             }

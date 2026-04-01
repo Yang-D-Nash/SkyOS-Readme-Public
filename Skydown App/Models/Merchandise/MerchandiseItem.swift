@@ -32,6 +32,7 @@ struct MerchandiseItem: Codable, Identifiable {
     var shopifyProductId: String?
     var shopifyHandle: String?
     var availableForSale: Bool = true
+    var shopifySyncActive: Bool = true
     var variants: [MerchandiseVariant] = []
     var source: String = "manual"
     var isVisibleInApp: Bool = true
@@ -52,6 +53,7 @@ struct MerchandiseItem: Codable, Identifiable {
         case shopifyProductId
         case shopifyHandle
         case availableForSale
+        case shopifySyncActive
         case variants
         case source
         case isVisibleInApp
@@ -73,6 +75,7 @@ struct MerchandiseItem: Codable, Identifiable {
         shopifyProductId: String? = nil,
         shopifyHandle: String? = nil,
         availableForSale: Bool = true,
+        shopifySyncActive: Bool = true,
         variants: [MerchandiseVariant] = [],
         source: String = "manual",
         isVisibleInApp: Bool = true,
@@ -92,6 +95,7 @@ struct MerchandiseItem: Codable, Identifiable {
         self.shopifyProductId = shopifyProductId
         self.shopifyHandle = shopifyHandle
         self.availableForSale = availableForSale
+        self.shopifySyncActive = shopifySyncActive
         self.variants = variants
         self.source = source
         self.isVisibleInApp = isVisibleInApp
@@ -115,6 +119,7 @@ struct MerchandiseItem: Codable, Identifiable {
         shopifyProductId = try container.decodeIfPresent(String.self, forKey: .shopifyProductId)
         shopifyHandle = try container.decodeIfPresent(String.self, forKey: .shopifyHandle)
         availableForSale = try container.decodeIfPresent(Bool.self, forKey: .availableForSale) ?? available
+        shopifySyncActive = try container.decodeIfPresent(Bool.self, forKey: .shopifySyncActive) ?? true
         variants = try container.decodeIfPresent([MerchandiseVariant].self, forKey: .variants) ?? []
         source = try container.decodeIfPresent(String.self, forKey: .source) ?? "manual"
         isVisibleInApp = try container.decodeIfPresent(Bool.self, forKey: .isVisibleInApp) ?? true
@@ -137,6 +142,7 @@ struct MerchandiseItem: Codable, Identifiable {
         try container.encodeIfPresent(shopifyProductId, forKey: .shopifyProductId)
         try container.encodeIfPresent(shopifyHandle, forKey: .shopifyHandle)
         try container.encode(availableForSale, forKey: .availableForSale)
+        try container.encode(shopifySyncActive, forKey: .shopifySyncActive)
         try container.encode(variants, forKey: .variants)
         try container.encode(source, forKey: .source)
         try container.encode(isVisibleInApp, forKey: .isVisibleInApp)

@@ -94,14 +94,7 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem {
-                    Label {
-                        Text("Music")
-                    } icon: {
-                        Image(BrandMark.zweizwei.rawValue)
-                            .renderingMode(.original)
-                    }
-                }
+                .tabItem { Label("Music", systemImage: "waveform.circle.fill") }
                 .tag(MainTab.zweizwei)
 
                 DeferredView {
@@ -114,14 +107,7 @@ struct MainTabView: View {
                         } : nil
                     )
                 }
-                .tabItem {
-                    Label {
-                        Text("Home")
-                    } icon: {
-                        Image(BrandMark.skydownX22.rawValue)
-                            .renderingMode(.original)
-                    }
-                }
+                .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(MainTab.hub)
 
                 DeferredView {
@@ -130,14 +116,7 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem {
-                    Label {
-                        Text("Videos")
-                    } icon: {
-                        Image(BrandMark.skydown.rawValue)
-                            .renderingMode(.original)
-                    }
-                }
+                .tabItem { Label("Videos", systemImage: "play.rectangle.fill") }
                 .tag(MainTab.skydown)
 
                 DeferredView {

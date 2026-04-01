@@ -186,63 +186,66 @@ fun AiScreen(
                     ),
                 )
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = SkydownUiTokens.screenHorizontalPadding,
-                    top = if (showTopBar) {
-                        innerPadding.calculateTopPadding() + 4.dp
-                    } else {
-                        2.dp
-                    },
-                    end = SkydownUiTokens.screenHorizontalPadding,
-                    bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
-                        8.dp
-                    } else {
-                        10.dp
-                    },
-                ),
-                verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
-            ) {
-                if (showTopBar && uiState.messages.isEmpty()) {
-                    item {
-                        AiOverviewCard(isEnabled = uiState.isAiEnabled)
-                    }
+            if (uiState.isAiEnabled && uiState.messages.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = SkydownUiTokens.screenHorizontalPadding,
+                            top = innerPadding.calculateTopPadding() + if (showTopBar) 8.dp else 4.dp,
+                            end = SkydownUiTokens.screenHorizontalPadding,
+                            bottom = innerPadding.calculateBottomPadding() + 8.dp,
+                        ),
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    AiEmptyStateHeader()
+                    QuickPromptCard(
+                        prompts = uiState.quickPrompts,
+                        onPromptSelected = viewModel::sendPrompt,
+                        compactLayout = compactLayout,
+                    )
+                    VisualPromptCard(
+                        prompts = uiState.visualPrompts,
+                        onPromptSelected = viewModel::generateVisual,
+                        compactLayout = compactLayout,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-
-                if (uiState.isAiEnabled) {
-                    if (uiState.messages.isEmpty()) {
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = SkydownUiTokens.screenHorizontalPadding,
+                        top = if (showTopBar) {
+                            innerPadding.calculateTopPadding() + 4.dp
+                        } else {
+                            4.dp
+                        },
+                        end = SkydownUiTokens.screenHorizontalPadding,
+                        bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
+                            8.dp
+                        } else {
+                            10.dp
+                        },
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+                ) {
+                    if (!uiState.isAiEnabled) {
                         item {
-                            QuickPromptCard(
-                                prompts = uiState.quickPrompts,
-                                onPromptSelected = viewModel::sendPrompt,
+                            AiDisabledCard()
+                        }
+                    } else {
+                        items(uiState.messages, key = { it.id }) { message ->
+                            AiMessageBubble(
+                                message = message,
                                 compactLayout = compactLayout,
                             )
                         }
 
                         item {
-                            VisualPromptCard(
-                                prompts = uiState.visualPrompts,
-                                onPromptSelected = viewModel::generateVisual,
-                                compactLayout = compactLayout,
-                            )
+                            Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 8.dp))
                         }
-                    }
-
-                    items(uiState.messages, key = { it.id }) { message ->
-                        AiMessageBubble(
-                            message = message,
-                            compactLayout = compactLayout,
-                        )
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 8.dp))
-                    }
-                } else {
-                    item {
-                        AiDisabledCard()
                     }
                 }
             }
@@ -259,6 +262,24 @@ fun AiScreen(
                     }),
             )
         }
+    }
+}
+
+@Composable
+private fun AiEmptyStateHeader() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Was moechtest du heute erstellen?",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "Frag direkt los, starte mit einem Prompt oder wechsel unten auf Visual, wenn du sofort etwas generieren willst.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
     }
 }
 
@@ -354,7 +375,7 @@ private fun QuickPromptCard(
     compactLayout: Boolean,
 ) {
     SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
-        SectionHeader("Bot starten")
+        SectionHeader("Direkt starten")
         LazyRow(
             modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
@@ -437,7 +458,7 @@ private fun AiMessageBubble(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 320.dp)
+                .widthIn(max = 360.dp)
                 .clip(bubbleShape)
                 .background(
                     if (isUser) {
@@ -659,7 +680,7 @@ private fun AiComposerBar(
                         },
                     )
                 },
-                minLines = 2,
+                minLines = 1,
                 maxLines = if (compactLayout) 4 else 5,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(

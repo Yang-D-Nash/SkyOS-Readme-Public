@@ -124,6 +124,7 @@ class AndroidMerchandiseRepository(
             "available" to item.available,
             "currency" to item.currency,
             "availableForSale" to item.availableForSale,
+            "shopifySyncActive" to item.shopifySyncActive,
             "variants" to item.variants.map { variant ->
                 buildMap<String, Any> {
                     put("id", variant.id)
@@ -169,6 +170,7 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSharedMerchandiseIt
         shopifyProductId = data["shopifyProductId"] as? String,
         shopifyHandle = data["shopifyHandle"] as? String,
         availableForSale = data["availableForSale"] as? Boolean ?: (data["available"] as? Boolean ?: true),
+        shopifySyncActive = data["shopifySyncActive"] as? Boolean ?: true,
         variants = (data["variants"] as? List<*>)?.mapNotNull { rawVariant ->
             val variant = rawVariant as? Map<*, *> ?: return@mapNotNull null
             MerchandiseVariant(

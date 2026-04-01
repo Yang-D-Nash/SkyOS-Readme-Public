@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -30,6 +29,7 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -68,7 +68,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
-import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
@@ -111,6 +110,10 @@ fun SettingsScreen(
     var invoiceTaxRateDraft by rememberSaveable { mutableStateOf("") }
     var invoicePrefixDraft by rememberSaveable { mutableStateOf("") }
     var invoiceSupportEmailDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyStoreDomainDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyStorefrontUrlDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyCollectionHandleDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyCollectionTitleDraft by rememberSaveable { mutableStateOf("") }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
@@ -119,7 +122,7 @@ fun SettingsScreen(
     }
     var activeAdminWorkspaceKey by rememberSaveable { mutableStateOf(AdminWorkspaceSection.Overview.name) }
     val activeAdminWorkspace = AdminWorkspaceSection.valueOf(activeAdminWorkspaceKey)
-    val compactAdminLayout = rememberIsCompactAppLayout()
+    var showAdminWorkspaceSheet by rememberSaveable { mutableStateOf(false) }
     val connectedPaymentMethodCount = listOf(
         uiState.paymentMethods.stripe.connected,
         uiState.paymentMethods.paypal.connected,
@@ -159,16 +162,23 @@ fun SettingsScreen(
         invoiceSupportEmailDraft = uiState.commerceSettings.invoice.supportEmail
     }
 
+    LaunchedEffect(uiState.shopifyAdminSettings) {
+        shopifyStoreDomainDraft = uiState.shopifyAdminSettings.storeDomain
+        shopifyStorefrontUrlDraft = uiState.shopifyAdminSettings.storefrontUrl
+        shopifyCollectionHandleDraft = uiState.shopifyAdminSettings.collectionHandle
+        shopifyCollectionTitleDraft = uiState.shopifyAdminSettings.collectionTitle
+    }
+
     LaunchedEffect(uiState.paymentFeedbackMessage) {
         val message = uiState.paymentFeedbackMessage ?: return@LaunchedEffect
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         viewModel.clearPaymentFeedback()
     }
 
-    val adminWorkspaceContent: @Composable () -> Unit = {
-        AdminWorkspaceSummaryCard(section = activeAdminWorkspace)
+    val adminWorkspaceContent: @Composable (AdminWorkspaceSection) -> Unit = { section ->
+        AdminWorkspaceSummaryCard(section = section)
 
-        when (activeAdminWorkspace) {
+        when (section) {
             AdminWorkspaceSection.Overview -> {
                 Text(
                     text = "Heute im Blick",
@@ -196,6 +206,17 @@ fun SettingsScreen(
                     }
                     item {
                         SettingsBadge(
+                            text = if (uiState.shopifyAdminSettings.hasCollectionFilter) {
+                                "Shopify: ${uiState.shopifyAdminSettings.activeCollectionLabel}"
+                            } else {
+                                "Shopify: Gesamter Store"
+                            },
+                            icon = Icons.Default.ShoppingBag,
+                            isActive = true,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
                             text = if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus",
                             icon = Icons.Default.Palette,
                             isActive = uiState.aiVisualReferenceLibrary.isEnabled,
@@ -210,14 +231,96 @@ fun SettingsScreen(
                     }
                 }
                 Text(
-                    text = if (compactAdminLayout) {
-                        "Waehle oben einfach den Bereich, den du gerade brauchst. So bleibt die Settings-Seite kurz und du springst direkt in die passende Aufgabe."
+                    text = "Jeder Bereich oeffnet sich jetzt separat. So bleibt die Settings-Seite kurz und du bist schneller direkt in der passenden Aufgabe.",
+                    modifier = Modifier.padding(top = 12.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            AdminWorkspaceSection.Shopify -> {
+                Text(
+                    text = "Der Shopify-Sync und die spaetere Order-Erstellung nutzen genau diese Angaben. Wenn du eine andere Kollektion live schalten willst, reicht hier Link oder Handle anzupassen und danach den Sync zu starten.",
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                Text(
+                    text = "Shopify Quelle",
+                    modifier = Modifier.padding(top = 16.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                OutlinedTextField(
+                    value = shopifyStoreDomainDraft,
+                    onValueChange = { shopifyStoreDomainDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    label = { Text("Store-Domain") },
+                    placeholder = { Text("k5t1sc-ps.myshopify.com") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = shopifyStorefrontUrlDraft,
+                    onValueChange = { shopifyStorefrontUrlDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Store- oder Collection-Link") },
+                    placeholder = { Text("https://.../collections/dein-drop") },
+                    minLines = 2,
+                    maxLines = 3,
+                )
+                OutlinedTextField(
+                    value = shopifyCollectionHandleDraft,
+                    onValueChange = { shopifyCollectionHandleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Collection-Handle") },
+                    placeholder = { Text("z. B. spring-drop-2026") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = shopifyCollectionTitleDraft,
+                    onValueChange = { shopifyCollectionTitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Collection-Label in der App") },
+                    placeholder = { Text("z. B. Spring Drop 2026") },
+                    singleLine = true,
+                )
+
+                Text(
+                    text = if (uiState.shopifyAdminSettings.hasCollectionFilter) {
+                        "Aktuell aktiv: ${uiState.shopifyAdminSettings.activeCollectionLabel}"
                     } else {
-                        "Waehle links den Bereich, den du gerade brauchst. So bleibt die Settings-Seite kurz und du springst direkt in die passende Aufgabe."
+                        "Aktuell aktiv: gesamter Shopify-Store"
                     },
                     modifier = Modifier.padding(top = 12.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
+
+                Button(
+                    onClick = {
+                        viewModel.saveShopifyAdminSettings(
+                            uiState.shopifyAdminSettings.copy(
+                                storeDomain = shopifyStoreDomainDraft.trim(),
+                                storefrontUrl = shopifyStorefrontUrlDraft.trim(),
+                                collectionHandle = shopifyCollectionHandleDraft.trim(),
+                                collectionTitle = shopifyCollectionTitleDraft.trim(),
+                            ),
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("Shopify speichern")
+                }
             }
 
             AdminWorkspaceSection.Payments -> {
@@ -737,7 +840,7 @@ fun SettingsScreen(
                         SectionHeader("Admin")
                         Text(
                             text = if (uiState.isAdmin) {
-                                "Die Admin-Werkzeuge sind jetzt in kurze Bereiche aufgeteilt, damit du Zahlungen, Versand oder Visuals direkt erreichst."
+                                "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand oder Visuals rein, statt alles in einer langen Seite aufzuklappen."
                             } else {
                                 "Admin-Bereiche werden erst mit passender Berechtigung aktiv."
                             },
@@ -756,47 +859,24 @@ fun SettingsScreen(
                         }
 
                         if (uiState.isAdmin) {
-                            if (compactAdminLayout) {
-                                LazyRow(
-                                    modifier = Modifier.padding(top = 14.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    items(AdminWorkspaceSection.entries, key = { it.name }) { section ->
-                                        AdminWorkspaceChip(
+                            Column(
+                                modifier = Modifier.padding(top = 14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                AdminWorkspaceSection.entries.forEach { section ->
+                                    AdminWorkspaceListRow(
+                                        section = section,
+                                        detailText = adminWorkspaceStatusText(
                                             section = section,
-                                            selected = activeAdminWorkspace == section,
-                                            onClick = { activeAdminWorkspaceKey = section.name },
-                                        )
-                                    }
-                                }
-
-                                Column(modifier = Modifier.padding(top = 14.dp)) {
-                                    adminWorkspaceContent()
-                                }
-                            } else {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 14.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                    verticalAlignment = Alignment.Top,
-                                ) {
-                                    Column(
-                                        modifier = Modifier.width(176.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        AdminWorkspaceSection.entries.forEach { section ->
-                                            AdminWorkspaceRailButton(
-                                                section = section,
-                                                selected = activeAdminWorkspace == section,
-                                                onClick = { activeAdminWorkspaceKey = section.name },
-                                            )
-                                        }
-                                    }
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        adminWorkspaceContent()
-                                    }
+                                            uiState = uiState,
+                                            connectedPaymentMethodCount = connectedPaymentMethodCount,
+                                            visiblePaymentMethodCount = visiblePaymentMethodCount,
+                                        ),
+                                        onClick = {
+                                            activeAdminWorkspaceKey = section.name
+                                            showAdminWorkspaceSheet = true
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -901,6 +981,27 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    if (showAdminWorkspaceSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAdminWorkspaceSheet = false },
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = activeAdminWorkspace.label,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                adminWorkspaceContent(activeAdminWorkspace)
             }
         }
     }
@@ -1444,6 +1545,11 @@ private enum class AdminWorkspaceSection(
         subtitle = "Provider verbinden und fuer den Checkout sichtbar schalten.",
         icon = Icons.Default.CreditCard,
     ),
+    Shopify(
+        label = "Shopify",
+        subtitle = "Store-Domain, Collection-Link und Sync-Quelle fuer Merch pflegen.",
+        icon = Icons.Default.ShoppingBag,
+    ),
     Commerce(
         label = "Versand",
         subtitle = "Versandkosten, MwSt. und Rechnungsdaten gesammelt pflegen.",
@@ -1459,6 +1565,93 @@ private enum class AdminWorkspaceSection(
         subtitle = "Das getrennte Google-Setup fuer Workflows vorbereiten.",
         icon = Icons.Default.Bolt,
     ),
+}
+
+private fun adminWorkspaceStatusText(
+    section: AdminWorkspaceSection,
+    uiState: SettingsUiState,
+    connectedPaymentMethodCount: Int,
+    visiblePaymentMethodCount: Int,
+): String {
+    return when (section) {
+        AdminWorkspaceSection.Overview -> "$connectedPaymentMethodCount Bereiche aktiv"
+        AdminWorkspaceSection.Payments -> "$visiblePaymentMethodCount live im Checkout"
+        AdminWorkspaceSection.Shopify -> uiState.shopifyAdminSettings.activeCollectionLabel
+        AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
+        AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"
+        AdminWorkspaceSection.Automation -> if (uiState.workflowAutomationSettings.isPrepared) "Vorbereitet" else "Noch offen"
+    }
+}
+
+@Composable
+private fun AdminWorkspaceListRow(
+    section: AdminWorkspaceSection,
+    detailText: String,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = section.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = section.label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = section.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = detailText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+                Text(
+                    text = "Oeffnen",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+            }
+        }
+    }
 }
 
 @Composable

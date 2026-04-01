@@ -28,6 +28,7 @@ object AppContainer {
     val merchOrderPaymentClient: MerchOrderPaymentClient by lazy { MerchOrderPaymentClient() }
     val paymentMethodsRepository: PaymentMethodsRepository by lazy { PaymentMethodsRepository() }
     val commerceSettingsRepository: CommerceSettingsRepository by lazy { CommerceSettingsRepository() }
+    val shopifyAdminSettingsRepository: ShopifyAdminSettingsRepository by lazy { ShopifyAdminSettingsRepository() }
     val merchStoreStatusRepository: MerchStoreStatusRepository by lazy { MerchStoreStatusRepository() }
 
     val authRepository: AuthRepository by lazy {

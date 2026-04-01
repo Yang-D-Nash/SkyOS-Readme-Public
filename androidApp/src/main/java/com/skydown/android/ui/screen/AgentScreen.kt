@@ -175,55 +175,61 @@ fun AgentScreen(
                     ),
                 )
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = SkydownUiTokens.screenHorizontalPadding,
-                    top = if (showTopBar) {
-                        innerPadding.calculateTopPadding() + 4.dp
-                    } else {
-                        2.dp
-                    },
-                    end = SkydownUiTokens.screenHorizontalPadding,
-                    bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
-                        8.dp
-                    } else {
-                        10.dp
-                    },
-                ),
-                verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
-            ) {
-                if (showTopBar && uiState.messages.isEmpty()) {
-                    item {
-                        AgentOverviewCard(isEnabled = uiState.isAgentEnabled)
-                    }
+            if (uiState.isAgentEnabled && uiState.messages.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = SkydownUiTokens.screenHorizontalPadding,
+                            top = innerPadding.calculateTopPadding() + if (showTopBar) 8.dp else 4.dp,
+                            end = SkydownUiTokens.screenHorizontalPadding,
+                            bottom = innerPadding.calculateBottomPadding() + 8.dp,
+                        ),
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    AgentEmptyStateHeader()
+                    AgentQuickPromptCard(
+                        prompts = uiState.quickPrompts,
+                        onPromptSelected = viewModel::sendPrompt,
+                        compactLayout = compactLayout,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-
-                if (uiState.isAgentEnabled) {
-                    if (uiState.messages.isEmpty()) {
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = SkydownUiTokens.screenHorizontalPadding,
+                        top = if (showTopBar) {
+                            innerPadding.calculateTopPadding() + 4.dp
+                        } else {
+                            4.dp
+                        },
+                        end = SkydownUiTokens.screenHorizontalPadding,
+                        bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
+                            8.dp
+                        } else {
+                            10.dp
+                        },
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+                ) {
+                    if (!uiState.isAgentEnabled) {
                         item {
-                            AgentQuickPromptCard(
-                                prompts = uiState.quickPrompts,
-                                onPromptSelected = viewModel::sendPrompt,
+                            AgentDisabledCard()
+                        }
+                    } else {
+                        items(uiState.messages, key = { it.id }) { message ->
+                            AgentMessageBubble(
+                                message = message,
                                 compactLayout = compactLayout,
                             )
                         }
-                    }
 
-                    items(uiState.messages, key = { it.id }) { message ->
-                        AgentMessageBubble(
-                            message = message,
-                            compactLayout = compactLayout,
-                        )
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 8.dp))
-                    }
-                } else {
-                    item {
-                        AgentDisabledCard()
+                        item {
+                            Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 8.dp))
+                        }
                     }
                 }
             }
@@ -240,6 +246,24 @@ fun AgentScreen(
                     }),
             )
         }
+    }
+}
+
+@Composable
+private fun AgentEmptyStateHeader() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Wobei soll ich dich strukturieren?",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "Nutze den Agent fuer Briefings, Shotlists, Release-Plaene und klare naechste Schritte. Schreib direkt unten los oder starte mit einem Prompt.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
     }
 }
 
@@ -335,7 +359,7 @@ private fun AgentQuickPromptCard(
     compactLayout: Boolean,
 ) {
     SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
-        SectionHeader("Agent starten")
+        SectionHeader("Direkt starten")
         LazyRow(
             modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
@@ -384,7 +408,7 @@ private fun AgentMessageBubble(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 320.dp)
+                .widthIn(max = 360.dp)
                 .clip(bubbleShape)
                 .background(
                     if (isUser) {
@@ -507,7 +531,7 @@ private fun AgentComposerBar(
                 placeholder = {
                     Text("Zum Beispiel: Release-Briefing fuer Freitag.")
                 },
-                minLines = 2,
+                minLines = 1,
                 maxLines = if (compactLayout) 4 else 5,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(

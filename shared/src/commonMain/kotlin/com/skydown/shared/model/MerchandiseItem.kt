@@ -28,6 +28,7 @@ data class MerchandiseItem(
     val shopifyProductId: String? = null,
     val shopifyHandle: String? = null,
     val availableForSale: Boolean = true,
+    val shopifySyncActive: Boolean = true,
     val variants: List<MerchandiseVariant> = emptyList(),
     val source: String = "manual",
     val isVisibleInApp: Boolean = true,

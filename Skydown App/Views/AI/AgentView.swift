@@ -48,75 +48,82 @@ struct AgentView: View {
     }
 
     private var content: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: showsNavigation ? 12 : 10) {
-                    if showsNavigation && viewModel.messages.isEmpty {
-                        AgentHeroCard(
+        VStack(spacing: 0) {
+            if featureFlags.isAIEnabled {
+                if viewModel.messages.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Spacer(minLength: showsNavigation ? 18 : 10)
+
+                        AgentEmptyStateHeader(colorScheme: colorScheme)
+
+                        AgentQuickPromptCard(
                             colorScheme: colorScheme,
-                            badges: featureFlags.isAIEnabled
-                                ? ["X22 Agent", "Workflow"]
-                                : ["X22 Agent", "Kurz pausiert"]
+                            prompts: viewModel.quickPrompts,
+                            onPromptSelected: viewModel.sendPrompt
                         )
-                    }
 
-                    if featureFlags.isAIEnabled {
-                        if viewModel.messages.isEmpty {
-                            AgentQuickPromptCard(
-                                colorScheme: colorScheme,
-                                prompts: viewModel.quickPrompts,
-                                onPromptSelected: viewModel.sendPrompt
-                            )
+                        Spacer(minLength: 24)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                } else {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 10) {
+                                ForEach(viewModel.messages) { message in
+                                    AgentMessageBubble(
+                                        message: message,
+                                        colorScheme: colorScheme
+                                    )
+                                    .id(message.id)
+                                }
+
+                                Color.clear
+                                    .frame(height: 4)
+                                    .id("agent-chat-end")
+                            }
+                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                            .padding(.top, showsNavigation ? 10 : 6)
+                            .padding(.bottom, 12)
                         }
-
-                        ForEach(viewModel.messages) { message in
-                            AgentMessageBubble(
-                                message: message,
-                                colorScheme: colorScheme
-                            )
-                            .id(message.id)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .scrollIndicators(.hidden)
+                        .scrollDismissesKeyboard(.interactively)
+                        .simultaneousGesture(
+                            TapGesture().onEnded {
+                                isComposerFocused = false
+                            }
+                        )
+                        .onChange(of: viewModel.messages.count) { _, _ in
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                            }
                         }
-
-                        Color.clear
-                            .frame(height: 4)
-                            .id("agent-chat-end")
-                    } else {
-                        AgentDisabledCard(colorScheme: colorScheme)
                     }
                 }
-            }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, showsNavigation ? 6 : 2)
-            .padding(.bottom, showsNavigation ? 12 : 14)
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    isComposerFocused = false
-                }
-            )
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if featureFlags.isAIEnabled {
-                    AgentComposerBar(
-                        colorScheme: colorScheme,
-                        draft: $viewModel.draft,
-                        isFocused: $isComposerFocused,
-                        isSending: viewModel.isSending,
-                        onReset: viewModel.resetConversation,
-                        onSend: viewModel.sendDraft
-                    )
+            } else {
+                VStack {
+                    Spacer(minLength: 24)
+                    AgentDisabledCard(colorScheme: colorScheme)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    Spacer()
                 }
             }
-            .onChange(of: viewModel.messages.count) { _, _ in
-                if featureFlags.isAIEnabled {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        proxy.scrollTo("agent-chat-end", anchor: .bottom)
-                    }
-                }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if featureFlags.isAIEnabled {
+                AgentComposerBar(
+                    colorScheme: colorScheme,
+                    draft: $viewModel.draft,
+                    isFocused: $isComposerFocused,
+                    isSending: viewModel.isSending,
+                    onReset: viewModel.resetConversation,
+                    onSend: viewModel.sendDraft
+                )
             }
-            .task {
-                await featureFlags.refresh()
-            }
+        }
+        .task {
+            await featureFlags.refresh()
         }
         .background(backgroundGradient.ignoresSafeArea())
     }
@@ -126,6 +133,22 @@ struct AgentView: View {
             for: colorScheme,
             secondaryAccent: AppColors.accentHighlight(for: colorScheme)
         )
+    }
+}
+
+private struct AgentEmptyStateHeader: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Wobei soll ich dich strukturieren?")
+                .font(.system(size: 28, weight: .black, design: .rounded))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Nutze den Agent fuer Briefings, Shotlists, Release-Plaene und klare naechste Schritte. Schreib direkt unten los oder starte mit einem Prompt.")
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
     }
 }
 
@@ -325,7 +348,7 @@ private struct AgentMessageBubble: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .frame(maxWidth: 320, alignment: .leading)
+            .frame(maxWidth: 360, alignment: .leading)
             .background(bubbleBackground)
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(
@@ -400,7 +423,20 @@ private struct AgentComposerBar: View {
                 )
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-                VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Button(action: onReset) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .frame(width: 38, height: 38)
+                            .background(
+                                Circle()
+                                    .fill(AppColors.secondaryBackground(for: colorScheme))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSending)
+
                     Button(action: {
                         isFocused.wrappedValue = false
                         onSend()
@@ -426,19 +462,6 @@ private struct AgentComposerBar: View {
                     .buttonStyle(.plain)
                     .disabled(trimmedDraft.isEmpty || isSending)
                     .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
-
-                    Button(action: onReset) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(AppColors.secondaryBackground(for: colorScheme))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSending)
                 }
             }
             .padding(.horizontal, 16)

@@ -27,6 +27,7 @@ class ShopViewModel : ViewModel() {
     val uiState: StateFlow<ShopUiState> = _uiState.asStateFlow()
     private var storeStatusListener: ListenerRegistration? = null
     private var allItems: List<MerchandiseItem> = emptyList()
+    private var hasAttemptedAutomaticShopifySync = false
 
     init {
         viewModelScope.launch {
@@ -395,6 +396,9 @@ class ShopViewModel : ViewModel() {
         val user = AppContainer.authService.currentUser()
         val resolvedItems = itemsResult.getOrDefault(emptyList())
         allItems = resolvedItems
+        if (resolvedItems.isNotEmpty()) {
+            hasAttemptedAutomaticShopifySync = false
+        }
         _uiState.update {
             it.copy(
                 items = filterVisibleItems(resolvedItems, isAdmin = user?.isAdmin == true),
@@ -402,6 +406,10 @@ class ShopViewModel : ViewModel() {
                 isAdmin = user?.isAdmin == true,
                 errorMessage = itemsResult.exceptionOrNull()?.message,
             )
+        }
+
+        if (user?.isAdmin == true && resolvedItems.isEmpty()) {
+            maybeAutoSyncShopify()
         }
     }
 
@@ -435,15 +443,16 @@ class ShopViewModel : ViewModel() {
     }
 
     private fun filterVisibleItems(items: List<MerchandiseItem>, isAdmin: Boolean): List<MerchandiseItem> {
-        val visibleItems = items.filter { isAdmin || it.isVisibleInApp }
+        val activeItems = items.filter { it.source != "shopify" || it.shopifySyncActive }
+        val visibleItems = activeItems.filter { isAdmin || it.isVisibleInApp }
         val hasVisibleShopifyItems = visibleItems.any {
-            it.source == "shopify" && !it.shopifyProductId.isNullOrBlank()
+            it.source == "shopify" && it.shopifySyncActive && !it.shopifyProductId.isNullOrBlank()
         }
 
         val prioritizedItems = when {
             isAdmin -> visibleItems
             hasVisibleShopifyItems -> visibleItems.filter {
-                it.source == "shopify" && !it.shopifyProductId.isNullOrBlank()
+                it.source == "shopify" && it.shopifySyncActive && !it.shopifyProductId.isNullOrBlank()
             }
             else -> visibleItems
         }
@@ -455,5 +464,47 @@ class ShopViewModel : ViewModel() {
                     .thenBy { it.sortOrder }
                     .thenBy { it.name.lowercase() },
             )
+    }
+
+    private suspend fun maybeAutoSyncShopify() {
+        if (hasAttemptedAutomaticShopifySync || _uiState.value.isSyncingCatalog) {
+            return
+        }
+
+        hasAttemptedAutomaticShopifySync = true
+        _uiState.update {
+            it.copy(
+                isSyncingCatalog = true,
+                toastMessage = "Shopify-Katalog wird geladen...",
+                isErrorToast = false,
+            )
+        }
+
+        val syncResult = shopifyMerchSyncClient.triggerSync()
+        if (syncResult.isSuccess) {
+            val itemsResult = merchandiseService.loadItems()
+            val user = AppContainer.authService.currentUser()
+            val resolvedItems = itemsResult.getOrDefault(emptyList())
+            allItems = resolvedItems
+            _uiState.update {
+                it.copy(
+                    items = filterVisibleItems(resolvedItems, isAdmin = user?.isAdmin == true),
+                    isLoggedIn = user != null,
+                    isAdmin = user?.isAdmin == true,
+                    errorMessage = itemsResult.exceptionOrNull()?.message,
+                    isSyncingCatalog = false,
+                    toastMessage = "Shopify-Katalog wurde neu geladen.",
+                    isErrorToast = false,
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(
+                    isSyncingCatalog = false,
+                    toastMessage = syncResult.exceptionOrNull()?.message ?: "Shopify-Sync fehlgeschlagen.",
+                    isErrorToast = true,
+                )
+            }
+        }
     }
 }

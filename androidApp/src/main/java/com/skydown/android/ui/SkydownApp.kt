@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PlayCircleFilled
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
@@ -116,35 +119,14 @@ fun SkydownApp() {
         add(BottomDestination("shop", "Merch") { _ ->
             Icon(Icons.Default.ShoppingBag, contentDescription = null)
         })
-        add(BottomDestination("music", "Music") { isSelected ->
-            Image(
-                painter = painterResource(id = R.drawable.zweizwei_brand_logo),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(22.dp)
-                    .alpha(if (isSelected) 1f else 0.72f),
-                contentScale = ContentScale.Fit,
-            )
+        add(BottomDestination("music", "Music") { _ ->
+            Icon(Icons.Default.GraphicEq, contentDescription = null)
         })
-        add(BottomDestination("home", "Home") { isSelected ->
-            Image(
-                painter = painterResource(id = R.drawable.skydown_x22_brand_logo),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(22.dp)
-                    .alpha(if (isSelected) 1f else 0.72f),
-                contentScale = ContentScale.Fit,
-            )
+        add(BottomDestination("home", "Home") { _ ->
+            Icon(Icons.Default.Home, contentDescription = null)
         })
-        add(BottomDestination("video", "Videos") { isSelected ->
-            Image(
-                painter = painterResource(id = R.drawable.skydown_brand_logo),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(22.dp)
-                    .alpha(if (isSelected) 1f else 0.72f),
-                contentScale = ContentScale.Fit,
-            )
+        add(BottomDestination("video", "Videos") { _ ->
+            Icon(Icons.Default.PlayCircleFilled, contentDescription = null)
         })
         add(BottomDestination("ai", "Tools") { _ ->
             Icon(Icons.Default.AutoAwesome, contentDescription = null)

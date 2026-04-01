@@ -21,6 +21,16 @@ struct FirebaseFunctionsShopifyMerchSyncService: ShopifyMerchSyncServicing {
         let synced = (data?["syncedCount"] as? NSNumber)?.intValue ?? 0
         let created = (data?["createdCount"] as? NSNumber)?.intValue ?? 0
         let updated = (data?["updatedCount"] as? NSNumber)?.intValue ?? 0
-        return "Shopify-Sync abgeschlossen: \(synced) Produkte, \(created) neu, \(updated) aktualisiert."
+        let deactivated = (data?["deactivatedCount"] as? NSNumber)?.intValue ?? 0
+        let collectionTitle = (data?["collectionTitle"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let collectionHandle = (data?["collectionHandle"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let collectionLabel = [collectionTitle ?? "", collectionHandle ?? ""]
+            .first { !$0.isEmpty }
+
+        if let collectionLabel {
+            return "Shopify-Sync abgeschlossen: \(collectionLabel), \(synced) Produkte, \(created) neu, \(updated) aktualisiert, \(deactivated) ausgeblendet."
+        }
+
+        return "Shopify-Sync abgeschlossen: \(synced) Produkte, \(created) neu, \(updated) aktualisiert, \(deactivated) ausgeblendet."
     }
 }

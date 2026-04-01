@@ -8,6 +8,7 @@ import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.BankTransferSettings
 import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
+import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.WorkflowAutomationPreferences
 import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.ui.model.SettingsUiState
@@ -23,8 +24,10 @@ class SettingsViewModel : ViewModel() {
     private val authService = AppContainer.authService
     private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
     private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
+    private val shopifyAdminSettingsRepository = AppContainer.shopifyAdminSettingsRepository
     private var commerceSettingsListener: ListenerRegistration? = null
     private var paymentMethodsListener: ListenerRegistration? = null
+    private var shopifyAdminSettingsListener: ListenerRegistration? = null
     private val _uiState = MutableStateFlow(
         SettingsUiState(),
     )
@@ -98,6 +101,17 @@ class SettingsViewModel : ViewModel() {
                 )
             }
         }
+
+        shopifyAdminSettingsListener = shopifyAdminSettingsRepository.observeSettings { result ->
+            result.onSuccess { settings ->
+                _uiState.update { it.copy(shopifyAdminSettings = settings) }
+            }.onFailure { error ->
+                showPaymentFeedback(
+                    message = error.message ?: "Shopify-Einstellungen konnten nicht geladen werden.",
+                    isError = true,
+                )
+            }
+        }
     }
 
     fun updateNotifications(enabled: Boolean) {
@@ -151,6 +165,23 @@ class SettingsViewModel : ViewModel() {
             } else {
                 showPaymentFeedback(
                     message = result.exceptionOrNull()?.message ?: "Commerce-Einstellungen konnten nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun saveShopifyAdminSettings(settings: ShopifyAdminSettings) {
+        viewModelScope.launch {
+            val result = shopifyAdminSettingsRepository.updateSettings(settings)
+            if (result.isSuccess) {
+                showPaymentFeedback(
+                    message = "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store und diese Kollektion.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "Shopify-Einstellungen konnten nicht gespeichert werden.",
                     isError = true,
                 )
             }
@@ -385,6 +416,8 @@ class SettingsViewModel : ViewModel() {
         commerceSettingsListener = null
         paymentMethodsListener?.remove()
         paymentMethodsListener = null
+        shopifyAdminSettingsListener?.remove()
+        shopifyAdminSettingsListener = null
         super.onCleared()
     }
 

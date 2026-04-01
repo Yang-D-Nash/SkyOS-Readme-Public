@@ -25,6 +25,8 @@ const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
 const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
+const SHOPIFY_CONFIG_COLLECTION = "appConfig";
+const SHOPIFY_CONFIG_DOCUMENT = "shopifyMerch";
 const SHOPIFY_VARIANT_OPTION_KEYS = {
   size: ["size", "groesse", "größe"],
   color: ["color", "colour", "farbe"],
@@ -72,16 +74,105 @@ async function assertAdmin(auth) {
   }
 }
 
-function getShopifyDomain() {
-  return (process.env.SHOPIFY_STORE_DOMAIN || SHOPIFY_STORE_DOMAIN_DEFAULT).trim();
+function normalizeStoreDomain(value) {
+  const trimmed = nonEmptyString(value);
+  if (!trimmed) {
+    return null;
+  }
+
+  const withoutScheme = trimmed
+      .replace(/^https?:\/\//i, "")
+      .split("/")[0]
+      ?.trim()
+      .toLowerCase();
+
+  return nonEmptyString(withoutScheme);
 }
 
-function getShopifyGraphqlUrl() {
-  return `https://${getShopifyDomain()}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
+function normalizeUrlString(value) {
+  const trimmed = nonEmptyString(value);
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return normalized.replace(/\/+$/, "");
 }
 
-async function shopifyGraphqlRequest({query, variables = {}, token}) {
-  const response = await fetch(getShopifyGraphqlUrl(), {
+function normalizeCollectionHandle(value, fallbackURL = null) {
+  const direct = nonEmptyString(value);
+  if (direct) {
+    return nonEmptyString(
+        direct
+            .replace(/^\/?collections\//i, "")
+            .split("/")[0],
+    );
+  }
+
+  const normalizedFallbackURL = normalizeUrlString(fallbackURL);
+  if (!normalizedFallbackURL) {
+    return null;
+  }
+
+  try {
+    const url = new URL(normalizedFallbackURL);
+    const pathSegments = url.pathname.split("/").filter(Boolean);
+    const collectionIndex = pathSegments.findIndex((segment) => segment.toLowerCase() === "collections");
+    if (collectionIndex === -1 || !pathSegments[collectionIndex + 1]) {
+      return null;
+    }
+
+    return nonEmptyString(pathSegments[collectionIndex + 1]);
+  } catch (error) {
+    logger.warn("Shopify collection handle could not be derived from URL.", {
+      storefrontURL: normalizedFallbackURL,
+      error: error instanceof Error ? error.message : "unknown_error",
+    });
+    return null;
+  }
+}
+
+function getShopifyDomain(storeDomain) {
+  return normalizeStoreDomain(storeDomain)
+    || normalizeStoreDomain(process.env.SHOPIFY_STORE_DOMAIN)
+    || SHOPIFY_STORE_DOMAIN_DEFAULT;
+}
+
+function buildStorefrontURL(storeDomain, collectionHandle) {
+  if (collectionHandle) {
+    return `https://${storeDomain}/collections/${collectionHandle}`;
+  }
+
+  return `https://${storeDomain}`;
+}
+
+async function loadShopifyAdminConfig() {
+  const snapshot = await admin.firestore()
+      .collection(SHOPIFY_CONFIG_COLLECTION)
+      .doc(SHOPIFY_CONFIG_DOCUMENT)
+      .get();
+  const data = snapshot.data() || {};
+  const configuredStorefrontURL = normalizeUrlString(data.storefrontURL);
+  const storeDomain = getShopifyDomain(data.storeDomain || configuredStorefrontURL);
+  const collectionHandle = normalizeCollectionHandle(
+      data.collectionHandle,
+      configuredStorefrontURL,
+  ) || "";
+
+  return {
+    storeDomain,
+    storefrontURL: configuredStorefrontURL || buildStorefrontURL(storeDomain, collectionHandle || null),
+    collectionHandle,
+    collectionTitle: nonEmptyString(data.collectionTitle) || "",
+  };
+}
+
+function getShopifyGraphqlUrl(storeDomain) {
+  return `https://${getShopifyDomain(storeDomain)}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
+}
+
+async function shopifyGraphqlRequest({query, variables = {}, token, storeDomain}) {
+  const response = await fetch(getShopifyGraphqlUrl(storeDomain), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -200,6 +291,7 @@ function normalizeShopifyProduct(product, currencyCode, existingData = {}) {
     shopifyProductId: product.id,
     shopifyHandle: nonEmptyString(product.handle) || "",
     availableForSale,
+    shopifySyncActive: true,
     variants,
     source: "shopify",
     isVisibleInApp: typeof existingData.isVisibleInApp === "boolean" ? existingData.isVisibleInApp : true,
@@ -211,7 +303,7 @@ function normalizeShopifyProduct(product, currencyCode, existingData = {}) {
   };
 }
 
-async function fetchAllShopifyProducts(token) {
+async function fetchAllShopifyProducts(token, config) {
   const query = `
     query FetchMerchProducts($cursor: String) {
       shop {
@@ -235,6 +327,12 @@ async function fetchAllShopifyProducts(token) {
           images(first: 10) {
             nodes {
               url
+            }
+          }
+          collections(first: 20) {
+            nodes {
+              handle
+              title
             }
           }
           variants(first: 100) {
@@ -265,6 +363,7 @@ async function fetchAllShopifyProducts(token) {
       query,
       variables: {cursor},
       token,
+      storeDomain: config?.storeDomain,
     });
 
     currencyCode = data?.shop?.currencyCode || currencyCode;
@@ -276,6 +375,19 @@ async function fetchAllShopifyProducts(token) {
     cursor = connection?.pageInfo?.endCursor || null;
   }
 
+  if (config?.collectionHandle) {
+    const normalizedCollectionHandle = config.collectionHandle.toLowerCase();
+    return {
+      products: products.filter((product) => {
+        const collections = product?.collections?.nodes || [];
+        return collections.some((collection) =>
+          `${collection?.handle || ""}`.trim().toLowerCase() === normalizedCollectionHandle,
+        );
+      }),
+      currencyCode,
+    };
+  }
+
   return {products, currencyCode};
 }
 
@@ -285,8 +397,12 @@ async function runShopifyMerchSync() {
     throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN ist nicht konfiguriert.");
   }
 
+  const config = await loadShopifyAdminConfig();
+
   logger.info("Shopify merch sync started.", {
-    storeDomain: getShopifyDomain(),
+    storeDomain: config.storeDomain,
+    collectionHandle: config.collectionHandle || null,
+    storefrontURL: config.storefrontURL,
   });
 
   const firestore = admin.firestore();
@@ -304,10 +420,12 @@ async function runShopifyMerchSync() {
     existingByDocumentId.set(document.id, document);
   });
 
-  const {products, currencyCode} = await fetchAllShopifyProducts(token);
+  const {products, currencyCode} = await fetchAllShopifyProducts(token, config);
   const batch = firestore.batch();
   let createdCount = 0;
   let updatedCount = 0;
+  let deactivatedCount = 0;
+  const activeProductIds = new Set(products.map((product) => product.id));
 
   products.forEach((product) => {
     const existingDocument = existingByProductId.get(product.id)
@@ -325,7 +443,21 @@ async function runShopifyMerchSync() {
     }
   });
 
-  if (products.length > 0) {
+  existingByProductId.forEach((document, productId) => {
+    if (activeProductIds.has(productId)) {
+      return;
+    }
+
+    batch.set(document.ref, {
+      shopifySyncActive: false,
+      available: false,
+      availableForSale: false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+    deactivatedCount += 1;
+  });
+
+  if (products.length > 0 || deactivatedCount > 0) {
     await batch.commit();
   }
 
@@ -333,14 +465,21 @@ async function runShopifyMerchSync() {
     syncedCount: products.length,
     createdCount,
     updatedCount,
-    storeDomain: getShopifyDomain(),
+    deactivatedCount,
+    storeDomain: config.storeDomain,
+    collectionHandle: config.collectionHandle || null,
   });
 
   return {
     syncedCount: products.length,
     createdCount,
     updatedCount,
+    deactivatedCount,
     currencyCode,
+    storeDomain: config.storeDomain,
+    storefrontURL: config.storefrontURL,
+    collectionHandle: config.collectionHandle,
+    collectionTitle: config.collectionTitle,
   };
 }
 
@@ -504,6 +643,7 @@ async function createShopifyOrder({orderId, data}) {
   if (!token) {
     throw new Error("SHOPIFY_ADMIN_ACCESS_TOKEN ist nicht konfiguriert.");
   }
+  const config = await loadShopifyAdminConfig();
 
   const mutation = `
     mutation CreateExternalOrder($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
@@ -543,6 +683,7 @@ async function createShopifyOrder({orderId, data}) {
     query: mutation,
     variables,
     token,
+    storeDomain: config.storeDomain,
   });
   const result = response?.orderCreate;
   const userErrors = result?.userErrors || [];
@@ -558,6 +699,7 @@ async function createShopifyOrder({orderId, data}) {
   return {
     shopifyOrderId: result.order.id,
     shopifyOrderName: result.order.name || "",
+    storeDomain: config.storeDomain,
   };
 }
 
@@ -755,7 +897,7 @@ exports.processConfirmedMerchOrders = onDocumentWritten({
       shopifySyncUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, {merge: true});
 
-    const {shopifyOrderId, shopifyOrderName} = await createShopifyOrder({
+    const {shopifyOrderId, shopifyOrderName, storeDomain} = await createShopifyOrder({
       orderId,
       data: afterData,
     });
@@ -763,6 +905,7 @@ exports.processConfirmedMerchOrders = onDocumentWritten({
     await orderRef.set({
       shopifyOrderId,
       shopifyOrderName,
+      shopifyStoreDomain: storeDomain,
       shopifySyncStatus: "submitted",
       fulfillmentStatus: "submitted_to_shopify",
       shopifySyncUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -772,6 +915,7 @@ exports.processConfirmedMerchOrders = onDocumentWritten({
       orderId,
       shopifyOrderId,
       shopifyOrderName,
+      storeDomain,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unbekannter Shopify-Fehler.";

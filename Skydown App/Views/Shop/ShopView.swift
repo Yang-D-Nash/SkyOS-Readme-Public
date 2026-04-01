@@ -234,9 +234,11 @@ struct ShopView: View {
                             if viewModel.merchandiseItems.isEmpty {
                                 ShopInfoCard(
                                     colorScheme: colorScheme,
-                                    title: "Noch keine Shopify-Produkte",
+                                    title: viewModel.isSyncingCatalog ? "Shopify wird geladen" : "Noch keine Shopify-Produkte",
                                     message: isAdmin
-                                        ? "Sobald du den Shopify-Sync startest, tauchen die Produkte hier mit ihren Varianten automatisch auf."
+                                        ? (viewModel.isSyncingCatalog
+                                           ? "Der Katalog wird gerade direkt aus Shopify neu aufgebaut."
+                                           : "Wenn Firestore leer ist, versucht die App den Shopify-Katalog jetzt automatisch neu zu laden.")
                                         : "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
                                 )
                             }
@@ -1192,7 +1194,7 @@ private struct ShopHeroCard: View {
 
                     if let onSyncShopify {
                         Button(action: onSyncShopify) {
-                            Text(isSyncingCatalog ? "Sync läuft..." : "Shopify syncen")
+                            Text(isSyncingCatalog ? "Katalog lädt..." : "Shopify syncen")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                         }

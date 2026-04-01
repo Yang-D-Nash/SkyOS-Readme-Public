@@ -84,6 +84,13 @@ Optional environment override:
 
 - callable function: `syncShopifyMerch`
 - admin-triggered from the merch admin UI
+- source config comes from `appConfig/shopifyMerch`
+  - `storeDomain`
+  - `storefrontURL`
+  - `collectionHandle`
+  - `collectionTitle`
+- if `collectionHandle` is set, only that Shopify collection is synced
+- Shopify products that no longer match the active collection are marked inactive in Firestore
 - sync updates Shopify title, description, images, variants, prices and availability
 - app-specific fields stay intact:
   - `isVisibleInApp`

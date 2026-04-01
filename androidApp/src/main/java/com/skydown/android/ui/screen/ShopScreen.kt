@@ -180,6 +180,23 @@ fun ShopScreen(
                     }
                 }
 
+                if (uiState.items.isEmpty()) {
+                    item {
+                        ShopMessageCard(
+                            title = if (uiState.isSyncingCatalog) "Shopify wird geladen" else "Noch keine Shopify-Produkte",
+                            body = if (uiState.isAdmin) {
+                                if (uiState.isSyncingCatalog) {
+                                    "Der Katalog wird gerade direkt aus Shopify neu aufgebaut."
+                                } else {
+                                    "Wenn Firestore leer ist, versucht die App den Shopify-Katalog jetzt automatisch neu zu laden."
+                                }
+                            } else {
+                                "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
+                            },
+                        )
+                    }
+                }
+
                 items(uiState.items, key = { it.id.orEmpty() }) { item ->
                     MerchandiseCard(
                         item = item,
@@ -356,7 +373,7 @@ private fun ShopOverviewCard(
                         enabled = !uiState.isSyncingCatalog,
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text(if (uiState.isSyncingCatalog) "Sync laeuft..." else "Shopify syncen")
+                        Text(if (uiState.isSyncingCatalog) "Katalog laedt..." else "Shopify syncen")
                     }
                 }
             }

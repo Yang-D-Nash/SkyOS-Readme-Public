@@ -53,7 +53,8 @@ service cloud.firestore {
       allow read: if documentId in [
         "merchandiseStore",
         "paymentMethods",
-        "commerceSettings"
+        "commerceSettings",
+        "shopifyMerch"
       ];
 
       allow create, update, delete: if isAdmin();

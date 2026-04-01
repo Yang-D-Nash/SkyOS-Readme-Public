@@ -114,7 +114,6 @@ fun NicmaProducerScreen(
 
                 item {
                     NicmaContactCard(
-                        onContact = { openNicmaEmail(context) },
                         onOpenInstagram = { openNicmaInstagram(context) },
                     )
                 }
@@ -227,45 +226,26 @@ private fun NicmaPriceRow(
 
 @Composable
 private fun NicmaContactCard(
-    onContact: () -> Unit,
     onOpenInstagram: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Kontakt")
         Text(
-            text = "Anfragen fuer Mixing, Mastering und Recording gehen direkt an nicoheine@me.com.",
+            text = "Anfragen fuer Mixing, Mastering und Recording laufen oeffentlich nur noch ueber Instagram.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        Button(
-            onClick = onContact,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            shape = RoundedCornerShape(18.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            Text("NICMA MUSIC anfragen")
-        }
-
         OutlinedButton(
             onClick = onOpenInstagram,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 10.dp),
+                .padding(top = 16.dp),
             shape = RoundedCornerShape(18.dp),
         ) {
             Text("NICMA MUSIC auf Instagram")
         }
-
-        Text(
-            text = "Mail: nicoheine@me.com • Instagram: @nicma.music",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-            modifier = Modifier.padding(top = 12.dp),
-        )
     }
 }
 
@@ -300,15 +280,6 @@ private val nicmaProducerPackages = listOf(
     NicmaProducerPackage("Track Recording inkl. Mix / Master", "Kompletter Recording-Flow", "250 €"),
     NicmaProducerPackage("8h Studio Zeit + Engineer", "zzgl. Nachbearbeitung", "400 € + Nachbearbeitung"),
 )
-
-private fun openNicmaEmail(context: Context) {
-    openEmailDraft(
-        context = context,
-        recipients = listOf("nicoheine@me.com"),
-        subject = "NICMA MUSIC Anfrage",
-        body = "",
-    )
-}
 
 private fun openNicmaInstagram(context: Context) {
     openExternalLink(

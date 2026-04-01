@@ -15,12 +15,12 @@ struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @StateObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @StateObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
     @StateObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
     @Binding var colorScheme: String
 
@@ -36,6 +36,7 @@ struct SettingsView: View {
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
+    @State private var presentedAdminWorkspace: SettingsAdminWorkspaceSection?
     @State private var showingMailOptions = false
     @State private var showingMailView = false
     @State private var stripeAccountHintDraft = ""
@@ -58,7 +59,10 @@ struct SettingsView: View {
     @State private var invoiceTaxRateDraft = ""
     @State private var invoicePrefixDraft = ""
     @State private var invoiceSupportEmailDraft = ""
-    @State private var activeAdminWorkspace: SettingsAdminWorkspaceSection = .overview
+    @State private var shopifyStoreDomainDraft = ""
+    @State private var shopifyStorefrontURLDraft = ""
+    @State private var shopifyCollectionHandleDraft = ""
+    @State private var shopifyCollectionTitleDraft = ""
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -290,6 +294,37 @@ struct SettingsView: View {
         .sheet(isPresented: $showingTermsOfService) {
             PolicyView(title: "Nutzungsbedingungen", text: .termsOfServiceText)
         }
+        .sheet(item: $presentedAdminWorkspace) { section in
+            NavigationStack {
+                ScrollView {
+                    adminWorkspaceContent(for: section)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding * 0.75)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                }
+                .scrollIndicators(.hidden)
+                .background(
+                    AppColors.screenGradient(
+                        for: effectiveColorScheme,
+                        secondaryAccent: AppColors.accentHighlight(for: effectiveColorScheme)
+                    )
+                    .ignoresSafeArea()
+                )
+                .navigationTitle(section.rawValue)
+                .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: effectiveColorScheme)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            presentedAdminWorkspace = nil
+                        } label: {
+                            Label("Schliessen", systemImage: "xmark")
+                        }
+                    }
+                }
+            }
+            .environment(\.colorScheme, effectiveColorScheme)
+        }
         .confirmationDialog(
             "Support-Anfrage senden",
             isPresented: $showingMailOptions,
@@ -350,12 +385,16 @@ struct SettingsView: View {
         .onAppear {
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
+            syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
             syncPaymentDrafts(with: settings)
         }
         .onReceive(commerceSettingsStore.$settings) { settings in
             syncCommerceDrafts(with: settings)
+        }
+        .onReceive(shopifyAdminSettingsStore.$settings) { settings in
+            syncShopifyDrafts(with: settings)
         }
     }
 
@@ -365,10 +404,6 @@ struct SettingsView: View {
 
     private var isAdminUser: Bool {
         authManager.userSession?.isAdmin == true
-    }
-
-    private var usesSidebarAdminWorkspace: Bool {
-        horizontalSizeClass == .regular
     }
 
     private var connectedPaymentMethodCount: Int {
@@ -393,7 +428,7 @@ struct SettingsView: View {
     private var adminWorkspaceSectionCard: some View {
         SettingsSectionCard(title: "Admin", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isAdminUser ? "Alles Wichtige ist jetzt in kurze Admin-Bereiche aufgeteilt. So kommst du schneller zu Zahlungen, Versand oder Visuals, ohne durch die ganze Seite zu scrollen." : "Admin-Bereiche werden erst mit passender Berechtigung aktiv.")
+                Text(isAdminUser ? "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand oder Visuals rein, statt alles in einer langen Seite aufzuklappen." : "Admin-Bereiche werden erst mit passender Berechtigung aktiv.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -407,41 +442,16 @@ struct SettingsView: View {
                 .disabled(!isAdminUser)
 
                 if isAdminUser {
-                    if usesSidebarAdminWorkspace {
-                        HStack(alignment: .top, spacing: 14) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                ForEach(SettingsAdminWorkspaceSection.allCases) { section in
-                                    SettingsAdminWorkspaceSidebarButton(
-                                        section: section,
-                                        isSelected: activeAdminWorkspace == section,
-                                        colorScheme: effectiveColorScheme
-                                    ) {
-                                        activeAdminWorkspace = section
-                                    }
-                                }
+                    VStack(spacing: 10) {
+                        ForEach(SettingsAdminWorkspaceSection.allCases) { section in
+                            SettingsAdminWorkspaceListRow(
+                                section: section,
+                                colorScheme: effectiveColorScheme,
+                                detailText: adminWorkspaceStatusText(for: section)
+                            ) {
+                                presentedAdminWorkspace = section
                             }
-                            .frame(width: 190, alignment: .topLeading)
-
-                            adminWorkspaceContent
-                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                    } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                ForEach(SettingsAdminWorkspaceSection.allCases) { section in
-                                    SettingsAdminWorkspaceChip(
-                                        section: section,
-                                        isSelected: activeAdminWorkspace == section,
-                                        colorScheme: effectiveColorScheme
-                                    ) {
-                                        activeAdminWorkspace = section
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 2)
-                        }
-
-                        adminWorkspaceContent
                     }
                 }
             }
@@ -449,14 +459,14 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var adminWorkspaceContent: some View {
+    private func adminWorkspaceContent(for section: SettingsAdminWorkspaceSection) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             SettingsAdminWorkspaceSummaryCard(
-                section: activeAdminWorkspace,
+                section: section,
                 colorScheme: effectiveColorScheme
             )
 
-            switch activeAdminWorkspace {
+            switch section {
             case .overview:
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Heute im Blick")
@@ -478,6 +488,12 @@ struct SettingsView: View {
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
+                                text: shopifyAdminSettingsStore.settings.hasCollectionFilter
+                                    ? "Shopify: \(shopifyAdminSettingsStore.settings.activeCollectionLabel)"
+                                    : "Shopify: Gesamter Store",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
                                 text: aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus",
                                 colorScheme: effectiveColorScheme
                             )
@@ -489,9 +505,72 @@ struct SettingsView: View {
                         .padding(.vertical, 2)
                     }
 
-                    Text(usesSidebarAdminWorkspace ? "Waehle links den Bereich, den du gerade brauchst. So bleibt alles kompakt und du landest direkt in der passenden Aufgabe." : "Waehle oben einfach den Bereich, den du gerade brauchst. Dadurch bleibt der Admin-Teil kurz und du springst direkt in die passende Aufgabe.")
+                    Text("Jeder Bereich oeffnet sich jetzt separat. So bleibt die Settings-Seite kurz und du bist schneller genau da, wo du arbeiten willst.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                }
+
+            case .shopify:
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Der Shopify-Sync und die spaetere Order-Erstellung nutzen genau diese Angaben. Wenn du eine andere Kollektion live schalten willst, reicht hier Link oder Handle anzupassen und danach den Sync zu starten.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    SettingsInputField(
+                        title: "Store-Domain",
+                        text: $shopifyStoreDomainDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "k5t1sc-ps.myshopify.com"
+                    )
+
+                    SettingsInputField(
+                        title: "Store- oder Collection-Link",
+                        text: $shopifyStorefrontURLDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "https://.../collections/dein-drop",
+                        keyboardType: .URL
+                    )
+
+                    SettingsInputField(
+                        title: "Collection-Handle",
+                        text: $shopifyCollectionHandleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. spring-drop-2026"
+                    )
+
+                    SettingsInputField(
+                        title: "Collection-Label in der App",
+                        text: $shopifyCollectionTitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Spring Drop 2026"
+                    )
+
+                    SettingsBadge(
+                        text: shopifyAdminSettingsStore.settings.hasCollectionFilter
+                            ? "Aktuell: \(shopifyAdminSettingsStore.settings.activeCollectionLabel)"
+                            : "Aktuell: Gesamter Shopify-Store",
+                        colorScheme: effectiveColorScheme
+                    )
+
+                    HStack(spacing: 10) {
+                        Button(action: saveShopifyAdminSettings) {
+                            Label("Shopify speichern", systemImage: "shippingbox.and.arrow.backward")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accent(for: effectiveColorScheme))
+
+                        if let storefrontURL = shopifyAdminSettingsStore.settings.storefrontURL.takeIfNotBlank(),
+                           let url = URL(string: storefrontURL) {
+                            Button {
+                                UIApplication.shared.open(url)
+                            } label: {
+                                Label("Link oeffnen", systemImage: "arrow.up.right.square")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
                 }
 
             case .payments:
@@ -842,6 +921,23 @@ struct SettingsView: View {
         }
     }
 
+    private func adminWorkspaceStatusText(for section: SettingsAdminWorkspaceSection) -> String {
+        switch section {
+        case .overview:
+            return merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert"
+        case .payments:
+            return "\(visiblePaymentMethodCount) live im Checkout"
+        case .shopify:
+            return shopifyAdminSettingsStore.settings.activeCollectionLabel
+        case .commerce:
+            return commerceSettingsStore.settings.invoice.supportEmail.takeIfNotBlank() ?? "Versand & Rechnung"
+        case .visuals:
+            return aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus"
+        case .automation:
+            return workflowAutomationSettings.settings.isPrepared ? "Vorbereitet" : "Noch offen"
+        }
+    }
+
     private var supportMailbox: String {
         "skydownent@gmail.com"
     }
@@ -921,6 +1017,13 @@ struct SettingsView: View {
         invoiceSupportEmailDraft = settings.invoice.supportEmail
     }
 
+    private func syncShopifyDrafts(with settings: ShopifyAdminSettings) {
+        shopifyStoreDomainDraft = settings.storeDomain
+        shopifyStorefrontURLDraft = settings.storefrontURL
+        shopifyCollectionHandleDraft = settings.collectionHandle
+        shopifyCollectionTitleDraft = settings.collectionTitle
+    }
+
     private func saveCommerceSettings() {
         let domesticCost = domesticShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.domesticCost
         let euCost = euShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.euCost
@@ -953,6 +1056,26 @@ struct SettingsView: View {
                 showToastMessage("Versand- und Rechnungsdaten gespeichert.", style: .success)
             } catch {
                 showToastMessage("Versand- und Rechnungsdaten konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveShopifyAdminSettings() {
+        Task {
+            var updated = shopifyAdminSettingsStore.settings
+            updated.storeDomain = shopifyStoreDomainDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.storefrontURL = shopifyStorefrontURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.collectionHandle = shopifyCollectionHandleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.collectionTitle = shopifyCollectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            do {
+                try await shopifyAdminSettingsStore.save(updated)
+                showToastMessage(
+                    "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store und diese Kollektion.",
+                    style: .success
+                )
+            } catch {
+                showToastMessage("Shopify-Einstellungen konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -1534,6 +1657,7 @@ private struct SettingsBadge: View {
 private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
     case overview = "Uebersicht"
     case payments = "Zahlungen"
+    case shopify = "Shopify"
     case commerce = "Versand"
     case visuals = "Visuals"
     case automation = "Automation"
@@ -1546,6 +1670,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "square.grid.2x2.fill"
         case .payments:
             return "creditcard.fill"
+        case .shopify:
+            return "bag.fill"
         case .commerce:
             return "shippingbox.fill"
         case .visuals:
@@ -1561,6 +1687,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "Schneller Status fuer Store, Zahlarten, Visuals und Automationen."
         case .payments:
             return "Provider verbinden, pruefen und fuer den Checkout sichtbar schalten."
+        case .shopify:
+            return "Store-Domain, Shopify-Link und Kollektion fuer den Merch-Sync pflegen."
         case .commerce:
             return "Versandkosten, MwSt. und Rechnungsdaten an einem Platz pflegen."
         case .visuals:
@@ -1603,6 +1731,62 @@ private struct SettingsAdminWorkspaceChip: View {
                         lineWidth: 1
                     )
             )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsAdminWorkspaceListRow: View {
+    let section: SettingsAdminWorkspaceSection
+    let colorScheme: ColorScheme
+    let detailText: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.12))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: section.iconName)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(section.rawValue)
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(section.subtitle)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(detailText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                        .multilineTextAlignment(.trailing)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColors.secondaryBackground(for: colorScheme))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
     }

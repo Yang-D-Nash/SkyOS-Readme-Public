@@ -15,10 +15,6 @@ struct NicmaProducerView: View {
         self.onBack = onBack
     }
 
-    private var inquiryMailURL: URL? {
-        URL(string: "mailto:nicoheine@me.com?subject=NICMA%20MUSIC%20Anfrage")
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -104,21 +100,9 @@ struct NicmaProducerView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Anfragen fuer Mixing, Mastering und Recording gehen direkt an nicoheine@me.com.")
+            Text("Anfragen fuer Mixing, Mastering und Recording laufen oeffentlich nur noch ueber Instagram.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            if let inquiryMailURL {
-                Link(destination: inquiryMailURL) {
-                    Label("NICMA MUSIC anfragen", systemImage: "envelope.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                }
-                .foregroundColor(.white)
-                .background(AppColors.accentMystic(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-            }
 
             if let instagramURL = nicmaInstagramDestination.url {
                 Link(destination: instagramURL) {
@@ -135,10 +119,6 @@ struct NicmaProducerView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 18))
             }
-
-            Text("Mail: nicoheine@me.com")
-                .font(.footnote)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
