@@ -116,7 +116,7 @@ fun ShopScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { SkydownTopBarTitle("Merchandise", "Drops, Apparel und direkter Checkout.") },
+                title = { SkydownTopBarTitle("Shop", "Produkte entdecken und direkt bestellen.") },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
@@ -125,7 +125,7 @@ fun ShopScreen(
                         IconButton(onClick = viewModel::refresh) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Merch aktualisieren",
+                                contentDescription = "Shop aktualisieren",
                             )
                         }
                     }
@@ -304,13 +304,13 @@ private fun ShopOverviewCard(
     onToggleStore: (() -> Unit)? = null,
 ) {
     BrandHeroCard(
-        eyebrow = "Global Store",
-        title = "Merchandise",
-        subtitle = "Drops, Apparel und direkter Checkout fuer Zweizwei und Skydown in einem gemeinsamen Store.",
+        eyebrow = "Store",
+        title = "Shop",
+        subtitle = "Produkte entdecken, gross ansehen und direkt bestellen.",
         detail = if (uiState.isStoreOpen) {
-            "Der Store ist live und fuer Kunden sichtbar."
+            "Der Store ist offen und bereit fuer neue Bestellungen."
         } else {
-            "Der Store ist aktuell pausiert und kann jederzeit wieder freigeschaltet werden."
+            "Produkte bleiben sichtbar. Neue Bestellungen starten wieder, sobald der Store geoeffnet wird."
         },
         accent = MaterialTheme.colorScheme.tertiary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
@@ -334,13 +334,6 @@ private fun ShopOverviewCard(
                 icon = if (uiState.isLoggedIn) Icons.Default.CheckCircle else Icons.Default.Sync,
                 isActive = uiState.isLoggedIn,
             )
-            if (uiState.isAdmin) {
-                ShopBadge(
-                    text = "Admin",
-                    icon = Icons.Default.CheckCircle,
-                    isActive = true,
-                )
-            }
         }
 
         onToggleStore?.let { toggleStore ->

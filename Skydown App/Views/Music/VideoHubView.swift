@@ -81,7 +81,7 @@ struct VideoHubView: View {
             )
             .ignoresSafeArea()
         )
-        .navigationTitle("Skydown Videography")
+        .navigationTitle("Video")
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
         .toolbar {
@@ -133,11 +133,11 @@ struct VideoHubView: View {
     private var collaborationsCard: some View {
         if !skydownProducedWithArtists.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Produced With")
+                Text("Collaborators")
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Kuenstler und Acts, mit denen Skydown produktionell zusammengearbeitet hat.")
+                Text("Artists und Creatives, mit denen in Produktionen zusammengearbeitet wurde.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -187,12 +187,10 @@ struct VideoHubView: View {
     private var heroCard: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: "Skydown",
-            title: "Videography",
-            subtitle: viewModel.isAdmin
-                ? "Reels, Clips, Sessions und Visuals bleiben zentral steuerbar. Admins koennen Uploads, Home-Highlights und oeffentliche Listen direkt pflegen."
-                : "Hier laufen die oeffentlichen Videoarbeiten von Skydown mit Equipment, YouTube-Bereich und aktuellen Kollaborationen.",
-            detail: "Alles ist so angeordnet, dass du schnell von Clips zu Equipment, YouTube und Kollaborationen kommst.",
+            eyebrow: "Video",
+            title: "Video",
+            subtitle: "Reels, Clips, Equipment, YouTube und neue Uploads an einem Ort.",
+            detail: "Hier wechselst du schnell zwischen Watch, Equipment, YouTube und Kollaborationen.",
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
@@ -201,7 +199,7 @@ struct VideoHubView: View {
                 MusicBadge(text: "Videos", isAccent: true)
                 MusicBadge(text: "Equipment", isAccent: false)
                 MusicBadge(text: "YouTube", isAccent: false)
-                MusicBadge(text: viewModel.isAdmin ? "Admin" : "Live", isAccent: false)
+                MusicBadge(text: "Collabs", isAccent: false)
             }
         }
     }
@@ -432,7 +430,7 @@ struct VideoHubView: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if viewModel.isLoadingVideos {
-                ProgressView("Skydown Videography wird geladen ...")
+                ProgressView("Videos werden geladen ...")
             } else if viewModel.videos.isEmpty {
                 Text(
                     viewModel.isAdmin
@@ -527,7 +525,7 @@ struct VideoHubLibraryRow: View {
             }
 
             HStack(spacing: 8) {
-                MusicBadge(text: video.isPublic ? "Live" : "Hidden", isAccent: video.isPublic)
+                MusicBadge(text: video.isPublic ? "Public" : "Private", isAccent: video.isPublic)
                 if isAdmin && video.isHomeFeatured {
                     MusicBadge(text: "Home", isAccent: true)
                 }

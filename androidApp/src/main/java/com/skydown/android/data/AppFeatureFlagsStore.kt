@@ -75,11 +75,11 @@ object AppFeatureFlagsStore {
 
         return when {
             user == null && accessMode == AiAccessMode.AdminOnly ->
-                "Die KI ist aktuell nur fuer Admins freigeschaltet. Melde dich mit einem Admin-Konto an."
+                "Melde dich an, damit du siehst, sobald die KI fuer dein Konto verfuegbar ist."
             user == null ->
                 "Bitte melde dich an, um die KI zu nutzen."
             accessMode == AiAccessMode.AdminOnly && user.isAdmin != true ->
-                "Die KI ist aktuell nur fuer Admins freigeschaltet."
+                "Die KI wird gerade vorbereitet und ist fuer dein Konto noch nicht freigeschaltet."
             else ->
                 "Die KI ist gerade nicht verfuegbar."
         }

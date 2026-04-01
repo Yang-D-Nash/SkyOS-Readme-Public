@@ -182,7 +182,7 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "Home",
-                        "Zweizwei, Skydown, Merchandise und Tools auf einen Blick.",
+                        "Musik, Videos, Shop und Tools auf einen Blick.",
                     )
                 },
                 actions = {
@@ -372,17 +372,17 @@ private fun HomeAnimatedItem(
 @Composable
 private fun HomeHeroCard() {
     BrandHeroCard(
-        eyebrow = "Skydown x Zweizwei",
+        eyebrow = "Sky²²",
         title = "Home",
-        subtitle = "Von hier aus kommst du direkt zu Releases, Beats, Video-Highlights, Merch und Tools.",
-        detail = "Yang D. Nash haelt die Wege kurz und bleibt dein zentraler Ansprechpartner fuer Musik, Visuals und Merchandise.",
+        subtitle = "Von hier aus kommst du direkt zu Musik, Videos, Shop und Tools.",
+        detail = "Alles Wichtige startet hier und bleibt unten jederzeit erreichbar.",
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
         marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)
-            BrandPill(text = "Merchandise", tint = MaterialTheme.colorScheme.tertiary)
+            BrandPill(text = "Shop", tint = MaterialTheme.colorScheme.tertiary)
             BrandPill(text = "Tools", tint = MaterialTheme.colorScheme.secondary)
         }
     }
@@ -396,7 +396,7 @@ private fun HomeLatestReleaseCard(
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Zweizwei Release")
+        SectionHeader("Latest Release")
         val track = uiState.featuredTrack
 
         if (track == null) {
@@ -456,7 +456,7 @@ private fun HomeLatestReleaseCard(
 
         Text(
             text = when {
-                hasPreview -> "Preview bleibt direkt im Home. Den Spotify-Player findest du im Musik-Tab."
+                hasPreview -> "Preview bleibt direkt im Home. Mehr dazu findest du im Music-Tab."
                 hasSpotifyTarget -> "Neuester Song direkt ueber Spotify erreichbar."
                 else -> "Neuester Song."
             },
@@ -511,7 +511,7 @@ private fun HomeLatestBeatCard(
     onPlayToggle: (FeaturedBeatHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Zweizwei Beat")
+        SectionHeader("Beat Highlight")
         val beat = uiState.featuredBeat
 
         if (beat == null) {
@@ -596,7 +596,7 @@ private fun HomeLatestVideoCard(
     onPlayToggle: (FeaturedVideoHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Skydown Video Highlight")
+        SectionHeader("Video Highlight")
         val video = uiState.featuredVideo
 
         if (video == null) {
@@ -654,7 +654,7 @@ private fun HomeLatestVideoCard(
         }
 
         Text(
-            text = "Aus dem Videography Hub fuers Home ausgewaehlt.",
+            text = "Direkt aus der Video-Auswahl ins Home geholt.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 14.dp),
@@ -709,7 +709,7 @@ private fun HomeStoryCard(
         SectionHeader("Schnellzugriff")
 
         Text(
-            text = "Wenn du direkt weiter willst, findest du hier Ansprechpartner, Artists, Beat Hub, NICMA und den Weg zu Skydown ohne Umwege.",
+            text = "Wenn du direkt weiter willst, findest du hier Kontakt, Artists, Beats und Studio-Services ohne Umwege.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -720,15 +720,15 @@ private fun HomeStoryCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             HomeStoryLinkButton(
-                title = "Yang D. Nash kontaktieren",
-                subtitle = "Direkter Draht fuer Musik, Visuals und Merchandise.",
+                title = "Kontakt & Support",
+                subtitle = "Direkter Draht zu Yang D. Nash.",
                 isPrimary = true,
                 onClick = { openExternalLink(context, homePrimaryContactLink.url) },
             )
 
             HomeLaneSection(
-                title = "Zweizwei Music",
-                subtitle = "Hier kommst du direkt zu den Artists, zum Label und weiter in Beat Hub oder NICMA.",
+                title = "Music",
+                subtitle = "Artists, Label, Beats und Studio-Services direkt erreichbar.",
             ) {
                 homeZweizweiSocialLinks.forEachIndexed { index, link ->
                     val isPrimary = index == 0
@@ -745,14 +745,14 @@ private fun HomeStoryCard(
                 }
 
                 HomeStoryLinkButton(
-                    title = "Beat Hub oeffnen",
+                    title = "Beats oeffnen",
                     subtitle = "Wenn du direkt zu Beats und Previews willst.",
                     isPrimary = false,
                     onClick = onOpenBeatHub,
                 )
 
                 HomeStoryLinkButton(
-                    title = "NICMA MUSIC oeffnen",
+                    title = "Studio oeffnen",
                     subtitle = "Fuer Recording, Mixing und Mastering.",
                     isPrimary = false,
                     onClick = onOpenNicma,
@@ -760,11 +760,11 @@ private fun HomeStoryCard(
             }
 
             HomeLaneSection(
-                title = "Skydown Videography",
-                subtitle = "Hier startest du direkt in den Videography-Kontakt und in den oeffentlichen Skydown-Kanal.",
+                title = "Video",
+                subtitle = "Clips, Reels und Kontakt direkt von hier.",
             ) {
                 HomeStoryLinkButton(
-                    title = "Skydown auf Instagram",
+                    title = "Video auf Instagram",
                     subtitle = "Fuer aktuelle Visuals, Clips und Updates.",
                     isPrimary = false,
                     onClick = {
@@ -780,7 +780,7 @@ private fun HomeStoryCard(
                         openEmailDraft(
                             context = context,
                             recipients = listOf("skydownent@gmail.com"),
-                            subject = "Skydown Videography Kontakt",
+                            subject = "Video Anfrage",
                             body = "",
                         )
                     },

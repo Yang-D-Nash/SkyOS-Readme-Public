@@ -14,9 +14,9 @@ enum MusicExperienceBrand {
     var navigationTitle: String {
         switch self {
         case .skydown:
-            return "Skydown Music"
+            return "Music"
         case .zweizwei:
-            return "Zweizwei Music"
+            return "Music"
         }
     }
 
@@ -27,9 +27,9 @@ enum MusicExperienceBrand {
     var heroSubtitle: String {
         switch self {
         case .skydown:
-            return "Artist waehlen, Preview starten oder Spotify direkt oeffnen."
+            return "Artists waehlen, Songs anspielen oder direkt zu Spotify wechseln."
         case .zweizwei:
-            return "Zweizwei steuert Releases, Artists, Beats und den kompletten Music-Flow."
+            return "Songs, Artists, Beats und Studio-Services bleiben hier an einem Ort."
         }
     }
 
@@ -56,7 +56,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Zweizwei Workflow"
+            return "Music Shortcuts"
         }
     }
 
@@ -65,7 +65,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Spring direkt aus dem Music-Katalog in Beat Hub oder NICMA Producer."
+            return "Spring direkt weiter zu Beats oder Studio-Services."
         }
     }
 }
@@ -261,7 +261,7 @@ struct MusicView: View {
                         BeatHubView()
                     } label: {
                         workflowButtonLabel(
-                            title: "Beat Hub oeffnen",
+                            title: "Beats oeffnen",
                             accent: AppColors.accent(for: colorScheme),
                             textColor: .white
                         )
@@ -272,7 +272,7 @@ struct MusicView: View {
                         NicmaProducerView()
                     } label: {
                         workflowButtonLabel(
-                            title: "NICMA Producer oeffnen",
+                            title: "Studio oeffnen",
                             accent: AppColors.spotifySurface(for: colorScheme),
                             textColor: AppColors.text(for: colorScheme)
                         )

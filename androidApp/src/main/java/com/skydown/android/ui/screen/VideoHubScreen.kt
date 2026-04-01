@@ -180,12 +180,8 @@ fun VideoHubScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Skydown Videography",
-                        subtitle = if (uiState.isAdmin) {
-                            "Admin Uploads, Home-Highlights und die komplette Skydown-Videography-Library."
-                        } else {
-                            "Oeffentliche Skydown-Videos direkt schauen, ohne Admin-Overhead."
-                        },
+                        title = "Video",
+                        subtitle = "Reels, Clips, Equipment und YouTube direkt in der App.",
                     )
                 },
                 actions = {
@@ -368,14 +364,10 @@ private fun VideoHubHeroCard(
     isAdmin: Boolean,
 ) {
     BrandHeroCard(
-        eyebrow = "Skydown",
-        title = "Videography",
-        subtitle = if (isAdmin) {
-            "Reels, Clips, Sessions und Visuals bleiben zentral steuerbar. Admins koennen Uploads, Home-Highlights und oeffentliche Listen direkt pflegen."
-        } else {
-            "Hier laufen die oeffentlichen Videoarbeiten von Skydown mit Equipment, YouTube-Bereich und aktuellen Kollaborationen."
-        },
-        detail = "Alles ist so angeordnet, dass du schnell von Clips zu Equipment, YouTube und Kollaborationen kommst.",
+        eyebrow = "Video",
+        title = "Video",
+        subtitle = "Reels, Clips, Equipment, YouTube und neue Uploads an einem Ort.",
+        detail = "Hier wechselst du schnell zwischen Watch, Equipment, YouTube und Kollaborationen.",
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),
@@ -384,7 +376,7 @@ private fun VideoHubHeroCard(
             BrandPill(text = "Videos", tint = MaterialTheme.colorScheme.secondary)
             BrandPill(text = "Equipment", tint = MaterialTheme.colorScheme.primary)
             BrandPill(text = "YouTube", tint = MaterialTheme.colorScheme.tertiary)
-            BrandPill(text = if (isAdmin) "Admin" else "Live", tint = MaterialTheme.colorScheme.primary)
+            BrandPill(text = "Collabs", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -413,9 +405,9 @@ private fun VideoCollaborationsCard(
     onOpenLink: (String) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Produced With")
+        SectionHeader("Collaborators")
         Text(
-            text = "Kuenstler und Acts, mit denen Skydown produktionell zusammengearbeitet hat.",
+            text = "Artists und Creatives, mit denen in Produktionen zusammengearbeitet wurde.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -442,7 +434,7 @@ private fun VideoEquipmentCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Equipment & Software")
         Text(
-            text = "Damit direkt klar ist, womit Skydown die Videography umsetzt.",
+            text = "Das Setup hinter den Videos, Reels und Produktionen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1140,7 +1132,7 @@ private fun VideoLibraryRow(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             VideoPill(text = if (isSelected) "Im Player" else "Auswaehlen", isActive = isSelected)
-            VideoPill(text = if (video.isPublic) "Live" else "Hidden", isActive = video.isPublic)
+            VideoPill(text = if (video.isPublic) "Public" else "Private", isActive = video.isPublic)
             if (isAdmin && video.isHomeFeatured) {
                 VideoPill(text = "Home", isActive = true)
             } else if (!isAdmin) {

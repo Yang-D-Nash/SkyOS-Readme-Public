@@ -47,7 +47,7 @@ data class MusicUiState(
                     artistSocialProfiles[artist]?.let { profile ->
                         MusicInstagramDestination(
                             title = profile.artist,
-                            subtitle = "${profile.handle} • Artist im Zweizwei-Fokus",
+                            subtitle = "${profile.handle} • Artist",
                             instagramUrl = profile.instagramUrl,
                         )
                     }

@@ -104,7 +104,7 @@ fun AiHubScreen(
                 if (currentUser == null) {
                     AiHubLoginCard(
                         title = if (aiAccessMode == AiAccessMode.AdminOnly) {
-                            "KI nur fuer Admins"
+                            "KI wird vorbereitet"
                         } else {
                             "KI nur mit Konto"
                         },
@@ -238,9 +238,9 @@ private fun AiHubRestrictedCard(
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiHubBadge(text = "Admin Only", isAgent = true)
             AiHubBadge(text = "Bot", isAgent = false)
             AiHubBadge(text = "Agent", isAgent = true)
+            AiHubBadge(text = "Visuals", isAgent = false)
         }
         OutlinedButton(
             onClick = onOpenSettings,
@@ -313,7 +313,7 @@ private fun WorkflowWorkspaceCard(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Hier bereitest du versteckte Trigger und spaetere Automationen vor. Die Google-Verbindung dafuer bleibt bewusst getrennt vom normalen App-Login und wird in den Einstellungen vorbereitet.",
+            text = "Hier bereitest du Automationen vor. Verbindungen dafuer bleiben getrennt vom normalen App-Login und werden in den Einstellungen vorbereitet.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -321,9 +321,9 @@ private fun WorkflowWorkspaceCard(
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiHubBadge(text = "Versteckt", isAgent = false)
+            AiHubBadge(text = "Automation", isAgent = false)
             AiHubBadge(text = "Manuell", isAgent = true)
-            AiHubBadge(text = "Admin Setup", isAgent = false)
+            AiHubBadge(text = "Setup", isAgent = false)
         }
         Button(
             onClick = onOpenSettings,

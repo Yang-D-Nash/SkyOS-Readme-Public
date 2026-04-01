@@ -185,8 +185,8 @@ fun MusicScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Zweizwei Music",
-                        subtitle = "Artists, Releases, Preview-Playback und Spotify-Fokus unter Zweizwei.",
+                        title = "Music",
+                        subtitle = "Artists, Releases, Preview-Playback und Spotify an einem Ort.",
                     )
                 },
                 actions = {

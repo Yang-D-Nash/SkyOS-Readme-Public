@@ -85,7 +85,7 @@ struct MainTabView: View {
                         merchandiseService: services.merchandiseService
                     )
                 }
-                .tabItem { Label("Merchandise", systemImage: "bag.fill") }
+                .tabItem { Label("Shop", systemImage: "bag.fill") }
                 .tag(MainTab.merch)
 
                 DeferredView {
@@ -94,7 +94,7 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Zweizwei", systemImage: "music.note") }
+                .tabItem { Label("Music", systemImage: "music.note") }
                 .tag(MainTab.zweizwei)
 
                 DeferredView {
@@ -116,7 +116,7 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Skydown", systemImage: "video.fill") }
+                .tabItem { Label("Video", systemImage: "video.fill") }
                 .tag(MainTab.skydown)
 
                 if hasAIAccess {
@@ -250,10 +250,10 @@ private struct ZweizweiTabView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                         BrandHeroSurface(
                             colorScheme: colorScheme,
-                            eyebrow: "Zweizwei",
+                            eyebrow: "Music",
                             title: "Music",
-                            subtitle: "Hier findest du Releases, Artists, Beats und den direkten Weg zu den wichtigsten Zweizwei-Bereichen.",
-                            detail: "Alles bleibt klar nach Musik sortiert, ohne dass du zwischen Menues suchen musst.",
+                            subtitle: "Songs, Artists, Beats und Studio-Services bleiben hier zusammen.",
+                            detail: "So findest du schneller von Releases zu Beats oder direkt weiter zum Studio.",
                             accent: AppColors.spotify(for: colorScheme),
                             secondaryAccent: AppColors.accent(for: colorScheme),
                             marks: [.zweizwei]
@@ -265,12 +265,12 @@ private struct ZweizweiTabView: View {
                                     tint: AppColors.spotify(for: colorScheme)
                                 )
                                 BrandHeroPill(
-                                    text: "Beat Hub",
+                                    text: "Beats",
                                     colorScheme: colorScheme,
                                     tint: AppColors.accent(for: colorScheme)
                                 )
                                 BrandHeroPill(
-                                    text: "NICMA",
+                                    text: "Studio",
                                     colorScheme: colorScheme,
                                     tint: AppColors.accentMystic(for: colorScheme)
                                 )
@@ -278,7 +278,7 @@ private struct ZweizweiTabView: View {
                         }
 
                         ShellActionCard(
-                            title: "Music Catalog",
+                            title: "Songs & Artists",
                             subtitle: "Artists, Releases und direkte Spotify-Wege an einem Ort.",
                             accent: AppColors.spotify(for: colorScheme)
                         ) {
@@ -286,7 +286,7 @@ private struct ZweizweiTabView: View {
                         }
 
                         ShellActionCard(
-                            title: "Beat Hub",
+                            title: "Beat Library",
                             subtitle: "Beats schnell anhoeren, vergleichen und direkt weitergehen.",
                             accent: AppColors.accent(for: colorScheme)
                         ) {
@@ -294,8 +294,8 @@ private struct ZweizweiTabView: View {
                         }
 
                         ShellActionCard(
-                            title: "NICMA Producer",
-                            subtitle: "Recording, Mixing und Mastering klar als eigener Service.",
+                            title: "Studio Services",
+                            subtitle: "Recording, Mixing und Mastering klar als eigener Bereich.",
                             accent: AppColors.accentMystic(for: colorScheme)
                         ) {
                             destination = .nicma
@@ -313,7 +313,7 @@ private struct ZweizweiTabView: View {
                     )
                     .ignoresSafeArea()
                 )
-                .navigationTitle("Zweizwei")
+                .navigationTitle("Music")
                 .navigationBarTitleDisplayMode(.inline)
                 .skydownNavigationChrome(colorScheme: colorScheme)
                 .toolbar {
@@ -417,7 +417,7 @@ private struct AIHubView: View {
                 if authManager.userSession == nil {
                     AIHubLoginCard(
                         colorScheme: colorScheme,
-                        title: featureFlags.aiAccessMode == .adminOnly ? "KI nur fuer Admins" : "KI nur mit Konto",
+                        title: featureFlags.aiAccessMode == .adminOnly ? "KI wird vorbereitet" : "KI nur mit Konto",
                         message: featureFlags.aiAccessMessage(for: nil),
                         onOpenLogin: onOpenLogin
                     )
@@ -568,9 +568,9 @@ private struct AIHubRestrictedCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: 10) {
-                AIHubBadge(text: "Admin Only", color: AppColors.accentMystic(for: colorScheme))
                 AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
                 AIHubBadge(text: "Agent", color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: "Visuals", color: AppColors.accentMystic(for: colorScheme))
             }
 
             Button(action: onOpenSettings) {
@@ -676,14 +676,14 @@ private struct AIWorkflowWorkspaceCard: View {
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier bereitest du versteckte Trigger und spaetere Automationen vor. Die Google-Verbindung dafuer bleibt bewusst getrennt vom normalen App-Login und wird in den Einstellungen vorbereitet.")
+            Text("Hier bereitest du Automationen vor. Verbindungen dafuer bleiben getrennt vom normalen App-Login und werden in den Einstellungen vorbereitet.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: 10) {
-                AIHubBadge(text: "Versteckt", color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: "Automation", color: AppColors.accentHighlight(for: colorScheme))
                 AIHubBadge(text: "Manuell", color: AppColors.accent(for: colorScheme))
-                AIHubBadge(text: "Admin Setup", color: AppColors.accentMystic(for: colorScheme))
+                AIHubBadge(text: "Setup", color: AppColors.accentMystic(for: colorScheme))
             }
 
             Button(action: onOpenSettings) {

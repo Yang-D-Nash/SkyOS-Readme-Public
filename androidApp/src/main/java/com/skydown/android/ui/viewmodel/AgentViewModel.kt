@@ -162,7 +162,7 @@ class AgentViewModel : ViewModel() {
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Der Skydown x 22 Agent hat zu lange fuer die Antwort gebraucht."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> "Der Skydown x 22 Agent ist gerade ausgelastet."
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
-            FirebaseFunctionsException.Code.PERMISSION_DENIED -> "Der Skydown x 22 Agent ist aktuell nur fuer Admins freigeschaltet."
+            FirebaseFunctionsException.Code.PERMISSION_DENIED -> "Der Agent wird gerade vorbereitet und ist fuer dein Konto noch nicht freigeschaltet."
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
             else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
         }

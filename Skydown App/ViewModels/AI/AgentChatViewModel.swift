@@ -139,7 +139,7 @@ final class AgentChatViewModel: ObservableObject {
             case .invalidArgument:
                 return "Die Anfrage konnte so nicht verarbeitet werden."
             case .permissionDenied:
-                return "Der Skydown x 22 Agent ist aktuell nur fuer Admins freigeschaltet."
+                return "Der Agent wird gerade vorbereitet und ist fuer dein Konto noch nicht freigeschaltet."
             case .unauthenticated:
                 return "Bitte melde dich erneut an und versuch es noch einmal."
             default:

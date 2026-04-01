@@ -69,10 +69,10 @@ final class FeatureFlagsService: ObservableObject {
             return "Die KI ist gerade pausiert."
         case .adminOnly:
             if user == nil {
-                return "Die KI ist aktuell nur fuer Admins freigeschaltet. Melde dich mit einem Admin-Konto an."
+                return "Melde dich an, damit du siehst, sobald die KI fuer dein Konto verfuegbar ist."
             }
 
-            return "Die KI ist aktuell nur fuer Admins freigeschaltet."
+            return "Die KI wird gerade vorbereitet und ist fuer dein Konto noch nicht freigeschaltet."
         case .signedIn:
             return "Melde dich an, um Bot, Agent und Visuals zu nutzen."
         }

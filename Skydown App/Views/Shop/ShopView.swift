@@ -255,7 +255,7 @@ struct ShopView: View {
                 }
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Merchandise")
+            .navigationTitle("Shop")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -338,10 +338,10 @@ private struct HomeHeroIntroCard: View {
     var body: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: "Skydown x Zweizwei",
+            eyebrow: "Sky²²",
             title: "Home",
-            subtitle: "Von hier aus kommst du direkt zu Releases, Beats, Video-Highlights, Merch und Tools.",
-            detail: "Yang D. Nash haelt die Wege kurz und bleibt dein zentraler Ansprechpartner fuer Musik, Visuals und Merchandise.",
+            subtitle: "Von hier aus kommst du direkt zu Musik, Videos, Shop und Tools.",
+            detail: "Alles Wichtige startet hier und bleibt unten jederzeit erreichbar.",
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydown, .zweizwei]
@@ -353,7 +353,7 @@ private struct HomeHeroIntroCard: View {
                     tint: AppColors.accent(for: colorScheme)
                 )
                 BrandHeroPill(
-                    text: "Merchandise",
+                    text: "Shop",
                     colorScheme: colorScheme,
                     tint: AppColors.accentHighlight(for: colorScheme)
                 )
@@ -376,7 +376,7 @@ private struct HomeLatestReleaseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Zweizwei Release")
+            Text("Latest Release")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -416,7 +416,7 @@ private struct HomeLatestReleaseCard: View {
                 HStack(spacing: 10) {
                     Text(
                         hasPreview
-                            ? "Preview bleibt direkt im Home. Den Spotify-Player findest du im Musik-Tab."
+                            ? "Preview bleibt direkt im Home. Mehr dazu findest du im Music-Tab."
                             : (hasSpotifyTarget
                                ? "Neuester Song direkt ueber Spotify erreichbar."
                                : "Neuester Song.")
@@ -480,7 +480,7 @@ private struct HomeLatestBeatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Zweizwei Beat")
+            Text("Beat Highlight")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -550,7 +550,7 @@ private struct HomeLatestVideoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Skydown Video Highlight")
+            Text("Video Highlight")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -585,7 +585,7 @@ private struct HomeLatestVideoCard: View {
                     Spacer()
                 }
 
-                Text("Aus dem Videography Hub fuers Home ausgewaehlt.")
+                Text("Direkt aus der Video-Auswahl ins Home geholt.")
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -658,14 +658,14 @@ private struct HomeStoryCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Wenn du direkt weiter willst, findest du hier Ansprechpartner, Artists, Beat Hub, NICMA und den Weg zu Skydown ohne Umwege.")
+            Text("Wenn du direkt weiter willst, findest du hier Kontakt, Artists, Beats und Studio-Services ohne Umwege.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 12) {
                 HomeActionButton(
-                    title: "Yang D. Nash kontaktieren",
-                    subtitle: "Direkter Draht fuer Musik, Visuals und Merchandise.",
+                    title: "Kontakt & Support",
+                    subtitle: "Direkter Draht zu Yang D. Nash.",
                     colorScheme: colorScheme,
                     isPrimary: true
                 ) {
@@ -675,8 +675,8 @@ private struct HomeStoryCard: View {
                 }
 
                 HomeLaneSection(
-                    title: "Zweizwei Music",
-                    subtitle: "Hier kommst du direkt zu den Artists, zum Label und weiter in Beat Hub oder NICMA.",
+                    title: "Music",
+                    subtitle: "Artists, Label, Beats und Studio-Services direkt erreichbar.",
                     colorScheme: colorScheme
                 ) {
                     ForEach(homeZweizweiInstagramDestinations) { destination in
@@ -695,7 +695,7 @@ private struct HomeStoryCard: View {
                     }
 
                     HomeActionButton(
-                        title: "Beat Hub oeffnen",
+                        title: "Beats oeffnen",
                         subtitle: "Wenn du direkt zu Beats und Previews willst.",
                         colorScheme: colorScheme,
                         isPrimary: false
@@ -704,7 +704,7 @@ private struct HomeStoryCard: View {
                     }
 
                     HomeActionButton(
-                        title: "NICMA MUSIC oeffnen",
+                        title: "Studio oeffnen",
                         subtitle: "Fuer Recording, Mixing und Mastering.",
                         colorScheme: colorScheme,
                         isPrimary: false
@@ -714,12 +714,12 @@ private struct HomeStoryCard: View {
                 }
 
                 HomeLaneSection(
-                    title: "Skydown Videography",
-                    subtitle: "Hier startest du direkt in den Videography-Kontakt und in den oeffentlichen Skydown-Kanal.",
+                    title: "Video",
+                    subtitle: "Clips, Reels und Kontakt direkt von hier.",
                     colorScheme: colorScheme
                 ) {
                     HomeActionButton(
-                        title: "Skydown auf Instagram",
+                        title: "Video auf Instagram",
                         subtitle: "Fuer aktuelle Visuals, Clips und Updates.",
                         colorScheme: colorScheme,
                         isPrimary: false
@@ -1096,10 +1096,10 @@ private struct ShopHeroCard: View {
     var body: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: "Global Store",
-            title: "Merchandise",
-            subtitle: "Drops, Apparel und direkter Checkout fuer Zweizwei und Skydown in einem gemeinsamen Store.",
-            detail: isStoreOpen ? "Der Store ist live und fuer Kunden sichtbar." : "Der Store ist aktuell pausiert und kann jederzeit wieder freigeschaltet werden.",
+            eyebrow: "Store",
+            title: "Shop",
+            subtitle: "Produkte entdecken, gross ansehen und direkt bestellen.",
+            detail: isStoreOpen ? "Der Store ist offen und bereit fuer neue Bestellungen." : "Produkte bleiben sichtbar. Neue Bestellungen starten wieder, sobald der Store geoeffnet wird.",
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydown, .zweizwei]
@@ -1108,9 +1108,6 @@ private struct ShopHeroCard: View {
                 ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)
                 ShopBadge(text: isStoreOpen ? "Store offen" : "Store pausiert", colorScheme: colorScheme)
                 ShopBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
-                if isAdmin {
-                    ShopBadge(text: "Admin", colorScheme: colorScheme)
-                }
             }
 
             if let onToggleStore {

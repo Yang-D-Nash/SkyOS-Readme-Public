@@ -166,16 +166,16 @@ private struct LaunchLandingView: View {
                 Spacer(minLength: 0)
 
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Skydown x Zweizwei")
+                    Text("Sky²²")
                         .font(.caption.weight(.semibold))
                         .tracking(1.6)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                    Text("Waehle einfach deinen Einstieg.")
+                    Text("Starte da, was du gerade brauchst.")
                         .font(.system(size: 38, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Du kannst spaeter jederzeit zwischen den Bereichen wechseln. Hier entscheidest du nur, womit du jetzt anfangen willst.")
+                    Text("Musik, Videos und Shop bleiben danach ganz normal unten erreichbar. Hier waehlst du nur deinen ersten Einstieg.")
                         .font(.body.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
@@ -184,33 +184,33 @@ private struct LaunchLandingView: View {
                 VStack(spacing: 14) {
                     LaunchLandingButton(
                         step: "01",
-                        eyebrow: "Zweizwei",
+                        eyebrow: "Listen & Artists",
                         title: "Music",
-                        subtitle: "Releases, Artists, Beat Hub und NICMA ohne Umweg.",
+                        subtitle: "Songs, Artists, Beats und Studio-Services an einem Ort.",
                         accent: AppColors.spotify(for: colorScheme),
                         action: onOpenMusic
                     )
 
                     LaunchLandingButton(
                         step: "02",
-                        eyebrow: "Skydown",
-                        title: "Videography",
-                        subtitle: "Reels, Equipment, Produktionen und aktuelle Videoarbeiten.",
+                        eyebrow: "Clips & Reels",
+                        title: "Video",
+                        subtitle: "Reels, Produktionen, Equipment und neue Uploads direkt in der App.",
                         accent: AppColors.accentMystic(for: colorScheme),
                         action: onOpenVideography
                     )
 
                     LaunchLandingButton(
                         step: "03",
-                        eyebrow: "Global Store",
-                        title: "Merchandise",
-                        subtitle: "Drops, Produkte und direkter Einstieg in den Shop.",
+                        eyebrow: "Store",
+                        title: "Shop",
+                        subtitle: "Produkte ansehen, gross durchblaettern und direkt bestellen.",
                         accent: AppColors.accentHighlight(for: colorScheme),
                         action: onOpenShop
                     )
                 }
 
-                Text("Danach bleibst du im normalen App-Flow und kannst unten jederzeit weiterwechseln.")
+                Text("Danach bleibst du im normalen App-Flow und kannst unten jederzeit wechseln.")
                     .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)

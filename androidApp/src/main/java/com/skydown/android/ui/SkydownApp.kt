@@ -107,10 +107,10 @@ fun SkydownApp() {
         accessMode = aiAccessMode,
     )
     val destinations = buildList {
-        add(BottomDestination("shop", "Merchandise", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }))
-        add(BottomDestination("music", "Zweizwei", { Icon(Icons.Default.MusicNote, contentDescription = null) }))
+        add(BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }))
+        add(BottomDestination("music", "Music", { Icon(Icons.Default.MusicNote, contentDescription = null) }))
         add(BottomDestination("home", "Home", { Icon(Icons.Default.Home, contentDescription = null) }))
-        add(BottomDestination("video", "Skydown", { Icon(Icons.Default.Movie, contentDescription = null) }))
+        add(BottomDestination("video", "Video", { Icon(Icons.Default.Movie, contentDescription = null) }))
         if (hasAiAccess) {
             add(BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }))
         }
@@ -381,19 +381,19 @@ private fun LaunchLandingScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text(
-                    text = "Skydown x Zweizwei",
+                    text = "Sky²²",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Waehle einfach deinen Einstieg.",
+                    text = "Starte da, was du gerade brauchst.",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Du kannst spaeter jederzeit zwischen den Bereichen wechseln. Hier entscheidest du nur, womit du jetzt anfangen willst.",
+                    text = "Musik, Videos und Shop bleiben danach ganz normal unten erreichbar. Hier waehltst du nur deinen ersten Einstieg.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.74f),
                 )
@@ -402,32 +402,32 @@ private fun LaunchLandingScreen(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 LaunchLandingChoiceCard(
                     step = "01",
-                    eyebrow = "Zweizwei",
+                    eyebrow = "Listen & Artists",
                     title = "Music",
-                    subtitle = "Releases, Artists, Beat Hub und NICMA ohne Umweg.",
+                    subtitle = "Songs, Artists, Beats und Studio-Services an einem Ort.",
                     accentColor = MaterialTheme.colorScheme.primary,
                     onClick = onOpenMusic,
                 )
                 LaunchLandingChoiceCard(
                     step = "02",
-                    eyebrow = "Skydown",
-                    title = "Videography",
-                    subtitle = "Reels, Equipment, Produktionen und aktuelle Videoarbeiten.",
+                    eyebrow = "Clips & Reels",
+                    title = "Video",
+                    subtitle = "Reels, Produktionen, Equipment und neue Uploads direkt in der App.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     onClick = onOpenVideography,
                 )
                 LaunchLandingChoiceCard(
                     step = "03",
-                    eyebrow = "Global Store",
-                    title = "Merchandise",
-                    subtitle = "Drops, Produkte und direkter Einstieg in den Shop.",
+                    eyebrow = "Store",
+                    title = "Shop",
+                    subtitle = "Produkte ansehen, gross durchblaettern und direkt bestellen.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     onClick = onOpenShop,
                 )
             }
 
             Text(
-                text = "Danach bleibst du im normalen App-Flow und kannst unten jederzeit weiterwechseln.",
+                text = "Danach bleibst du im normalen App-Flow und kannst unten jederzeit wechseln.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
             )
@@ -558,35 +558,35 @@ private fun ZweizweiMusicLaneScreen(
 
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     BrandHeroCard(
-                        eyebrow = "Zweizwei",
+                        eyebrow = "Music",
                         title = "Music",
-                        subtitle = "Hier findest du Releases, Artists, Beats und den direkten Weg zu den wichtigsten Zweizwei-Bereichen.",
-                        detail = "Alles bleibt klar nach Musik sortiert, ohne dass du zwischen Menues suchen musst.",
+                        subtitle = "Songs, Artists, Beats und Studio-Services bleiben hier zusammen.",
+                        detail = "So findest du schneller von Releases zu Beats oder direkt weiter zum Studio.",
                         accent = MaterialTheme.colorScheme.primary,
                         secondaryAccent = MaterialTheme.colorScheme.secondary,
                         marks = listOf(BrandArtwork.Zweizwei),
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             BrandPill(text = "Catalog", tint = MaterialTheme.colorScheme.primary)
-                            BrandPill(text = "Beat Hub", tint = MaterialTheme.colorScheme.secondary)
-                            BrandPill(text = "NICMA", tint = MaterialTheme.colorScheme.tertiary)
+                            BrandPill(text = "Beats", tint = MaterialTheme.colorScheme.secondary)
+                            BrandPill(text = "Studio", tint = MaterialTheme.colorScheme.tertiary)
                         }
                     }
                     LaunchLandingButton(
-                        title = "Music Catalog",
+                        title = "Songs & Artists",
                         subtitle = "Artists, Releases und direkte Spotify-Wege an einem Ort.",
                         accentColor = MaterialTheme.colorScheme.primary,
                         onClick = { destination = ZweizweiMusicDestination.Catalog },
                     )
                     LaunchLandingButton(
-                        title = "Beat Hub",
+                        title = "Beat Library",
                         subtitle = "Beats schnell anhoeren, vergleichen und direkt weitergehen.",
                         accentColor = MaterialTheme.colorScheme.secondary,
                         onClick = { destination = ZweizweiMusicDestination.BeatHub },
                     )
                     LaunchLandingButton(
-                        title = "NICMA Producer",
-                        subtitle = "Recording, Mixing und Mastering klar als eigener Service.",
+                        title = "Studio Services",
+                        subtitle = "Recording, Mixing und Mastering klar als eigener Bereich.",
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                     )
