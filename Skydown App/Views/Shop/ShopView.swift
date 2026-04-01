@@ -104,11 +104,18 @@ struct HomeView: View {
                         Button(action: onOpenWorkflow) {
                             Image(systemName: "arrow.triangle.branch")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                                 .padding(10)
-                                .background(AppColors.secondaryBackground(for: colorScheme))
-                                .clipShape(Circle())
+                                .background(
+                                    Circle()
+                                        .fill(AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
+                                )
                         }
+                        .skydownTactileAction()
                         .accessibilityLabel("Automationen oeffnen")
                     }
 
@@ -961,7 +968,13 @@ private struct HomeActionButton: View {
                 if let icon {
                     Image(systemName: icon)
                         .font(.footnote.weight(.bold))
-                        .frame(width: 16)
+                        .foregroundColor(iconTint)
+                        .frame(width: 18, height: 18)
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(iconBackground)
+                        )
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -994,13 +1007,49 @@ private struct HomeActionButton: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(
                         isPrimary
-                        ? AppColors.accentHighlight(for: colorScheme).opacity(0.22)
-                        : AppColors.accent(for: colorScheme).opacity(0.12),
+                        ? AppColors.accentHighlight(for: colorScheme).opacity(0.28)
+                        : AppColors.accentMystic(for: colorScheme).opacity(0.16),
                         lineWidth: 1
                     )
             )
+            .shadow(
+                color: shadowTint.opacity(isPrimary ? 0.24 : 0.12),
+                radius: isPrimary ? 16 : 10,
+                y: isPrimary ? 8 : 5
+            )
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
+    }
+
+    private var iconTint: Color {
+        isPrimary ? .white : AppColors.accentMystic(for: colorScheme)
+    }
+
+    private var iconBackground: LinearGradient {
+        if isPrimary {
+            return LinearGradient(
+                colors: [
+                    Color.white.opacity(0.18),
+                    Color.white.opacity(0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        return LinearGradient(
+            colors: [
+                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.14),
+                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.08)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var shadowTint: Color {
+        isPrimary ? AppColors.accent(for: colorScheme) : AppColors.accentMystic(for: colorScheme)
     }
 
     private var buttonFill: LinearGradient {
@@ -1017,8 +1066,9 @@ private struct HomeActionButton: View {
 
         return LinearGradient(
             colors: [
-                AppColors.secondaryBackground(for: colorScheme).opacity(0.86),
-                AppColors.cardBackground(for: colorScheme).opacity(0.88)
+                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.94 : 0.96),
+                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.10),
+                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.06)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing

@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -78,6 +81,7 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
+import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.FeaturedBeatHighlight
@@ -193,19 +197,31 @@ fun HomeScreen(
                         onOpenCart = onOpenCart,
                         onOpenSettings = onOpenSettings,
                     ) {
-                        IconButton(onClick = onOpenWorkflow ?: viewModel::refresh) {
-                            Icon(
-                                imageVector = if (onOpenWorkflow != null) {
-                                    Icons.Default.AutoAwesome
-                                } else {
-                                    Icons.Default.Refresh
-                                },
-                                contentDescription = if (onOpenWorkflow != null) {
-                                    "Automationen oeffnen"
-                                } else {
-                                    "Hub aktualisieren"
-                                },
-                            )
+                        val interactionSource = remember { MutableInteractionSource() }
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+                            shape = RoundedCornerShape(999.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                            tonalElevation = 4.dp,
+                            modifier = Modifier.skydownPressable(interactionSource),
+                        ) {
+                            IconButton(
+                                onClick = onOpenWorkflow ?: viewModel::refresh,
+                                interactionSource = interactionSource,
+                            ) {
+                                Icon(
+                                    imageVector = if (onOpenWorkflow != null) {
+                                        Icons.Default.AutoAwesome
+                                    } else {
+                                        Icons.Default.Refresh
+                                    },
+                                    contentDescription = if (onOpenWorkflow != null) {
+                                        "Automationen oeffnen"
+                                    } else {
+                                        "Hub aktualisieren"
+                                    },
+                                )
+                            }
                         }
                     }
                 },
@@ -800,6 +816,7 @@ private fun HomeStoryLinkButton(
     isPrimary: Boolean,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -822,21 +839,45 @@ private fun HomeStoryLinkButton(
         }
     }
 
-    if (isPrimary) {
-        Button(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-        ) {
-            content()
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .skydownPressable(interactionSource),
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(16.dp),
+        color = androidx.compose.ui.graphics.Color.Transparent,
+        tonalElevation = if (isPrimary) 8.dp else 4.dp,
+        shadowElevation = if (isPrimary) 10.dp else 6.dp,
+        border = BorderStroke(
+            1.dp,
+            if (isPrimary) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+            } else {
+                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f)
+            },
+        ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = if (isPrimary) {
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary,
+                            )
+                        } else {
+                            listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f),
+                            )
+                        },
+                    ),
+                )
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             content()
         }

@@ -20,11 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.Slideshow
-import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,8 +43,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -117,11 +113,42 @@ fun SkydownApp() {
         accessMode = aiAccessMode,
     )
     val destinations = buildList {
-        add(BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }))
-        add(BottomDestination("music", "Music", { Icon(Icons.Default.GraphicEq, contentDescription = null) }))
-        add(BottomDestination("home", "Home", { Icon(Icons.Default.Widgets, contentDescription = null) }))
-        add(BottomDestination("video", "Video", { Icon(Icons.Default.Slideshow, contentDescription = null) }))
-        add(BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }))
+        add(BottomDestination("shop", "Merch") { _ ->
+            Icon(Icons.Default.ShoppingBag, contentDescription = null)
+        })
+        add(BottomDestination("music", "Music") { isSelected ->
+            Image(
+                painter = painterResource(id = R.drawable.zweizwei_brand_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(22.dp)
+                    .alpha(if (isSelected) 1f else 0.72f),
+                contentScale = ContentScale.Fit,
+            )
+        })
+        add(BottomDestination("home", "Home") { isSelected ->
+            Image(
+                painter = painterResource(id = R.drawable.skydown_x22_brand_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(22.dp)
+                    .alpha(if (isSelected) 1f else 0.72f),
+                contentScale = ContentScale.Fit,
+            )
+        })
+        add(BottomDestination("video", "Videos") { isSelected ->
+            Image(
+                painter = painterResource(id = R.drawable.skydown_brand_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(22.dp)
+                    .alpha(if (isSelected) 1f else 0.72f),
+                contentScale = ContentScale.Fit,
+            )
+        })
+        add(BottomDestination("ai", "Tools") { _ ->
+            Icon(Icons.Default.AutoAwesome, contentDescription = null)
+        })
     }
 
     if (showIntro) {
@@ -192,7 +219,7 @@ fun SkydownApp() {
                                             restoreState = true
                                         }
                                     },
-                                    icon = destination.icon,
+                                    icon = { destination.icon(isSelected) },
                                     label = {
                                         Text(
                                             text = destination.label,
@@ -318,7 +345,7 @@ fun SkydownApp() {
 private data class BottomDestination(
     val route: String,
     val label: String,
-    val icon: @Composable () -> Unit,
+    val icon: @Composable (Boolean) -> Unit,
 )
 
 private enum class AuthSheet {
@@ -467,25 +494,25 @@ private fun LaunchLandingScreen(
                     title = "Music",
                     subtitle = "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                     accentColor = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.GraphicEq,
+                    artwork = BrandArtwork.Zweizwei,
                     onClick = onOpenMusic,
                 )
                 LaunchLandingChoiceCard(
                     step = "02",
                     eyebrow = "Clips & Reels",
-                    title = "Video",
+                    title = "Videos",
                     subtitle = "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.Slideshow,
+                    artwork = BrandArtwork.Skydown,
                     onClick = onOpenVideography,
                 )
                 LaunchLandingChoiceCard(
                     step = "03",
                     eyebrow = "Store",
-                    title = "Shop",
+                    title = "Merch",
                     subtitle = "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                     accentColor = MaterialTheme.colorScheme.secondary,
-                    icon = Icons.Default.Inventory2,
+                    artwork = BrandArtwork.Combined,
                     onClick = onOpenShop,
                 )
             }
@@ -508,7 +535,7 @@ private fun LaunchLandingChoiceCard(
     title: String,
     subtitle: String,
     accentColor: androidx.compose.ui.graphics.Color,
-    icon: ImageVector,
+    artwork: BrandArtwork,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -542,22 +569,25 @@ private fun LaunchLandingChoiceCard(
                 )
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    accentColor.copy(alpha = 0.94f),
-                                    accentColor.copy(alpha = 0.56f),
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
+                                    accentColor.copy(alpha = 0.12f),
                                 ),
                             ),
                             RoundedCornerShape(14.dp),
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = icon,
+                    Image(
+                        painter = painterResource(id = artwork.drawableRes),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .padding(4.dp),
+                        contentScale = ContentScale.Fit,
                     )
                 }
             }

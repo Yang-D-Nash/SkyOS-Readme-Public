@@ -42,9 +42,9 @@ fun RowScope.AppTopBarSessionActions(
     val initials = displayName.firstOrNull()?.uppercase() ?: "G"
 
     Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
         shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
         tonalElevation = 4.dp,
     ) {
         Row(
@@ -116,9 +116,9 @@ private fun SessionIconAction(
     val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
         shape = CircleShape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
         tonalElevation = 4.dp,
         modifier = Modifier.skydownPressable(interactionSource),
     ) {

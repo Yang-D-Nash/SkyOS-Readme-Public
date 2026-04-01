@@ -250,27 +250,27 @@ private struct LaunchLandingView: View {
                         title: "Music",
                         subtitle: "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                         accent: AppColors.spotify(for: colorScheme),
-                        systemImage: "waveform.circle.fill",
+                        brandMark: .zweizwei,
                         action: onOpenMusic
                     )
 
                     LaunchLandingButton(
                         step: "02",
                         eyebrow: "Clips & Reels",
-                        title: "Video",
+                        title: "Videos",
                         subtitle: "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                         accent: AppColors.accentMystic(for: colorScheme),
-                        systemImage: "film.stack.fill",
+                        brandMark: .skydown,
                         action: onOpenVideography
                     )
 
                     LaunchLandingButton(
                         step: "03",
                         eyebrow: "Store",
-                        title: "Shop",
+                        title: "Merch",
                         subtitle: "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                         accent: AppColors.accentHighlight(for: colorScheme),
-                        systemImage: "shippingbox.fill",
+                        brandMark: .skydownX22,
                         action: onOpenShop
                     )
                 }
@@ -295,7 +295,7 @@ private struct LaunchLandingButton: View {
     let title: String
     let subtitle: String
     let accent: Color
-    let systemImage: String
+    let brandMark: BrandMark
     let action: () -> Void
 
     var body: some View {
@@ -306,17 +306,18 @@ private struct LaunchLandingButton: View {
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundColor(accent)
 
-                    Image(systemName: systemImage)
-                        .font(.system(size: 18, weight: .black))
-                        .foregroundStyle(.white, accent.opacity(0.85))
-                        .frame(width: 44, height: 44)
+                    Image(brandMark.rawValue)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(6)
+                        .frame(width: 48, height: 48)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            accent.opacity(colorScheme == .dark ? 0.94 : 0.86),
-                                            accent.opacity(colorScheme == .dark ? 0.54 : 0.66)
+                                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.88),
+                                            accent.opacity(colorScheme == .dark ? 0.18 : 0.10)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing

@@ -85,7 +85,7 @@ struct MainTabView: View {
                         merchandiseService: services.merchandiseService
                     )
                 }
-                .tabItem { Label("Shop", systemImage: "bag.fill") }
+                .tabItem { Label("Merch", systemImage: "bag.fill") }
                 .tag(MainTab.merch)
 
                 DeferredView {
@@ -94,7 +94,14 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Music", systemImage: "waveform.circle.fill") }
+                .tabItem {
+                    Label {
+                        Text("Music")
+                    } icon: {
+                        Image(BrandMark.zweizwei.rawValue)
+                            .renderingMode(.original)
+                    }
+                }
                 .tag(MainTab.zweizwei)
 
                 DeferredView {
@@ -107,7 +114,14 @@ struct MainTabView: View {
                         } : nil
                     )
                 }
-                .tabItem { Label("Home", systemImage: "square.grid.2x2.fill") }
+                .tabItem {
+                    Label {
+                        Text("Home")
+                    } icon: {
+                        Image(BrandMark.skydownX22.rawValue)
+                            .renderingMode(.original)
+                    }
+                }
                 .tag(MainTab.hub)
 
                 DeferredView {
@@ -116,7 +130,14 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Video", systemImage: "film.stack.fill") }
+                .tabItem {
+                    Label {
+                        Text("Videos")
+                    } icon: {
+                        Image(BrandMark.skydown.rawValue)
+                            .renderingMode(.original)
+                    }
+                }
                 .tag(MainTab.skydown)
 
                 DeferredView {

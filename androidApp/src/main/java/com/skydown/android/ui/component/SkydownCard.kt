@@ -18,9 +18,9 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.composed
 import androidx.compose.ui.unit.dp
 
@@ -76,6 +76,21 @@ fun Modifier.skydownPressable(
         animationSpec = spring(dampingRatio = 0.72f, stiffness = 560f),
         label = "skydownPressScale",
     )
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 620f),
+        label = "skydownPressAlpha",
+    )
+    val animatedTranslationY by animateFloatAsState(
+        targetValue = if (isPressed) 1.4f else 0f,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 620f),
+        label = "skydownPressTranslationY",
+    )
 
-    scale(animatedScale)
+    graphicsLayer {
+        scaleX = animatedScale
+        scaleY = animatedScale
+        alpha = animatedAlpha
+        translationY = animatedTranslationY
+    }
 }

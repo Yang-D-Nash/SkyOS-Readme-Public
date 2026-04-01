@@ -22,8 +22,10 @@ enum SkydownLayout {
 struct SkydownTactileButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .brightness(configuration.isPressed ? -0.01 : 0)
+            .scaleEffect(configuration.isPressed ? 0.976 : 1)
+            .saturation(configuration.isPressed ? 1.05 : 1)
+            .brightness(configuration.isPressed ? -0.015 : 0)
+            .offset(y: configuration.isPressed ? 1.5 : 0)
             .animation(.spring(response: 0.24, dampingFraction: 0.72), value: configuration.isPressed)
     }
 }
