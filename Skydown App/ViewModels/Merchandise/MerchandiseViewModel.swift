@@ -222,7 +222,34 @@ final class MerchandiseViewModel: ObservableObject {
     }
 
     private func filterVisibleItems(_ items: [MerchandiseItem]) -> [MerchandiseItem] {
-        items.filter { canManageMerchandise || $0.isVisibleInApp }
+        let visibleItems = items.filter { canManageMerchandise || $0.isVisibleInApp }
+        let hasVisibleShopifyItems = visibleItems.contains { item in
+            item.source == "shopify" && item.shopifyProductId?.isEmpty == false
+        }
+
+        let prioritizedItems: [MerchandiseItem]
+        if canManageMerchandise {
+            prioritizedItems = visibleItems
+        } else if hasVisibleShopifyItems {
+            prioritizedItems = visibleItems.filter { item in
+                item.source == "shopify" && item.shopifyProductId?.isEmpty == false
+            }
+        } else {
+            prioritizedItems = visibleItems
+        }
+
+        return prioritizedItems.sorted {
+            if $0.featured != $1.featured {
+                return $0.featured && !$1.featured
+            }
+            if $0.source != $1.source {
+                return $0.source == "shopify"
+            }
+            if $0.sortOrder != $1.sortOrder {
+                return $0.sortOrder < $1.sortOrder
+            }
+            return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
     }
 
     deinit {

@@ -20,10 +20,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -117,9 +118,9 @@ fun SkydownApp() {
     )
     val destinations = buildList {
         add(BottomDestination("shop", "Shop", { Icon(Icons.Default.ShoppingBag, contentDescription = null) }))
-        add(BottomDestination("music", "Music", { Icon(Icons.Default.MusicNote, contentDescription = null) }))
-        add(BottomDestination("home", "Home", { Icon(Icons.Default.Home, contentDescription = null) }))
-        add(BottomDestination("video", "Video", { Icon(Icons.Default.Movie, contentDescription = null) }))
+        add(BottomDestination("music", "Music", { Icon(Icons.Default.GraphicEq, contentDescription = null) }))
+        add(BottomDestination("home", "Home", { Icon(Icons.Default.Widgets, contentDescription = null) }))
+        add(BottomDestination("video", "Video", { Icon(Icons.Default.Slideshow, contentDescription = null) }))
         add(BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }))
     }
 
@@ -465,7 +466,7 @@ private fun LaunchLandingScreen(
                     title = "Music",
                     subtitle = "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                     accentColor = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.MusicNote,
+                    icon = Icons.Default.GraphicEq,
                     onClick = onOpenMusic,
                 )
                 LaunchLandingChoiceCard(
@@ -474,7 +475,7 @@ private fun LaunchLandingScreen(
                     title = "Video",
                     subtitle = "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.Movie,
+                    icon = Icons.Default.Slideshow,
                     onClick = onOpenVideography,
                 )
                 LaunchLandingChoiceCard(
@@ -483,7 +484,7 @@ private fun LaunchLandingScreen(
                     title = "Shop",
                     subtitle = "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                     accentColor = MaterialTheme.colorScheme.secondary,
-                    icon = Icons.Default.ShoppingBag,
+                    icon = Icons.Default.Inventory2,
                     onClick = onOpenShop,
                 )
             }

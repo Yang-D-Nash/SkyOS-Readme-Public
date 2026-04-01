@@ -94,7 +94,7 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Music", systemImage: "music.note") }
+                .tabItem { Label("Music", systemImage: "waveform.circle.fill") }
                 .tag(MainTab.zweizwei)
 
                 DeferredView {
@@ -107,7 +107,7 @@ struct MainTabView: View {
                         } : nil
                     )
                 }
-                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tabItem { Label("Home", systemImage: "square.grid.2x2.fill") }
                 .tag(MainTab.hub)
 
                 DeferredView {
@@ -116,7 +116,7 @@ struct MainTabView: View {
                         onOpenSettings: { showingSettings = true }
                     )
                 }
-                .tabItem { Label("Video", systemImage: "video.fill") }
+                .tabItem { Label("Video", systemImage: "film.stack.fill") }
                 .tag(MainTab.skydown)
 
                 DeferredView {

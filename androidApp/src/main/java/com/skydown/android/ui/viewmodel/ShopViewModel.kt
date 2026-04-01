@@ -435,10 +435,23 @@ class ShopViewModel : ViewModel() {
     }
 
     private fun filterVisibleItems(items: List<MerchandiseItem>, isAdmin: Boolean): List<MerchandiseItem> {
-        return items
-            .filter { isAdmin || it.isVisibleInApp }
+        val visibleItems = items.filter { isAdmin || it.isVisibleInApp }
+        val hasVisibleShopifyItems = visibleItems.any {
+            it.source == "shopify" && !it.shopifyProductId.isNullOrBlank()
+        }
+
+        val prioritizedItems = when {
+            isAdmin -> visibleItems
+            hasVisibleShopifyItems -> visibleItems.filter {
+                it.source == "shopify" && !it.shopifyProductId.isNullOrBlank()
+            }
+            else -> visibleItems
+        }
+
+        return prioritizedItems
             .sortedWith(
                 compareBy<MerchandiseItem> { !it.featured }
+                    .thenBy { if (it.source == "shopify") 0 else 1 }
                     .thenBy { it.sortOrder }
                     .thenBy { it.name.lowercase() },
             )

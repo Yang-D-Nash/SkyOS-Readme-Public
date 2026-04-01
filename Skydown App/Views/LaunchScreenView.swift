@@ -250,7 +250,7 @@ private struct LaunchLandingView: View {
                         title: "Music",
                         subtitle: "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                         accent: AppColors.spotify(for: colorScheme),
-                        systemImage: "music.note.list",
+                        systemImage: "waveform.circle.fill",
                         action: onOpenMusic
                     )
 
@@ -260,7 +260,7 @@ private struct LaunchLandingView: View {
                         title: "Video",
                         subtitle: "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                         accent: AppColors.accentMystic(for: colorScheme),
-                        systemImage: "play.rectangle.on.rectangle",
+                        systemImage: "film.stack.fill",
                         action: onOpenVideography
                     )
 
@@ -270,7 +270,7 @@ private struct LaunchLandingView: View {
                         title: "Shop",
                         subtitle: "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                         accent: AppColors.accentHighlight(for: colorScheme),
-                        systemImage: "bag.fill",
+                        systemImage: "shippingbox.fill",
                         action: onOpenShop
                     )
                 }
