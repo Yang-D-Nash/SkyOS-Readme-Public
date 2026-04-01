@@ -314,7 +314,7 @@ private fun ShopOverviewCard(
         },
         accent = MaterialTheme.colorScheme.tertiary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
-        marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
+        marks = listOf(BrandArtwork.Sky22),
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),

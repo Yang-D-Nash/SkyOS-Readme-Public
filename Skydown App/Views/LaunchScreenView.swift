@@ -181,6 +181,51 @@ private struct LaunchLandingView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
+                HStack(alignment: .center, spacing: 14) {
+                    Image(BrandMark.sky22.rawValue)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 72, height: 72)
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.92 : 0.82),
+                                            AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.10)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.24), lineWidth: 1)
+                        }
+                        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 10)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Ein Ort fuer Musik, Videos und Merch.")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        Text("Steig genau dort ein, wo du gerade weitermachen willst. Alles andere bleibt unten fuer dich direkt erreichbar.")
+                            .font(.footnote.weight(.medium))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(14)
+                .skydownPanelSurface(
+                    colorScheme: colorScheme,
+                    accent: AppColors.accentHighlight(for: colorScheme),
+                    cornerRadius: 24,
+                    shadowRadius: 14,
+                    shadowYOffset: 8
+                )
+
                 VStack(spacing: 12) {
                     LaunchLandingButton(
                         step: "01",
@@ -188,6 +233,7 @@ private struct LaunchLandingView: View {
                         title: "Music",
                         subtitle: "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                         accent: AppColors.spotify(for: colorScheme),
+                        systemImage: "music.note.list",
                         action: onOpenMusic
                     )
 
@@ -197,6 +243,7 @@ private struct LaunchLandingView: View {
                         title: "Video",
                         subtitle: "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                         accent: AppColors.accentMystic(for: colorScheme),
+                        systemImage: "play.rectangle.on.rectangle",
                         action: onOpenVideography
                     )
 
@@ -206,6 +253,7 @@ private struct LaunchLandingView: View {
                         title: "Shop",
                         subtitle: "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                         accent: AppColors.accentHighlight(for: colorScheme),
+                        systemImage: "bag.fill",
                         action: onOpenShop
                     )
                 }
@@ -230,16 +278,38 @@ private struct LaunchLandingButton: View {
     let title: String
     let subtitle: String
     let accent: Color
+    let systemImage: String
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(spacing: 12) {
                     Text(step)
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundColor(accent)
 
+                    Image(systemName: systemImage)
+                        .font(.system(size: 18, weight: .black))
+                        .foregroundStyle(.white, accent.opacity(0.85))
+                        .frame(width: 44, height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            accent.opacity(colorScheme == .dark ? 0.94 : 0.86),
+                                            accent.opacity(colorScheme == .dark ? 0.54 : 0.66)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .shadow(color: accent.opacity(0.34), radius: 16, y: 8)
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(eyebrow.uppercased())
                             .font(.caption.weight(.semibold))
@@ -275,6 +345,7 @@ private struct LaunchLandingButton: View {
             )
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum BrandMark: String, Identifiable {
+    case sky22 = "Sky22BrandLogo"
     case skydown = "SkydownBrandLogo"
     case zweizwei = "ZweizweiBrandLogo"
 
@@ -8,6 +9,8 @@ enum BrandMark: String, Identifiable {
 
     var label: String {
         switch self {
+        case .sky22:
+            return "Sky²²"
         case .skydown:
             return "Skydown"
         case .zweizwei:
@@ -79,11 +82,12 @@ struct BrandHeroSurface<Footer: View>: View {
                             BrandMarkTile(
                                 mark: mark,
                                 colorScheme: colorScheme,
-                                accent: accent
+                                accent: accent,
+                                isFeatured: marks.count == 1
                             )
                         }
                     }
-                    .frame(width: 96)
+                    .frame(width: marks.count == 1 ? 118 : 96)
                 }
             }
 
@@ -93,6 +97,19 @@ struct BrandHeroSurface<Footer: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             ZStack {
+                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                accent.opacity(colorScheme == .dark ? 0.14 : 0.07),
+                                secondaryAccent.opacity(colorScheme == .dark ? 0.10 : 0.06),
+                                Color.white.opacity(colorScheme == .dark ? 0.02 : 0.18)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
                 Circle()
                     .fill(accent.opacity(colorScheme == .dark ? 0.14 : 0.08))
                     .frame(width: 190, height: 190)
@@ -113,6 +130,21 @@ struct BrandHeroSurface<Footer: View>: View {
             shadowRadius: 16,
             shadowYOffset: 8
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            accent.opacity(0.22),
+                            secondaryAccent.opacity(0.18),
+                            Color.white.opacity(colorScheme == .dark ? 0.06 : 0.22)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        }
     }
 }
 
@@ -135,6 +167,7 @@ private struct BrandMarkTile: View {
     let mark: BrandMark
     let colorScheme: ColorScheme
     let accent: Color
+    let isFeatured: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -142,15 +175,15 @@ private struct BrandMarkTile: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .frame(height: 56)
+                .frame(height: isFeatured ? 84 : 56)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Text(mark.label)
-                .font(.caption.weight(.semibold))
+                .font((isFeatured ? Font.caption.weight(.bold) : Font.caption.weight(.semibold)))
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .lineLimit(1)
         }
-        .padding(10)
+        .padding(isFeatured ? 12 : 10)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(

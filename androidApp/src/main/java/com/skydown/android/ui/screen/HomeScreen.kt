@@ -377,11 +377,11 @@ private fun HomeHeroCard() {
     BrandHeroCard(
         eyebrow = "Sky²² Home",
         title = "Sky²²",
-        subtitle = "Hier siehst du sofort, was neu ist und wohin du als Naechstes willst.",
-        detail = "Musik, Videos, Shop und Tools sind von hier aus nur einen Tap entfernt.",
+        subtitle = "Hier startet direkt das, was fuer dich gerade wichtig ist.",
+        detail = "Musik, Videos, Merchandise und Tools bleiben von hier aus sofort in Reichweite.",
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
-        marks = listOf(BrandArtwork.Skydown, BrandArtwork.Zweizwei),
+        marks = listOf(BrandArtwork.Sky22),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)

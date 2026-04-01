@@ -35,6 +35,10 @@ enum class BrandArtwork(
     @param:DrawableRes val drawableRes: Int,
     val label: String,
 ) {
+    Sky22(
+        drawableRes = R.drawable.sky22_brand_logo,
+        label = "Sky²²",
+    ),
     Skydown(
         drawableRes = R.drawable.skydown_brand_logo,
         label = "Skydown",
@@ -66,8 +70,9 @@ fun BrandHeroCard(
                 Brush.linearGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        accent.copy(alpha = 0.10f),
-                        secondaryAccent.copy(alpha = 0.08f),
+                        accent.copy(alpha = 0.14f),
+                        secondaryAccent.copy(alpha = 0.10f),
+                        Color.White.copy(alpha = 0.04f),
                     ),
                 ),
             )
@@ -140,14 +145,14 @@ fun BrandHeroCard(
                 if (marks.isNotEmpty()) {
                     Column(
                         modifier = Modifier
-                            .width(96.dp)
-                            .height(150.dp),
+                            .width(if (marks.size == 1) 118.dp else 96.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         marks.take(2).forEach { mark ->
                             BrandArtworkTile(
                                 mark = mark,
                                 accent = accent,
+                                isFeatured = marks.size == 1,
                             )
                         }
                     }
@@ -188,6 +193,7 @@ fun BrandPill(
 private fun BrandArtworkTile(
     mark: BrandArtwork,
     accent: Color,
+    isFeatured: Boolean,
 ) {
     Column(
         modifier = Modifier
@@ -214,7 +220,7 @@ private fun BrandArtworkTile(
             contentDescription = mark.label,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(if (isFeatured) 84.dp else 56.dp)
                 .clip(RoundedCornerShape(14.dp)),
             contentScale = ContentScale.Fit,
         )

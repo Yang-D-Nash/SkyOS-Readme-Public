@@ -1,7 +1,9 @@
 package com.skydown.android.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -44,10 +47,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.skydown.android.R
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -61,6 +68,7 @@ import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
+import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.screen.AiHubScreen
 import com.skydown.android.ui.screen.BeatHubScreen
 import com.skydown.android.ui.screen.CartScreen
@@ -112,9 +120,7 @@ fun SkydownApp() {
         add(BottomDestination("music", "Music", { Icon(Icons.Default.MusicNote, contentDescription = null) }))
         add(BottomDestination("home", "Home", { Icon(Icons.Default.Home, contentDescription = null) }))
         add(BottomDestination("video", "Video", { Icon(Icons.Default.Movie, contentDescription = null) }))
-        if (hasAiAccess) {
-            add(BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }))
-        }
+        add(BottomDestination("ai", "Tools", { Icon(Icons.Default.AutoAwesome, contentDescription = null) }))
     }
 
     if (showIntro) {
@@ -133,16 +139,10 @@ fun SkydownApp() {
         val currentDestination = navBackStackEntry?.destination
 
         LaunchedEffect(hasAiAccess, currentDestination?.route) {
-            if (!hasAiAccess && currentDestination?.route == "ai") {
+            if (!hasAiAccess) {
                 showsWorkflowWorkspace = false
-                navController.navigate("home") {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            } else if (currentDestination?.route != "ai") {
+            }
+            if (currentDestination?.route != "ai") {
                 showsWorkflowWorkspace = false
             }
         }
@@ -402,6 +402,62 @@ private fun LaunchLandingScreen(
                 )
             }
 
+            Surface(
+                shape = RoundedCornerShape(26.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                tonalElevation = 10.dp,
+                shadowElevation = 12.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.20f)),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(86.dp)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                    ),
+                                ),
+                                RoundedCornerShape(24.dp),
+                            ),
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.sky22_brand_logo),
+                            contentDescription = "Sky²² Logo",
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(68.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "Ein Ort fuer Musik, Videos und Merchandise.",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "Starte dort, wo du gerade weitermachen willst. Alles andere bleibt unten fuer dich direkt erreichbar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                    }
+                }
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 LaunchLandingChoiceCard(
                     step = "01",
@@ -409,6 +465,7 @@ private fun LaunchLandingScreen(
                     title = "Music",
                     subtitle = "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
                     accentColor = MaterialTheme.colorScheme.primary,
+                    icon = Icons.Default.MusicNote,
                     onClick = onOpenMusic,
                 )
                 LaunchLandingChoiceCard(
@@ -417,6 +474,7 @@ private fun LaunchLandingScreen(
                     title = "Video",
                     subtitle = "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
+                    icon = Icons.Default.Movie,
                     onClick = onOpenVideography,
                 )
                 LaunchLandingChoiceCard(
@@ -425,6 +483,7 @@ private fun LaunchLandingScreen(
                     title = "Shop",
                     subtitle = "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
                     accentColor = MaterialTheme.colorScheme.secondary,
+                    icon = Icons.Default.ShoppingBag,
                     onClick = onOpenShop,
                 )
             }
@@ -447,8 +506,11 @@ private fun LaunchLandingChoiceCard(
     title: String,
     subtitle: String,
     accentColor: androidx.compose.ui.graphics.Color,
+    icon: ImageVector,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
@@ -456,6 +518,8 @@ private fun LaunchLandingChoiceCard(
         shadowElevation = 10.dp,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
         onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = Modifier.skydownPressable(interactionSource),
     ) {
         Row(
             modifier = Modifier
@@ -464,16 +528,9 @@ private fun LaunchLandingChoiceCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(82.dp)
-                    .background(accentColor, RoundedCornerShape(999.dp)),
-            )
-
             Column(
-                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = step,
@@ -481,6 +538,32 @@ private fun LaunchLandingChoiceCard(
                     color = accentColor,
                     fontWeight = FontWeight.Bold,
                 )
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    accentColor.copy(alpha = 0.94f),
+                                    accentColor.copy(alpha = 0.56f),
+                                ),
+                            ),
+                            RoundedCornerShape(14.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text(
                         text = eyebrow.uppercase(),

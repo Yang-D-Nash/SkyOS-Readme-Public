@@ -340,11 +340,11 @@ private struct HomeHeroIntroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Sky²² Home",
             title: "Sky²²",
-            subtitle: "Hier landet direkt das, was fuer dich gerade wichtig ist.",
-            detail: "Musik, Video, Shop und Tools sind von hier aus sofort griffbereit.",
+            subtitle: "Hier startet direkt das, was fuer dich gerade wichtig ist.",
+            detail: "Musik, Videos, Merchandise und Tools bleiben von hier aus sofort in Reichweite.",
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: [.skydown, .zweizwei]
+            marks: [.sky22]
         ) {
             HStack(spacing: 10) {
                 BrandHeroPill(
@@ -1125,7 +1125,7 @@ private struct ShopHeroCard: View {
             detail: isStoreOpen ? "Der Shop ist offen und bereit fuer deine Bestellung." : "Du kannst Produkte schon ansehen. Bestellen geht wieder, sobald der Store offen ist.",
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: [.skydown, .zweizwei]
+            marks: [.sky22]
         ) {
             HStack(spacing: 10) {
                 ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)

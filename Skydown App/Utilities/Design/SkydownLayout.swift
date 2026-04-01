@@ -19,6 +19,15 @@ enum SkydownLayout {
     static let buttonCornerRadius: CGFloat = 16
 }
 
+struct SkydownTactileButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .brightness(configuration.isPressed ? -0.01 : 0)
+            .animation(.spring(response: 0.24, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+}
+
 private struct SkydownNavigationChromeModifier: ViewModifier {
     let colorScheme: ColorScheme
 
@@ -74,6 +83,19 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
         if #available(iOS 26.0, *) {
             content
                 .glassEffect(.regular.interactive(false), in: shape)
+                .background {
+                    shape.fill(
+                        LinearGradient(
+                            colors: [
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.30 : 0.44),
+                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.10 : 0.06),
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.05)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                }
                 .overlay {
                     shape
                         .stroke(strokeColor, lineWidth: 1)
@@ -91,8 +113,18 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                         .fill(.ultraThinMaterial)
                         .overlay {
                             shape.fill(
-                                AppColors.cardBackground(for: colorScheme)
-                                    .opacity(colorScheme == .dark ? 0.40 : 0.24)
+                                LinearGradient(
+                                    colors: [
+                                        AppColors.cardBackground(for: colorScheme)
+                                            .opacity(colorScheme == .dark ? 0.56 : 0.42),
+                                        (accent ?? AppColors.accent(for: colorScheme))
+                                            .opacity(colorScheme == .dark ? 0.10 : 0.06),
+                                        AppColors.accentHighlight(for: colorScheme)
+                                            .opacity(colorScheme == .dark ? 0.06 : 0.04)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
                         }
                 }
@@ -188,5 +220,9 @@ extension View {
                 accent: accent
             )
         )
+    }
+
+    func skydownTactileAction() -> some View {
+        buttonStyle(SkydownTactileButtonStyle())
     }
 }

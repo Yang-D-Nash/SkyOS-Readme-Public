@@ -885,7 +885,7 @@ private fun VideoYouTubePlayerDialog(
     onDismiss: () -> Unit,
     onOpenExternal: (String) -> Unit,
 ) {
-    val playbackUrl = remember(item.url) { youtubePlaybackUrl(item.url) }
+    val playerSource = remember(item.url) { youtubePlayerSource(item.url) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -928,7 +928,7 @@ private fun VideoYouTubePlayerDialog(
                 }
             }
 
-            if (playbackUrl != null) {
+            if (playerSource != null) {
                 AndroidView(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -942,12 +942,31 @@ private fun VideoYouTubePlayerDialog(
                             settings.javaScriptEnabled = true
                             settings.domStorageEnabled = true
                             settings.mediaPlaybackRequiresUserGesture = false
-                            loadUrl(playbackUrl)
+                            settings.javaScriptCanOpenWindowsAutomatically = true
+                            settings.loadsImagesAutomatically = true
+                            settings.useWideViewPort = true
+                            settings.loadWithOverviewMode = true
+                            setBackgroundColor(android.graphics.Color.BLACK)
+                            loadDataWithBaseURL(
+                                playerSource.baseUrl,
+                                playerSource.html,
+                                "text/html",
+                                "utf-8",
+                                null,
+                            )
+                            tag = playerSource.embedKey
                         }
                     },
                     update = { webView ->
-                        if (webView.url != playbackUrl) {
-                            webView.loadUrl(playbackUrl)
+                        if (webView.tag != playerSource.embedKey) {
+                            webView.tag = playerSource.embedKey
+                            webView.loadDataWithBaseURL(
+                                playerSource.baseUrl,
+                                playerSource.html,
+                                "text/html",
+                                "utf-8",
+                                null,
+                            )
                         }
                     },
                 )
@@ -967,7 +986,7 @@ private fun VideoYouTubePlayerDialog(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 FilledTonalButton(
-                    onClick = { onOpenExternal(item.url) },
+                    onClick = { onOpenExternal(playerSource?.externalUrl ?: item.url) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("In YouTube oeffnen")
@@ -984,14 +1003,65 @@ private fun VideoYouTubePlayerDialog(
     }
 }
 
-private fun youtubePlaybackUrl(rawUrl: String): String? {
+private data class YouTubePlayerSource(
+    val html: String,
+    val baseUrl: String,
+    val externalUrl: String,
+    val embedKey: String,
+)
+
+private fun youtubePlayerSource(rawUrl: String): YouTubePlayerSource? {
     val normalizedUrl = normalizedYouTubeUrl(rawUrl) ?: return null
     val videoId = resolvedYouTubeVideoId(rawUrl, normalizedUrl)
-    return if (videoId != null) {
-        "https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1"
-    } else {
-        normalizedUrl
+    if (videoId == null) {
+        return null
     }
+
+    val embedUrl = "https://www.youtube-nocookie.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1&controls=1"
+    val html = """
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+            />
+            <style>
+              html, body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                overflow: hidden;
+              }
+              iframe {
+                width: 100%;
+                height: 100%;
+                border: 0;
+                background: #000;
+              }
+            </style>
+          </head>
+          <body>
+            <iframe
+              src="$embedUrl"
+              title="YouTube video player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="origin"
+              allowfullscreen>
+            </iframe>
+          </body>
+        </html>
+    """.trimIndent()
+
+    return YouTubePlayerSource(
+        html = html,
+        baseUrl = "https://www.youtube.com",
+        externalUrl = "https://www.youtube.com/watch?v=$videoId",
+        embedKey = videoId,
+    )
 }
 
 private fun normalizedYouTubeUrl(rawUrl: String): String? {

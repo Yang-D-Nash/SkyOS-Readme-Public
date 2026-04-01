@@ -119,21 +119,19 @@ struct MainTabView: View {
                 .tabItem { Label("Video", systemImage: "video.fill") }
                 .tag(MainTab.skydown)
 
-                if hasAIAccess {
-                    DeferredView {
-                        AIHubView(
-                            aiChatService: services.aiChatService,
-                            agentChatService: services.agentChatService,
-                            featureFlags: services.featureFlags,
-                            showsWorkflowWorkspace: $showsWorkflowWorkspace,
-                            onOpenCart: { showingCart = true },
-                            onOpenLogin: { showingLogin = true },
-                            onOpenSettings: { showingSettings = true }
-                        )
-                    }
-                    .tabItem { Label("Tools", systemImage: "sparkles") }
-                    .tag(MainTab.tools)
+                DeferredView {
+                    AIHubView(
+                        aiChatService: services.aiChatService,
+                        agentChatService: services.agentChatService,
+                        featureFlags: services.featureFlags,
+                        showsWorkflowWorkspace: $showsWorkflowWorkspace,
+                        onOpenCart: { showingCart = true },
+                        onOpenLogin: { showingLogin = true },
+                        onOpenSettings: { showingSettings = true }
+                    )
                 }
+                .tabItem { Label("Tools", systemImage: "sparkles") }
+                .tag(MainTab.tools)
             }
             .skydownTabBarChrome(colorScheme: currentScheme)
         }
@@ -152,9 +150,6 @@ struct MainTabView: View {
             LoginView()
         }
         .onChange(of: hasAIAccess) { _, allowed in
-            if !allowed && selectedTab == .tools {
-                selectedTab = .hub
-            }
             if !allowed {
                 showsWorkflowWorkspace = false
             }
@@ -220,6 +215,7 @@ struct AppSessionToolbarActions: View {
                         .padding(9)
                         .skydownCapsuleSurface(colorScheme: colorScheme)
                 }
+                .skydownTactileAction()
             }
 
             Button(action: onOpenSettings) {
@@ -229,6 +225,7 @@ struct AppSessionToolbarActions: View {
                     .padding(9)
                     .skydownCapsuleSurface(colorScheme: colorScheme)
             }
+            .skydownTactileAction()
         }
     }
 }
@@ -374,7 +371,7 @@ private struct ShellActionCard: View {
                 shadowYOffset: 8
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SkydownTactileButtonStyle())
     }
 }
 
@@ -632,7 +629,7 @@ private struct AIHubCompactHeader: View {
                         : AppColors.text(for: colorScheme)
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SkydownTactileButtonStyle())
             }
 
             Button(action: onToggleWorkflow) {
@@ -650,7 +647,7 @@ private struct AIHubCompactHeader: View {
                         .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(SkydownTactileButtonStyle())
         }
         .padding(10)
         .skydownPanelSurface(

@@ -11,66 +11,66 @@ struct AppColors {
     static func accent(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 68/255, green: 107/255, blue: 144/255)
+            return Color(red: 40/255, green: 102/255, blue: 165/255)
         case .dark:
-            return Color(red: 160/255, green: 200/255, blue: 243/255)
+            return Color(red: 134/255, green: 216/255, blue: 255/255)
         @unknown default:
-            return Color(red: 68/255, green: 107/255, blue: 144/255)
+            return Color(red: 40/255, green: 102/255, blue: 165/255)
         }
     }
     
     static func accentMystic(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 107/255, green: 142/255, blue: 183/255)
+            return Color(red: 82/255, green: 141/255, blue: 214/255)
         case .dark:
-            return Color(red: 196/255, green: 223/255, blue: 248/255)
+            return Color(red: 188/255, green: 213/255, blue: 255/255)
         @unknown default:
-            return Color(red: 107/255, green: 142/255, blue: 183/255)
+            return Color(red: 82/255, green: 141/255, blue: 214/255)
         }
     }
 
     static func accentHighlight(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 169/255, green: 198/255, blue: 231/255)
+            return Color(red: 113/255, green: 208/255, blue: 255/255)
         case .dark:
-            return Color(red: 220/255, green: 233/255, blue: 246/255)
+            return Color(red: 220/255, green: 243/255, blue: 255/255)
         @unknown default:
-            return Color(red: 169/255, green: 198/255, blue: 231/255)
+            return Color(red: 113/255, green: 208/255, blue: 255/255)
         }
     }
     
     static func primaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 238/255, green: 244/255, blue: 249/255)
+            return Color(red: 236/255, green: 243/255, blue: 251/255)
         case .dark:
-            return Color(red: 6/255, green: 11/255, blue: 18/255)
+            return Color(red: 4/255, green: 10/255, blue: 19/255)
         @unknown default:
-            return Color(red: 238/255, green: 244/255, blue: 249/255)
+            return Color(red: 236/255, green: 243/255, blue: 251/255)
         }
     }
     
     static func secondaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 225/255, green: 234/255, blue: 243/255)
+            return Color(red: 220/255, green: 232/255, blue: 245/255)
         case .dark:
-            return Color(red: 16/255, green: 24/255, blue: 36/255)
+            return Color(red: 13/255, green: 23/255, blue: 38/255)
         @unknown default:
-            return Color(red: 225/255, green: 234/255, blue: 243/255)
+            return Color(red: 220/255, green: 232/255, blue: 245/255)
         }
     }
     
     static func cardBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color.white.opacity(0.90)
+            return Color.white.opacity(0.82)
         case .dark:
-            return Color(red: 12/255, green: 20/255, blue: 31/255).opacity(0.94)
+            return Color(red: 9/255, green: 18/255, blue: 30/255).opacity(0.96)
         @unknown default:
-            return Color.white.opacity(0.90)
+            return Color.white.opacity(0.82)
         }
     }
     
@@ -126,9 +126,10 @@ struct AppColors {
         return LinearGradient(
             colors: [
                 primaryBackground(for: colorScheme),
-                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.14),
-                secondary.opacity(colorScheme == .dark ? 0.14 : 0.10),
-                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.08),
+                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.24 : 0.16),
+                secondary.opacity(colorScheme == .dark ? 0.18 : 0.12),
+                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.11),
+                Color.white.opacity(colorScheme == .dark ? 0.02 : 0.20),
                 primaryBackground(for: colorScheme)
             ],
             startPoint: .topLeading,
