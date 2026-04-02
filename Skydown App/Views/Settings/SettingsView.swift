@@ -755,9 +755,10 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         status: stripeBackendSecretsStore.status,
                         stripeSecretKey: $stripeSecretKeyDraft,
-                        stripeWebhookSecret: $stripeWebhookSecretDraft,
-                        onSave: { saveStripeBackendSecrets() }
-                    )
+                        stripeWebhookSecret: $stripeWebhookSecretDraft
+                    ) {
+                        saveStripeBackendSecrets()
+                    }
 
                     PaymentProviderSettingsCard(
                         colorScheme: effectiveColorScheme,
@@ -1573,9 +1574,7 @@ private struct SettingsInputField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
+            SettingsFieldTitle(title: title, colorScheme: colorScheme)
 
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
@@ -1584,14 +1583,7 @@ private struct SettingsInputField: View {
                         ? .never
                         : .sentences
                 )
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
-                .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                )
+                .settingsFieldChrome(colorScheme: colorScheme)
         }
     }
 }
@@ -1604,20 +1596,11 @@ private struct SettingsSecureInputField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
+            SettingsFieldTitle(title: title, colorScheme: colorScheme)
 
             SecureField(placeholder, text: $text)
                 .textInputAutocapitalization(.never)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
-                .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                )
+                .settingsFieldChrome(colorScheme: colorScheme)
         }
     }
 }
@@ -1631,9 +1614,7 @@ private struct SettingsMultilineInputField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
+            SettingsFieldTitle(title: title, colorScheme: colorScheme)
 
             ZStack(alignment: .topLeading) {
                 if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -1647,16 +1628,38 @@ private struct SettingsMultilineInputField: View {
                 TextEditor(text: $text)
                     .scrollContentBackground(.hidden)
                     .frame(minHeight: minHeight)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                    )
+                    .settingsFieldChrome(colorScheme: colorScheme, horizontalPadding: 14, verticalPadding: 10)
             }
         }
+    }
+}
+
+private struct SettingsFieldTitle: View {
+    let title: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundColor(AppColors.text(for: colorScheme))
+    }
+}
+
+private extension View {
+    func settingsFieldChrome(
+        colorScheme: ColorScheme,
+        horizontalPadding: CGFloat = 14,
+        verticalPadding: CGFloat = 14
+    ) -> some View {
+        self
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .background(AppColors.secondaryBackground(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+            )
     }
 }
 
