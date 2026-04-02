@@ -58,6 +58,7 @@ fun AiHubScreen(
     onHideWorkflow: () -> Unit,
     onOpenLogin: () -> Unit = {},
     onOpenCart: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit,
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
@@ -81,6 +82,7 @@ fun AiHubScreen(
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
+                        onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
                     )
                 },

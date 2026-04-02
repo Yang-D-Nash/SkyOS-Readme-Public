@@ -118,6 +118,39 @@ struct AppColors {
         }
     }
 
+    static func youtube(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return Color(red: 255/255, green: 49/255, blue: 81/255)
+        case .dark:
+            return Color(red: 255/255, green: 92/255, blue: 116/255)
+        @unknown default:
+            return Color(red: 255/255, green: 49/255, blue: 81/255)
+        }
+    }
+
+    static func youtubeDeep(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return Color(red: 184/255, green: 21/255, blue: 56/255)
+        case .dark:
+            return Color(red: 214/255, green: 43/255, blue: 84/255)
+        @unknown default:
+            return Color(red: 184/255, green: 21/255, blue: 56/255)
+        }
+    }
+
+    static func youtubeSurface(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return youtube(for: colorScheme).opacity(0.12)
+        case .dark:
+            return youtube(for: colorScheme).opacity(0.18)
+        @unknown default:
+            return youtube(for: colorScheme).opacity(0.12)
+        }
+    }
+
     static func instagramStart(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:

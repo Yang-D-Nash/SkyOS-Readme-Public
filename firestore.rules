@@ -7,216 +7,343 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function ownerEmail() {
-      return "nash.lioncorna@gmail.com";
-    }
-
-    function isOwnerEmail(email) {
-      return email == ownerEmail();
-    }
-
-    function isOwner(userId) {
-      return signedIn() && request.auth.uid == userId;
-    }
-
-    function hasUserDocument() {
+    function claimRole() {
       return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+        && request.auth.token.role is string
+        && request.auth.token.role in ["owner", "admin", "subadmin", "user"]
+          ? request.auth.token.role
+          : "user";
     }
 
-    function currentRole() {
-      return hasUserDocument()
-        ? (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == ownerEmail()
-            ? "owner"
-            : (
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["owner", "admin", "subadmin", "user"]
-            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
-            : (
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
-                ? "admin"
-                : "user"
-            )
-            )
-        )
-        : "user";
+    function isOwner() {
+      return signedIn() && claimRole() == "owner";
     }
 
-    function isStaff() {
-      return signedIn()
-        && currentRole() in ["owner", "admin"];
+    function isAdmin() {
+      return signedIn() && claimRole() in ["owner", "admin"];
     }
 
-    function hasOwnerControl() {
-      return signedIn()
-        && currentRole() == "owner";
+    function isModerator() {
+      return signedIn() && claimRole() in ["owner", "admin", "subadmin"];
     }
 
-    function defaultAiTextRequestsPerDay(role) {
-      return role == "owner"
-        ? 400
-        : role == "admin"
-          ? 240
-          : role == "subadmin"
-            ? 120
-            : 30;
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
     }
 
-    function defaultAiVisualRequestsPerDay(role) {
-      return role == "owner"
-        ? 80
-        : role == "admin"
-          ? 40
-          : role == "subadmin"
-            ? 20
-            : 4;
+    function runtimeConfigExists() {
+      return exists(/databases/$(database)/documents/system/runtimeConfig);
     }
 
-    function defaultAiAgentRequestsPerDay(role) {
-      return role == "owner"
-        ? 250
-        : role == "admin"
-          ? 140
-          : role == "subadmin"
-            ? 70
-            : 18;
+    function runtimeConfig() {
+      return get(/databases/$(database)/documents/system/runtimeConfig).data;
     }
 
-    function defaultAiHistoryRetentionDays(role) {
-      return role in ["owner", "admin"]
-        ? 30
-        : role == "subadmin"
-          ? 7
-          : 3;
+    function lockdownEnabled() {
+      return runtimeConfigExists() && runtimeConfig().lockdown == true;
     }
 
-    match /users/{userId} {
-      allow create: if isOwner(userId)
-        && (
-          (
-            isOwnerEmail(request.resource.data.email)
-            && request.resource.data.isAdmin == true
-            && request.resource.data.role == "owner"
-          ) || (
-            !isOwnerEmail(request.resource.data.email)
-            && request.resource.data.isAdmin == false
-            && request.resource.data.role == "user"
-          )
-        )
-        && request.resource.data.aiAccessEnabled == true
-        && request.resource.data.aiTextRequestsPerDay is int
-        && request.resource.data.aiVisualRequestsPerDay is int
-        && request.resource.data.aiAgentRequestsPerDay is int
-        && request.resource.data.aiHistoryRetentionDays is int;
+    function userWritesEnabled() {
+      return !runtimeConfigExists() || runtimeConfig().userWritesEnabled != false;
+    }
 
-      allow read: if isOwner(userId) || hasOwnerControl();
+    function registrationsEnabled() {
+      return !runtimeConfigExists() || runtimeConfig().registrationsEnabled != false;
+    }
+
+    function uploadsEnabled() {
+      return !runtimeConfigExists() || runtimeConfig().uploadsEnabled != false;
+    }
+
+    function regularUserWriteAllowed() {
+      return !lockdownEnabled() && userWritesEnabled();
+    }
+
+    function registrationWriteAllowed() {
+      return !lockdownEnabled() && registrationsEnabled();
+    }
+
+    function requiredString(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    function optionalString(value, max) {
+      return value == null || (value is string && value.size() <= max);
+    }
+
+    function optionalShortUrl(value) {
+      return value == null || (
+        value is string
+        && value.size() <= 2048
+        && value.matches("^https://.+$")
+      );
+    }
+
+    function optionalMapString(data, field, max) {
+      return !data.keys().hasAny([field]) || optionalString(data[field], max);
+    }
+
+    function optionalMapShortUrl(data, field) {
+      return !data.keys().hasAny([field]) || optionalShortUrl(data[field]);
+    }
+
+    function validImageContentType(value) {
+      return value in ["image/jpeg", "image/png", "image/webp"];
+    }
+
+    function validUserCreatePayload() {
+      return request.resource.data.keys().hasOnly([
+        "email",
+        "username",
+        "profileImageURL",
+        "profileImagePath",
+        "whatsApp",
+        "profileTagline",
+        "profileBio",
+        "instagramHandle",
+        "registrationDateEpochMillis",
+        "isAdmin",
+        "role",
+        "aiAccessEnabled",
+        "aiTextRequestsPerDay",
+        "aiVisualRequestsPerDay",
+        "aiAgentRequestsPerDay",
+        "aiHistoryRetentionDays"
+      ])
+      && requiredString(request.resource.data.email, 5, 160)
+      && requiredString(request.resource.data.username, 1, 32)
+      && optionalMapShortUrl(request.resource.data, "profileImageURL")
+      && optionalMapString(request.resource.data, "profileImagePath", 256)
+      && optionalMapString(request.resource.data, "whatsApp", 40)
+      && optionalMapString(request.resource.data, "profileTagline", 60)
+      && optionalMapString(request.resource.data, "profileBio", 240)
+      && optionalMapString(request.resource.data, "instagramHandle", 40)
+      && request.resource.data.registrationDateEpochMillis is int
+      && request.resource.data.isAdmin == false
+      && request.resource.data.role == "user"
+      && request.resource.data.aiAccessEnabled == true
+      && request.resource.data.aiTextRequestsPerDay == 30
+      && request.resource.data.aiVisualRequestsPerDay == 4
+      && request.resource.data.aiAgentRequestsPerDay == 18
+      && request.resource.data.aiHistoryRetentionDays == 3;
+    }
+
+    function validOwnUserUpdatePayload() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        "username",
+        "profileImageURL",
+        "profileImagePath",
+        "whatsApp",
+        "profileTagline",
+        "profileBio",
+        "instagramHandle"
+      ])
+      && request.resource.data.email == resource.data.email
+      && request.resource.data.registrationDateEpochMillis == resource.data.registrationDateEpochMillis
+      && request.resource.data.isAdmin == resource.data.isAdmin
+      && request.resource.data.role == resource.data.role
+      && request.resource.data.aiAccessEnabled == resource.data.aiAccessEnabled
+      && request.resource.data.aiTextRequestsPerDay == resource.data.aiTextRequestsPerDay
+      && request.resource.data.aiVisualRequestsPerDay == resource.data.aiVisualRequestsPerDay
+      && request.resource.data.aiAgentRequestsPerDay == resource.data.aiAgentRequestsPerDay
+      && request.resource.data.aiHistoryRetentionDays == resource.data.aiHistoryRetentionDays
+      && requiredString(request.resource.data.username, 1, 32)
+      && optionalMapShortUrl(request.resource.data, "profileImageURL")
+      && optionalMapString(request.resource.data, "profileImagePath", 256)
+      && optionalMapString(request.resource.data, "whatsApp", 40)
+      && optionalMapString(request.resource.data, "profileTagline", 60)
+      && optionalMapString(request.resource.data, "profileBio", 240)
+      && optionalMapString(request.resource.data, "instagramHandle", 40);
+    }
+
+    function validStaffUserUpdatePayload() {
+      return request.resource.data.keys().hasOnly([
+        "email",
+        "username",
+        "profileImageURL",
+        "profileImagePath",
+        "whatsApp",
+        "profileTagline",
+        "profileBio",
+        "instagramHandle",
+        "registrationDateEpochMillis",
+        "isAdmin",
+        "role",
+        "aiAccessEnabled",
+        "aiTextRequestsPerDay",
+        "aiVisualRequestsPerDay",
+        "aiAgentRequestsPerDay",
+        "aiHistoryRetentionDays",
+        "claimsSyncedAt",
+        "claimsUpdatedByUid",
+        "claimsUpdatedByEmail"
+      ])
+      && requiredString(request.resource.data.email, 5, 160)
+      && requiredString(request.resource.data.username, 1, 32)
+      && optionalMapShortUrl(request.resource.data, "profileImageURL")
+      && optionalMapString(request.resource.data, "profileImagePath", 256)
+      && optionalMapString(request.resource.data, "whatsApp", 40)
+      && optionalMapString(request.resource.data, "profileTagline", 60)
+      && optionalMapString(request.resource.data, "profileBio", 240)
+      && optionalMapString(request.resource.data, "instagramHandle", 40)
+      && request.resource.data.registrationDateEpochMillis is int
+      && request.resource.data.role in ["owner", "admin", "subadmin", "user"]
+      && request.resource.data.isAdmin is bool
+      && request.resource.data.aiAccessEnabled is bool
+      && request.resource.data.aiTextRequestsPerDay is int
+      && request.resource.data.aiVisualRequestsPerDay is int
+      && request.resource.data.aiAgentRequestsPerDay is int
+      && request.resource.data.aiHistoryRetentionDays in [1, 3, 7, 30];
+    }
+
+    function validUserProfilePayload(uid) {
+      return request.resource.data.keys().hasOnly([
+        "ownerUid",
+        "username",
+        "profileImageURL",
+        "profileImagePath",
+        "profileTagline",
+        "profileBio",
+        "instagramHandle",
+        "whatsApp",
+        "createdAt",
+        "updatedAt"
+      ])
+      && request.resource.data.ownerUid == uid
+      && requiredString(request.resource.data.username, 1, 32)
+      && optionalMapShortUrl(request.resource.data, "profileImageURL")
+      && optionalMapString(request.resource.data, "profileImagePath", 256)
+      && optionalMapString(request.resource.data, "profileTagline", 60)
+      && optionalMapString(request.resource.data, "profileBio", 240)
+      && optionalMapString(request.resource.data, "instagramHandle", 40)
+      && optionalMapString(request.resource.data, "whatsApp", 40)
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validGalleryMetaPayload(uid) {
+      return request.resource.data.keys().hasOnly([
+        "ownerUid",
+        "type",
+        "title",
+        "caption",
+        "mediaURL",
+        "thumbnailURL",
+        "storagePath",
+        "contentType",
+        "createdAt",
+        "updatedAt"
+      ])
+      && request.resource.data.ownerUid == uid
+      && request.resource.data.type == "image"
+      && requiredString(request.resource.data.title, 1, 60)
+      && optionalMapString(request.resource.data, "caption", 240)
+      && optionalMapShortUrl(request.resource.data, "mediaURL")
+      && optionalMapShortUrl(request.resource.data, "thumbnailURL")
+      && requiredString(request.resource.data.storagePath, 12, 256)
+      && request.resource.data.storagePath.matches("^users/" + uid + "/gallery/[A-Za-z0-9_-]+\\.(jpg|jpeg|png|webp)$")
+      && validImageContentType(request.resource.data.contentType)
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+
+    match /system/runtimeConfig {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+
+    match /uploadSlots/{slotId} {
+      allow read, write: if false;
+    }
+
+    match /uploadUsage/{uid} {
+      allow read, write: if false;
+    }
+
+    match /users/{uid} {
+      allow create: if isSelf(uid)
+        && registrationWriteAllowed()
+        && validUserCreatePayload();
+
+      allow read: if isSelf(uid) || isAdmin();
 
       allow update: if (
-        hasOwnerControl() || (
-        isOwner(userId)
-        && (
-          request.resource.data.isAdmin == resource.data.isAdmin ||
-          (
-            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
-            && request.resource.data.isAdmin == true
-          )
-        )
-        && (
-          request.resource.data.role == resource.data.role ||
-          (
-            resource.data.role == null
-            && request.resource.data.role == (
-              isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email)
-                ? "owner"
-                : (resource.data.isAdmin == true ? "admin" : "user")
-            )
-          ) || (
-            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
-            && request.resource.data.role == "owner"
-          )
-        )
-        && (
-          request.resource.data.aiAccessEnabled == resource.data.aiAccessEnabled ||
-          (
-            resource.data.aiAccessEnabled == null
-            && request.resource.data.aiAccessEnabled == true
-          ) || (
-            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
-            && request.resource.data.aiAccessEnabled == true
-          )
-        )
-        && (
-          request.resource.data.aiTextRequestsPerDay == resource.data.aiTextRequestsPerDay ||
-          (
-            resource.data.aiTextRequestsPerDay == null
-            && request.resource.data.aiTextRequestsPerDay == defaultAiTextRequestsPerDay(request.resource.data.role)
-          ) || (
-            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
-            && request.resource.data.aiTextRequestsPerDay == defaultAiTextRequestsPerDay("owner")
-          )
-        )
-        && (
-          request.resource.data.aiVisualRequestsPerDay == resource.data.aiVisualRequestsPerDay ||
-          (
-            resource.data.aiVisualRequestsPerDay == null
-            && request.resource.data.aiVisualRequestsPerDay == defaultAiVisualRequestsPerDay(request.resource.data.role)
-          ) || (
-            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
-            && request.resource.data.aiVisualRequestsPerDay == defaultAiVisualRequestsPerDay("owner")
-          )
-        )
-        && (
-          request.resource.data.aiAgentRequestsPerDay == resource.data.aiAgentRequestsPerDay ||
-          (
-            resource.data.aiAgentRequestsPerDay == null
-            && request.resource.data.aiAgentRequestsPerDay == defaultAiAgentRequestsPerDay(request.resource.data.role)
-          ) || (
-            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
-            && request.resource.data.aiAgentRequestsPerDay == defaultAiAgentRequestsPerDay("owner")
-          )
-        )
-        && (
-          request.resource.data.aiHistoryRetentionDays == resource.data.aiHistoryRetentionDays ||
-          (
-            resource.data.aiHistoryRetentionDays == null
-            && request.resource.data.aiHistoryRetentionDays == defaultAiHistoryRetentionDays(request.resource.data.role)
-          ) || (
-            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
-            && request.resource.data.aiHistoryRetentionDays == defaultAiHistoryRetentionDays("owner")
-          )
-        )
-      ))
-      && (
-        isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email)
-          ? (
-            request.resource.data.email == ownerEmail()
-            && request.resource.data.role == "owner"
-            && request.resource.data.isAdmin == true
-          )
-          : true
+        isSelf(uid)
+        && regularUserWriteAllowed()
+        && validOwnUserUpdatePayload()
+      ) || (
+        isOwner()
+        && validStaffUserUpdatePayload()
       );
 
-      allow delete: if isOwner(userId) || hasOwnerControl();
+      allow delete: if isSelf(uid) || isOwner();
     }
 
-    match /users/{userId}/texts/{textId} {
-      allow read, write: if isOwner(userId);
+    match /users/{uid}/texts/{textId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
     }
 
-    match /users/{userId}/aiUsage/{usageId} {
-      allow read: if isOwner(userId) || hasOwnerControl();
+    match /users/{uid}/aiUsage/{usageId} {
+      allow read: if isSelf(uid) || isOwner();
       allow create, update, delete: if false;
+    }
+
+    match /userProfiles/{uid} {
+      allow create: if isSelf(uid)
+        && regularUserWriteAllowed()
+        && validUserProfilePayload(uid);
+
+      allow read: if isSelf(uid) || isModerator();
+
+      allow update: if (
+        isSelf(uid)
+        && regularUserWriteAllowed()
+        && validUserProfilePayload(uid)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt
+      ) || (
+        isOwner()
+        && validUserProfilePayload(uid)
+      );
+
+      allow delete: if isSelf(uid) || isOwner();
+    }
+
+    match /galleryMeta/{uid}/items/{imageId} {
+      allow create: if isSelf(uid)
+        && regularUserWriteAllowed()
+        && uploadsEnabled()
+        && validGalleryMetaPayload(uid);
+
+      allow read: if isSelf(uid) || isModerator();
+
+      allow update: if (
+        isSelf(uid)
+        && regularUserWriteAllowed()
+        && validGalleryMetaPayload(uid)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt
+      );
+
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isModerator();
+    }
+
+    match /admin/{docId} {
+      allow read: if isAdmin() || (
+        claimRole() == "subadmin" && docId.matches("^moderation_[A-Za-z0-9_-]+$")
+      );
+      allow create, update, delete: if isAdmin();
     }
 
     match /merchandise/{itemId} {
       allow read: if true;
-      allow create, update, delete: if hasOwnerControl();
+      allow create, update, delete: if isOwner();
     }
 
     match /orders/{orderId} {
       allow create: if false;
-
-      allow read, update, delete: if hasOwnerControl();
+      allow read, update, delete: if isOwner();
     }
 
     match /appConfig/{documentId} {
@@ -227,26 +354,26 @@ service cloud.firestore {
         "shopifyMerch"
       ];
 
-      allow create, update, delete: if hasOwnerControl();
+      allow create, update, delete: if isOwner();
     }
 
     match /adminConfig/{documentId} {
-      allow read, create, update, delete: if hasOwnerControl();
+      allow read, create, update, delete: if isOwner();
     }
 
     match /nicmaBeatHub/{beatId} {
-      allow read: if isStaff() || resource.data.isPublic == true;
-      allow create, update, delete: if isStaff();
+      allow read: if isAdmin() || resource.data.isPublic == true;
+      allow create, update, delete: if isAdmin();
     }
 
     match /videographyHub/{videoId} {
-      allow read: if isStaff() || resource.data.isPublic == true;
-      allow create, update, delete: if isStaff();
+      allow read: if isAdmin() || resource.data.isPublic == true;
+      allow create, update, delete: if isAdmin();
     }
 
     match /videographyHubMeta/{documentId} {
       allow read: if documentId == "publicConfig";
-      allow create, update, delete: if isStaff() && documentId == "publicConfig";
+      allow create, update, delete: if isAdmin() && documentId == "publicConfig";
     }
 
     match /{document=**} {

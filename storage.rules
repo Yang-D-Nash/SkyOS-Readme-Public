@@ -7,25 +7,134 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    function isAdmin() {
+    function claimRole() {
       return signedIn()
-        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+        && request.auth.token.role is string
+        && request.auth.token.role in ["owner", "admin", "subadmin", "user"]
+          ? request.auth.token.role
+          : "user";
+    }
+
+    function isOwner() {
+      return signedIn() && claimRole() == "owner";
+    }
+
+    function isModerator() {
+      return signedIn() && claimRole() in ["owner", "admin"];
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function runtimeConfigExists() {
+      return firestore.exists(/databases/(default)/documents/system/runtimeConfig);
+    }
+
+    function runtimeConfig() {
+      return firestore.get(/databases/(default)/documents/system/runtimeConfig).data;
+    }
+
+    function uploadsAllowed() {
+      return !runtimeConfigExists() || (
+        runtimeConfig().lockdown != true
+        && runtimeConfig().uploadsEnabled != false
+      );
+    }
+
+    function allowedImageType() {
+      return request.resource.contentType in ["image/jpeg", "image/png", "image/webp"];
+    }
+
+    function allowedImageSize() {
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function validProfileFileName(fileName) {
+      return fileName.matches("^avatar\\.(jpg|jpeg|png|webp)$");
+    }
+
+    function validGalleryFileName(fileName) {
+      return fileName.matches("^[A-Za-z0-9_-]{20,120}\\.(jpg|jpeg|png|webp)$");
+    }
+
+    function uploadSlotExists(slotId) {
+      return firestore.exists(/databases/(default)/documents/uploadSlots/$(slotId));
+    }
+
+    function uploadSlot(slotId) {
+      return firestore.get(/databases/(default)/documents/uploadSlots/$(slotId)).data;
+    }
+
+    function hasValidUploadSlot(slotId, uid, kind, fileName) {
+      return uploadSlotExists(slotId)
+        && uploadSlot(slotId).ownerUid == uid
+        && uploadSlot(slotId).ownerUid == request.auth.uid
+        && uploadSlot(slotId).kind == kind
+        && uploadSlot(slotId).fileName == fileName
+        && uploadSlot(slotId).storagePath == "users/" + uid + "/" + kind + "/" + fileName
+        && uploadSlot(slotId).contentType == request.resource.contentType
+        && uploadSlot(slotId).maxBytes >= request.resource.size
+        && uploadSlot(slotId).status == "approved"
+        && uploadSlot(slotId).expiresAt > request.time;
+    }
+
+    function hasUploadMetadata(uid) {
+      return request.resource.metadata.ownerUid == uid
+        && request.resource.metadata.uploadSlotId is string;
+    }
+
+    match /users/{uid}/profile/{fileName} {
+      allow read: if isSelf(uid) || isModerator();
+
+      allow create, update: if isSelf(uid)
+        && uploadsAllowed()
+        && validProfileFileName(fileName)
+        && allowedImageType()
+        && allowedImageSize()
+        && hasUploadMetadata(uid)
+        && hasValidUploadSlot(
+          request.resource.metadata.uploadSlotId,
+          uid,
+          "profile",
+          fileName
+        );
+
+      allow delete: if isSelf(uid) || isModerator();
+    }
+
+    match /users/{uid}/gallery/{fileName} {
+      allow read: if isSelf(uid) || isModerator();
+
+      allow create, update: if isSelf(uid)
+        && uploadsAllowed()
+        && validGalleryFileName(fileName)
+        && allowedImageType()
+        && allowedImageSize()
+        && hasUploadMetadata(uid)
+        && hasValidUploadSlot(
+          request.resource.metadata.uploadSlotId,
+          uid,
+          "gallery",
+          fileName
+        );
+
+      allow delete: if isSelf(uid) || isModerator();
     }
 
     match /merchandise/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isOwner();
     }
 
     match /videos/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isModerator();
     }
 
     match /beats/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isModerator();
     }
 
     match /{allPaths=**} {

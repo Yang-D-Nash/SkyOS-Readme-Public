@@ -7,7 +7,9 @@
   },
   "scripts": {
     "serve": "firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "test:rules": "./node_modules/.bin/firebase emulators:exec --project demo-skydown --only firestore,storage \"node --test tests/**/*.test.js\"",
+    "test:node": "node --test tests/**/*.test.js"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.30.1",
@@ -16,5 +18,10 @@
     "firebase-functions": "^7.2.2",
     "genkit": "^1.30.1",
     "nodemailer": "^6.10.1"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.5.0",
+    "firebase-tools": "^15.12.0"
   }
 }

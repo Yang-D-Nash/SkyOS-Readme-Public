@@ -18,9 +18,14 @@ struct CartView: View {
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
 
-    init(onOpenSettings: @escaping () -> Void = {}) {
+    init(
+        onOpenProfile: @escaping () -> Void = {},
+        onOpenSettings: @escaping () -> Void = {}
+    ) {
+        self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
     }
 
@@ -326,7 +331,10 @@ struct CartView: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    AppSessionToolbarActions(onOpenSettings: onOpenSettings)
+                    AppSessionToolbarActions(
+                        onOpenProfile: onOpenProfile,
+                        onOpenSettings: onOpenSettings
+                    )
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {

@@ -16,6 +16,7 @@ internal fun FirebaseUser.toSharedUser(
         username = displayName
             ?.takeIf { it.isNotBlank() }
             ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" },
+        profileImageURL = null,
         whatsApp = null,
         profileTagline = null,
         profileBio = null,
@@ -55,6 +56,7 @@ internal fun DocumentSnapshot.toSharedUser(authUser: FirebaseUser? = null): User
         id = id,
         email = email,
         username = username,
+        profileImageURL = data["profileImageURL"] as? String,
         whatsApp = data["whatsApp"] as? String,
         profileTagline = data["profileTagline"] as? String,
         profileBio = data["profileBio"] as? String,

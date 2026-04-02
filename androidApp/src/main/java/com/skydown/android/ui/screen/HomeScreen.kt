@@ -85,10 +85,15 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownSheen
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.FeaturedBeatHighlight
 import com.skydown.android.ui.model.FeaturedVideoHighlight
 import com.skydown.android.ui.model.HomeUiState
+import com.skydown.android.ui.theme.InstagramOrange
+import com.skydown.android.ui.theme.InstagramPink
+import com.skydown.android.ui.theme.InstagramPurple
+import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
 
@@ -96,6 +101,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun HomeScreen(
     onOpenCart: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onOpenWorkflow: (() -> Unit)? = null,
     viewModel: HomeViewModel = viewModel(),
@@ -197,6 +203,7 @@ fun HomeScreen(
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
+                        onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
                     ) {
                         val interactionSource = remember { MutableInteractionSource() }
@@ -504,12 +511,12 @@ private fun HomeLatestReleaseCard(
                     onClick = { onOpenSpotify(track) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
-                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        containerColor = SpotifyGreen.copy(alpha = 0.14f),
+                        contentColor = SpotifyGreen,
                     ),
                     border = BorderStroke(
                         1.dp,
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                        SpotifyGreen.copy(alpha = 0.42f),
                     ),
                 ) {
                     Icon(
@@ -780,6 +787,7 @@ private fun HomeStoryCard(
             HomeStoryLinkButton(
                 title = "Yang D. Nash",
                 icon = Icons.Default.Person,
+                brand = HomeStoryBrand.Instagram,
                 onClick = { openExternalLink(context, homePrimaryContactLink.url) },
             )
 
@@ -791,6 +799,7 @@ private fun HomeStoryCard(
                     HomeStoryLinkButton(
                         title = link.title,
                         icon = Icons.Default.MusicNote,
+                        brand = HomeStoryBrand.Instagram,
                         onClick = { openExternalLink(context, link.url) },
                     )
                 }
@@ -815,6 +824,7 @@ private fun HomeStoryCard(
                 HomeStoryLinkButton(
                     title = "Instagram",
                     icon = Icons.Default.Movie,
+                    brand = HomeStoryBrand.Instagram,
                     onClick = {
                         openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
                     },
@@ -837,14 +847,60 @@ private fun HomeStoryCard(
     }
 }
 
+private enum class HomeStoryBrand {
+    Neutral,
+    Instagram,
+}
+
 @Composable
 private fun HomeStoryLinkButton(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    brand: HomeStoryBrand = HomeStoryBrand.Neutral,
     subtitle: String? = null,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val brandGradient = when (brand) {
+        HomeStoryBrand.Neutral -> Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.99f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
+            ),
+        )
+        HomeStoryBrand.Instagram -> Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                InstagramPurple.copy(alpha = 0.16f),
+                InstagramPink.copy(alpha = 0.13f),
+                InstagramOrange.copy(alpha = 0.10f),
+            ),
+        )
+    }
+    val iconTint = when (brand) {
+        HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.primary
+        HomeStoryBrand.Instagram -> Color.White
+    }
+    val iconBackground = when (brand) {
+        HomeStoryBrand.Neutral -> Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            ),
+        )
+        HomeStoryBrand.Instagram -> Brush.linearGradient(
+            colors = listOf(
+                InstagramPurple,
+                InstagramPink,
+                InstagramOrange,
+            ),
+        )
+    }
+    val borderColor = when (brand) {
+        HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        HomeStoryBrand.Instagram -> InstagramPink.copy(alpha = 0.22f)
+    }
     val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -854,14 +910,14 @@ private fun HomeStoryLinkButton(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                    .background(iconBackground)
                     .padding(10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = iconTint,
                 )
             }
             Column(
@@ -889,7 +945,14 @@ private fun HomeStoryLinkButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .skydownPressable(interactionSource),
+            .skydownPressable(interactionSource)
+            .then(
+                if (brand == HomeStoryBrand.Instagram) {
+                    Modifier.skydownSheen(accent = Color.White, alpha = 0.12f)
+                } else {
+                    Modifier
+                },
+            ),
         interactionSource = interactionSource,
         shape = RoundedCornerShape(16.dp),
         color = androidx.compose.ui.graphics.Color.Transparent,
@@ -897,21 +960,13 @@ private fun HomeStoryLinkButton(
         shadowElevation = 5.dp,
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+            borderColor,
         ),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.99f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
-                        ),
-                    ),
-                )
+                .background(brandGradient)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             content()

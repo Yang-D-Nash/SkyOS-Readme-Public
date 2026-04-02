@@ -65,6 +65,7 @@ import kotlinx.coroutines.launch
 fun CartScreen(
     onBack: (() -> Unit)? = null,
     onOpenLogin: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: CartViewModel = viewModel(),
 ) {
@@ -105,7 +106,10 @@ fun CartScreen(
                     {}
                 },
                 actions = {
-                    AppTopBarSessionActions(onOpenSettings = onOpenSettings)
+                    AppTopBarSessionActions(
+                        onOpenProfile = onOpenProfile,
+                        onOpenSettings = onOpenSettings,
+                    )
                 },
                 colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,

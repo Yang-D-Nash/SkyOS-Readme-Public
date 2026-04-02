@@ -94,6 +94,7 @@ fun SettingsScreen(
     onClose: (() -> Unit)? = null,
     onOpenLogin: () -> Unit = {},
     onOpenRegistration: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     onOpenOrders: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -925,34 +926,6 @@ fun SettingsScreen(
                     SkydownCard(contentPadding = PaddingValues(18.dp)) {
                         SectionHeader("Konto")
                         if (uiState.isLoggedIn) {
-                            ProfileEditorCard(
-                                username = profileUsernameDraft,
-                                whatsApp = profileWhatsAppDraft,
-                                profileTagline = profileTaglineDraft,
-                                profileBio = profileBioDraft,
-                                instagramHandle = profileInstagramHandleDraft,
-                                isSaving = uiState.isSavingProfile,
-                                onUsernameChange = { profileUsernameDraft = it },
-                                onWhatsAppChange = { profileWhatsAppDraft = it },
-                                onProfileTaglineChange = { profileTaglineDraft = it },
-                                onProfileBioChange = { profileBioDraft = it },
-                                onInstagramHandleChange = { profileInstagramHandleDraft = it },
-                                onSave = {
-                                    viewModel.saveProfile(
-                                        username = profileUsernameDraft,
-                                        whatsApp = profileWhatsAppDraft,
-                                        profileTagline = profileTaglineDraft,
-                                        profileBio = profileBioDraft,
-                                        instagramHandle = profileInstagramHandleDraft,
-                                    )
-                                },
-                            )
-
-                            Text(
-                                text = "Konto",
-                                modifier = Modifier.padding(top = 16.dp),
-                                fontWeight = FontWeight.SemiBold,
-                            )
                             Text(
                                 text = "Angemeldet als ${uiState.username}",
                                 modifier = Modifier.padding(top = 8.dp),
@@ -964,6 +937,15 @@ fun SettingsScreen(
                                     modifier = Modifier.padding(top = 4.dp),
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                 )
+                            }
+                            Button(
+                                onClick = onOpenProfile,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text("Profil bearbeiten")
                             }
                             Text(
                                 text = "Kontoaktionen",

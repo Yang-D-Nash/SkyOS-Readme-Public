@@ -244,7 +244,7 @@ struct MusicInstagramHubCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hol dir mehr Vibe direkt ueber den aktuellen Artist, 22 und Skydown.")
+            Text("Direkt zu Artists, 22 und Skydown.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -289,9 +289,9 @@ struct MusicInstagramHubCard: View {
                         .background(
                             LinearGradient(
                                 colors: [
-                                    AppColors.secondaryBackground(for: colorScheme),
-                                    AppColors.instagramStart(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.06),
-                                    AppColors.instagramEnd(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.05)
+                                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.99),
+                                    AppColors.instagramStart(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.10),
+                                    AppColors.instagramEnd(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -299,7 +299,7 @@ struct MusicInstagramHubCard: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 18)
-                                .stroke(AppColors.instagramStart(for: colorScheme).opacity(0.14), lineWidth: 1)
+                                .stroke(AppColors.instagramStart(for: colorScheme).opacity(0.22), lineWidth: 1)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
@@ -316,7 +316,7 @@ struct MusicInstagramHubCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                .stroke(AppColors.instagramStart(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
     }
 }

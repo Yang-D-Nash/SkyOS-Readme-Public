@@ -20,15 +20,18 @@ struct HomeView: View {
     @State private var hasLoadedInitialHomeContent = false
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
+    let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
     let onOpenWorkflow: (() -> Void)?
 
     init(
         onOpenCart: @escaping () -> Void = {},
+        onOpenProfile: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {},
         onOpenWorkflow: (() -> Void)? = nil
     ) {
         self.onOpenCart = onOpenCart
+        self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
         self.onOpenWorkflow = onOpenWorkflow
     }
@@ -124,6 +127,7 @@ struct HomeView: View {
 
                     AppSessionToolbarActions(
                         onOpenCart: onOpenCart,
+                        onOpenProfile: onOpenProfile,
                         onOpenSettings: onOpenSettings
                     )
                 }
@@ -157,6 +161,7 @@ struct ShopView: View {
     @StateObject private var viewModel: MerchandiseViewModel
     private let onOpenLogin: () -> Void
     private let onOpenCart: () -> Void
+    private let onOpenProfile: () -> Void
     private let onOpenSettings: () -> Void
     @State private var selectedItem: MerchandiseItem?
     @Environment(\.colorScheme) private var colorScheme
@@ -165,12 +170,14 @@ struct ShopView: View {
         authManager: AuthManager,
         onOpenLogin: @escaping () -> Void = {},
         onOpenCart: @escaping () -> Void = {},
+        onOpenProfile: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {},
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService()
     ) {
         _authManager = ObservedObject(wrappedValue: authManager)
         self.onOpenLogin = onOpenLogin
         self.onOpenCart = onOpenCart
+        self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
         _viewModel = StateObject(
             wrappedValue: MerchandiseViewModel(
@@ -272,6 +279,7 @@ struct ShopView: View {
                     HStack(spacing: 10) {
                         AppSessionToolbarActions(
                             onOpenCart: onOpenCart,
+                            onOpenProfile: onOpenProfile,
                             onOpenSettings: onOpenSettings
                         )
                     }
@@ -404,6 +412,7 @@ private struct HomeLatestReleaseCard: View {
                             title: "Spotify",
                             icon: "music.note",
                             colorScheme: colorScheme,
+                            brand: .spotify,
                             isPrimary: false
                         ) {
                             openURL(spotifyURL)
@@ -632,6 +641,7 @@ private struct HomeStoryCard: View {
                     title: "Yang D. Nash",
                     icon: "person.crop.circle.fill",
                     colorScheme: colorScheme,
+                    brand: .instagram,
                     isPrimary: false
                 ) {
                     if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
@@ -650,6 +660,7 @@ private struct HomeStoryCard: View {
                             subtitle: nil,
                             icon: destination.id == zweizweiInstagramDestination.id ? "music.note.list" : "person.crop.circle",
                             colorScheme: colorScheme,
+                            brand: .instagram,
                             isPrimary: false
                         ) {
                             if let url = destination.url {
@@ -686,6 +697,7 @@ private struct HomeStoryCard: View {
                         title: "Instagram",
                         icon: "camera.fill",
                         colorScheme: colorScheme,
+                        brand: .instagram,
                         isPrimary: false
                     ) {
                         if let url = skydownMusicInstagramDestination.url {
@@ -900,11 +912,19 @@ private extension FeaturedHomeBeat {
     }
 }
 
+private enum HomeActionBrand {
+    case neutral
+    case spotify
+    case instagram
+    case youtube
+}
+
 private struct HomeActionButton: View {
     let title: String
     let subtitle: String?
     let icon: String?
     let colorScheme: ColorScheme
+    let brand: HomeActionBrand
     let isPrimary: Bool
     let action: () -> Void
 
@@ -913,6 +933,7 @@ private struct HomeActionButton: View {
         subtitle: String? = nil,
         icon: String? = nil,
         colorScheme: ColorScheme,
+        brand: HomeActionBrand = .neutral,
         isPrimary: Bool,
         action: @escaping () -> Void
     ) {
@@ -920,6 +941,7 @@ private struct HomeActionButton: View {
         self.subtitle = subtitle
         self.icon = icon
         self.colorScheme = colorScheme
+        self.brand = brand
         self.isPrimary = isPrimary
         self.action = action
     }
@@ -970,7 +992,7 @@ private struct HomeActionButton: View {
                     .stroke(
                         isPrimary
                         ? Color.white.opacity(colorScheme == .dark ? 0.12 : 0.08)
-                        : AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08),
+                        : shadowTint.opacity(colorScheme == .dark ? 0.22 : 0.14),
                         lineWidth: 1
                     )
             )
@@ -985,7 +1007,20 @@ private struct HomeActionButton: View {
     }
 
     private var iconTint: Color {
-        isPrimary ? .white : AppColors.accent(for: colorScheme)
+        if isPrimary {
+            return .white
+        }
+
+        switch brand {
+        case .neutral:
+            return AppColors.accent(for: colorScheme)
+        case .spotify:
+            return AppColors.spotify(for: colorScheme)
+        case .instagram:
+            return AppColors.instagramEnd(for: colorScheme)
+        case .youtube:
+            return AppColors.youtube(for: colorScheme)
+        }
     }
 
     private var iconBackground: LinearGradient {
@@ -995,6 +1030,14 @@ private struct HomeActionButton: View {
                     Color.white.opacity(0.18),
                     Color.white.opacity(0.08)
                 ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        if brand != .neutral {
+            return LinearGradient(
+                colors: brandedColors.map { $0.opacity(colorScheme == .dark ? 0.22 : 0.14) },
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -1011,7 +1054,20 @@ private struct HomeActionButton: View {
     }
 
     private var shadowTint: Color {
-        isPrimary ? AppColors.accent(for: colorScheme) : AppColors.accent(for: colorScheme)
+        if isPrimary {
+            return AppColors.accent(for: colorScheme)
+        }
+
+        switch brand {
+        case .neutral:
+            return AppColors.accent(for: colorScheme)
+        case .spotify:
+            return AppColors.spotify(for: colorScheme)
+        case .instagram:
+            return AppColors.instagramStart(for: colorScheme)
+        case .youtube:
+            return AppColors.youtube(for: colorScheme)
+        }
     }
 
     private var buttonFill: LinearGradient {
@@ -1027,6 +1083,18 @@ private struct HomeActionButton: View {
             )
         }
 
+        if brand != .neutral {
+            return LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.995),
+                    brandedColors.first?.opacity(colorScheme == .dark ? 0.26 : 0.14) ?? AppColors.cardBackground(for: colorScheme),
+                    brandedColors.last?.opacity(colorScheme == .dark ? 0.18 : 0.09) ?? AppColors.secondaryBackground(for: colorScheme)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
         return LinearGradient(
             colors: [
                 AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.99),
@@ -1036,6 +1104,19 @@ private struct HomeActionButton: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    private var brandedColors: [Color] {
+        switch brand {
+        case .neutral:
+            return [AppColors.accent(for: colorScheme), AppColors.accentMystic(for: colorScheme)]
+        case .spotify:
+            return [AppColors.spotify(for: colorScheme), AppColors.spotify(for: colorScheme)]
+        case .instagram:
+            return [AppColors.instagramStart(for: colorScheme), AppColors.instagramEnd(for: colorScheme)]
+        case .youtube:
+            return [AppColors.youtube(for: colorScheme), AppColors.youtubeDeep(for: colorScheme)]
+        }
     }
 }
 

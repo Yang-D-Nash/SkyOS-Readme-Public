@@ -2,6 +2,7 @@ import Foundation
 import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 import GoogleSignIn
 import UIKit
 
@@ -48,13 +49,16 @@ enum AuthServiceError: LocalizedError {
 final class FirebaseAuthService: AuthServicing {
     private let auth: Auth
     private let firestore: Firestore
+    private let functions: Functions
 
     init(
         auth: Auth = Auth.auth(),
-        firestore: Firestore = Firestore.firestore()
+        firestore: Firestore = Firestore.firestore(),
+        functions: Functions = Functions.functions(region: "us-central1")
     ) {
         self.auth = auth
         self.firestore = firestore
+        self.functions = functions
     }
 
     func observeAuthState(_ onChange: @escaping @MainActor (User?) -> Void) -> () -> Void {
@@ -77,7 +81,8 @@ final class FirebaseAuthService: AuthServicing {
     }
 
     func signIn(email: String, password: String) async throws {
-        _ = try await auth.signIn(withEmail: email, password: password)
+        let result = try await auth.signIn(withEmail: email, password: password)
+        try await syncSessionClaims(for: result.user)
     }
 
     func signInWithGoogle(preferredUsername: String? = nil) async throws {
@@ -105,15 +110,16 @@ final class FirebaseAuthService: AuthServicing {
     }
 
     func register(username: String, email: String, whatsApp: String, password: String) async throws {
+        try await ensureRegistrationsOpen()
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let normalizedUsername = Self.sanitizedUsername(
             username,
             fallbackEmail: normalizedEmail
         )
         let result = try await auth.createUser(withEmail: normalizedEmail, password: password)
-        try await refreshAuthToken(for: result.user)
+        try await syncSessionClaims(for: result.user)
         let registeredEmail = result.user.email?.trimmedNilIfEmpty ?? normalizedEmail
-        let role = UserRole.resolve(from: nil, isAdmin: false, email: registeredEmail)
+        let role: UserRole = .user
         let newUser = User(
             id: nil,
             email: registeredEmail,
@@ -130,6 +136,17 @@ final class FirebaseAuthService: AuthServicing {
         )
 
         try firestore.collection("users").document(result.user.uid).setData(from: newUser)
+        try await syncPublicProfileDocument(
+            uid: result.user.uid,
+            username: normalizedUsername,
+            profileImageURL: nil,
+            profileImagePath: nil,
+            profileTagline: nil,
+            profileBio: nil,
+            instagramHandle: nil,
+            whatsApp: whatsApp.trimmedNilIfEmpty
+        )
+        try await syncSessionClaims(for: result.user)
     }
 
     func updateCurrentProfile(
@@ -202,6 +219,17 @@ final class FirebaseAuthService: AuthServicing {
         ]
 
         try await firestore.collection("users").document(authUser.uid).setData(payload, merge: true)
+        let currentSnapshot = try await firestore.collection("users").document(authUser.uid).getDocument()
+        try await syncPublicProfileDocument(
+            uid: authUser.uid,
+            username: normalizedUsername,
+            profileImageURL: (currentSnapshot.data()?["profileImageURL"] as? String)?.trimmedNilIfEmpty,
+            profileImagePath: (currentSnapshot.data()?["profileImagePath"] as? String)?.trimmedNilIfEmpty,
+            profileTagline: normalizedTagline,
+            profileBio: normalizedBio,
+            instagramHandle: normalizedInstagramHandle,
+            whatsApp: normalizedWhatsApp
+        )
         try await refreshAuthToken(for: authUser)
         return try await fetchUser(uid: authUser.uid) ?? authUser.toAppUser()
     }
@@ -277,6 +305,7 @@ final class FirebaseAuthService: AuthServicing {
             id: snapshot.documentID,
             email: email,
             username: username,
+            profileImageURL: (data["profileImageURL"] as? String)?.trimmedNilIfEmpty,
             whatsApp: whatsApp?.trimmedNilIfEmpty,
             profileTagline: (data["profileTagline"] as? String)?.trimmedNilIfEmpty,
             profileBio: (data["profileBio"] as? String)?.trimmedNilIfEmpty,
@@ -307,23 +336,35 @@ final class FirebaseAuthService: AuthServicing {
         let bootstrapRole = UserRole.resolve(from: nil, isAdmin: false, email: email)
 
         guard snapshot.exists else {
-            try await refreshAuthToken(for: authUser)
+            try await ensureRegistrationAllowedForBootstrap(authUser: authUser, bootstrapRole: bootstrapRole)
             let newUser = User(
                 id: nil,
                 email: email,
                 username: username,
+                profileImageURL: nil,
                 whatsApp: nil,
                 registrationDate: authUser.metadata.creationDate ?? .now,
-                isAdmin: bootstrapRole.hasStaffAccess,
-                role: bootstrapRole.rawValue,
+                isAdmin: false,
+                role: UserRole.user.rawValue,
                 aiAccessEnabled: true,
-                aiTextRequestsPerDay: bootstrapRole.defaultAITextRequestsPerDay,
-                aiVisualRequestsPerDay: bootstrapRole.defaultAIVisualRequestsPerDay,
-                aiAgentRequestsPerDay: bootstrapRole.defaultAIAgentRequestsPerDay,
-                aiHistoryRetentionDays: bootstrapRole.defaultAIHistoryRetentionDays
+                aiTextRequestsPerDay: UserRole.user.defaultAITextRequestsPerDay,
+                aiVisualRequestsPerDay: UserRole.user.defaultAIVisualRequestsPerDay,
+                aiAgentRequestsPerDay: UserRole.user.defaultAIAgentRequestsPerDay,
+                aiHistoryRetentionDays: UserRole.user.defaultAIHistoryRetentionDays
             )
 
             try documentReference.setData(from: newUser)
+            try await syncPublicProfileDocument(
+                uid: authUser.uid,
+                username: username,
+                profileImageURL: nil,
+                profileImagePath: nil,
+                profileTagline: nil,
+                profileBio: nil,
+                instagramHandle: nil,
+                whatsApp: nil
+            )
+            try await syncSessionClaims(for: authUser)
             return
         }
 
@@ -381,6 +422,18 @@ final class FirebaseAuthService: AuthServicing {
             try await refreshAuthToken(for: authUser)
             try await documentReference.setData(repairFields, merge: true)
         }
+
+        try await syncPublicProfileDocument(
+            uid: authUser.uid,
+            username: (data["username"] as? String)?.trimmedNilIfEmpty ?? username,
+            profileImageURL: (data["profileImageURL"] as? String)?.trimmedNilIfEmpty,
+            profileImagePath: (data["profileImagePath"] as? String)?.trimmedNilIfEmpty,
+            profileTagline: (data["profileTagline"] as? String)?.trimmedNilIfEmpty,
+            profileBio: (data["profileBio"] as? String)?.trimmedNilIfEmpty,
+            instagramHandle: (data["instagramHandle"] as? String)?.trimmedNilIfEmpty,
+            whatsApp: (data["whatsApp"] as? String)?.trimmedNilIfEmpty
+        )
+        try await syncSessionClaims(for: authUser)
     }
 
     private func currentSessionUser(for firebaseUser: FirebaseAuth.User) async -> User {
@@ -402,6 +455,72 @@ final class FirebaseAuthService: AuthServicing {
                 }
             }
         }
+    }
+
+    private func syncSessionClaims(for authUser: FirebaseAuth.User) async throws {
+        _ = try await functions
+            .httpsCallable("syncCurrentUserClaims")
+            .call([:])
+        try await refreshAuthToken(for: authUser)
+    }
+
+    private func ensureRegistrationsOpen() async throws {
+        let snapshot = try await firestore.collection("system").document("runtimeConfig").getDocument()
+        let data = snapshot.data() ?? [:]
+        let registrationsEnabled = (data["registrationsEnabled"] as? Bool) ?? true
+        let lockdown = (data["lockdown"] as? Bool) ?? false
+
+        if !registrationsEnabled || lockdown {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 423,
+                userInfo: [NSLocalizedDescriptionKey: "Registrierungen sind derzeit pausiert."]
+            )
+        }
+    }
+
+    private func ensureRegistrationAllowedForBootstrap(
+        authUser: FirebaseAuth.User,
+        bootstrapRole: UserRole
+    ) async throws {
+        guard bootstrapRole != .owner else { return }
+
+        do {
+            try await ensureRegistrationsOpen()
+        } catch {
+            try? await authUser.delete()
+            throw error
+        }
+    }
+
+    private func syncPublicProfileDocument(
+        uid: String,
+        username: String,
+        profileImageURL: String?,
+        profileImagePath: String?,
+        profileTagline: String?,
+        profileBio: String?,
+        instagramHandle: String?,
+        whatsApp: String?
+    ) async throws {
+        let documentReference = firestore.collection("userProfiles").document(uid)
+        let snapshot = try await documentReference.getDocument()
+        let createdAt = (snapshot.data()?["createdAt"] as? Timestamp) ?? Timestamp(date: .now)
+        var payload: [String: Any] = [
+            "ownerUid": uid,
+            "username": username,
+            "createdAt": createdAt,
+            "updatedAt": Timestamp(date: .now)
+        ]
+
+        payload["profileImageURL"] = profileImageURL ?? NSNull()
+        payload["profileImagePath"] = profileImagePath ?? NSNull()
+        payload["profileTagline"] = profileTagline ?? NSNull()
+        payload["profileBio"] = profileBio ?? NSNull()
+        payload["instagramHandle"] = instagramHandle ?? NSNull()
+        payload["whatsApp"] = whatsApp ?? NSNull()
+
+        try await documentReference.setData(payload, merge: true)
     }
 
     fileprivate static func sanitizedUsername(
@@ -443,6 +562,7 @@ private extension FirebaseAuth.User {
                 authUserDisplayName: displayName,
                 fallbackEmail: fallbackEmail
             ),
+            profileImageURL: nil,
             whatsApp: nil,
             profileTagline: nil,
             profileBio: nil,

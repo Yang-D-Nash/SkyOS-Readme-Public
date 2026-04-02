@@ -98,6 +98,7 @@ import com.skydown.android.ui.component.dismissKeyboardOnTap
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
+import com.skydown.android.ui.component.skydownSheen
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.SelectedVideoFile
@@ -108,6 +109,8 @@ import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.InstagramPink
 import com.skydown.android.ui.theme.InstagramPurple
 import com.skydown.android.ui.theme.SpotifyGreen
+import com.skydown.android.ui.theme.YouTubeDeepRed
+import com.skydown.android.ui.theme.YouTubeRed
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -122,6 +125,7 @@ fun VideoHubScreen(
     initialSelectedVideoId: String? = null,
     autoplayInitialSelection: Boolean = false,
     onOpenCart: (() -> Unit)? = null,
+    onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
     viewModel: VideoHubViewModel = viewModel(),
 ) {
@@ -231,6 +235,7 @@ fun VideoHubScreen(
                     if (onOpenSettings != null) {
                         AppTopBarSessionActions(
                             onOpenCart = onOpenCart,
+                            onOpenProfile = onOpenProfile,
                             onOpenSettings = onOpenSettings,
                         )
                     }
@@ -847,6 +852,7 @@ private fun SocialActionChip(
             .size(40.dp)
             .clip(CircleShape)
             .background(gradient)
+            .skydownSheen(alpha = 0.14f)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -897,8 +903,24 @@ private fun VideoYouTubeRow(
             }
         }
 
-        TextButton(onClick = onPlay) {
-            Text("Abspielen")
+        TextButton(
+            onClick = onPlay,
+            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                contentColor = Color.White,
+            ),
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            YouTubeRed,
+                            YouTubeDeepRed,
+                        ),
+                    ),
+                )
+                .skydownSheen(accent = Color.White, alpha = 0.12f),
+        ) {
+            Text("YouTube")
         }
     }
 }

@@ -46,6 +46,7 @@ struct MainTabView: View {
     @EnvironmentObject private var authManager: AuthManager
     @State private var selectedTab: MainTab = .hub
     @State private var showingSettings = false
+    @State private var showingProfile = false
     @State private var showingCart = false
     @State private var showingLogin = false
     @State private var showsWorkflowWorkspace = false
@@ -81,6 +82,7 @@ struct MainTabView: View {
                         authManager: services.authManager,
                         onOpenLogin: { showingLogin = true },
                         onOpenCart: { showingCart = true },
+                        onOpenProfile: { showingProfile = true },
                         onOpenSettings: { showingSettings = true },
                         merchandiseService: services.merchandiseService
                     )
@@ -91,6 +93,7 @@ struct MainTabView: View {
                 DeferredView {
                     ZweizweiTabView(
                         onOpenCart: { showingCart = true },
+                        onOpenProfile: { showingProfile = true },
                         onOpenSettings: { showingSettings = true }
                     )
                 }
@@ -100,6 +103,7 @@ struct MainTabView: View {
                 DeferredView {
                     HomeView(
                         onOpenCart: { showingCart = true },
+                        onOpenProfile: { showingProfile = true },
                         onOpenSettings: { showingSettings = true },
                         onOpenWorkflow: hasAIAccess ? {
                             showsWorkflowWorkspace = true
@@ -113,6 +117,7 @@ struct MainTabView: View {
                 DeferredView {
                     VideoHubTabView(
                         onOpenCart: { showingCart = true },
+                        onOpenProfile: { showingProfile = true },
                         onOpenSettings: { showingSettings = true }
                     )
                 }
@@ -127,6 +132,7 @@ struct MainTabView: View {
                         showsWorkflowWorkspace: $showsWorkflowWorkspace,
                         onOpenCart: { showingCart = true },
                         onOpenLogin: { showingLogin = true },
+                        onOpenProfile: { showingProfile = true },
                         onOpenSettings: { showingSettings = true }
                     )
                 }
@@ -141,10 +147,14 @@ struct MainTabView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView(colorScheme: $colorScheme)
         }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView(authManager: services.authManager)
+        }
         .sheet(isPresented: $showingCart) {
-            CartView {
-                showingSettings = true
-            }
+            CartView(
+                onOpenProfile: { showingProfile = true },
+                onOpenSettings: { showingSettings = true }
+            )
         }
         .sheet(isPresented: $showingLogin) {
             LoginView()
@@ -164,12 +174,18 @@ struct MainTabView: View {
 
 struct AppSessionToolbarActions: View {
     let onOpenCart: (() -> Void)?
+    let onOpenProfile: (() -> Void)?
     let onOpenSettings: () -> Void
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
 
-    init(onOpenCart: (() -> Void)? = nil, onOpenSettings: @escaping () -> Void) {
+    init(
+        onOpenCart: (() -> Void)? = nil,
+        onOpenProfile: (() -> Void)? = nil,
+        onOpenSettings: @escaping () -> Void
+    ) {
         self.onOpenCart = onOpenCart
+        self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
     }
 
@@ -184,21 +200,28 @@ struct AppSessionToolbarActions: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accent(for: colorScheme).opacity(0.14))
+            Button(action: authManager.userSession == nil ? onOpenSettings : (onOpenProfile ?? onOpenSettings)) {
+                HStack(spacing: 8) {
+                    if let profileImageURL = authManager.userSession?.profileImageURL,
+                       let url = URL(string: profileImageURL) {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            profileFallbackAvatar
+                        }
                         .frame(width: 24, height: 24)
+                        .clipShape(Circle())
+                    } else {
+                        profileFallbackAvatar
+                    }
 
-                    Text(initials)
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(AppColors.accent(for: colorScheme))
+                    Text(displayName)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(1)
                 }
-
-                Text(displayName)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                    .lineLimit(1)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
@@ -206,6 +229,8 @@ struct AppSessionToolbarActions: View {
                 colorScheme: colorScheme,
                 accent: AppColors.accent(for: colorScheme)
             )
+            .buttonStyle(.plain)
+            .skydownTactileAction()
 
             if let onOpenCart {
                 Button(action: onOpenCart) {
@@ -228,12 +253,25 @@ struct AppSessionToolbarActions: View {
             .skydownTactileAction()
         }
     }
+
+    private var profileFallbackAvatar: some View {
+        ZStack {
+            Circle()
+                .fill(AppColors.accent(for: colorScheme).opacity(0.14))
+                .frame(width: 24, height: 24)
+
+            Text(initials)
+                .font(.caption.weight(.bold))
+                .foregroundColor(AppColors.accent(for: colorScheme))
+        }
+    }
 }
 
 private struct ZweizweiTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var destination: ZweizweiDestination = .hub
     let onOpenCart: () -> Void
+    let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
 
     var body: some View {
@@ -314,6 +352,7 @@ private struct ZweizweiTabView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         AppSessionToolbarActions(
                             onOpenCart: onOpenCart,
+                            onOpenProfile: onOpenProfile,
                             onOpenSettings: onOpenSettings
                         )
                     }
@@ -324,6 +363,7 @@ private struct ZweizweiTabView: View {
                 brand: .zweizwei,
                 onBack: { destination = .hub },
                 onOpenCart: onOpenCart,
+                onOpenProfile: onOpenProfile,
                 onOpenSettings: onOpenSettings
             )
         case .beatHub:
@@ -382,6 +422,7 @@ private struct AIHubView: View {
     @Binding var showsWorkflowWorkspace: Bool
     let onOpenCart: () -> Void
     let onOpenLogin: () -> Void
+    let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
     @State private var mode: AIHubMode = .bot
     @Environment(\.colorScheme) private var colorScheme
@@ -394,12 +435,14 @@ private struct AIHubView: View {
         showsWorkflowWorkspace: Binding<Bool>,
         onOpenCart: @escaping () -> Void,
         onOpenLogin: @escaping () -> Void,
+        onOpenProfile: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void
     ) {
         self.aiChatService = aiChatService
         self.agentChatService = agentChatService
         self.onOpenCart = onOpenCart
         self.onOpenLogin = onOpenLogin
+        self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
         _featureFlags = ObservedObject(wrappedValue: featureFlags)
         _showsWorkflowWorkspace = showsWorkflowWorkspace
@@ -479,6 +522,7 @@ private struct AIHubView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(
                         onOpenCart: onOpenCart,
+                        onOpenProfile: onOpenProfile,
                         onOpenSettings: onOpenSettings
                     )
                 }
@@ -489,6 +533,7 @@ private struct AIHubView: View {
 
 private struct VideoHubTabView: View {
     let onOpenCart: () -> Void
+    let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
 
     var body: some View {
@@ -498,6 +543,7 @@ private struct VideoHubTabView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         AppSessionToolbarActions(
                             onOpenCart: onOpenCart,
+                            onOpenProfile: onOpenProfile,
                             onOpenSettings: onOpenSettings
                         )
                     }

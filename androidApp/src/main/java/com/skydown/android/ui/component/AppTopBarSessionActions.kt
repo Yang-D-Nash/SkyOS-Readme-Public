@@ -2,11 +2,13 @@ package com.skydown.android.ui.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -24,15 +26,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.skydown.android.data.AppContainer
 
 @Composable
 fun RowScope.AppTopBarSessionActions(
     onOpenCart: (() -> Unit)? = null,
+    onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
@@ -46,6 +51,13 @@ fun RowScope.AppTopBarSessionActions(
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
         tonalElevation = 4.dp,
+        modifier = Modifier.clickable {
+            if (currentUser != null) {
+                (onOpenProfile ?: onOpenSettings).invoke()
+            } else {
+                onOpenSettings()
+            }
+        },
     ) {
         Row(
             modifier = Modifier.padding(
@@ -66,12 +78,21 @@ fun RowScope.AppTopBarSessionActions(
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = initials,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    if (!currentUser?.profileImageURL.isNullOrBlank()) {
+                        AsyncImage(
+                            model = currentUser.profileImageURL,
+                            contentDescription = "Profil",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        Text(
+                            text = initials,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
 
                 if (!compactLayout) {

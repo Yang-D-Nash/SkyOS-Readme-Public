@@ -90,6 +90,7 @@ fun MusicScreen(
     autoplaySelectedTrackPreview: Boolean = false,
     autoOpenSelectedTrackInSpotify: Boolean = false,
     onOpenCart: (() -> Unit)? = null,
+    onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
     viewModel: MusicViewModel = viewModel(),
 ) {
@@ -197,6 +198,7 @@ fun MusicScreen(
                     if (onOpenSettings != null) {
                         AppTopBarSessionActions(
                             onOpenCart = onOpenCart,
+                            onOpenProfile = onOpenProfile,
                             onOpenSettings = onOpenSettings,
                         ) {
                             if (uiState.isSpotifyConnected) {

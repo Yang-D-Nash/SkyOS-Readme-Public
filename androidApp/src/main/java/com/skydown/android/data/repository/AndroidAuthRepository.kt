@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.ProfileUpdateInput
 import com.skydown.shared.model.RegistrationInput
@@ -20,6 +21,7 @@ import kotlinx.coroutines.tasks.await
 class AndroidAuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) : AuthRepository {
     override suspend fun currentUser(): User? {
         val authUser = auth.currentUser ?: return null
@@ -29,7 +31,8 @@ class AndroidAuthRepository(
 
     override suspend fun signIn(input: LoginInput): Result<User> {
         return runCatching {
-            auth.signInWithEmailAndPassword(input.email, input.password).await()
+            val authResult = auth.signInWithEmailAndPassword(input.email, input.password).await()
+            authResult.user?.let { syncSessionClaims(it) }
             (currentUser() ?: error("Benutzer konnte nicht geladen werden."))
                 .also(AppSessionStore::update)
         }.recoverCatching { error ->
@@ -51,25 +54,21 @@ class AndroidAuthRepository(
 
     override suspend fun register(input: RegistrationInput): Result<User> {
         return runCatching {
+            ensureRegistrationsOpen()
             val authResult = auth.createUserWithEmailAndPassword(input.email, input.password).await()
             val firebaseUser = authResult.user ?: error("Benutzer konnte nicht erstellt werden.")
-            refreshAuthToken(firebaseUser)
-            val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() } ?: input.email.trim()
-            val resolvedRole = UserRole.resolve(
-                rawValue = null,
-                isAdmin = false,
-                email = registeredEmail,
-            )
+            val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() }?.lowercase() ?: input.email.trim().lowercase()
+            val resolvedRole = UserRole.User
             val user = User(
                 id = firebaseUser.uid,
-                email = registeredEmail.lowercase(),
+                email = registeredEmail,
                 username = input.username,
                 whatsApp = input.whatsApp.ifBlank { null },
                 profileTagline = null,
                 profileBio = null,
                 instagramHandle = null,
                 registrationDateEpochMillis = System.currentTimeMillis(),
-                isAdmin = resolvedRole.hasStaffAccess,
+                isAdmin = false,
                 role = resolvedRole.rawValue,
                 aiAccessEnabled = true,
                 aiTextRequestsPerDay = resolvedRole.defaultAiTextRequestsPerDay,
@@ -78,6 +77,17 @@ class AndroidAuthRepository(
                 aiHistoryRetentionDays = resolvedRole.defaultAiHistoryRetentionDays,
             )
             firestore.collection("users").document(firebaseUser.uid).set(user).await()
+            syncPublicProfileDocument(
+                uid = firebaseUser.uid,
+                username = user.username,
+                profileImageUrl = null,
+                profileImagePath = null,
+                profileTagline = null,
+                profileBio = null,
+                instagramHandle = null,
+                whatsApp = user.whatsApp,
+            )
+            syncSessionClaims(firebaseUser)
             AppSessionStore.update(user)
             user
         }.recoverCatching { error ->
@@ -129,6 +139,18 @@ class AndroidAuthRepository(
             )
 
             documentReference.update(updates).await()
+            val currentSnapshot = documentReference.get().await()
+            val currentData = currentSnapshot.data.orEmpty()
+            syncPublicProfileDocument(
+                uid = authUser.uid,
+                username = input.username,
+                profileImageUrl = currentData["profileImageURL"] as? String,
+                profileImagePath = currentData["profileImagePath"] as? String,
+                profileTagline = input.profileTagline,
+                profileBio = input.profileBio,
+                instagramHandle = input.instagramHandle,
+                whatsApp = input.whatsApp,
+            )
             val updatedUser = syncUserDocument(authUser)
             AppSessionStore.update(updatedUser)
             updatedUser
@@ -147,13 +169,13 @@ class AndroidAuthRepository(
         val resolvedUsername = resolvedUsername(authUser, preferredUsername)
 
         if (!snapshot.exists()) {
-            refreshAuthToken(authUser)
             val fallbackEmail = authUser.email.orEmpty().lowercase()
             val resolvedRole = UserRole.resolve(
                 rawValue = null,
                 isAdmin = false,
                 email = fallbackEmail,
             )
+            ensureRegistrationAllowedForBootstrap(authUser, resolvedRole)
             val user = User(
                 id = authUser.uid,
                 email = fallbackEmail,
@@ -163,16 +185,27 @@ class AndroidAuthRepository(
                 profileBio = null,
                 instagramHandle = null,
                 registrationDateEpochMillis = authUser.metadata?.creationTimestamp ?: System.currentTimeMillis(),
-                isAdmin = resolvedRole.hasStaffAccess,
-                role = resolvedRole.rawValue,
+                isAdmin = false,
+                role = UserRole.User.rawValue,
                 aiAccessEnabled = true,
-                aiTextRequestsPerDay = resolvedRole.defaultAiTextRequestsPerDay,
-                aiVisualRequestsPerDay = resolvedRole.defaultAiVisualRequestsPerDay,
-                aiAgentRequestsPerDay = resolvedRole.defaultAiAgentRequestsPerDay,
-                aiHistoryRetentionDays = resolvedRole.defaultAiHistoryRetentionDays,
+                aiTextRequestsPerDay = UserRole.User.defaultAiTextRequestsPerDay,
+                aiVisualRequestsPerDay = UserRole.User.defaultAiVisualRequestsPerDay,
+                aiAgentRequestsPerDay = UserRole.User.defaultAiAgentRequestsPerDay,
+                aiHistoryRetentionDays = UserRole.User.defaultAiHistoryRetentionDays,
             )
 
             documentReference.set(user).await()
+            syncPublicProfileDocument(
+                uid = authUser.uid,
+                username = user.username,
+                profileImageUrl = null,
+                profileImagePath = null,
+                profileTagline = null,
+                profileBio = null,
+                instagramHandle = null,
+                whatsApp = null,
+            )
+            syncSessionClaims(authUser)
             return user
         }
 
@@ -229,18 +262,101 @@ class AndroidAuthRepository(
         }
 
         if (updates.isNotEmpty()) {
-            refreshAuthToken(authUser)
             documentReference.update(updates).await()
+            syncSessionClaims(authUser)
+            syncPublicProfileDocument(
+                uid = authUser.uid,
+                username = (updates["username"] as? String) ?: (data["username"] as? String ?: resolvedUsername),
+                profileImageUrl = (updates["profileImageURL"] as? String) ?: (data["profileImageURL"] as? String),
+                profileImagePath = (updates["profileImagePath"] as? String) ?: (data["profileImagePath"] as? String),
+                profileTagline = (updates["profileTagline"] as? String) ?: (data["profileTagline"] as? String),
+                profileBio = (updates["profileBio"] as? String) ?: (data["profileBio"] as? String),
+                instagramHandle = (updates["instagramHandle"] as? String) ?: (data["instagramHandle"] as? String),
+                whatsApp = (updates["whatsApp"] as? String) ?: (data["whatsApp"] as? String),
+            )
             return documentReference.get().await().toSharedUser(authUser)
                 ?: fallbackUser.copy(username = resolvedUsername)
         }
 
+        syncSessionClaims(authUser)
+        syncPublicProfileDocument(
+            uid = authUser.uid,
+            username = data["username"] as? String ?: resolvedUsername,
+            profileImageUrl = data["profileImageURL"] as? String,
+            profileImagePath = data["profileImagePath"] as? String,
+            profileTagline = data["profileTagline"] as? String,
+            profileBio = data["profileBio"] as? String,
+            instagramHandle = data["instagramHandle"] as? String,
+            whatsApp = data["whatsApp"] as? String,
+        )
         return snapshot.toSharedUser(authUser) ?: fallbackUser.copy(username = resolvedUsername)
     }
-}
 
-private suspend fun refreshAuthToken(authUser: FirebaseUser) {
-    authUser.getIdToken(true).await()
+    private suspend fun refreshAuthToken(authUser: FirebaseUser) {
+        authUser.getIdToken(true).await()
+    }
+
+    private suspend fun syncSessionClaims(authUser: FirebaseUser) {
+        functions.getHttpsCallable("syncCurrentUserClaims").call(emptyMap<String, Any>()).await()
+        refreshAuthToken(authUser)
+    }
+
+    private suspend fun ensureRegistrationsOpen() {
+        val snapshot = firestore.collection("system").document("runtimeConfig").get().await()
+        val data = snapshot.data.orEmpty()
+        val registrationsEnabled = data["registrationsEnabled"] as? Boolean ?: true
+        val lockdown = data["lockdown"] as? Boolean ?: false
+
+        if (!registrationsEnabled || lockdown) {
+            error("Registrierungen sind derzeit pausiert.")
+        }
+    }
+
+    private suspend fun ensureRegistrationAllowedForBootstrap(
+        authUser: FirebaseUser,
+        bootstrapRole: UserRole,
+    ) {
+        if (bootstrapRole == UserRole.Owner) {
+            return
+        }
+
+        runCatching {
+            ensureRegistrationsOpen()
+        }.getOrElse { error ->
+            runCatching { authUser.delete().await() }
+            throw error
+        }
+    }
+
+    private suspend fun syncPublicProfileDocument(
+        uid: String,
+        username: String,
+        profileImageUrl: String?,
+        profileImagePath: String?,
+        profileTagline: String?,
+        profileBio: String?,
+        instagramHandle: String?,
+        whatsApp: String?,
+    ) {
+        val documentReference = firestore.collection("userProfiles").document(uid)
+        val snapshot = documentReference.get().await()
+        val createdAt = snapshot.data?.get("createdAt") ?: com.google.firebase.Timestamp.now()
+        documentReference.set(
+            mapOf(
+                "ownerUid" to uid,
+                "username" to username,
+                "profileImageURL" to (profileImageUrl ?: FieldValue.delete()),
+                "profileImagePath" to (profileImagePath ?: FieldValue.delete()),
+                "profileTagline" to (profileTagline ?: FieldValue.delete()),
+                "profileBio" to (profileBio ?: FieldValue.delete()),
+                "instagramHandle" to (instagramHandle ?: FieldValue.delete()),
+                "whatsApp" to (whatsApp ?: FieldValue.delete()),
+                "createdAt" to createdAt,
+                "updatedAt" to com.google.firebase.Timestamp.now(),
+            ),
+            com.google.firebase.firestore.SetOptions.merge(),
+        ).await()
+    }
 }
 
 private fun resolvedUsername(

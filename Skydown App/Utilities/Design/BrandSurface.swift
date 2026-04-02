@@ -23,6 +23,7 @@ enum BrandMark: String, Identifiable {
 }
 
 struct BrandHeroSurface<Footer: View>: View {
+    @State private var sheenTravel: CGFloat = -1.2
     let colorScheme: ColorScheme
     let eyebrow: String
     let title: String
@@ -134,6 +135,34 @@ struct BrandHeroSurface<Footer: View>: View {
             shadowYOffset: 8
         )
         .overlay {
+            GeometryReader { proxy in
+                let shape = RoundedRectangle(
+                    cornerRadius: SkydownLayout.heroCornerRadius,
+                    style: .continuous
+                )
+                let width = proxy.size.width
+                let height = proxy.size.height
+
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0),
+                        Color.white.opacity(colorScheme == .dark ? 0.16 : 0.24),
+                        accent.opacity(colorScheme == .dark ? 0.12 : 0.16),
+                        Color.white.opacity(0)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(width: max(width * 0.34, 120), height: height * 1.7)
+                .rotationEffect(.degrees(16))
+                .offset(x: sheenTravel * width, y: -height * 0.16)
+                .blur(radius: 7)
+                .blendMode(.screen)
+                .mask(shape)
+            }
+            .allowsHitTesting(false)
+        }
+        .overlay {
             RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
                 .stroke(
                     LinearGradient(
@@ -147,6 +176,12 @@ struct BrandHeroSurface<Footer: View>: View {
                     ),
                     lineWidth: 1
                 )
+        }
+        .onAppear {
+            guard sheenTravel < 0 else { return }
+            withAnimation(.linear(duration: 4.4).repeatForever(autoreverses: false)) {
+                sheenTravel = 1.24
+            }
         }
     }
 }

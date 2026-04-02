@@ -91,6 +91,7 @@ fun BrandHeroCard(
                 ),
                 shape = shape,
             )
+            .skydownSheen(accent = accent, alpha = 0.14f)
             .padding(SkydownUiTokens.heroPadding),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {

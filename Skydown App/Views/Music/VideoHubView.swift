@@ -1083,7 +1083,21 @@ private struct SocialLinkButton<Background: View>: View {
                 .clipShape(Circle())
                 .overlay(
                     Circle()
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                )
+                .overlay(
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.22),
+                                    Color.white.opacity(0)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .scaleEffect(0.92)
                 )
                 .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
         }
@@ -1115,18 +1129,24 @@ struct VideoYouTubeRow: View {
             Spacer()
 
             Button(action: onPlay) {
-                Label("Abspielen", systemImage: "play.rectangle.fill")
+                Label("YouTube", systemImage: "play.rectangle.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(
-                        AppColors.accentHighlight(for: colorScheme)
-                            .opacity(colorScheme == .dark ? 0.16 : 0.20)
+                        LinearGradient(
+                            colors: [
+                                AppColors.youtube(for: colorScheme),
+                                AppColors.youtubeDeep(for: colorScheme)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
                     .overlay(
                         Capsule()
-                            .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
+                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
                     )
                     .clipShape(Capsule())
             }

@@ -85,6 +85,7 @@ import com.skydown.android.ui.screen.LoginScreen
 import com.skydown.android.ui.screen.MusicScreen
 import com.skydown.android.ui.screen.NicmaProducerScreen
 import com.skydown.android.ui.screen.OrderScreen
+import com.skydown.android.ui.screen.ProfileScreen
 import com.skydown.android.ui.screen.RegistrationScreen
 import com.skydown.android.ui.screen.SettingsScreen
 import com.skydown.android.ui.screen.ShopScreen
@@ -111,6 +112,13 @@ fun SkydownApp() {
     val openSettings = remember(navController) {
         {
             navController.navigate("settings") {
+                launchSingleTop = true
+            }
+        }
+    }
+    val openProfile = remember(navController) {
+        {
+            navController.navigate("profile") {
                 launchSingleTop = true
             }
         }
@@ -243,6 +251,7 @@ fun SkydownApp() {
                 composable("home") {
                     HomeScreen(
                         onOpenCart = openCart,
+                        onOpenProfile = openProfile,
                         onOpenSettings = openSettings,
                         onOpenWorkflow = if (hasAiAccess) {
                             {
@@ -260,18 +269,21 @@ fun SkydownApp() {
                     ShopScreen(
                         onOpenLogin = { authSheet = AuthSheet.Login },
                         onOpenCart = openCart,
+                        onOpenProfile = openProfile,
                         onOpenSettings = openSettings,
                     )
                 }
                 composable("music") {
                     ZweizweiMusicLaneScreen(
                         onOpenCart = openCart,
+                        onOpenProfile = openProfile,
                         onOpenSettings = openSettings,
                     )
                 }
                 composable("video") {
                     VideoHubScreen(
                         onOpenCart = openCart,
+                        onOpenProfile = openProfile,
                         onOpenSettings = openSettings,
                     )
                 }
@@ -279,6 +291,7 @@ fun SkydownApp() {
                     CartScreen(
                         onBack = { navController.popBackStack() },
                         onOpenLogin = { authSheet = AuthSheet.Login },
+                        onOpenProfile = openProfile,
                         onOpenSettings = openSettings,
                     )
                 }
@@ -289,6 +302,7 @@ fun SkydownApp() {
                         onHideWorkflow = { showsWorkflowWorkspace = false },
                         onOpenLogin = { authSheet = AuthSheet.Login },
                         onOpenCart = openCart,
+                        onOpenProfile = openProfile,
                         onOpenSettings = openSettings,
                     )
                 }
@@ -297,7 +311,13 @@ fun SkydownApp() {
                         onClose = { navController.popBackStack() },
                         onOpenLogin = { authSheet = AuthSheet.Login },
                         onOpenRegistration = { authSheet = AuthSheet.Registration },
+                        onOpenProfile = openProfile,
                         onOpenOrders = { showOrders = true },
+                    )
+                }
+                composable("profile") {
+                    ProfileScreen(
+                        onBack = { navController.popBackStack() },
                     )
                 }
             }
@@ -610,6 +630,7 @@ private enum class ZweizweiMusicDestination {
 @Composable
 private fun ZweizweiMusicLaneScreen(
     onOpenCart: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onBackToLanding: (() -> Unit)? = null,
 ) {
@@ -643,6 +664,7 @@ private fun ZweizweiMusicLaneScreen(
                     actions = {
                         AppTopBarSessionActions(
                             onOpenCart = onOpenCart,
+                            onOpenProfile = onOpenProfile,
                             onOpenSettings = onOpenSettings,
                         )
                     },
@@ -715,6 +737,7 @@ private fun ZweizweiMusicLaneScreen(
             onBack = { destination = ZweizweiMusicDestination.Hub },
             onOpenBeatHub = { destination = ZweizweiMusicDestination.BeatHub },
             onOpenCart = onOpenCart,
+            onOpenProfile = onOpenProfile,
             onOpenSettings = onOpenSettings,
         )
 

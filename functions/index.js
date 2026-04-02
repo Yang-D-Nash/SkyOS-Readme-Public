@@ -2,14 +2,32 @@
 
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
+const functionsV1 = require("firebase-functions/v1");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
+const {onMessagePublished} = require("firebase-functions/v2/pubsub");
 const {enableFirebaseTelemetry} = require("@genkit-ai/firebase");
-const {onCallGenkit} = require("firebase-functions/https");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const {genkit, z} = require("genkit");
 const {vertexAI} = require("@genkit-ai/google-genai");
 const nodemailer = require("nodemailer");
+const {assertAppCheck} = require("./src/security/app-check");
+const {
+  BILLING_LOCKDOWN_REASON_PREFIX,
+} = require("./src/security/constants");
+const {
+  assertAdmin: assertAdminClaim,
+  assertOwner: assertOwnerClaim,
+  resolveRoleFromClaims,
+  setUserRoleClaims,
+  syncClaimsForCurrentUser,
+} = require("./src/security/roles");
+const {
+  areRegistrationsBlocked,
+  getRuntimeConfig,
+  mergeRuntimeConfig,
+} = require("./src/security/runtime-config");
+const {requestUploadSlot} = require("./src/security/upload-slots");
 
 admin.initializeApp();
 void enableFirebaseTelemetry().catch((error) => {
@@ -134,6 +152,10 @@ const AI_USAGE_KINDS = {
   agent: "agent",
 };
 
+function resolveRoleFromAuthClaims(auth) {
+  return resolveRoleFromClaims(auth);
+}
+
 function normalizeEmail(email) {
   return nonEmptyString(email)?.toLowerCase() || null;
 }
@@ -220,29 +242,12 @@ async function loadUserData(uid) {
 }
 
 async function isAdminAuth(auth) {
-  if (!auth?.uid) {
-    return false;
-  }
-
-  const userData = await loadUserData(auth.uid);
-  if (!userData) {
-    return false;
-  }
-
-  return buildUserProfile(userData).isAdmin;
+  return Boolean(auth?.uid) &&
+    [USER_ROLES.owner, USER_ROLES.admin].includes(resolveRoleFromAuthClaims(auth));
 }
 
 async function isOwnerAuth(auth) {
-  if (!auth?.uid) {
-    return false;
-  }
-
-  const userData = await loadUserData(auth.uid);
-  if (!userData) {
-    return false;
-  }
-
-  return buildUserProfile(userData).isOwner;
+  return Boolean(auth?.uid) && resolveRoleFromAuthClaims(auth) === USER_ROLES.owner;
 }
 
 async function isStaffAuth(auth) {
@@ -250,12 +255,8 @@ async function isStaffAuth(auth) {
     return false;
   }
 
-  const userData = await loadUserData(auth.uid);
-  if (!userData) {
-    return false;
-  }
-
-  return buildUserProfile(userData).isStaff;
+  const role = resolveRoleFromAuthClaims(auth);
+  return [USER_ROLES.owner, USER_ROLES.admin, USER_ROLES.subadmin].includes(role);
 }
 
 async function canUseAiAuth(auth) {
@@ -272,15 +273,16 @@ async function canUseAiAuth(auth) {
 }
 
 async function assertAdmin(auth) {
-  if (!(await isAdminAuth(auth))) {
-    throw new HttpsError("permission-denied", "Nur Admins duerfen diese Aktion ausfuehren.");
-  }
+  assertAdminClaim(auth);
 }
 
 async function assertOwner(auth) {
-  if (!(await isOwnerAuth(auth))) {
-    throw new HttpsError("permission-denied", "Nur der Owner darf diese Aktion ausfuehren.");
-  }
+  assertOwnerClaim(auth);
+}
+
+async function assertCallableSecurity(request, functionName) {
+  const runtimeConfig = await getRuntimeConfig();
+  return assertAppCheck(request, runtimeConfig, functionName);
 }
 
 function normalizeStoreDomain(value) {
@@ -1692,6 +1694,12 @@ exports.submitMerchOrder = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
 }, async (request) => {
+  await assertCallableSecurity(request, "submitMerchOrder");
+  const runtimeConfig = await getRuntimeConfig();
+  if (runtimeConfig.lockdown === true || runtimeConfig.userWritesEnabled === false) {
+    throw new HttpsError("failed-precondition", "Bestellungen sind derzeit pausiert.");
+  }
+
   const orderData = normalizeOrderSubmissionPayload(request.data, request.auth);
   const orderRef = await admin.firestore().collection("orders").add(orderData);
 
@@ -1713,6 +1721,7 @@ exports.confirmMerchOrderPayment = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
 }, async (request) => {
+  await assertCallableSecurity(request, "confirmMerchOrderPayment");
   await assertOwner(request.auth);
 
   const orderId = nonEmptyString(request.data?.orderId);
@@ -1761,6 +1770,7 @@ exports.triggerWorkflowAutomation = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
 }, async (request) => {
+  await assertCallableSecurity(request, "triggerWorkflowAutomation");
   await assertOwner(request.auth);
 
   const trigger = nonEmptyString(request.data?.trigger) || "admin_settings_test";
@@ -1781,6 +1791,7 @@ exports.authorizeAiUsage = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
 }, async (request) => {
+  await assertCallableSecurity(request, "authorizeAiUsage");
   const kind = nonEmptyString(request.data?.kind)?.toLowerCase() || AI_USAGE_KINDS.text;
   return authorizeAiUsage({
     auth: request.auth,
@@ -1858,19 +1869,128 @@ ${responseFrameworkHint(input.prompt)}
   return finalText;
 });
 
-exports.skydownAgent = onCallGenkit({
+exports.skydownAgent = onCall({
   region: "us-central1",
-  enforceAppCheck: false,
   timeoutSeconds: 60,
-  authPolicy: canUseAiAuth,
-}, skydownAgentFlow);
+}, async (request) => {
+  await assertCallableSecurity(request, "skydownAgent");
+  if (!(await canUseAiAuth(request.auth))) {
+    throw new HttpsError("permission-denied", "KI-Zugriff ist fuer dieses Konto nicht freigeschaltet.");
+  }
+
+  return skydownAgentFlow(request.data);
+});
 
 exports.syncShopifyMerch = onCall({
   region: "us-central1",
   timeoutSeconds: 120,
 }, async (request) => {
+  await assertCallableSecurity(request, "syncShopifyMerch");
   await assertOwner(request.auth);
   return runShopifyMerchSync();
+});
+
+exports.syncCurrentUserClaims = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "syncCurrentUserClaims");
+  return syncClaimsForCurrentUser(request.auth);
+});
+
+exports.setUserRole = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "setUserRole");
+  await assertOwner(request.auth);
+
+  return setUserRoleClaims({
+    uid: request.data?.uid,
+    requestedRole: request.data?.role,
+    updatedByUid: request.auth.uid,
+    updatedByEmail: normalizeEmail(request.auth.token?.email),
+  });
+});
+
+exports.requestUploadSlot = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  const appCheckState = await assertCallableSecurity(request, "requestUploadSlot");
+  return requestUploadSlot({
+    auth: request.auth,
+    data: request.data,
+    appCheckState,
+  });
+});
+
+exports.setRuntimeLockdown = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "setRuntimeLockdown");
+  await assertOwner(request.auth);
+
+  const enabled = request.data?.lockdown === true;
+  const source = enabled ? "owner_manual_lockdown" : "owner_manual_unlock";
+  const reason = nonEmptyString(request.data?.reason) || (enabled ? "owner_manual" : "owner_recovery");
+
+  return mergeRuntimeConfig({
+    lockdown: enabled,
+    uploadsEnabled: enabled ? false : true,
+    registrationsEnabled: enabled ? false : true,
+    userWritesEnabled: enabled ? false : true,
+    lastLockdownReason: reason,
+  }, source);
+});
+
+exports.applyBudgetLockdown = onMessagePublished({
+  topic: process.env.BILLING_BUDGET_TOPIC || "billing-budget-alerts",
+  region: "us-central1",
+}, async (event) => {
+  const payload = event.data.message.json || {};
+  const budgetDisplayName = nonEmptyString(payload?.budgetDisplayName) || "budget";
+  const costAmount = Number(payload?.costAmount) || Number(payload?.costAmount?.units) || null;
+
+  logger.error("Budget alert received. Runtime lockdown is being applied.", {
+    budgetDisplayName,
+    costAmount,
+    topic: process.env.BILLING_BUDGET_TOPIC || "billing-budget-alerts",
+  });
+
+  await mergeRuntimeConfig({
+    lockdown: true,
+    uploadsEnabled: false,
+    registrationsEnabled: false,
+    userWritesEnabled: false,
+    budgetLockdownEnabled: true,
+    lastLockdownReason: `${BILLING_LOCKDOWN_REASON_PREFIX}:${budgetDisplayName}`,
+  }, "billing_budget_alert");
+});
+
+exports.enforceRegistrationLockdown = functionsV1.auth.user().onCreate(async (user) => {
+  const email = normalizeEmail(user.email);
+  const role = email === OWNER_EMAIL ? "owner" : "user";
+  const runtimeConfig = await getRuntimeConfig({forceRefresh: true});
+
+  if (!areRegistrationsBlocked(runtimeConfig, role)) {
+    return;
+  }
+
+  if (email === OWNER_EMAIL) {
+    logger.warn("Owner registration bypassed lockdown to keep recovery access.", {
+      uid: user.uid,
+      email,
+    });
+    return;
+  }
+
+  logger.error("Registration created during lockdown. User will be deleted.", {
+    uid: user.uid,
+    email,
+  });
+  await admin.auth().deleteUser(user.uid);
 });
 
 exports.processConfirmedMerchOrders = onDocumentWritten({

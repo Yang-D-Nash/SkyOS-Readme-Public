@@ -1,7 +1,12 @@
 package com.skydown.android.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,8 +23,13 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.composed
 import androidx.compose.ui.unit.dp
@@ -92,5 +102,45 @@ fun Modifier.skydownPressable(
         scaleY = animatedScale
         alpha = animatedAlpha
         translationY = animatedTranslationY
+    }
+}
+
+@Stable
+fun Modifier.skydownSheen(
+    accent: Color = Color.White,
+    alpha: Float = 0.16f,
+): Modifier = composed {
+    val transition = rememberInfiniteTransition(label = "skydownSheen")
+    val travel by transition.animateFloat(
+        initialValue = -0.45f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3900, easing = LinearEasing),
+        ),
+        label = "skydownSheenTravel",
+    )
+
+    drawWithContent {
+        drawContent()
+
+        val sheenWidth = size.width * 0.32f
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = alpha),
+                    accent.copy(alpha = alpha * 0.72f),
+                    Color.Transparent,
+                ),
+                start = Offset.Zero,
+                end = Offset(sheenWidth, size.height),
+            ),
+            topLeft = Offset(
+                x = size.width * travel - sheenWidth,
+                y = -size.height * 0.2f,
+            ),
+            size = Size(sheenWidth, size.height * 1.4f),
+            blendMode = BlendMode.Screen,
+        )
     }
 }

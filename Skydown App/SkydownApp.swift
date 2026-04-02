@@ -5,6 +5,7 @@
 //  Created by Yang D. Nash on 23.07.25.
 //
 import SwiftUI
+import FirebaseAppCheck
 import FirebaseCore
 import AVKit
 import GoogleSignIn
@@ -14,7 +15,9 @@ struct SkydownApp: App {
     @StateObject private var services = AppServices()
 
     init() {
+        AppCheck.setAppCheckProviderFactory(SkydownAppCheckProviderFactory())
         FirebaseApp.configure()
+        AppCheck.appCheck().isTokenAutoRefreshEnabled = true
     }
 
     var body: some Scene {

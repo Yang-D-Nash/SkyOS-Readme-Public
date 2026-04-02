@@ -110,6 +110,7 @@ struct User: Codable, Identifiable {
     @DocumentID var id: String?
     var email: String
     var username: String
+    var profileImageURL: String?
     var whatsApp: String?
     var profileTagline: String?
     var profileBio: String?

@@ -10,6 +10,192 @@ Die App läuft auf:
 
 ---
 
+## Firebase Security Hardening
+
+### Architekturueberblick
+
+Der sichere Testbetrieb ist jetzt auf `deny-by-default` ausgelegt:
+
+- `Firestore Rules` blockieren standardmaessig alles
+- `Storage Rules` erlauben nur eigene Bild-Uploads in klaren User-Pfaden
+- `Custom Claims` steuern Rollen: `owner`, `admin`, `subadmin`, `user`
+- `system/runtimeConfig` schaltet Lockdown, Uploads, Registrierungen und Schreibzugriffe
+- `requestUploadSlot` vergibt serverseitig Upload-Freigaben vor jedem Profil-/Galerie-Upload
+- `uploadSlots` und `uploadUsage` bleiben rein serverseitig
+- `Budget Alerts` koennen das Projekt in einen sicheren Lockdown versetzen
+
+### Sichere Standardwerte
+
+Aktueller Default fuer den Testbetrieb:
+
+- `App Check Mode`: `monitor`
+- `lockdown`: `false`
+- `uploadsEnabled`: `true`
+- `registrationsEnabled`: `true`
+- `userWritesEnabled`: `true`
+- `maxGalleryImagesPerUser`: `10`
+- `maxUploadsPer24Hours`: `20`
+- `maxImageBytes`: `5 MB`
+- erlaubte Dateiarten: `image/jpeg`, `image/png`, `image/webp`
+
+### Setup
+
+#### 1. Runtime Config vorbereiten
+
+Lege das Dokument `system/runtimeConfig` an:
+
+```json
+{
+  "lockdown": false,
+  "uploadsEnabled": true,
+  "registrationsEnabled": true,
+  "userWritesEnabled": true,
+  "appCheckMode": "monitor",
+  "budgetLockdownEnabled": false,
+  "lastLockdownReason": ""
+}
+```
+
+#### 2. Owner Claim setzen
+
+Setze fuer `nash.lioncorna@gmail.com` die Rolle `owner`.
+
+Admin-SDK-Beispiel:
+
+```js
+const admin = require("firebase-admin");
+
+await admin.auth().setCustomUserClaims("<uid>", {
+  role: "admin",
+  isAdmin: true,
+  isStaff: true,
+  isOwner: false,
+});
+```
+
+Im App-/Functions-Flow gibt es dafuer zusaetzlich die Owner-only Callable `setUserRole`.
+
+#### 3. App Check vorbereiten
+
+Web-Referenzen liegen in:
+
+- `examples/web/firebase-app-check.example.js`
+- `examples/web/request-upload-slot.example.js`
+
+Native Clients sind jetzt ebenfalls vorbereitet:
+
+- `iOS`: `FirebaseAppCheckProvider.swift` nutzt im Debug/Simulator den Debug-Provider, auf echten Geraeten `App Attest`, sonst `DeviceCheck`
+- `Android`: `SkydownApplication.kt` nutzt im Debug-Build den Debug-Provider und im Release `Play Integrity`
+
+Wichtig fuer lokale Tests:
+
+- iOS/Simulator und Android/Debug geben einen Debug-Token aus
+- diesen Token in Firebase Console unter `App Check > Debug tokens` hinterlegen
+- erst danach echte `enforce`-Rollouts aktivieren
+
+Rollout:
+
+1. `monitor`
+2. Metrics und Logs pruefen
+3. erst danach `enforce`
+
+#### 4. Deploy-Reihenfolge
+
+```bash
+firebase deploy --only firestore:rules
+firebase deploy --only storage
+firebase deploy --only functions
+```
+
+#### 5. Emulator-Tests
+
+```bash
+cd functions
+npm install
+npm run test:rules
+```
+
+### Upload-Flow
+
+Der normale sichere Flow ist jetzt:
+
+1. Client fragt `requestUploadSlot` an
+2. Backend prueft Lockdown, Tageslimit, Galerie-Limit und Dateityp
+3. Client laedt nur in den vom Backend vergebenen Pfad hoch
+4. Storage Rules akzeptieren den Upload nur mit passendem Slot
+5. Danach schreibt der Client `galleryMeta/{uid}/items/{imageId}` oder aktualisiert `userProfiles/{uid}`
+
+Direkte freie Uploads ohne Slot gehoeren nicht mehr zum normalen Pfad.
+
+### Registrierungen im Lockdown
+
+Es gibt jetzt zwei Schutzebenen:
+
+1. App-Clients pruefen `registrationsEnabled`, bevor ein Sign-up gestartet wird.
+2. `enforceRegistrationLockdown` loescht neu angelegte Auth-Accounts wieder, falls waehrend eines Lockdowns trotzdem eine Registrierung durchgeht.
+
+Das ist die kostenguenstigere Variante ohne Identity-Platform-Blocking-Functions. Wenn du Sign-ups schon *vor* der Auth-Erstellung hart stoppen willst, ist spaeter `beforeUserCreated` die naechste Eskalationsstufe.
+
+### Billing Kill Switch
+
+`applyBudgetLockdown` erwartet Budget-Notifications ueber Pub/Sub und setzt dann:
+
+- `lockdown = true`
+- `uploadsEnabled = false`
+- `registrationsEnabled = false`
+- `userWritesEnabled = false`
+
+Das ist absichtlich nicht destruktiv. Dienste laufen weiter, aber neue kostenrelevante Nutzeraktionen werden geblockt.
+
+Ein optionaler, absichtlich nicht aktiver Beispielpfad fuer Billing-Deaktivierung liegt in:
+
+- `functions/src/security/billing-disable.example.js`
+
+### Monitoring
+
+Diese Signale solltest du beobachten:
+
+- Upload-Anzahl pro Tag
+- Download-Anzahl
+- Storage-Nutzung in Bytes
+- Function-Invocations
+- Error-Rate / denied requests
+- App Check missing / invalid requests
+- Auth-Neuregistrierungen waehrend Lockdown
+
+Praktische CLI-Hinweise:
+
+```bash
+gcloud pubsub topics create billing-budget-alerts
+gcloud pubsub subscriptions create billing-budget-alerts-sub --topic=billing-budget-alerts
+```
+
+Danach:
+
+- Budget in Google Cloud Billing anlegen
+- Topic `billing-budget-alerts` als Notification-Ziel setzen
+- Monitoring Alerts fuer Storage-Bytes, Storage-Requests und Functions-Errors anlegen
+
+### Recovery Guide
+
+Wenn das Projekt in Lockdown ist:
+
+1. Ursache pruefen
+2. Traffic-/Kosten-Spitze identifizieren
+3. `system/runtimeConfig` nur als `owner` anpassen
+4. zuerst `uploadsEnabled` und `registrationsEnabled` bewusst pruefen
+5. erst danach `lockdown` wieder deaktivieren
+
+### To-do vor Produktionsstart
+
+- `App Check` von `monitor` auf `enforce` umstellen
+- alte ungesicherte Profil-Media-Pfade nicht weiter verwenden
+- `uploadSlots` und `uploadUsage` mit TTL/Lifecycle aufraeumen
+- Notfall-Runbook fuer Sign-up-Provider in der Console dokumentieren
+- fuer oeffentliche Profile spaeter pruefen, ob tokenisierte Download-URLs durch einen haerteren Proxy ersetzt werden sollen
+
+---
+
 ## 1. Fuer Nutzer
 
 ### Was die App fuer Nutzer sein soll

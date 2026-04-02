@@ -82,6 +82,7 @@ import kotlinx.coroutines.delay
 fun ShopScreen(
     onOpenLogin: () -> Unit = {},
     onOpenCart: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: ShopViewModel = viewModel(),
 ) {
@@ -104,6 +105,7 @@ fun ShopScreen(
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,
+                        onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
                     ) {
                         IconButton(onClick = viewModel::refresh) {

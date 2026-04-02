@@ -35,6 +35,7 @@ struct SettingsView: View {
     @State private var showingPrivacyPolicy = false
     @State private var showingTermsOfService = false
     @State private var showingOrders = false
+    @State private var showingProfileEditor = false
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
@@ -147,23 +148,6 @@ struct SettingsView: View {
                     SettingsSectionCard(title: "Konto", colorScheme: effectiveColorScheme) {
                         if let user = authManager.userSession {
                             VStack(alignment: .leading, spacing: 12) {
-                                SettingsProfileEditorCard(
-                                    colorScheme: effectiveColorScheme,
-                                    username: $profileUsernameDraft,
-                                    whatsApp: $profileWhatsAppDraft,
-                                    tagline: $profileTaglineDraft,
-                                    bio: $profileBioDraft,
-                                    instagramHandle: $profileInstagramHandleDraft,
-                                    isSaving: isSavingProfile
-                                ) {
-                                    Task {
-                                        await saveProfile()
-                                    }
-                                }
-
-                                Divider()
-                                    .padding(.vertical, 4)
-
                                 Text("Angemeldet als \(user.username)")
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -171,6 +155,15 @@ struct SettingsView: View {
                                 Text(user.email)
                                     .font(.subheadline)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                Button {
+                                    showingProfileEditor = true
+                                } label: {
+                                    Label("Profil bearbeiten", systemImage: "person.crop.circle")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppColors.accent(for: effectiveColorScheme))
 
                                 Text("Kontoaktionen")
                                     .font(.body)
@@ -359,6 +352,12 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingOrders) {
             OrderView()
+        }
+        .sheet(isPresented: $showingProfileEditor) {
+            ProfileView(
+                authManager: authManager,
+                startsInEditMode: true
+            )
         }
         .sheet(isPresented: $showingTermsAndConditions) {
             PolicyView(title: "AGB", text: .termsAndConditionsText)

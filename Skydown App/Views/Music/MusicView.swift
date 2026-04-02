@@ -91,6 +91,7 @@ struct MusicView: View {
     let brand: MusicExperienceBrand
     let onBack: (() -> Void)?
     let onOpenCart: (() -> Void)?
+    let onOpenProfile: (() -> Void)?
     let onOpenSettings: (() -> Void)?
     private let initialArtist: String?
     private let initialTrackID: Int?
@@ -105,6 +106,7 @@ struct MusicView: View {
         autoPresentSelectedTrackSpotifyPlayer: Bool = false,
         onBack: (() -> Void)? = nil,
         onOpenCart: (() -> Void)? = nil,
+        onOpenProfile: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil
     ) {
         self.brand = brand
@@ -114,6 +116,7 @@ struct MusicView: View {
         self.autoplaySelectedTrackPreview = autoplaySelectedTrackPreview
         self.autoPresentSelectedTrackSpotifyPlayer = autoPresentSelectedTrackSpotifyPlayer
         self.onOpenCart = onOpenCart
+        self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
         _selectedArtist = State(initialValue: initialArtist ?? brand.artists.first ?? "Yang D. Nash")
         _selectedTrackID = State(initialValue: initialTrackID)
@@ -194,6 +197,7 @@ struct MusicView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         AppSessionToolbarActions(
                             onOpenCart: onOpenCart,
+                            onOpenProfile: onOpenProfile,
                             onOpenSettings: onOpenSettings
                         )
                     }
