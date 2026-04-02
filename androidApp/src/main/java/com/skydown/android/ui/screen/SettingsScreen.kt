@@ -149,11 +149,16 @@ fun SettingsScreen(
     var automationWebhookPathDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
-    val zweizweiArtistPages = remember(artistPages) {
-        ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei)
+    val managedShowcasePages = remember(artistPages) {
+        (
+            ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei) +
+                ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Nicma)
+            ).sortedWith(
+                compareBy<ArtistPageUi>({ it.brand.displayTitle }, { it.artistName.lowercase() }),
+            )
     }
-    val assignedArtistPageCount = zweizweiArtistPages.count { it.editorUids.isNotEmpty() }
-    val publishedArtistPageCount = zweizweiArtistPages.count { it.hasCustomPresentation }
+    val assignedArtistPageCount = managedShowcasePages.count { it.editorUids.isNotEmpty() }
+    val publishedArtistPageCount = managedShowcasePages.count { it.hasCustomPresentation }
     var profileUsernameDraft by rememberSaveable { mutableStateOf("") }
     var profileWhatsAppDraft by rememberSaveable { mutableStateOf("") }
     var profileTaglineDraft by rememberSaveable { mutableStateOf("") }
@@ -384,7 +389,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Artists -> {
                 Text(
-                    text = "Hier bekommen ZweiZwei-Artists ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.",
+                    text = "Hier bekommen ZweiZwei-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -422,7 +427,7 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    for (page in zweizweiArtistPages) {
+                    for (page in managedShowcasePages) {
                         ArtistPageAdminCard(
                             page = page,
                             users = uiState.managedUsers.filterNot { it.isPlatformOwner },

@@ -164,13 +164,16 @@ final class ArtistPagesStore: ObservableObject {
     }
 
     private static func seedPages() -> [ArtistPageSeed] {
-        [
+        var seededPages = [
             ArtistPageBrand.zweizwei: MusicExperienceBrand.zweizwei.artists,
             ArtistPageBrand.skydown: MusicExperienceBrand.skydown.artists
         ]
         .flatMap { brand, artists in
             artists.map { ArtistPageSeed(brand: brand, artistName: $0) }
         }
+
+        seededPages.append(ArtistPageSeed(brand: .nicma, artistName: "NICMA MUSIC"))
+        return seededPages
     }
 }
 

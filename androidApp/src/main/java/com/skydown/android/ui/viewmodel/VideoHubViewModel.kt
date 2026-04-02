@@ -9,6 +9,7 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.VideoHubService
 import com.skydown.android.data.VideoHubUploadRequest
 import com.skydown.android.ui.model.VideoEquipmentItem
+import com.skydown.android.ui.model.ProducedWithArtist
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoHubUiState
@@ -382,6 +383,68 @@ class VideoHubViewModel(
         }
     }
 
+    fun addCollaborationItem() {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    collaborationItems = state.publicConfig.collaborationItems + ProducedWithArtist(
+                        id = java.util.UUID.randomUUID().toString(),
+                        name = "",
+                        role = "",
+                        highlight = "",
+                        vibe = "",
+                        imageUrl = null,
+                        spotifyArtistId = null,
+                        instagramUrl = null,
+                    ),
+                ),
+            )
+        }
+    }
+
+    fun updateCollaborationItem(
+        itemId: String,
+        name: String? = null,
+        role: String? = null,
+        highlight: String? = null,
+        vibe: String? = null,
+        imageUrl: String? = null,
+        spotifyArtistId: String? = null,
+        instagramUrl: String? = null,
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    collaborationItems = state.publicConfig.collaborationItems.map { item ->
+                        if (item.id != itemId) {
+                            item
+                        } else {
+                            item.copy(
+                                name = name ?: item.name,
+                                role = role ?: item.role,
+                                highlight = highlight ?: item.highlight,
+                                vibe = vibe ?: item.vibe,
+                                imageUrl = imageUrl ?: item.imageUrl,
+                                spotifyArtistId = spotifyArtistId ?: item.spotifyArtistId,
+                                instagramUrl = instagramUrl ?: item.instagramUrl,
+                            )
+                        }
+                    },
+                ),
+            )
+        }
+    }
+
+    fun removeCollaborationItem(itemId: String) {
+        _uiState.update { state ->
+            state.copy(
+                publicConfig = state.publicConfig.copy(
+                    collaborationItems = state.publicConfig.collaborationItems.filterNot { it.id == itemId },
+                ),
+            )
+        }
+    }
+
     fun savePublicConfig() {
         if (!_uiState.value.isAdmin) {
             _uiState.update {
@@ -412,9 +475,29 @@ class VideoHubViewModel(
                 item.copy(title = title, subtitle = subtitle, url = url)
             }
         }
+        val sanitizedCollaborations = _uiState.value.publicConfig.collaborationItems.mapNotNull { item ->
+            val name = item.name.trim()
+            val role = item.role.trim()
+            val highlight = item.highlight.trim()
+            val vibe = item.vibe.trim()
+            if (name.isBlank() || role.isBlank()) {
+                null
+            } else {
+                item.copy(
+                    name = name,
+                    role = role,
+                    highlight = highlight,
+                    vibe = vibe,
+                    imageUrl = item.imageUrl?.trim()?.ifBlank { null },
+                    spotifyArtistId = item.spotifyArtistId?.trim()?.ifBlank { null },
+                    instagramUrl = item.instagramUrl?.trim()?.ifBlank { null },
+                )
+            }
+        }
         val config = VideoHubPublicConfig(
             equipmentItems = sanitizedEquipment.ifEmpty { VideoHubPublicConfig.default().equipmentItems },
             youtubeItems = sanitizedYouTube,
+            collaborationItems = sanitizedCollaborations.ifEmpty { VideoHubPublicConfig.default().collaborationItems },
         )
 
         viewModelScope.launch {

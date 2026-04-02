@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -100,11 +101,11 @@ import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownSheen
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.model.ProducedWithArtist
 import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoYouTubeItem
-import com.skydown.android.ui.model.skydownProducedWithArtists
 import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.InstagramPink
 import com.skydown.android.ui.theme.InstagramPurple
@@ -112,6 +113,7 @@ import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.theme.YouTubeDeepRed
 import com.skydown.android.ui.theme.YouTubeRed
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
+import coil3.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -318,6 +320,7 @@ fun VideoHubScreen(
 
                 item {
                     VideoCollaborationsCard(
+                        items = uiState.publicConfig.collaborationItems,
                         onOpenLink = { url -> openExternalLink(context, url) },
                     )
                 }
@@ -390,6 +393,29 @@ fun VideoHubScreen(
                                 viewModel.updateYouTubeItem(itemId, url = value)
                             },
                             onRemoveYouTube = viewModel::removeYouTubeItem,
+                            onAddCollaboration = viewModel::addCollaborationItem,
+                            onUpdateCollaborationName = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, name = value)
+                            },
+                            onUpdateCollaborationRole = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, role = value)
+                            },
+                            onUpdateCollaborationHighlight = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, highlight = value)
+                            },
+                            onUpdateCollaborationVibe = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, vibe = value)
+                            },
+                            onUpdateCollaborationImageUrl = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, imageUrl = value)
+                            },
+                            onUpdateCollaborationSpotifyArtistId = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, spotifyArtistId = value)
+                            },
+                            onUpdateCollaborationInstagramUrl = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, instagramUrl = value)
+                            },
+                            onRemoveCollaboration = viewModel::removeCollaborationItem,
                             onSave = viewModel::savePublicConfig,
                         )
                     }
@@ -475,8 +501,8 @@ private fun VideoHubHeroCard(
     BrandHeroCard(
         eyebrow = "Video",
         title = "Video",
-        subtitle = "Reels, Clips, YouTube.",
-        detail = "Video, Gear, Collabs.",
+        subtitle = "Reels, Visuals und starke Kollaborationen.",
+        detail = "Clips, Looks, YouTube und Leute hinter dem Vibe.",
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),
@@ -511,12 +537,13 @@ private fun VideoFormatCard() {
 
 @Composable
 private fun VideoCollaborationsCard(
+    items: List<ProducedWithArtist>,
     onOpenLink: (String) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Produced with")
+        SectionHeader("Featured Collabs")
         Text(
-            text = "Artists & Creatives.",
+            text = "Artists und Creatives, die die Visuals mitpraegen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -526,7 +553,7 @@ private fun VideoCollaborationsCard(
             modifier = Modifier.padding(top = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            skydownProducedWithArtists.forEach { artist ->
+            items.forEach { artist ->
                 ProducedWithArtistRow(
                     artist = artist,
                     onOpenLink = onOpenLink,
@@ -638,12 +665,21 @@ private fun VideoPublicConfigEditorCard(
     onUpdateYouTubeSubtitle: (String, String) -> Unit,
     onUpdateYouTubeUrl: (String, String) -> Unit,
     onRemoveYouTube: (String) -> Unit,
+    onAddCollaboration: () -> Unit,
+    onUpdateCollaborationName: (String, String) -> Unit,
+    onUpdateCollaborationRole: (String, String) -> Unit,
+    onUpdateCollaborationHighlight: (String, String) -> Unit,
+    onUpdateCollaborationVibe: (String, String) -> Unit,
+    onUpdateCollaborationImageUrl: (String, String) -> Unit,
+    onUpdateCollaborationSpotifyArtistId: (String, String) -> Unit,
+    onUpdateCollaborationInstagramUrl: (String, String) -> Unit,
+    onRemoveCollaboration: (String) -> Unit,
     onSave: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Videography Editor")
         Text(
-            text = "Admins steuern hier die oeffentliche Equipment-Liste und die YouTube-Sparte fuer alle Nutzer.",
+            text = "Owner und Video-Admins steuern hier Equipment, YouTube und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -756,6 +792,87 @@ private fun VideoPublicConfigEditorCard(
             Text("YouTube-Video hinzufuegen")
         }
 
+        Text(
+            text = "Featured Collabs",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 18.dp),
+        )
+        Column(
+            modifier = Modifier.padding(top = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            uiState.publicConfig.collaborationItems.forEach { item ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = item.name,
+                        onValueChange = { onUpdateCollaborationName(item.id, it) },
+                        label = { Text("Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.role,
+                        onValueChange = { onUpdateCollaborationRole(item.id, it) },
+                        label = { Text("Rolle") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.highlight,
+                        onValueChange = { onUpdateCollaborationHighlight(item.id, it) },
+                        label = { Text("Highlight") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                    )
+                    OutlinedTextField(
+                        value = item.vibe,
+                        onValueChange = { onUpdateCollaborationVibe(item.id, it) },
+                        label = { Text("Vibe") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.imageUrl.orEmpty(),
+                        onValueChange = { onUpdateCollaborationImageUrl(item.id, it) },
+                        label = { Text("Bild-URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.spotifyArtistId.orEmpty(),
+                        onValueChange = { onUpdateCollaborationSpotifyArtistId(item.id, it) },
+                        label = { Text("Spotify Artist ID") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = item.instagramUrl.orEmpty(),
+                        onValueChange = { onUpdateCollaborationInstagramUrl(item.id, it) },
+                        label = { Text("Instagram URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedButton(
+                        onClick = { onRemoveCollaboration(item.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Collab entfernen")
+                    }
+                }
+            }
+        }
+
+        OutlinedButton(
+            onClick = onAddCollaboration,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+        ) {
+            Text("Collab hinzufuegen")
+        }
+
         Button(
             onClick = onSave,
             modifier = Modifier
@@ -785,54 +902,122 @@ private fun ProducedWithArtistRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                    ),
+                ),
+            )
             .padding(horizontal = 14.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        Box(
+            modifier = Modifier
+                .size(width = 92.dp, height = 118.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.tertiary,
+                            MaterialTheme.colorScheme.primary,
+                        ),
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = artist.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = artist.role,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            if (!artist.imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = artist.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Text(
+                    text = artist.name.take(1).uppercase(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.54f)),
+                        ),
+                    ),
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            artist.spotifyArtistId?.takeIf { it.isNotBlank() }?.let { spotifyArtistId ->
-                SocialActionChip(
-                    title = "Spotify",
-                    icon = Icons.Default.PlayArrow,
-                    gradient = Brush.linearGradient(
-                        colors = listOf(
-                            SpotifyGreen,
-                            SpotifyGreen.copy(alpha = 0.72f),
-                        ),
-                    ),
-                    onClick = { onOpenLink("https://open.spotify.com/artist/$spotifyArtistId") },
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = artist.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                if (artist.vibe.isNotBlank()) {
+                    BrandPill(
+                        text = artist.vibe,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            Text(
+                text = artist.role,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+            )
+
+            if (artist.highlight.isNotBlank()) {
+                Text(
+                    text = artist.highlight,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
             }
-            artist.instagramUrl?.takeIf { it.isNotBlank() }?.let { instagramUrl ->
-                SocialActionChip(
-                    title = "Instagram",
-                    icon = Icons.Default.CameraAlt,
-                    gradient = Brush.linearGradient(
-                        colors = listOf(
-                            InstagramPurple,
-                            InstagramPink,
-                            InstagramOrange,
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                artist.spotifyArtistId?.takeIf { it.isNotBlank() }?.let { spotifyArtistId ->
+                    SocialActionChip(
+                        title = "Spotify",
+                        icon = Icons.Default.PlayArrow,
+                        gradient = Brush.linearGradient(
+                            colors = listOf(
+                                SpotifyGreen,
+                                SpotifyGreen.copy(alpha = 0.72f),
+                            ),
                         ),
-                    ),
-                    onClick = { onOpenLink(instagramUrl) },
-                )
+                        onClick = { onOpenLink("https://open.spotify.com/artist/$spotifyArtistId") },
+                    )
+                }
+                artist.instagramUrl?.takeIf { it.isNotBlank() }?.let { instagramUrl ->
+                    SocialActionChip(
+                        title = "Instagram",
+                        icon = Icons.Default.CameraAlt,
+                        gradient = Brush.linearGradient(
+                            colors = listOf(
+                                InstagramPurple,
+                                InstagramPink,
+                                InstagramOrange,
+                            ),
+                        ),
+                        onClick = { onOpenLink(instagramUrl) },
+                    )
+                }
             }
         }
     }

@@ -280,7 +280,7 @@ private fun ArtistPageHeroCard(
                         color = Color.White,
                     )
                     Text(
-                        text = page.tagline ?: "${brand.name} Artist",
+                        text = page.tagline ?: "${brand.displayTitle} Profil",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.84f),
                     )

@@ -10,6 +10,7 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.skydown.android.ui.model.SelectedVideoFile
+import com.skydown.android.ui.model.ProducedWithArtist
 import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoHubPublicConfig
@@ -147,6 +148,18 @@ class VideoHubService(
                 "url" to item.url,
             )
         }
+        val collaborationItems = config.collaborationItems.map { item ->
+            mapOf(
+                "id" to item.id,
+                "name" to item.name,
+                "role" to item.role,
+                "highlight" to item.highlight,
+                "vibe" to item.vibe,
+                "imageUrl" to item.imageUrl.orEmpty(),
+                "spotifyArtistId" to item.spotifyArtistId.orEmpty(),
+                "instagramUrl" to item.instagramUrl.orEmpty(),
+            )
+        }
 
         firestore.collection(configCollectionName)
             .document(configDocumentId)
@@ -154,6 +167,7 @@ class VideoHubService(
                 mapOf(
                     "equipmentItems" to equipmentItems,
                     "youtubeItems" to youtubeItems,
+                    "collaborationItems" to collaborationItems,
                     "updatedAt" to FieldValue.serverTimestamp(),
                     "updatedBy" to currentUser?.id.orEmpty(),
                 ),
@@ -318,10 +332,15 @@ class VideoHubService(
         val youtubeItems = (data["youtubeItems"] as? List<*>)
             ?.mapNotNull { value -> mapYouTubeItem(value as? Map<*, *>) }
             ?: emptyList()
+        val collaborationItems = (data["collaborationItems"] as? List<*>)
+            ?.mapNotNull { value -> mapCollaborationItem(value as? Map<*, *>) }
+            ?.ifEmpty { null }
+            ?: VideoHubPublicConfig.default().collaborationItems
 
         return VideoHubPublicConfig(
             equipmentItems = equipmentItems,
             youtubeItems = youtubeItems,
+            collaborationItems = collaborationItems,
         )
     }
 
@@ -350,6 +369,26 @@ class VideoHubService(
             title = title,
             subtitle = subtitle,
             url = url,
+        )
+    }
+
+    private fun mapCollaborationItem(value: Map<*, *>?): ProducedWithArtist? {
+        val map = value ?: return null
+        val name = (map["name"] as? String)?.trim().orEmpty()
+        val role = (map["role"] as? String)?.trim().orEmpty()
+        val highlight = (map["highlight"] as? String)?.trim().orEmpty()
+        val vibe = (map["vibe"] as? String)?.trim().orEmpty()
+        if (name.isBlank() || role.isBlank()) return null
+
+        return ProducedWithArtist(
+            id = ((map["id"] as? String)?.trim()).takeUnless { it.isNullOrBlank() } ?: UUID.randomUUID().toString(),
+            name = name,
+            role = role,
+            highlight = highlight,
+            vibe = vibe,
+            imageUrl = (map["imageUrl"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
+            spotifyArtistId = (map["spotifyArtistId"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
+            instagramUrl = (map["instagramUrl"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
         )
     }
 }

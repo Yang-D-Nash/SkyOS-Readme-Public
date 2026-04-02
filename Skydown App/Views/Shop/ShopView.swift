@@ -628,11 +628,11 @@ private struct HomeStoryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Entwickler")
+            Text("Entdecken")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Shortcuts.")
+            Text("Schnell rein in Musik, Studio und Kontakt.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -651,7 +651,7 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Music",
-                    subtitle: "Artists, Beats, Studio.",
+                    subtitle: "Releases, Beats und Studio.",
                     colorScheme: colorScheme
                 ) {
                     ForEach(homeZweizweiInstagramDestinations) { destination in

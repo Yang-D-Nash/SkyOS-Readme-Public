@@ -208,17 +208,18 @@ struct VideoHubView: View {
 
     @ViewBuilder
     private var collaborationsCard: some View {
-        if !skydownProducedWithArtists.isEmpty {
+        let collaborationItems = viewModel.publicConfig.collaborationItems
+        if !collaborationItems.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Produced with")
+                Text("Featured Collabs")
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Artists und Creatives, mit denen in Produktionen zusammengearbeitet wurde.")
+                Text("Artists und Creatives, die die Visuals mitpraegen.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                ForEach(skydownProducedWithArtists) { artist in
+                ForEach(collaborationItems) { artist in
                     ProducedWithArtistRow(
                         artist: artist,
                         colorScheme: colorScheme
@@ -265,8 +266,8 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             eyebrow: "Video",
             title: "Video",
-            subtitle: "Reels, Clips, YouTube.",
-            detail: "Video, Gear, Collabs.",
+            subtitle: "Reels, Visuals und starke Kollaborationen.",
+            detail: "Clips, Looks, YouTube und Leute hinter dem Vibe.",
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
@@ -980,6 +981,14 @@ struct ProducedWithArtistRow: View {
     let artist: SkydownProducedWithArtist
     let colorScheme: ColorScheme
 
+    private var imageURL: URL? {
+        guard let imageURLString = artist.imageURLString, !imageURLString.isEmpty else {
+            return nil
+        }
+
+        return URL(string: imageURLString)
+    }
+
     private var spotifyURL: URL? {
         guard let spotifyArtistID = artist.spotifyArtistID, !spotifyArtistID.isEmpty else {
             return nil
@@ -997,62 +1006,83 @@ struct ProducedWithArtistRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(artist.name)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
+        HStack(alignment: .top, spacing: 14) {
+            collaborationArtwork
 
-                Text(artist.role)
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(artist.name)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
 
-            Spacer()
-
-            HStack(spacing: 8) {
-                if let spotifyURL {
-                    SocialLinkButton(
-                        accessibilityTitle: "Spotify",
-                        systemImage: "music.note",
-                        foregroundColor: .white,
-                        background: LinearGradient(
-                            colors: [
-                                AppColors.spotify(for: colorScheme),
-                                AppColors.spotify(for: colorScheme).opacity(0.72)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        destination: spotifyURL
-                    )
+                    if !artist.vibe.isEmpty {
+                        Text(artist.vibe)
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(AppColors.accent(for: colorScheme))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(AppColors.accent(for: colorScheme).opacity(0.12))
+                            )
+                    }
                 }
 
-                if let instagramURL {
-                    SocialLinkButton(
-                        accessibilityTitle: "Instagram",
-                        systemImage: "camera.fill",
-                        foregroundColor: .white,
-                        background: LinearGradient(
-                            colors: [
-                                AppColors.instagramStart(for: colorScheme),
-                                AppColors.instagramEnd(for: colorScheme)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        destination: instagramURL
-                    )
+                Text(artist.role)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                if !artist.highlight.isEmpty {
+                    Text(artist.highlight)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                HStack(spacing: 8) {
+                    if let spotifyURL {
+                        SocialLinkButton(
+                            accessibilityTitle: "Spotify",
+                            systemImage: "music.note",
+                            foregroundColor: .white,
+                            background: LinearGradient(
+                                colors: [
+                                    AppColors.spotify(for: colorScheme),
+                                    AppColors.spotify(for: colorScheme).opacity(0.72)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            destination: spotifyURL
+                        )
+                    }
+
+                    if let instagramURL {
+                        SocialLinkButton(
+                            accessibilityTitle: "Instagram",
+                            systemImage: "camera.fill",
+                            foregroundColor: .white,
+                            background: LinearGradient(
+                                colors: [
+                                    AppColors.instagramStart(for: colorScheme),
+                                    AppColors.instagramEnd(for: colorScheme)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            destination: instagramURL
+                        )
+                    }
                 }
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
                 colors: [
-                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.94 : 0.98),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.70)
+                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.98),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.82 : 0.72),
+                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.08)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -1060,9 +1090,93 @@ struct ProducedWithArtistRow: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var collaborationArtwork: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColors.accentMystic(for: colorScheme),
+                            AppColors.accent(for: colorScheme)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        fallbackArtwork
+                    }
+                }
+            } else {
+                fallbackArtwork
+            }
+
+            LinearGradient(
+                colors: [
+                    Color.clear,
+                    Color.black.opacity(0.18),
+                    Color.black.opacity(0.58)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            Text(artist.role)
+                .font(.caption2.weight(.bold))
+                .lineLimit(2)
+                .foregroundColor(.white.opacity(0.94))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+        }
+        .frame(width: 92, height: 118)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
+    }
+
+    private var fallbackArtwork: some View {
+        VStack(spacing: 8) {
+            Spacer()
+
+            Text(String(artist.name.prefix(1)).uppercased())
+                .font(.title.weight(.black))
+                .foregroundColor(.white)
+
+            if !artist.vibe.isEmpty {
+                Text(artist.vibe.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(.white.opacity(0.86))
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.accentMystic(for: colorScheme).opacity(0.94),
+                    AppColors.accent(for: colorScheme).opacity(0.82)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
     }
 }
 
@@ -1169,7 +1283,7 @@ struct VideoPublicConfigEditorCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Admins steuern hier die oeffentliche Equipment-Liste und die YouTube-Sparte fuer alle Nutzer.")
+            Text("Owner und Video-Admins steuern hier Equipment, YouTube und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1271,6 +1385,96 @@ struct VideoPublicConfigEditorCard: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(AppColors.accentHighlight(for: colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Featured Collabs")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                ForEach(Array(viewModel.publicConfig.collaborationItems.enumerated()), id: \.element.id) { _, item in
+                    VStack(alignment: .leading, spacing: 8) {
+                        NicmaUploadField(
+                            title: "Name",
+                            text: Binding(
+                                get: { item.name },
+                                set: { viewModel.updateCollaborationItem(item.id, name: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "Rolle",
+                            text: Binding(
+                                get: { item.role },
+                                set: { viewModel.updateCollaborationItem(item.id, role: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "Highlight",
+                            text: Binding(
+                                get: { item.highlight },
+                                set: { viewModel.updateCollaborationItem(item.id, highlight: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "Vibe",
+                            text: Binding(
+                                get: { item.vibe },
+                                set: { viewModel.updateCollaborationItem(item.id, vibe: $0) }
+                            ),
+                            colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "Bild-URL",
+                            text: Binding(
+                                get: { item.imageURLString ?? "" },
+                                set: { viewModel.updateCollaborationItem(item.id, imageURLString: $0) }
+                            ),
+                            colorScheme: colorScheme,
+                            keyboard: .URL,
+                            autocapitalization: .never
+                        )
+                        NicmaUploadField(
+                            title: "Spotify Artist ID",
+                            text: Binding(
+                                get: { item.spotifyArtistID ?? "" },
+                                set: { viewModel.updateCollaborationItem(item.id, spotifyArtistID: $0) }
+                            ),
+                            colorScheme: colorScheme,
+                            autocapitalization: .never
+                        )
+                        NicmaUploadField(
+                            title: "Instagram URL",
+                            text: Binding(
+                                get: { item.instagramURLString ?? "" },
+                                set: { viewModel.updateCollaborationItem(item.id, instagramURLString: $0) }
+                            ),
+                            colorScheme: colorScheme,
+                            keyboard: .URL,
+                            autocapitalization: .never
+                        )
+                        Button(role: .destructive) {
+                            viewModel.removeCollaborationItem(item.id)
+                        } label: {
+                            Label("Collab entfernen", systemImage: "trash")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .padding(14)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
+
+                Button {
+                    viewModel.addCollaborationItem()
+                } label: {
+                    Label("Collab hinzufuegen", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColors.accentMystic(for: colorScheme))
             }
 
             Button {

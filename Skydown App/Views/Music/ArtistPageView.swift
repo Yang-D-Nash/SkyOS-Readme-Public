@@ -126,7 +126,7 @@ struct ArtistPageView: View {
                             .font(.system(size: 28, weight: .black, design: .rounded))
                             .foregroundColor(.white)
 
-                        Text(page.tagline ?? "\(brand.displayTitle) Artist")
+                        Text(page.tagline ?? "\(brand.displayTitle) Profil")
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.white.opacity(0.86))
                     }

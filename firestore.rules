@@ -375,7 +375,7 @@ service cloud.firestore {
       && request.resource.data.slug == artistId
       && request.resource.data.slug is string
       && request.resource.data.slug.matches("^[a-z0-9-]{1,80}$")
-      && request.resource.data.brand in ["zweizwei", "skydown"]
+      && request.resource.data.brand in ["zweizwei", "skydown", "nicma"]
       && requiredString(request.resource.data.artistName, 1, 64)
       && optionalMapString(request.resource.data, "tagline", 80)
       && optionalMapString(request.resource.data, "bio", 600)

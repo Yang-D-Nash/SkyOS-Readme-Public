@@ -3,6 +3,7 @@ import Foundation
 enum ArtistPageBrand: String, Codable, CaseIterable {
     case zweizwei
     case skydown
+    case nicma
 
     var displayTitle: String {
         switch self {
@@ -10,6 +11,8 @@ enum ArtistPageBrand: String, Codable, CaseIterable {
             return "ZweiZwei"
         case .skydown:
             return "Skydown"
+        case .nicma:
+            return "Nicma"
         }
     }
 }

@@ -382,3 +382,23 @@ test("Owner darf artistPages anlegen und Editoren setzen", async () => {
     updatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
   }));
 });
+
+test("Owner darf auch NICMA als editierbare Seite anlegen", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerDb, "artistPages", "nicma-music"), {
+    slug: "nicma-music",
+    brand: "nicma",
+    artistName: "NICMA MUSIC",
+    tagline: "Producer & Studio",
+    bio: "NICMA ist jetzt ebenfalls als verwaltete Seite freigeschaltet.",
+    profileImageURL: "https://example.com/nicma-avatar.jpg",
+    heroImageURL: "https://example.com/nicma-hero.jpg",
+    instagramURL: "https://instagram.com/nicma.music",
+    spotifyURL: "https://open.spotify.com/artist/example",
+    youtubeURL: "https://youtube.com/@nicmamusic",
+    editorUids: ["editor1"],
+    createdAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+    updatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+  }));
+});

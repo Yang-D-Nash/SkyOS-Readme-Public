@@ -21,17 +21,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +43,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.skydown.android.data.AppContainer
+import com.skydown.android.data.ArtistPageBrand
+import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.skydownTopBarColors
@@ -48,6 +56,20 @@ import com.skydown.android.ui.component.skydownTopBarColors
 fun NicmaProducerScreen(
     onBack: () -> Unit,
 ) {
+    val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val page = ArtistPagesStore.pageFor(brand = ArtistPageBrand.Nicma, artistName = "NICMA MUSIC")
+    val canEdit = ArtistPagesStore.canEdit(page, currentUser)
+    var showingEditor by rememberSaveable { mutableStateOf(false) }
+
+    if (showingEditor) {
+        ArtistPageScreen(
+            artistName = "NICMA MUSIC",
+            brand = ArtistPageBrand.Nicma,
+            onBack = { showingEditor = false },
+        )
+        return
+    }
+
     BackHandler(onBack = onBack)
     val context = LocalContext.current
 
@@ -62,7 +84,7 @@ fun NicmaProducerScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Producing, Preise und direkter Kontakt.",
+                            text = page.tagline ?: "Producing, Preise und direkter Kontakt.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -74,6 +96,13 @@ fun NicmaProducerScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Zurueck",
                         )
+                    }
+                },
+                actions = {
+                    if (canEdit) {
+                        TextButton(onClick = { showingEditor = true }) {
+                            Text("Bearbeiten")
+                        }
                     }
                 },
                 colors = skydownTopBarColors(),
@@ -105,7 +134,10 @@ fun NicmaProducerScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    NicmaHeroCard()
+                    NicmaHeroCard(
+                        headline = page.artistName,
+                        body = page.bio ?: "Mixing, Mastering und Recording sind hier als klare Producer-Seite gebuendelt, mit direktem Kontakt und transparenter Preisliste.",
+                    )
                 }
 
                 item {
@@ -114,7 +146,10 @@ fun NicmaProducerScreen(
 
                 item {
                     NicmaContactCard(
-                        onOpenInstagram = { openNicmaInstagram(context) },
+                        instagramUrl = page.instagramURL?.takeIf { it.isNotBlank() } ?: "https://www.instagram.com/nicma.music/",
+                        spotifyUrl = page.spotifyURL,
+                        youtubeUrl = page.youtubeURL,
+                        onOpenLink = { openExternalLink(context, it) },
                     )
                 }
             }
@@ -123,7 +158,10 @@ fun NicmaProducerScreen(
 }
 
 @Composable
-private fun NicmaHeroCard() {
+private fun NicmaHeroCard(
+    headline: String,
+    body: String,
+) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -134,12 +172,12 @@ private fun NicmaHeroCard() {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "NICMA MUSIC",
+                    text = headline,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Mixing, Mastering und Recording sind hier als klare Producer-Seite gebuendelt, mit direktem Kontakt und transparenter Preisliste.",
+                    text = body,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -226,25 +264,52 @@ private fun NicmaPriceRow(
 
 @Composable
 private fun NicmaContactCard(
-    onOpenInstagram: () -> Unit,
+    instagramUrl: String,
+    spotifyUrl: String?,
+    youtubeUrl: String?,
+    onOpenLink: (String) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Kontakt")
+        SectionHeader("Links")
         Text(
-            text = "Anfragen fuer Mixing, Mastering und Recording laufen oeffentlich nur noch ueber Instagram.",
+            text = "Direkter Kontakt und oeffentliche Plattformen fuer NICMA.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
         )
 
         OutlinedButton(
-            onClick = onOpenInstagram,
+            onClick = { onOpenLink(instagramUrl) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
             shape = RoundedCornerShape(18.dp),
         ) {
             Text("NICMA MUSIC auf Instagram")
+        }
+
+        spotifyUrl?.takeIf { it.isNotBlank() }?.let { url ->
+            OutlinedButton(
+                onClick = { onOpenLink(url) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text("Spotify")
+            }
+        }
+
+        youtubeUrl?.takeIf { it.isNotBlank() }?.let { url ->
+            OutlinedButton(
+                onClick = { onOpenLink(url) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text("YouTube")
+            }
         }
     }
 }
@@ -280,10 +345,3 @@ private val nicmaProducerPackages = listOf(
     NicmaProducerPackage("Track Recording inkl. Mix / Master", "Kompletter Recording-Flow", "250 €"),
     NicmaProducerPackage("8h Studio Zeit + Engineer", "zzgl. Nachbearbeitung", "400 € + Nachbearbeitung"),
 )
-
-private fun openNicmaInstagram(context: Context) {
-    openExternalLink(
-        context = context,
-        url = "https://www.instagram.com/nicma.music/",
-    )
-}

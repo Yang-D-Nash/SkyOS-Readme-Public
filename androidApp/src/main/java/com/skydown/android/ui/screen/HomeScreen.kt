@@ -771,10 +771,10 @@ private fun HomeStoryCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Entwickler")
+        SectionHeader("Entdecken")
 
         Text(
-            text = "Shortcuts.",
+            text = "Schnell rein in Musik, Studio und Kontakt.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -793,7 +793,7 @@ private fun HomeStoryCard(
 
             HomeLaneSection(
                 title = "Music",
-                subtitle = "Artists, Beats, Studio.",
+                subtitle = "Releases, Beats und Studio.",
             ) {
                 homeZweizweiSocialLinks.forEach { link ->
                     HomeStoryLinkButton(

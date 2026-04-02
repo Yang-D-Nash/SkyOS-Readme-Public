@@ -9,10 +9,65 @@ import SwiftUI
 
 struct NicmaProducerView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
+    @EnvironmentObject private var authManager: AuthManager
+    @StateObject private var artistPagesStore = ArtistPagesStore.shared
     let onBack: (() -> Void)?
+    @State private var showingEditor = false
 
     init(onBack: (() -> Void)? = nil) {
         self.onBack = onBack
+    }
+
+    private var page: ArtistPage {
+        artistPagesStore.page(for: .nicma, artistName: "NICMA MUSIC")
+    }
+
+    private var canEdit: Bool {
+        artistPagesStore.canEdit(page, user: authManager.userSession)
+    }
+
+    private var nicmaLinks: [NicmaPageLink] {
+        var links: [NicmaPageLink] = []
+
+        let instagramURL = page.instagramURL ?? nicmaInstagramDestination.urlString
+        if !instagramURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            links.append(
+                NicmaPageLink(
+                    title: "Instagram",
+                    subtitle: "@nicma.music",
+                    url: instagramURL,
+                    systemImage: "camera.fill",
+                    tint: AppColors.instagramStart(for: colorScheme)
+                )
+            )
+        }
+
+        if let spotifyURL = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !spotifyURL.isEmpty {
+            links.append(
+                NicmaPageLink(
+                    title: "Spotify",
+                    subtitle: "Artist / Producer Profil",
+                    url: spotifyURL,
+                    systemImage: "music.note",
+                    tint: AppColors.spotify(for: colorScheme)
+                )
+            )
+        }
+
+        if let youtubeURL = page.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines), !youtubeURL.isEmpty {
+            links.append(
+                NicmaPageLink(
+                    title: "YouTube",
+                    subtitle: "Videos & Sessions",
+                    url: youtubeURL,
+                    systemImage: "play.rectangle.fill",
+                    tint: AppColors.youtube(for: colorScheme)
+                )
+            )
+        }
+
+        return links
     }
 
     var body: some View {
@@ -38,16 +93,32 @@ struct NicmaProducerView: View {
                     }
                 }
             }
+
+            if canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Bearbeiten") {
+                        showingEditor = true
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditor) {
+            ArtistPageView(
+                authManager: authManager,
+                store: artistPagesStore,
+                brand: .nicma,
+                artistName: "NICMA MUSIC"
+            )
         }
     }
 
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("NICMA MUSIC")
+            Text(page.artistName)
                 .font(.largeTitle.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Mixing, Mastering und Recording mit klarer Preisliste, direktem Kontakt und sauberem Producer-Fokus.")
+            Text(page.bio ?? "Mixing, Mastering und Recording mit klarer Preisliste, direktem Kontakt und sauberem Producer-Fokus.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -96,17 +167,21 @@ struct NicmaProducerView: View {
 
     private var contactCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Kontakt")
+            Text("Links")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Anfragen fuer Mixing, Mastering und Recording laufen oeffentlich nur noch ueber Instagram.")
+            Text(page.tagline ?? "Direkter Kontakt und oeffentliche Plattformen fuer NICMA.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            if let instagramURL = nicmaInstagramDestination.url {
-                Link(destination: instagramURL) {
-                    Label("NICMA MUSIC auf Instagram", systemImage: "camera.fill")
+            ForEach(nicmaLinks) { link in
+                Button {
+                    if let url = URL(string: link.url) {
+                        openURL(url)
+                    }
+                } label: {
+                    Label(link.title, systemImage: link.systemImage)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -115,7 +190,7 @@ struct NicmaProducerView: View {
                 .background(AppColors.secondaryBackground(for: colorScheme))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
-                        .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+                        .stroke(link.tint.opacity(0.18), lineWidth: 1)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 18))
             }
@@ -131,4 +206,13 @@ struct NicmaProducerView: View {
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
     }
+}
+
+private struct NicmaPageLink: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let url: String
+    let systemImage: String
+    let tint: Color
 }

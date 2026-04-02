@@ -80,6 +80,12 @@ class MusicViewModel: ObservableObject {
     }
 }
 
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
+    }
+}
+
 struct NicmaSelectedFile: Identifiable {
     let id = UUID()
     let url: URL
@@ -741,6 +747,18 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                 "urlString": item.urlString
             ]
         }
+        let collaborationItems = config.collaborationItems.map { item in
+            [
+                "id": item.id,
+                "name": item.name,
+                "role": item.role,
+                "highlight": item.highlight,
+                "vibe": item.vibe,
+                "imageURLString": item.imageURLString ?? "",
+                "spotifyArtistID": item.spotifyArtistID ?? "",
+                "instagramURLString": item.instagramURLString ?? ""
+            ]
+        }
 
         try await firestore.collection(configCollectionName)
             .document(configDocumentID)
@@ -748,6 +766,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                 [
                     "equipmentItems": equipmentItems,
                     "youtubeItems": youtubeItems,
+                    "collaborationItems": collaborationItems,
                     "updatedAt": Timestamp(),
                     "updatedBy": currentUser?.id ?? ""
                 ],
@@ -931,10 +950,13 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             .compactMap { mapEquipmentItem($0) } ?? SkydownVideoHubPublicConfig.default.equipmentItems
         let youtubeItems = (data["youtubeItems"] as? [[String: Any]])?
             .compactMap { mapYouTubeItem($0) } ?? SkydownVideoHubPublicConfig.default.youtubeItems
+        let collaborationItems = (data["collaborationItems"] as? [[String: Any]])?
+            .compactMap { mapCollaborationItem($0) } ?? SkydownVideoHubPublicConfig.default.collaborationItems
 
         return SkydownVideoHubPublicConfig(
             equipmentItems: equipmentItems.isEmpty ? SkydownVideoHubPublicConfig.default.equipmentItems : equipmentItems,
-            youtubeItems: youtubeItems
+            youtubeItems: youtubeItems,
+            collaborationItems: collaborationItems.isEmpty ? SkydownVideoHubPublicConfig.default.collaborationItems : collaborationItems
         )
     }
 
@@ -963,6 +985,26 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             title: title,
             subtitle: subtitle,
             urlString: urlString
+        )
+    }
+
+    private func mapCollaborationItem(_ value: [String: Any]) -> SkydownProducedWithArtist? {
+        let name = (value["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let role = (value["role"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let highlight = (value["highlight"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let vibe = (value["vibe"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !name.isEmpty, !role.isEmpty else { return nil }
+        let rawID = (value["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        return SkydownProducedWithArtist(
+            id: rawID.isEmpty ? UUID().uuidString : rawID,
+            name: name,
+            role: role,
+            highlight: highlight,
+            vibe: vibe,
+            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+            spotifyArtistID: (value["spotifyArtistID"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+            instagramURLString: (value["instagramURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         )
     }
 }
@@ -1233,6 +1275,62 @@ final class SkydownVideoHubViewModel: ObservableObject {
         }
     }
 
+    func addCollaborationItem() {
+        publicConfig.collaborationItems.append(
+            SkydownProducedWithArtist(
+                id: UUID().uuidString,
+                name: "",
+                role: "",
+                highlight: "",
+                vibe: "",
+                imageURLString: nil,
+                spotifyArtistID: nil,
+                instagramURLString: nil
+            )
+        )
+    }
+
+    func removeCollaborationItem(_ itemID: String) {
+        publicConfig.collaborationItems.removeAll { $0.id == itemID }
+    }
+
+    func updateCollaborationItem(
+        _ itemID: String,
+        name: String? = nil,
+        role: String? = nil,
+        highlight: String? = nil,
+        vibe: String? = nil,
+        imageURLString: String? = nil,
+        spotifyArtistID: String? = nil,
+        instagramURLString: String? = nil
+    ) {
+        guard let index = publicConfig.collaborationItems.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        if let name {
+            publicConfig.collaborationItems[index].name = name
+        }
+        if let role {
+            publicConfig.collaborationItems[index].role = role
+        }
+        if let highlight {
+            publicConfig.collaborationItems[index].highlight = highlight
+        }
+        if let vibe {
+            publicConfig.collaborationItems[index].vibe = vibe
+        }
+        if let imageURLString {
+            publicConfig.collaborationItems[index].imageURLString = imageURLString
+        }
+        if let spotifyArtistID {
+            publicConfig.collaborationItems[index].spotifyArtistID = spotifyArtistID
+        }
+        if let instagramURLString {
+            publicConfig.collaborationItems[index].instagramURLString = instagramURLString
+        }
+    }
+
     func savePublicConfig() async {
         guard isAdmin else {
             showUserToast("Nur Admins koennen die Videography-Daten bearbeiten.", style: .info)
@@ -1252,10 +1350,28 @@ final class SkydownVideoHubViewModel: ObservableObject {
             guard !title.isEmpty, !urlString.isEmpty else { return nil }
             return SkydownYouTubeVideoItem(id: item.id, title: title, subtitle: subtitle, urlString: urlString)
         }
+        let sanitizedCollaborations = publicConfig.collaborationItems.compactMap { item -> SkydownProducedWithArtist? in
+            let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let role = item.role.trimmingCharacters(in: .whitespacesAndNewlines)
+            let highlight = item.highlight.trimmingCharacters(in: .whitespacesAndNewlines)
+            let vibe = item.vibe.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, !role.isEmpty else { return nil }
+            return SkydownProducedWithArtist(
+                id: item.id,
+                name: name,
+                role: role,
+                highlight: highlight,
+                vibe: vibe,
+                imageURLString: item.imageURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                spotifyArtistID: item.spotifyArtistID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                instagramURLString: item.instagramURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            )
+        }
 
         let config = SkydownVideoHubPublicConfig(
             equipmentItems: sanitizedEquipment.isEmpty ? SkydownVideoHubPublicConfig.default.equipmentItems : sanitizedEquipment,
-            youtubeItems: sanitizedYouTube
+            youtubeItems: sanitizedYouTube,
+            collaborationItems: sanitizedCollaborations.isEmpty ? SkydownVideoHubPublicConfig.default.collaborationItems : sanitizedCollaborations
         )
 
         isSavingPublicConfig = true

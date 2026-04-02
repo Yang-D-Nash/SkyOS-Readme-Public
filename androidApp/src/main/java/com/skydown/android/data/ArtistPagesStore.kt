@@ -14,6 +14,15 @@ import kotlinx.coroutines.tasks.await
 enum class ArtistPageBrand(val rawValue: String) {
     Zweizwei("zweizwei"),
     Skydown("skydown"),
+    Nicma("nicma"),
+    ;
+
+    val displayTitle: String
+        get() = when (this) {
+            Zweizwei -> "ZweiZwei"
+            Skydown -> "Skydown"
+            Nicma -> "Nicma"
+        }
 }
 
 data class ArtistPageUi(
@@ -87,6 +96,7 @@ object ArtistPagesStore {
         ArtistPageSeed(ArtistPageBrand.Skydown, "MAVE"),
         ArtistPageSeed(ArtistPageBrand.Skydown, "JANNO"),
         ArtistPageSeed(ArtistPageBrand.Skydown, "TANGAJOE007"),
+        ArtistPageSeed(ArtistPageBrand.Nicma, "NICMA MUSIC"),
     )
 
     private val _pages = MutableStateFlow(seedPages.map { it.toPlaceholder() })

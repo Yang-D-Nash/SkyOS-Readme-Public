@@ -528,16 +528,22 @@ struct SettingsView: View {
         return count
     }
 
-    private var zweizweiArtistPages: [ArtistPage] {
-        artistPagesStore.pages(for: .zweizwei)
+    private var managedShowcasePages: [ArtistPage] {
+        (artistPagesStore.pages(for: .zweizwei) + artistPagesStore.pages(for: .nicma))
+            .sorted { lhs, rhs in
+                if lhs.brand != rhs.brand {
+                    return lhs.brand.displayTitle < rhs.brand.displayTitle
+                }
+                return lhs.artistName.localizedCaseInsensitiveCompare(rhs.artistName) == .orderedAscending
+            }
     }
 
     private var assignedArtistPageCount: Int {
-        zweizweiArtistPages.filter { !$0.editorUids.isEmpty }.count
+        managedShowcasePages.filter { !$0.editorUids.isEmpty }.count
     }
 
     private var publishedArtistPageCount: Int {
-        zweizweiArtistPages.filter(\.hasCustomPresentation).count
+        managedShowcasePages.filter(\.hasCustomPresentation).count
     }
 
     @ViewBuilder
@@ -685,7 +691,7 @@ struct SettingsView: View {
 
             case .artists:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Hier bekommen ZweiZwei-Artists ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.")
+                    Text("Hier bekommen ZweiZwei-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -701,7 +707,7 @@ struct SettingsView: View {
                     }
 
                     VStack(spacing: 12) {
-                        ForEach(zweizweiArtistPages) { page in
+                        ForEach(managedShowcasePages) { page in
                             SettingsArtistPageCard(
                                 page: page,
                                 users: adminUserManagementStore.users.filter { !$0.isPlatformOwner },
