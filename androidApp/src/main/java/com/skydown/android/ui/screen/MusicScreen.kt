@@ -43,6 +43,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +62,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.mediaAttributionContext
+import com.skydown.android.data.ArtistPageBrand
+import com.skydown.android.data.ArtistPagesStore
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -92,9 +95,11 @@ fun MusicScreen(
     onOpenCart: (() -> Unit)? = null,
     onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
+    onOpenArtistPage: ((String) -> Unit)? = null,
     viewModel: MusicViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val artistPages by ArtistPagesStore.pages.collectAsState()
 
     val context = LocalContext.current
     val mediaContext = remember(context) { context.mediaAttributionContext() }
@@ -107,6 +112,9 @@ fun MusicScreen(
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
+    val selectedArtistPage = remember(artistPages, uiState.selectedArtist) {
+        ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, uiState.selectedArtist)
+    }
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -299,6 +307,16 @@ fun MusicScreen(
                             player.stop()
                             player.clearMediaItems()
                             viewModel.disconnectSpotify()
+                        },
+                    )
+                }
+
+                item {
+                    ArtistPageShortcutCard(
+                        artistName = uiState.selectedArtist,
+                        isReady = selectedArtistPage.hasCustomPresentation,
+                        onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
+                            { openArtistPage(uiState.selectedArtist) }
                         },
                     )
                 }
@@ -576,6 +594,46 @@ private fun MusicPlayerCard(
                     Text("Spotify")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ArtistPageShortcutCard(
+    artistName: String,
+    isReady: Boolean,
+    onOpenArtistPage: (() -> Unit)?,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        Text(
+            text = "Artist Page",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = if (isReady) {
+                "$artistName hat schon eine repraesentative Seite."
+            } else {
+                "$artistName kann jetzt eine eigene repraesentative Seite bekommen."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+
+        Button(
+            onClick = { onOpenArtistPage?.invoke() },
+            enabled = onOpenArtistPage != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text(if (isReady) "Artist oeffnen" else "Artist einrichten")
         }
     }
 }

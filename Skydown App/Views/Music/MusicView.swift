@@ -77,15 +77,36 @@ enum MusicExperienceBrand {
             return true
         }
     }
+
+    var showsArtistPages: Bool {
+        switch self {
+        case .skydown:
+            return false
+        case .zweizwei:
+            return true
+        }
+    }
+
+    var artistPageBrand: ArtistPageBrand {
+        switch self {
+        case .skydown:
+            return .skydown
+        case .zweizwei:
+            return .zweizwei
+        }
+    }
 }
 
 struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
+    @StateObject private var artistPagesStore = ArtistPagesStore.shared
     @State private var selectedArtist: String
     @State private var selectedTrackID: Int?
     @State private var showFeaturedSpotifyPlayer = false
+    @State private var showingArtistPage = false
     @State private var hasHandledInitialSelection = false
+    @EnvironmentObject private var services: AppServices
     @Environment(\.colorScheme) private var colorScheme
 
     let brand: MusicExperienceBrand
@@ -247,6 +268,14 @@ struct MusicView: View {
                 SpotifyEmbedPlayerView(track: selectedTrack)
             }
         }
+        .sheet(isPresented: $showingArtistPage) {
+            ArtistPageView(
+                authManager: services.authManager,
+                store: artistPagesStore,
+                brand: brand.artistPageBrand,
+                artistName: selectedArtist
+            )
+        }
     }
 
     private var heroCard: some View {
@@ -261,6 +290,37 @@ struct MusicView: View {
             Text(brand.heroSubtitle)
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            if brand.showsArtistPages {
+                Button {
+                    showingArtistPage = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.crop.square.fill")
+                            .font(.headline.weight(.bold))
+                        Text("Artist Page")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        if currentArtistPage.hasCustomPresentation {
+                            Text("Live")
+                                .font(.caption.weight(.bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .background(Color.white.opacity(0.16))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(AppColors.spotify(for: colorScheme).opacity(0.86))
+                    )
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+            }
         }
         .padding(SkydownLayout.heroPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -317,6 +377,10 @@ struct MusicView: View {
             .padding(.vertical, 12)
             .background(accent)
             .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var currentArtistPage: ArtistPage {
+        artistPagesStore.page(for: brand.artistPageBrand, artistName: selectedArtist)
     }
 
     private var artistsCard: some View {

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -51,8 +52,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -68,6 +72,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.ArtistPageUi
+import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -93,6 +99,7 @@ import com.skydown.shared.model.resolvedAiVisualRequestsPerDay
 import com.skydown.shared.model.resolvedQuotaPlan
 import com.skydown.shared.model.resolvedRole
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +112,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val artistPages by ArtistPagesStore.pages.collectAsStateWithLifecycle()
+    val artistPagesError by ArtistPagesStore.lastErrorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var stripeAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var stripeSecretKeyDraft by rememberSaveable { mutableStateOf("") }
@@ -139,6 +149,11 @@ fun SettingsScreen(
     var automationWebhookPathDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
+    val zweizweiArtistPages = remember(artistPages) {
+        ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei)
+    }
+    val assignedArtistPageCount = zweizweiArtistPages.count { it.editorUids.isNotEmpty() }
+    val publishedArtistPageCount = zweizweiArtistPages.count { it.hasCustomPresentation }
     var profileUsernameDraft by rememberSaveable { mutableStateOf("") }
     var profileWhatsAppDraft by rememberSaveable { mutableStateOf("") }
     var profileTaglineDraft by rememberSaveable { mutableStateOf("") }
@@ -285,6 +300,13 @@ fun SettingsScreen(
                     }
                     item {
                         SettingsBadge(
+                            text = "$publishedArtistPageCount Artist-Seiten",
+                            icon = Icons.Default.LibraryMusic,
+                            isActive = publishedArtistPageCount > 0,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
                             text = "${uiState.managedUsers.size} Konten",
                             icon = Icons.Default.Person,
                             isActive = uiState.managedUsers.isNotEmpty(),
@@ -356,6 +378,69 @@ fun SettingsScreen(
                                 onSave = viewModel::saveManagedUser,
                             )
                         }
+                    }
+                }
+            }
+
+            AdminWorkspaceSection.Artists -> {
+                Text(
+                    text = "Hier bekommen ZweiZwei-Artists ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.",
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        SettingsBadge(
+                            text = "$publishedArtistPageCount Seiten mit Inhalt",
+                            icon = Icons.Default.LibraryMusic,
+                            isActive = publishedArtistPageCount > 0,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "$assignedArtistPageCount mit Editoren",
+                            icon = Icons.Default.Person,
+                            isActive = assignedArtistPageCount > 0,
+                        )
+                    }
+                }
+
+                artistPagesError?.let { message ->
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(top = 12.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.padding(top = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    for (page in zweizweiArtistPages) {
+                        ArtistPageAdminCard(
+                            page = page,
+                            users = uiState.managedUsers.filterNot { it.isPlatformOwner },
+                            onSave = { updatedPage ->
+                                coroutineScope.launch {
+                                    val result = ArtistPagesStore.save(updatedPage)
+                                    Toast.makeText(
+                                        context,
+                                        if (result.isSuccess) {
+                                            "${updatedPage.artistName} gespeichert."
+                                        } else {
+                                            result.exceptionOrNull()?.message ?: "Artist-Seite konnte nicht gespeichert werden."
+                                        },
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -1089,6 +1174,7 @@ fun SettingsScreen(
                                             uiState = uiState,
                                             connectedPaymentMethodCount = connectedPaymentMethodCount,
                                             visiblePaymentMethodCount = visiblePaymentMethodCount,
+                                            publishedArtistPageCount = publishedArtistPageCount,
                                         ),
                                         onClick = {
                                             activeAdminWorkspaceKey = section.name
@@ -1975,6 +2061,11 @@ private enum class AdminWorkspaceSection(
         subtitle = "Rollen, KI-Zugriff, Tageslimits und History pro Konto steuern.",
         icon = Icons.Default.Person,
     ),
+    Artists(
+        label = "Artists",
+        subtitle = "Artist-Seiten pflegen und Editor-Rechte pro Artist zuteilen.",
+        icon = Icons.Default.LibraryMusic,
+    ),
     Shopify(
         label = "Shopify",
         subtitle = "Owner-Quelle fuer Store-Domain, Token und Merch-Sync pflegen.",
@@ -2002,11 +2093,13 @@ private fun adminWorkspaceStatusText(
     uiState: SettingsUiState,
     connectedPaymentMethodCount: Int,
     visiblePaymentMethodCount: Int,
+    publishedArtistPageCount: Int,
 ): String {
     return when (section) {
         AdminWorkspaceSection.Overview -> "$connectedPaymentMethodCount Bereiche aktiv"
         AdminWorkspaceSection.Payments -> "$visiblePaymentMethodCount live im Checkout"
         AdminWorkspaceSection.Users -> "${uiState.managedUsers.size} Konten"
+        AdminWorkspaceSection.Artists -> "${publishedArtistPageCount} Artist-Seiten"
         AdminWorkspaceSection.Shopify -> uiState.shopifyAdminSettings.activeCollectionLabel
         AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
         AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"
@@ -2230,6 +2323,133 @@ private fun AdminUserRoleGuideCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArtistPageAdminCard(
+    page: ArtistPageUi,
+    users: List<User>,
+    onSave: (ArtistPageUi) -> Unit,
+) {
+    var selectedEditorUids by rememberSaveable(page.slug, page.editorUids) {
+        mutableStateOf(page.editorUids.toSet())
+    }
+
+    SkydownCard {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = page.artistName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = if (page.hasCustomPresentation) {
+                            "Seite hat schon Inhalt."
+                        } else {
+                            "Noch als Platzhalter. Nach dem ersten Speichern ist die Artist-Seite live."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SettingsBadge(
+                        text = if (page.hasCustomPresentation) "Live" else "Platzhalter",
+                        icon = Icons.Default.LibraryMusic,
+                        isActive = page.hasCustomPresentation,
+                    )
+                    SettingsBadge(
+                        text = "${selectedEditorUids.size} Editoren",
+                        icon = Icons.Default.Person,
+                        isActive = selectedEditorUids.isNotEmpty(),
+                    )
+                }
+            }
+
+            if (users.isEmpty()) {
+                Text(
+                    text = "Sobald weitere Konten registriert sind, kannst du hier Editoren fuer diese Artist-Seite zuweisen.",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else {
+                Text(
+                    text = "Editoren",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    users.forEach { user ->
+                        val userId = user.id.orEmpty()
+                        val isSelected = selectedEditorUids.contains(userId)
+
+                        Button(
+                            onClick = {
+                                selectedEditorUids = if (isSelected) {
+                                    selectedEditorUids - userId
+                                } else {
+                                    selectedEditorUids + userId
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                                contentColor = if (isSelected) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                            ),
+                        ) {
+                            Text(
+                                text = user.username,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = user.resolvedRole.displayTitle,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Button(
+                onClick = {
+                    onSave(
+                        page.copy(
+                            editorUids = selectedEditorUids.toList().sorted(),
+                            updatedAtEpochMillis = System.currentTimeMillis(),
+                            isPlaceholder = false,
+                        ),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text("Editoren speichern")
             }
         }
     }

@@ -69,6 +69,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
@@ -78,6 +79,7 @@ import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.screen.AiHubScreen
+import com.skydown.android.ui.screen.ArtistPageScreen
 import com.skydown.android.ui.screen.BeatHubScreen
 import com.skydown.android.ui.screen.CartScreen
 import com.skydown.android.ui.screen.HomeScreen
@@ -648,6 +650,7 @@ private fun LaunchLandingChoiceCard(
 private enum class ZweizweiMusicDestination {
     Hub,
     Catalog,
+    ArtistPage,
     BeatHub,
     NicmaProducer,
 }
@@ -661,6 +664,7 @@ private fun ZweizweiMusicLaneScreen(
     onBackToLanding: (() -> Unit)? = null,
 ) {
     var destination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
+    var selectedArtistPage by rememberSaveable { mutableStateOf<String?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     when (destination) {
@@ -768,6 +772,16 @@ private fun ZweizweiMusicLaneScreen(
             onOpenCart = onOpenCart,
             onOpenProfile = onOpenProfile,
             onOpenSettings = onOpenSettings,
+            onOpenArtistPage = { artistName ->
+                selectedArtistPage = artistName
+                destination = ZweizweiMusicDestination.ArtistPage
+            },
+        )
+
+        ZweizweiMusicDestination.ArtistPage -> ArtistPageScreen(
+            artistName = selectedArtistPage ?: "Artist",
+            brand = ArtistPageBrand.Zweizwei,
+            onBack = { destination = ZweizweiMusicDestination.Catalog },
         )
 
         ZweizweiMusicDestination.BeatHub -> BeatHubScreen(

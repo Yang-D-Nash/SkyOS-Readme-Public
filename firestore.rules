@@ -356,6 +356,40 @@ service cloud.firestore {
       && request.resource.data.updatedAt is timestamp;
     }
 
+    function validArtistPagePayload(artistId) {
+      return request.resource.data.keys().hasOnly([
+        "slug",
+        "brand",
+        "artistName",
+        "tagline",
+        "bio",
+        "profileImageURL",
+        "heroImageURL",
+        "instagramURL",
+        "spotifyURL",
+        "youtubeURL",
+        "editorUids",
+        "createdAt",
+        "updatedAt"
+      ])
+      && request.resource.data.slug == artistId
+      && request.resource.data.slug is string
+      && request.resource.data.slug.matches("^[a-z0-9-]{1,80}$")
+      && request.resource.data.brand in ["zweizwei", "skydown"]
+      && requiredString(request.resource.data.artistName, 1, 64)
+      && optionalMapString(request.resource.data, "tagline", 80)
+      && optionalMapString(request.resource.data, "bio", 600)
+      && optionalMapShortUrl(request.resource.data, "profileImageURL")
+      && optionalMapShortUrl(request.resource.data, "heroImageURL")
+      && optionalMapShortUrl(request.resource.data, "instagramURL")
+      && optionalMapShortUrl(request.resource.data, "spotifyURL")
+      && optionalMapShortUrl(request.resource.data, "youtubeURL")
+      && request.resource.data.editorUids is list
+      && request.resource.data.editorUids.size() <= 12
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+
     match /system/runtimeConfig {
       allow read: if true;
       allow create, update, delete: if isOwner();
@@ -436,6 +470,30 @@ service cloud.firestore {
       );
 
       allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || canModerateProfiles();
+    }
+
+    match /artistPages/{artistId} {
+      allow read: if true;
+
+      allow create: if isOwner()
+        && validArtistPagePayload(artistId);
+
+      allow update: if (
+        isOwner()
+        && validArtistPagePayload(artistId)
+      ) || (
+        signedIn()
+        && resource.data.editorUids is list
+        && resource.data.editorUids.hasAny([request.auth.uid])
+        && validArtistPagePayload(artistId)
+        && request.resource.data.slug == resource.data.slug
+        && request.resource.data.brand == resource.data.brand
+        && request.resource.data.artistName == resource.data.artistName
+        && request.resource.data.editorUids == resource.data.editorUids
+        && request.resource.data.createdAt == resource.data.createdAt
+      );
+
+      allow delete: if isOwner();
     }
 
     match /admin/{docId} {

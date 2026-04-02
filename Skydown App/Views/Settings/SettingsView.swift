@@ -22,6 +22,7 @@ struct SettingsView: View {
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
     @StateObject private var stripeBackendSecretsStore = StripeBackendSecretsStore.shared
+    @StateObject private var artistPagesStore = ArtistPagesStore.shared
     @StateObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
     @StateObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
     @Binding var colorScheme: String
@@ -527,6 +528,18 @@ struct SettingsView: View {
         return count
     }
 
+    private var zweizweiArtistPages: [ArtistPage] {
+        artistPagesStore.pages(for: .zweizwei)
+    }
+
+    private var assignedArtistPageCount: Int {
+        zweizweiArtistPages.filter { !$0.editorUids.isEmpty }.count
+    }
+
+    private var publishedArtistPageCount: Int {
+        zweizweiArtistPages.filter(\.hasCustomPresentation).count
+    }
+
     @ViewBuilder
     private var adminWorkspaceSectionCard: some View {
         SettingsSectionCard(title: "Owner", colorScheme: effectiveColorScheme) {
@@ -605,6 +618,10 @@ struct SettingsView: View {
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
+                                text: "\(publishedArtistPageCount) Artist-Seiten",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
                                 text: "\(adminUserManagementStore.users.count) Konten",
                                 colorScheme: effectiveColorScheme
                             )
@@ -662,6 +679,37 @@ struct SettingsView: View {
                                     ].joined(separator: "-")
                                 )
                             }
+                        }
+                    }
+                }
+
+            case .artists:
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Hier bekommen ZweiZwei-Artists ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(text: "\(publishedArtistPageCount) Seiten mit Inhalt", colorScheme: effectiveColorScheme)
+                        SettingsBadge(text: "\(assignedArtistPageCount) mit Editoren", colorScheme: effectiveColorScheme)
+                    }
+
+                    if let message = artistPagesStore.lastErrorMessage {
+                        Text(message)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppColors.accentHighlight(for: effectiveColorScheme))
+                    }
+
+                    VStack(spacing: 12) {
+                        ForEach(zweizweiArtistPages) { page in
+                            SettingsArtistPageCard(
+                                page: page,
+                                users: adminUserManagementStore.users.filter { !$0.isPlatformOwner },
+                                colorScheme: effectiveColorScheme
+                            ) { updatedPage in
+                                saveArtistPage(updatedPage)
+                            }
+                            .id(page.slug + "-" + page.editorUids.joined(separator: ","))
                         }
                     }
                 }
@@ -1108,6 +1156,8 @@ struct SettingsView: View {
             return "\(visiblePaymentMethodCount) live im Checkout"
         case .users:
             return "\(adminUserManagementStore.users.count) Konten"
+        case .artists:
+            return "\(publishedArtistPageCount) Artist-Seiten"
         case .shopify:
             return shopifyAdminSettingsStore.settings.activeCollectionLabel
         case .commerce:
@@ -1314,6 +1364,17 @@ struct SettingsView: View {
                 showToastMessage("Konto gespeichert. Rolle und KI-Limits wurden aktualisiert.", style: .success)
             } catch {
                 showToastMessage("Konto konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveArtistPage(_ page: ArtistPage) {
+        Task {
+            do {
+                try await artistPagesStore.save(page)
+                showToastMessage("\(page.artistName) gespeichert.", style: .success)
+            } catch {
+                showToastMessage("Artist-Seite konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -2199,6 +2260,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
     case overview = "Uebersicht"
     case payments = "Zahlungen"
     case users = "User"
+    case artists = "Artists"
     case shopify = "Shopify"
     case commerce = "Versand"
     case visuals = "Visuals"
@@ -2214,6 +2276,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "creditcard.fill"
         case .users:
             return "person.2.fill"
+        case .artists:
+            return "music.mic.circle.fill"
         case .shopify:
             return "bag.fill"
         case .commerce:
@@ -2233,6 +2297,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "Provider verbinden, pruefen und fuer den Checkout sichtbar schalten."
         case .users:
             return "Rollen, KI-Zugriff, Tageslimits und History pro Konto steuern."
+        case .artists:
+            return "Artist-Seiten pflegen und Editor-Rechte pro Artist zuteilen."
         case .shopify:
             return "Owner-Quelle fuer Store-Domain, Token und Collection des Merch-Syncs."
         case .commerce:
@@ -2435,6 +2501,130 @@ private struct SettingsAdminRoleGuideCard: View {
                     }
                 }
             }
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private struct SettingsArtistPageCard: View {
+    let page: ArtistPage
+    let users: [User]
+    let colorScheme: ColorScheme
+    let onSave: (ArtistPage) -> Void
+
+    @State private var selectedEditorUids: Set<String>
+
+    init(
+        page: ArtistPage,
+        users: [User],
+        colorScheme: ColorScheme,
+        onSave: @escaping (ArtistPage) -> Void
+    ) {
+        self.page = page
+        self.users = users
+        self.colorScheme = colorScheme
+        self.onSave = onSave
+        _selectedEditorUids = State(initialValue: Set(page.editorUids))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(page.artistName)
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(page.hasCustomPresentation ? "Seite hat schon Inhalt." : "Noch als Platzhalter. Nach dem ersten Speichern ist die Artist-Seite live.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    SettingsBadge(text: page.hasCustomPresentation ? "Live" : "Platzhalter", colorScheme: colorScheme)
+                    SettingsBadge(text: "\(selectedEditorUids.count) Editoren", colorScheme: colorScheme)
+                }
+            }
+
+            if users.isEmpty {
+                Text("Sobald weitere Konten registriert sind, kannst du hier Editoren fuer diese Artist-Seite zuweisen.")
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            } else {
+                Text("Editoren")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 132), spacing: 8)],
+                    alignment: .leading,
+                    spacing: 8
+                ) {
+                    ForEach(users) { user in
+                        let isSelected = selectedEditorUids.contains(user.id ?? "")
+
+                        Button {
+                            guard let userId = user.id, !userId.isEmpty else { return }
+                            if isSelected {
+                                selectedEditorUids.remove(userId)
+                            } else {
+                                selectedEditorUids.insert(userId)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                    .font(.caption.weight(.bold))
+                                Text(user.username)
+                                    .font(.footnote.weight(.semibold))
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        isSelected
+                                        ? AppColors.accent(for: colorScheme)
+                                        : AppColors.cardBackground(for: colorScheme)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Button {
+                onSave(
+                    ArtistPage(
+                        id: page.slug,
+                        brand: page.brand,
+                        artistName: page.artistName,
+                        tagline: page.tagline,
+                        bio: page.bio,
+                        profileImageURL: page.profileImageURL,
+                        heroImageURL: page.heroImageURL,
+                        instagramURL: page.instagramURL,
+                        spotifyURL: page.spotifyURL,
+                        youtubeURL: page.youtubeURL,
+                        editorUids: Array(selectedEditorUids).sorted(),
+                        createdAt: page.createdAt,
+                        updatedAt: .now,
+                        isPlaceholder: false
+                    )
+                )
+            } label: {
+                Label("Editoren speichern", systemImage: "person.crop.circle.badge.checkmark")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accent(for: colorScheme))
         }
         .padding(16)
         .background(AppColors.secondaryBackground(for: colorScheme))

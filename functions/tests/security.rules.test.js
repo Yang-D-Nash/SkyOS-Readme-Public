@@ -73,6 +73,27 @@ async function seedUserProfile(uid, overrides = {}) {
   });
 }
 
+async function seedArtistPage(artistId, overrides = {}) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "artistPages", artistId), {
+      slug: artistId,
+      brand: "zweizwei",
+      artistName: "JANNO",
+      tagline: "Artist",
+      bio: "Bio",
+      profileImageURL: "https://example.com/avatar.jpg",
+      heroImageURL: "https://example.com/hero.jpg",
+      instagramURL: "https://instagram.com/janno",
+      spotifyURL: "https://open.spotify.com/artist/example",
+      youtubeURL: "https://youtube.com/@janno",
+      editorUids: [],
+      createdAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+      updatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+      ...overrides,
+    });
+  });
+}
+
 async function seedUploadSlot({
   slotId,
   uid,
@@ -308,4 +329,56 @@ test("galleryMeta darf nur vom Eigentuemer angelegt werden", async () => {
 
   const bobDb = testEnv.authenticatedContext("bob", {role: "user"}).firestore();
   await assertFails(getDoc(doc(bobDb, "galleryMeta", "alice", "items", "img_1")));
+});
+
+test("artistPages sind oeffentlich lesbar, aber nur Owner oder Editoren duerfen Inhalte aendern", async () => {
+  await seedArtistPage("janno", {
+    editorUids: ["editor1"],
+  });
+
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  const editorDb = testEnv.authenticatedContext("editor1", {role: "user"}).firestore();
+  const strangerDb = testEnv.authenticatedContext("stranger", {role: "user"}).firestore();
+
+  await assertSucceeds(getDoc(doc(guestDb, "artistPages", "janno")));
+  await assertSucceeds(updateDoc(doc(editorDb, "artistPages", "janno"), {
+    bio: "Neue Bio",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-02T11:00:00.000Z")),
+  }));
+  await assertFails(updateDoc(doc(strangerDb, "artistPages", "janno"), {
+    bio: "Nope",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-02T11:00:00.000Z")),
+  }));
+});
+
+test("Editoren duerfen artistPages nicht selbst umhaengen", async () => {
+  await seedArtistPage("janno", {
+    editorUids: ["editor1"],
+  });
+
+  const editorDb = testEnv.authenticatedContext("editor1", {role: "user"}).firestore();
+  await assertFails(updateDoc(doc(editorDb, "artistPages", "janno"), {
+    editorUids: ["editor1", "editor2"],
+    updatedAt: Timestamp.fromDate(new Date("2026-04-02T11:00:00.000Z")),
+  }));
+});
+
+test("Owner darf artistPages anlegen und Editoren setzen", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerDb, "artistPages", "yang-d-nash"), {
+    slug: "yang-d-nash",
+    brand: "zweizwei",
+    artistName: "Yang D. Nash",
+    tagline: "Artist",
+    bio: "Owner erstellt die Seite",
+    profileImageURL: "https://example.com/avatar.jpg",
+    heroImageURL: "https://example.com/hero.jpg",
+    instagramURL: "https://instagram.com/ydnash",
+    spotifyURL: "https://open.spotify.com/artist/example",
+    youtubeURL: "https://youtube.com/@ydnash",
+    editorUids: ["editor1"],
+    createdAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+    updatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+  }));
 });
