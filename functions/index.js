@@ -41,6 +41,9 @@ const {
   shouldConfirmPaymentFromStripeEvent,
   verifyStripeWebhookSignature,
 } = require("./src/payments/stripe-checkout");
+const {
+  addSecretVersion,
+} = require("./src/payments/secret-manager");
 
 admin.initializeApp();
 void enableFirebaseTelemetry().catch((error) => {
@@ -64,6 +67,8 @@ const SHOPIFY_PRIVATE_CONFIG_COLLECTION = "adminConfig";
 const SHOPIFY_PRIVATE_CONFIG_DOCUMENT = "shopifyMerchPrivate";
 const AUTOMATION_CONFIG_COLLECTION = "adminConfig";
 const AUTOMATION_CONFIG_DOCUMENT = "automationN8n";
+const STRIPE_SECRET_STATUS_COLLECTION = "adminConfig";
+const STRIPE_SECRET_STATUS_DOCUMENT = "stripeCheckoutSecrets";
 const SHOPIFY_VARIANT_OPTION_KEYS = {
   size: ["size", "groesse", "größe"],
   color: ["color", "colour", "farbe"],
@@ -781,6 +786,14 @@ function resolveProjectId() {
   return nonEmptyString(process.env.GCLOUD_PROJECT) ||
     nonEmptyString(admin.app().options.projectId) ||
     "";
+}
+
+function validStripeSecretKey(value) {
+  return /^(sk|rk)_(live|test)_/.test(`${value || ""}`.trim());
+}
+
+function validStripeWebhookSecret(value) {
+  return /^whsec_/.test(`${value || ""}`.trim());
 }
 
 function getShopifyGraphqlUrl(storeDomain) {
@@ -1777,6 +1790,83 @@ function shouldSubmitToShopify(beforeData, afterData) {
 
   return true;
 }
+
+exports.configureStripeBackendSecrets = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "configureStripeBackendSecrets");
+  await assertOwner(request.auth);
+
+  const nextStripeSecretKey = nonEmptyString(request.data?.stripeSecretKey);
+  const nextStripeWebhookSecret = nonEmptyString(request.data?.stripeWebhookSecret);
+
+  if (!nextStripeSecretKey && !nextStripeWebhookSecret) {
+    throw new HttpsError("invalid-argument", "Bitte mindestens einen Stripe-Wert hinterlegen.");
+  }
+
+  if (nextStripeSecretKey && !validStripeSecretKey(nextStripeSecretKey)) {
+    throw new HttpsError("invalid-argument", "Der Stripe Secret Key sieht ungueltig aus.");
+  }
+
+  if (nextStripeWebhookSecret && !validStripeWebhookSecret(nextStripeWebhookSecret)) {
+    throw new HttpsError("invalid-argument", "Das Stripe Webhook Secret sieht ungueltig aus.");
+  }
+
+  const projectId = resolveProjectId();
+  if (!projectId) {
+    throw new HttpsError("internal", "Firebase-Projekt konnte nicht fuer Secret Manager aufgeloest werden.");
+  }
+
+  const statusRef = admin.firestore()
+      .collection(STRIPE_SECRET_STATUS_COLLECTION)
+      .doc(STRIPE_SECRET_STATUS_DOCUMENT);
+  const statusSnapshot = await statusRef.get();
+  const currentStatus = statusSnapshot.exists ? (statusSnapshot.data() || {}) : {};
+
+  try {
+    if (nextStripeSecretKey) {
+      await addSecretVersion(projectId, "STRIPE_SECRET_KEY", nextStripeSecretKey);
+    }
+
+    if (nextStripeWebhookSecret) {
+      await addSecretVersion(projectId, "STRIPE_WEBHOOK_SECRET", nextStripeWebhookSecret);
+    }
+  } catch (error) {
+    logger.error("Stripe secrets could not be stored in Secret Manager.", {
+      uid: request.auth.uid,
+      error: error instanceof Error ? error.message : "unknown_error",
+    });
+    throw new HttpsError(
+        "internal",
+        `Stripe-Secrets konnten nicht sicher gespeichert werden: ${error instanceof Error ? error.message : "Unbekannter Fehler."}`,
+    );
+  }
+
+  const mergedStatus = {
+    hasSecretKey: nextStripeSecretKey ? true : currentStatus.hasSecretKey === true,
+    hasWebhookSecret: nextStripeWebhookSecret ? true : currentStatus.hasWebhookSecret === true,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedByUid: request.auth.uid,
+    updatedByEmail: `${request.auth.token?.email || ""}`.trim().toLowerCase() || admin.firestore.FieldValue.delete(),
+  };
+
+  await statusRef.set(mergedStatus, {merge: true});
+
+  logger.info("Stripe backend secrets updated via owner settings.", {
+    uid: request.auth.uid,
+    updatedSecretKey: Boolean(nextStripeSecretKey),
+    updatedWebhookSecret: Boolean(nextStripeWebhookSecret),
+  });
+
+  return {
+    message: "Stripe-Backend sicher gespeichert.",
+    status: {
+      hasSecretKey: mergedStatus.hasSecretKey,
+      hasWebhookSecret: mergedStatus.hasWebhookSecret,
+    },
+  };
+});
 
 exports.submitMerchOrder = onCall({
   region: "us-central1",

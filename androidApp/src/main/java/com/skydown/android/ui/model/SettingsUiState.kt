@@ -5,6 +5,7 @@ import com.skydown.android.data.AiVisualReferenceLibrarySettings
 import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
+import com.skydown.android.data.StripeBackendSecretsStatus
 import com.skydown.android.data.WorkflowAutomationSettings
 import com.skydown.shared.model.User
 
@@ -31,6 +32,7 @@ data class SettingsUiState(
     val commerceSettings: CommerceSettings = CommerceSettings(),
     val shopifyAdminSettings: ShopifyAdminSettings = ShopifyAdminSettings(),
     val paymentMethods: PaymentMethodsSettings = PaymentMethodsSettings(),
+    val stripeBackendSecretsStatus: StripeBackendSecretsStatus = StripeBackendSecretsStatus(),
     val managedUsers: List<User> = emptyList(),
     val managedUsersErrorMessage: String? = null,
     val paymentFeedbackMessage: String? = null,

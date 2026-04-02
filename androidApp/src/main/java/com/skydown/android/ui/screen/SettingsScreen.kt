@@ -64,6 +64,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -107,6 +108,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var stripeAccountHintDraft by rememberSaveable { mutableStateOf("") }
+    var stripeSecretKeyDraft by rememberSaveable { mutableStateOf("") }
+    var stripeWebhookSecretDraft by rememberSaveable { mutableStateOf("") }
     var paypalAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var klarnaAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var bankAccountHolderDraft by rememberSaveable { mutableStateOf("") }
@@ -461,6 +464,21 @@ fun SettingsScreen(
                     },
                     onToggleEnabled = viewModel::setStripeEnabled,
                     modifier = Modifier.padding(top = 16.dp),
+                )
+
+                StripeBackendSecretsAdminCard(
+                    status = uiState.stripeBackendSecretsStatus,
+                    stripeSecretKey = stripeSecretKeyDraft,
+                    stripeWebhookSecret = stripeWebhookSecretDraft,
+                    onStripeSecretKeyChange = { stripeSecretKeyDraft = it },
+                    onStripeWebhookSecretChange = { stripeWebhookSecretDraft = it },
+                    onSave = {
+                        viewModel.saveStripeBackendSecrets(
+                            stripeSecretKey = stripeSecretKeyDraft,
+                            stripeWebhookSecret = stripeWebhookSecretDraft,
+                        )
+                    },
+                    modifier = Modifier.padding(top = 14.dp),
                 )
 
                 PaymentProviderAdminCard(
@@ -1350,6 +1368,106 @@ private fun PaymentProviderAdminCard(
                     Text(if (title == "PayPal") "Entfernen" else "Trennen")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StripeBackendSecretsAdminCard(
+    status: com.skydown.android.data.StripeBackendSecretsStatus,
+    stripeSecretKey: String,
+    stripeWebhookSecret: String,
+    onStripeSecretKeyChange: (String) -> Unit,
+    onStripeWebhookSecretChange: (String) -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Sicheres Stripe-Backend",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = if (status.isReady) "Backend bereit" else "Backend noch unvollstaendig",
+                    color = if (status.isReady) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    },
+                )
+            }
+            SettingsBadge(
+                text = if (status.isReady) "Live bereit" else "Setup fehlt",
+                icon = Icons.Default.CheckCircle,
+                isActive = status.isReady,
+            )
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SettingsBadge(
+                text = if (status.hasSecretKey) "Secret Key gesetzt" else "Secret Key fehlt",
+                icon = Icons.Default.CheckCircle,
+                isActive = status.hasSecretKey,
+            )
+            SettingsBadge(
+                text = if (status.hasWebhookSecret) "Webhook Secret gesetzt" else "Webhook Secret fehlt",
+                icon = Icons.Default.CheckCircle,
+                isActive = status.hasWebhookSecret,
+            )
+        }
+
+        Text(
+            text = "Die Werte werden nur serverseitig gespeichert. Leere Felder lassen bestehende Secrets unveraendert.",
+            modifier = Modifier.padding(top = 12.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+
+        OutlinedTextField(
+            value = stripeSecretKey,
+            onValueChange = onStripeSecretKeyChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            label = { Text("Stripe Secret Key") },
+            placeholder = { Text("sk_live_... oder rk_live_...") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+
+        OutlinedTextField(
+            value = stripeWebhookSecret,
+            onValueChange = onStripeWebhookSecretChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("Stripe Webhook Secret") },
+            placeholder = { Text("whsec_...") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+
+        Button(
+            onClick = onSave,
+            modifier = Modifier.padding(top = 12.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Sicher speichern")
         }
     }
 }

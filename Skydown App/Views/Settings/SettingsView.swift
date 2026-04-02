@@ -21,6 +21,7 @@ struct SettingsView: View {
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @StateObject private var stripeBackendSecretsStore = StripeBackendSecretsStore.shared
     @StateObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
     @StateObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
     @Binding var colorScheme: String
@@ -43,6 +44,8 @@ struct SettingsView: View {
     @State private var showingMailOptions = false
     @State private var showingMailView = false
     @State private var stripeAccountHintDraft = ""
+    @State private var stripeSecretKeyDraft = ""
+    @State private var stripeWebhookSecretDraft = ""
     @State private var paypalAccountHintDraft = ""
     @State private var klarnaAccountHintDraft = ""
     @State private var bankAccountHolderDraft = ""
@@ -458,6 +461,7 @@ struct SettingsView: View {
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
             adminUserManagementStore.configureObservation(isAdmin: isOwnerUser)
+            stripeBackendSecretsStore.setObservationEnabled(isOwnerUser)
             workflowAutomationSettings.configureObservation(
                 isAdmin: isOwnerUser,
                 userID: authManager.userSession?.id
@@ -470,6 +474,7 @@ struct SettingsView: View {
         }
         .onChange(of: isOwnerUser) { _, isOwner in
             adminUserManagementStore.configureObservation(isAdmin: isOwner)
+            stripeBackendSecretsStore.setObservationEnabled(isOwner)
             workflowAutomationSettings.configureObservation(
                 isAdmin: isOwner,
                 userID: authManager.userSession?.id
@@ -745,6 +750,14 @@ struct SettingsView: View {
                             providerName: "Stripe"
                         )
                     }
+
+                    StripeBackendSecretsCard(
+                        colorScheme: effectiveColorScheme,
+                        status: stripeBackendSecretsStore.status,
+                        stripeSecretKey: $stripeSecretKeyDraft,
+                        stripeWebhookSecret: $stripeWebhookSecretDraft,
+                        onSave: { saveStripeBackendSecrets() }
+                    )
 
                     PaymentProviderSettingsCard(
                         colorScheme: effectiveColorScheme,
@@ -1363,6 +1376,33 @@ struct SettingsView: View {
         }
     }
 
+    private func saveStripeBackendSecrets() {
+        let trimmedKey = stripeSecretKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedWebhook = stripeWebhookSecretDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedKey.isEmpty || !trimmedWebhook.isEmpty else {
+            showToastMessage("Bitte mindestens einen Stripe-Wert eingeben.", style: .error)
+            return
+        }
+
+        Task {
+            do {
+                try await stripeBackendSecretsStore.saveSecrets(
+                    stripeSecretKey: trimmedKey,
+                    stripeWebhookSecret: trimmedWebhook
+                )
+                stripeSecretKeyDraft = ""
+                stripeWebhookSecretDraft = ""
+                showToastMessage(
+                    "Stripe-Backend sicher gespeichert. Die Werte liegen jetzt serverseitig im Secret Manager.",
+                    style: .success
+                )
+            } catch {
+                showToastMessage("Stripe-Secrets konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
     private func disconnectStripe() {
         Task {
             var updated = paymentMethodSettingsStore.settings
@@ -1544,6 +1584,32 @@ private struct SettingsInputField: View {
                         ? .never
                         : .sentences
                 )
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .background(AppColors.secondaryBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                )
+        }
+    }
+}
+
+private struct SettingsSecureInputField: View {
+    let title: String
+    @Binding var text: String
+    let colorScheme: ColorScheme
+    let placeholder: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            SecureField(placeholder, text: $text)
+                .textInputAutocapitalization(.never)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background(AppColors.secondaryBackground(for: colorScheme))
@@ -1752,6 +1818,77 @@ private struct PaymentProviderSettingsCard: View {
                         .buttonStyle(.bordered)
                 }
             }
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private struct StripeBackendSecretsCard: View {
+    let colorScheme: ColorScheme
+    let status: StripeBackendSecretsStatus
+    @Binding var stripeSecretKey: String
+    @Binding var stripeWebhookSecret: String
+    let onSave: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Sicheres Stripe-Backend")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(status.isReady ? "Backend bereit" : "Backend noch unvollstaendig")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(
+                            status.isReady
+                            ? AppColors.accent(for: colorScheme)
+                            : AppColors.secondaryText(for: colorScheme)
+                        )
+                }
+
+                Spacer()
+
+                SettingsBadge(
+                    text: status.isReady ? "Live bereit" : "Setup fehlt",
+                    colorScheme: colorScheme
+                )
+            }
+
+            HStack(spacing: 8) {
+                SettingsBadge(
+                    text: status.hasSecretKey ? "Secret Key gesetzt" : "Secret Key fehlt",
+                    colorScheme: colorScheme
+                )
+                SettingsBadge(
+                    text: status.hasWebhookSecret ? "Webhook Secret gesetzt" : "Webhook Secret fehlt",
+                    colorScheme: colorScheme
+                )
+            }
+
+            Text("Die Werte werden nie wieder ausgelesen oder in Firestore gespeichert. Leere Felder lassen bestehende Secrets unveraendert.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            SettingsSecureInputField(
+                title: "Stripe Secret Key",
+                text: $stripeSecretKey,
+                colorScheme: colorScheme,
+                placeholder: "sk_live_... oder rk_live_..."
+            )
+
+            SettingsSecureInputField(
+                title: "Stripe Webhook Secret",
+                text: $stripeWebhookSecret,
+                colorScheme: colorScheme,
+                placeholder: "whsec_..."
+            )
+
+            Button("Sicher speichern", action: onSave)
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accent(for: colorScheme))
         }
         .padding(16)
         .background(AppColors.secondaryBackground(for: colorScheme))

@@ -27,10 +27,12 @@ class SettingsViewModel : ViewModel() {
     private val authService = AppContainer.authService
     private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
     private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
+    private val stripeBackendSecretsRepository = AppContainer.stripeBackendSecretsRepository
     private val shopifyAdminSettingsRepository = AppContainer.shopifyAdminSettingsRepository
     private val adminUserManagementRepository = AppContainer.adminUserManagementRepository
     private var commerceSettingsListener: ListenerRegistration? = null
     private var paymentMethodsListener: ListenerRegistration? = null
+    private var stripeBackendSecretsListener: ListenerRegistration? = null
     private var shopifyAdminSettingsListener: ListenerRegistration? = null
     private var adminUsersListener: ListenerRegistration? = null
     private val _uiState = MutableStateFlow(
@@ -68,6 +70,7 @@ class SettingsViewModel : ViewModel() {
                     )
                 }
 
+                configureStripeBackendSecretsObservation(isEnabled = isOwner)
                 configureManagedUsersObservation(isEnabled = isOwner)
             }
         }
@@ -296,6 +299,52 @@ class SettingsViewModel : ViewModel() {
                     accountHint = accountHint.trim(),
                 ),
             )
+        }
+    }
+
+    fun saveStripeBackendSecrets(
+        stripeSecretKey: String,
+        stripeWebhookSecret: String,
+    ) {
+        viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf Stripe-Backend-Secrets setzen.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val trimmedKey = stripeSecretKey.trim()
+            val trimmedWebhookSecret = stripeWebhookSecret.trim()
+            if (trimmedKey.isBlank() && trimmedWebhookSecret.isBlank()) {
+                showPaymentFeedback(
+                    message = "Bitte mindestens einen Stripe-Wert eingeben.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val result = stripeBackendSecretsRepository.saveSecrets(
+                stripeSecretKey = trimmedKey,
+                stripeWebhookSecret = trimmedWebhookSecret,
+            )
+            if (result.isSuccess) {
+                result.getOrNull()?.let { status ->
+                    _uiState.update { current ->
+                        current.copy(stripeBackendSecretsStatus = status)
+                    }
+                }
+                showPaymentFeedback(
+                    message = "Stripe-Backend sicher gespeichert. Die Werte liegen jetzt serverseitig im Secret Manager.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "Stripe-Secrets konnten nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
         }
     }
 
@@ -583,6 +632,8 @@ class SettingsViewModel : ViewModel() {
         commerceSettingsListener = null
         paymentMethodsListener?.remove()
         paymentMethodsListener = null
+        stripeBackendSecretsListener?.remove()
+        stripeBackendSecretsListener = null
         shopifyAdminSettingsListener?.remove()
         shopifyAdminSettingsListener = null
         adminUsersListener?.remove()
@@ -621,6 +672,34 @@ class SettingsViewModel : ViewModel() {
                         managedUsersErrorMessage = error.message ?: "Konten konnten nicht geladen werden.",
                     )
                 }
+            }
+        }
+    }
+
+    private fun configureStripeBackendSecretsObservation(isEnabled: Boolean) {
+        if (!isEnabled) {
+            stripeBackendSecretsListener?.remove()
+            stripeBackendSecretsListener = null
+            _uiState.update {
+                it.copy(stripeBackendSecretsStatus = com.skydown.android.data.StripeBackendSecretsStatus())
+            }
+            return
+        }
+
+        if (stripeBackendSecretsListener != null) {
+            return
+        }
+
+        stripeBackendSecretsListener = stripeBackendSecretsRepository.observeStatus { result ->
+            result.onSuccess { status ->
+                _uiState.update {
+                    it.copy(stripeBackendSecretsStatus = status)
+                }
+            }.onFailure { error ->
+                showPaymentFeedback(
+                    message = error.message ?: "Stripe-Backend-Status konnte nicht geladen werden.",
+                    isError = true,
+                )
             }
         }
     }
