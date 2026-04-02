@@ -32,7 +32,7 @@ final class MerchandiseViewModel: ObservableObject {
     private var hasAttemptedAutomaticShopifySync = false
 
     private var canManageMerchandise: Bool {
-        authManager.userSession?.isAdmin == true
+        authManager.userSession?.isPlatformOwner == true
     }
 
     init(
@@ -97,7 +97,7 @@ final class MerchandiseViewModel: ObservableObject {
 
     func toggleStoreOpen() async {
         guard canManageMerchandise else {
-            showUserToast("Nur Admins duerfen den Merch Store schalten.", style: .error)
+            showUserToast("Nur der Owner darf den Merch Store schalten.", style: .error)
             return
         }
 
@@ -115,7 +115,7 @@ final class MerchandiseViewModel: ObservableObject {
 
     func addMerchandise(_ item: MerchandiseItem, imageDataList: [Data]) async -> Bool {
         guard canManageMerchandise else {
-            showUserToast("Nur Admins dürfen Artikel hinzufügen.", style: .error)
+            showUserToast("Nur der Owner darf Artikel hinzufügen.", style: .error)
             return false
         }
 
@@ -136,7 +136,7 @@ final class MerchandiseViewModel: ObservableObject {
 
     func syncShopifyCatalog(automatic: Bool = false) async {
         guard canManageMerchandise else {
-            showUserToast("Nur Admins duerfen den Shopify-Sync starten.", style: .error)
+            showUserToast("Nur der Owner darf den Shopify-Sync starten.", style: .error)
             return
         }
 
@@ -160,7 +160,7 @@ final class MerchandiseViewModel: ObservableObject {
 
     func updateMerchandisePrice(_ item: MerchandiseItem, newPrice: Double) async -> Bool {
         guard canManageMerchandise else {
-            showUserToast("Nur Admins dürfen Artikel bearbeiten.", style: .error)
+            showUserToast("Nur der Owner darf Artikel bearbeiten.", style: .error)
             return false
         }
 
@@ -182,7 +182,7 @@ final class MerchandiseViewModel: ObservableObject {
 
     func updateMerchandise(_ item: MerchandiseItem, imageDataList: [Data]) async -> Bool {
         guard canManageMerchandise else {
-            showUserToast("Nur Admins dürfen Artikel bearbeiten.", style: .error)
+            showUserToast("Nur der Owner darf Artikel bearbeiten.", style: .error)
             return false
         }
 
@@ -204,7 +204,7 @@ final class MerchandiseViewModel: ObservableObject {
 
     func deleteItem(_ item: MerchandiseItem) async {
         guard canManageMerchandise else {
-            showUserToast("Nur Admins dürfen Artikel löschen.", style: .error)
+            showUserToast("Nur der Owner darf Artikel loeschen.", style: .error)
             return
         }
 

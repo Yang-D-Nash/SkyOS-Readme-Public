@@ -2,6 +2,7 @@ package com.skydown.android.data.repository
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
 import com.skydown.shared.model.CartItem
 import com.skydown.shared.model.Order
 import com.skydown.shared.model.OrderItem
@@ -12,6 +13,7 @@ import kotlinx.coroutines.tasks.await
 
 class AndroidOrderRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) : OrderRepository {
     override suspend fun loadOrders(): Result<List<Order>> {
         return runCatching {
@@ -84,46 +86,45 @@ class AndroidOrderRepository(
                     "unitPrice" to (item.unitPrice ?: item.item.price),
                 )
             }
-
-            val initialShopifySyncStatus = when (submission.fulfillmentProvider) {
-                "podpartner" -> if (submission.paymentStatus == "confirmed") "pending_submission" else "awaiting_payment"
-                else -> "not_required"
-            }
-
-            firestore.collection("orders").add(
-                mapOf(
-                    "userEmail" to submission.userEmail,
-                    "customerName" to submission.customerName,
-                    "customerEmail" to submission.customerEmail,
-                    "whatsApp" to submission.whatsApp,
-                    "shippingAddress" to submission.shippingAddress,
-                    "shippingAddressData" to mapOf(
-                        "address1" to submission.shippingAddressData.address1,
-                        "address2" to submission.shippingAddressData.address2,
-                        "city" to submission.shippingAddressData.city,
-                        "zip" to submission.shippingAddressData.zip,
-                        "countryCode" to submission.shippingAddressData.countryCode,
-                        "countryName" to submission.shippingAddressData.countryName,
+            val response = functions
+                .getHttpsCallable("submitMerchOrder")
+                .call(
+                    mapOf(
+                        "userEmail" to submission.userEmail,
+                        "customerName" to submission.customerName,
+                        "customerEmail" to submission.customerEmail,
+                        "whatsApp" to submission.whatsApp,
+                        "shippingAddress" to submission.shippingAddress,
+                        "shippingAddressData" to mapOf(
+                            "address1" to submission.shippingAddressData.address1,
+                            "address2" to submission.shippingAddressData.address2,
+                            "city" to submission.shippingAddressData.city,
+                            "zip" to submission.shippingAddressData.zip,
+                            "countryCode" to submission.shippingAddressData.countryCode,
+                            "countryName" to submission.shippingAddressData.countryName,
+                        ),
+                        "shippingZone" to submission.shippingZone,
+                        "shippingCountryCode" to submission.shippingCountryCode,
+                        "paymentMethod" to submission.paymentMethod,
+                        "paymentStatus" to submission.paymentStatus,
+                        "subtotalAmount" to submission.subtotalAmount,
+                        "shippingAmount" to submission.shippingAmount,
+                        "taxRate" to submission.taxRate,
+                        "taxAmount" to submission.taxAmount,
+                        "totalAmount" to submission.totalAmount,
+                        "fulfillmentProvider" to submission.fulfillmentProvider,
+                        "message" to submission.message,
+                        "items" to orderItems,
                     ),
-                    "shippingZone" to submission.shippingZone,
-                    "shippingCountryCode" to submission.shippingCountryCode,
-                    "paymentMethod" to submission.paymentMethod,
-                    "paymentStatus" to submission.paymentStatus,
-                    "subtotalAmount" to submission.subtotalAmount,
-                    "shippingAmount" to submission.shippingAmount,
-                    "shippingPriceCharged" to submission.shippingAmount,
-                    "taxRate" to submission.taxRate,
-                    "taxAmount" to submission.taxAmount,
-                    "totalAmount" to submission.totalAmount,
-                    "fulfillmentProvider" to submission.fulfillmentProvider,
-                    "fulfillmentStatus" to if (submission.fulfillmentProvider == "podpartner") "pending" else "manual_review",
-                    "shopifySyncStatus" to initialShopifySyncStatus,
-                    "message" to submission.message,
-                    "items" to orderItems,
-                    "isCompleted" to false,
-                    "timestamp" to Timestamp.now(),
-                ),
-            ).await().id
+                )
+                .await()
+
+            val data = response.data
+            when (data) {
+                is Map<*, *> -> (data["orderId"] as? String)?.takeIf { it.isNotBlank() }
+                is String -> data.takeIf { it.isNotBlank() }
+                else -> null
+            } ?: error("Die Bestellung konnte serverseitig nicht angelegt werden.")
         }
     }
 

@@ -203,7 +203,7 @@ Wichtig:
 
 - User loggen sich nicht in n8n ein
 - die App bleibt normal ueber Firebase eingeloggt
-- Admins hinterlegen ihre eigene n8n-Verbindung
+- der Owner hinterlegt die zentrale n8n-Verbindung
 - Firebase Functions schicken geprueften User-Kontext an den Webhook
 
 Der saubere Datenweg ist:
@@ -262,6 +262,7 @@ Rechte:
 - voller Zugriff auf sensible Settings
 - volle Nutzerverwaltung
 - volle KI-Steuerung
+- alleinige Kontrolle ueber Shopify, Zahlarten, Commerce und n8n
 
 #### 2. Admin
 
@@ -269,9 +270,9 @@ Admins sind `teaminterne Leute`.
 
 Rechte:
 
-- voller Admin-Workspace
-- interne Betriebsfunktionen
-- Nutzerverwaltung
+- operative Inhalte und Backoffice-Funktionen
+- interne Betriebsunterstuetzung
+- keine Kontrolle ueber Shopify, Zahlarten, Commerce, n8n oder Nutzerrollen
 - keine Owner-Sonderstellung
 
 #### 3. Subadmin
@@ -360,9 +361,9 @@ Trennung:
 - pro KI-Bereich
 - mit konfigurierbarer Retention
 
-### Admin-Workspace
+### Owner-Workspace
 
-Der Adminbereich in Settings ist jetzt als kurzer Workspace aufgebaut, nicht als endlose Scroll-Seite.
+Der Owner-Bereich in Settings ist jetzt als kurzer Workspace aufgebaut, nicht als endlose Scroll-Seite.
 
 Die wichtigsten Bereiche:
 
@@ -374,24 +375,22 @@ Die wichtigsten Bereiche:
 - `Visuals`
 - `Automation`
 
-### Shopify fuer Admins
+### Shopify fuer den Owner
 
-Admins pflegen fuer Shopify nur:
+Der Owner pflegt fuer Shopify:
 
 - `Store Domain`
 - `Storefront Access Token`
 - optional `Collection Handle`
 
-### n8n fuer Admins
+### n8n fuer den Owner
 
-Jeder Admin kann seine eigene n8n-Konfiguration pflegen.
-
-Die Konfiguration ist also nicht mehr nur global, sondern adminbezogen nutzbar.
+Der Owner pflegt die zentrale n8n-Konfiguration fuer die App.
 
 ### Wichtige Hinweise fuer das Team
 
 - `Owner` bleibt fest an `nash.lioncorna@gmail.com` gebunden
-- `Admin` ist fuer interne Leute
+- `Admin` ist fuer interne Leute ohne Root-/Systemkontrolle
 - `Subadmin` ist fuer spaetere externe Power-User
 - `User` ist das normale oeffentliche Konto
 - `Gast` ist die nicht eingeloggte Nutzung ohne gespeichertes Konto
@@ -400,7 +399,8 @@ Die Konfiguration ist also nicht mehr nur global, sondern adminbezogen nutzbar.
 
 Die wichtigsten Regeln sind:
 
-- Owner/Admin duerfen den sensiblen Admin-Workspace nutzen
+- nur der Owner darf sensible Systembereiche wie Shopify, Zahlarten, Commerce, n8n und Nutzerrollen steuern
+- interne Admins bleiben auf operative Inhalte und Backoffice-Funktionen begrenzt
 - Subadmins sind bewusst keine internen Staff-Konten
 - normale User duerfen nur ihre eigenen Nutzer- und Textdaten nutzen
 - KI-Nutzung wird serverseitig autorisiert und gezaehlt

@@ -333,7 +333,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Shopify -> {
                 Text(
-                    text = "Fuer den Merch-Katalog braucht die App nur die Store-Domain, deinen Storefront Access Token und optional einen Collection-Handle. Danach laedt der Shop direkt aus Shopify.",
+                    text = "Fuer den Merch-Katalog pflegt der Owner hier die Store-Domain, den Storefront Access Token und optional einen Collection-Handle. Danach laedt der Shop direkt aus Shopify.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -742,7 +742,7 @@ fun SettingsScreen(
                 )
                 SettingsToggleRow(
                     title = "n8n aktiv",
-                    body = "Die App bleibt normal ueber Firebase eingeloggt. Jeder Admin kann hier seinen eigenen n8n-Webhook hinterlegen.",
+                    body = "Die App bleibt normal ueber Firebase eingeloggt. Der Owner hinterlegt hier die zentrale n8n-Verbindung.",
                     checked = automationEnabledDraft,
                     onCheckedChange = { automationEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -1002,12 +1002,12 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-                        SectionHeader("Admin")
+                        SectionHeader("Owner")
                         Text(
-                            text = if (uiState.isAdmin) {
-                                "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand, User oder Visuals rein, statt alles in einer langen Seite aufzuklappen."
+                            text = if (uiState.isOwner) {
+                                "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand, Nutzerrollen und n8n laufen damit bewusst ueber eine zentrale Hand."
                             } else {
-                                "Admin-Bereiche werden erst mit passender Berechtigung aktiv."
+                                "Die Systembereiche sind nur fuer das feste Owner-Konto aktiv."
                             },
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -1017,13 +1017,13 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
-                            enabled = uiState.isAdmin,
+                            enabled = uiState.isOwner,
                             shape = RoundedCornerShape(18.dp),
                         ) {
                             Text("Bestellungen oeffnen")
                         }
 
-                        if (uiState.isAdmin) {
+                        if (uiState.isOwner) {
                             Column(
                                 modifier = Modifier.padding(top = 14.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -1498,9 +1498,9 @@ private fun SettingsOverviewCard(
             )
         }
 
-        if (uiState.isAdmin) {
+        if (uiState.isOwner) {
             SettingsBadge(
-                text = "Admin aktiv",
+                text = "Owner aktiv",
                 icon = Icons.Default.CheckCircle,
                 isActive = true,
                 modifier = Modifier.padding(top = 10.dp),
@@ -1714,7 +1714,7 @@ private enum class AdminWorkspaceSection(
 ) {
     Overview(
         label = "Uebersicht",
-        subtitle = "Schneller Status fuer Zahlarten, Visuals und Automationen.",
+        subtitle = "Schneller Status fuer Owner-Bereiche und Systemverbindungen.",
         icon = Icons.Default.Settings,
     ),
     Payments(
@@ -1729,7 +1729,7 @@ private enum class AdminWorkspaceSection(
     ),
     Shopify(
         label = "Shopify",
-        subtitle = "Store-Domain, Collection-Link und Sync-Quelle fuer Merch pflegen.",
+        subtitle = "Owner-Quelle fuer Store-Domain, Token und Merch-Sync pflegen.",
         icon = Icons.Default.ShoppingBag,
     ),
     Commerce(
@@ -1744,7 +1744,7 @@ private enum class AdminWorkspaceSection(
     ),
     Automation(
         label = "Automation",
-        subtitle = "n8n anbinden, User-Kontext steuern und den Webhook testen.",
+        subtitle = "Owner-seitig n8n anbinden, User-Kontext steuern und den Webhook testen.",
         icon = Icons.Default.Bolt,
     ),
 }
@@ -2226,7 +2226,7 @@ private val UserRole.displayTitle: String
 private val UserRole.roleSummary: String
     get() = when (this) {
         UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Voller Zugriff auf alles, inklusive sensibler Settings, Nutzerverwaltung und KI-Limits."
-        UserRole.Admin -> "Teaminterne Leute mit vollem Admin-Workspace, Nutzerverwaltung und internen Betriebsfunktionen. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
+        UserRole.Admin -> "Teaminterne Leute fuer operative Inhalte und Backoffice-Aufgaben. Kein Zugriff auf Owner-Systembereiche wie Shopify, Zahlarten, Nutzerrollen oder n8n. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
         UserRole.Subadmin -> "Externe Power-User fuer die oeffentliche App. Mehr persoenliche KI-Power und laengere History als normale User, aber kein interner Admin-Workspace."
         UserRole.User -> "Normales Nutzerkonto fuer die oeffentliche App. Persoenliche KI-History und kleinere Tageslimits. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
     }

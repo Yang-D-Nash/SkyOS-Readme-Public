@@ -57,7 +57,7 @@ final class FirebaseOrderService: OrderServicing {
                             onChange(.failure(NSError(
                                 domain: "Firestore",
                                 code: FirestoreErrorCode.permissionDenied.rawValue,
-                                userInfo: [NSLocalizedDescriptionKey: "Keine Berechtigung zum Laden der Bestellungen. Prüfe isAdmin und die Firestore Rules."]
+                                userInfo: [NSLocalizedDescriptionKey: "Keine Berechtigung zum Laden der Bestellungen. Pruefe Owner-Rechte und die Firestore Rules."]
                             )))
                         } else {
                             onChange(.failure(error))
@@ -111,15 +111,7 @@ final class FirebaseOrderService: OrderServicing {
             ]
         }
 
-        let initialShopifySyncStatus: String
-        switch fulfillmentProvider {
-        case "podpartner":
-            initialShopifySyncStatus = paymentStatus == "confirmed" ? "pending_submission" : "awaiting_payment"
-        default:
-            initialShopifySyncStatus = "not_required"
-        }
-
-        let orderData: [String: Any] = [
+        let payload: [String: Any] = [
             "userEmail": userEmail,
             "customerName": customerName,
             "customerEmail": customerEmail,
@@ -144,15 +136,28 @@ final class FirebaseOrderService: OrderServicing {
             "taxAmount": taxAmount,
             "totalAmount": totalAmount,
             "fulfillmentProvider": fulfillmentProvider,
-            "fulfillmentStatus": fulfillmentProvider == "podpartner" ? "pending" : "manual_review",
-            "shopifySyncStatus": initialShopifySyncStatus,
             "message": message,
-            "items": orderItems,
-            "isCompleted": false,
-            "timestamp": Timestamp()
+            "items": orderItems
         ]
+        let result = try await functions
+            .httpsCallable("submitMerchOrder")
+            .call(payload)
 
-        return try await firestore.collection("orders").addDocument(data: orderData).documentID
+        if let data = result.data as? [String: Any],
+           let orderID = data["orderId"] as? String,
+           !orderID.isEmpty {
+            return orderID
+        }
+
+        if let orderID = result.data as? String, !orderID.isEmpty {
+            return orderID
+        }
+
+        throw NSError(
+            domain: "OrderService",
+            code: 500,
+            userInfo: [NSLocalizedDescriptionKey: "Die Bestellung konnte serverseitig nicht angelegt werden."]
+        )
     }
 
     func confirmPayment(

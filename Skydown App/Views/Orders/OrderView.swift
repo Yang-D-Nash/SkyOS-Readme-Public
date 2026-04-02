@@ -116,12 +116,12 @@ private struct OrdersHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Order Queue")
+                Text("Owner Queue")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Bestellungen wie einen echten Admin-Workspace bearbeiten kannst.")
+                Text("Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Bestellungen als Owner sauber pruefen und freigeben kannst.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }

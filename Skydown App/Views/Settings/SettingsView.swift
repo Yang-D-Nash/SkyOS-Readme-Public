@@ -133,7 +133,7 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         username: authManager.userSession?.username,
                         isLoggedIn: authManager.userSession != nil,
-                        isAdmin: authManager.userSession?.isAdmin == true,
+                        isOwner: authManager.userSession?.isPlatformOwner == true,
                         notificationsEnabled: notificationsEnabled,
                         appearance: currentAppearanceLabel
                     )
@@ -435,9 +435,9 @@ struct SettingsView: View {
         }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
-            adminUserManagementStore.configureObservation(isAdmin: isAdminUser)
+            adminUserManagementStore.configureObservation(isAdmin: isOwnerUser)
             workflowAutomationSettings.configureObservation(
-                isAdmin: isAdminUser,
+                isAdmin: isOwnerUser,
                 userID: authManager.userSession?.id
             )
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
@@ -445,16 +445,16 @@ struct SettingsView: View {
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
         }
-        .onChange(of: isAdminUser) { _, isAdmin in
-            adminUserManagementStore.configureObservation(isAdmin: isAdmin)
+        .onChange(of: isOwnerUser) { _, isOwner in
+            adminUserManagementStore.configureObservation(isAdmin: isOwner)
             workflowAutomationSettings.configureObservation(
-                isAdmin: isAdmin,
+                isAdmin: isOwner,
                 userID: authManager.userSession?.id
             )
         }
         .onChange(of: authManager.userSession?.id) { _, userID in
             workflowAutomationSettings.configureObservation(
-                isAdmin: isAdminUser,
+                isAdmin: isOwnerUser,
                 userID: userID
             )
         }
@@ -476,8 +476,8 @@ struct SettingsView: View {
         Appearance(rawValue: colorScheme)?.rawValue.capitalized ?? "System"
     }
 
-    private var isAdminUser: Bool {
-        authManager.userSession?.hasAdminWorkspaceAccess == true
+    private var isOwnerUser: Bool {
+        authManager.userSession?.isPlatformOwner == true
     }
 
     private var connectedPaymentMethodCount: Int {
@@ -500,9 +500,9 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var adminWorkspaceSectionCard: some View {
-        SettingsSectionCard(title: "Admin", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: "Owner", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isAdminUser ? "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand, User oder Visuals rein, statt alles in einer langen Seite aufzuklappen." : "Admin-Bereiche werden erst mit passender Berechtigung aktiv.")
+                Text(isOwnerUser ? "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand, Nutzerrollen und n8n laufen damit bewusst ueber eine zentrale Hand." : "Die Systembereiche sind nur fuer das feste Owner-Konto aktiv.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -513,9 +513,9 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .disabled(!isAdminUser)
+                .disabled(!isOwnerUser)
 
-                if isAdminUser {
+                if isOwnerUser {
                     VStack(spacing: 10) {
                         ForEach(SettingsAdminWorkspaceSection.allCases) { section in
                             SettingsAdminWorkspaceListRow(
@@ -984,7 +984,7 @@ struct SettingsView: View {
 
             case .automation:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Die App bleibt normal ueber Firebase eingeloggt. Jeder Admin kann hier seinen eigenen n8n-Webhook hinterlegen; nur gepruefter User-Kontext geht serverseitig an genau diesen Workflow.")
+                    Text("Die App bleibt normal ueber Firebase eingeloggt. Der Owner hinterlegt hier die zentrale n8n-Verbindung; nur gepruefter User-Kontext geht serverseitig an genau diesen Workflow.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1685,7 +1685,7 @@ private struct SettingsHeroCard: View {
     let colorScheme: ColorScheme
     let username: String?
     let isLoggedIn: Bool
-    let isAdmin: Bool
+    let isOwner: Bool
     let notificationsEnabled: Bool
     let appearance: String
 
@@ -1728,8 +1728,8 @@ private struct SettingsHeroCard: View {
                     SettingsBadge(text: appearance, colorScheme: colorScheme)
                 }
 
-                if isAdmin {
-                    SettingsBadge(text: "Admin aktiv", colorScheme: colorScheme)
+                if isOwner {
+                    SettingsBadge(text: "Owner aktiv", colorScheme: colorScheme)
                 }
             }
             .padding(.horizontal, 20)
@@ -1903,13 +1903,13 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
         case .users:
             return "Rollen, KI-Zugriff, Tageslimits und History pro Konto steuern."
         case .shopify:
-            return "Store-Domain, Shopify-Link und Kollektion fuer den Merch-Sync pflegen."
+            return "Owner-Quelle fuer Store-Domain, Token und Collection des Merch-Syncs."
         case .commerce:
             return "Versandkosten, MwSt. und Rechnungsdaten an einem Platz pflegen."
         case .visuals:
             return "Drive-Link, Namensschema und Referenzhinweise fuer Visual-Prompts pflegen."
         case .automation:
-            return "n8n sauber anbinden, User-Kontext mitschicken und den Webhook testen."
+            return "Owner-seitig n8n anbinden, User-Kontext mitschicken und den Webhook testen."
         }
     }
 }
@@ -2313,7 +2313,7 @@ private extension UserRole {
         case .owner:
             return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Voller Zugriff auf alles, inklusive sensibler Settings, Nutzerverwaltung und KI-Limits."
         case .admin:
-            return "Teaminterne Leute mit vollem Admin-Workspace, Nutzerverwaltung und internen Betriebsfunktionen. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
+            return "Teaminterne Leute fuer operative Inhalte und Backoffice-Aufgaben. Kein Zugriff auf Owner-Systembereiche wie Shopify, Zahlarten, Nutzerrollen oder n8n. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
         case .subadmin:
             return "Externe Power-User fuer die oeffentliche App. Mehr persoenliche KI-Power und laengere History als normale User, aber kein interner Admin-Workspace."
         case .user:

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Home
@@ -28,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
@@ -36,6 +38,8 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,8 +71,11 @@ import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
+import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownPressable
+import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.screen.AiHubScreen
 import com.skydown.android.ui.screen.BeatHubScreen
 import com.skydown.android.ui.screen.CartScreen
@@ -599,6 +606,7 @@ private enum class ZweizweiMusicDestination {
     NicmaProducer,
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ZweizweiMusicLaneScreen(
     onOpenCart: () -> Unit = {},
@@ -606,47 +614,65 @@ private fun ZweizweiMusicLaneScreen(
     onBackToLanding: (() -> Unit)? = null,
 ) {
     var destination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     when (destination) {
-        ZweizweiMusicDestination.Hub -> Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.background,
-                        ),
-                    ),
-                ),
-        ) {
-            Column(
+        ZweizweiMusicDestination.Hub -> Scaffold(
+            modifier = Modifier,
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        SkydownTopBarTitle(
+                            title = "Music",
+                            subtitle = "Hier findest du Releases, Artists und alles rund ums Produzieren.",
+                        )
+                    },
+                    navigationIcon = if (onBackToLanding != null) {
+                        {
+                            IconButton(onClick = onBackToLanding) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Zurueck",
+                                )
+                            }
+                        }
+                    } else {
+                        {}
+                    },
+                    actions = {
+                        AppTopBarSessionActions(
+                            onOpenCart = onOpenCart,
+                            onOpenSettings = onOpenSettings,
+                        )
+                    },
+                    colors = skydownTopBarColors(),
+                    scrollBehavior = scrollBehavior,
+                )
+            },
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
+                    .padding(innerPadding)
                     .navigationBarsPadding()
-                    .padding(horizontal = 18.dp, vertical = 22.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                if (onBackToLanding != null) {
-                    Button(
-                        onClick = onBackToLanding,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                            contentColor = MaterialTheme.colorScheme.onSurface,
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.background,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                                MaterialTheme.colorScheme.background,
+                            ),
                         ),
-                        shape = RoundedCornerShape(999.dp),
-                        elevation = null,
-                    ) {
-                        Text("Zurueck")
-                    }
-                } else {
-                    Spacer(modifier = Modifier.height(1.dp))
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    ),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 18.dp, vertical = 22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
                     BrandHeroCard(
                         eyebrow = "Music",
                         title = "Music",
@@ -680,9 +706,8 @@ private fun ZweizweiMusicLaneScreen(
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                     )
+                    Spacer(modifier = Modifier.height(1.dp))
                 }
-
-                Spacer(modifier = Modifier.height(1.dp))
             }
         }
 

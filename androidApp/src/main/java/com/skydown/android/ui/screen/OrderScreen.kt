@@ -197,12 +197,12 @@ private fun OrdersOverviewCard(
     SkydownCard(contentPadding = PaddingValues(20.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "Admin Queue",
+                text = "Owner Queue",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Orders ohne Umwege bearbeiten kannst.",
+                text = "Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Orders als Owner ohne Umwege pruefen kannst.",
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -47,9 +47,9 @@ service cloud.firestore {
         && currentRole() in ["owner", "admin"];
     }
 
-    function isAdmin() {
+    function hasOwnerControl() {
       return signedIn()
-        && currentRole() in ["owner", "admin"];
+        && currentRole() == "owner";
     }
 
     function defaultAiTextRequestsPerDay(role) {
@@ -109,10 +109,10 @@ service cloud.firestore {
         && request.resource.data.aiAgentRequestsPerDay is int
         && request.resource.data.aiHistoryRetentionDays is int;
 
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || hasOwnerControl();
 
       allow update: if (
-        isAdmin() || (
+        hasOwnerControl() || (
         isOwner(userId)
         && (
           request.resource.data.isAdmin == resource.data.isAdmin ||
@@ -196,7 +196,7 @@ service cloud.firestore {
           : true
       );
 
-      allow delete: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || hasOwnerControl();
     }
 
     match /users/{userId}/texts/{textId} {
@@ -204,22 +204,19 @@ service cloud.firestore {
     }
 
     match /users/{userId}/aiUsage/{usageId} {
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || hasOwnerControl();
       allow create, update, delete: if false;
     }
 
     match /merchandise/{itemId} {
       allow read: if true;
-      allow create, update, delete: if isStaff();
+      allow create, update, delete: if hasOwnerControl();
     }
 
     match /orders/{orderId} {
-      allow create: if signedIn()
-        && request.resource.data.userEmail is string
-        && request.resource.data.userEmail.size() > 0
-        && request.resource.data.isCompleted == false;
+      allow create: if false;
 
-      allow read, update, delete: if isStaff();
+      allow read, update, delete: if hasOwnerControl();
     }
 
     match /appConfig/{documentId} {
@@ -230,11 +227,11 @@ service cloud.firestore {
         "shopifyMerch"
       ];
 
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if hasOwnerControl();
     }
 
     match /adminConfig/{documentId} {
-      allow read, create, update, delete: if isAdmin();
+      allow read, create, update, delete: if hasOwnerControl();
     }
 
     match /nicmaBeatHub/{beatId} {

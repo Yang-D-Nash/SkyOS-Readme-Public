@@ -8,6 +8,7 @@ import com.skydown.android.data.AppCartStore
 import com.skydown.android.data.MerchStoreStatusRepository
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.shared.model.MerchandiseItem
+import com.skydown.shared.model.isPlatformOwner
 import com.skydown.shared.usecase.CartUseCase
 import com.skydown.shared.usecase.MerchandiseVariantResolver
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +41,7 @@ class ShopViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isLoggedIn = user != null,
-                        isAdmin = user?.isAdmin == true,
+                        isAdmin = user?.isPlatformOwner == true,
                     )
                 }
                 applyVisibleItems()
@@ -52,7 +53,7 @@ class ShopViewModel : ViewModel() {
         if (!_uiState.value.isAdmin) {
             _uiState.update {
                 it.copy(
-                    toastMessage = "Nur Admins duerfen den Merch Store schalten.",
+                    toastMessage = "Nur der Owner darf den Merch Store schalten.",
                     isErrorToast = true,
                 )
             }
@@ -104,7 +105,7 @@ class ShopViewModel : ViewModel() {
         if (!_uiState.value.isAdmin) {
             _uiState.update {
                 it.copy(
-                    toastMessage = "Nur Admins duerfen den Shopify-Sync starten.",
+                    toastMessage = "Nur der Owner darf den Shopify-Sync starten.",
                     isErrorToast = true,
                 )
             }
@@ -395,7 +396,7 @@ class ShopViewModel : ViewModel() {
         AppContainer.refreshCurrentUser()
         val itemsResult = merchandiseService.loadItems()
         val user = AppContainer.authService.currentUser()
-        val isAdmin = user?.isAdmin == true
+        val isAdmin = user?.isPlatformOwner == true
         val resolvedItems = itemsResult.getOrDefault(emptyList())
         allItems = resolvedItems
         if (resolvedItems.isNotEmpty()) {
@@ -509,9 +510,9 @@ class ShopViewModel : ViewModel() {
             allItems = resolvedItems
             _uiState.update {
                 it.copy(
-                    items = filterVisibleItems(resolvedItems, isAdmin = user?.isAdmin == true),
+                    items = filterVisibleItems(resolvedItems, isAdmin = user?.isPlatformOwner == true),
                     isLoggedIn = user != null,
-                    isAdmin = user?.isAdmin == true,
+                    isAdmin = user?.isPlatformOwner == true,
                     errorMessage = itemsResult.exceptionOrNull()?.message,
                     isSyncingCatalog = false,
                     toastMessage = "Shopify-Katalog wurde neu geladen.",

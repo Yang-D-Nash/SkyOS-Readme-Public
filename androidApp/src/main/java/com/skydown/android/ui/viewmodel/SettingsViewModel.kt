@@ -14,7 +14,7 @@ import com.skydown.shared.model.User
 import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.theme.AppearanceMode
-import com.skydown.shared.model.hasAdminWorkspaceAccess
+import com.skydown.shared.model.isPlatformOwner
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,9 +41,9 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collect { user ->
-                val isAdmin = user?.hasAdminWorkspaceAccess == true
+                val isOwner = user?.isPlatformOwner == true
                 WorkflowAutomationPreferences.setAdminMode(
-                    if (isAdmin) user?.id else null,
+                    if (isOwner) user?.id else null,
                 )
                 val displayName = user?.username
                     ?.takeIf { it.isNotBlank() }
@@ -58,12 +58,12 @@ class SettingsViewModel : ViewModel() {
                         currentUserId = user?.id,
                         username = displayName,
                         email = user?.email.orEmpty(),
-                        isAdmin = isAdmin,
+                        isOwner = isOwner,
                         accountErrorMessage = null,
                     )
                 }
 
-                configureManagedUsersObservation(isEnabled = isAdmin)
+                configureManagedUsersObservation(isEnabled = isOwner)
             }
         }
 
@@ -151,6 +151,13 @@ class SettingsViewModel : ViewModel() {
 
     fun saveWorkflowAutomationSettings(settings: com.skydown.android.data.WorkflowAutomationSettings) {
         viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf n8n verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
             val result = WorkflowAutomationPreferences.saveSettings(settings)
             if (result.isSuccess) {
                 _uiState.update { it.copy(workflowAutomationSettings = settings) }
@@ -169,6 +176,13 @@ class SettingsViewModel : ViewModel() {
 
     fun testWorkflowAutomationSettings(settings: com.skydown.android.data.WorkflowAutomationSettings) {
         viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf n8n testen.",
+                    isError = true,
+                )
+                return@launch
+            }
             val saveResult = WorkflowAutomationPreferences.saveSettings(settings)
             if (saveResult.isFailure) {
                 showPaymentFeedback(
@@ -197,6 +211,13 @@ class SettingsViewModel : ViewModel() {
 
     fun saveCommerceSettings(settings: CommerceSettings, successMessage: String = "Commerce-Einstellungen gespeichert.") {
         viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf Versand- und Commerce-Einstellungen verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
             val result = commerceSettingsRepository.updateSettings(settings)
             if (result.isSuccess) {
                 showPaymentFeedback(
@@ -214,6 +235,13 @@ class SettingsViewModel : ViewModel() {
 
     fun saveShopifyAdminSettings(settings: ShopifyAdminSettings) {
         viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf Shopify verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
             val result = shopifyAdminSettingsRepository.updateSettings(settings)
             if (result.isSuccess) {
                 _uiState.update { it.copy(shopifyAdminSettings = settings) }
@@ -232,9 +260,9 @@ class SettingsViewModel : ViewModel() {
 
     fun saveManagedUser(user: User) {
         viewModelScope.launch {
-            if (!_uiState.value.isAdmin) {
+            if (!_uiState.value.isOwner) {
                 showPaymentFeedback(
-                    message = "Nur Owner und Admins duerfen Konten verwalten.",
+                    message = "Nur der Owner darf Konten verwalten.",
                     isError = true,
                 )
                 return@launch
@@ -462,7 +490,7 @@ class SettingsViewModel : ViewModel() {
                         isLoggedIn = false,
                         username = "",
                         email = "",
-                        isAdmin = false,
+                        isOwner = false,
                         accountErrorMessage = null,
                     )
                 }
@@ -530,9 +558,9 @@ class SettingsViewModel : ViewModel() {
         transform: (PaymentMethodsSettings) -> PaymentMethodsSettings,
     ) {
         viewModelScope.launch {
-            if (!_uiState.value.isAdmin) {
+            if (!_uiState.value.isOwner) {
                 showPaymentFeedback(
-                    message = "Nur Admins duerfen Zahlarten verwalten.",
+                    message = "Nur der Owner darf Zahlarten verwalten.",
                     isError = true,
                 )
                 return@launch

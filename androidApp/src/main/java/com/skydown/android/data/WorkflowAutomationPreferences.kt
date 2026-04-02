@@ -66,7 +66,7 @@ object WorkflowAutomationPreferences {
 
     suspend fun saveSettings(settings: WorkflowAutomationSettings): Result<Unit> {
         return runCatching {
-            val adminId = requireNotNull(currentAdminId) { "Keine Admin-UID fuer n8n-Konfiguration verfuegbar." }
+            val adminId = requireNotNull(currentAdminId) { "Keine Owner-UID fuer n8n-Konfiguration verfuegbar." }
             firestore.collection(collectionName).document(documentName(adminId)).set(
                 settings.toMap(),
                 SetOptions.merge(),
@@ -77,7 +77,7 @@ object WorkflowAutomationPreferences {
 
     suspend fun triggerTest(): Result<String> {
         return runCatching {
-            val adminId = requireNotNull(currentAdminId) { "Keine Admin-UID fuer n8n-Test verfuegbar." }
+            val adminId = requireNotNull(currentAdminId) { "Keine Owner-UID fuer n8n-Test verfuegbar." }
             val result = functions
                 .getHttpsCallable("triggerWorkflowAutomation")
                 .call(

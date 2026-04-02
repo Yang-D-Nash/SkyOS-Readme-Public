@@ -13,7 +13,7 @@ data class SettingsUiState(
     val currentUserId: String? = null,
     val username: String = "",
     val email: String = "",
-    val isAdmin: Boolean = false,
+    val isOwner: Boolean = false,
     val language: String = "Deutsch",
     val notificationsEnabled: Boolean = true,
     val colorScheme: AppearanceMode = AppearanceMode.System,

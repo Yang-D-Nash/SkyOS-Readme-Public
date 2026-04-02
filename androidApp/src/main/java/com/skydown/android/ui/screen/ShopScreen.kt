@@ -381,7 +381,7 @@ private fun ShopOverviewCard(
 
         if (uiState.isAdmin) {
             Text(
-                text = "Produkte und Varianten kommen aus Shopify. Hier in der App verwaltest du nur Sichtbarkeit, Reihenfolge und Zusatzinfos.",
+                text = "Produkte und Varianten kommen aus Shopify. Als Owner verwaltest du hier nur Sichtbarkeit, Reihenfolge und Zusatzinfos.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 12.dp),

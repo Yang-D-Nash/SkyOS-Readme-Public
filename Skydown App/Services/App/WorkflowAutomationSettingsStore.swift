@@ -189,7 +189,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
 
     func save(_ settings: WorkflowAutomationSettings) async throws {
         guard let currentUserID else {
-            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine Admin-UID fuer n8n-Konfiguration verfuegbar."])
+            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine Owner-UID fuer n8n-Konfiguration verfuegbar."])
         }
 
         try await service.updateSettings(settings, userID: currentUserID)
@@ -197,7 +197,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
 
     func triggerTest() async throws -> String {
         guard let currentUserID else {
-            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine Admin-UID fuer n8n-Test verfuegbar."])
+            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine Owner-UID fuer n8n-Test verfuegbar."])
         }
 
         return try await service.triggerTest(userID: currentUserID)

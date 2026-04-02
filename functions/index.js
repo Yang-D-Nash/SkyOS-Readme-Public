@@ -159,6 +159,10 @@ function roleHasAdminAccess(role) {
   return [USER_ROLES.owner, USER_ROLES.admin].includes(role);
 }
 
+function roleHasOwnerAccess(role) {
+  return role === USER_ROLES.owner;
+}
+
 function defaultAiLimitsForRole(role) {
   switch (role) {
     case USER_ROLES.owner:
@@ -200,6 +204,7 @@ function buildUserProfile(userData = {}) {
     role,
     isStaff: roleHasStaffAccess(role),
     isAdmin: roleHasAdminAccess(role),
+    isOwner: roleHasOwnerAccess(role),
     aiAccessEnabled: limits.isEnabled,
     aiLimits: limits,
   };
@@ -225,6 +230,19 @@ async function isAdminAuth(auth) {
   }
 
   return buildUserProfile(userData).isAdmin;
+}
+
+async function isOwnerAuth(auth) {
+  if (!auth?.uid) {
+    return false;
+  }
+
+  const userData = await loadUserData(auth.uid);
+  if (!userData) {
+    return false;
+  }
+
+  return buildUserProfile(userData).isOwner;
 }
 
 async function isStaffAuth(auth) {
@@ -256,6 +274,12 @@ async function canUseAiAuth(auth) {
 async function assertAdmin(auth) {
   if (!(await isAdminAuth(auth))) {
     throw new HttpsError("permission-denied", "Nur Admins duerfen diese Aktion ausfuehren.");
+  }
+}
+
+async function assertOwner(auth) {
+  if (!(await isOwnerAuth(auth))) {
+    throw new HttpsError("permission-denied", "Nur der Owner darf diese Aktion ausfuehren.");
   }
 }
 
@@ -415,6 +439,7 @@ async function loadAutomationCaller(auth) {
     username: nonEmptyString(userData.username) || "",
     role: profile.role,
     isAdmin: profile.isAdmin,
+    isOwner: profile.isOwner,
     isStaff: profile.isStaff,
   };
 }
@@ -1312,6 +1337,142 @@ function ensureShippingAddress(data) {
   };
 }
 
+function normalizeOrderItems(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new HttpsError("invalid-argument", "Es wurden keine gueltigen Artikel uebergeben.");
+  }
+
+  return items.map((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new HttpsError("invalid-argument", `Artikel ${index + 1} ist ungueltig.`);
+    }
+
+    const name = nonEmptyString(item.name);
+    const quantity = Number(item.quantity);
+    const unitPrice = parsePrice(item.unitPrice);
+
+    if (!name) {
+      throw new HttpsError("invalid-argument", `Name fuer Artikel ${index + 1} fehlt.`);
+    }
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new HttpsError("invalid-argument", `Menge fuer Artikel ${index + 1} ist ungueltig.`);
+    }
+
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+      throw new HttpsError("invalid-argument", `Preis fuer Artikel ${index + 1} ist ungueltig.`);
+    }
+
+    return {
+      productId: nonEmptyString(item.productId) || "",
+      name,
+      quantity,
+      size: nonEmptyString(item.size) || "",
+      color: nonEmptyString(item.color) || "",
+      shopifyVariantId: nonEmptyString(item.shopifyVariantId) || "",
+      sku: nonEmptyString(item.sku) || "",
+      unitPrice,
+    };
+  });
+}
+
+function normalizeFulfillmentProvider(value) {
+  const provider = nonEmptyString(value)?.toLowerCase();
+  if (provider === "podpartner" || provider === "manual") {
+    return provider;
+  }
+
+  throw new HttpsError("invalid-argument", "fulfillmentProvider ist ungueltig.");
+}
+
+function buildInitialOrderState(fulfillmentProvider) {
+  if (fulfillmentProvider === "podpartner") {
+    return {
+      paymentStatus: "pending",
+      fulfillmentStatus: "pending",
+      shopifySyncStatus: "awaiting_payment",
+    };
+  }
+
+  return {
+    paymentStatus: "pending",
+    fulfillmentStatus: "manual_review",
+    shopifySyncStatus: "not_required",
+  };
+}
+
+function normalizeOrderSubmissionPayload(data, auth) {
+  const authUid = nonEmptyString(auth?.uid);
+  const authEmail = normalizeEmail(auth?.token?.email);
+  if (!authUid || !authEmail) {
+    throw new HttpsError("unauthenticated", "Du musst angemeldet sein.");
+  }
+
+  const userEmail = normalizeEmail(data?.userEmail) || authEmail;
+  if (userEmail !== authEmail) {
+    throw new HttpsError("permission-denied", "Bestellungen duerfen nur fuer das eigene Konto angelegt werden.");
+  }
+
+  const customerName = nonEmptyString(data?.customerName);
+  const customerEmail = normalizeEmail(data?.customerEmail);
+  const shippingAddress = nonEmptyString(data?.shippingAddress);
+  const shippingZone = nonEmptyString(data?.shippingZone);
+  const shippingCountryCode = nonEmptyString(data?.shippingCountryCode)?.toUpperCase();
+  const paymentMethod = nonEmptyString(data?.paymentMethod) || "";
+  const whatsApp = nonEmptyString(data?.whatsApp) || "";
+  const message = nonEmptyString(data?.message) || "";
+  const items = normalizeOrderItems(data?.items);
+  const shippingAddressData = ensureShippingAddress(data);
+  const fulfillmentProvider = normalizeFulfillmentProvider(data?.fulfillmentProvider);
+  const subtotalAmount = parsePrice(data?.subtotalAmount);
+  const shippingAmount = parsePrice(data?.shippingAmount);
+  const taxRate = parsePrice(data?.taxRate);
+  const taxAmount = parsePrice(data?.taxAmount);
+  const totalAmount = parsePrice(data?.totalAmount);
+
+  if (!customerName || !customerEmail || !shippingAddress || !shippingZone || !shippingCountryCode) {
+    throw new HttpsError("invalid-argument", "Bestellung ist unvollstaendig.");
+  }
+
+  if (shippingCountryCode !== shippingAddressData.countryCode.toUpperCase()) {
+    throw new HttpsError("invalid-argument", "Lieferland und Lieferadresse passen nicht zusammen.");
+  }
+
+  if (subtotalAmount < 0 || shippingAmount < 0 || taxRate < 0 || taxAmount < 0 || totalAmount <= 0) {
+    throw new HttpsError("invalid-argument", "Summen der Bestellung sind ungueltig.");
+  }
+
+  const expectedTotal = subtotalAmount + shippingAmount;
+  if (Math.abs(totalAmount - expectedTotal) > 0.01) {
+    throw new HttpsError("invalid-argument", "Gesamtsumme stimmt nicht mit Warenkorb und Versand ueberein.");
+  }
+
+  return {
+    userEmail,
+    orderOwnerUid: authUid,
+    customerName,
+    customerEmail,
+    whatsApp,
+    shippingAddress,
+    shippingAddressData,
+    shippingZone,
+    shippingCountryCode,
+    paymentMethod,
+    message,
+    items,
+    subtotalAmount,
+    shippingAmount,
+    shippingPriceCharged: shippingAmount,
+    taxRate,
+    taxAmount,
+    totalAmount,
+    fulfillmentProvider,
+    ...buildInitialOrderState(fulfillmentProvider),
+    isCompleted: false,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
 function splitCustomerName(customerName) {
   const trimmed = nonEmptyString(customerName) || "";
   if (!trimmed) {
@@ -1527,13 +1688,32 @@ function shouldSubmitToShopify(beforeData, afterData) {
   return true;
 }
 
+exports.submitMerchOrder = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  const orderData = normalizeOrderSubmissionPayload(request.data, request.auth);
+  const orderRef = await admin.firestore().collection("orders").add(orderData);
+
+  logger.info("Merch order created.", {
+    orderId: orderRef.id,
+    userEmail: orderData.userEmail,
+    itemCount: orderData.items.length,
+    fulfillmentProvider: orderData.fulfillmentProvider,
+    shippingZone: orderData.shippingZone,
+  });
+
+  return {
+    orderId: orderRef.id,
+    message: "Bestellung erfolgreich angelegt.",
+  };
+});
+
 exports.confirmMerchOrderPayment = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
 }, async (request) => {
-  if (!request.auth?.uid) {
-    throw new HttpsError("unauthenticated", "Du musst angemeldet sein.");
-  }
+  await assertOwner(request.auth);
 
   const orderId = nonEmptyString(request.data?.orderId);
   if (!orderId) {
@@ -1547,14 +1727,6 @@ exports.confirmMerchOrderPayment = onCall({
   }
 
   const orderData = orderSnapshot.data() || {};
-  const isAdmin = await isAdminAuth(request.auth);
-  const authEmail = `${request.auth.token?.email || ""}`.trim().toLowerCase();
-  const orderEmail = `${orderData.userEmail || ""}`.trim().toLowerCase();
-
-  if (!isAdmin && (!authEmail || authEmail !== orderEmail)) {
-    throw new HttpsError("permission-denied", "Du darfst diese Bestellung nicht bestaetigen.");
-  }
-
   const paymentMethod = nonEmptyString(request.data?.paymentMethod)
     || nonEmptyString(orderData.paymentMethod)
     || "Extern bezahlt";
@@ -1566,6 +1738,8 @@ exports.confirmMerchOrderPayment = onCall({
     paymentStatus: "confirmed",
     shopifySyncStatus: requiresShopifySubmission ? "pending_submission" : (orderData.shopifySyncStatus || "not_required"),
     paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+    paymentConfirmedByUid: request.auth.uid,
+    paymentConfirmedByEmail: `${request.auth.token?.email || ""}`.trim().toLowerCase() || admin.firestore.FieldValue.delete(),
     paymentReference: paymentReference || admin.firestore.FieldValue.delete(),
   }, {merge: true});
 
@@ -1573,6 +1747,7 @@ exports.confirmMerchOrderPayment = onCall({
     orderId,
     paymentMethod,
     requiresShopifySubmission,
+    confirmedByUid: request.auth.uid,
   });
 
   return {
@@ -1586,7 +1761,7 @@ exports.triggerWorkflowAutomation = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
 }, async (request) => {
-  await assertAdmin(request.auth);
+  await assertOwner(request.auth);
 
   const trigger = nonEmptyString(request.data?.trigger) || "admin_settings_test";
   const source = nonEmptyString(request.data?.source) || "settings";
@@ -1694,7 +1869,7 @@ exports.syncShopifyMerch = onCall({
   region: "us-central1",
   timeoutSeconds: 120,
 }, async (request) => {
-  await assertAdmin(request.auth);
+  await assertOwner(request.auth);
   return runShopifyMerchSync();
 });
 

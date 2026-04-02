@@ -180,7 +180,7 @@ struct ShopView: View {
     }
 
     private var isAdmin: Bool {
-        authManager.userSession?.isAdmin == true
+        authManager.userSession?.isPlatformOwner == true
     }
 
     var body: some View {
@@ -1212,7 +1212,7 @@ private struct ShopHeroCard: View {
             }
 
             if isAdmin {
-                Text("Produkte und Varianten kommen aus Shopify. In der App steuerst du nur Sichtbarkeit, Reihenfolge und Zusatzinfos.")
+                Text("Produkte und Varianten kommen aus Shopify. Als Owner steuerst du in der App nur Sichtbarkeit, Reihenfolge und Zusatzinfos.")
                     .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
