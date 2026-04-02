@@ -113,27 +113,6 @@ final class MerchandiseViewModel: ObservableObject {
         }
     }
 
-    func addMerchandise(_ item: MerchandiseItem, imageDataList: [Data]) async -> Bool {
-        guard canManageMerchandise else {
-            showUserToast("Nur der Owner darf Artikel hinzufügen.", style: .error)
-            return false
-        }
-
-        do {
-            let imageURLs = try await merchandiseService.uploadImages(imageDataList)
-            var itemToSave = item
-            itemToSave.imageURLs = imageURLs
-
-            try await merchandiseService.addItem(itemToSave)
-            showUserToast("Artikel hinzugefügt: \(item.name)", style: .success)
-            return true
-        } catch {
-            print("Dev Fehler addMerchandise:", error.localizedDescription)
-            showUserToast("Fehler beim Hinzufügen des Artikels: \(error.localizedDescription)", style: .error)
-            return false
-        }
-    }
-
     func syncShopifyCatalog(automatic: Bool = false) async {
         guard canManageMerchandise else {
             showUserToast("Nur der Owner darf den Shopify-Sync starten.", style: .error)
@@ -155,70 +134,6 @@ final class MerchandiseViewModel: ObservableObject {
             if !loadedFallback {
                 showUserToast("Shopify-Sync fehlgeschlagen: \(error.localizedDescription)", style: .error)
             }
-        }
-    }
-
-    func updateMerchandisePrice(_ item: MerchandiseItem, newPrice: Double) async -> Bool {
-        guard canManageMerchandise else {
-            showUserToast("Nur der Owner darf Artikel bearbeiten.", style: .error)
-            return false
-        }
-
-        guard let id = item.id else {
-            showUserToast("Artikel hat keine gültige ID.", style: .error)
-            return false
-        }
-
-        do {
-            try await merchandiseService.updatePrice(itemID: id, newPrice: newPrice)
-            showUserToast("Preis aktualisiert: \(item.name)", style: .success)
-            return true
-        } catch {
-            print("Dev Fehler updateMerchandisePrice:", error.localizedDescription)
-            showUserToast("Update fehlgeschlagen: \(error.localizedDescription)", style: .error)
-            return false
-        }
-    }
-
-    func updateMerchandise(_ item: MerchandiseItem, imageDataList: [Data]) async -> Bool {
-        guard canManageMerchandise else {
-            showUserToast("Nur der Owner darf Artikel bearbeiten.", style: .error)
-            return false
-        }
-
-        guard item.id != nil else {
-            showUserToast("Artikel hat keine gültige ID.", style: .error)
-            return false
-        }
-
-        do {
-            try await merchandiseService.updateItem(item, imageDataList: imageDataList)
-            showUserToast("Artikel aktualisiert: \(item.name)", style: .success)
-            return true
-        } catch {
-            print("Dev Fehler updateMerchandise:", error.localizedDescription)
-            showUserToast("Update fehlgeschlagen: \(error.localizedDescription)", style: .error)
-            return false
-        }
-    }
-
-    func deleteItem(_ item: MerchandiseItem) async {
-        guard canManageMerchandise else {
-            showUserToast("Nur der Owner darf Artikel loeschen.", style: .error)
-            return
-        }
-
-        guard let id = item.id else {
-            showUserToast("Artikel hat keine gültige ID.", style: .error)
-            return
-        }
-
-        do {
-            try await merchandiseService.deleteItem(itemID: id)
-            showUserToast("Artikel gelöscht: \(item.name)", style: .success)
-        } catch {
-            print("Dev Fehler deleteItem:", error.localizedDescription)
-            showUserToast("Fehler beim Löschen: \(error.localizedDescription)", style: .error)
         }
     }
 

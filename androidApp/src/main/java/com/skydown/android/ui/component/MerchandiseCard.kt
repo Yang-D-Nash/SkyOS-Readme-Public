@@ -41,8 +41,6 @@ import java.util.Locale
 fun MerchandiseCard(
     item: MerchandiseItem,
     onTap: (MerchandiseItem) -> Unit,
-    onEdit: ((MerchandiseItem) -> Unit)? = null,
-    onDelete: ((MerchandiseItem) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val displayImageUrls = remember(item.imageUrls, item.customImageOverride) {
@@ -51,7 +49,6 @@ fun MerchandiseCard(
             ?: item.imageUrls
     }
     val pagerState = rememberPagerState(pageCount = { displayImageUrls.size.coerceAtLeast(1) })
-    val hasAdminActions = onEdit != null || onDelete != null
 
     SkydownCard(
         modifier = modifier,
@@ -171,37 +168,24 @@ fun MerchandiseCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 14.dp),
             )
-        }
-
-        if (hasAdminActions) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                onEdit?.let { editAction ->
-                    TextButton(
-                        onClick = { editAction(item) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Bearbeiten")
-                    }
-                } ?: Spacer(modifier = Modifier.weight(1f))
-
-                onDelete?.let { deleteAction ->
-                    Button(
-                        onClick = { deleteAction(item) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError,
-                        ),
-                    ) {
-                        Text("Loeschen")
-                    }
-                }
+                Text(
+                    text = "Details",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = if (item.available) "Ansehen" else "Produkt",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }

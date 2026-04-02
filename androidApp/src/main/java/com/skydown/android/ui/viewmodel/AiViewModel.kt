@@ -91,7 +91,12 @@ class AiViewModel : ViewModel() {
 
         viewModelScope.launch {
             val responseBuffer = StringBuilder()
-            var assistantMessageId: String? = null
+            val assistantMessage = AiMessage(
+                role = AiMessageRole.Assistant,
+                text = "",
+                isStreaming = true,
+            )
+            val assistantMessageId = assistantMessage.id
 
             runCatching {
                 val authorization = aiUsageAuthorizationClient.authorize(AiUsageAuthorizationKind.Text)
@@ -101,12 +106,6 @@ class AiViewModel : ViewModel() {
                     role = AiMessageRole.User,
                     text = trimmedPrompt,
                 )
-                val assistantMessage = AiMessage(
-                    role = AiMessageRole.Assistant,
-                    text = "",
-                    isStreaming = true,
-                )
-                assistantMessageId = assistantMessage.id
                 val history = buildHistoryContext()
 
                 _uiState.update {
@@ -128,7 +127,7 @@ class AiViewModel : ViewModel() {
                     if (chunk.isNotBlank()) {
                         responseBuffer.append(chunk)
                         updateAssistantMessage(
-                            messageId = assistantMessageId ?: return@collect,
+                            messageId = assistantMessageId,
                             text = responseBuffer.toString(),
                             isStreaming = true,
                         )
@@ -138,39 +137,35 @@ class AiViewModel : ViewModel() {
                 val finalText = responseBuffer.toString().ifBlank {
                     "Ich habe gerade keine Antwort erhalten. Versuch es bitte noch einmal."
                 }
-                assistantMessageId?.let { messageId ->
-                    updateAssistantMessage(
-                        messageId = messageId,
-                        text = finalText,
-                        isStreaming = false,
-                    )
-                    AiConversationHistoryStore.saveEntry(
-                        userKey = currentUserKey,
-                        source = AiConversationHistorySource.Bot,
-                        prompt = trimmedPrompt,
-                        response = finalText,
-                    )
-                }
+                updateAssistantMessage(
+                    messageId = assistantMessageId,
+                    text = finalText,
+                    isStreaming = false,
+                )
+                AiConversationHistoryStore.saveEntry(
+                    userKey = currentUserKey,
+                    source = AiConversationHistorySource.Bot,
+                    prompt = trimmedPrompt,
+                    response = finalText,
+                )
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
                 val partialText = responseBuffer.toString().trim()
-                assistantMessageId?.let { messageId ->
-                    val assistantText = assistantMessageText(
-                        error = error,
-                        partialText = partialText,
-                    )
-                    updateAssistantMessage(
-                        messageId = messageId,
-                        text = assistantText,
-                        isStreaming = false,
-                    )
-                    AiConversationHistoryStore.saveEntry(
-                        userKey = currentUserKey,
-                        source = AiConversationHistorySource.Bot,
-                        prompt = trimmedPrompt,
-                        response = assistantText,
-                    )
-                }
+                val assistantText = assistantMessageText(
+                    error = error,
+                    partialText = partialText,
+                )
+                updateAssistantMessage(
+                    messageId = assistantMessageId,
+                    text = assistantText,
+                    isStreaming = false,
+                )
+                AiConversationHistoryStore.saveEntry(
+                    userKey = currentUserKey,
+                    source = AiConversationHistorySource.Bot,
+                    prompt = trimmedPrompt,
+                    response = assistantText,
+                )
                 _uiState.update {
                     it.copy(
                         isSending = false,
@@ -201,7 +196,12 @@ class AiViewModel : ViewModel() {
         _uiState.update { it.copy(isSending = true, errorMessage = null) }
 
         viewModelScope.launch {
-            var assistantMessageId: String? = null
+            val assistantMessage = AiMessage(
+                role = AiMessageRole.Assistant,
+                text = "",
+                isStreaming = true,
+            )
+            val assistantMessageId = assistantMessage.id
             runCatching {
                 val authorization = aiUsageAuthorizationClient.authorize(AiUsageAuthorizationKind.Visual)
                 AiConversationHistoryStore.updateRetentionDays(authorization.historyRetentionDays)
@@ -210,12 +210,6 @@ class AiViewModel : ViewModel() {
                     role = AiMessageRole.User,
                     text = trimmedPrompt,
                 )
-                val assistantMessage = AiMessage(
-                    role = AiMessageRole.Assistant,
-                    text = "",
-                    isStreaming = true,
-                )
-                assistantMessageId = assistantMessage.id
 
                 _uiState.update {
                     it.copy(
@@ -228,40 +222,36 @@ class AiViewModel : ViewModel() {
 
                 aiImageClient.generateVisual(buildVisualPrompt(trimmedPrompt))
             }.onSuccess { result ->
-                assistantMessageId?.let { messageId ->
-                    updateAssistantMessage(
-                        messageId = messageId,
-                        text = result.text,
-                        isStreaming = false,
-                        imageBytes = result.imageBytes,
-                        imageMimeType = result.mimeType,
-                    )
-                    AiConversationHistoryStore.saveEntry(
-                        userKey = currentUserKey,
-                        source = AiConversationHistorySource.Bot,
-                        prompt = trimmedPrompt,
-                        response = result.text,
-                    )
-                }
+                updateAssistantMessage(
+                    messageId = assistantMessageId,
+                    text = result.text,
+                    isStreaming = false,
+                    imageBytes = result.imageBytes,
+                    imageMimeType = result.mimeType,
+                )
+                AiConversationHistoryStore.saveEntry(
+                    userKey = currentUserKey,
+                    source = AiConversationHistorySource.Bot,
+                    prompt = trimmedPrompt,
+                    response = result.text,
+                )
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
-                assistantMessageId?.let { messageId ->
-                    val assistantText = assistantMessageText(
-                        error = error,
-                        partialText = "",
-                    )
-                    updateAssistantMessage(
-                        messageId = messageId,
-                        text = assistantText,
-                        isStreaming = false,
-                    )
-                    AiConversationHistoryStore.saveEntry(
-                        userKey = currentUserKey,
-                        source = AiConversationHistorySource.Bot,
-                        prompt = trimmedPrompt,
-                        response = assistantText,
-                    )
-                }
+                val assistantText = assistantMessageText(
+                    error = error,
+                    partialText = "",
+                )
+                updateAssistantMessage(
+                    messageId = assistantMessageId,
+                    text = assistantText,
+                    isStreaming = false,
+                )
+                AiConversationHistoryStore.saveEntry(
+                    userKey = currentUserKey,
+                    source = AiConversationHistorySource.Bot,
+                    prompt = trimmedPrompt,
+                    response = assistantText,
+                )
                 _uiState.update {
                     it.copy(
                         isSending = false,
@@ -463,7 +453,7 @@ class AiViewModel : ViewModel() {
                 "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
         }
         is ResponseStoppedException -> finishReasonMessage(
-            error.response?.candidates?.firstOrNull()?.finishReason,
+            error.response.candidates.firstOrNull()?.finishReason,
         )
         is PromptBlockedException -> {
             error.response?.promptFeedback?.blockReasonMessage

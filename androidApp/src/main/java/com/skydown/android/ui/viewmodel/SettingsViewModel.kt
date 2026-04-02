@@ -43,7 +43,7 @@ class SettingsViewModel : ViewModel() {
             AppContainer.currentUser.collect { user ->
                 val isOwner = user?.isPlatformOwner == true
                 WorkflowAutomationPreferences.setAdminMode(
-                    if (isOwner) user?.id else null,
+                    if (isOwner) user.id else null,
                 )
                 val displayName = user?.username
                     ?.takeIf { it.isNotBlank() }

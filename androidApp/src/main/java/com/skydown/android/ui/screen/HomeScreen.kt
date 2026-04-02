@@ -191,7 +191,7 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "Sky²²",
-                        "Alles, was fuer dich gerade wichtig ist, auf einen Blick.",
+                        "Alles im Blick.",
                     )
                 },
                 actions = {
@@ -477,8 +477,8 @@ private fun HomeLatestReleaseCard(
 
         Text(
             text = when {
-                hasPreview -> "Preview bleibt direkt im Home. Mehr dazu findest du im Music-Tab."
-                hasSpotifyTarget -> "Neuester Song direkt ueber Spotify erreichbar."
+                hasPreview -> "Preview im Home."
+                hasSpotifyTarget -> "Direkt auf Spotify."
                 else -> "Neuester Song."
             },
             style = MaterialTheme.typography.bodySmall,
@@ -491,23 +491,12 @@ private fun HomeLatestReleaseCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (hasPreview) {
-                Button(
-                    onClick = { onPlayToggle(track) },
+                HomeMediaActionButton(
+                    label = if (isPlaying) "Release stoppen" else "Release abspielen",
+                    isActive = isPlaying,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = if (isPlaying) "Release stoppen" else "Release abspielen",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                    onClick = { onPlayToggle(track) },
+                )
             }
 
             if (hasSpotifyTarget) {
@@ -528,7 +517,7 @@ private fun HomeLatestReleaseCard(
                         contentDescription = null,
                     )
                     Text(
-                        text = homeSpotifyActionLabel(track),
+                        text = "Spotify",
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
@@ -602,29 +591,14 @@ private fun HomeLatestBeatCard(
         }
 
         if (beat.isPlayable && beat.downloadUrl.isNotBlank()) {
-            OutlinedButton(
-                onClick = { onPlayToggle(beat) },
+            HomeMediaActionButton(
+                label = if (isPlaying) "Beat stoppen" else "Beat abspielen",
+                isActive = isPlaying,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                border = BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                ),
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = null,
-                )
-                Text(
-                    text = if (isPlaying) "Beat stoppen" else "Beat abspielen",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
+                onClick = { onPlayToggle(beat) },
+            )
         }
     }
 }
@@ -695,7 +669,7 @@ private fun HomeLatestVideoCard(
         }
 
         Text(
-            text = "Direkt aus der Video-Auswahl ins Home geholt.",
+            text = "Direkt im Home.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 14.dp),
@@ -721,25 +695,64 @@ private fun HomeLatestVideoCard(
         }
 
         if (video.downloadUrl.isNotBlank()) {
-            Button(
-                onClick = { onPlayToggle(video) },
+            HomeMediaActionButton(
+                label = if (isPlaying) "Video stoppen" else "Video abspielen",
+                isActive = isPlaying,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = null,
-                )
-                Text(
-                    text = if (isPlaying) "Video stoppen" else "Video abspielen",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
+                onClick = { onPlayToggle(video) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeMediaActionButton(
+    label: String,
+    isActive: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    if (isActive) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Pause,
+                contentDescription = null,
+            )
+            Text(
+                text = label,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            ),
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+            )
+            Text(
+                text = label,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
     }
 }
@@ -754,7 +767,7 @@ private fun HomeStoryCard(
         SectionHeader("Direkt weiter")
 
         Text(
-            text = "Hier findest du Kontakt, Artists, Beats und Studio gesammelt an einem Ort.",
+            text = "Kontakt, Artists und Shortcuts.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -765,62 +778,51 @@ private fun HomeStoryCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             HomeStoryLinkButton(
-                title = "Direkter Kontakt",
-                subtitle = "Du landest direkt bei Yang D. Nash fuer Rueckfragen und Starts.",
-                isPrimary = true,
+                title = "Kontakt",
+                icon = Icons.Default.Person,
                 onClick = { openExternalLink(context, homePrimaryContactLink.url) },
             )
 
             HomeLaneSection(
                 title = "Music",
-                subtitle = "Hier kommst du direkt zu Artists, Beats und Studio.",
+                subtitle = "Artists, Beats, Studio.",
             ) {
-                homeZweizweiSocialLinks.forEachIndexed { index, link ->
-                    val isPrimary = index == 0
+                homeZweizweiSocialLinks.forEach { link ->
                     HomeStoryLinkButton(
                         title = link.title,
-                        subtitle = if (isPrimary) {
-                            "Label, Releases und Updates auf einen Blick."
-                        } else {
-                            "Direkt zum Profil von ${link.title}."
-                        },
-                        isPrimary = isPrimary,
+                        icon = Icons.Default.MusicNote,
                         onClick = { openExternalLink(context, link.url) },
                     )
                 }
 
                 HomeStoryLinkButton(
-                    title = "Zu den Beats",
-                    subtitle = "Wenn du direkt zu Beats und Previews springen willst.",
-                    isPrimary = false,
+                    title = "Beats",
+                    icon = Icons.Default.GraphicEq,
                     onClick = onOpenBeatHub,
                 )
 
                 HomeStoryLinkButton(
-                    title = "Zum Studio",
-                    subtitle = "Fuer Recording, Mixing und Mastering.",
-                    isPrimary = false,
+                    title = "Studio",
+                    icon = Icons.Default.AutoAwesome,
                     onClick = onOpenNicma,
                 )
             }
 
             HomeLaneSection(
                 title = "Video",
-                subtitle = "Hier findest du Clips, Reels und den schnellsten Weg zum Kontakt.",
+                subtitle = "Clips und Kontakt.",
             ) {
                 HomeStoryLinkButton(
-                    title = "Video auf Instagram",
-                    subtitle = "Fuer aktuelle Visuals, Clips und Updates.",
-                    isPrimary = false,
+                    title = "Instagram",
+                    icon = Icons.Default.Movie,
                     onClick = {
                         openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
                     },
                 )
 
                 HomeStoryLinkButton(
-                    title = "Kontakt per E-Mail",
-                    subtitle = "Fuer Anfragen rund um Videography und Produktion.",
-                    isPrimary = false,
+                    title = "E-Mail",
+                    icon = Icons.Default.Email,
                     onClick = {
                         openEmailDraft(
                             context = context,
@@ -838,30 +840,48 @@ private fun HomeStoryCard(
 @Composable
 private fun HomeStoryLinkButton(
     title: String,
-    subtitle: String,
-    isPrimary: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    subtitle: String? = null,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val content: @Composable () -> Unit = {
-        Column(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                    .padding(10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isPrimary) {
-                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f)
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-                },
-            )
+            {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                subtitle?.let { detail ->
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    )
+                }
+            }
         }
     }
 
@@ -873,15 +893,11 @@ private fun HomeStoryLinkButton(
         interactionSource = interactionSource,
         shape = RoundedCornerShape(16.dp),
         color = androidx.compose.ui.graphics.Color.Transparent,
-        tonalElevation = if (isPrimary) 6.dp else 4.dp,
-        shadowElevation = if (isPrimary) 7.dp else 5.dp,
+        tonalElevation = 4.dp,
+        shadowElevation = 5.dp,
         border = BorderStroke(
             1.dp,
-            if (isPrimary) {
-                Color.White.copy(alpha = 0.10f)
-            } else {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-            },
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
         ),
     ) {
         Box(
@@ -889,19 +905,11 @@ private fun HomeStoryLinkButton(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        colors = if (isPrimary) {
-                            listOf(
-                                Color(0xFF0A1624),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.50f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.20f),
-                            )
-                        } else {
-                            listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                            )
-                        },
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.99f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
+                        ),
                     ),
                 )
                 .padding(horizontal = 14.dp, vertical = 12.dp),

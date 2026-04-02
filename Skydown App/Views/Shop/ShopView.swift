@@ -155,9 +155,7 @@ struct ShopView: View {
     private let onOpenLogin: () -> Void
     private let onOpenCart: () -> Void
     private let onOpenSettings: () -> Void
-    @State private var editingItem: MerchandiseItem?
     @State private var selectedItem: MerchandiseItem?
-    @State private var itemToDelete: MerchandiseItem?
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -246,18 +244,10 @@ struct ShopView: View {
                             ForEach(viewModel.merchandiseItems) { item in
                                 MerchandiseRowView(
                                     item: item,
-                                    isAdmin: isAdmin,
-                                    environmentColorScheme: colorScheme,
-                                    onTap: {
-                                        if isAdmin {
-                                            editingItem = $0
-                                        } else {
-                                            selectedItem = $0
-                                        }
-                                    },
-                                    onEdit: { editingItem = $0 },
-                                    onDelete: { itemToDelete = $0 }
-                                )
+                                    environmentColorScheme: colorScheme
+                                ) {
+                                    selectedItem = $0
+                                }
                             }
                         }
                         .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -289,12 +279,6 @@ struct ShopView: View {
                     viewModel.fetchData()
                 }
             }
-            .sheet(item: $editingItem) { item in
-                MerchEditView(viewModel: viewModel, merchandiseItem: item)
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .background(AppColors.primaryBackground(for: colorScheme))
-            }
             .sheet(item: $selectedItem) { item in
                 NavigationStack {
                     ContactFormView(
@@ -302,26 +286,6 @@ struct ShopView: View {
                         storeIsOpen: viewModel.isStoreOpen || isAdmin
                     )
                         .background(AppColors.primaryBackground(for: colorScheme))
-                }
-            }
-            .confirmationDialog(
-                "Soll dieser Artikel wirklich geloescht werden?",
-                isPresented: Binding(
-                    get: { itemToDelete != nil },
-                    set: { if !$0 { itemToDelete = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                Button("Loeschen", role: .destructive) {
-                    if let item = itemToDelete {
-                        Task {
-                            await viewModel.deleteItem(item)
-                            itemToDelete = nil
-                        }
-                    }
-                }
-                Button("Abbrechen", role: .cancel) {
-                    itemToDelete = nil
                 }
             }
         }
@@ -415,15 +379,9 @@ private struct HomeLatestReleaseCard: View {
                 }
 
                 HStack(spacing: 10) {
-                    Text(
-                        hasPreview
-                            ? "Preview bleibt direkt im Home. Mehr dazu findest du im Music-Tab."
-                            : (hasSpotifyTarget
-                               ? "Neuester Song direkt ueber Spotify erreichbar."
-                               : "Neuester Song.")
-                    )
-                    .font(.caption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text(hasPreview ? "Preview im Home." : (hasSpotifyTarget ? "Direkt auf Spotify." : "Neuester Song."))
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
 
                 VStack(spacing: 10) {
@@ -432,7 +390,7 @@ private struct HomeLatestReleaseCard: View {
                             title: playbackManager.currentlyPlayingId == track.trackId ? "Release stoppen" : "Release abspielen",
                             icon: playbackManager.currentlyPlayingId == track.trackId ? "stop.fill" : "play.fill",
                             colorScheme: colorScheme,
-                            isPrimary: true
+                            isPrimary: playbackManager.currentlyPlayingId == track.trackId
                         ) {
                             onPreviewToggle(track)
                         }
@@ -443,7 +401,7 @@ private struct HomeLatestReleaseCard: View {
                             title: homeSpotifyActionTitle(for: track),
                             icon: "music.note",
                             colorScheme: colorScheme,
-                            isPrimary: !hasPreview
+                            isPrimary: false
                         ) {
                             openURL(spotifyURL)
                         }
@@ -522,7 +480,7 @@ private struct HomeLatestBeatCard: View {
                         title: playbackManager.currentBeatID == beat.id ? "Beat stoppen" : "Beat abspielen",
                         icon: playbackManager.currentBeatID == beat.id ? "stop.fill" : "play.fill",
                         colorScheme: colorScheme,
-                        isPrimary: true
+                        isPrimary: playbackManager.currentBeatID == beat.id
                     ) {
                         onPlayToggle(beat)
                     }
@@ -588,7 +546,7 @@ private struct HomeLatestVideoCard: View {
                     Spacer()
                 }
 
-                Text("Direkt aus der Video-Auswahl ins Home geholt.")
+                Text("Direkt im Home.")
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -614,7 +572,7 @@ private struct HomeLatestVideoCard: View {
                             title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "Video stoppen" : "Video abspielen",
                             icon: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "stop.fill" : "play.rectangle.fill",
                             colorScheme: colorScheme,
-                            isPrimary: true
+                            isPrimary: playbackManager.isPlaying && playbackManager.currentVideoID == video.id
                         ) {
                             onPlayToggle(video)
                         }
@@ -662,17 +620,16 @@ private struct HomeStoryCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier findest du Kontakt, Artists, Beats und Studio gesammelt an einem Ort.")
+            Text("Kontakt, Artists und Shortcuts.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 12) {
                 HomeActionButton(
-                    title: "Direkter Kontakt",
-                    subtitle: "Du landest direkt bei Yang D. Nash fuer Rueckfragen und Starts.",
+                    title: "Kontakt",
                     icon: "person.crop.circle.fill",
                     colorScheme: colorScheme,
-                    isPrimary: true
+                    isPrimary: false
                 ) {
                     if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
                         openURL(url)
@@ -681,17 +638,16 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Music",
-                    subtitle: "Hier kommst du direkt zu Artists, Beats und Studio.",
+                    subtitle: "Artists, Beats, Studio.",
                     colorScheme: colorScheme
                 ) {
                     ForEach(homeZweizweiInstagramDestinations) { destination in
                         HomeActionButton(
                             title: destination.title,
-                            subtitle: destination.id == zweizweiInstagramDestination.id
-                                ? "Label, Releases und Updates auf einen Blick."
-                                : "Direkt zum Profil von \(destination.title).",
+                            subtitle: nil,
+                            icon: destination.id == zweizweiInstagramDestination.id ? "music.note.list" : "person.crop.circle",
                             colorScheme: colorScheme,
-                            isPrimary: destination.id == zweizweiInstagramDestination.id
+                            isPrimary: false
                         ) {
                             if let url = destination.url {
                                 openURL(url)
@@ -700,8 +656,7 @@ private struct HomeStoryCard: View {
                     }
 
                         HomeActionButton(
-                            title: "Zu den Beats",
-                            subtitle: "Wenn du direkt zu Beats und Previews springen willst.",
+                            title: "Beats",
                             icon: "waveform",
                             colorScheme: colorScheme,
                             isPrimary: false
@@ -710,8 +665,7 @@ private struct HomeStoryCard: View {
                         }
 
                         HomeActionButton(
-                            title: "Zum Studio",
-                            subtitle: "Fuer Recording, Mixing und Mastering.",
+                            title: "Studio",
                             icon: "slider.horizontal.3",
                             colorScheme: colorScheme,
                             isPrimary: false
@@ -722,12 +676,11 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Video",
-                    subtitle: "Hier findest du Clips, Reels und den schnellsten Weg zum Kontakt.",
+                    subtitle: "Clips und Kontakt.",
                     colorScheme: colorScheme
                 ) {
                     HomeActionButton(
-                        title: "Video auf Instagram",
-                        subtitle: "Fuer aktuelle Visuals, Clips und Updates.",
+                        title: "Instagram",
                         icon: "camera.fill",
                         colorScheme: colorScheme,
                         isPrimary: false
@@ -738,8 +691,7 @@ private struct HomeStoryCard: View {
                     }
 
                     HomeActionButton(
-                        title: "Kontakt per E-Mail",
-                        subtitle: "Fuer Anfragen rund um Videography und Produktion.",
+                        title: "E-Mail",
                         icon: "envelope.fill",
                         colorScheme: colorScheme,
                         isPrimary: false
@@ -1074,9 +1026,9 @@ private struct HomeActionButton: View {
 
         return LinearGradient(
             colors: [
-                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.98),
-                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.82 : 0.72),
-                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.05)
+                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.99),
+                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.74 : 0.68),
+                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.025)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -1173,8 +1125,8 @@ private struct ShopHeroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Store",
             title: "Shop",
-            subtitle: "Entdecke Produkte, schau sie dir gross an und bestell direkt in der App.",
-            detail: isStoreOpen ? "Der Shop ist offen und bereit fuer deine Bestellung." : "Du kannst Produkte schon ansehen. Bestellen geht wieder, sobald der Store offen ist.",
+            subtitle: "Produkte direkt in der App.",
+            detail: isStoreOpen ? "Offen fuer Bestellungen." : "Ansicht aktiv, Checkout pausiert.",
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydownX22]
@@ -1212,7 +1164,7 @@ private struct ShopHeroCard: View {
             }
 
             if isAdmin {
-                Text("Produkte und Varianten kommen aus Shopify. Als Owner steuerst du in der App nur Sichtbarkeit, Reihenfolge und Zusatzinfos.")
+                Text("Shopify liefert Produkte. Hier steuerst du nur Sichtbarkeit und Reihenfolge.")
                     .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }

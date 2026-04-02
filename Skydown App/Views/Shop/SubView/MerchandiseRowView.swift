@@ -9,11 +9,8 @@ import SwiftUI
 
 struct MerchandiseRowView: View {
     let item: MerchandiseItem
-    let isAdmin: Bool
     let environmentColorScheme: ColorScheme
     let onTap: (MerchandiseItem) -> Void
-    let onEdit: (MerchandiseItem) -> Void
-    let onDelete: (MerchandiseItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -23,38 +20,15 @@ struct MerchandiseRowView: View {
                     onTap(item)
                 }
 
-            if !isAdmin {
-                HStack {
-                    Text(item.available ? "Mehr ansehen" : "Produkt ansehen")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.accent(for: environmentColorScheme))
+            HStack {
+                Text("Details")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.accent(for: environmentColorScheme))
 
-                    Spacer()
+                Spacer()
 
-                    Image(systemName: "arrow.right.circle.fill")
-                        .foregroundColor(AppColors.accent(for: environmentColorScheme))
-                }
-            }
-
-            if isAdmin {
-                HStack(spacing: 12) {
-                    Button {
-                        onEdit(item)
-                    } label: {
-                        Label("Bearbeiten", systemImage: "pencil")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(AppColors.accent(for: environmentColorScheme))
-
-                    Button(role: .destructive) {
-                        onDelete(item)
-                    } label: {
-                        Label("Loeschen", systemImage: "trash")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
+                Image(systemName: "arrow.right.circle.fill")
+                    .foregroundColor(AppColors.accent(for: environmentColorScheme))
             }
         }
         .padding(16)
