@@ -298,37 +298,6 @@ struct MusicView: View {
             Text(brand.heroSubtitle)
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            if brand.showsArtistPages {
-                Button {
-                    showingArtistPage = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "person.crop.square.fill")
-                            .font(.headline.weight(.bold))
-                        Text("\(selectedArtist) entdecken")
-                            .font(.subheadline.weight(.semibold))
-                        Spacer()
-                        if currentArtistPage.hasCustomPresentation {
-                            Text("Live")
-                                .font(.caption.weight(.bold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
-                                .background(Color.white.opacity(0.16))
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(AppColors.spotify(for: colorScheme).opacity(0.86))
-                    )
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-            }
         }
         .padding(SkydownLayout.heroPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -387,23 +356,28 @@ struct MusicView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    private var currentArtistPage: ArtistPage {
-        artistPagesStore.page(for: brand.artistPageBrand, artistName: selectedArtist)
-    }
-
     private var artistsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Alle Artists")
                 .font(.headline)
 
             if brand.showsArtistPages {
-                Text("Starte mit \(artists.first ?? selectedArtist) oder spring direkt in jede andere Artist-Page.")
+                Text("Swipe durch alle Artist-Pages und oeffne direkt das Profil, das dich interessiert.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
 
-            ForEach(artists, id: \.self) { artist in
-                artistButton(for: artist)
+                TabView(selection: $selectedArtist) {
+                    ForEach(artists, id: \.self) { artist in
+                        artistPagerCard(for: artist)
+                            .tag(artist)
+                    }
+                }
+                .frame(height: 240)
+                .tabViewStyle(.page(indexDisplayMode: .always))
+            } else {
+                ForEach(artists, id: \.self) { artist in
+                    artistButton(for: artist)
+                }
             }
         }
         .padding(SkydownLayout.cardPadding)
@@ -467,6 +441,85 @@ struct MusicView: View {
             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
         }
         .buttonStyle(.plain)
+    }
+
+    private func artistPagerCard(for artist: String) -> some View {
+        let page = artistPagesStore.page(for: brand.artistPageBrand, artistName: artist)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(artist)
+                        .font(.title3.weight(.black))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(page.tagline ?? "\(brand.artistPageBrand.displayTitle) Artist")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer()
+
+                if page.hasCustomPresentation {
+                    Text("Live")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(AppColors.accent(for: colorScheme))
+                        .clipShape(Capsule())
+                }
+            }
+
+            Text(
+                page.bio ?? "\(artist) hat eine eigene Page mit Songs, Story und den wichtigsten Links."
+            )
+            .font(.footnote)
+            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            .lineLimit(3)
+
+            HStack(spacing: 8) {
+                MusicBadge(text: page.spotifyURL == nil ? "Page" : "Spotify", isAccent: true)
+                if page.instagramURL != nil {
+                    MusicBadge(text: "Instagram", isAccent: false)
+                }
+                if page.youtubeURL != nil {
+                    MusicBadge(text: "YouTube", isAccent: false)
+                }
+            }
+
+            Button {
+                selectedArtist = artist
+                showingArtistPage = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "person.crop.square.fill")
+                        .font(.headline.weight(.bold))
+                    Text("\(artist) entdecken")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(AppColors.spotify(for: colorScheme).opacity(0.88))
+                )
+            }
+            .buttonStyle(.plain)
+            .skydownTactileAction()
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
     }
 
     private var spotifyCard: some View {

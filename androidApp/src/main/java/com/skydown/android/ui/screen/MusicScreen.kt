@@ -2,6 +2,7 @@ package com.skydown.android.ui.screen
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,15 +17,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
@@ -83,7 +84,7 @@ import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.theme.SpotifyGreenContainer
 import com.skydown.android.ui.viewmodel.MusicViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MusicScreen(
     onBack: (() -> Unit)? = null,
@@ -112,8 +113,10 @@ fun MusicScreen(
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
-    val selectedArtistPage = remember(artistPages, uiState.selectedArtist) {
-        ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, uiState.selectedArtist)
+    val artistPagesByName = remember(artistPages) {
+        artistPages
+            .filter { it.brand == ArtistPageBrand.Zweizwei }
+            .associateBy { it.artistName }
     }
 
     DisposableEffect(player) {
@@ -312,20 +315,12 @@ fun MusicScreen(
                 }
 
                 item {
-                    ArtistPickerCard(
+                    ArtistPagerCard(
                         artists = uiState.availableArtists,
                         selectedArtist = uiState.selectedArtist,
+                        artistPagesByName = artistPagesByName,
                         onArtistSelected = viewModel::selectArtist,
-                    )
-                }
-
-                item {
-                    ArtistPageShortcutCard(
-                        artistName = uiState.selectedArtist,
-                        isReady = selectedArtistPage.hasCustomPresentation,
-                        onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
-                            { openArtistPage(uiState.selectedArtist) }
-                        },
+                        onOpenArtistPage = onOpenArtistPage,
                     )
                 }
 
@@ -599,46 +594,6 @@ private fun MusicPlayerCard(
 }
 
 @Composable
-private fun ArtistPageShortcutCard(
-    artistName: String,
-    isReady: Boolean,
-    onOpenArtistPage: (() -> Unit)?,
-) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Text(
-            text = "Artist Profil",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = if (isReady) {
-                "$artistName hat schon einen starken Entrance mit Story, Songs und Spotify."
-            } else {
-                "$artistName kann hier als eigener Artist mit Songs, Story und Links entdeckt werden."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
-
-        Button(
-            onClick = { onOpenArtistPage?.invoke() },
-            enabled = onOpenArtistPage != null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            Text(if (isReady) "$artistName entdecken" else "Artist aufbauen")
-        }
-    }
-}
-
-@Composable
 private fun MusicOverviewCard(
     uiState: MusicUiState,
     onOpenInstagram: () -> Unit,
@@ -746,68 +701,185 @@ private fun MusicOverviewCard(
 }
 
 @Composable
-private fun ArtistPickerCard(
+private fun ArtistPagerCard(
     artists: List<String>,
     selectedArtist: String,
+    artistPagesByName: Map<String, com.skydown.android.data.ArtistPageUi>,
     onArtistSelected: (String) -> Unit,
+    onOpenArtistPage: ((String) -> Unit)?,
 ) {
+    val safeArtists = artists.ifEmpty { listOf(selectedArtist) }
+    val initialPage = safeArtists.indexOf(selectedArtist).takeIf { it >= 0 } ?: 0
+    val pagerState = rememberPagerState(initialPage = initialPage) { safeArtists.size }
+
+    LaunchedEffect(selectedArtist, safeArtists) {
+        val targetPage = safeArtists.indexOf(selectedArtist).takeIf { it >= 0 } ?: 0
+        if (targetPage != pagerState.currentPage) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    LaunchedEffect(pagerState.settledPage, safeArtists) {
+        safeArtists.getOrNull(pagerState.settledPage)?.let { artist ->
+            if (artist != selectedArtist) {
+                onArtistSelected(artist)
+            }
+        }
+    }
+
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Alle Artists")
         Text(
-            text = "Starte mit deinem Favoriten oder spring direkt in jede Artist-Page.",
+            text = "Swipe durch alle Artist-Pages und oeffne direkt das Profil, das dich interessiert.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 6.dp),
         )
-        Column(
-            modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            artists.forEach { artist ->
-                ArtistChoiceButton(
-                    artist = artist,
-                    isSelected = selectedArtist == artist,
-                    onClick = { onArtistSelected(artist) },
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            pageSpacing = 12.dp,
+        ) { pageIndex ->
+            val artist = safeArtists[pageIndex]
+            val page = artistPagesByName[artist] ?: ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, artist)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                            ),
+                        ),
+                    )
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = artist,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                        )
+                        Text(
+                            text = page.tagline ?: "ZweiZwei Artist",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                    }
+
+                    if (page.hasCustomPresentation) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        ) {
+                            Text(
+                                text = "Live",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = page.bio ?: "$artist hat eine eigene Page mit Songs, Story und den wichtigsten Links.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    maxLines = 3,
                 )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!page.spotifyURL.isNullOrBlank()) {
+                        SmallMusicBadge(text = "Spotify", isAccent = true)
+                    } else {
+                        SmallMusicBadge(text = "Page", isAccent = true)
+                    }
+                    if (!page.instagramURL.isNullOrBlank()) {
+                        SmallMusicBadge(text = "Instagram", isAccent = false)
+                    }
+                    if (!page.youtubeURL.isNullOrBlank()) {
+                        SmallMusicBadge(text = "YouTube", isAccent = false)
+                    }
+                }
+
+                Button(
+                    onClick = { onOpenArtistPage?.invoke(artist) },
+                    enabled = onOpenArtistPage != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    Text("$artist entdecken")
+                }
+            }
+        }
+
+        if (safeArtists.size > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                safeArtists.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (pagerState.currentPage == index) 10.dp else 8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (pagerState.currentPage == index) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+                                },
+                            ),
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ArtistChoiceButton(
-    artist: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
+private fun SmallMusicBadge(
+    text: String,
+    isAccent: Boolean,
 ) {
-    if (isSelected) {
-        Button(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            ArtistChoiceContent(
-                artist = artist,
-                helper = "Jetzt aktiv",
-                icon = Icons.Default.CheckCircle,
-                isSelected = true,
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                if (isAccent) {
+                    SpotifyGreen.copy(alpha = 0.18f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+                },
             )
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            ArtistChoiceContent(
-                artist = artist,
-                helper = "Tippen zum Laden",
-                icon = Icons.Default.MusicNote,
-                isSelected = false,
-            )
-        }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isAccent) SpotifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -841,50 +913,6 @@ private fun musicScreenResolvedSpotifyArtistId(
         .substringBefore("?")
         .substringBefore("/")
         .takeIf { it.isNotBlank() }
-}
-
-@Composable
-private fun ArtistChoiceContent(
-    artist: String,
-    helper: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (isSelected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.primary
-            },
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = artist,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            )
-            Text(
-                text = helper,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
-                },
-            )
-        }
-    }
 }
 
 @Composable

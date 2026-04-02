@@ -972,37 +972,55 @@ struct ProducedWithArtistRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            collaborationArtwork
+        ZStack(alignment: .bottomLeading) {
+            collaborationBackground
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .center, spacing: 8) {
-                    Text(artist.name)
-                        .font(.headline.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.18),
+                    Color.clear,
+                    Color.black.opacity(0.82)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 10) {
+                    Text(artist.role.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(.white.opacity(0.94))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.black.opacity(0.34), in: Capsule())
+
+                    Spacer(minLength: 0)
 
                     if !artist.vibe.isEmpty {
                         Text(artist.vibe)
                             .font(.caption.weight(.bold))
-                            .foregroundColor(AppColors.accent(for: colorScheme))
+                            .foregroundColor(.white)
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(AppColors.accent(for: colorScheme).opacity(0.12))
-                            )
+                            .padding(.vertical, 7)
+                            .background(AppColors.accent(for: colorScheme).opacity(0.72), in: Capsule())
                     }
                 }
 
-                Text(artist.role)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Spacer(minLength: 20)
 
-                if !artist.highlight.isEmpty {
-                    Text(artist.highlight)
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .lineLimit(3)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(artist.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+
+                    if !artist.highlight.isEmpty {
+                        Text(artist.highlight)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.92))
+                            .lineLimit(3)
+                            .shadow(color: .black.opacity(0.30), radius: 10, y: 4)
+                    }
                 }
 
                 HStack(spacing: 8) {
@@ -1058,9 +1076,10 @@ struct ProducedWithArtistRow: View {
                     }
                 }
             }
+            .padding(18)
         }
-        .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: 212)
         .background(
             LinearGradient(
                 colors: [
@@ -1078,20 +1097,8 @@ struct ProducedWithArtistRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
-    private var collaborationArtwork: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            AppColors.accentMystic(for: colorScheme),
-                            AppColors.accent(for: colorScheme)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
+    private var collaborationBackground: some View {
+        Group {
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
@@ -1106,31 +1113,8 @@ struct ProducedWithArtistRow: View {
             } else {
                 fallbackArtwork
             }
-
-            LinearGradient(
-                colors: [
-                    Color.clear,
-                    Color.black.opacity(0.18),
-                    Color.black.opacity(0.58)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            Text(artist.role)
-                .font(.caption2.weight(.bold))
-                .lineLimit(2)
-                .foregroundColor(.white.opacity(0.94))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
         }
-        .frame(width: 84, height: 108)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var fallbackArtwork: some View {
@@ -1266,7 +1250,7 @@ struct VideoPublicConfigEditorCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.")
+            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder fuellen die ganze Card und werden automatisch auf den Look zugeschnitten.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

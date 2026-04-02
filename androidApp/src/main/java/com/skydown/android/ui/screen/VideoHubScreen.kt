@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -630,7 +631,7 @@ private fun VideoPublicConfigEditorCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Videography Editor")
         Text(
-            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.",
+            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder fuellen die ganze Card und werden automatisch auf den Look zugeschnitten.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -799,9 +800,10 @@ private fun ProducedWithArtistRow(
     artist: com.skydown.android.ui.model.ProducedWithArtist,
     onOpenLink: (String) -> Unit,
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(228.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(
@@ -810,84 +812,109 @@ private fun ProducedWithArtistRow(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
                     ),
                 ),
-            )
-            .padding(horizontal = 14.dp, vertical = 13.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
+            ),
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = 84.dp, height = 108.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.tertiary,
-                            MaterialTheme.colorScheme.primary,
-                        ),
-                    ),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (!artist.imageUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = artist.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Text(
-                    text = artist.name.take(1).uppercase(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White,
-                )
-            }
-
+        if (!artist.imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = artist.imageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.54f)),
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.tertiary,
+                                MaterialTheme.colorScheme.primary,
+                            ),
                         ),
                     ),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = artist.name.take(1).uppercase(),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                )
+            }
         }
 
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.20f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.82f),
+                        ),
+                    ),
+                ),
+        )
+
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = artist.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                if (artist.vibe.isNotBlank()) {
-                    BrandPill(
-                        text = artist.vibe,
-                        tint = MaterialTheme.colorScheme.primary,
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.Black.copy(alpha = 0.32f))
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                ) {
+                    Text(
+                        text = artist.role.uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.94f),
                     )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                if (artist.vibe.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.78f))
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                    ) {
+                        Text(
+                            text = artist.vibe,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
                 }
             }
 
+            Spacer(modifier = Modifier.weight(1f))
+
             Text(
-                text = artist.role,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                text = artist.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = Color.White,
             )
 
             if (artist.highlight.isNotBlank()) {
                 Text(
                     text = artist.highlight,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.90f),
                     maxLines = 3,
                 )
             }
