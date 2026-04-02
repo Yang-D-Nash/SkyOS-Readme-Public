@@ -419,7 +419,7 @@ private fun LaunchLandingScreen(
                     color = TextDark,
                 )
                 Text(
-                    text = "Waehle den Bereich, mit dem du gerade starten willst. Unten kannst du spaeter jederzeit wechseln.",
+                    text = "Waehle deinen Start.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextMutedDark,
                 )
@@ -467,13 +467,13 @@ private fun LaunchLandingScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = "Ein Ort fuer Musik, Videos und Merchandise.",
+                            text = "Musik, Video, Merch.",
                             style = MaterialTheme.typography.titleMedium,
                             color = TextDark,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Starte dort, wo du gerade weitermachen willst. Alles andere bleibt unten fuer dich direkt erreichbar.",
+                            text = "Alles unten direkt griffbereit.",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMutedDark,
                         )
@@ -483,17 +483,17 @@ private fun LaunchLandingScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 LaunchLandingChoiceCard(
-                    eyebrow = "Listen & Artists",
+                    eyebrow = "Music",
                     title = "Music",
-                    subtitle = "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
+                    subtitle = "Releases, Artists, Beats.",
                     accentColor = MaterialTheme.colorScheme.primary,
                     artwork = BrandArtwork.Zweizwei,
                     onClick = onOpenMusic,
                 )
                 LaunchLandingChoiceCard(
-                    eyebrow = "Clips & Reels",
+                    eyebrow = "Video",
                     title = "Videos",
-                    subtitle = "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
+                    subtitle = "Reels, Clips, YouTube.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     artwork = BrandArtwork.Skydown,
                     onClick = onOpenVideography,
@@ -501,7 +501,7 @@ private fun LaunchLandingScreen(
                 LaunchLandingChoiceCard(
                     eyebrow = "Store",
                     title = "Merch",
-                    subtitle = "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
+                    subtitle = "Drops, Styles, Checkout.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     artwork = BrandArtwork.Combined,
                     onClick = onOpenShop,
@@ -509,7 +509,7 @@ private fun LaunchLandingScreen(
             }
 
             Text(
-                text = "Danach wechselst du unten jederzeit dorthin, wo du weitermachen willst.",
+                text = "Unten wechselst du jederzeit.",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMutedDark,
             )
@@ -625,7 +625,7 @@ private fun ZweizweiMusicLaneScreen(
                     title = {
                         SkydownTopBarTitle(
                             title = "Music",
-                            subtitle = "Hier findest du Releases, Artists und alles rund ums Produzieren.",
+                            subtitle = "Releases, Artists, Beats.",
                         )
                     },
                     navigationIcon = if (onBackToLanding != null) {
@@ -676,8 +676,8 @@ private fun ZweizweiMusicLaneScreen(
                     BrandHeroCard(
                         eyebrow = "Music",
                         title = "Music",
-                        subtitle = "Hier findest du Releases, Artists und alles rund ums Produzieren.",
-                        detail = "Hoer rein, entdecke Artists und geh von hier direkt weiter zu Beats oder Studio.",
+                        subtitle = "Releases, Artists, Beats.",
+                        detail = "Von hier direkt zu Beats oder Studio.",
                         accent = MaterialTheme.colorScheme.primary,
                         secondaryAccent = MaterialTheme.colorScheme.secondary,
                         marks = listOf(BrandArtwork.Zweizwei),
@@ -689,20 +689,20 @@ private fun ZweizweiMusicLaneScreen(
                         }
                     }
                     LaunchLandingButton(
-                        title = "Songs & Artists",
-                        subtitle = "Zum Entdecken, Hoeren und direkten Weitergehen.",
+                        title = "Songs",
+                        subtitle = "Tracks & Artists.",
                         accentColor = MaterialTheme.colorScheme.primary,
                         onClick = { destination = ZweizweiMusicDestination.Catalog },
                     )
                     LaunchLandingButton(
-                        title = "Beat Library",
-                        subtitle = "Wenn du schnell ein Gefuehl fuer Beats bekommen willst.",
+                        title = "Beat Hub",
+                        subtitle = "Beats direkt.",
                         accentColor = MaterialTheme.colorScheme.secondary,
                         onClick = { destination = ZweizweiMusicDestination.BeatHub },
                     )
                     LaunchLandingButton(
-                        title = "Studio Services",
-                        subtitle = "Wenn du Recording, Mixing oder Mastering anfragen willst.",
+                        title = "Studio",
+                        subtitle = "Recording, Mix, Master.",
                         accentColor = MaterialTheme.colorScheme.tertiary,
                         onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                     )

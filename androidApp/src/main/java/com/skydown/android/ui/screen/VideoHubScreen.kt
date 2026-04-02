@@ -206,7 +206,7 @@ fun VideoHubScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Video",
-                        subtitle = "Reels, Clips, Equipment und YouTube direkt in der App.",
+                        subtitle = "Reels, Clips, YouTube.",
                     )
                 },
                 actions = {
@@ -470,8 +470,8 @@ private fun VideoHubHeroCard(
     BrandHeroCard(
         eyebrow = "Video",
         title = "Video",
-        subtitle = "Wenn du schauen willst, bist du hier richtig: Reels, Clips und neue Uploads.",
-        detail = "Von hier aus gehst du direkt weiter zu YouTube, Equipment oder Kontakt.",
+        subtitle = "Reels, Clips, YouTube.",
+        detail = "Video, Gear, Collabs.",
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),
@@ -488,15 +488,15 @@ private fun VideoHubHeroCard(
 @Composable
 private fun VideoFormatCard() {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Format-Hinweis")
+        SectionHeader("Format")
         Text(
-            text = "Empfohlen sind MP4, MOV oder M4V. Am stabilsten laufen H.264 oder H.265 mit sauberem Export fuer mobile Wiedergabe.",
+            text = "MP4, MOV oder M4V.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
         )
         Text(
-            text = "Querformat und Hochformat funktionieren beide. Fuer schnellere Uploads sind komprimierte Social-Cuts besser als rohe Master-Dateien.",
+            text = "Komprimierte Cuts laden schneller.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 10.dp),
@@ -511,7 +511,7 @@ private fun VideoCollaborationsCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Produced with")
         Text(
-            text = "Artists und Creatives, mit denen in Produktionen zusammengearbeitet wurde.",
+            text = "Artists & Creatives.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -538,7 +538,7 @@ private fun VideoEquipmentCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Equipment & Software")
         Text(
-            text = "Das Setup hinter den Videos, Reels und Produktionen.",
+            text = "Setup.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -566,7 +566,7 @@ private fun VideoYouTubeCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("YouTube")
         Text(
-            text = "Hier koennen oeffentliche YouTube-Arbeiten, Making-ofs oder Musikvideos gesammelt werden.",
+            text = "Videos & Making-ofs.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -574,7 +574,7 @@ private fun VideoYouTubeCard(
 
         if (items.isEmpty()) {
             Text(
-                text = "Noch keine YouTube-Videos hinterlegt.",
+                text = "Noch nichts hinterlegt.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),

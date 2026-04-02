@@ -41,4 +41,28 @@ class AuthManager: ObservableObject {
         try await authService.deleteCurrentAccount()
         userSession = nil
     }
+
+    func refreshCurrentUser() async {
+        do {
+            userSession = try await authService.fetchCurrentUser()
+        } catch {
+            print("Fehler beim Laden des Profils: \(error.localizedDescription)")
+        }
+    }
+
+    func updateProfile(
+        username: String,
+        whatsApp: String?,
+        profileTagline: String?,
+        profileBio: String?,
+        instagramHandle: String?
+    ) async throws {
+        userSession = try await authService.updateCurrentProfile(
+            username: username,
+            whatsApp: whatsApp,
+            profileTagline: profileTagline,
+            profileBio: profileBio,
+            instagramHandle: instagramHandle
+        )
+    }
 }

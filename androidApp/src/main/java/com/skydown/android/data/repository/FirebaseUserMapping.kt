@@ -17,6 +17,9 @@ internal fun FirebaseUser.toSharedUser(
             ?.takeIf { it.isNotBlank() }
             ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" },
         whatsApp = null,
+        profileTagline = null,
+        profileBio = null,
+        instagramHandle = null,
         registrationDateEpochMillis = metadata?.creationTimestamp ?: System.currentTimeMillis(),
         isAdmin = isAdmin,
         role = resolvedRole.rawValue,
@@ -53,6 +56,9 @@ internal fun DocumentSnapshot.toSharedUser(authUser: FirebaseUser? = null): User
         email = email,
         username = username,
         whatsApp = data["whatsApp"] as? String,
+        profileTagline = data["profileTagline"] as? String,
+        profileBio = data["profileBio"] as? String,
+        instagramHandle = data["instagramHandle"] as? String,
         registrationDateEpochMillis = (data["registrationDateEpochMillis"] as? Number)?.toLong()
             ?: (data["registrationDate"] as? com.google.firebase.Timestamp)?.toDate()?.time
             ?: authUser?.metadata?.creationTimestamp

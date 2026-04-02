@@ -104,11 +104,14 @@ struct HomeView: View {
                         Button(action: onOpenWorkflow) {
                             Image(systemName: "arrow.triangle.branch")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                                .foregroundColor(AppColors.text(for: colorScheme))
                                 .padding(10)
                                 .background(
                                     Circle()
-                                        .fill(AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                                        .fill(
+                                            AppColors.accentHighlight(for: colorScheme)
+                                                .opacity(colorScheme == .dark ? 0.18 : 0.20)
+                                        )
                                 )
                                 .overlay(
                                     Circle()
@@ -185,7 +188,7 @@ struct ShopView: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading {
-                    ProgressView("Artikel werden geladen...")
+                    ProgressView("Shop wird geladen...")
                         .tint(AppColors.accent(for: colorScheme))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -214,7 +217,7 @@ struct ShopView: View {
                             if let errorMessage = viewModel.errorMessage, !isAdmin {
                                 ShopInfoCard(
                                     colorScheme: colorScheme,
-                                    title: "Anmeldung",
+                                    title: "Login",
                                     message: errorMessage,
                                     actionTitle: "Anmelden",
                                     action: onOpenLogin
@@ -224,20 +227,20 @@ struct ShopView: View {
                             if !viewModel.isStoreOpen && !isAdmin {
                                 ShopInfoCard(
                                     colorScheme: colorScheme,
-                                    title: "Merch Store pausiert",
-                                    message: "Produkte bleiben sichtbar, aber neue Kaeufe sind gerade geschlossen. Sobald du den Store wieder oeffnest, kann direkt wieder bestellt werden."
+                                    title: "Store pausiert",
+                                    message: "Produkte sichtbar. Checkout pausiert."
                                 )
                             }
 
                             if viewModel.merchandiseItems.isEmpty {
                                 ShopInfoCard(
                                     colorScheme: colorScheme,
-                                    title: viewModel.isSyncingCatalog ? "Shopify wird geladen" : "Noch keine Shopify-Produkte",
+                                    title: viewModel.isSyncingCatalog ? "Shopify laedt" : "Noch kein Merch",
                                     message: isAdmin
                                         ? (viewModel.isSyncingCatalog
-                                           ? "Der Katalog wird gerade direkt aus Shopify neu aufgebaut."
-                                           : "Wenn Firestore leer ist, versucht die App den Shopify-Katalog jetzt automatisch neu zu laden.")
-                                        : "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
+                                           ? "Der Katalog wird neu aufgebaut."
+                                           : "Die App zieht den Shopify-Katalog automatisch nach.")
+                                        : "Neuer Merch taucht hier direkt auf."
                                 )
                             }
 
@@ -305,8 +308,8 @@ private struct HomeHeroIntroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Sky²² Home",
             title: "Sky²²",
-            subtitle: "Hier startet direkt das, was fuer dich gerade wichtig ist.",
-            detail: "Musik, Videos, Merchandise und Tools bleiben von hier aus sofort in Reichweite.",
+            subtitle: "Alles direkt im Blick.",
+            detail: "Musik, Video, Merch, Tools.",
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydownX22]
@@ -379,7 +382,7 @@ private struct HomeLatestReleaseCard: View {
                 }
 
                 HStack(spacing: 10) {
-                    Text(hasPreview ? "Preview im Home." : (hasSpotifyTarget ? "Direkt auf Spotify." : "Neuester Song."))
+                    Text(hasPreview ? "Preview hier." : (hasSpotifyTarget ? "Spotify." : "Neuester Track."))
                         .font(.caption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -387,7 +390,7 @@ private struct HomeLatestReleaseCard: View {
                 VStack(spacing: 10) {
                     if hasPreview {
                         HomeActionButton(
-                            title: playbackManager.currentlyPlayingId == track.trackId ? "Release stoppen" : "Release abspielen",
+                            title: playbackManager.currentlyPlayingId == track.trackId ? "Stop" : "Play",
                             icon: playbackManager.currentlyPlayingId == track.trackId ? "stop.fill" : "play.fill",
                             colorScheme: colorScheme,
                             isPrimary: playbackManager.currentlyPlayingId == track.trackId
@@ -398,7 +401,7 @@ private struct HomeLatestReleaseCard: View {
 
                     if let spotifyURL = homeSpotifyTargetURL(for: track) {
                         HomeActionButton(
-                            title: homeSpotifyActionTitle(for: track),
+                            title: "Spotify",
                             icon: "music.note",
                             colorScheme: colorScheme,
                             isPrimary: false
@@ -477,7 +480,7 @@ private struct HomeLatestBeatCard: View {
 
                 if beat.isPlayable, !beat.downloadURL.isEmpty {
                     HomeActionButton(
-                        title: playbackManager.currentBeatID == beat.id ? "Beat stoppen" : "Beat abspielen",
+                        title: playbackManager.currentBeatID == beat.id ? "Stop" : "Play",
                         icon: playbackManager.currentBeatID == beat.id ? "stop.fill" : "play.fill",
                         colorScheme: colorScheme,
                         isPrimary: playbackManager.currentBeatID == beat.id
@@ -546,7 +549,7 @@ private struct HomeLatestVideoCard: View {
                     Spacer()
                 }
 
-                Text("Direkt im Home.")
+                Text("Direkt hier.")
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -569,7 +572,7 @@ private struct HomeLatestVideoCard: View {
                 VStack(spacing: 10) {
                     if !video.downloadURL.isEmpty {
                         HomeActionButton(
-                            title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "Video stoppen" : "Video abspielen",
+                            title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "Stop" : "Play",
                             icon: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "stop.fill" : "play.rectangle.fill",
                             colorScheme: colorScheme,
                             isPrimary: playbackManager.isPlaying && playbackManager.currentVideoID == video.id
@@ -580,7 +583,7 @@ private struct HomeLatestVideoCard: View {
 
                     if let videoURL = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
                         HomeActionButton(
-                            title: "Original ansehen",
+                            title: "Original",
                             icon: "video.fill",
                             colorScheme: colorScheme,
                             isPrimary: false
@@ -620,13 +623,13 @@ private struct HomeStoryCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Kontakt, Artists und Shortcuts.")
+            Text("Shortcuts.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 12) {
                 HomeActionButton(
-                    title: "Kontakt",
+                    title: "Yang D. Nash",
                     icon: "person.crop.circle.fill",
                     colorScheme: colorScheme,
                     isPrimary: false
@@ -676,7 +679,7 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Video",
-                    subtitle: "Clips und Kontakt.",
+                    subtitle: "Clips & Mail.",
                     colorScheme: colorScheme
                 ) {
                     HomeActionButton(
@@ -1125,7 +1128,7 @@ private struct ShopHeroCard: View {
             colorScheme: colorScheme,
             eyebrow: "Store",
             title: "Shop",
-            subtitle: "Produkte direkt in der App.",
+            subtitle: "Merch direkt in der App.",
             detail: isStoreOpen ? "Offen fuer Bestellungen." : "Ansicht aktiv, Checkout pausiert.",
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
@@ -1141,7 +1144,7 @@ private struct ShopHeroCard: View {
                 HStack(spacing: 10) {
                     if let onToggleStore {
                         Button(action: onToggleStore) {
-                            Text(isUpdatingStoreState ? "Store wird aktualisiert..." : (isStoreOpen ? "Store schliessen" : "Store oeffnen"))
+                            Text(isUpdatingStoreState ? "Update..." : (isStoreOpen ? "Schliessen" : "Oeffnen"))
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                         }
@@ -1152,7 +1155,7 @@ private struct ShopHeroCard: View {
 
                     if let onSyncShopify {
                         Button(action: onSyncShopify) {
-                            Text(isSyncingCatalog ? "Katalog lädt..." : "Shopify syncen")
+                            Text(isSyncingCatalog ? "Laedt..." : "Sync")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                         }
@@ -1164,7 +1167,7 @@ private struct ShopHeroCard: View {
             }
 
             if isAdmin {
-                Text("Shopify liefert Produkte. Hier steuerst du nur Sichtbarkeit und Reihenfolge.")
+                Text("Shopify-first.")
                     .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }

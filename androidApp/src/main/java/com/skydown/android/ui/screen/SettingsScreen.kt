@@ -130,6 +130,11 @@ fun SettingsScreen(
     var automationWebhookPathDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
+    var profileUsernameDraft by rememberSaveable { mutableStateOf("") }
+    var profileWhatsAppDraft by rememberSaveable { mutableStateOf("") }
+    var profileTaglineDraft by rememberSaveable { mutableStateOf("") }
+    var profileBioDraft by rememberSaveable { mutableStateOf("") }
+    var profileInstagramHandleDraft by rememberSaveable { mutableStateOf("") }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
@@ -192,6 +197,21 @@ fun SettingsScreen(
         automationWebhookPathDraft = uiState.workflowAutomationSettings.webhookPath
         automationAuthHeaderNameDraft = uiState.workflowAutomationSettings.authHeaderName
         automationAuthHeaderValueDraft = uiState.workflowAutomationSettings.authHeaderValue
+    }
+
+    LaunchedEffect(
+        uiState.currentUserId,
+        uiState.username,
+        uiState.whatsApp,
+        uiState.profileTagline,
+        uiState.profileBio,
+        uiState.instagramHandle,
+    ) {
+        profileUsernameDraft = uiState.username
+        profileWhatsAppDraft = uiState.whatsApp
+        profileTaglineDraft = uiState.profileTagline
+        profileBioDraft = uiState.profileBio
+        profileInstagramHandleDraft = uiState.instagramHandle
     }
 
     LaunchedEffect(uiState.paymentFeedbackMessage) {
@@ -905,6 +925,34 @@ fun SettingsScreen(
                     SkydownCard(contentPadding = PaddingValues(18.dp)) {
                         SectionHeader("Konto")
                         if (uiState.isLoggedIn) {
+                            ProfileEditorCard(
+                                username = profileUsernameDraft,
+                                whatsApp = profileWhatsAppDraft,
+                                profileTagline = profileTaglineDraft,
+                                profileBio = profileBioDraft,
+                                instagramHandle = profileInstagramHandleDraft,
+                                isSaving = uiState.isSavingProfile,
+                                onUsernameChange = { profileUsernameDraft = it },
+                                onWhatsAppChange = { profileWhatsAppDraft = it },
+                                onProfileTaglineChange = { profileTaglineDraft = it },
+                                onProfileBioChange = { profileBioDraft = it },
+                                onInstagramHandleChange = { profileInstagramHandleDraft = it },
+                                onSave = {
+                                    viewModel.saveProfile(
+                                        username = profileUsernameDraft,
+                                        whatsApp = profileWhatsAppDraft,
+                                        profileTagline = profileTaglineDraft,
+                                        profileBio = profileBioDraft,
+                                        instagramHandle = profileInstagramHandleDraft,
+                                    )
+                                },
+                            )
+
+                            Text(
+                                text = "Konto",
+                                modifier = Modifier.padding(top = 16.dp),
+                                fontWeight = FontWeight.SemiBold,
+                            )
                             Text(
                                 text = "Angemeldet als ${uiState.username}",
                                 modifier = Modifier.padding(top = 8.dp),
@@ -918,7 +966,7 @@ fun SettingsScreen(
                                 )
                             }
                             Text(
-                                text = "Du kannst dich hier abmelden, mit einem anderen Konto neu anmelden oder dein Konto loeschen.",
+                                text = "Kontoaktionen",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -942,7 +990,7 @@ fun SettingsScreen(
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text("Mit anderem Konto anmelden")
+                                    Text("Anderes Konto")
                                 }
                                 OutlinedButton(
                                     onClick = { showDeleteAccountDialog.value = true },
@@ -1433,6 +1481,101 @@ private fun BankTransferAdminCard(
             shape = RoundedCornerShape(18.dp),
         ) {
             Text(if (configured) "Bankdaten aktualisieren" else "Bankdaten hinterlegen")
+        }
+    }
+}
+
+@Composable
+private fun ProfileEditorCard(
+    username: String,
+    whatsApp: String,
+    profileTagline: String,
+    profileBio: String,
+    instagramHandle: String,
+    isSaving: Boolean,
+    onUsernameChange: (String) -> Unit,
+    onWhatsAppChange: (String) -> Unit,
+    onProfileTaglineChange: (String) -> Unit,
+    onProfileBioChange: (String) -> Unit,
+    onInstagramHandleChange: (String) -> Unit,
+    onSave: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Profil",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Username, Kurzinfo und Links.",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+        }
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = onUsernameChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Benutzername") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = profileTagline,
+            onValueChange = onProfileTaglineChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Kurzinfo") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = profileBio,
+            onValueChange = onProfileBioChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Bio") },
+            minLines = 3,
+            maxLines = 5,
+        )
+        OutlinedTextField(
+            value = instagramHandle,
+            onValueChange = onInstagramHandleChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Instagram") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = whatsApp,
+            onValueChange = onWhatsAppChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("WhatsApp") },
+            singleLine = true,
+        )
+
+        Button(
+            onClick = onSave,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isSaving,
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text(if (isSaving) "Profil wird gespeichert..." else "Profil speichern")
         }
     }
 }

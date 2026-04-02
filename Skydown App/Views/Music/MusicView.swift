@@ -27,9 +27,9 @@ enum MusicExperienceBrand {
     var heroSubtitle: String {
         switch self {
         case .skydown:
-            return "Waehle einen Artist, hoer kurz rein oder spring direkt zu Spotify."
+            return "Artists, Tracks, Spotify."
         case .zweizwei:
-            return "Entdecke Releases, hoer direkt rein und spring von hier weiter zu allem, was du brauchst."
+            return "Releases, Tracks, Beats."
         }
     }
 
@@ -65,7 +65,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Wenn du Recording, Mixing oder Mastering anfragen willst."
+            return "Recording, Mix, Master."
         }
     }
 
@@ -351,7 +351,7 @@ struct MusicView: View {
                         .font(.headline)
                         .lineLimit(1)
 
-                    Text(isSelected ? "Jetzt aktiv" : "Tippen zum Laden")
+                    Text(isSelected ? "Aktiv" : "Waehlen")
                         .font(.caption)
                         .foregroundColor(
                             isSelected
@@ -588,7 +588,7 @@ struct MusicView: View {
             ProgressView("Lade Songs...")
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else if viewModel.tracks.isEmpty {
-            Text("Noch keine Songs fuer \(selectedArtist). Sobald ein Release verfuegbar ist, taucht er hier direkt auf.")
+                Text("Noch keine Songs fuer \(selectedArtist).")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         } else {

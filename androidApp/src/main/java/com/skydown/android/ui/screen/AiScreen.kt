@@ -134,7 +134,7 @@ fun AiScreen(
                     title = {
                         SkydownTopBarTitle(
                             title = "Bot",
-                            subtitle = "Hooks, Captions, Claims und Visuals.",
+                            subtitle = "Hooks, Captions, Visuals.",
                         )
                     },
                     colors = skydownTopBarColors(),
@@ -263,12 +263,12 @@ private fun AiEmptyStateHeader() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Was moechtest du heute erstellen?",
+            text = "Was brauchst du?",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Frag direkt los, starte mit einem Prompt oder wechsel unten auf Visual, wenn du sofort etwas generieren willst.",
+            text = "Kurz tippen und los.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -313,7 +313,7 @@ private fun AiOverviewCard(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Direkte Captions, Hooks, Skripte und Visual-Ideen. Schreib unten direkt los oder starte mit einem Prompt.",
+                    text = "Captions, Hooks, Skripte, Visuals.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -367,7 +367,7 @@ private fun QuickPromptCard(
     compactLayout: Boolean,
 ) {
     SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
-        SectionHeader("Direkt starten")
+        SectionHeader("Prompts")
         LazyRow(
             modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),

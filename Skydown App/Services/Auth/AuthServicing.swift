@@ -10,6 +10,13 @@ protocol AuthServicing {
     func signIn(email: String, password: String) async throws
     func signInWithGoogle(preferredUsername: String?) async throws
     func register(username: String, email: String, whatsApp: String, password: String) async throws
+    func updateCurrentProfile(
+        username: String,
+        whatsApp: String?,
+        profileTagline: String?,
+        profileBio: String?,
+        instagramHandle: String?
+    ) async throws -> User
     func signOut() throws
     func deleteCurrentAccount() async throws
     func fetchCurrentUser() async throws -> User?
@@ -125,6 +132,80 @@ final class FirebaseAuthService: AuthServicing {
         try firestore.collection("users").document(result.user.uid).setData(from: newUser)
     }
 
+    func updateCurrentProfile(
+        username: String,
+        whatsApp: String?,
+        profileTagline: String?,
+        profileBio: String?,
+        instagramHandle: String?
+    ) async throws -> User {
+        guard let authUser = auth.currentUser else {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "Kein Benutzer angemeldet."]
+            )
+        }
+
+        let normalizedEmail = authUser.email?.trimmedNilIfEmpty?.lowercased() ?? ""
+        let normalizedUsername = Self.sanitizedUsername(
+            username,
+            authUserDisplayName: authUser.displayName,
+            fallbackEmail: normalizedEmail
+        )
+        if normalizedUsername.count > 32 {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Der Benutzername darf maximal 32 Zeichen lang sein."]
+            )
+        }
+        let normalizedWhatsApp = whatsApp?.trimmedNilIfEmpty
+        let normalizedTagline = profileTagline?.trimmedNilIfEmpty
+        let normalizedBio = profileBio?.trimmedNilIfEmpty
+        let normalizedInstagramHandle = instagramHandle?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "@", with: "")
+            .trimmedNilIfEmpty
+        if let normalizedTagline, normalizedTagline.count > 60 {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Die Kurzinfo darf maximal 60 Zeichen lang sein."]
+            )
+        }
+        if let normalizedBio, normalizedBio.count > 240 {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Die Bio darf maximal 240 Zeichen lang sein."]
+            )
+        }
+        if let normalizedInstagramHandle, normalizedInstagramHandle.count > 40 {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Der Instagram-Handle ist zu lang."]
+            )
+        }
+
+        let changeRequest = authUser.createProfileChangeRequest()
+        changeRequest.displayName = normalizedUsername
+        try await changeRequest.commitChanges()
+
+        let payload: [String: Any] = [
+            "username": normalizedUsername,
+            "whatsApp": normalizedWhatsApp ?? NSNull(),
+            "profileTagline": normalizedTagline ?? NSNull(),
+            "profileBio": normalizedBio ?? NSNull(),
+            "instagramHandle": normalizedInstagramHandle ?? NSNull()
+        ]
+
+        try await firestore.collection("users").document(authUser.uid).setData(payload, merge: true)
+        try await refreshAuthToken(for: authUser)
+        return try await fetchUser(uid: authUser.uid) ?? authUser.toAppUser()
+    }
+
     func signOut() throws {
         GIDSignIn.sharedInstance.signOut()
         try auth.signOut()
@@ -197,6 +278,9 @@ final class FirebaseAuthService: AuthServicing {
             email: email,
             username: username,
             whatsApp: whatsApp?.trimmedNilIfEmpty,
+            profileTagline: (data["profileTagline"] as? String)?.trimmedNilIfEmpty,
+            profileBio: (data["profileBio"] as? String)?.trimmedNilIfEmpty,
+            instagramHandle: (data["instagramHandle"] as? String)?.trimmedNilIfEmpty,
             registrationDate: registrationDate,
             isAdmin: isAdmin,
             role: resolvedRole.rawValue,
@@ -360,6 +444,9 @@ private extension FirebaseAuth.User {
                 fallbackEmail: fallbackEmail
             ),
             whatsApp: nil,
+            profileTagline: nil,
+            profileBio: nil,
+            instagramHandle: nil,
             registrationDate: metadata.creationDate ?? .now,
             isAdmin: isAdmin,
             role: resolvedRole.rawValue,

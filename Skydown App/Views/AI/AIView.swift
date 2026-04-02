@@ -156,11 +156,11 @@ private struct AIEmptyStateHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Was moechtest du heute erstellen?")
+            Text("Was brauchst du?")
                 .font(.system(size: 28, weight: .black, design: .rounded))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Frag direkt los, starte mit einem Prompt oder wechsel unten auf Visual, wenn du sofort etwas generieren willst.")
+            Text("Kurz tippen und los.")
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -178,7 +178,7 @@ private struct AIHeroCard: View {
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Direkte Captions, Hooks, Skripte und Visual-Ideen. Frag unten einfach los oder starte mit einem brauchbaren Prompt.")
+                Text("Captions, Hooks, Skripte, Visuals.")
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -267,11 +267,11 @@ private struct AIQuickPromptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Schnell starten")
+            Text("Prompts")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Copy-pastebare Ideen fuer Releases, Reels und Drops.")
+            Text("Schnell rein.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -317,7 +317,7 @@ private struct AIVisualPromptCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Ein klarer Prompt reicht, damit du direkt im Flow bleibst.")
+            Text("Ein Prompt reicht.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

@@ -111,6 +111,9 @@ struct User: Codable, Identifiable {
     var email: String
     var username: String
     var whatsApp: String?
+    var profileTagline: String?
+    var profileBio: String?
+    var instagramHandle: String?
     var registrationDate: Date
     var isAdmin: Bool = false
     var role: String = UserRole.user.rawValue

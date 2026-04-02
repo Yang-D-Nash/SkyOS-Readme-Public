@@ -2,6 +2,7 @@ package com.skydown.android.data.repository
 
 import com.skydown.android.data.AppSessionStore
 import com.skydown.shared.model.LoginInput
+import com.skydown.shared.model.ProfileUpdateInput
 import com.skydown.shared.model.RegistrationInput
 import com.skydown.shared.model.User
 import com.skydown.shared.model.sampleUser
@@ -32,6 +33,19 @@ class FakeAuthRepository : AuthRepository {
             email = input.email,
             username = input.username,
             whatsApp = input.whatsApp,
+        )
+        AppSessionStore.update(currentUser)
+        return Result.success(currentUser!!)
+    }
+
+    override suspend fun updateCurrentProfile(input: ProfileUpdateInput): Result<User> {
+        val existingUser = currentUser ?: return Result.failure(IllegalStateException("Kein Benutzer angemeldet."))
+        currentUser = existingUser.copy(
+            username = input.username,
+            whatsApp = input.whatsApp,
+            profileTagline = input.profileTagline,
+            profileBio = input.profileBio,
+            instagramHandle = input.instagramHandle,
         )
         AppSessionStore.update(currentUser)
         return Result.success(currentUser!!)

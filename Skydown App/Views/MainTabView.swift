@@ -640,12 +640,25 @@ private struct AIHubCompactHeader: View {
                     Text(showsWorkflowWorkspace ? "Zur KI" : "Automation")
                         .font(.subheadline.weight(.semibold))
                 }
-                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                .foregroundColor(AppColors.text(for: colorScheme))
                 .padding(.horizontal, 12)
                 .frame(height: 42)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.22),
+                                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.84)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
                 )
             }
             .buttonStyle(SkydownTactileButtonStyle())

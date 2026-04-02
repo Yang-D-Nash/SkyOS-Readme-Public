@@ -191,7 +191,7 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "Sky²²",
-                        "Alles im Blick.",
+                        "Alles direkt da.",
                     )
                 },
                 actions = {
@@ -395,8 +395,8 @@ private fun HomeHeroCard() {
     BrandHeroCard(
         eyebrow = "Sky²² Home",
         title = "Sky²²",
-        subtitle = "Hier startet direkt das, was fuer dich gerade wichtig ist.",
-        detail = "Musik, Videos, Merchandise und Tools bleiben von hier aus sofort in Reichweite.",
+        subtitle = "Alles direkt im Blick.",
+        detail = "Musik, Video, Merch, Tools.",
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
         marks = listOf(BrandArtwork.Combined),
@@ -476,10 +476,10 @@ private fun HomeLatestReleaseCard(
         val hasSpotifyTarget = homeHasSpotifyTarget(track)
 
         Text(
-            text = when {
-                hasPreview -> "Preview im Home."
-                hasSpotifyTarget -> "Direkt auf Spotify."
-                else -> "Neuester Song."
+                text = when {
+                hasPreview -> "Preview hier."
+                hasSpotifyTarget -> "Spotify."
+                else -> "Neuester Track."
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
@@ -492,7 +492,7 @@ private fun HomeLatestReleaseCard(
         ) {
             if (hasPreview) {
                 HomeMediaActionButton(
-                    label = if (isPlaying) "Release stoppen" else "Release abspielen",
+                    label = if (isPlaying) "Stop" else "Play",
                     isActive = isPlaying,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onPlayToggle(track) },
@@ -592,7 +592,7 @@ private fun HomeLatestBeatCard(
 
         if (beat.isPlayable && beat.downloadUrl.isNotBlank()) {
             HomeMediaActionButton(
-                label = if (isPlaying) "Beat stoppen" else "Beat abspielen",
+                label = if (isPlaying) "Stop" else "Play",
                 isActive = isPlaying,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -669,7 +669,7 @@ private fun HomeLatestVideoCard(
         }
 
         Text(
-            text = "Direkt im Home.",
+            text = "Direkt hier.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 14.dp),
@@ -696,7 +696,7 @@ private fun HomeLatestVideoCard(
 
         if (video.downloadUrl.isNotBlank()) {
             HomeMediaActionButton(
-                label = if (isPlaying) "Video stoppen" else "Video abspielen",
+                label = if (isPlaying) "Stop" else "Play",
                 isActive = isPlaying,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -767,7 +767,7 @@ private fun HomeStoryCard(
         SectionHeader("Direkt weiter")
 
         Text(
-            text = "Kontakt, Artists und Shortcuts.",
+            text = "Shortcuts.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -778,7 +778,7 @@ private fun HomeStoryCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             HomeStoryLinkButton(
-                title = "Kontakt",
+                title = "Yang D. Nash",
                 icon = Icons.Default.Person,
                 onClick = { openExternalLink(context, homePrimaryContactLink.url) },
             )
@@ -810,7 +810,7 @@ private fun HomeStoryCard(
 
             HomeLaneSection(
                 title = "Video",
-                subtitle = "Clips und Kontakt.",
+                subtitle = "Clips & Mail.",
             ) {
                 HomeStoryLinkButton(
                     title = "Instagram",

@@ -265,8 +265,8 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             eyebrow: "Video",
             title: "Video",
-            subtitle: "Wenn du schauen willst, bist du hier richtig: Reels, Clips und neue Uploads.",
-            detail: "Von hier aus gehst du direkt weiter zu YouTube, Equipment oder Kontakt.",
+            subtitle: "Reels, Clips, YouTube.",
+            detail: "Video, Gear, Collabs.",
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
@@ -286,11 +286,11 @@ struct VideoHubView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Empfohlen sind MP4, MOV oder M4V. Am stabilsten laufen H.264 oder H.265 mit sauberem Export fuer mobile Wiedergabe.")
+            Text("MP4, MOV oder M4V.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Querformat und Hochformat funktionieren beide. Fuer schnellere Uploads sind komprimierte Social-Cuts besser als rohe Master-Dateien.")
+            Text("Komprimierte Cuts laden schneller.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -311,7 +311,7 @@ struct VideoHubView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Nur Admins sehen diesen Bereich. Die Videos landen direkt in Firebase Storage und erscheinen danach in der Library.")
+            Text("Nur fuer Admins.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -814,7 +814,7 @@ struct VideoEquipmentCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Damit direkt klar ist, womit Skydown die Videography umsetzt.")
+            Text("Setup.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -852,12 +852,12 @@ struct VideoYouTubeCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier koennen oeffentliche YouTube-Arbeiten, Making-ofs oder Musikvideos gesammelt werden.")
+            Text("Videos & Making-ofs.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if items.isEmpty {
-                Text("Noch keine YouTube-Videos hinterlegt.")
+                Text("Noch nichts hinterlegt.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
@@ -1117,10 +1117,17 @@ struct VideoYouTubeRow: View {
             Button(action: onPlay) {
                 Label("Abspielen", systemImage: "play.rectangle.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    .foregroundColor(AppColors.text(for: colorScheme))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                    .background(
+                        AppColors.accentHighlight(for: colorScheme)
+                            .opacity(colorScheme == .dark ? 0.16 : 0.20)
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
+                    )
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)

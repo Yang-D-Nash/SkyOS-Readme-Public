@@ -190,7 +190,7 @@ fun MusicScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Music",
-                        subtitle = "Waehle einen Artist, hoer kurz rein oder spring direkt zu Spotify.",
+                        subtitle = "Artists, Tracks, Spotify.",
                     )
                 },
                 actions = {
@@ -322,15 +322,15 @@ fun MusicScreen(
                     when {
                         uiState.isLoading -> {
                             MusicStatusCard(
-                                title = "Tracks werden geladen",
-                                body = "Wir holen gerade die Songs von ${uiState.selectedArtist}.",
+                                title = "Tracks laden",
+                                body = uiState.selectedArtist,
                                 loading = true,
                             )
                         }
 
                         !uiState.errorMessage.isNullOrBlank() -> {
                             MusicStatusCard(
-                                title = "Tracks konnten nicht geladen werden",
+                                title = "Tracks fehlen",
                                 body = uiState.errorMessage.orEmpty(),
                                 actionLabel = "Erneut laden",
                                 onAction = {
@@ -342,8 +342,8 @@ fun MusicScreen(
 
                         uiState.tracks.isEmpty() -> {
                             MusicStatusCard(
-                                title = "Noch keine Tracks gefunden",
-                                body = "Fur ${uiState.selectedArtist} wurden gerade keine Tracks gefunden.",
+                                title = "Keine Tracks",
+                                body = uiState.selectedArtist,
                             )
                         }
                     }
@@ -371,7 +371,7 @@ fun MusicScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             SectionHeader("Tracks")
                             Text(
-                                text = "${uiState.tracks.size} Titel fuer ${uiState.selectedArtist}",
+                                text = "${uiState.tracks.size} Tracks",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
                             )
@@ -402,7 +402,7 @@ private fun MusicInstagramHubCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Instagram")
         Text(
-            text = "Direkte Artist- und Label-Links fuer die komplette Zweizwei Section.",
+            text = "Artist-Links.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
@@ -487,7 +487,7 @@ private fun MusicPlayerCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "Song Player",
+                    text = "Player",
                     style = MaterialTheme.typography.labelLarge,
                     color = if (!track.spotifyTrackId.isNullOrBlank()) SpotifyGreen else MaterialTheme.colorScheme.primary,
                 )
@@ -545,7 +545,7 @@ private fun MusicPlayerCard(
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                 ) {
-                    Text(if (isPlaying) "Preview stoppen" else "Preview starten")
+                    Text(if (isPlaying) "Stop" else "Preview")
                 }
             }
 
@@ -559,7 +559,7 @@ private fun MusicPlayerCard(
                         contentColor = MaterialTheme.colorScheme.scrim,
                     ),
                 ) {
-                    Text("Spotify Player")
+                    Text("Spotify")
                 }
             } else if (hasSpotifyArtistLink || hasSpotifySearch) {
                 OutlinedButton(
@@ -571,7 +571,7 @@ private fun MusicPlayerCard(
                         contentColor = SpotifyGreen,
                     ),
                 ) {
-                    Text(if (hasSpotifyArtistLink) "Spotify Artist" else "Spotify Suche")
+                    Text("Spotify")
                 }
             }
         }
@@ -600,7 +600,7 @@ private fun MusicOverviewCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Preview in App. Voller Track mit Spotify Premium.",
+                    text = "Preview hier.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -623,9 +623,9 @@ private fun MusicOverviewCard(
 
         Text(
             text = if (uiState.currentPreviewUrl != null) {
-                "Preview laeuft gerade. ${uiState.tracks.size} Songs verfuegbar."
+                "Preview laeuft."
             } else {
-                "${uiState.tracks.size} Songs verfuegbar. Spotify bleibt optional."
+                "${uiState.tracks.size} Tracks."
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
@@ -646,7 +646,7 @@ private fun MusicOverviewCard(
                     contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Text("${socialProfile.handle} auf Instagram")
+                Text(socialProfile.handle)
             }
         }
 
@@ -679,7 +679,7 @@ private fun MusicOverviewCard(
                     contentColor = MaterialTheme.colorScheme.scrim,
                 ),
             ) {
-                Text("Spotify verbinden")
+                Text("Spotify")
             }
         }
     }

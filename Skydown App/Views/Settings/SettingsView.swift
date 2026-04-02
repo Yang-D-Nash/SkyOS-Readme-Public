@@ -71,6 +71,12 @@ struct SettingsView: View {
     @State private var automationWebhookPathDraft = ""
     @State private var automationAuthHeaderNameDraft = ""
     @State private var automationAuthHeaderValueDraft = ""
+    @State private var profileUsernameDraft = ""
+    @State private var profileWhatsAppDraft = ""
+    @State private var profileTaglineDraft = ""
+    @State private var profileBioDraft = ""
+    @State private var profileInstagramHandleDraft = ""
+    @State private var isSavingProfile = false
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -141,6 +147,23 @@ struct SettingsView: View {
                     SettingsSectionCard(title: "Konto", colorScheme: effectiveColorScheme) {
                         if let user = authManager.userSession {
                             VStack(alignment: .leading, spacing: 12) {
+                                SettingsProfileEditorCard(
+                                    colorScheme: effectiveColorScheme,
+                                    username: $profileUsernameDraft,
+                                    whatsApp: $profileWhatsAppDraft,
+                                    tagline: $profileTaglineDraft,
+                                    bio: $profileBioDraft,
+                                    instagramHandle: $profileInstagramHandleDraft,
+                                    isSaving: isSavingProfile
+                                ) {
+                                    Task {
+                                        await saveProfile()
+                                    }
+                                }
+
+                                Divider()
+                                    .padding(.vertical, 4)
+
                                 Text("Angemeldet als \(user.username)")
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -149,7 +172,7 @@ struct SettingsView: View {
                                     .font(.subheadline)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                                Text("Du kannst dich hier abmelden oder direkt mit einem anderen Konto neu anmelden.")
+                                Text("Kontoaktionen")
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -168,7 +191,7 @@ struct SettingsView: View {
                                             showingLoginSheet = true
                                         }
                                     } label: {
-                                        Text("Mit anderem Konto anmelden")
+                                        Text("Anderes Konto")
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.bordered)
@@ -440,6 +463,7 @@ struct SettingsView: View {
                 isAdmin: isOwnerUser,
                 userID: authManager.userSession?.id
             )
+            syncProfileDrafts(with: authManager.userSession)
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
@@ -457,6 +481,7 @@ struct SettingsView: View {
                 isAdmin: isOwnerUser,
                 userID: userID
             )
+            syncProfileDrafts(with: authManager.userSession)
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
             syncPaymentDrafts(with: settings)
@@ -1134,6 +1159,44 @@ struct SettingsView: View {
         showToast = true
     }
 
+    private func syncProfileDrafts(with user: User?) {
+        profileUsernameDraft = user?.username ?? ""
+        profileWhatsAppDraft = user?.whatsApp ?? ""
+        profileTaglineDraft = user?.profileTagline ?? ""
+        profileBioDraft = user?.profileBio ?? ""
+        profileInstagramHandleDraft = user?.instagramHandle ?? ""
+    }
+
+    private func saveProfile() async {
+        guard authManager.userSession != nil else {
+            showToastMessage("Bitte erst anmelden.", style: .error)
+            return
+        }
+
+        let trimmedUsername = profileUsernameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUsername.isEmpty else {
+            showToastMessage("Bitte einen Benutzernamen eintragen.", style: .error)
+            return
+        }
+
+        isSavingProfile = true
+        defer { isSavingProfile = false }
+
+        do {
+            try await authManager.updateProfile(
+                username: trimmedUsername,
+                whatsApp: profileWhatsAppDraft,
+                profileTagline: profileTaglineDraft,
+                profileBio: profileBioDraft,
+                instagramHandle: profileInstagramHandleDraft
+            )
+            syncProfileDrafts(with: authManager.userSession)
+            showToastMessage("Profil gespeichert.", style: .success)
+        } catch {
+            showToastMessage("Profil konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+        }
+    }
+
     private func syncPaymentDrafts(with settings: PaymentMethodSettings) {
         stripeAccountHintDraft = settings.stripe.accountHint
         paypalAccountHintDraft = settings.paypal.accountHint
@@ -1490,6 +1553,135 @@ private struct SettingsInputField: View {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                 )
+        }
+    }
+}
+
+private struct SettingsMultilineInputField: View {
+    let title: String
+    @Binding var text: String
+    let colorScheme: ColorScheme
+    let placeholder: String
+    var minHeight: CGFloat = 110
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            ZStack(alignment: .topLeading) {
+                if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(placeholder)
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 16)
+                }
+
+                TextEditor(text: $text)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: minHeight)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                    )
+            }
+        }
+    }
+}
+
+private struct SettingsProfileEditorCard: View {
+    let colorScheme: ColorScheme
+    @Binding var username: String
+    @Binding var whatsApp: String
+    @Binding var tagline: String
+    @Binding var bio: String
+    @Binding var instagramHandle: String
+    let isSaving: Bool
+    let onSave: () -> Void
+
+    private var initials: String {
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(trimmed.prefix(1)).uppercased()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.14))
+                        .frame(width: 48, height: 48)
+
+                    Text(initials.isEmpty ? "U" : initials)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Profil")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Username, Kurzinfo und Links.")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            }
+
+            SettingsInputField(
+                title: "Benutzername",
+                text: $username,
+                colorScheme: colorScheme,
+                placeholder: "Dein Name"
+            )
+
+            SettingsInputField(
+                title: "Kurzinfo",
+                text: $tagline,
+                colorScheme: colorScheme,
+                placeholder: "Kurz und praegnant"
+            )
+
+            SettingsMultilineInputField(
+                title: "Bio",
+                text: $bio,
+                colorScheme: colorScheme,
+                placeholder: "Worum geht es bei dir?"
+            )
+
+            SettingsInputField(
+                title: "Instagram",
+                text: $instagramHandle,
+                colorScheme: colorScheme,
+                placeholder: "@handle",
+                keyboardType: .asciiCapable
+            )
+
+            SettingsInputField(
+                title: "WhatsApp",
+                text: $whatsApp,
+                colorScheme: colorScheme,
+                placeholder: "+49 ..."
+            )
+
+            Button(action: onSave) {
+                if isSaving {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Label("Profil speichern", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accent(for: colorScheme))
+            .disabled(isSaving)
         }
     }
 }

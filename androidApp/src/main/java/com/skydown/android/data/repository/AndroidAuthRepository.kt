@@ -6,8 +6,11 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.userProfileChangeRequest
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.skydown.shared.model.LoginInput
+import com.skydown.shared.model.ProfileUpdateInput
 import com.skydown.shared.model.RegistrationInput
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
@@ -62,6 +65,9 @@ class AndroidAuthRepository(
                 email = registeredEmail.lowercase(),
                 username = input.username,
                 whatsApp = input.whatsApp.ifBlank { null },
+                profileTagline = null,
+                profileBio = null,
+                instagramHandle = null,
                 registrationDateEpochMillis = System.currentTimeMillis(),
                 isAdmin = resolvedRole.hasStaffAccess,
                 role = resolvedRole.rawValue,
@@ -103,6 +109,34 @@ class AndroidAuthRepository(
         }
     }
 
+    override suspend fun updateCurrentProfile(input: ProfileUpdateInput): Result<User> {
+        return runCatching {
+            val authUser = auth.currentUser ?: error("Kein Benutzer angemeldet.")
+            val documentReference = firestore.collection("users").document(authUser.uid)
+
+            authUser.updateProfile(
+                userProfileChangeRequest {
+                    displayName = input.username
+                },
+            ).await()
+
+            val updates = mutableMapOf<String, Any>(
+                "username" to input.username,
+                "whatsApp" to (input.whatsApp ?: FieldValue.delete()),
+                "profileTagline" to (input.profileTagline ?: FieldValue.delete()),
+                "profileBio" to (input.profileBio ?: FieldValue.delete()),
+                "instagramHandle" to (input.instagramHandle ?: FieldValue.delete()),
+            )
+
+            documentReference.update(updates).await()
+            val updatedUser = syncUserDocument(authUser)
+            AppSessionStore.update(updatedUser)
+            updatedUser
+        }.recoverCatching { error ->
+            throw error.toReadableAuthError()
+        }
+    }
+
     private suspend fun syncUserDocument(
         authUser: FirebaseUser,
         preferredUsername: String? = null,
@@ -125,6 +159,9 @@ class AndroidAuthRepository(
                 email = fallbackEmail,
                 username = resolvedUsername,
                 whatsApp = null,
+                profileTagline = null,
+                profileBio = null,
+                instagramHandle = null,
                 registrationDateEpochMillis = authUser.metadata?.creationTimestamp ?: System.currentTimeMillis(),
                 isAdmin = resolvedRole.hasStaffAccess,
                 role = resolvedRole.rawValue,

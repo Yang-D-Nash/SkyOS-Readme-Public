@@ -151,9 +151,9 @@ fun BeatHubScreen(
                         )
                         Text(
                             text = if (uiState.isAdmin) {
-                                "Alle Beats, Hoerproben und Freigaben an einem Ort."
+                                "Beats, Uploads, Freigaben."
                             } else {
-                                "Freigegebene Beats hoeren. Uploads sind nur fuer Admins verfuegbar."
+                                "Freigegebene Beats."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),

@@ -104,9 +104,9 @@ struct BrandHeroSurface<Footer: View>: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                accent.opacity(colorScheme == .dark ? 0.14 : 0.07),
-                                secondaryAccent.opacity(colorScheme == .dark ? 0.10 : 0.06),
-                                Color.white.opacity(colorScheme == .dark ? 0.02 : 0.18)
+                                accent.opacity(colorScheme == .dark ? 0.14 : 0.09),
+                                secondaryAccent.opacity(colorScheme == .dark ? 0.10 : 0.08),
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.58)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -140,7 +140,7 @@ struct BrandHeroSurface<Footer: View>: View {
                         colors: [
                             accent.opacity(0.22),
                             secondaryAccent.opacity(0.18),
-                            Color.white.opacity(colorScheme == .dark ? 0.06 : 0.22)
+                            Color.white.opacity(colorScheme == .dark ? 0.06 : 0.12)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

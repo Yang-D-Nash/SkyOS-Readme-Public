@@ -75,7 +75,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
     let shadowYOffset: CGFloat
 
     private var strokeColor: Color {
-        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.15 : 0.10)
+        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.15 : 0.14)
     }
 
     @ViewBuilder
@@ -89,9 +89,10 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                     shape.fill(
                         LinearGradient(
                             colors: [
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.30 : 0.44),
-                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.10 : 0.06),
-                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.05)
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.30 : 0.88),
+                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.72),
+                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.10 : 0.08),
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.04)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -104,7 +105,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                 }
                 .clipShape(shape)
                 .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.05),
+                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.08),
                     radius: shadowRadius,
                     y: shadowYOffset
                 )
@@ -118,9 +119,11 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                                 LinearGradient(
                                     colors: [
                                         AppColors.cardBackground(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.56 : 0.42),
+                                            .opacity(colorScheme == .dark ? 0.56 : 0.92),
+                                        AppColors.secondaryBackground(for: colorScheme)
+                                            .opacity(colorScheme == .dark ? 0.18 : 0.70),
                                         (accent ?? AppColors.accent(for: colorScheme))
-                                            .opacity(colorScheme == .dark ? 0.10 : 0.06),
+                                            .opacity(colorScheme == .dark ? 0.10 : 0.08),
                                         AppColors.accentHighlight(for: colorScheme)
                                             .opacity(colorScheme == .dark ? 0.06 : 0.04)
                                     ],
@@ -136,7 +139,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                 }
                 .clipShape(shape)
                 .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.05),
+                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.08),
                     radius: shadowRadius,
                     y: shadowYOffset
                 )
@@ -149,7 +152,7 @@ private struct SkydownCapsuleSurfaceModifier: ViewModifier {
     let accent: Color?
 
     private var strokeColor: Color {
-        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.20 : 0.14)
+        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.20 : 0.18)
     }
 
     @ViewBuilder
@@ -172,7 +175,7 @@ private struct SkydownCapsuleSurfaceModifier: ViewModifier {
                         .overlay {
                             shape.fill(
                                 AppColors.cardBackground(for: colorScheme)
-                                    .opacity(colorScheme == .dark ? 0.32 : 0.18)
+                                    .opacity(colorScheme == .dark ? 0.32 : 0.78)
                             )
                         }
                 }

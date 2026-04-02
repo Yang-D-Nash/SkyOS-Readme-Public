@@ -200,7 +200,7 @@ private struct LaunchLandingView: View {
                         .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: hubColorScheme))
 
-                    Text("Waehle den Bereich, mit dem du gerade starten willst. Unten kannst du spaeter jederzeit wechseln.")
+                    Text("Waehle deinen Start.")
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
                         .fixedSize(horizontal: false, vertical: true)
@@ -232,11 +232,11 @@ private struct LaunchLandingView: View {
                         .shadow(color: .black.opacity(0.24), radius: 18, y: 10)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Ein Ort fuer Musik, Videos und Merch.")
+                        Text("Musik, Video, Merch.")
                             .font(.headline.weight(.bold))
                             .foregroundColor(AppColors.text(for: hubColorScheme))
 
-                        Text("Steig genau dort ein, wo du gerade weitermachen willst. Alles andere bleibt unten fuer dich direkt erreichbar.")
+                        Text("Alles unten direkt griffbereit.")
                             .font(.footnote.weight(.medium))
                             .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
                             .fixedSize(horizontal: false, vertical: true)
@@ -253,18 +253,18 @@ private struct LaunchLandingView: View {
 
                 VStack(spacing: 12) {
                     LaunchLandingButton(
-                        eyebrow: "Listen & Artists",
+                        eyebrow: "Music",
                         title: "Music",
-                        subtitle: "Wenn du hoeren, Artists entdecken oder direkt zu Beats willst.",
+                        subtitle: "Releases, Artists, Beats.",
                         accent: AppColors.spotify(for: hubColorScheme),
                         brandMark: .zweizwei,
                         action: onOpenMusic
                     )
 
                     LaunchLandingButton(
-                        eyebrow: "Clips & Reels",
+                        eyebrow: "Video",
                         title: "Videos",
-                        subtitle: "Wenn du Reels schauen, Produktionen sehen oder Kontakt aufnehmen willst.",
+                        subtitle: "Reels, Clips, YouTube.",
                         accent: AppColors.accentMystic(for: hubColorScheme),
                         brandMark: .skydown,
                         action: onOpenVideography
@@ -273,14 +273,14 @@ private struct LaunchLandingView: View {
                     LaunchLandingButton(
                         eyebrow: "Store",
                         title: "Merch",
-                        subtitle: "Wenn du Produkte entdecken, in Ruhe ansehen oder direkt bestellen willst.",
+                        subtitle: "Drops, Styles, Checkout.",
                         accent: AppColors.accentHighlight(for: hubColorScheme),
                         brandMark: .skydownX22,
                         action: onOpenShop
                     )
                 }
 
-                Text("Danach wechselst du unten jederzeit dorthin, wo du weitermachen willst.")
+                Text("Unten wechselst du jederzeit.")
                     .font(.caption.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
                     .padding(.top, 4)

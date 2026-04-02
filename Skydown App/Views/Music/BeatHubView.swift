@@ -125,11 +125,7 @@ struct BeatHubView: View {
                 .font(.largeTitle.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text(
-                viewModel.isAdmin
-                ? "Als Admin siehst du alle Beats, kannst Uploads steuern und Hoerproben direkt pruefen."
-                : "Hier hoerst du die freigegebenen Beats aus dem Hub. Uploads sind nur fuer Admins sichtbar."
-            )
+            Text(viewModel.isAdmin ? "Beats, Uploads, Freigaben." : "Freigegebene Beats.")
             .font(.body)
             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -157,7 +153,7 @@ struct BeatHubView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Nur Admins laden neue Beats oder ZIP-Sessions hoch. Audio-Dateien koennen danach direkt im Hub getestet und bei Bedarf verborgen werden.")
+            Text("Nur fuer Admins.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -269,12 +265,12 @@ struct BeatHubView: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if viewModel.isLoadingBeats {
-                ProgressView("Beat Hub wird geladen ...")
+                ProgressView("Beat Hub laedt...")
             } else if viewModel.beats.isEmpty {
                 Text(
                     viewModel.isAdmin
-                    ? "Noch keine Beats im Hub. Neue Uploads tauchen hier sofort auf."
-                    : "Noch keine freigegebenen Beats. Sobald ein Beat live geschaltet wird, kannst du ihn hier abspielen."
+                    ? "Noch keine Beats."
+                    : "Noch nichts live."
                 )
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))

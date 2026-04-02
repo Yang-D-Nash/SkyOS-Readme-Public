@@ -11,6 +11,7 @@ import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.WorkflowAutomationPreferences
 import com.skydown.shared.model.User
+import com.skydown.shared.model.ProfileUpdateInput
 import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.theme.AppearanceMode
@@ -58,6 +59,10 @@ class SettingsViewModel : ViewModel() {
                         currentUserId = user?.id,
                         username = displayName,
                         email = user?.email.orEmpty(),
+                        whatsApp = user?.whatsApp.orEmpty(),
+                        profileTagline = user?.profileTagline.orEmpty(),
+                        profileBio = user?.profileBio.orEmpty(),
+                        instagramHandle = user?.instagramHandle.orEmpty(),
                         isOwner = isOwner,
                         accountErrorMessage = null,
                     )
@@ -446,10 +451,72 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
+    fun saveProfile(
+        username: String,
+        whatsApp: String,
+        profileTagline: String,
+        profileBio: String,
+        instagramHandle: String,
+    ) {
+        viewModelScope.launch {
+            val trimmedUsername = username.trim()
+            if (trimmedUsername.isEmpty()) {
+                _uiState.update {
+                    it.copy(accountErrorMessage = "Bitte gib einen Benutzernamen ein.")
+                }
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(
+                    isSavingProfile = true,
+                    accountErrorMessage = null,
+                )
+            }
+
+            val result = authService.updateCurrentProfile(
+                ProfileUpdateInput(
+                    username = trimmedUsername,
+                    whatsApp = whatsApp,
+                    profileTagline = profileTagline,
+                    profileBio = profileBio,
+                    instagramHandle = instagramHandle,
+                ),
+            )
+
+            if (result.isSuccess) {
+                val user = result.getOrNull()
+                _uiState.update {
+                    it.copy(
+                        username = user?.username ?: trimmedUsername,
+                        email = user?.email ?: it.email,
+                        whatsApp = user?.whatsApp.orEmpty(),
+                        profileTagline = user?.profileTagline.orEmpty(),
+                        profileBio = user?.profileBio.orEmpty(),
+                        instagramHandle = user?.instagramHandle.orEmpty(),
+                        isSavingProfile = false,
+                        accountErrorMessage = null,
+                    )
+                }
+                AppContainer.refreshCurrentUser()
+                showPaymentFeedback(message = "Profil gespeichert.", isError = false)
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isSavingProfile = false,
+                        accountErrorMessage = result.exceptionOrNull()?.message
+                            ?: "Profil konnte nicht gespeichert werden.",
+                    )
+                }
+            }
+        }
+    }
+
     fun signOut(onSuccess: (() -> Unit)? = null) {
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
+                    isSavingProfile = false,
                     isSigningOut = true,
                     accountErrorMessage = null,
                 )
@@ -490,7 +557,12 @@ class SettingsViewModel : ViewModel() {
                         isLoggedIn = false,
                         username = "",
                         email = "",
+                        whatsApp = "",
+                        profileTagline = "",
+                        profileBio = "",
+                        instagramHandle = "",
                         isOwner = false,
+                        isSavingProfile = false,
                         accountErrorMessage = null,
                     )
                 }
