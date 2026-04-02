@@ -79,12 +79,17 @@ import com.skydown.android.ui.model.resolve
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.ui.viewmodel.SettingsViewModel
 import com.skydown.shared.model.User
+import com.skydown.shared.model.UserQuotaPlan
+import com.skydown.shared.model.canManageMusic
+import com.skydown.shared.model.canManageVideos
+import com.skydown.shared.model.canModerateUserProfiles
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.isPlatformOwner
 import com.skydown.shared.model.resolvedAiAgentRequestsPerDay
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.shared.model.resolvedAiTextRequestsPerDay
 import com.skydown.shared.model.resolvedAiVisualRequestsPerDay
+import com.skydown.shared.model.resolvedQuotaPlan
 import com.skydown.shared.model.resolvedRole
 import java.util.Locale
 
@@ -292,7 +297,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Users -> {
                 Text(
-                    text = "Hier steuerst du, welche Konten normaler User, Unteradmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.",
+                    text = "Hier steuerst du, welche Konten normaler User, Subadmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -2123,6 +2128,9 @@ private fun AdminManagedUserCard(
     var selectedRole by rememberSaveable(user.id, user.role) {
         mutableStateOf(user.resolvedRole.rawValue)
     }
+    var selectedQuotaPlan by rememberSaveable(user.id, user.quotaPlan) {
+        mutableStateOf(user.resolvedQuotaPlan.rawValue)
+    }
     var aiAccessEnabled by rememberSaveable(user.id, user.aiAccessEnabled) {
         mutableStateOf(user.aiAccessEnabled)
     }
@@ -2138,7 +2146,17 @@ private fun AdminManagedUserCard(
     var historyRetentionDays by rememberSaveable(user.id, user.aiHistoryRetentionDays) {
         mutableStateOf(user.resolvedAiHistoryRetentionDays)
     }
-    val resolvedRole = UserRole.resolve(selectedRole, user.isAdmin)
+    var canManageMusicCatalog by rememberSaveable(user.id, user.canManageMusicCatalog) {
+        mutableStateOf(user.canManageMusic)
+    }
+    var canManageVideoCatalog by rememberSaveable(user.id, user.canManageVideoCatalog) {
+        mutableStateOf(user.canManageVideos)
+    }
+    var canModerateProfiles by rememberSaveable(user.id, user.canModerateProfiles) {
+        mutableStateOf(user.canModerateUserProfiles)
+    }
+    val resolvedRole = UserRole.resolve(selectedRole, user.isAdmin, user.email)
+    val resolvedQuotaPlan = UserQuotaPlan.resolve(selectedQuotaPlan, resolvedRole)
 
     SkydownCard(
         modifier = modifier,
@@ -2234,6 +2252,99 @@ private fun AdminManagedUserCard(
             )
         }
 
+        when (resolvedRole) {
+            UserRole.Owner -> {
+                Text(
+                    text = "Owner-Kontrolle: Shopify, Zahlungen, Rollen, n8n und Recovery laufen nur ueber dieses Konto.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            UserRole.Admin -> {
+                Text(
+                    text = "Zugewiesene Funktionen",
+                    modifier = Modifier.padding(top = 14.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                SettingsToggleRow(
+                    title = "Music verwalten",
+                    body = "Beats, Releases und Upload-Freigaben pflegen.",
+                    checked = canManageMusicCatalog,
+                    onCheckedChange = { canManageMusicCatalog = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+                SettingsToggleRow(
+                    title = "Video verwalten",
+                    body = "Video Hub, Uploads und Home-Highlights steuern.",
+                    checked = canManageVideoCatalog,
+                    onCheckedChange = { canManageVideoCatalog = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+                SettingsToggleRow(
+                    title = "Profile moderieren",
+                    body = "Profile und Galerie-Inhalte fuer Support und Moderation einsehen.",
+                    checked = canModerateProfiles,
+                    onCheckedChange = { canModerateProfiles = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+
+            UserRole.Subadmin, UserRole.User -> {
+                Text(
+                    text = if (resolvedRole == UserRole.Subadmin) "Kontingentmodell" else "Kontingent",
+                    modifier = Modifier.padding(top = 14.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                if (resolvedRole == UserRole.User) {
+                    Text(
+                        text = UserQuotaPlan.Free.planSummary,
+                        modifier = Modifier.padding(top = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                } else {
+                    LazyRow(
+                        modifier = Modifier.padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(listOf(UserQuotaPlan.Creator, UserQuotaPlan.Studio)) { plan ->
+                            val isSelected = resolvedQuotaPlan == plan
+                            if (isSelected) {
+                                Button(
+                                    onClick = { selectedQuotaPlan = plan.rawValue },
+                                    shape = RoundedCornerShape(999.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                ) {
+                                    Text(plan.displayTitle)
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { selectedQuotaPlan = plan.rawValue },
+                                    shape = RoundedCornerShape(999.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                ) {
+                                    Text(plan.displayTitle)
+                                }
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = resolvedQuotaPlan.planSummary,
+                        modifier = Modifier.padding(top = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                }
+            }
+        }
+
         SettingsToggleRow(
             title = "KI fuer dieses Konto aktiv",
             body = "Wenn aus, sind Bot, Visuals und Agent fuer dieses Konto gesperrt.",
@@ -2312,21 +2423,47 @@ private fun AdminManagedUserCard(
 
         Button(
             onClick = {
+                val finalQuotaPlan = when (resolvedRole) {
+                    UserRole.Owner -> UserQuotaPlan.OwnerUnlimited
+                    UserRole.Admin -> UserQuotaPlan.InternalTeam
+                    UserRole.Subadmin -> if (resolvedQuotaPlan == UserQuotaPlan.Studio) {
+                        UserQuotaPlan.Studio
+                    } else {
+                        UserQuotaPlan.Creator
+                    }
+                    UserRole.User -> UserQuotaPlan.Free
+                }
                 onSave(
                     user.copy(
                         isAdmin = resolvedRole.hasStaffAccess,
                         role = resolvedRole.rawValue,
+                        quotaPlan = finalQuotaPlan.rawValue,
                         aiAccessEnabled = aiAccessEnabled,
                         aiTextRequestsPerDay = textLimitDraft.parsePositiveIntOrDefault(
-                            resolvedRole.defaultAiTextRequestsPerDay,
+                            finalQuotaPlan.aiTextRequestsPerDay,
                         ),
                         aiVisualRequestsPerDay = visualLimitDraft.parsePositiveIntOrDefault(
-                            resolvedRole.defaultAiVisualRequestsPerDay,
+                            finalQuotaPlan.aiVisualRequestsPerDay,
                         ),
                         aiAgentRequestsPerDay = agentLimitDraft.parsePositiveIntOrDefault(
-                            resolvedRole.defaultAiAgentRequestsPerDay,
+                            finalQuotaPlan.aiAgentRequestsPerDay,
                         ),
                         aiHistoryRetentionDays = historyRetentionDays,
+                        canManageMusicCatalog = when (resolvedRole) {
+                            UserRole.Owner -> true
+                            UserRole.Admin -> canManageMusicCatalog
+                            else -> false
+                        },
+                        canManageVideoCatalog = when (resolvedRole) {
+                            UserRole.Owner -> true
+                            UserRole.Admin -> canManageVideoCatalog
+                            else -> false
+                        },
+                        canModerateProfiles = when (resolvedRole) {
+                            UserRole.Owner -> true
+                            UserRole.Admin -> canModerateProfiles
+                            else -> false
+                        },
                     ),
                 )
             },
@@ -2338,22 +2475,90 @@ private fun AdminManagedUserCard(
             Text("Konto speichern")
         }
     }
+
+    LaunchedEffect(resolvedRole) {
+        when (resolvedRole) {
+            UserRole.Owner -> {
+                selectedQuotaPlan = UserQuotaPlan.OwnerUnlimited.rawValue
+                canManageMusicCatalog = true
+                canManageVideoCatalog = true
+                canModerateProfiles = true
+                textLimitDraft = UserQuotaPlan.OwnerUnlimited.aiTextRequestsPerDay.toString()
+                visualLimitDraft = UserQuotaPlan.OwnerUnlimited.aiVisualRequestsPerDay.toString()
+                agentLimitDraft = UserQuotaPlan.OwnerUnlimited.aiAgentRequestsPerDay.toString()
+                historyRetentionDays = UserQuotaPlan.OwnerUnlimited.aiHistoryRetentionDays
+            }
+            UserRole.Admin -> {
+                selectedQuotaPlan = UserQuotaPlan.InternalTeam.rawValue
+                textLimitDraft = UserQuotaPlan.InternalTeam.aiTextRequestsPerDay.toString()
+                visualLimitDraft = UserQuotaPlan.InternalTeam.aiVisualRequestsPerDay.toString()
+                agentLimitDraft = UserQuotaPlan.InternalTeam.aiAgentRequestsPerDay.toString()
+                historyRetentionDays = UserQuotaPlan.InternalTeam.aiHistoryRetentionDays
+            }
+            UserRole.Subadmin -> {
+                if (resolvedQuotaPlan !in listOf(UserQuotaPlan.Creator, UserQuotaPlan.Studio)) {
+                    selectedQuotaPlan = UserQuotaPlan.Creator.rawValue
+                }
+                canManageMusicCatalog = false
+                canManageVideoCatalog = false
+                canModerateProfiles = false
+            }
+            UserRole.User -> {
+                selectedQuotaPlan = UserQuotaPlan.Free.rawValue
+                canManageMusicCatalog = false
+                canManageVideoCatalog = false
+                canModerateProfiles = false
+                textLimitDraft = UserQuotaPlan.Free.aiTextRequestsPerDay.toString()
+                visualLimitDraft = UserQuotaPlan.Free.aiVisualRequestsPerDay.toString()
+                agentLimitDraft = UserQuotaPlan.Free.aiAgentRequestsPerDay.toString()
+                historyRetentionDays = UserQuotaPlan.Free.aiHistoryRetentionDays
+            }
+        }
+    }
+
+    LaunchedEffect(selectedQuotaPlan, resolvedRole) {
+        if (resolvedRole == UserRole.Subadmin) {
+            val plan = UserQuotaPlan.resolve(selectedQuotaPlan, resolvedRole)
+            textLimitDraft = plan.aiTextRequestsPerDay.toString()
+            visualLimitDraft = plan.aiVisualRequestsPerDay.toString()
+            agentLimitDraft = plan.aiAgentRequestsPerDay.toString()
+            historyRetentionDays = plan.aiHistoryRetentionDays
+        }
+    }
 }
 
 private val UserRole.displayTitle: String
     get() = when (this) {
         UserRole.Owner -> "Owner"
         UserRole.Admin -> "Admin"
-        UserRole.Subadmin -> "Unteradmin"
+        UserRole.Subadmin -> "Subadmin"
         UserRole.User -> "User"
     }
 
 private val UserRole.roleSummary: String
     get() = when (this) {
-        UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Voller Zugriff auf alles, inklusive sensibler Settings, Nutzerverwaltung und KI-Limits."
-        UserRole.Admin -> "Teaminterne Leute fuer operative Inhalte und Backoffice-Aufgaben. Kein Zugriff auf Owner-Systembereiche wie Shopify, Zahlarten, Nutzerrollen oder n8n. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
-        UserRole.Subadmin -> "Externe Power-User fuer die oeffentliche App. Mehr persoenliche KI-Power und laengere History als normale User, aber kein interner Admin-Workspace."
-        UserRole.User -> "Normales Nutzerkonto fuer die oeffentliche App. Persoenliche KI-History und kleinere Tageslimits. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
+        UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf Shopify, Zahlungen, Rollen, n8n und Recovery."
+        UserRole.Admin -> "Teaminterne Leute. Der Owner weist ihnen gezielt Funktionen wie Music, Video oder Profil-Moderation zu. Kein Zugriff auf Owner-Systembereiche."
+        UserRole.Subadmin -> "Externe Premium-Konten mit buchbarem Kontingentmodell. Kein Admin-Workspace, keine Owner-Rechte."
+        UserRole.User -> "Normales Nutzerkonto mit Free-Kontingent. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
+    }
+
+private val UserQuotaPlan.displayTitle: String
+    get() = when (this) {
+        UserQuotaPlan.OwnerUnlimited -> "Owner Unlimited"
+        UserQuotaPlan.InternalTeam -> "Internal Team"
+        UserQuotaPlan.Free -> "Free"
+        UserQuotaPlan.Creator -> "Creator"
+        UserQuotaPlan.Studio -> "Studio"
+    }
+
+private val UserQuotaPlan.planSummary: String
+    get() = when (this) {
+        UserQuotaPlan.OwnerUnlimited -> "Praktisch unbegrenztes Owner-Kontingent fuer Systemsteuerung, Tests und Recovery."
+        UserQuotaPlan.InternalTeam -> "Internes Team-Kontingent fuer feste Mitarbeiter."
+        UserQuotaPlan.Free -> "Basiszugang mit kleinem Free-Kontingent."
+        UserQuotaPlan.Creator -> "Erweitertes Creator-Kontingent fuer regelmaessige Nutzung."
+        UserQuotaPlan.Studio -> "Grosses Studio-Kontingent fuer intensivere Nutzung und laengere History."
     }
 
 private fun String.parsePositiveIntOrDefault(fallback: Int): Int {

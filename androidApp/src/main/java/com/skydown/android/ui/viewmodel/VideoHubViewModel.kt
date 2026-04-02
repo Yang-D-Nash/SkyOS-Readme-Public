@@ -15,6 +15,7 @@ import com.skydown.android.ui.model.VideoHubUiState
 import com.skydown.android.ui.model.VideoHubPublicConfig
 import com.skydown.android.ui.model.VideoYouTubeItem
 import com.skydown.shared.model.User
+import com.skydown.shared.model.canManageVideos
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,7 +41,7 @@ class VideoHubViewModel(
             AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collectLatest { user ->
                 currentUser = user
-                val nextIsAdmin = user?.isAdmin == true
+                val nextIsAdmin = user?.canManageVideos == true
                 _uiState.update { state ->
                     state.copy(
                         isAdmin = nextIsAdmin,
@@ -465,12 +466,12 @@ class VideoHubViewModel(
                     it.copy(
                         videos = emptyList(),
                         isLoadingVideos = false,
-                        feedbackMessage = if (currentUser?.isAdmin == true || hasLoadedVideosOnce) {
+                        feedbackMessage = if (currentUser?.canManageVideos == true || hasLoadedVideosOnce) {
                             "Die Videos konnten gerade nicht geladen werden."
                         } else {
                             null
                         },
-                        feedbackIsError = currentUser?.isAdmin == true || hasLoadedVideosOnce,
+                        feedbackIsError = currentUser?.canManageVideos == true || hasLoadedVideosOnce,
                     )
                 }
             }

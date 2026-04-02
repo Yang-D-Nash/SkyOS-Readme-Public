@@ -7,7 +7,11 @@ import com.google.firebase.firestore.SetOptions
 import com.skydown.android.data.repository.toSharedUser
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
+import com.skydown.shared.model.canManageMusic
+import com.skydown.shared.model.canManageVideos
+import com.skydown.shared.model.canModerateUserProfiles
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
+import com.skydown.shared.model.resolvedQuotaPlan
 import com.skydown.shared.model.resolvedRole
 import kotlinx.coroutines.tasks.await
 
@@ -37,17 +41,22 @@ class AdminUserManagementRepository(
             val userId = user.id?.takeIf { it.isNotBlank() }
                 ?: error("Dieses Konto hat keine gueltige Benutzer-ID.")
             val resolvedRole = user.resolvedRole
+            val resolvedQuotaPlan = user.resolvedQuotaPlan
 
             firestore.collection(collectionName).document(userId).set(
                 mapOf(
                     "email" to user.email.trim().lowercase(),
                     "role" to resolvedRole.rawValue,
                     "isAdmin" to resolvedRole.hasStaffAccess,
+                    "quotaPlan" to resolvedQuotaPlan.rawValue,
                     "aiAccessEnabled" to user.aiAccessEnabled,
                     "aiTextRequestsPerDay" to user.aiTextRequestsPerDay.coerceAtLeast(1),
                     "aiVisualRequestsPerDay" to user.aiVisualRequestsPerDay.coerceAtLeast(1),
                     "aiAgentRequestsPerDay" to user.aiAgentRequestsPerDay.coerceAtLeast(1),
                     "aiHistoryRetentionDays" to user.resolvedAiHistoryRetentionDays,
+                    "canManageMusicCatalog" to user.canManageMusic,
+                    "canManageVideoCatalog" to user.canManageVideos,
+                    "canModerateProfiles" to user.canModerateUserProfiles,
                     "updatedAt" to FieldValue.serverTimestamp(),
                 ),
                 SetOptions.merge(),

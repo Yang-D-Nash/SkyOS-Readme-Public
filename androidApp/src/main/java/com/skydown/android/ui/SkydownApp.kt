@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -424,6 +425,17 @@ private fun LaunchLandingScreen(
             Spacer(modifier = Modifier.height(1.dp))
 
             Column(
+                modifier = Modifier
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                SurfaceDark.copy(alpha = 0.96f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                            ),
+                        ),
+                        RoundedCornerShape(24.dp),
+                    )
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
@@ -441,7 +453,7 @@ private fun LaunchLandingScreen(
                 Text(
                     text = "Waehle deinen Start.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextMutedDark,
+                    color = TextDark.copy(alpha = 0.72f),
                 )
             }
 
@@ -488,14 +500,14 @@ private fun LaunchLandingScreen(
                     ) {
                         Text(
                             text = "Musik, Video, Merch.",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             color = TextDark,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                         )
                         Text(
                             text = "Alles unten direkt griffbereit.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextMutedDark,
+                            color = TextDark.copy(alpha = 0.70f),
                         )
                     }
                 }
@@ -507,6 +519,7 @@ private fun LaunchLandingScreen(
                     title = "Music",
                     subtitle = "Releases, Artists, Beats.",
                     accentColor = MaterialTheme.colorScheme.primary,
+                    icon = Icons.Default.GraphicEq,
                     artwork = BrandArtwork.Zweizwei,
                     onClick = onOpenMusic,
                 )
@@ -515,6 +528,7 @@ private fun LaunchLandingScreen(
                     title = "Videos",
                     subtitle = "Reels, Clips, YouTube.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
+                    icon = Icons.Default.PlayCircleFilled,
                     artwork = BrandArtwork.Skydown,
                     onClick = onOpenVideography,
                 )
@@ -523,6 +537,7 @@ private fun LaunchLandingScreen(
                     title = "Merch",
                     subtitle = "Drops, Styles, Checkout.",
                     accentColor = MaterialTheme.colorScheme.secondary,
+                    icon = Icons.Default.ShoppingBag,
                     artwork = BrandArtwork.Combined,
                     onClick = onOpenShop,
                 )
@@ -545,6 +560,7 @@ private fun LaunchLandingChoiceCard(
     title: String,
     subtitle: String,
     accentColor: androidx.compose.ui.graphics.Color,
+    icon: ImageVector,
     artwork: BrandArtwork,
     onClick: () -> Unit,
 ) {
@@ -569,26 +585,36 @@ private fun LaunchLandingChoiceCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(56.dp)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
                                 SurfaceDark.copy(alpha = 0.98f),
-                                accentColor.copy(alpha = 0.14f),
+                                accentColor.copy(alpha = 0.18f),
                             ),
                         ),
-                        RoundedCornerShape(16.dp),
+                        RoundedCornerShape(18.dp),
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Image(
-                    painter = painterResource(id = artwork.drawableRes),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .padding(4.dp),
-                    contentScale = ContentScale.Fit,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = artwork.drawableRes),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .padding(4.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = TextDark.copy(alpha = 0.88f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(16.dp),
+                    )
+                }
             }
 
             Column(
@@ -599,7 +625,7 @@ private fun LaunchLandingChoiceCard(
                     Text(
                         text = eyebrow.uppercase(),
                         style = MaterialTheme.typography.labelMedium,
-                        color = TextMutedDark,
+                        color = TextDark.copy(alpha = 0.68f),
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
@@ -612,7 +638,7 @@ private fun LaunchLandingChoiceCard(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextMutedDark,
+                    color = TextDark.copy(alpha = 0.70f),
                 )
             }
         }
@@ -699,7 +725,7 @@ private fun ZweizweiMusicLaneScreen(
                         eyebrow = "Music",
                         title = "Music",
                         subtitle = "Releases, Artists, Beats.",
-                        detail = "Von hier direkt zu Beats oder Studio.",
+                        detail = "Direkt zu Songs, Beats und Studio.",
                         accent = MaterialTheme.colorScheme.primary,
                         secondaryAccent = MaterialTheme.colorScheme.secondary,
                         marks = listOf(BrandArtwork.Zweizwei),
@@ -714,18 +740,21 @@ private fun ZweizweiMusicLaneScreen(
                         title = "Songs",
                         subtitle = "Tracks & Artists.",
                         accentColor = MaterialTheme.colorScheme.primary,
+                        icon = Icons.Default.GraphicEq,
                         onClick = { destination = ZweizweiMusicDestination.Catalog },
                     )
                     LaunchLandingButton(
                         title = "Beat Hub",
                         subtitle = "Beats direkt.",
                         accentColor = MaterialTheme.colorScheme.secondary,
+                        icon = Icons.Default.GraphicEq,
                         onClick = { destination = ZweizweiMusicDestination.BeatHub },
                     )
                     LaunchLandingButton(
                         title = "Studio",
                         subtitle = "Recording, Mix, Master.",
                         accentColor = MaterialTheme.colorScheme.tertiary,
+                        icon = Icons.Default.AutoAwesome,
                         onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                     )
                     Spacer(modifier = Modifier.height(1.dp))
@@ -756,6 +785,7 @@ private fun LaunchLandingButton(
     title: String,
     subtitle: String,
     accentColor: androidx.compose.ui.graphics.Color,
+    icon: ImageVector,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -776,19 +806,53 @@ private fun LaunchLandingButton(
             elevation = null,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Column(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    accentColor.copy(alpha = 0.22f),
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                                ),
+                            ),
+                            RoundedCornerShape(14.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            accentColor.copy(alpha = 0.92f),
+                            RoundedCornerShape(999.dp),
+                        ),
                 )
             }
         }

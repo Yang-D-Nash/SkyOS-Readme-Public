@@ -19,16 +19,54 @@ service cloud.firestore {
       return signedIn() && claimRole() == "owner";
     }
 
+    function isOwnerEmail() {
+      return signedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == "nash.lioncorna@gmail.com";
+    }
+
     function isAdmin() {
       return signedIn() && claimRole() in ["owner", "admin"];
     }
 
     function isModerator() {
-      return signedIn() && claimRole() in ["owner", "admin", "subadmin"];
+      return signedIn() && claimRole() in ["owner", "admin"];
     }
 
     function isSelf(uid) {
       return signedIn() && request.auth.uid == uid;
+    }
+
+    function currentUserDocExists() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function canManageMusicCatalog() {
+      return isOwner() || (
+        claimRole() == "admin"
+        && currentUserDocExists()
+        && currentUserDoc().canManageMusicCatalog == true
+      );
+    }
+
+    function canManageVideoCatalog() {
+      return isOwner() || (
+        claimRole() == "admin"
+        && currentUserDocExists()
+        && currentUserDoc().canManageVideoCatalog == true
+      );
+    }
+
+    function canModerateProfiles() {
+      return isOwner() || (
+        claimRole() == "admin"
+        && currentUserDocExists()
+        && currentUserDoc().canModerateProfiles == true
+      );
     }
 
     function runtimeConfigExists() {
@@ -104,11 +142,15 @@ service cloud.firestore {
         "registrationDateEpochMillis",
         "isAdmin",
         "role",
+        "quotaPlan",
         "aiAccessEnabled",
         "aiTextRequestsPerDay",
         "aiVisualRequestsPerDay",
         "aiAgentRequestsPerDay",
-        "aiHistoryRetentionDays"
+        "aiHistoryRetentionDays",
+        "canManageMusicCatalog",
+        "canManageVideoCatalog",
+        "canModerateProfiles"
       ])
       && requiredString(request.resource.data.email, 5, 160)
       && requiredString(request.resource.data.username, 1, 32)
@@ -121,11 +163,15 @@ service cloud.firestore {
       && request.resource.data.registrationDateEpochMillis is int
       && request.resource.data.isAdmin == false
       && request.resource.data.role == "user"
+      && request.resource.data.quotaPlan == "free"
       && request.resource.data.aiAccessEnabled == true
       && request.resource.data.aiTextRequestsPerDay == 30
       && request.resource.data.aiVisualRequestsPerDay == 4
       && request.resource.data.aiAgentRequestsPerDay == 18
-      && request.resource.data.aiHistoryRetentionDays == 3;
+      && request.resource.data.aiHistoryRetentionDays == 3
+      && request.resource.data.canManageMusicCatalog == false
+      && request.resource.data.canManageVideoCatalog == false
+      && request.resource.data.canModerateProfiles == false;
     }
 
     function validOwnUserUpdatePayload() {
@@ -142,11 +188,15 @@ service cloud.firestore {
       && request.resource.data.registrationDateEpochMillis == resource.data.registrationDateEpochMillis
       && request.resource.data.isAdmin == resource.data.isAdmin
       && request.resource.data.role == resource.data.role
+      && request.resource.data.quotaPlan == resource.data.quotaPlan
       && request.resource.data.aiAccessEnabled == resource.data.aiAccessEnabled
       && request.resource.data.aiTextRequestsPerDay == resource.data.aiTextRequestsPerDay
       && request.resource.data.aiVisualRequestsPerDay == resource.data.aiVisualRequestsPerDay
       && request.resource.data.aiAgentRequestsPerDay == resource.data.aiAgentRequestsPerDay
       && request.resource.data.aiHistoryRetentionDays == resource.data.aiHistoryRetentionDays
+      && request.resource.data.canManageMusicCatalog == resource.data.canManageMusicCatalog
+      && request.resource.data.canManageVideoCatalog == resource.data.canManageVideoCatalog
+      && request.resource.data.canModerateProfiles == resource.data.canModerateProfiles
       && requiredString(request.resource.data.username, 1, 32)
       && optionalMapShortUrl(request.resource.data, "profileImageURL")
       && optionalMapString(request.resource.data, "profileImagePath", 256)
@@ -154,6 +204,51 @@ service cloud.firestore {
       && optionalMapString(request.resource.data, "profileTagline", 60)
       && optionalMapString(request.resource.data, "profileBio", 240)
       && optionalMapString(request.resource.data, "instagramHandle", 40);
+    }
+
+    function validOwnerBootstrapPayload() {
+      return request.resource.data.keys().hasOnly([
+        "email",
+        "username",
+        "profileImageURL",
+        "profileImagePath",
+        "whatsApp",
+        "profileTagline",
+        "profileBio",
+        "instagramHandle",
+        "registrationDateEpochMillis",
+        "isAdmin",
+        "role",
+        "quotaPlan",
+        "aiAccessEnabled",
+        "aiTextRequestsPerDay",
+        "aiVisualRequestsPerDay",
+        "aiAgentRequestsPerDay",
+        "aiHistoryRetentionDays",
+        "canManageMusicCatalog",
+        "canManageVideoCatalog",
+        "canModerateProfiles"
+      ])
+      && requiredString(request.resource.data.email, 5, 160)
+      && requiredString(request.resource.data.username, 1, 32)
+      && optionalMapShortUrl(request.resource.data, "profileImageURL")
+      && optionalMapString(request.resource.data, "profileImagePath", 256)
+      && optionalMapString(request.resource.data, "whatsApp", 40)
+      && optionalMapString(request.resource.data, "profileTagline", 60)
+      && optionalMapString(request.resource.data, "profileBio", 240)
+      && optionalMapString(request.resource.data, "instagramHandle", 40)
+      && request.resource.data.registrationDateEpochMillis is int
+      && request.resource.data.isAdmin == true
+      && request.resource.data.role == "owner"
+      && request.resource.data.quotaPlan == "owner_unlimited"
+      && request.resource.data.aiAccessEnabled == true
+      && request.resource.data.aiTextRequestsPerDay is int
+      && request.resource.data.aiVisualRequestsPerDay is int
+      && request.resource.data.aiAgentRequestsPerDay is int
+      && request.resource.data.aiHistoryRetentionDays == 30
+      && request.resource.data.canManageMusicCatalog == true
+      && request.resource.data.canManageVideoCatalog == true
+      && request.resource.data.canModerateProfiles == true;
     }
 
     function validStaffUserUpdatePayload() {
@@ -169,11 +264,15 @@ service cloud.firestore {
         "registrationDateEpochMillis",
         "isAdmin",
         "role",
+        "quotaPlan",
         "aiAccessEnabled",
         "aiTextRequestsPerDay",
         "aiVisualRequestsPerDay",
         "aiAgentRequestsPerDay",
         "aiHistoryRetentionDays",
+        "canManageMusicCatalog",
+        "canManageVideoCatalog",
+        "canModerateProfiles",
         "claimsSyncedAt",
         "claimsUpdatedByUid",
         "claimsUpdatedByEmail"
@@ -188,12 +287,22 @@ service cloud.firestore {
       && optionalMapString(request.resource.data, "instagramHandle", 40)
       && request.resource.data.registrationDateEpochMillis is int
       && request.resource.data.role in ["owner", "admin", "subadmin", "user"]
+      && request.resource.data.quotaPlan in [
+        "owner_unlimited",
+        "internal_team",
+        "free",
+        "creator",
+        "studio"
+      ]
       && request.resource.data.isAdmin is bool
       && request.resource.data.aiAccessEnabled is bool
       && request.resource.data.aiTextRequestsPerDay is int
       && request.resource.data.aiVisualRequestsPerDay is int
       && request.resource.data.aiAgentRequestsPerDay is int
-      && request.resource.data.aiHistoryRetentionDays in [1, 3, 7, 30];
+      && request.resource.data.aiHistoryRetentionDays in [1, 3, 7, 30]
+      && request.resource.data.canManageMusicCatalog is bool
+      && request.resource.data.canManageVideoCatalog is bool
+      && request.resource.data.canModerateProfiles is bool;
     }
 
     function validUserProfilePayload(uid) {
@@ -263,7 +372,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow create: if isSelf(uid)
         && registrationWriteAllowed()
-        && validUserCreatePayload();
+        && (validUserCreatePayload() || (isOwnerEmail() && validOwnerBootstrapPayload()));
 
       allow read: if isSelf(uid) || isAdmin();
 
@@ -294,7 +403,7 @@ service cloud.firestore {
         && regularUserWriteAllowed()
         && validUserProfilePayload(uid);
 
-      allow read: if isSelf(uid) || isModerator();
+      allow read: if isSelf(uid) || canModerateProfiles();
 
       allow update: if (
         isSelf(uid)
@@ -316,7 +425,7 @@ service cloud.firestore {
         && uploadsEnabled()
         && validGalleryMetaPayload(uid);
 
-      allow read: if isSelf(uid) || isModerator();
+      allow read: if isSelf(uid) || canModerateProfiles();
 
       allow update: if (
         isSelf(uid)
@@ -326,14 +435,11 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
       );
 
-      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isModerator();
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || canModerateProfiles();
     }
 
     match /admin/{docId} {
-      allow read: if isAdmin() || (
-        claimRole() == "subadmin" && docId.matches("^moderation_[A-Za-z0-9_-]+$")
-      );
-      allow create, update, delete: if isAdmin();
+      allow read, create, update, delete: if isOwner();
     }
 
     match /merchandise/{itemId} {
@@ -362,18 +468,18 @@ service cloud.firestore {
     }
 
     match /nicmaBeatHub/{beatId} {
-      allow read: if isAdmin() || resource.data.isPublic == true;
-      allow create, update, delete: if isAdmin();
+      allow read: if canManageMusicCatalog() || resource.data.isPublic == true;
+      allow create, update, delete: if canManageMusicCatalog();
     }
 
     match /videographyHub/{videoId} {
-      allow read: if isAdmin() || resource.data.isPublic == true;
-      allow create, update, delete: if isAdmin();
+      allow read: if canManageVideoCatalog() || resource.data.isPublic == true;
+      allow create, update, delete: if canManageVideoCatalog();
     }
 
     match /videographyHubMeta/{documentId} {
       allow read: if documentId == "publicConfig";
-      allow create, update, delete: if isAdmin() && documentId == "publicConfig";
+      allow create, update, delete: if canManageVideoCatalog() && documentId == "publicConfig";
     }
 
     match /{document=**} {

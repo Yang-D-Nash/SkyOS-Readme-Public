@@ -239,7 +239,7 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
             "uploaderName": currentUser?.username ?? request.artistName,
             "uploaderEmail": currentUser?.email ?? request.email,
             "uploaderID": currentUser?.id ?? "",
-            "isPublic": currentUser?.isAdmin == true,
+            "isPublic": currentUser?.canManageMusic == true,
             "createdAt": Timestamp()
         ]
 
@@ -390,7 +390,7 @@ final class NicmaProducerViewModel: ObservableObject {
 
     func configure(currentUser: User?) {
         self.currentUser = currentUser
-        let nextIsAdmin = currentUser?.isAdmin == true
+        let nextIsAdmin = currentUser?.canManageMusic == true
         isAdmin = nextIsAdmin
 
         if email.isEmpty {
@@ -810,7 +810,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             "uploaderName": currentUser?.username ?? request.projectName,
             "uploaderEmail": currentUser?.email ?? request.email,
             "uploaderID": currentUser?.id ?? "",
-            "isPublic": currentUser?.isAdmin == true,
+            "isPublic": currentUser?.canManageVideos == true,
             "isHomeFeatured": false,
             "createdAt": Timestamp()
         ]
@@ -1048,7 +1048,7 @@ final class SkydownVideoHubViewModel: ObservableObject {
 
     func configure(currentUser: User?) {
         self.currentUser = currentUser
-        let nextIsAdmin = currentUser?.isAdmin == true
+        let nextIsAdmin = currentUser?.canManageVideos == true
         isAdmin = nextIsAdmin
 
         if email.isEmpty {

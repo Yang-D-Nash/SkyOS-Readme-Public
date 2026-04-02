@@ -11,6 +11,7 @@ import com.google.firebase.storage.StorageMetadata
 import com.skydown.android.ui.model.NicmaBeatHubItem
 import com.skydown.android.ui.model.NicmaSelectedBeatFile
 import com.skydown.shared.model.User
+import com.skydown.shared.model.canManageMusic
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
@@ -145,7 +146,7 @@ class NicmaBeatUploadService(
                 "uploaderName" to (currentUser?.username ?: request.artistName),
                 "uploaderEmail" to (currentUser?.email ?: request.email),
                 "uploaderID" to (currentUser?.id.orEmpty()),
-                "isPublic" to (currentUser?.isAdmin == true),
+                "isPublic" to (currentUser?.canManageMusic == true),
                 "createdAt" to FieldValue.serverTimestamp(),
             ),
         ).await()

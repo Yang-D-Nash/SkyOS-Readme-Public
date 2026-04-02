@@ -91,7 +91,7 @@ class CartViewModel: ObservableObject {
             showUserToast("Warenkorb ist leer.", style: .error)
             return false
         }
-        guard isCheckoutAvailable || authManager.userSession?.isAdmin == true else {
+        guard isCheckoutAvailable || authManager.userSession?.isPlatformOwner == true else {
             showUserToast("Der Merchandise-Store ist gerade pausiert.", style: .error)
             return false
         }

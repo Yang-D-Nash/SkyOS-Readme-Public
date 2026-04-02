@@ -2,6 +2,7 @@ package com.skydown.android
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
+import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
@@ -10,15 +11,21 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 class SkydownApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        FirebaseApp.initializeApp(this)
+        runCatching {
+            if (FirebaseApp.getApps(this).isEmpty()) {
+                FirebaseApp.initializeApp(this)
+            }
 
-        val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        val providerFactory = if (isDebuggable) {
-            DebugAppCheckProviderFactory.getInstance()
-        } else {
-            PlayIntegrityAppCheckProviderFactory.getInstance()
+            val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+            val providerFactory = if (isDebuggable) {
+                DebugAppCheckProviderFactory.getInstance()
+            } else {
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            }
+
+            FirebaseAppCheck.getInstance().installAppCheckProviderFactory(providerFactory)
+        }.onFailure { error ->
+            Log.e("SkydownApplication", "Firebase App Check konnte nicht initialisiert werden.", error)
         }
-
-        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(providerFactory)
     }
 }

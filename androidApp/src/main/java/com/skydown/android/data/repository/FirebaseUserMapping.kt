@@ -3,6 +3,7 @@ package com.skydown.android.data.repository
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.DocumentSnapshot
 import com.skydown.shared.model.User
+import com.skydown.shared.model.UserQuotaPlan
 import com.skydown.shared.model.UserRole
 
 internal fun FirebaseUser.toSharedUser(
@@ -10,6 +11,7 @@ internal fun FirebaseUser.toSharedUser(
 ): User {
     val fallbackEmail = email.orEmpty().lowercase()
     val resolvedRole = UserRole.resolve(rawValue = null, isAdmin = isAdmin, email = fallbackEmail)
+    val quotaPlan = UserQuotaPlan.defaultPlanFor(resolvedRole)
     return User(
         id = uid,
         email = fallbackEmail,
@@ -24,11 +26,15 @@ internal fun FirebaseUser.toSharedUser(
         registrationDateEpochMillis = metadata?.creationTimestamp ?: System.currentTimeMillis(),
         isAdmin = isAdmin,
         role = resolvedRole.rawValue,
+        quotaPlan = quotaPlan.rawValue,
         aiAccessEnabled = true,
-        aiTextRequestsPerDay = resolvedRole.defaultAiTextRequestsPerDay,
-        aiVisualRequestsPerDay = resolvedRole.defaultAiVisualRequestsPerDay,
-        aiAgentRequestsPerDay = resolvedRole.defaultAiAgentRequestsPerDay,
-        aiHistoryRetentionDays = resolvedRole.defaultAiHistoryRetentionDays,
+        aiTextRequestsPerDay = quotaPlan.aiTextRequestsPerDay,
+        aiVisualRequestsPerDay = quotaPlan.aiVisualRequestsPerDay,
+        aiAgentRequestsPerDay = quotaPlan.aiAgentRequestsPerDay,
+        aiHistoryRetentionDays = quotaPlan.aiHistoryRetentionDays,
+        canManageMusicCatalog = resolvedRole == UserRole.Owner,
+        canManageVideoCatalog = resolvedRole == UserRole.Owner,
+        canModerateProfiles = resolvedRole == UserRole.Owner,
     )
 }
 
@@ -51,6 +57,10 @@ internal fun DocumentSnapshot.toSharedUser(authUser: FirebaseUser? = null): User
         isAdmin = storedIsAdmin,
         email = email,
     )
+    val resolvedQuotaPlan = UserQuotaPlan.resolve(
+        data["quotaPlan"] as? String,
+        resolvedRole,
+    )
 
     return User(
         id = id,
@@ -67,14 +77,18 @@ internal fun DocumentSnapshot.toSharedUser(authUser: FirebaseUser? = null): User
             ?: System.currentTimeMillis(),
         isAdmin = resolvedRole.hasStaffAccess,
         role = resolvedRole.rawValue,
+        quotaPlan = resolvedQuotaPlan.rawValue,
         aiAccessEnabled = data["aiAccessEnabled"] as? Boolean ?: true,
         aiTextRequestsPerDay = (data["aiTextRequestsPerDay"] as? Number)?.toInt()
-            ?: resolvedRole.defaultAiTextRequestsPerDay,
+            ?: resolvedQuotaPlan.aiTextRequestsPerDay,
         aiVisualRequestsPerDay = (data["aiVisualRequestsPerDay"] as? Number)?.toInt()
-            ?: resolvedRole.defaultAiVisualRequestsPerDay,
+            ?: resolvedQuotaPlan.aiVisualRequestsPerDay,
         aiAgentRequestsPerDay = (data["aiAgentRequestsPerDay"] as? Number)?.toInt()
-            ?: resolvedRole.defaultAiAgentRequestsPerDay,
+            ?: resolvedQuotaPlan.aiAgentRequestsPerDay,
         aiHistoryRetentionDays = (data["aiHistoryRetentionDays"] as? Number)?.toInt()
-            ?: resolvedRole.defaultAiHistoryRetentionDays,
+            ?: resolvedQuotaPlan.aiHistoryRetentionDays,
+        canManageMusicCatalog = data["canManageMusicCatalog"] as? Boolean ?: (resolvedRole == UserRole.Owner),
+        canManageVideoCatalog = data["canManageVideoCatalog"] as? Boolean ?: (resolvedRole == UserRole.Owner),
+        canModerateProfiles = data["canModerateProfiles"] as? Boolean ?: (resolvedRole == UserRole.Owner),
     )
 }

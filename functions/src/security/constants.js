@@ -11,6 +11,14 @@ const USER_ROLES = Object.freeze({
 
 const VALID_ROLES = Object.freeze(Object.values(USER_ROLES));
 
+const USER_QUOTA_PLANS = Object.freeze({
+  ownerUnlimited: "owner_unlimited",
+  internalTeam: "internal_team",
+  free: "free",
+  creator: "creator",
+  studio: "studio",
+});
+
 const APP_CHECK_MODES = Object.freeze({
   off: "off",
   monitor: "monitor",
@@ -55,6 +63,7 @@ module.exports = {
   SECURITY_LIMITS,
   UPLOAD_SLOT_COLLECTION,
   UPLOAD_USAGE_COLLECTION,
+  USER_QUOTA_PLANS,
   USER_ROLES,
   VALID_ROLES,
 };

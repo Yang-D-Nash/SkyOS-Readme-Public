@@ -10,6 +10,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.shared.model.ContactRequest
 import com.skydown.shared.model.OrderSubmission
 import com.skydown.shared.model.ShippingAddressData
+import com.skydown.shared.model.isPlatformOwner
 import com.skydown.shared.usecase.CartUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +41,7 @@ class CartViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isLoggedIn = user != null,
-                        isAdmin = user?.isAdmin == true,
+                        isAdmin = user?.isPlatformOwner == true,
                         name = user?.username.orEmpty(),
                         email = user?.email.orEmpty(),
                         whatsApp = user?.whatsApp.orEmpty(),

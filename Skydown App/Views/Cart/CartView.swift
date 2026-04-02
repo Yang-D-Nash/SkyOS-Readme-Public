@@ -58,7 +58,7 @@ struct CartView: View {
     }
 
     private var isAdmin: Bool {
-        authManager.userSession?.isAdmin == true
+        authManager.userSession?.isPlatformOwner == true
     }
 
     private var isCheckoutAvailable: Bool {

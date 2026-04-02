@@ -614,7 +614,7 @@ struct SettingsView: View {
 
             case .users:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Hier steuerst du, welche Konten normaler User, Unteradmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.")
+                    Text("Hier steuerst du, welche Konten normaler User, Subadmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2309,11 +2309,15 @@ private struct SettingsAdminUserCard: View {
     let onSave: (User) -> Void
 
     @State private var draftRole: UserRole
+    @State private var draftQuotaPlan: UserQuotaPlan
     @State private var aiAccessEnabled: Bool
     @State private var textLimitDraft: String
     @State private var visualLimitDraft: String
     @State private var agentLimitDraft: String
     @State private var historyRetentionDays: Int
+    @State private var canManageMusicCatalog: Bool
+    @State private var canManageVideoCatalog: Bool
+    @State private var canModerateProfiles: Bool
 
     init(
         user: User,
@@ -2327,11 +2331,15 @@ private struct SettingsAdminUserCard: View {
         self.onSave = onSave
 
         _draftRole = State(initialValue: user.resolvedRole)
+        _draftQuotaPlan = State(initialValue: user.resolvedQuotaPlan)
         _aiAccessEnabled = State(initialValue: user.aiAccessEnabled)
         _textLimitDraft = State(initialValue: String(user.resolvedAITextRequestsPerDay))
         _visualLimitDraft = State(initialValue: String(user.resolvedAIVisualRequestsPerDay))
         _agentLimitDraft = State(initialValue: String(user.resolvedAIAgentRequestsPerDay))
         _historyRetentionDays = State(initialValue: user.resolvedAIHistoryRetentionDays)
+        _canManageMusicCatalog = State(initialValue: user.canManageMusic)
+        _canManageVideoCatalog = State(initialValue: user.canManageVideos)
+        _canModerateProfiles = State(initialValue: user.canModerateUserProfiles)
     }
 
     var body: some View {
@@ -2398,6 +2406,14 @@ private struct SettingsAdminUserCard: View {
                 }
             }
 
+            if draftRole == .owner {
+                ownerControlNote
+            } else if draftRole == .admin {
+                adminCapabilitiesSection
+            } else {
+                quotaPlanSection
+            }
+
             SettingsToggleCard(
                 colorScheme: colorScheme,
                 title: "KI fuer dieses Konto aktiv",
@@ -2461,16 +2477,78 @@ private struct SettingsAdminUserCard: View {
         .padding(16)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .onChange(of: draftRole) { _, newRole in
+            let recommendedPlan = UserQuotaPlan.defaultPlan(for: newRole)
+            switch newRole {
+            case .owner:
+                draftQuotaPlan = .ownerUnlimited
+                canManageMusicCatalog = true
+                canManageVideoCatalog = true
+                canModerateProfiles = true
+            case .admin:
+                draftQuotaPlan = .internalTeam
+                canManageMusicCatalog = user.canManageMusic
+                canManageVideoCatalog = user.canManageVideos
+                canModerateProfiles = user.canModerateUserProfiles
+            case .subadmin:
+                if draftQuotaPlan == .ownerUnlimited || draftQuotaPlan == .internalTeam || draftQuotaPlan == .free {
+                    draftQuotaPlan = .creator
+                }
+                canManageMusicCatalog = false
+                canManageVideoCatalog = false
+                canModerateProfiles = false
+            case .user:
+                draftQuotaPlan = .free
+                canManageMusicCatalog = false
+                canManageVideoCatalog = false
+                canModerateProfiles = false
+            }
+            textLimitDraft = String(recommendedPlan.aiTextRequestsPerDay)
+            visualLimitDraft = String(recommendedPlan.aiVisualRequestsPerDay)
+            agentLimitDraft = String(recommendedPlan.aiAgentRequestsPerDay)
+            historyRetentionDays = recommendedPlan.aiHistoryRetentionDays
+        }
+        .onChange(of: draftQuotaPlan) { _, newPlan in
+            guard draftRole == .subadmin || draftRole == .user else { return }
+            textLimitDraft = String(newPlan.aiTextRequestsPerDay)
+            visualLimitDraft = String(newPlan.aiVisualRequestsPerDay)
+            agentLimitDraft = String(newPlan.aiAgentRequestsPerDay)
+            historyRetentionDays = newPlan.aiHistoryRetentionDays
+        }
     }
 
     private func buildUpdatedUser() -> User {
         var updatedUser = user
         updatedUser.role = draftRole.rawValue
         updatedUser.isAdmin = draftRole.hasStaffAccess
+        let finalQuotaPlan: UserQuotaPlan
+        switch draftRole {
+        case .owner:
+            finalQuotaPlan = .ownerUnlimited
+            updatedUser.canManageMusicCatalog = true
+            updatedUser.canManageVideoCatalog = true
+            updatedUser.canModerateProfiles = true
+        case .admin:
+            finalQuotaPlan = .internalTeam
+            updatedUser.canManageMusicCatalog = canManageMusicCatalog
+            updatedUser.canManageVideoCatalog = canManageVideoCatalog
+            updatedUser.canModerateProfiles = canModerateProfiles
+        case .subadmin:
+            finalQuotaPlan = draftQuotaPlan == .studio ? .studio : .creator
+            updatedUser.canManageMusicCatalog = false
+            updatedUser.canManageVideoCatalog = false
+            updatedUser.canModerateProfiles = false
+        case .user:
+            finalQuotaPlan = .free
+            updatedUser.canManageMusicCatalog = false
+            updatedUser.canManageVideoCatalog = false
+            updatedUser.canModerateProfiles = false
+        }
+        updatedUser.quotaPlan = finalQuotaPlan.rawValue
         updatedUser.aiAccessEnabled = aiAccessEnabled
-        updatedUser.aiTextRequestsPerDay = sanitizedLimit(textLimitDraft, fallback: draftRole.defaultAITextRequestsPerDay)
-        updatedUser.aiVisualRequestsPerDay = sanitizedLimit(visualLimitDraft, fallback: draftRole.defaultAIVisualRequestsPerDay)
-        updatedUser.aiAgentRequestsPerDay = sanitizedLimit(agentLimitDraft, fallback: draftRole.defaultAIAgentRequestsPerDay)
+        updatedUser.aiTextRequestsPerDay = sanitizedLimit(textLimitDraft, fallback: finalQuotaPlan.aiTextRequestsPerDay)
+        updatedUser.aiVisualRequestsPerDay = sanitizedLimit(visualLimitDraft, fallback: finalQuotaPlan.aiVisualRequestsPerDay)
+        updatedUser.aiAgentRequestsPerDay = sanitizedLimit(agentLimitDraft, fallback: finalQuotaPlan.aiAgentRequestsPerDay)
         updatedUser.aiHistoryRetentionDays = historyRetentionDays
         return updatedUser
     }
@@ -2483,6 +2561,92 @@ private struct SettingsAdminUserCard: View {
 
         return value
     }
+
+    private var ownerControlNote: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Owner-Kontrolle")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Dieses Konto bleibt der zentrale Root-Zugang. Shopify, Zahlungen, Rollen, n8n und Recovery laufen nur hier.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+    }
+
+    private var adminCapabilitiesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Zugewiesene Funktionen")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            SettingsToggleCard(
+                colorScheme: colorScheme,
+                title: "Music verwalten",
+                subtitle: "Beats, Releases und Upload-Freigaben pflegen.",
+                isOn: $canManageMusicCatalog
+            )
+
+            SettingsToggleCard(
+                colorScheme: colorScheme,
+                title: "Video verwalten",
+                subtitle: "Video Hub, Uploads und Home-Highlights steuern.",
+                isOn: $canManageVideoCatalog
+            )
+
+            SettingsToggleCard(
+                colorScheme: colorScheme,
+                title: "Profile moderieren",
+                subtitle: "Profile und Galerie-Inhalte fuer Support und Moderation einsehen.",
+                isOn: $canModerateProfiles
+            )
+        }
+    }
+
+    private var quotaPlanSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(draftRole == .subadmin ? "Kontingentmodell" : "Kontingent")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            if draftRole == .user {
+                HStack(spacing: 10) {
+                    SettingsBadge(text: UserQuotaPlan.free.displayTitle, colorScheme: colorScheme)
+                    Text(UserQuotaPlan.free.planSummary)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            } else {
+                Menu {
+                    ForEach([UserQuotaPlan.creator, UserQuotaPlan.studio], id: \.self) { plan in
+                        Button(plan.displayTitle) {
+                            draftQuotaPlan = plan
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(draftQuotaPlan.displayTitle)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.bold))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Text(draftQuotaPlan.planSummary)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+        }
+    }
 }
 
 private extension UserRole {
@@ -2493,7 +2657,7 @@ private extension UserRole {
         case .admin:
             return "Admin"
         case .subadmin:
-            return "Unteradmin"
+            return "Subadmin"
         case .user:
             return "User"
         }
@@ -2502,13 +2666,45 @@ private extension UserRole {
     var roleSummary: String {
         switch self {
         case .owner:
-            return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Voller Zugriff auf alles, inklusive sensibler Settings, Nutzerverwaltung und KI-Limits."
+            return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf alles, inklusive Shopify, Zahlungen, Rollen, n8n und Recovery."
         case .admin:
-            return "Teaminterne Leute fuer operative Inhalte und Backoffice-Aufgaben. Kein Zugriff auf Owner-Systembereiche wie Shopify, Zahlarten, Nutzerrollen oder n8n. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
+            return "Teaminterne Leute. Der Owner weist ihnen gezielt Funktionen wie Music, Video oder Profil-Moderation zu. Kein Zugriff auf Owner-Systembereiche."
         case .subadmin:
-            return "Externe Power-User fuer die oeffentliche App. Mehr persoenliche KI-Power und laengere History als normale User, aber kein interner Admin-Workspace."
+            return "Externe Premium-Konten mit buchbarem Kontingentmodell. Kein Admin-Workspace, keine Owner-Rechte."
         case .user:
-            return "Normales Nutzerkonto fuer die oeffentliche App. Persoenliche KI-History und kleinere Tageslimits. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
+            return "Normales Nutzerkonto mit Free-Kontingent. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
+        }
+    }
+}
+
+private extension UserQuotaPlan {
+    var displayTitle: String {
+        switch self {
+        case .ownerUnlimited:
+            return "Owner Unlimited"
+        case .internalTeam:
+            return "Internal Team"
+        case .free:
+            return "Free"
+        case .creator:
+            return "Creator"
+        case .studio:
+            return "Studio"
+        }
+    }
+
+    var planSummary: String {
+        switch self {
+        case .ownerUnlimited:
+            return "Praktisch unbegrenztes Owner-Kontingent fuer Systemsteuerung, Tests und Recovery."
+        case .internalTeam:
+            return "Internes Team-Kontingent fuer feste Mitarbeiter."
+        case .free:
+            return "Basiszugang mit kleinem Free-Kontingent."
+        case .creator:
+            return "Erweitertes Creator-Kontingent fuer regelmaessige Nutzung."
+        case .studio:
+            return "Grosses Studio-Kontingent fuer intensivere Nutzung und laengere History."
         }
     }
 }

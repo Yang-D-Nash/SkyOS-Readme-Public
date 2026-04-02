@@ -43,66 +43,116 @@ enum UserRole: String, Codable, CaseIterable {
 
     var hasAdminWorkspaceAccess: Bool {
         switch self {
-        case .owner, .admin:
+        case .owner:
             return true
-        case .subadmin, .user:
+        case .admin, .subadmin, .user:
             return false
         }
     }
 
     var defaultAITextRequestsPerDay: Int {
-        switch self {
-        case .owner:
-            return 400
-        case .admin:
-            return 240
-        case .subadmin:
-            return 120
-        case .user:
-            return 30
-        }
+        UserQuotaPlan.defaultPlan(for: self).aiTextRequestsPerDay
     }
 
     var defaultAIVisualRequestsPerDay: Int {
-        switch self {
-        case .owner:
-            return 80
-        case .admin:
-            return 40
-        case .subadmin:
-            return 20
-        case .user:
-            return 4
-        }
+        UserQuotaPlan.defaultPlan(for: self).aiVisualRequestsPerDay
     }
 
     var defaultAIAgentRequestsPerDay: Int {
-        switch self {
-        case .owner:
-            return 250
-        case .admin:
-            return 140
-        case .subadmin:
-            return 70
-        case .user:
-            return 18
-        }
+        UserQuotaPlan.defaultPlan(for: self).aiAgentRequestsPerDay
     }
 
     var defaultAIHistoryRetentionDays: Int {
-        switch self {
-        case .owner, .admin:
-            return 30
-        case .subadmin:
-            return 7
-        case .user:
-            return 3
-        }
+        UserQuotaPlan.defaultPlan(for: self).aiHistoryRetentionDays
     }
 
     private static func normalizedEmail(_ email: String?) -> String? {
         let trimmed = email?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+enum UserQuotaPlan: String, Codable, CaseIterable {
+    case ownerUnlimited = "owner_unlimited"
+    case internalTeam = "internal_team"
+    case free = "free"
+    case creator = "creator"
+    case studio = "studio"
+
+    static func defaultPlan(for role: UserRole) -> UserQuotaPlan {
+        switch role {
+        case .owner:
+            return .ownerUnlimited
+        case .admin:
+            return .internalTeam
+        case .subadmin:
+            return .creator
+        case .user:
+            return .free
+        }
+    }
+
+    static func resolve(from rawValue: String?, role: UserRole) -> UserQuotaPlan {
+        let normalized = rawValue?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return normalized.flatMap(UserQuotaPlan.init(rawValue:)) ?? defaultPlan(for: role)
+    }
+
+    var aiTextRequestsPerDay: Int {
+        switch self {
+        case .ownerUnlimited:
+            return 5000
+        case .internalTeam:
+            return 240
+        case .free:
+            return 30
+        case .creator:
+            return 120
+        case .studio:
+            return 240
+        }
+    }
+
+    var aiVisualRequestsPerDay: Int {
+        switch self {
+        case .ownerUnlimited:
+            return 1200
+        case .internalTeam:
+            return 40
+        case .free:
+            return 4
+        case .creator:
+            return 20
+        case .studio:
+            return 40
+        }
+    }
+
+    var aiAgentRequestsPerDay: Int {
+        switch self {
+        case .ownerUnlimited:
+            return 3000
+        case .internalTeam:
+            return 140
+        case .free:
+            return 18
+        case .creator:
+            return 70
+        case .studio:
+            return 140
+        }
+    }
+
+    var aiHistoryRetentionDays: Int {
+        switch self {
+        case .ownerUnlimited, .internalTeam, .studio:
+            return 30
+        case .creator:
+            return 7
+        case .free:
+            return 3
+        }
     }
 }
 
@@ -118,14 +168,22 @@ struct User: Codable, Identifiable {
     var registrationDate: Date
     var isAdmin: Bool = false
     var role: String = UserRole.user.rawValue
+    var quotaPlan: String = UserQuotaPlan.free.rawValue
     var aiAccessEnabled: Bool = true
     var aiTextRequestsPerDay: Int = UserRole.user.defaultAITextRequestsPerDay
     var aiVisualRequestsPerDay: Int = UserRole.user.defaultAIVisualRequestsPerDay
     var aiAgentRequestsPerDay: Int = UserRole.user.defaultAIAgentRequestsPerDay
     var aiHistoryRetentionDays: Int = UserRole.user.defaultAIHistoryRetentionDays
+    var canManageMusicCatalog: Bool = false
+    var canManageVideoCatalog: Bool = false
+    var canModerateProfiles: Bool = false
 
     var resolvedRole: UserRole {
         UserRole.resolve(from: role, isAdmin: isAdmin, email: email)
+    }
+
+    var resolvedQuotaPlan: UserQuotaPlan {
+        UserQuotaPlan.resolve(from: quotaPlan, role: resolvedRole)
     }
 
     var hasStaffAccess: Bool {
@@ -136,16 +194,28 @@ struct User: Codable, Identifiable {
         resolvedRole.hasAdminWorkspaceAccess
     }
 
+    var canManageMusic: Bool {
+        isPlatformOwner || (resolvedRole == .admin && canManageMusicCatalog)
+    }
+
+    var canManageVideos: Bool {
+        isPlatformOwner || (resolvedRole == .admin && canManageVideoCatalog)
+    }
+
+    var canModerateUserProfiles: Bool {
+        isPlatformOwner || (resolvedRole == .admin && canModerateProfiles)
+    }
+
     var resolvedAITextRequestsPerDay: Int {
-        max(aiTextRequestsPerDay, resolvedRole.defaultAITextRequestsPerDay)
+        max(aiTextRequestsPerDay, resolvedQuotaPlan.aiTextRequestsPerDay)
     }
 
     var resolvedAIVisualRequestsPerDay: Int {
-        max(aiVisualRequestsPerDay, resolvedRole.defaultAIVisualRequestsPerDay)
+        max(aiVisualRequestsPerDay, resolvedQuotaPlan.aiVisualRequestsPerDay)
     }
 
     var resolvedAIAgentRequestsPerDay: Int {
-        max(aiAgentRequestsPerDay, resolvedRole.defaultAIAgentRequestsPerDay)
+        max(aiAgentRequestsPerDay, resolvedQuotaPlan.aiAgentRequestsPerDay)
     }
 
     var resolvedAIHistoryRetentionDays: Int {

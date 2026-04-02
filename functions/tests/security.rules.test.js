@@ -47,11 +47,15 @@ async function seedUser(uid, overrides = {}) {
       registrationDateEpochMillis: 1_700_000_000_000,
       isAdmin: false,
       role: "user",
+      quotaPlan: "free",
       aiAccessEnabled: true,
       aiTextRequestsPerDay: 30,
       aiVisualRequestsPerDay: 4,
       aiAgentRequestsPerDay: 18,
       aiHistoryRetentionDays: 3,
+      canManageMusicCatalog: false,
+      canManageVideoCatalog: false,
+      canModerateProfiles: false,
       ...overrides,
     });
   });
@@ -146,7 +150,7 @@ test("owner und admin duerfen User-Daten lesen, subadmin nicht", async () => {
   await assertFails(getDoc(doc(subadminDb, "users", "alice")));
 });
 
-test("subadmin darf Moderationsdokument lesen, aber keine Admin-Settings aendern", async () => {
+test("subadmin bleibt ausserhalb von Owner- und Admin-Bereichen", async () => {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), "admin", "moderation_queue"), {
       title: "Queue",
@@ -158,7 +162,7 @@ test("subadmin darf Moderationsdokument lesen, aber keine Admin-Settings aendern
 
   const subadminDb = testEnv.authenticatedContext("sub1", {role: "subadmin"}).firestore();
 
-  await assertSucceeds(getDoc(doc(subadminDb, "admin", "moderation_queue")));
+  await assertFails(getDoc(doc(subadminDb, "admin", "moderation_queue")));
   await assertFails(updateDoc(doc(subadminDb, "admin", "settings"), {
     title: "Nope",
   }));

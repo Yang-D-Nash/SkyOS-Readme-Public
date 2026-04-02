@@ -120,6 +120,7 @@ final class FirebaseAuthService: AuthServicing {
         try await syncSessionClaims(for: result.user)
         let registeredEmail = result.user.email?.trimmedNilIfEmpty ?? normalizedEmail
         let role: UserRole = .user
+        let quotaPlan = UserQuotaPlan.defaultPlan(for: role)
         let newUser = User(
             id: nil,
             email: registeredEmail,
@@ -128,11 +129,15 @@ final class FirebaseAuthService: AuthServicing {
             registrationDate: Date(),
             isAdmin: role.hasStaffAccess,
             role: role.rawValue,
+            quotaPlan: quotaPlan.rawValue,
             aiAccessEnabled: true,
-            aiTextRequestsPerDay: role.defaultAITextRequestsPerDay,
-            aiVisualRequestsPerDay: role.defaultAIVisualRequestsPerDay,
-            aiAgentRequestsPerDay: role.defaultAIAgentRequestsPerDay,
-            aiHistoryRetentionDays: role.defaultAIHistoryRetentionDays
+            aiTextRequestsPerDay: quotaPlan.aiTextRequestsPerDay,
+            aiVisualRequestsPerDay: quotaPlan.aiVisualRequestsPerDay,
+            aiAgentRequestsPerDay: quotaPlan.aiAgentRequestsPerDay,
+            aiHistoryRetentionDays: quotaPlan.aiHistoryRetentionDays,
+            canManageMusicCatalog: false,
+            canManageVideoCatalog: false,
+            canModerateProfiles: false
         )
 
         try firestore.collection("users").document(result.user.uid).setData(from: newUser)
@@ -281,14 +286,18 @@ final class FirebaseAuthService: AuthServicing {
         )
         let isAdmin = resolvedRole.hasStaffAccess
         let aiAccessEnabled = data["aiAccessEnabled"] as? Bool ?? true
+        let resolvedQuotaPlan = UserQuotaPlan.resolve(
+            from: data["quotaPlan"] as? String,
+            role: resolvedRole
+        )
         let aiTextRequestsPerDay = (data["aiTextRequestsPerDay"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAITextRequestsPerDay
+            ?? resolvedQuotaPlan.aiTextRequestsPerDay
         let aiVisualRequestsPerDay = (data["aiVisualRequestsPerDay"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAIVisualRequestsPerDay
+            ?? resolvedQuotaPlan.aiVisualRequestsPerDay
         let aiAgentRequestsPerDay = (data["aiAgentRequestsPerDay"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAIAgentRequestsPerDay
+            ?? resolvedQuotaPlan.aiAgentRequestsPerDay
         let aiHistoryRetentionDays = (data["aiHistoryRetentionDays"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAIHistoryRetentionDays
+            ?? resolvedQuotaPlan.aiHistoryRetentionDays
 
         let registrationDate: Date
         if let timestamp = data["registrationDate"] as? Timestamp {
@@ -313,11 +322,15 @@ final class FirebaseAuthService: AuthServicing {
             registrationDate: registrationDate,
             isAdmin: isAdmin,
             role: resolvedRole.rawValue,
+            quotaPlan: resolvedQuotaPlan.rawValue,
             aiAccessEnabled: aiAccessEnabled,
             aiTextRequestsPerDay: aiTextRequestsPerDay,
             aiVisualRequestsPerDay: aiVisualRequestsPerDay,
             aiAgentRequestsPerDay: aiAgentRequestsPerDay,
-            aiHistoryRetentionDays: aiHistoryRetentionDays
+            aiHistoryRetentionDays: aiHistoryRetentionDays,
+            canManageMusicCatalog: (data["canManageMusicCatalog"] as? Bool) ?? (resolvedRole == .owner),
+            canManageVideoCatalog: (data["canManageVideoCatalog"] as? Bool) ?? (resolvedRole == .owner),
+            canModerateProfiles: (data["canModerateProfiles"] as? Bool) ?? (resolvedRole == .owner)
         )
     }
 
@@ -334,6 +347,7 @@ final class FirebaseAuthService: AuthServicing {
             fallbackEmail: email
         )
         let bootstrapRole = UserRole.resolve(from: nil, isAdmin: false, email: email)
+        let bootstrapQuotaPlan = UserQuotaPlan.defaultPlan(for: bootstrapRole)
 
         guard snapshot.exists else {
             try await ensureRegistrationAllowedForBootstrap(authUser: authUser, bootstrapRole: bootstrapRole)
@@ -344,13 +358,17 @@ final class FirebaseAuthService: AuthServicing {
                 profileImageURL: nil,
                 whatsApp: nil,
                 registrationDate: authUser.metadata.creationDate ?? .now,
-                isAdmin: false,
-                role: UserRole.user.rawValue,
+                isAdmin: bootstrapRole.hasStaffAccess,
+                role: bootstrapRole.rawValue,
+                quotaPlan: bootstrapQuotaPlan.rawValue,
                 aiAccessEnabled: true,
-                aiTextRequestsPerDay: UserRole.user.defaultAITextRequestsPerDay,
-                aiVisualRequestsPerDay: UserRole.user.defaultAIVisualRequestsPerDay,
-                aiAgentRequestsPerDay: UserRole.user.defaultAIAgentRequestsPerDay,
-                aiHistoryRetentionDays: UserRole.user.defaultAIHistoryRetentionDays
+                aiTextRequestsPerDay: bootstrapQuotaPlan.aiTextRequestsPerDay,
+                aiVisualRequestsPerDay: bootstrapQuotaPlan.aiVisualRequestsPerDay,
+                aiAgentRequestsPerDay: bootstrapQuotaPlan.aiAgentRequestsPerDay,
+                aiHistoryRetentionDays: bootstrapQuotaPlan.aiHistoryRetentionDays,
+                canManageMusicCatalog: bootstrapRole == .owner,
+                canManageVideoCatalog: bootstrapRole == .owner,
+                canModerateProfiles: bootstrapRole == .owner
             )
 
             try documentReference.setData(from: newUser)
@@ -398,24 +416,45 @@ final class FirebaseAuthService: AuthServicing {
             repairFields["isAdmin"] = resolvedRole.hasStaffAccess
         }
 
+        let resolvedQuotaPlan = UserQuotaPlan.resolve(
+            from: data["quotaPlan"] as? String,
+            role: resolvedRole
+        )
+
+        if (data["quotaPlan"] as? String)?.trimmedNilIfEmpty != resolvedQuotaPlan.rawValue || resolvedRole == .owner {
+            repairFields["quotaPlan"] = resolvedQuotaPlan.rawValue
+        }
+
         if data["aiAccessEnabled"] == nil {
             repairFields["aiAccessEnabled"] = true
         }
 
         if data["aiTextRequestsPerDay"] == nil || resolvedRole == .owner {
-            repairFields["aiTextRequestsPerDay"] = resolvedRole.defaultAITextRequestsPerDay
+            repairFields["aiTextRequestsPerDay"] = resolvedQuotaPlan.aiTextRequestsPerDay
         }
 
         if data["aiVisualRequestsPerDay"] == nil || resolvedRole == .owner {
-            repairFields["aiVisualRequestsPerDay"] = resolvedRole.defaultAIVisualRequestsPerDay
+            repairFields["aiVisualRequestsPerDay"] = resolvedQuotaPlan.aiVisualRequestsPerDay
         }
 
         if data["aiAgentRequestsPerDay"] == nil || resolvedRole == .owner {
-            repairFields["aiAgentRequestsPerDay"] = resolvedRole.defaultAIAgentRequestsPerDay
+            repairFields["aiAgentRequestsPerDay"] = resolvedQuotaPlan.aiAgentRequestsPerDay
         }
 
         if data["aiHistoryRetentionDays"] == nil || resolvedRole == .owner {
-            repairFields["aiHistoryRetentionDays"] = resolvedRole.defaultAIHistoryRetentionDays
+            repairFields["aiHistoryRetentionDays"] = resolvedQuotaPlan.aiHistoryRetentionDays
+        }
+
+        if data["canManageMusicCatalog"] == nil || resolvedRole == .owner {
+            repairFields["canManageMusicCatalog"] = resolvedRole == .owner
+        }
+
+        if data["canManageVideoCatalog"] == nil || resolvedRole == .owner {
+            repairFields["canManageVideoCatalog"] = resolvedRole == .owner
+        }
+
+        if data["canModerateProfiles"] == nil || resolvedRole == .owner {
+            repairFields["canModerateProfiles"] = resolvedRole == .owner
         }
 
         if !repairFields.isEmpty {
@@ -554,6 +593,7 @@ private extension FirebaseAuth.User {
     func toAppUser(isAdmin: Bool = false) -> User {
         let fallbackEmail = email?.trimmedNilIfEmpty?.lowercased() ?? ""
         let resolvedRole = UserRole.resolve(from: nil, isAdmin: isAdmin, email: fallbackEmail)
+        let quotaPlan = UserQuotaPlan.defaultPlan(for: resolvedRole)
         return User(
             id: uid,
             email: fallbackEmail,
@@ -570,11 +610,15 @@ private extension FirebaseAuth.User {
             registrationDate: metadata.creationDate ?? .now,
             isAdmin: isAdmin,
             role: resolvedRole.rawValue,
+            quotaPlan: quotaPlan.rawValue,
             aiAccessEnabled: true,
-            aiTextRequestsPerDay: resolvedRole.defaultAITextRequestsPerDay,
-            aiVisualRequestsPerDay: resolvedRole.defaultAIVisualRequestsPerDay,
-            aiAgentRequestsPerDay: resolvedRole.defaultAIAgentRequestsPerDay,
-            aiHistoryRetentionDays: resolvedRole.defaultAIHistoryRetentionDays
+            aiTextRequestsPerDay: quotaPlan.aiTextRequestsPerDay,
+            aiVisualRequestsPerDay: quotaPlan.aiVisualRequestsPerDay,
+            aiAgentRequestsPerDay: quotaPlan.aiAgentRequestsPerDay,
+            aiHistoryRetentionDays: quotaPlan.aiHistoryRetentionDays,
+            canManageMusicCatalog: resolvedRole == .owner,
+            canManageVideoCatalog: resolvedRole == .owner,
+            canModerateProfiles: resolvedRole == .owner
         )
     }
 }

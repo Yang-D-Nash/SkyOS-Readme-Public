@@ -18,6 +18,7 @@ const {
 const {
   assertAdmin: assertAdminClaim,
   assertOwner: assertOwnerClaim,
+  defaultQuotaPlanForRole,
   resolveRoleFromClaims,
   setUserRoleClaims,
   syncClaimsForCurrentUser,
@@ -146,6 +147,14 @@ const USER_ROLES = {
   user: "user",
 };
 
+const USER_QUOTA_PLANS = {
+  ownerUnlimited: "owner_unlimited",
+  internalTeam: "internal_team",
+  free: "free",
+  creator: "creator",
+  studio: "studio",
+};
+
 const AI_USAGE_KINDS = {
   text: "text",
   visual: "visual",
@@ -186,14 +195,20 @@ function roleHasOwnerAccess(role) {
 }
 
 function defaultAiLimitsForRole(role) {
-  switch (role) {
-    case USER_ROLES.owner:
-      return {text: 400, visual: 80, agent: 250, historyRetentionDays: 30};
-    case USER_ROLES.admin:
+  return defaultAiLimitsForQuotaPlan(defaultQuotaPlanForRole(role));
+}
+
+function defaultAiLimitsForQuotaPlan(plan) {
+  switch (plan) {
+    case USER_QUOTA_PLANS.ownerUnlimited:
+      return {text: 5000, visual: 1200, agent: 3000, historyRetentionDays: 30};
+    case USER_QUOTA_PLANS.internalTeam:
       return {text: 240, visual: 40, agent: 140, historyRetentionDays: 30};
-    case USER_ROLES.subadmin:
+    case USER_QUOTA_PLANS.creator:
       return {text: 120, visual: 20, agent: 70, historyRetentionDays: 7};
-    case USER_ROLES.user:
+    case USER_QUOTA_PLANS.studio:
+      return {text: 240, visual: 40, agent: 140, historyRetentionDays: 30};
+    case USER_QUOTA_PLANS.free:
     default:
       return {text: 30, visual: 4, agent: 18, historyRetentionDays: 3};
   }
@@ -201,7 +216,11 @@ function defaultAiLimitsForRole(role) {
 
 function resolveAiLimits(userData = {}) {
   const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
-  const defaults = defaultAiLimitsForRole(role);
+  const quotaPlan = typeof userData.quotaPlan === "string" &&
+    Object.values(USER_QUOTA_PLANS).includes(userData.quotaPlan) ?
+      userData.quotaPlan :
+      defaultQuotaPlanForRole(role);
+  const defaults = defaultAiLimitsForQuotaPlan(quotaPlan);
   const text = Number(userData.aiTextRequestsPerDay);
   const visual = Number(userData.aiVisualRequestsPerDay);
   const agent = Number(userData.aiAgentRequestsPerDay);
@@ -209,6 +228,7 @@ function resolveAiLimits(userData = {}) {
 
   return {
     role,
+    quotaPlan,
     isEnabled: userData.aiAccessEnabled !== false,
     text: Number.isFinite(text) && text > 0 ? Math.floor(text) : defaults.text,
     visual: Number.isFinite(visual) && visual > 0 ? Math.floor(visual) : defaults.visual,
@@ -256,7 +276,7 @@ async function isStaffAuth(auth) {
   }
 
   const role = resolveRoleFromAuthClaims(auth);
-  return [USER_ROLES.owner, USER_ROLES.admin, USER_ROLES.subadmin].includes(role);
+  return [USER_ROLES.owner, USER_ROLES.admin].includes(role);
 }
 
 async function canUseAiAuth(auth) {

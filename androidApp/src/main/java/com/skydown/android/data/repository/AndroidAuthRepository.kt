@@ -14,6 +14,7 @@ import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.ProfileUpdateInput
 import com.skydown.shared.model.RegistrationInput
 import com.skydown.shared.model.User
+import com.skydown.shared.model.UserQuotaPlan
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.repository.AuthRepository
 import kotlinx.coroutines.tasks.await
@@ -59,6 +60,7 @@ class AndroidAuthRepository(
             val firebaseUser = authResult.user ?: error("Benutzer konnte nicht erstellt werden.")
             val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() }?.lowercase() ?: input.email.trim().lowercase()
             val resolvedRole = UserRole.User
+            val quotaPlan = UserQuotaPlan.defaultPlanFor(resolvedRole)
             val user = User(
                 id = firebaseUser.uid,
                 email = registeredEmail,
@@ -70,11 +72,15 @@ class AndroidAuthRepository(
                 registrationDateEpochMillis = System.currentTimeMillis(),
                 isAdmin = false,
                 role = resolvedRole.rawValue,
+                quotaPlan = quotaPlan.rawValue,
                 aiAccessEnabled = true,
-                aiTextRequestsPerDay = resolvedRole.defaultAiTextRequestsPerDay,
-                aiVisualRequestsPerDay = resolvedRole.defaultAiVisualRequestsPerDay,
-                aiAgentRequestsPerDay = resolvedRole.defaultAiAgentRequestsPerDay,
-                aiHistoryRetentionDays = resolvedRole.defaultAiHistoryRetentionDays,
+                aiTextRequestsPerDay = quotaPlan.aiTextRequestsPerDay,
+                aiVisualRequestsPerDay = quotaPlan.aiVisualRequestsPerDay,
+                aiAgentRequestsPerDay = quotaPlan.aiAgentRequestsPerDay,
+                aiHistoryRetentionDays = quotaPlan.aiHistoryRetentionDays,
+                canManageMusicCatalog = false,
+                canManageVideoCatalog = false,
+                canModerateProfiles = false,
             )
             firestore.collection("users").document(firebaseUser.uid).set(user).await()
             syncPublicProfileDocument(
@@ -175,6 +181,7 @@ class AndroidAuthRepository(
                 isAdmin = false,
                 email = fallbackEmail,
             )
+            val quotaPlan = UserQuotaPlan.defaultPlanFor(resolvedRole)
             ensureRegistrationAllowedForBootstrap(authUser, resolvedRole)
             val user = User(
                 id = authUser.uid,
@@ -185,13 +192,17 @@ class AndroidAuthRepository(
                 profileBio = null,
                 instagramHandle = null,
                 registrationDateEpochMillis = authUser.metadata?.creationTimestamp ?: System.currentTimeMillis(),
-                isAdmin = false,
-                role = UserRole.User.rawValue,
+                isAdmin = resolvedRole.hasStaffAccess,
+                role = resolvedRole.rawValue,
+                quotaPlan = quotaPlan.rawValue,
                 aiAccessEnabled = true,
-                aiTextRequestsPerDay = UserRole.User.defaultAiTextRequestsPerDay,
-                aiVisualRequestsPerDay = UserRole.User.defaultAiVisualRequestsPerDay,
-                aiAgentRequestsPerDay = UserRole.User.defaultAiAgentRequestsPerDay,
-                aiHistoryRetentionDays = UserRole.User.defaultAiHistoryRetentionDays,
+                aiTextRequestsPerDay = quotaPlan.aiTextRequestsPerDay,
+                aiVisualRequestsPerDay = quotaPlan.aiVisualRequestsPerDay,
+                aiAgentRequestsPerDay = quotaPlan.aiAgentRequestsPerDay,
+                aiHistoryRetentionDays = quotaPlan.aiHistoryRetentionDays,
+                canManageMusicCatalog = resolvedRole == UserRole.Owner,
+                canManageVideoCatalog = resolvedRole == UserRole.Owner,
+                canModerateProfiles = resolvedRole == UserRole.Owner,
             )
 
             documentReference.set(user).await()
@@ -241,24 +252,45 @@ class AndroidAuthRepository(
             updates["isAdmin"] = resolvedRole.hasStaffAccess
         }
 
+        val quotaPlan = UserQuotaPlan.resolve(
+            rawValue = data["quotaPlan"] as? String,
+            role = resolvedRole,
+        )
+
+        if ((data["quotaPlan"] as? String)?.trim()?.lowercase() != quotaPlan.rawValue || resolvedRole == UserRole.Owner) {
+            updates["quotaPlan"] = quotaPlan.rawValue
+        }
+
         if (data["aiAccessEnabled"] !is Boolean) {
             updates["aiAccessEnabled"] = true
         }
 
         if (data["aiTextRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
-            updates["aiTextRequestsPerDay"] = resolvedRole.defaultAiTextRequestsPerDay
+            updates["aiTextRequestsPerDay"] = quotaPlan.aiTextRequestsPerDay
         }
 
         if (data["aiVisualRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
-            updates["aiVisualRequestsPerDay"] = resolvedRole.defaultAiVisualRequestsPerDay
+            updates["aiVisualRequestsPerDay"] = quotaPlan.aiVisualRequestsPerDay
         }
 
         if (data["aiAgentRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
-            updates["aiAgentRequestsPerDay"] = resolvedRole.defaultAiAgentRequestsPerDay
+            updates["aiAgentRequestsPerDay"] = quotaPlan.aiAgentRequestsPerDay
         }
 
         if (data["aiHistoryRetentionDays"] !is Number || resolvedRole == UserRole.Owner) {
-            updates["aiHistoryRetentionDays"] = resolvedRole.defaultAiHistoryRetentionDays
+            updates["aiHistoryRetentionDays"] = quotaPlan.aiHistoryRetentionDays
+        }
+
+        if (data["canManageMusicCatalog"] !is Boolean || resolvedRole == UserRole.Owner) {
+            updates["canManageMusicCatalog"] = resolvedRole == UserRole.Owner
+        }
+
+        if (data["canManageVideoCatalog"] !is Boolean || resolvedRole == UserRole.Owner) {
+            updates["canManageVideoCatalog"] = resolvedRole == UserRole.Owner
+        }
+
+        if (data["canModerateProfiles"] !is Boolean || resolvedRole == UserRole.Owner) {
+            updates["canModerateProfiles"] = resolvedRole == UserRole.Owner
         }
 
         if (updates.isNotEmpty()) {

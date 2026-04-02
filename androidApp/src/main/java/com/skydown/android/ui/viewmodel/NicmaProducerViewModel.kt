@@ -12,6 +12,7 @@ import com.skydown.android.ui.model.NicmaBeatHubItem
 import com.skydown.android.ui.model.NicmaProducerUiState
 import com.skydown.android.ui.model.NicmaSelectedBeatFile
 import com.skydown.shared.model.User
+import com.skydown.shared.model.canManageMusic
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +36,7 @@ class NicmaProducerViewModel(
             AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collectLatest { user ->
                 currentUser = user
-                val nextIsAdmin = user?.isAdmin == true
+                val nextIsAdmin = user?.canManageMusic == true
                 _uiState.update { state ->
                     state.copy(
                         isAdmin = nextIsAdmin,

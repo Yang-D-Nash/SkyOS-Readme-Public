@@ -27,6 +27,38 @@ service firebase.storage {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function currentUserDocExists() {
+      return signedIn() && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function canManageMusicCatalog() {
+      return isOwner() || (
+        claimRole() == "admin"
+        && currentUserDocExists()
+        && currentUserDoc().canManageMusicCatalog == true
+      );
+    }
+
+    function canManageVideoCatalog() {
+      return isOwner() || (
+        claimRole() == "admin"
+        && currentUserDocExists()
+        && currentUserDoc().canManageVideoCatalog == true
+      );
+    }
+
+    function canModerateProfiles() {
+      return isOwner() || (
+        claimRole() == "admin"
+        && currentUserDocExists()
+        && currentUserDoc().canModerateProfiles == true
+      );
+    }
+
     function runtimeConfigExists() {
       return firestore.exists(/databases/(default)/documents/system/runtimeConfig);
     }
@@ -85,7 +117,7 @@ service firebase.storage {
     }
 
     match /users/{uid}/profile/{fileName} {
-      allow read: if isSelf(uid) || isModerator();
+      allow read: if isSelf(uid) || canModerateProfiles();
 
       allow create, update: if isSelf(uid)
         && uploadsAllowed()
@@ -100,11 +132,11 @@ service firebase.storage {
           fileName
         );
 
-      allow delete: if isSelf(uid) || isModerator();
+      allow delete: if isSelf(uid) || canModerateProfiles();
     }
 
     match /users/{uid}/gallery/{fileName} {
-      allow read: if isSelf(uid) || isModerator();
+      allow read: if isSelf(uid) || canModerateProfiles();
 
       allow create, update: if isSelf(uid)
         && uploadsAllowed()
@@ -119,7 +151,7 @@ service firebase.storage {
           fileName
         );
 
-      allow delete: if isSelf(uid) || isModerator();
+      allow delete: if isSelf(uid) || canModerateProfiles();
     }
 
     match /merchandise/{allPaths=**} {
@@ -129,12 +161,12 @@ service firebase.storage {
 
     match /videos/{allPaths=**} {
       allow read: if true;
-      allow write: if isModerator();
+      allow write: if canManageVideoCatalog();
     }
 
     match /beats/{allPaths=**} {
       allow read: if true;
-      allow write: if isModerator();
+      allow write: if canManageMusicCatalog();
     }
 
     match /{allPaths=**} {

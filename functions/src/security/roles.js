@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const {HttpsError} = require("firebase-functions/v2/https");
 const {
   OWNER_EMAIL,
+  USER_QUOTA_PLANS,
   USER_ROLES,
   VALID_ROLES,
 } = require("./constants");
@@ -36,21 +37,41 @@ function roleHasAdminAccess(role) {
 }
 
 function roleHasModerationAccess(role) {
-  return roleHasAdminAccess(role) || role === USER_ROLES.subadmin;
+  return roleHasAdminAccess(role);
 }
 
-function defaultAiLimitsForRole(role) {
+function defaultQuotaPlanForRole(role) {
   switch (role) {
     case USER_ROLES.owner:
-      return {text: 400, visual: 80, agent: 250, historyRetentionDays: 30};
+      return USER_QUOTA_PLANS.ownerUnlimited;
     case USER_ROLES.admin:
-      return {text: 240, visual: 40, agent: 140, historyRetentionDays: 30};
+      return USER_QUOTA_PLANS.internalTeam;
     case USER_ROLES.subadmin:
-      return {text: 120, visual: 20, agent: 70, historyRetentionDays: 7};
+      return USER_QUOTA_PLANS.creator;
     case USER_ROLES.user:
+    default:
+      return USER_QUOTA_PLANS.free;
+  }
+}
+
+function defaultAiLimitsForQuotaPlan(plan) {
+  switch (plan) {
+    case USER_QUOTA_PLANS.ownerUnlimited:
+      return {text: 5000, visual: 1200, agent: 3000, historyRetentionDays: 30};
+    case USER_QUOTA_PLANS.internalTeam:
+      return {text: 240, visual: 40, agent: 140, historyRetentionDays: 30};
+    case USER_QUOTA_PLANS.creator:
+      return {text: 120, visual: 20, agent: 70, historyRetentionDays: 7};
+    case USER_QUOTA_PLANS.studio:
+      return {text: 240, visual: 40, agent: 140, historyRetentionDays: 30};
+    case USER_QUOTA_PLANS.free:
     default:
       return {text: 30, visual: 4, agent: 18, historyRetentionDays: 3};
   }
+}
+
+function defaultAiLimitsForRole(role) {
+  return defaultAiLimitsForQuotaPlan(defaultQuotaPlanForRole(role));
 }
 
 function buildRoleClaims(role) {
@@ -88,16 +109,45 @@ async function setUserRoleClaims({
 
   await admin.auth().setCustomUserClaims(normalizedUid, buildRoleClaims(finalRole));
 
-  const defaults = defaultAiLimitsForRole(finalRole);
-  await admin.firestore().doc(`users/${normalizedUid}`).set({
+  const userDocRef = admin.firestore().doc(`users/${normalizedUid}`);
+  const existingSnapshot = await userDocRef.get();
+  const existingData = existingSnapshot.exists ? (existingSnapshot.data() || {}) : {};
+  const existingQuotaPlan = nonEmptyString(existingData.quotaPlan)?.toLowerCase();
+  const quotaPlan = finalRole === USER_ROLES.owner ?
+    USER_QUOTA_PLANS.ownerUnlimited :
+    finalRole === USER_ROLES.admin ?
+      USER_QUOTA_PLANS.internalTeam :
+      finalRole === USER_ROLES.subadmin &&
+      [USER_QUOTA_PLANS.creator, USER_QUOTA_PLANS.studio].includes(existingQuotaPlan) ?
+        existingQuotaPlan :
+        defaultQuotaPlanForRole(finalRole);
+  const defaults = defaultAiLimitsForQuotaPlan(quotaPlan);
+  const textLimit = Number(existingData.aiTextRequestsPerDay);
+  const visualLimit = Number(existingData.aiVisualRequestsPerDay);
+  const agentLimit = Number(existingData.aiAgentRequestsPerDay);
+  const historyRetentionDays = Number(existingData.aiHistoryRetentionDays);
+
+  await userDocRef.set({
     email: email || admin.firestore.FieldValue.delete(),
     role: finalRole,
     isAdmin: roleHasAdminAccess(finalRole),
-    aiAccessEnabled: true,
-    aiTextRequestsPerDay: defaults.text,
-    aiVisualRequestsPerDay: defaults.visual,
-    aiAgentRequestsPerDay: defaults.agent,
-    aiHistoryRetentionDays: defaults.historyRetentionDays,
+    quotaPlan,
+    aiAccessEnabled: existingData.aiAccessEnabled !== false,
+    aiTextRequestsPerDay: Number.isFinite(textLimit) && textLimit > 0 ? Math.floor(textLimit) : defaults.text,
+    aiVisualRequestsPerDay: Number.isFinite(visualLimit) && visualLimit > 0 ? Math.floor(visualLimit) : defaults.visual,
+    aiAgentRequestsPerDay: Number.isFinite(agentLimit) && agentLimit > 0 ? Math.floor(agentLimit) : defaults.agent,
+    aiHistoryRetentionDays: [1, 3, 7, 30].includes(historyRetentionDays) ?
+      historyRetentionDays :
+      defaults.historyRetentionDays,
+    canManageMusicCatalog: roleHasOwnerAccess(finalRole) ?
+      true :
+      finalRole === USER_ROLES.admin ? existingData.canManageMusicCatalog === true : false,
+    canManageVideoCatalog: roleHasOwnerAccess(finalRole) ?
+      true :
+      finalRole === USER_ROLES.admin ? existingData.canManageVideoCatalog === true : false,
+    canModerateProfiles: roleHasOwnerAccess(finalRole) ?
+      true :
+      finalRole === USER_ROLES.admin ? existingData.canModerateProfiles === true : false,
     claimsSyncedAt: admin.firestore.FieldValue.serverTimestamp(),
     claimsUpdatedByUid: updatedByUid || admin.firestore.FieldValue.delete(),
     claimsUpdatedByEmail: updatedByEmail || admin.firestore.FieldValue.delete(),
@@ -146,6 +196,7 @@ module.exports = {
   assertAdmin,
   assertOwner,
   defaultAiLimitsForRole,
+  defaultAiLimitsForQuotaPlan,
   normalizeEmail,
   resolveRoleFromClaims,
   roleHasAdminAccess,
@@ -153,4 +204,5 @@ module.exports = {
   roleHasOwnerAccess,
   setUserRoleClaims,
   syncClaimsForCurrentUser,
+  defaultQuotaPlanForRole,
 };

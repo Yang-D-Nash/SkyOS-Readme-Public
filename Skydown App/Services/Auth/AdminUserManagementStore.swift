@@ -44,15 +44,20 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
         }
 
         let resolvedRole = user.resolvedRole
+        let resolvedQuotaPlan = user.resolvedQuotaPlan
         let payload: [String: Any] = [
             "email": user.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             "role": resolvedRole.rawValue,
             "isAdmin": resolvedRole.hasStaffAccess,
+            "quotaPlan": resolvedQuotaPlan.rawValue,
             "aiAccessEnabled": user.aiAccessEnabled,
             "aiTextRequestsPerDay": max(1, user.aiTextRequestsPerDay),
             "aiVisualRequestsPerDay": max(1, user.aiVisualRequestsPerDay),
             "aiAgentRequestsPerDay": max(1, user.aiAgentRequestsPerDay),
             "aiHistoryRetentionDays": user.resolvedAIHistoryRetentionDays,
+            "canManageMusicCatalog": user.canManageMusic,
+            "canManageVideoCatalog": user.canManageVideos,
+            "canModerateProfiles": user.canModerateUserProfiles,
             "updatedAt": FieldValue.serverTimestamp()
         ]
 
@@ -75,6 +80,10 @@ private func mapManagedUser(document: QueryDocumentSnapshot) -> User? {
         isAdmin: storedIsAdmin,
         email: email
     )
+    let resolvedQuotaPlan = UserQuotaPlan.resolve(
+        from: data["quotaPlan"] as? String,
+        role: resolvedRole
+    )
     let isAdmin = resolvedRole.hasStaffAccess
     let registrationDate: Date
     if let timestamp = data["registrationDate"] as? Timestamp {
@@ -93,15 +102,19 @@ private func mapManagedUser(document: QueryDocumentSnapshot) -> User? {
         registrationDate: registrationDate,
         isAdmin: isAdmin,
         role: resolvedRole.rawValue,
+        quotaPlan: resolvedQuotaPlan.rawValue,
         aiAccessEnabled: data["aiAccessEnabled"] as? Bool ?? true,
         aiTextRequestsPerDay: (data["aiTextRequestsPerDay"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAITextRequestsPerDay,
+            ?? resolvedQuotaPlan.aiTextRequestsPerDay,
         aiVisualRequestsPerDay: (data["aiVisualRequestsPerDay"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAIVisualRequestsPerDay,
+            ?? resolvedQuotaPlan.aiVisualRequestsPerDay,
         aiAgentRequestsPerDay: (data["aiAgentRequestsPerDay"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAIAgentRequestsPerDay,
+            ?? resolvedQuotaPlan.aiAgentRequestsPerDay,
         aiHistoryRetentionDays: (data["aiHistoryRetentionDays"] as? NSNumber)?.intValue
-            ?? resolvedRole.defaultAIHistoryRetentionDays
+            ?? resolvedQuotaPlan.aiHistoryRetentionDays,
+        canManageMusicCatalog: (data["canManageMusicCatalog"] as? Bool) ?? (resolvedRole == .owner),
+        canManageVideoCatalog: (data["canManageVideoCatalog"] as? Bool) ?? (resolvedRole == .owner),
+        canModerateProfiles: (data["canModerateProfiles"] as? Bool) ?? (resolvedRole == .owner)
     )
 }
 

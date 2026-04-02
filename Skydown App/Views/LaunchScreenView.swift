@@ -194,16 +194,35 @@ private struct LaunchLandingView: View {
                     Text("Sky²²")
                         .font(.caption.weight(.semibold))
                         .tracking(1.6)
-                        .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
+                        .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.78))
 
                     Text("Sky²²")
                         .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundColor(AppColors.text(for: hubColorScheme))
+                        .shadow(color: .black.opacity(0.34), radius: 14, y: 8)
 
                     Text("Waehle deinen Start.")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
+                        .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(18)
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.black.opacity(0.42),
+                                    AppColors.cardBackground(for: hubColorScheme).opacity(0.76)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(AppColors.accentHighlight(for: hubColorScheme).opacity(0.18), lineWidth: 1)
                 }
 
                 HStack(alignment: .center, spacing: 14) {
@@ -233,12 +252,13 @@ private struct LaunchLandingView: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Musik, Video, Merch.")
-                            .font(.headline.weight(.bold))
+                            .font(.title3.weight(.black))
                             .foregroundColor(AppColors.text(for: hubColorScheme))
+                            .shadow(color: .black.opacity(0.26), radius: 12, y: 6)
 
                         Text("Alles unten direkt griffbereit.")
                             .font(.footnote.weight(.medium))
-                            .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
+                            .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.72))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -282,7 +302,7 @@ private struct LaunchLandingView: View {
 
                 Text("Unten wechselst du jederzeit.")
                     .font(.caption.weight(.medium))
-                    .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
+                    .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.68))
                     .padding(.top, 4)
 
                 Spacer(minLength: 0)
@@ -331,16 +351,17 @@ private struct LaunchLandingButton: View {
                         Text(eyebrow.uppercased())
                             .font(.caption.weight(.semibold))
                             .tracking(1.2)
-                            .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
+                            .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.72))
 
                         Text(title)
-                            .font(.system(size: 24, weight: .black, design: .rounded))
+                            .font(.system(size: 22, weight: .black, design: .rounded))
                             .foregroundColor(AppColors.text(for: hubColorScheme))
+                            .shadow(color: .black.opacity(0.24), radius: 10, y: 4)
                     }
 
                     Text(subtitle)
                         .font(.footnote.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: hubColorScheme))
+                        .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.70))
                         .multilineTextAlignment(.leading)
                 }
             }
