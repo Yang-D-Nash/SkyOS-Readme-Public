@@ -312,20 +312,20 @@ fun MusicScreen(
                 }
 
                 item {
+                    ArtistPickerCard(
+                        artists = uiState.availableArtists,
+                        selectedArtist = uiState.selectedArtist,
+                        onArtistSelected = viewModel::selectArtist,
+                    )
+                }
+
+                item {
                     ArtistPageShortcutCard(
                         artistName = uiState.selectedArtist,
                         isReady = selectedArtistPage.hasCustomPresentation,
                         onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
                             { openArtistPage(uiState.selectedArtist) }
                         },
-                    )
-                }
-
-                item {
-                    ArtistPickerCard(
-                        artists = uiState.availableArtists,
-                        selectedArtist = uiState.selectedArtist,
-                        onArtistSelected = viewModel::selectArtist,
                     )
                 }
 
@@ -752,9 +752,15 @@ private fun ArtistPickerCard(
     onArtistSelected: (String) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Artists")
+        SectionHeader("Alle Artists")
+        Text(
+            text = "Starte mit deinem Favoriten oder spring direkt in jede Artist-Page.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 6.dp),
+        )
         Column(
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             artists.forEach { artist ->

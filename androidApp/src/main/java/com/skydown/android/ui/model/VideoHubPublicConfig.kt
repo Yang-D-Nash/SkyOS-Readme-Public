@@ -22,6 +22,7 @@ data class ProducedWithArtist(
     val imageUrl: String? = null,
     val spotifyArtistId: String? = null,
     val instagramUrl: String? = null,
+    val youtubeUrl: String? = null,
 )
 
 data class VideoHubPublicConfig(
@@ -69,6 +70,7 @@ val defaultProducedWithArtists = listOf(
         imageUrl = null,
         spotifyArtistId = "4CoozMQ3B3I20day60N7QA",
         instagramUrl = "https://www.instagram.com/toprack_941/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-directa",
@@ -79,6 +81,7 @@ val defaultProducedWithArtists = listOf(
         imageUrl = null,
         spotifyArtistId = "2v4YJINKwkBY3DajPcmWm3",
         instagramUrl = "https://www.instagram.com/directascut/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-michael-klotz",
@@ -89,6 +92,7 @@ val defaultProducedWithArtists = listOf(
         imageUrl = null,
         spotifyArtistId = "4i8fdH54Ielws2ghRMPKGh",
         instagramUrl = "https://www.instagram.com/michael.ktz/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-jojee",
@@ -99,6 +103,7 @@ val defaultProducedWithArtists = listOf(
         imageUrl = null,
         spotifyArtistId = "2azLzTxCm662tbpPwPwQwI",
         instagramUrl = "https://www.instagram.com/iamjojee/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-sowjet020",
@@ -109,6 +114,7 @@ val defaultProducedWithArtists = listOf(
         imageUrl = null,
         spotifyArtistId = "2LLwIW8Nk30IYyC9sHr0Cm",
         instagramUrl = "https://www.instagram.com/sowjet020/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-cemo",
@@ -119,6 +125,7 @@ val defaultProducedWithArtists = listOf(
         imageUrl = null,
         spotifyArtistId = "0KD8un5on2oXfJ3dwxpw40",
         instagramUrl = "https://www.instagram.com/cemo_sd/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-daco27",
@@ -129,6 +136,7 @@ val defaultProducedWithArtists = listOf(
         imageUrl = null,
         spotifyArtistId = "3oxSFNrPcoqo7qkAIsR74D",
         instagramUrl = "https://www.instagram.com/daco.27/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-neo",
@@ -138,6 +146,7 @@ val defaultProducedWithArtists = listOf(
         vibe = "Session",
         imageUrl = null,
         instagramUrl = "https://www.instagram.com/sincity.neo/",
+        youtubeUrl = null,
     ),
     ProducedWithArtist(
         id = "produced-with-phil",
@@ -147,5 +156,6 @@ val defaultProducedWithArtists = listOf(
         vibe = "Portrait",
         imageUrl = null,
         instagramUrl = "https://www.instagram.com/philip_beau/",
+        youtubeUrl = null,
     ),
 )

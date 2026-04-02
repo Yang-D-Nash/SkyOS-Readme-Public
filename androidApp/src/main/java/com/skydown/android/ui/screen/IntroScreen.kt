@@ -22,6 +22,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.skydown.android.data.mediaAttributionContext
 import kotlinx.coroutines.delay
@@ -97,6 +98,7 @@ fun IntroScreen(
             factory = {
                 PlayerView(it).apply {
                     useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     this.player = player
                 }
             },

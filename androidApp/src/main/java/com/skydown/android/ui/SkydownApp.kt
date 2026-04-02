@@ -381,11 +381,12 @@ private fun LaunchLandingScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        BackgroundDark,
-                        SurfaceDark,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
-                        BackgroundDark,
+                        androidx.compose.ui.graphics.Color.Black,
+                        androidx.compose.ui.graphics.Color(0xFF030810),
+                        androidx.compose.ui.graphics.Color(0xFF071222),
+                        androidx.compose.ui.graphics.Color(0xFF123055).copy(alpha = 0.56f),
+                        androidx.compose.ui.graphics.Color(0xFF06101D),
+                        androidx.compose.ui.graphics.Color.Black,
                     ),
                 ),
             ),
@@ -398,7 +399,7 @@ private fun LaunchLandingScreen(
                 .width(220.dp)
                 .height(220.dp)
                 .background(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                    androidx.compose.ui.graphics.Color(0xFF4B83CF).copy(alpha = 0.18f),
                     RoundedCornerShape(999.dp),
                 ),
         )
@@ -411,7 +412,7 @@ private fun LaunchLandingScreen(
                 .width(200.dp)
                 .height(200.dp)
                 .background(
-                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+                    androidx.compose.ui.graphics.Color(0xFF9CBDE8).copy(alpha = 0.10f),
                     RoundedCornerShape(999.dp),
                 ),
         )
@@ -432,7 +433,7 @@ private fun LaunchLandingScreen(
                         Brush.linearGradient(
                             colors = listOf(
                                 SurfaceDark.copy(alpha = 0.96f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                                androidx.compose.ui.graphics.Color(0xFF132B4D).copy(alpha = 0.34f),
                             ),
                         ),
                         RoundedCornerShape(24.dp),
@@ -528,7 +529,7 @@ private fun LaunchLandingScreen(
                 LaunchLandingChoiceCard(
                     eyebrow = "Video",
                     title = "Videos",
-                    subtitle = "Reels, Clips, YouTube.",
+                    subtitle = "Reels, Clips, Collabs.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     icon = Icons.Default.PlayCircleFilled,
                     artwork = BrandArtwork.Skydown,
@@ -664,6 +665,7 @@ private fun ZweizweiMusicLaneScreen(
     onBackToLanding: (() -> Unit)? = null,
 ) {
     var destination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
+    var catalogInitialArtist by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedArtistPage by rememberSaveable { mutableStateOf<String?>(null) }
     var artistPageReturnDestination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -743,13 +745,12 @@ private fun ZweizweiMusicLaneScreen(
                     }
                     LaunchLandingButton(
                         title = "Songs",
-                        subtitle = "Direkt mit JANNO in Songs, Spotify und Story starten.",
+                        subtitle = "Mit JANNO starten und im Katalog direkt alle Artists finden.",
                         accentColor = MaterialTheme.colorScheme.primary,
                         icon = Icons.Default.GraphicEq,
                         onClick = {
-                            selectedArtistPage = "JANNO"
-                            artistPageReturnDestination = ZweizweiMusicDestination.Hub
-                            destination = ZweizweiMusicDestination.ArtistPage
+                            catalogInitialArtist = "JANNO"
+                            destination = ZweizweiMusicDestination.Catalog
                         },
                     )
                     LaunchLandingButton(
@@ -772,7 +773,11 @@ private fun ZweizweiMusicLaneScreen(
         }
 
         ZweizweiMusicDestination.Catalog -> MusicScreen(
-            onBack = { destination = ZweizweiMusicDestination.Hub },
+            initialArtist = catalogInitialArtist,
+            onBack = {
+                catalogInitialArtist = null
+                destination = ZweizweiMusicDestination.Hub
+            },
             onOpenBeatHub = { destination = ZweizweiMusicDestination.BeatHub },
             onOpenCart = onOpenCart,
             onOpenProfile = onOpenProfile,

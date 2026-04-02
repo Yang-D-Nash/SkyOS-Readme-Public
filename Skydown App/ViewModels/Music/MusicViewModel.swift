@@ -756,7 +756,8 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                 "vibe": item.vibe,
                 "imageURLString": item.imageURLString ?? "",
                 "spotifyArtistID": item.spotifyArtistID ?? "",
-                "instagramURLString": item.instagramURLString ?? ""
+                "instagramURLString": item.instagramURLString ?? "",
+                "youtubeURLString": item.youtubeURLString ?? ""
             ]
         }
 
@@ -1004,7 +1005,8 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             vibe: vibe,
             imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             spotifyArtistID: (value["spotifyArtistID"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-            instagramURLString: (value["instagramURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            instagramURLString: (value["instagramURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+            youtubeURLString: (value["youtubeURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         )
     }
 }
@@ -1285,7 +1287,8 @@ final class SkydownVideoHubViewModel: ObservableObject {
                 vibe: "",
                 imageURLString: nil,
                 spotifyArtistID: nil,
-                instagramURLString: nil
+                instagramURLString: nil,
+                youtubeURLString: nil
             )
         )
     }
@@ -1302,7 +1305,8 @@ final class SkydownVideoHubViewModel: ObservableObject {
         vibe: String? = nil,
         imageURLString: String? = nil,
         spotifyArtistID: String? = nil,
-        instagramURLString: String? = nil
+        instagramURLString: String? = nil,
+        youtubeURLString: String? = nil
     ) {
         guard let index = publicConfig.collaborationItems.firstIndex(where: { $0.id == itemID }) else {
             return
@@ -1328,6 +1332,9 @@ final class SkydownVideoHubViewModel: ObservableObject {
         }
         if let instagramURLString {
             publicConfig.collaborationItems[index].instagramURLString = instagramURLString
+        }
+        if let youtubeURLString {
+            publicConfig.collaborationItems[index].youtubeURLString = youtubeURLString
         }
     }
 
@@ -1364,7 +1371,8 @@ final class SkydownVideoHubViewModel: ObservableObject {
                 vibe: vibe,
                 imageURLString: item.imageURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
                 spotifyArtistID: item.spotifyArtistID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                instagramURLString: item.instagramURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                instagramURLString: item.instagramURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                youtubeURLString: item.youtubeURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
             )
         }
 

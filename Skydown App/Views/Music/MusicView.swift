@@ -393,8 +393,14 @@ struct MusicView: View {
 
     private var artistsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Artists")
+            Text("Alle Artists")
                 .font(.headline)
+
+            if brand.showsArtistPages {
+                Text("Starte mit \(artists.first ?? selectedArtist) oder spring direkt in jede andere Artist-Page.")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
 
             ForEach(artists, id: \.self) { artist in
                 artistButton(for: artist)

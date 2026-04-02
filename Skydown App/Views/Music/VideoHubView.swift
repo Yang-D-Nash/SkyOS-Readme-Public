@@ -19,7 +19,6 @@ struct VideoHubView: View {
     @State private var showingFileImporter = false
     @State private var showingUploadSheet = false
     @State private var showingReelViewer = false
-    @State private var selectedYouTubeItem: SkydownYouTubeVideoItem?
     @State private var hasHandledInitialSelection = false
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
@@ -45,50 +44,36 @@ struct VideoHubView: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                    heroCard
-                    collaborationsCard
-                    VideoEquipmentCard(
-                        colorScheme: colorScheme,
-                        items: viewModel.publicConfig.equipmentItems
-                    )
-                    VideoYouTubeCard(
-                        colorScheme: colorScheme,
-                        items: viewModel.publicConfig.youtubeItems
-                    ) { item in
-                        selectedYouTubeItem = item
-                    }
-                    .id(VideoHubQuickActionTarget.youtube.sectionID)
-                    playerCard
-                    libraryCard
-
-                    if viewModel.isAdmin {
-                        formatCard
-                        VideoPublicConfigEditorCard(
-                            colorScheme: colorScheme,
-                            viewModel: viewModel
-                        )
-                    }
-                }
-                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                .padding(.top, SkydownLayout.screenTopPadding)
-                .padding(.bottom, SkydownLayout.screenBottomPadding + 92)
-            }
-            .overlay(alignment: .bottomTrailing) {
-                VideoHubQuickActionDock(
+        ScrollView {
+            VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                heroCard
+                VideoEquipmentCard(
                     colorScheme: colorScheme,
-                    showsUpload: viewModel.isAdmin,
-                    onOpenYouTube: {
-                        withAnimation(.snappy(duration: 0.35)) {
-                            proxy.scrollTo(VideoHubQuickActionTarget.youtube.sectionID, anchor: .top)
-                        }
-                    },
-                    onOpenUpload: {
-                        showingUploadSheet = true
-                    }
+                    items: viewModel.publicConfig.equipmentItems
                 )
+                playerCard
+                libraryCard
+                collaborationsCard
+
+                if viewModel.isAdmin {
+                    formatCard
+                    VideoPublicConfigEditorCard(
+                        colorScheme: colorScheme,
+                        viewModel: viewModel
+                    )
+                }
+            }
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.top, SkydownLayout.screenTopPadding)
+            .padding(.bottom, SkydownLayout.screenBottomPadding + (viewModel.isAdmin ? 92 : 0))
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if viewModel.isAdmin {
+                VideoHubQuickActionDock(
+                    colorScheme: colorScheme
+                ) {
+                    showingUploadSheet = true
+                }
                 .padding(.trailing, SkydownLayout.screenHorizontalPadding)
                 .padding(.bottom, 20)
             }
@@ -192,9 +177,6 @@ struct VideoHubView: View {
             }
             .presentationDetents([.large])
         }
-        .sheet(item: $selectedYouTubeItem) { item in
-            YouTubeEmbedPlayerView(item: item)
-        }
         .fullScreenCover(isPresented: $showingReelViewer) {
             if !viewModel.videos.isEmpty {
                 VideoReelViewer(
@@ -215,7 +197,7 @@ struct VideoHubView: View {
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Artists und Creatives, die die Visuals mitpraegen.")
+                Text("Artists und Creatives, mit denen die Visuals entstehen.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -267,7 +249,7 @@ struct VideoHubView: View {
             eyebrow: "Video",
             title: "Video",
             subtitle: "Reels, Visuals und starke Kollaborationen.",
-            detail: "Clips, Looks, YouTube und Leute hinter dem Vibe.",
+            detail: "Clips, Looks und Leute hinter dem Vibe.",
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
@@ -275,7 +257,6 @@ struct VideoHubView: View {
             HStack(spacing: 8) {
                 MusicBadge(text: "Videos", isAccent: true)
                 MusicBadge(text: "Equipment", isAccent: false)
-                MusicBadge(text: "YouTube", isAccent: false)
                 MusicBadge(text: "Collabs", isAccent: false)
             }
         }
@@ -888,41 +869,18 @@ struct VideoYouTubeCard: View {
     }
 }
 
-private enum VideoHubQuickActionTarget {
-    case youtube
-
-    var sectionID: String {
-        switch self {
-        case .youtube:
-            return "video-youtube-section"
-        }
-    }
-}
-
 private struct VideoHubQuickActionDock: View {
     let colorScheme: ColorScheme
-    let showsUpload: Bool
-    let onOpenYouTube: () -> Void
     let onOpenUpload: () -> Void
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 10) {
-            if showsUpload {
-                VideoHubQuickActionButton(
-                    title: "Upload",
-                    systemImage: "arrow.up.circle.fill",
-                    tint: AppColors.accent(for: colorScheme),
-                    textColor: .white,
-                    action: onOpenUpload
-                )
-            }
-
             VideoHubQuickActionButton(
-                title: "YouTube",
-                systemImage: "play.rectangle.fill",
-                tint: AppColors.accentHighlight(for: colorScheme),
-                textColor: AppColors.text(for: colorScheme),
-                action: onOpenYouTube
+                title: "Upload",
+                systemImage: "arrow.up.circle.fill",
+                tint: AppColors.accent(for: colorScheme),
+                textColor: .white,
+                action: onOpenUpload
             )
         }
     }
@@ -1005,6 +963,14 @@ struct ProducedWithArtistRow: View {
         return URL(string: instagramURLString)
     }
 
+    private var youtubeURL: URL? {
+        guard let youtubeURLString = artist.youtubeURLString, !youtubeURLString.isEmpty else {
+            return nil
+        }
+
+        return URL(string: youtubeURLString)
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             collaborationArtwork
@@ -1036,6 +1002,7 @@ struct ProducedWithArtistRow: View {
                     Text(artist.highlight)
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(3)
                 }
 
                 HStack(spacing: 8) {
@@ -1072,17 +1039,33 @@ struct ProducedWithArtistRow: View {
                             destination: instagramURL
                         )
                     }
+
+                    if let youtubeURL {
+                        SocialLinkButton(
+                            accessibilityTitle: "YouTube",
+                            systemImage: "play.rectangle.fill",
+                            foregroundColor: .white,
+                            background: LinearGradient(
+                                colors: [
+                                    Color(red: 0.78, green: 0.14, blue: 0.12),
+                                    Color(red: 0.55, green: 0.07, blue: 0.08)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            destination: youtubeURL
+                        )
+                    }
                 }
             }
         }
-        .padding(16)
+        .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
                 colors: [
-                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.96 : 0.98),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.82 : 0.72),
-                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.08)
+                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.97 : 0.99),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.74 : 0.68)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -1090,7 +1073,7 @@ struct ProducedWithArtistRow: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.10), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
@@ -1141,7 +1124,7 @@ struct ProducedWithArtistRow: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
         }
-        .frame(width: 92, height: 118)
+        .frame(width: 84, height: 108)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
@@ -1283,7 +1266,7 @@ struct VideoPublicConfigEditorCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Owner und Video-Admins steuern hier Equipment, YouTube und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.")
+            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1330,61 +1313,6 @@ struct VideoPublicConfigEditorCard: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(AppColors.accent(for: colorScheme))
-            }
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("YouTube")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                ForEach(Array(viewModel.publicConfig.youtubeItems.enumerated()), id: \.element.id) { _, item in
-                    VStack(alignment: .leading, spacing: 8) {
-                        NicmaUploadField(
-                            title: "Titel",
-                            text: Binding(
-                                get: { item.title },
-                                set: { viewModel.updateYouTubeItem(item.id, title: $0) }
-                            ),
-                            colorScheme: colorScheme
-                        )
-                        NicmaUploadField(
-                            title: "Untertitel",
-                            text: Binding(
-                                get: { item.subtitle },
-                                set: { viewModel.updateYouTubeItem(item.id, subtitle: $0) }
-                            ),
-                            colorScheme: colorScheme
-                        )
-                        NicmaUploadField(
-                            title: "URL",
-                            text: Binding(
-                                get: { item.urlString },
-                                set: { viewModel.updateYouTubeItem(item.id, urlString: $0) }
-                            ),
-                            colorScheme: colorScheme,
-                            keyboard: .URL,
-                            autocapitalization: .never
-                        )
-                        Button(role: .destructive) {
-                            viewModel.removeYouTubeItem(item.id)
-                        } label: {
-                            Label("Eintrag entfernen", systemImage: "trash")
-                                .font(.caption.weight(.semibold))
-                        }
-                    }
-                    .padding(14)
-                    .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
-                }
-
-                Button {
-                    viewModel.addYouTubeItem()
-                } label: {
-                    Label("YouTube-Video hinzufuegen", systemImage: "plus.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .buttonStyle(.bordered)
-                .tint(AppColors.accentHighlight(for: colorScheme))
             }
 
             VStack(alignment: .leading, spacing: 12) {
@@ -1450,6 +1378,16 @@ struct VideoPublicConfigEditorCard: View {
                             text: Binding(
                                 get: { item.instagramURLString ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, instagramURLString: $0) }
+                            ),
+                            colorScheme: colorScheme,
+                            keyboard: .URL,
+                            autocapitalization: .never
+                        )
+                        NicmaUploadField(
+                            title: "YouTube URL",
+                            text: Binding(
+                                get: { item.youtubeURLString ?? "" },
+                                set: { viewModel.updateCollaborationItem(item.id, youtubeURLString: $0) }
                             ),
                             colorScheme: colorScheme,
                             keyboard: .URL,

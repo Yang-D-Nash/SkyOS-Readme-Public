@@ -313,11 +313,11 @@ private struct ZweizweiTabView: View {
 
                         ShellActionCard(
                             title: "Songs & Artists",
-                            subtitle: "Starte direkt mit JANNO und spring von dort in Songs, Spotify und die Artist-Story.",
+                            subtitle: "Starte mit JANNO und finde im Katalog direkt alle Artists, Songs und Pages.",
                             accent: AppColors.spotify(for: colorScheme)
                         ) {
                             catalogInitialArtist = "JANNO"
-                            catalogAutoPresentArtistPage = true
+                            catalogAutoPresentArtistPage = false
                             destination = .catalog
                         }
 

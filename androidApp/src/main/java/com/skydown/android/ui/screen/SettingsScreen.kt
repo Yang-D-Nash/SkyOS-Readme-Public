@@ -170,15 +170,9 @@ fun SettingsScreen(
     val showDeleteAccountDialog = rememberSaveable {
         mutableStateOf(false)
     }
-    var activeAdminWorkspaceKey by rememberSaveable { mutableStateOf(AdminWorkspaceSection.Overview.name) }
+    var activeAdminWorkspaceKey by rememberSaveable { mutableStateOf(AdminWorkspaceSection.Users.name) }
     val activeAdminWorkspace = AdminWorkspaceSection.valueOf(activeAdminWorkspaceKey)
     var showAdminWorkspaceSheet by rememberSaveable { mutableStateOf(false) }
-    val connectedPaymentMethodCount = listOf(
-        uiState.paymentMethods.stripe.connected,
-        uiState.paymentMethods.paypal.connected,
-        uiState.paymentMethods.klarna.connected,
-        uiState.paymentMethods.bankTransfer.isConfigured,
-    ).count { it }
     val visiblePaymentMethodCount = listOf(
         uiState.paymentMethods.stripe.connected && uiState.paymentMethods.stripe.enabled,
         uiState.paymentMethods.paypal.connected && uiState.paymentMethods.paypal.enabled,
@@ -253,78 +247,6 @@ fun SettingsScreen(
         AdminWorkspaceSummaryCard(section = section)
 
         when (section) {
-            AdminWorkspaceSection.Overview -> {
-                Text(
-                    text = "Heute im Blick",
-                    modifier = Modifier.padding(top = 16.dp),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                LazyRow(
-                    modifier = Modifier.padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    item {
-                        SettingsBadge(
-                            text = "$connectedPaymentMethodCount Zahlarten verbunden",
-                            icon = Icons.Default.CheckCircle,
-                            isActive = connectedPaymentMethodCount > 0,
-                        )
-                    }
-                    item {
-                        SettingsBadge(
-                            text = "$visiblePaymentMethodCount im Checkout sichtbar",
-                            icon = Icons.Default.CheckCircle,
-                            isActive = visiblePaymentMethodCount > 0,
-                        )
-                    }
-                    item {
-                        SettingsBadge(
-                            text = if (uiState.shopifyAdminSettings.hasCollectionFilter) {
-                                "Shopify: ${uiState.shopifyAdminSettings.activeCollectionLabel}"
-                            } else {
-                                "Shopify: Gesamter Store"
-                            },
-                            icon = Icons.Default.ShoppingBag,
-                            isActive = true,
-                        )
-                    }
-                    item {
-                        SettingsBadge(
-                            text = if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus",
-                            icon = Icons.Default.Palette,
-                            isActive = uiState.aiVisualReferenceLibrary.isEnabled,
-                        )
-                    }
-                    item {
-                        SettingsBadge(
-                            text = if (uiState.workflowAutomationSettings.isPrepared) "n8n bereit" else "n8n offen",
-                            icon = Icons.Default.Settings,
-                            isActive = uiState.workflowAutomationSettings.isPrepared,
-                        )
-                    }
-                    item {
-                        SettingsBadge(
-                            text = "$publishedArtistPageCount Artist-Seiten",
-                            icon = Icons.Default.LibraryMusic,
-                            isActive = publishedArtistPageCount > 0,
-                        )
-                    }
-                    item {
-                        SettingsBadge(
-                            text = "${uiState.managedUsers.size} Konten",
-                            icon = Icons.Default.Person,
-                            isActive = uiState.managedUsers.isNotEmpty(),
-                        )
-                    }
-                }
-                Text(
-                    text = "Jeder Bereich oeffnet sich jetzt separat. So bleibt die Settings-Seite kurz und du bist schneller direkt in der passenden Aufgabe.",
-                    modifier = Modifier.padding(top = 12.dp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                )
-            }
-
             AdminWorkspaceSection.Users -> {
                 Text(
                     text = "Hier steuerst du, welche Konten normaler User, Subadmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.",
@@ -1177,7 +1099,6 @@ fun SettingsScreen(
                                         detailText = adminWorkspaceStatusText(
                                             section = section,
                                             uiState = uiState,
-                                            connectedPaymentMethodCount = connectedPaymentMethodCount,
                                             visiblePaymentMethodCount = visiblePaymentMethodCount,
                                             publishedArtistPageCount = publishedArtistPageCount,
                                         ),
@@ -2051,11 +1972,6 @@ private enum class AdminWorkspaceSection(
     val subtitle: String,
     val icon: ImageVector,
 ) {
-    Overview(
-        label = "Uebersicht",
-        subtitle = "Schneller Status fuer Owner-Bereiche und Systemverbindungen.",
-        icon = Icons.Default.Settings,
-    ),
     Payments(
         label = "Zahlungen",
         subtitle = "Provider verbinden und fuer den Checkout sichtbar schalten.",
@@ -2096,12 +2012,10 @@ private enum class AdminWorkspaceSection(
 private fun adminWorkspaceStatusText(
     section: AdminWorkspaceSection,
     uiState: SettingsUiState,
-    connectedPaymentMethodCount: Int,
     visiblePaymentMethodCount: Int,
     publishedArtistPageCount: Int,
 ): String {
     return when (section) {
-        AdminWorkspaceSection.Overview -> "$connectedPaymentMethodCount Bereiche aktiv"
         AdminWorkspaceSection.Payments -> "$visiblePaymentMethodCount live im Checkout"
         AdminWorkspaceSection.Users -> "${uiState.managedUsers.size} Konten"
         AdminWorkspaceSection.Artists -> "${publishedArtistPageCount} Artist-Seiten"

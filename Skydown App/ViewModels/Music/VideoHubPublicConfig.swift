@@ -22,6 +22,7 @@ struct SkydownProducedWithArtist: Identifiable, Equatable {
     var imageURLString: String?
     var spotifyArtistID: String?
     var instagramURLString: String?
+    var youtubeURLString: String?
 }
 
 struct SkydownVideoHubPublicConfig: Equatable {
@@ -66,7 +67,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Street Energy",
         imageURLString: nil,
         spotifyArtistID: "4CoozMQ3B3I20day60N7QA",
-        instagramURLString: "https://www.instagram.com/toprack_941/"
+        instagramURLString: "https://www.instagram.com/toprack_941/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-directa",
@@ -76,7 +78,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Dark Cut",
         imageURLString: nil,
         spotifyArtistID: "2v4YJINKwkBY3DajPcmWm3",
-        instagramURLString: "https://www.instagram.com/directascut/"
+        instagramURLString: "https://www.instagram.com/directascut/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-michael-klotz",
@@ -86,7 +89,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Cinematic",
         imageURLString: nil,
         spotifyArtistID: "4i8fdH54Ielws2ghRMPKGh",
-        instagramURLString: "https://www.instagram.com/michael.ktz/"
+        instagramURLString: "https://www.instagram.com/michael.ktz/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-jojee",
@@ -96,7 +100,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Performance",
         imageURLString: nil,
         spotifyArtistID: "2azLzTxCm662tbpPwPwQwI",
-        instagramURLString: "https://www.instagram.com/iamjojee/"
+        instagramURLString: "https://www.instagram.com/iamjojee/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-sowjet020",
@@ -106,7 +111,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Raw",
         imageURLString: nil,
         spotifyArtistID: "2LLwIW8Nk30IYyC9sHr0Cm",
-        instagramURLString: "https://www.instagram.com/sowjet020/"
+        instagramURLString: "https://www.instagram.com/sowjet020/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-cemo",
@@ -116,7 +122,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Portrait",
         imageURLString: nil,
         spotifyArtistID: "0KD8un5on2oXfJ3dwxpw40",
-        instagramURLString: "https://www.instagram.com/cemo_sd/"
+        instagramURLString: "https://www.instagram.com/cemo_sd/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-daco27",
@@ -126,7 +133,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Motion",
         imageURLString: nil,
         spotifyArtistID: "3oxSFNrPcoqo7qkAIsR74D",
-        instagramURLString: "https://www.instagram.com/daco.27/"
+        instagramURLString: "https://www.instagram.com/daco.27/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-neo",
@@ -136,7 +144,8 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Session",
         imageURLString: nil,
         spotifyArtistID: nil,
-        instagramURLString: "https://www.instagram.com/sincity.neo/"
+        instagramURLString: "https://www.instagram.com/sincity.neo/",
+        youtubeURLString: nil
     ),
     SkydownProducedWithArtist(
         id: "produced-with-phil",
@@ -146,6 +155,7 @@ let defaultProducedWithArtists: [SkydownProducedWithArtist] = [
         vibe: "Portrait",
         imageURLString: nil,
         spotifyArtistID: nil,
-        instagramURLString: "https://www.instagram.com/philip_beau/"
+        instagramURLString: "https://www.instagram.com/philip_beau/",
+        youtubeURLString: nil
     )
 ]

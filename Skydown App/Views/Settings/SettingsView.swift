@@ -510,15 +510,6 @@ struct SettingsView: View {
         authManager.userSession?.isPlatformOwner == true
     }
 
-    private var connectedPaymentMethodCount: Int {
-        var count = 0
-        if paymentMethodSettingsStore.settings.stripe.connected { count += 1 }
-        if paymentMethodSettingsStore.settings.paypal.connected { count += 1 }
-        if paymentMethodSettingsStore.settings.klarna.connected { count += 1 }
-        if paymentMethodSettingsStore.settings.bankTransfer.isConfigured { count += 1 }
-        return count
-    }
-
     private var visiblePaymentMethodCount: Int {
         var count = 0
         if paymentMethodSettingsStore.settings.stripe.connected && paymentMethodSettingsStore.settings.stripe.enabled { count += 1 }
@@ -589,57 +580,6 @@ struct SettingsView: View {
             )
 
             switch section {
-            case .overview:
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Heute im Blick")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            SettingsBadge(
-                                text: merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert",
-                                colorScheme: effectiveColorScheme
-                            )
-                            SettingsBadge(
-                                text: "\(connectedPaymentMethodCount) Zahlarten verbunden",
-                                colorScheme: effectiveColorScheme
-                            )
-                            SettingsBadge(
-                                text: "\(visiblePaymentMethodCount) im Checkout sichtbar",
-                                colorScheme: effectiveColorScheme
-                            )
-                            SettingsBadge(
-                                text: shopifyAdminSettingsStore.settings.hasCollectionFilter
-                                    ? "Shopify: \(shopifyAdminSettingsStore.settings.activeCollectionLabel)"
-                                    : "Shopify: Gesamter Store",
-                                colorScheme: effectiveColorScheme
-                            )
-                            SettingsBadge(
-                                text: aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus",
-                                colorScheme: effectiveColorScheme
-                            )
-                            SettingsBadge(
-                                text: workflowAutomationSettings.settings.isPrepared ? "n8n bereit" : "n8n offen",
-                                colorScheme: effectiveColorScheme
-                            )
-                            SettingsBadge(
-                                text: "\(publishedArtistPageCount) Artist-Seiten",
-                                colorScheme: effectiveColorScheme
-                            )
-                            SettingsBadge(
-                                text: "\(adminUserManagementStore.users.count) Konten",
-                                colorScheme: effectiveColorScheme
-                            )
-                        }
-                        .padding(.vertical, 2)
-                    }
-
-                    Text("Jeder Bereich oeffnet sich jetzt separat. So bleibt die Settings-Seite kurz und du bist schneller genau da, wo du arbeiten willst.")
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                }
-
             case .users:
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Hier steuerst du, welche Konten normaler User, Subadmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.")
@@ -1156,8 +1096,6 @@ struct SettingsView: View {
 
     private func adminWorkspaceStatusText(for section: SettingsAdminWorkspaceSection) -> String {
         switch section {
-        case .overview:
-            return merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert"
         case .payments:
             return "\(visiblePaymentMethodCount) live im Checkout"
         case .users:
@@ -2263,7 +2201,6 @@ private struct SettingsBadge: View {
 }
 
 private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
-    case overview = "Uebersicht"
     case payments = "Zahlungen"
     case users = "User"
     case artists = "Artists"
@@ -2276,8 +2213,6 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
 
     var iconName: String {
         switch self {
-        case .overview:
-            return "square.grid.2x2.fill"
         case .payments:
             return "creditcard.fill"
         case .users:
@@ -2297,8 +2232,6 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .overview:
-            return "Schneller Status fuer Store, Zahlarten, Visuals und Automationen."
         case .payments:
             return "Provider verbinden, pruefen und fuer den Checkout sichtbar schalten."
         case .users:

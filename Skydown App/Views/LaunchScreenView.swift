@@ -6,8 +6,8 @@
 //
 
 import AVFoundation
-import AVKit
 import SwiftUI
+import UIKit
 
 struct LaunchScreenView: View {
     @State private var phase: LaunchPhase = .intro
@@ -51,38 +51,19 @@ struct LaunchScreenView: View {
                 Color.black
                     .ignoresSafeArea()
 
-                GeometryReader { proxy in
-                    VideoPlayer(player: player)
-                        .frame(
-                            width: proxy.size.width - 12,
-                            height: proxy.size.height - 24
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        }
-                        .shadow(color: .black.opacity(0.32), radius: 24, y: 12)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 12)
-                }
+                IntroVideoSurface(player: player)
+                    .ignoresSafeArea()
 
-                VStack {
-                    Spacer()
-
-                    Image(BrandMark.skydownX22.rawValue)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 88, height: 88)
-                        .padding(10)
-                        .background(.black.opacity(0.28))
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .stroke(.white.opacity(0.08), lineWidth: 1)
-                        }
-                        .padding(.bottom, 28)
-                }
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.10),
+                        Color.clear,
+                        Color.black.opacity(0.18)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
             }
             .onAppear {
                 configureIntroAudioSession()
@@ -164,11 +145,12 @@ private struct LaunchLandingView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 2/255, green: 6/255, blue: 12/255),
+                    Color.black,
+                    Color(red: 3/255, green: 8/255, blue: 16/255),
+                    Color(red: 7/255, green: 18/255, blue: 34/255),
+                    Color(red: 20/255, green: 49/255, blue: 90/255).opacity(0.46),
                     Color(red: 4/255, green: 10/255, blue: 18/255),
-                    Color(red: 6/255, green: 14/255, blue: 24/255),
-                    AppColors.accent(for: hubColorScheme).opacity(0.16),
-                    Color(red: 2/255, green: 7/255, blue: 13/255)
+                    Color.black
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -187,13 +169,13 @@ private struct LaunchLandingView: View {
             .ignoresSafeArea()
 
             Circle()
-                .fill(AppColors.accent(for: hubColorScheme).opacity(0.14))
+                .fill(Color(red: 75/255, green: 131/255, blue: 207/255).opacity(0.16))
                 .frame(width: 260, height: 260)
                 .blur(radius: 62)
                 .offset(x: 150, y: -280)
 
             Circle()
-                .fill(AppColors.accentMystic(for: hubColorScheme).opacity(0.12))
+                .fill(Color(red: 156/255, green: 189/255, blue: 232/255).opacity(0.10))
                 .frame(width: 240, height: 240)
                 .blur(radius: 68)
                 .offset(x: -140, y: 260)
@@ -407,6 +389,45 @@ private struct LaunchLandingButton: View {
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
+    }
+}
+
+private struct IntroVideoSurface: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> IntroPlayerView {
+        let view = IntroPlayerView()
+        view.playerLayer.player = player
+        return view
+    }
+
+    func updateUIView(_ uiView: IntroPlayerView, context: Context) {
+        uiView.playerLayer.player = player
+    }
+}
+
+private final class IntroPlayerView: UIView {
+    // swiftlint:disable:next static_over_final_class
+    override class var layerClass: AnyClass {
+        AVPlayerLayer.self
+    }
+
+    var playerLayer: AVPlayerLayer {
+        guard let layer = layer as? AVPlayerLayer else {
+            fatalError("Expected AVPlayerLayer")
+        }
+        return layer
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .black
+        playerLayer.videoGravity = .resizeAspectFill
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }
 

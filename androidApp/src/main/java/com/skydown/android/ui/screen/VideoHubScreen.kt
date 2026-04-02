@@ -62,7 +62,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -150,12 +149,10 @@ fun VideoHubScreen(
     var showReelViewer by rememberSaveable { mutableStateOf(false) }
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
-    var selectedYouTubeItem by remember { mutableStateOf<VideoYouTubeItem?>(null) }
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
     }
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
     val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: uiState.videos.firstOrNull()
     val videoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -212,7 +209,7 @@ fun VideoHubScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Video",
-                        subtitle = "Reels, Clips, YouTube.",
+                        subtitle = "Reels, Clips, Kollabos.",
                     )
                 },
                 actions = {
@@ -277,20 +274,6 @@ fun VideoHubScreen(
                     }
                 }
 
-                FloatingActionButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(VideoHubListIndex.youtubeSection)
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Zu YouTube",
-                    )
-                }
             }
         },
     ) { innerPadding ->
@@ -319,21 +302,7 @@ fun VideoHubScreen(
                 }
 
                 item {
-                    VideoCollaborationsCard(
-                        items = uiState.publicConfig.collaborationItems,
-                        onOpenLink = { url -> openExternalLink(context, url) },
-                    )
-                }
-
-                item {
                     VideoEquipmentCard(items = uiState.publicConfig.equipmentItems)
-                }
-
-                item {
-                    VideoYouTubeCard(
-                        items = uiState.publicConfig.youtubeItems,
-                        onPlayItem = { item -> selectedYouTubeItem = item },
-                    )
                 }
 
                 item {
@@ -366,6 +335,13 @@ fun VideoHubScreen(
                     )
                 }
 
+                item {
+                    VideoCollaborationsCard(
+                        items = uiState.publicConfig.collaborationItems,
+                        onOpenLink = { url -> openExternalLink(context, url) },
+                    )
+                }
+
                 if (uiState.isAdmin) {
                     item {
                         VideoFormatCard()
@@ -382,17 +358,6 @@ fun VideoHubScreen(
                                 viewModel.updateEquipmentItem(itemId, detail = value)
                             },
                             onRemoveEquipment = viewModel::removeEquipmentItem,
-                            onAddYouTube = viewModel::addYouTubeItem,
-                            onUpdateYouTubeTitle = { itemId, value ->
-                                viewModel.updateYouTubeItem(itemId, title = value)
-                            },
-                            onUpdateYouTubeSubtitle = { itemId, value ->
-                                viewModel.updateYouTubeItem(itemId, subtitle = value)
-                            },
-                            onUpdateYouTubeUrl = { itemId, value ->
-                                viewModel.updateYouTubeItem(itemId, url = value)
-                            },
-                            onRemoveYouTube = viewModel::removeYouTubeItem,
                             onAddCollaboration = viewModel::addCollaborationItem,
                             onUpdateCollaborationName = { itemId, value ->
                                 viewModel.updateCollaborationItem(itemId, name = value)
@@ -414,6 +379,9 @@ fun VideoHubScreen(
                             },
                             onUpdateCollaborationInstagramUrl = { itemId, value ->
                                 viewModel.updateCollaborationItem(itemId, instagramUrl = value)
+                            },
+                            onUpdateCollaborationYouTubeUrl = { itemId, value ->
+                                viewModel.updateCollaborationItem(itemId, youtubeUrl = value)
                             },
                             onRemoveCollaboration = viewModel::removeCollaborationItem,
                             onSave = viewModel::savePublicConfig,
@@ -478,20 +446,8 @@ fun VideoHubScreen(
                     }
                 }
             }
-
-            selectedYouTubeItem?.let { item ->
-                VideoYouTubePlayerDialog(
-                    item = item,
-                    onDismiss = { selectedYouTubeItem = null },
-                    onOpenExternal = { url -> openExternalLink(context, url) },
-                )
-            }
         }
     }
-}
-
-private object VideoHubListIndex {
-    const val youtubeSection = 3
 }
 
 @Composable
@@ -502,7 +458,7 @@ private fun VideoHubHeroCard(
         eyebrow = "Video",
         title = "Video",
         subtitle = "Reels, Visuals und starke Kollaborationen.",
-        detail = "Clips, Looks, YouTube und Leute hinter dem Vibe.",
+        detail = "Clips, Looks und Leute hinter dem Vibe.",
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),
@@ -510,7 +466,6 @@ private fun VideoHubHeroCard(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(text = "Videos", tint = MaterialTheme.colorScheme.secondary)
             BrandPill(text = "Equipment", tint = MaterialTheme.colorScheme.primary)
-            BrandPill(text = "YouTube", tint = MaterialTheme.colorScheme.tertiary)
             BrandPill(text = "Collabs", tint = MaterialTheme.colorScheme.primary)
         }
     }
@@ -543,7 +498,7 @@ private fun VideoCollaborationsCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Featured Collabs")
         Text(
-            text = "Artists und Creatives, die die Visuals mitpraegen.",
+            text = "Artists und Creatives, mit denen die Visuals entstehen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -660,11 +615,6 @@ private fun VideoPublicConfigEditorCard(
     onUpdateEquipmentTitle: (String, String) -> Unit,
     onUpdateEquipmentDetail: (String, String) -> Unit,
     onRemoveEquipment: (String) -> Unit,
-    onAddYouTube: () -> Unit,
-    onUpdateYouTubeTitle: (String, String) -> Unit,
-    onUpdateYouTubeSubtitle: (String, String) -> Unit,
-    onUpdateYouTubeUrl: (String, String) -> Unit,
-    onRemoveYouTube: (String) -> Unit,
     onAddCollaboration: () -> Unit,
     onUpdateCollaborationName: (String, String) -> Unit,
     onUpdateCollaborationRole: (String, String) -> Unit,
@@ -673,13 +623,14 @@ private fun VideoPublicConfigEditorCard(
     onUpdateCollaborationImageUrl: (String, String) -> Unit,
     onUpdateCollaborationSpotifyArtistId: (String, String) -> Unit,
     onUpdateCollaborationInstagramUrl: (String, String) -> Unit,
+    onUpdateCollaborationYouTubeUrl: (String, String) -> Unit,
     onRemoveCollaboration: (String) -> Unit,
     onSave: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Videography Editor")
         Text(
-            text = "Owner und Video-Admins steuern hier Equipment, YouTube und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.",
+            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder laufen immer in ein festes Kartenformat und werden automatisch skaliert.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -734,62 +685,6 @@ private fun VideoPublicConfigEditorCard(
                 .padding(top = 12.dp),
         ) {
             Text("Equipment hinzufuegen")
-        }
-
-        Text(
-            text = "YouTube",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 18.dp),
-        )
-        Column(
-            modifier = Modifier.padding(top = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            uiState.publicConfig.youtubeItems.forEach { item ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = item.title,
-                        onValueChange = { onUpdateYouTubeTitle(item.id, it) },
-                        label = { Text("Titel") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = item.subtitle,
-                        onValueChange = { onUpdateYouTubeSubtitle(item.id, it) },
-                        label = { Text("Untertitel") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = item.url,
-                        onValueChange = { onUpdateYouTubeUrl(item.id, it) },
-                        label = { Text("URL") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedButton(
-                        onClick = { onRemoveYouTube(item.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Eintrag entfernen")
-                    }
-                }
-            }
-        }
-
-        OutlinedButton(
-            onClick = onAddYouTube,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text("YouTube-Video hinzufuegen")
         }
 
         Text(
@@ -854,6 +749,12 @@ private fun VideoPublicConfigEditorCard(
                         label = { Text("Instagram URL") },
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    OutlinedTextField(
+                        value = item.youtubeUrl.orEmpty(),
+                        onValueChange = { onUpdateCollaborationYouTubeUrl(item.id, it) },
+                        label = { Text("YouTube URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     OutlinedButton(
                         onClick = { onRemoveCollaboration(item.id) },
                         modifier = Modifier.fillMaxWidth(),
@@ -906,17 +807,17 @@ private fun ProducedWithArtistRow(
                 Brush.linearGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
                     ),
                 ),
             )
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 13.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Box(
             modifier = Modifier
-                .size(width = 92.dp, height = 118.dp)
+                .size(width = 84.dp, height = 108.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.linearGradient(
@@ -987,6 +888,7 @@ private fun ProducedWithArtistRow(
                     text = artist.highlight,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    maxLines = 3,
                 )
             }
 
@@ -1016,6 +918,19 @@ private fun ProducedWithArtistRow(
                             ),
                         ),
                         onClick = { onOpenLink(instagramUrl) },
+                    )
+                }
+                artist.youtubeUrl?.takeIf { it.isNotBlank() }?.let { youtubeUrl ->
+                    SocialActionChip(
+                        title = "YouTube",
+                        icon = Icons.Default.PlayArrow,
+                        gradient = Brush.linearGradient(
+                            colors = listOf(
+                                YouTubeRed,
+                                YouTubeDeepRed,
+                            ),
+                        ),
+                        onClick = { onOpenLink(youtubeUrl) },
                     )
                 }
             }
