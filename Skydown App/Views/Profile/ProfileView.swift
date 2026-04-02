@@ -48,14 +48,6 @@ struct ProfileView: View {
                         dismiss()
                     }
                 }
-
-                if viewModel.canEditCurrentProfile {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(viewModel.isEditing ? "Fertig" : "Bearbeiten") {
-                            viewModel.setEditing(!viewModel.isEditing)
-                        }
-                    }
-                }
             }
         }
         .fancyToast(
@@ -90,166 +82,283 @@ struct ProfileView: View {
         }
     }
 
+    private var profileBackdropURL: URL? {
+        if let value = viewModel.currentUser?.profileImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+           let url = URL(string: value),
+           !value.isEmpty {
+            return url
+        }
+
+        if let fallback = viewModel.filteredItems.first?.thumbnailURL ?? viewModel.filteredItems.first?.mediaURL,
+           let url = URL(string: fallback) {
+            return url
+        }
+
+        return nil
+    }
+
+    private var instagramURL: URL? {
+        guard let handle = viewModel.currentUser?.instagramHandle?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !handle.isEmpty else {
+            return nil
+        }
+
+        if handle.contains("instagram.com"), let url = URL(string: handle) {
+            return url
+        }
+
+        return URL(string: "https://www.instagram.com/\(handle.trimmingPrefix("@"))")
+    }
+
+    private var whatsAppURL: URL? {
+        guard let raw = viewModel.currentUser?.whatsApp?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty else {
+            return nil
+        }
+
+        if raw.lowercased().hasPrefix("http"), let url = URL(string: raw) {
+            return url
+        }
+
+        let digits = raw.filter(\.isNumber)
+        guard !digits.isEmpty else { return nil }
+        return URL(string: "https://wa.me/\(digits)")
+    }
+
+    private var roleTitle: String {
+        switch viewModel.currentUser?.resolvedRole {
+        case .owner:
+            return "Owner"
+        case .admin:
+            return "Admin"
+        case .subadmin:
+            return "Creator"
+        default:
+            return "User"
+        }
+    }
+
+    private var planTitle: String {
+        switch viewModel.currentUser?.resolvedQuotaPlan {
+        case .ownerUnlimited:
+            return "Unlimited"
+        case .internalTeam:
+            return "Team"
+        case .creator:
+            return "Creator"
+        case .studio:
+            return "Studio"
+        default:
+            return "Free"
+        }
+    }
+
     private var profileHeader: some View {
         let isUploadingAvatar = viewModel.isUploadingAvatar
+        let isUploadingMedia = viewModel.isUploadingMedia
 
-        return VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                ZStack(alignment: .bottomTrailing) {
+        return ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColors.cardBackground(for: colorScheme),
+                            AppColors.secondaryBackground(for: colorScheme)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            if let profileBackdropURL {
+                AsyncImage(url: profileBackdropURL) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } placeholder: {
+                    Color.clear
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
+            }
+
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.18),
+                            Color.black.opacity(0.54),
+                            Color.black.opacity(0.82)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(spacing: 10) {
+                    ProfileMetaPill(title: "Rolle", value: roleTitle)
+                    ProfileMetaPill(title: "Plan", value: planTitle)
+                }
+
+                Spacer(minLength: 44)
+
+                HStack(alignment: .bottom, spacing: 16) {
                     ProfileAvatarView(
                         imageURL: viewModel.currentUser?.profileImageURL,
                         fallbackText: viewModel.currentUser?.username ?? "G",
-                        size: 94,
+                        size: 96,
                         colorScheme: colorScheme
                     )
 
-                    if viewModel.canEditCurrentProfile {
-                        PhotosPicker(
-                            selection: $avatarPickerItem,
-                            matching: .images
-                        ) {
-                            ZStack {
-                                Circle()
-                                    .fill(AppColors.accent(for: colorScheme))
-                                    .frame(width: 30, height: 30)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(viewModel.currentUser?.username ?? "Profil")
+                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
 
-                                if isUploadingAvatar {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Image(systemName: "camera.fill")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundColor(.white)
+                        if let tagline = viewModel.currentUser?.profileTagline, !tagline.isEmpty {
+                            Text(tagline)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundColor(.white.opacity(0.88))
+                        }
+
+                        if let bio = viewModel.currentUser?.profileBio, !bio.isEmpty {
+                            Text(bio)
+                                .font(.footnote.weight(.medium))
+                                .foregroundColor(.white.opacity(0.72))
+                                .lineLimit(3)
+                        }
+
+                        HStack(spacing: 8) {
+                            if let instagramURL {
+                                ProfileLinkPill(
+                                    title: "Instagram",
+                                    systemImage: "camera.fill",
+                                    colors: [
+                                        AppColors.instagramStart(for: colorScheme),
+                                        AppColors.instagramEnd(for: colorScheme)
+                                    ]
+                                ) {
+                                    openURL(instagramURL)
+                                }
+                            }
+
+                            if let whatsAppURL {
+                                ProfileLinkPill(
+                                    title: "WhatsApp",
+                                    systemImage: "message.fill",
+                                    colors: [
+                                        AppColors.spotify(for: colorScheme),
+                                        AppColors.accentMystic(for: colorScheme)
+                                    ]
+                                ) {
+                                    openURL(whatsAppURL)
                                 }
                             }
                         }
-                        .buttonStyle(.plain)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(viewModel.currentUser?.username ?? "Profil")
-                        .font(.system(size: 28, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    if let tagline = viewModel.currentUser?.profileTagline, !tagline.isEmpty {
-                        Text(tagline)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    }
-
-                    if let bio = viewModel.currentUser?.profileBio, !bio.isEmpty {
-                        Text(bio)
-                            .font(.footnote.weight(.medium))
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    }
-
-                    if let handle = viewModel.currentUser?.instagramHandle, !handle.isEmpty {
-                        let normalizedHandle = handle.trimmingCharacters(in: .whitespacesAndNewlines)
-                            .trimmingPrefix("@")
-                        Button {
-                            if let url = URL(string: "https://www.instagram.com/\(normalizedHandle)") {
-                                openURL(url)
-                            }
-                        } label: {
-                            Label("@\(normalizedHandle)", systemImage: "camera.fill")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    AppColors.instagramStart(for: colorScheme),
-                                                    AppColors.instagramEnd(for: colorScheme)
-                                                ],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                    }
+                HStack(spacing: 10) {
+                    ProfileMetaPill(title: "Bilder", value: "\(viewModel.imageCount)")
+                    ProfileMetaPill(title: "Links", value: "\(instagramURL == nil ? 0 : 1 + (whatsAppURL == nil ? 0 : 1))")
+                    ProfileMetaPill(title: "Status", value: viewModel.canEditCurrentProfile ? "Live" : "Public")
                 }
-
-                Spacer()
             }
+            .padding(22)
+            .frame(maxWidth: .infinity, minHeight: 286, alignment: .bottomLeading)
 
-            ProfileStatPill(
-                title: "Bilder",
-                value: viewModel.imageCount,
-                colorScheme: colorScheme
-            )
+            if viewModel.canEditCurrentProfile {
+                VStack(alignment: .trailing, spacing: 10) {
+                    Button(viewModel.isEditing ? "Fertig" : "Bearbeiten") {
+                        viewModel.setEditing(!viewModel.isEditing)
+                    }
+                    .buttonStyle(.plain)
+                    .modifier(
+                        ProfileActionCapsuleModifier(
+                            tint: AppColors.accentMystic(for: colorScheme),
+                            textColor: .white
+                        )
+                    )
 
+                    PhotosPicker(selection: $avatarPickerItem, matching: .images) {
+                        ProfileActionCapsuleLabel(
+                            title: isUploadingAvatar ? "Avatar..." : "Avatar",
+                            systemImage: "camera.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .modifier(
+                        ProfileActionCapsuleModifier(
+                            tint: AppColors.accent(for: colorScheme),
+                            textColor: .white
+                        )
+                    )
+
+                    PhotosPicker(selection: $galleryImagePickerItem, matching: .images) {
+                        ProfileActionCapsuleLabel(
+                            title: isUploadingMedia ? "Laedt..." : "Bild",
+                            systemImage: "photo.badge.plus"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .modifier(
+                        ProfileActionCapsuleModifier(
+                            tint: AppColors.cardBackground(for: colorScheme).opacity(0.92),
+                            textColor: .white
+                        )
+                    )
+                }
+                .padding(18)
+            }
         }
-        .padding(SkydownLayout.heroPadding)
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: AppColors.accent(for: colorScheme),
-            cornerRadius: SkydownLayout.heroCornerRadius,
-            shadowRadius: 14,
-            shadowYOffset: 8
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
+        .shadow(color: Color.black.opacity(0.22), radius: 18, y: 12)
     }
 
     private var mediaSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Galerie")
-                    .font(.headline)
-                    .foregroundColor(AppColors.text(for: colorScheme))
+        let isUploadingMedia = viewModel.isUploadingMedia
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Galerie")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text("Persoenliche Bilder direkt aus deinem Profil.")
+                        .font(.footnote.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
 
                 Spacer()
-            }
 
-            HStack(spacing: 10) {
-                ForEach(ProfileMediaType.allCases) { type in
-                    Button {
-                        viewModel.selectedMediaType = type
-                    } label: {
-                        Label(type.title, systemImage: type.systemImage)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundColor(
-                                viewModel.selectedMediaType == type ? .white : AppColors.text(for: colorScheme)
-                            )
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 9)
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(
-                                        viewModel.selectedMediaType == type
-                                            ? AppColors.accent(for: colorScheme)
-                                            : AppColors.secondaryBackground(for: colorScheme)
-                                    )
-                            )
+                if viewModel.canEditCurrentProfile {
+                    PhotosPicker(selection: $galleryImagePickerItem, matching: .images) {
+                        ProfileCompactActionPill(
+                            title: isUploadingMedia ? "Laedt..." : "Bild hinzufuegen",
+                            systemImage: "photo.badge.plus",
+                            colorScheme: colorScheme
+                        )
                     }
                     .buttonStyle(.plain)
                     .skydownTactileAction()
                 }
             }
 
-            if viewModel.canEditCurrentProfile {
-                uploadBar
-            }
-
             if viewModel.filteredItems.isEmpty {
-                Text("Noch nichts drin.")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .padding(.vertical, 6)
+                ProfileGalleryEmptyState(
+                    canEdit: viewModel.canEditCurrentProfile,
+                    colorScheme: colorScheme
+                )
             } else {
                 LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
-                    spacing: 10
+                    columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2),
+                    spacing: 12
                 ) {
                     ForEach(viewModel.filteredItems) { item in
                         ProfileMediaGridTile(item: item, colorScheme: colorScheme)
@@ -267,30 +376,16 @@ struct ProfileView: View {
         )
     }
 
-    private var uploadBar: some View {
-        let isUploadingMedia = viewModel.isUploadingMedia
-        let selectedMediaType = viewModel.selectedMediaType
-
-        return HStack(spacing: 10) {
-            PhotosPicker(
-                selection: $galleryImagePickerItem,
-                matching: .images
-            ) {
-                ProfileUploadButtonLabel(
-                    title: isUploadingMedia && selectedMediaType == .image ? "Laedt" : "Bild",
-                    systemImage: "photo.fill",
-                    colorScheme: colorScheme
-                )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
     private var editSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Profil bearbeiten")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Profil bearbeiten")
+                    .font(.headline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text("Name, Kurzinfo und Kontaktpunkte wirken hier direkt auf dein Profil.")
+                    .font(.footnote.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
 
             VStack(spacing: 12) {
                 TextField("Benutzername", text: $viewModel.usernameDraft)
@@ -408,44 +503,129 @@ private struct ProfileAvatarView: View {
     }
 }
 
-private struct ProfileStatPill: View {
+private struct ProfileMetaPill: View {
     let title: String
-    let value: Int
-    let colorScheme: ColorScheme
+    let value: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("\(value)")
+            Text(value)
                 .font(.headline.weight(.bold))
-                .foregroundColor(AppColors.text(for: colorScheme))
+                .foregroundColor(.white)
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .foregroundColor(.white.opacity(0.68))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(AppColors.secondaryBackground(for: colorScheme))
+        .background(Color.white.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
-private struct ProfileUploadButtonLabel: View {
+private struct ProfileLinkPill: View {
+    let title: String
+    let systemImage: String
+    let colors: [Color]
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+    }
+}
+
+private struct ProfileActionCapsuleLabel: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.headline.weight(.bold))
+            Text(title)
+                .font(.subheadline.weight(.bold))
+        }
+    }
+}
+
+private struct ProfileActionCapsuleModifier: ViewModifier {
+    let tint: Color
+    let textColor: Color
+
+    func body(content: Content) -> some View {
+        content
+            .foregroundColor(textColor)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(tint)
+            .clipShape(Capsule())
+            .shadow(color: tint.opacity(0.22), radius: 14, y: 8)
+    }
+}
+
+private struct ProfileCompactActionPill: View {
     let title: String
     let systemImage: String
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-            Text(title)
+        Label(title, systemImage: systemImage)
+            .font(.footnote.weight(.bold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(AppColors.accent(for: colorScheme))
+            )
+            .shadow(color: AppColors.accent(for: colorScheme).opacity(0.2), radius: 12, y: 8)
+    }
+}
+
+private struct ProfileGalleryEmptyState: View {
+    let canEdit: Bool
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "sparkles.rectangle.stack")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(AppColors.accent(for: colorScheme))
+            Text(canEdit ? "Deine ersten Bilder machen das Profil direkt lebendig." : "Hier erscheinen Bilder aus dem Profil.")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .multilineTextAlignment(.center)
+            Text(canEdit ? "Nutze den Upload oben rechts und fuelle dein Profil mit echten Eindruecken." : "Sobald Bilder hinterlegt sind, wird die Galerie hier sichtbar.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .multilineTextAlignment(.center)
         }
-        .font(.footnote.weight(.semibold))
-        .foregroundColor(AppColors.text(for: colorScheme))
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 22)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -463,7 +643,7 @@ private struct ProfileMediaGridTile: View {
             ZStack(alignment: .bottomLeading) {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(AppColors.secondaryBackground(for: colorScheme))
-                    .aspectRatio(1, contentMode: .fit)
+                    .aspectRatio(0.92, contentMode: .fit)
 
                 if item.mediaType == .image,
                    let thumb = URL(string: item.thumbnailURL ?? item.mediaURL) {
@@ -488,8 +668,15 @@ private struct ProfileMediaGridTile: View {
 
                 HStack(spacing: 6) {
                     Image(systemName: item.mediaType.systemImage)
-                    Text(item.title)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title)
+                            .lineLimit(1)
+                        if let caption = item.caption, !caption.isEmpty {
+                            Text(caption)
+                                .lineLimit(1)
+                                .foregroundColor(.white.opacity(0.72))
+                        }
+                    }
                 }
                 .font(.caption2.weight(.bold))
                 .foregroundColor(.white)
@@ -517,48 +704,5 @@ private struct ProfileMediaGridTile: View {
                 .font(.title2.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
         }
-    }
-}
-
-private struct ProfileAudioRow: View {
-    let item: ProfileGalleryItem
-    let colorScheme: ColorScheme
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        Button {
-            if let url = URL(string: item.mediaURL) {
-                openURL(url)
-            }
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accent(for: colorScheme).opacity(0.16))
-                        .frame(width: 42, height: 42)
-                    Image(systemName: "waveform")
-                        .foregroundColor(AppColors.accent(for: colorScheme))
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(item.caption ?? "Direkt aus deinem Profil.")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer()
-
-                Image(systemName: "arrow.up.right.square")
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-            .padding(12)
-            .background(AppColors.secondaryBackground(for: colorScheme))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
     }
 }

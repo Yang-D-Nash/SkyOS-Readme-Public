@@ -65,11 +65,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.mediaAttributionContext
 import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.data.ArtistPagesStore
+import com.skydown.android.data.AppContainer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -600,40 +604,21 @@ private fun MusicOverviewCard(
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = uiState.selectedArtist,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Preview hier.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(SpotifyGreen.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = SpotifyGreen,
-                )
-            }
+    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+    BrandHeroCard(
+        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
+        title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
+        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Tracks, Beats." },
+        detail = screenHeaderSettings.musicHubDetail.ifBlank { "${uiState.selectedArtist} und alle Artists direkt im Katalog." },
+        backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
+        accent = SpotifyGreen,
+        secondaryAccent = MaterialTheme.colorScheme.secondary,
+        marks = listOf(BrandArtwork.Zweizwei),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
+            BrandPill(text = "Songs", tint = MaterialTheme.colorScheme.primary)
+            BrandPill(text = "Pages", tint = MaterialTheme.colorScheme.secondary)
         }
 
         Text(
@@ -644,7 +629,6 @@ private fun MusicOverviewCard(
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
-            modifier = Modifier.padding(top = 12.dp),
         )
 
         uiState.selectedArtistSocialProfile?.let { socialProfile ->
@@ -652,7 +636,7 @@ private fun MusicOverviewCard(
                 onClick = onOpenInstagram,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .padding(top = 4.dp),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
@@ -670,7 +654,7 @@ private fun MusicOverviewCard(
                 onClick = onDisconnect,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .padding(top = 4.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.5f)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = SpotifyGreen),
             ) {
@@ -688,7 +672,7 @@ private fun MusicOverviewCard(
                 onClick = onConnect,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .padding(top = 4.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = SpotifyGreen,
                     contentColor = MaterialTheme.colorScheme.scrim,

@@ -5,7 +5,6 @@ import FirebaseFirestore
 final class UserProfileViewModel: ObservableObject {
     @Published private(set) var currentUser: User?
     @Published private(set) var galleryItems: [ProfileGalleryItem] = []
-    @Published var selectedMediaType: ProfileMediaType = .image
     @Published var isEditing: Bool
     @Published var usernameDraft = ""
     @Published var whatsAppDraft = ""
@@ -39,7 +38,7 @@ final class UserProfileViewModel: ObservableObject {
     }
 
     var filteredItems: [ProfileGalleryItem] {
-        galleryItems.filter { $0.mediaType == selectedMediaType }
+        galleryItems
     }
 
     var imageCount: Int {
@@ -138,7 +137,6 @@ final class UserProfileViewModel: ObservableObject {
                 title: title,
                 caption: nil
             )
-            selectedMediaType = type
             showSuccess(uploadSuccessMessage(for: type))
         } catch {
             showError(error.localizedDescription)

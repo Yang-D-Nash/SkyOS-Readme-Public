@@ -315,10 +315,10 @@ private struct HomeHeroIntroCard: View {
     var body: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: "Sky²² Home",
-            title: "Sky²²",
-            subtitle: "Alles direkt im Blick.",
-            detail: "Musik, Video, Merch, Tools.",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Sky²² Home",
+            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "Sky²²",
+            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles direkt im Blick.",
+            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch, Tools.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
@@ -1210,10 +1210,11 @@ private struct ShopHeroCard: View {
     var body: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: "Store",
-            title: "Shop",
-            subtitle: "Merch direkt in der App.",
-            detail: isStoreOpen ? "Offen fuer Bestellungen." : "Ansicht aktiv, Checkout pausiert.",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedShopEyebrow ?? "Store",
+            title: screenHeaderSettingsStore.settings.resolvedShopTitle ?? "Shop",
+            subtitle: screenHeaderSettingsStore.settings.resolvedShopSubtitle ?? "Merch direkt in der App.",
+            detail: screenHeaderSettingsStore.settings.resolvedShopDetail
+                ?? (isStoreOpen ? "Offen fuer Bestellungen." : "Ansicht aktiv, Checkout pausiert."),
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedShopImageURL,
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),

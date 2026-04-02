@@ -163,6 +163,10 @@ private struct AIEmptyStateHeader: View {
             Text("Kurz tippen und los.")
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text("Dein Verlauf wird pro Konto weitergefuehrt, damit der Bot nicht jedes Mal bei null startet.")
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(AppColors.accent(for: colorScheme).opacity(0.9))
         }
     }
 }

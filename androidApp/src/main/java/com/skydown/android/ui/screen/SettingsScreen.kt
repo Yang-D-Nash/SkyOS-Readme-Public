@@ -153,9 +153,25 @@ fun SettingsScreen(
     var shopifyStorefrontAccessTokenDraft by rememberSaveable { mutableStateOf("") }
     var shopifyCollectionHandleDraft by rememberSaveable { mutableStateOf("") }
     var homeHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var homeHeaderEyebrowDraft by rememberSaveable { mutableStateOf("") }
+    var homeHeaderTitleDraft by rememberSaveable { mutableStateOf("") }
+    var homeHeaderSubtitleDraft by rememberSaveable { mutableStateOf("") }
+    var homeHeaderDetailDraft by rememberSaveable { mutableStateOf("") }
     var musicHubHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var musicHubHeaderEyebrowDraft by rememberSaveable { mutableStateOf("") }
+    var musicHubHeaderTitleDraft by rememberSaveable { mutableStateOf("") }
+    var musicHubHeaderSubtitleDraft by rememberSaveable { mutableStateOf("") }
+    var musicHubHeaderDetailDraft by rememberSaveable { mutableStateOf("") }
     var shopHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var shopHeaderEyebrowDraft by rememberSaveable { mutableStateOf("") }
+    var shopHeaderTitleDraft by rememberSaveable { mutableStateOf("") }
+    var shopHeaderSubtitleDraft by rememberSaveable { mutableStateOf("") }
+    var shopHeaderDetailDraft by rememberSaveable { mutableStateOf("") }
     var videoHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var videoHeaderEyebrowDraft by rememberSaveable { mutableStateOf("") }
+    var videoHeaderTitleDraft by rememberSaveable { mutableStateOf("") }
+    var videoHeaderSubtitleDraft by rememberSaveable { mutableStateOf("") }
+    var videoHeaderDetailDraft by rememberSaveable { mutableStateOf("") }
     var automationEnabledDraft by rememberSaveable { mutableStateOf(false) }
     var automationSendsUserContextDraft by rememberSaveable { mutableStateOf(true) }
     var automationWorkflowNameDraft by rememberSaveable { mutableStateOf("") }
@@ -229,9 +245,25 @@ fun SettingsScreen(
 
     LaunchedEffect(screenHeaderSettings) {
         homeHeaderImageUrlDraft = screenHeaderSettings.homeImageUrl
+        homeHeaderEyebrowDraft = screenHeaderSettings.homeEyebrow
+        homeHeaderTitleDraft = screenHeaderSettings.homeTitle
+        homeHeaderSubtitleDraft = screenHeaderSettings.homeSubtitle
+        homeHeaderDetailDraft = screenHeaderSettings.homeDetail
         musicHubHeaderImageUrlDraft = screenHeaderSettings.musicHubImageUrl
+        musicHubHeaderEyebrowDraft = screenHeaderSettings.musicHubEyebrow
+        musicHubHeaderTitleDraft = screenHeaderSettings.musicHubTitle
+        musicHubHeaderSubtitleDraft = screenHeaderSettings.musicHubSubtitle
+        musicHubHeaderDetailDraft = screenHeaderSettings.musicHubDetail
         shopHeaderImageUrlDraft = screenHeaderSettings.shopImageUrl
+        shopHeaderEyebrowDraft = screenHeaderSettings.shopEyebrow
+        shopHeaderTitleDraft = screenHeaderSettings.shopTitle
+        shopHeaderSubtitleDraft = screenHeaderSettings.shopSubtitle
+        shopHeaderDetailDraft = screenHeaderSettings.shopDetail
         videoHeaderImageUrlDraft = screenHeaderSettings.videoHubImageUrl
+        videoHeaderEyebrowDraft = screenHeaderSettings.videoHubEyebrow
+        videoHeaderTitleDraft = screenHeaderSettings.videoHubTitle
+        videoHeaderSubtitleDraft = screenHeaderSettings.videoHubSubtitle
+        videoHeaderDetailDraft = screenHeaderSettings.videoHubDetail
     }
 
     LaunchedEffect(uiState.workflowAutomationSettings) {
@@ -429,7 +461,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Headers -> {
                 Text(
-                    text = "Diese Bild-Backdrops laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt sie automatisch ab, damit Schrift und Badges lesbar bleiben.",
+                    text = "Diese Hero-Bereiche laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt Bilder automatisch ab, damit Schrift und Badges lesbar bleiben. Fuer alle vier Bereiche kannst du Bild, Titel und kurze Positionierung pflegen.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -440,7 +472,7 @@ fun SettingsScreen(
                 ) {
                     item {
                         SettingsBadge(
-                            text = "${screenHeaderSettings.configuredCount} mit Bild",
+                            text = "${screenHeaderSettings.configuredCount} angepasst",
                             icon = Icons.Default.Palette,
                             isActive = screenHeaderSettings.configuredCount > 0,
                         )
@@ -466,6 +498,50 @@ fun SettingsScreen(
                     onImageUrlChange = { homeHeaderImageUrlDraft = it },
                     modifier = Modifier.padding(top = 16.dp),
                 )
+
+                OutlinedTextField(
+                    value = homeHeaderEyebrowDraft,
+                    onValueChange = { homeHeaderEyebrowDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    label = { Text("Home Eyebrow") },
+                    placeholder = { Text("z. B. Willkommen bei Sky²²") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = homeHeaderTitleDraft,
+                    onValueChange = { homeHeaderTitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Home Titel") },
+                    placeholder = { Text("z. B. Sky²²") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = homeHeaderSubtitleDraft,
+                    onValueChange = { homeHeaderSubtitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Home Untertitel") },
+                    placeholder = { Text("Kurze Begruessung oder Positionierung") },
+                    minLines = 2,
+                )
+
+                OutlinedTextField(
+                    value = homeHeaderDetailDraft,
+                    onValueChange = { homeHeaderDetailDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Home Detail / Willkommenstext") },
+                    placeholder = { Text("Laengerer Willkommenstext oder kurze Bio fuer die Home-Seite") },
+                    minLines = 3,
+                )
                 EditableImageFieldCard(
                     title = "Music Hub Header",
                     imageUrl = musicHubHeaderImageUrlDraft,
@@ -477,6 +553,47 @@ fun SettingsScreen(
                     },
                     onImageUrlChange = { musicHubHeaderImageUrlDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
+                )
+                OutlinedTextField(
+                    value = musicHubHeaderEyebrowDraft,
+                    onValueChange = { musicHubHeaderEyebrowDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Music Hub Eyebrow") },
+                    placeholder = { Text("z. B. Music") },
+                )
+
+                OutlinedTextField(
+                    value = musicHubHeaderTitleDraft,
+                    onValueChange = { musicHubHeaderTitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Music Hub Titel") },
+                    placeholder = { Text("z. B. Music") },
+                )
+
+                OutlinedTextField(
+                    value = musicHubHeaderSubtitleDraft,
+                    onValueChange = { musicHubHeaderSubtitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Music Hub Untertitel") },
+                    placeholder = { Text("Releases, Artists und Studio an einem Ort.") },
+                    minLines = 2,
+                )
+
+                OutlinedTextField(
+                    value = musicHubHeaderDetailDraft,
+                    onValueChange = { musicHubHeaderDetailDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Music Hub Detail") },
+                    placeholder = { Text("Kurzer Einstieg fuer Songs, Beats und Studio.") },
+                    minLines = 3,
                 )
                 EditableImageFieldCard(
                     title = "Shop Header",
@@ -490,6 +607,47 @@ fun SettingsScreen(
                     onImageUrlChange = { shopHeaderImageUrlDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
+                OutlinedTextField(
+                    value = shopHeaderEyebrowDraft,
+                    onValueChange = { shopHeaderEyebrowDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Shop Eyebrow") },
+                    placeholder = { Text("z. B. Store") },
+                )
+
+                OutlinedTextField(
+                    value = shopHeaderTitleDraft,
+                    onValueChange = { shopHeaderTitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Shop Titel") },
+                    placeholder = { Text("z. B. Shop") },
+                )
+
+                OutlinedTextField(
+                    value = shopHeaderSubtitleDraft,
+                    onValueChange = { shopHeaderSubtitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Shop Untertitel") },
+                    placeholder = { Text("Produkte direkt in der App.") },
+                    minLines = 2,
+                )
+
+                OutlinedTextField(
+                    value = shopHeaderDetailDraft,
+                    onValueChange = { shopHeaderDetailDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Shop Detail") },
+                    placeholder = { Text("Eigener Willkommenstext fuer den Merch-Bereich.") },
+                    minLines = 3,
+                )
                 EditableImageFieldCard(
                     title = "Video Header",
                     imageUrl = videoHeaderImageUrlDraft,
@@ -501,6 +659,47 @@ fun SettingsScreen(
                     },
                     onImageUrlChange = { videoHeaderImageUrlDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
+                )
+                OutlinedTextField(
+                    value = videoHeaderEyebrowDraft,
+                    onValueChange = { videoHeaderEyebrowDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Video Eyebrow") },
+                    placeholder = { Text("z. B. Video") },
+                )
+
+                OutlinedTextField(
+                    value = videoHeaderTitleDraft,
+                    onValueChange = { videoHeaderTitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Video Titel") },
+                    placeholder = { Text("z. B. Video") },
+                )
+
+                OutlinedTextField(
+                    value = videoHeaderSubtitleDraft,
+                    onValueChange = { videoHeaderSubtitleDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Video Untertitel") },
+                    placeholder = { Text("Reels, Visuals und starke Kollaborationen.") },
+                    minLines = 2,
+                )
+
+                OutlinedTextField(
+                    value = videoHeaderDetailDraft,
+                    onValueChange = { videoHeaderDetailDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Video Detail") },
+                    placeholder = { Text("Kurzer Einstieg fuer Clips, Looks und Kollabos.") },
+                    minLines = 3,
                 )
 
                 Text(
@@ -522,17 +721,33 @@ fun SettingsScreen(
                                 val result = screenHeaderSettingsRepository.updateSettings(
                                     ScreenHeaderSettings(
                                         homeImageUrl = homeHeaderImageUrlDraft.trim(),
+                                        homeEyebrow = homeHeaderEyebrowDraft.trim(),
+                                        homeTitle = homeHeaderTitleDraft.trim(),
+                                        homeSubtitle = homeHeaderSubtitleDraft.trim(),
+                                        homeDetail = homeHeaderDetailDraft.trim(),
                                         musicHubImageUrl = musicHubHeaderImageUrlDraft.trim(),
+                                        musicHubEyebrow = musicHubHeaderEyebrowDraft.trim(),
+                                        musicHubTitle = musicHubHeaderTitleDraft.trim(),
+                                        musicHubSubtitle = musicHubHeaderSubtitleDraft.trim(),
+                                        musicHubDetail = musicHubHeaderDetailDraft.trim(),
                                         shopImageUrl = shopHeaderImageUrlDraft.trim(),
+                                        shopEyebrow = shopHeaderEyebrowDraft.trim(),
+                                        shopTitle = shopHeaderTitleDraft.trim(),
+                                        shopSubtitle = shopHeaderSubtitleDraft.trim(),
+                                        shopDetail = shopHeaderDetailDraft.trim(),
                                         videoHubImageUrl = videoHeaderImageUrlDraft.trim(),
+                                        videoHubEyebrow = videoHeaderEyebrowDraft.trim(),
+                                        videoHubTitle = videoHeaderTitleDraft.trim(),
+                                        videoHubSubtitle = videoHeaderSubtitleDraft.trim(),
+                                        videoHubDetail = videoHeaderDetailDraft.trim(),
                                     ),
                                 )
                                 Toast.makeText(
                                     context,
                                     if (result.isSuccess) {
-                                        "Header-Bilder gespeichert."
+                                        "Header gespeichert."
                                     } else {
-                                        result.exceptionOrNull()?.message ?: "Header-Bilder konnten nicht gespeichert werden."
+                                        result.exceptionOrNull()?.message ?: "Header konnten nicht gespeichert werden."
                                     },
                                     Toast.LENGTH_SHORT,
                                 ).show()
@@ -2166,7 +2381,7 @@ private enum class AdminWorkspaceSection(
     ),
     Headers(
         label = "Header",
-        subtitle = "Header-Karten von Home, Music, Shop und Video mit Bild-Backdrops pflegen.",
+        subtitle = "Hero-Bilder und Texte fuer Home, Music, Shop und Video pflegen.",
         icon = Icons.Default.Palette,
     ),
     Shopify(

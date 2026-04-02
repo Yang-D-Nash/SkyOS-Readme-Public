@@ -117,6 +117,17 @@ service cloud.firestore {
       );
     }
 
+    function optionalShortUrlOrBlank(value) {
+      return value == null || (
+        value is string
+        && value.size() <= 2048
+        && (
+          value.size() == 0
+          || value.matches("^https://.+$")
+        )
+      );
+    }
+
     function optionalMapString(data, field, max) {
       return !data.keys().hasAny([field]) || optionalString(data[field], max);
     }
@@ -125,8 +136,59 @@ service cloud.firestore {
       return !data.keys().hasAny([field]) || optionalShortUrl(data[field]);
     }
 
+    function optionalMapShortUrlOrBlank(data, field) {
+      return !data.keys().hasAny([field]) || optionalShortUrlOrBlank(data[field]);
+    }
+
     function validImageContentType(value) {
       return value in ["image/jpeg", "image/png", "image/webp"];
+    }
+
+    function validScreenHeadersPayload() {
+      return request.resource.data.keys().hasOnly([
+        "homeImageURL",
+        "homeEyebrow",
+        "homeTitle",
+        "homeSubtitle",
+        "homeDetail",
+        "musicHubImageURL",
+        "musicHubEyebrow",
+        "musicHubTitle",
+        "musicHubSubtitle",
+        "musicHubDetail",
+        "shopImageURL",
+        "shopEyebrow",
+        "shopTitle",
+        "shopSubtitle",
+        "shopDetail",
+        "videoHubImageURL",
+        "videoHubEyebrow",
+        "videoHubTitle",
+        "videoHubSubtitle",
+        "videoHubDetail",
+        "updatedAt"
+      ])
+      && optionalMapShortUrlOrBlank(request.resource.data, "homeImageURL")
+      && optionalMapString(request.resource.data, "homeEyebrow", 40)
+      && optionalMapString(request.resource.data, "homeTitle", 80)
+      && optionalMapString(request.resource.data, "homeSubtitle", 160)
+      && optionalMapString(request.resource.data, "homeDetail", 280)
+      && optionalMapShortUrlOrBlank(request.resource.data, "musicHubImageURL")
+      && optionalMapString(request.resource.data, "musicHubEyebrow", 40)
+      && optionalMapString(request.resource.data, "musicHubTitle", 80)
+      && optionalMapString(request.resource.data, "musicHubSubtitle", 160)
+      && optionalMapString(request.resource.data, "musicHubDetail", 280)
+      && optionalMapShortUrlOrBlank(request.resource.data, "shopImageURL")
+      && optionalMapString(request.resource.data, "shopEyebrow", 40)
+      && optionalMapString(request.resource.data, "shopTitle", 80)
+      && optionalMapString(request.resource.data, "shopSubtitle", 160)
+      && optionalMapString(request.resource.data, "shopDetail", 280)
+      && optionalMapShortUrlOrBlank(request.resource.data, "videoHubImageURL")
+      && optionalMapString(request.resource.data, "videoHubEyebrow", 40)
+      && optionalMapString(request.resource.data, "videoHubTitle", 80)
+      && optionalMapString(request.resource.data, "videoHubSubtitle", 160)
+      && optionalMapString(request.resource.data, "videoHubDetail", 280)
+      && request.resource.data.updatedAt is timestamp;
     }
 
     function validUserCreatePayload() {
@@ -519,7 +581,11 @@ service cloud.firestore {
         "screenHeaders"
       ];
 
-      allow create, update, delete: if isOwner();
+      allow create, update, delete: if isOwner()
+        && (
+          documentId != "screenHeaders"
+          || validScreenHeadersPayload()
+        );
     }
 
     match /adminConfig/{documentId} {

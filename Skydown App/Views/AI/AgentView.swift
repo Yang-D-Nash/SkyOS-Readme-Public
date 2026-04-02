@@ -156,6 +156,10 @@ private struct AgentEmptyStateHeader: View {
             Text("Nutze den Agent fuer Briefings, Shotlists, Release-Plaene und klare naechste Schritte. Schreib direkt unten los oder starte mit einem Prompt.")
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text("Auch der Agent fuehrt den Verlauf pro Konto weiter, damit Briefings und To-dos anschlussfaehig bleiben.")
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
         }
     }
 }

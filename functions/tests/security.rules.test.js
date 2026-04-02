@@ -331,6 +331,95 @@ test("user darf eigene Asset-Bilder fuer editierbare Bereiche hochladen", async 
   ));
 });
 
+test("screenHeaders bleiben oeffentlich lesbar, aber nur der Owner darf valide Home-Texte speichern", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "appConfig", "screenHeaders"), {
+      homeImageURL: "https://example.com/home.jpg",
+      homeEyebrow: "Sky²² Home",
+      homeTitle: "Sky²²",
+      homeSubtitle: "Alles direkt im Blick.",
+      homeDetail: "Musik, Video, Merch, Tools.",
+      musicHubEyebrow: "Music",
+      musicHubTitle: "Music",
+      musicHubSubtitle: "Releases, Artists und Studio an einem Ort.",
+      musicHubDetail: "Direkt zu Songs, Beats und Studio.",
+      musicHubImageURL: "",
+      shopEyebrow: "Store",
+      shopTitle: "Shop",
+      shopSubtitle: "Produkte direkt in der App.",
+      shopDetail: "Offen fuer Bestellungen.",
+      shopImageURL: "",
+      videoHubEyebrow: "Video",
+      videoHubTitle: "Video",
+      videoHubSubtitle: "Reels, Visuals und starke Kollaborationen.",
+      videoHubDetail: "Clips, Looks und Leute hinter dem Vibe.",
+      videoHubImageURL: "",
+      updatedAt: Timestamp.fromDate(new Date("2026-04-03T10:00:00.000Z")),
+    });
+  });
+
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+  const userDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertSucceeds(getDoc(doc(guestDb, "appConfig", "screenHeaders")));
+  await assertSucceeds(setDoc(doc(ownerDb, "appConfig", "screenHeaders"), {
+    homeImageURL: "https://example.com/home-2.jpg",
+    homeEyebrow: "Willkommen bei Sky²²",
+    homeTitle: "Sky²²",
+    homeSubtitle: "Artists, Visuals und Merch an einem Ort.",
+    homeDetail: "Hier kannst du einen echten Willkommenstext fuer neue User hinterlegen.",
+    musicHubEyebrow: "Music",
+    musicHubTitle: "Music",
+    musicHubSubtitle: "Releases, Artists und Studio.",
+    musicHubDetail: "Direkt zu Songs, Beats und Recording.",
+    musicHubImageURL: "https://example.com/music.jpg",
+    shopEyebrow: "Store",
+    shopTitle: "Shop",
+    shopSubtitle: "Merch direkt in der App.",
+    shopDetail: "Exklusive Drops und Essentials.",
+    shopImageURL: "",
+    videoHubEyebrow: "Video",
+    videoHubTitle: "Video",
+    videoHubSubtitle: "Reels, Visuals und starke Kollabos.",
+    videoHubDetail: "Clips, Looks und Leute hinter dem Vibe.",
+    videoHubImageURL: "",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-03T11:00:00.000Z")),
+  }));
+  await assertFails(updateDoc(doc(userDb, "appConfig", "screenHeaders"), {
+    homeTitle: "Nope",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-03T11:00:00.000Z")),
+  }));
+});
+
+test("screenHeaders lehnen ueberlange Home-Texte ab", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertFails(setDoc(doc(ownerDb, "appConfig", "screenHeaders"), {
+    homeImageURL: "https://example.com/home.jpg",
+    homeEyebrow: "x".repeat(41),
+    homeTitle: "Sky²²",
+    homeSubtitle: "Alles direkt im Blick.",
+    homeDetail: "Musik, Video, Merch, Tools.",
+    musicHubEyebrow: "Music",
+    musicHubTitle: "Music",
+    musicHubSubtitle: "Releases, Artists und Studio an einem Ort.",
+    musicHubDetail: "Direkt zu Songs, Beats und Studio.",
+    musicHubImageURL: "",
+    shopEyebrow: "Store",
+    shopTitle: "Shop",
+    shopSubtitle: "Produkte direkt in der App.",
+    shopDetail: "Offen fuer Bestellungen.",
+    shopImageURL: "",
+    videoHubEyebrow: "Video",
+    videoHubTitle: "Video",
+    videoHubSubtitle: "Reels, Visuals und starke Kollaborationen.",
+    videoHubDetail: "Clips, Looks und Leute hinter dem Vibe.",
+    videoHubImageURL: "",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-03T11:00:00.000Z")),
+  }));
+});
+
 test("galleryMeta darf nur vom Eigentuemer angelegt werden", async () => {
   await seedUser("alice");
   const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();

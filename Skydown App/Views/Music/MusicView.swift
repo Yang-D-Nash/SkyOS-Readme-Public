@@ -101,6 +101,7 @@ struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
     @StateObject private var artistPagesStore = ArtistPagesStore.shared
+    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @State private var selectedArtist: String
     @State private var selectedTrackID: Int?
     @State private var showFeaturedSpotifyPlayer = false
@@ -287,27 +288,25 @@ struct MusicView: View {
     }
 
     private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(brand.heroTitle)
-                .font(.system(size: 28, weight: .black, design: .rounded))
-
-            Text(selectedArtist)
-                .font(.headline.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text(brand.heroSubtitle)
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-        }
-        .padding(SkydownLayout.heroPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .skydownPanelSurface(
+        BrandHeroSurface(
             colorScheme: colorScheme,
-            accent: AppColors.accent(for: colorScheme),
-            cornerRadius: SkydownLayout.heroCornerRadius,
-            shadowRadius: 14,
-            shadowYOffset: 8
-        )
+            eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
+            title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? brand.heroTitle,
+            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? brand.heroSubtitle,
+            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) und alle Artists direkt im Katalog.",
+            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
+            accent: AppColors.spotify(for: colorScheme),
+            secondaryAccent: AppColors.accent(for: colorScheme),
+            marks: brand == .zweizwei ? [.zweizwei] : [.skydown]
+        ) {
+            HStack(spacing: 8) {
+                MusicBadge(text: selectedArtist, isAccent: true)
+                MusicBadge(text: "Songs", isAccent: false)
+                if brand.showsArtistPages {
+                    MusicBadge(text: "Pages", isAccent: false)
+                }
+            }
+        }
     }
 
     @ViewBuilder

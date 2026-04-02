@@ -234,13 +234,15 @@ private fun ShopOverviewCard(
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
-        eyebrow = "Store",
-        title = "Shop",
-        subtitle = "Produkte direkt in der App.",
-        detail = if (uiState.isStoreOpen) {
-            "Offen fuer Bestellungen."
-        } else {
-            "Ansicht aktiv, Checkout pausiert."
+        eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "Store" },
+        title = screenHeaderSettings.shopTitle.ifBlank { "Shop" },
+        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Produkte direkt in der App." },
+        detail = screenHeaderSettings.shopDetail.ifBlank {
+            if (uiState.isStoreOpen) {
+                "Offen fuer Bestellungen."
+            } else {
+                "Ansicht aktiv, Checkout pausiert."
+            }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
         accent = SpotifyGreen,

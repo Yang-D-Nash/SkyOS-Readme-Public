@@ -74,9 +74,25 @@ struct SettingsView: View {
     @State private var shopifyStorefrontAccessTokenDraft = ""
     @State private var shopifyCollectionHandleDraft = ""
     @State private var homeHeaderImageURLDraft = ""
+    @State private var homeHeaderEyebrowDraft = ""
+    @State private var homeHeaderTitleDraft = ""
+    @State private var homeHeaderSubtitleDraft = ""
+    @State private var homeHeaderDetailDraft = ""
     @State private var musicHubHeaderImageURLDraft = ""
+    @State private var musicHubHeaderEyebrowDraft = ""
+    @State private var musicHubHeaderTitleDraft = ""
+    @State private var musicHubHeaderSubtitleDraft = ""
+    @State private var musicHubHeaderDetailDraft = ""
     @State private var shopHeaderImageURLDraft = ""
+    @State private var shopHeaderEyebrowDraft = ""
+    @State private var shopHeaderTitleDraft = ""
+    @State private var shopHeaderSubtitleDraft = ""
+    @State private var shopHeaderDetailDraft = ""
     @State private var videoHeaderImageURLDraft = ""
+    @State private var videoHeaderEyebrowDraft = ""
+    @State private var videoHeaderTitleDraft = ""
+    @State private var videoHeaderSubtitleDraft = ""
+    @State private var videoHeaderDetailDraft = ""
     @State private var automationEnabledDraft = false
     @State private var automationSendsUserContextDraft = true
     @State private var automationWorkflowNameDraft = ""
@@ -709,12 +725,12 @@ struct SettingsView: View {
 
             case .headers:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Diese Bild-Backdrops laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt sie automatisch ab, damit Schrift und Badges lesbar bleiben.")
+                    Text("Diese Hero-Bereiche laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt die Bilder automatisch ab, damit Schrift und Badges lesbar bleiben. Fuer alle vier Bereiche kannst du Bild, Titel und kurze Positionierung pflegen.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     HStack(spacing: 10) {
-                        SettingsBadge(text: "\(configuredScreenHeaderCount) mit Bild", colorScheme: effectiveColorScheme)
+                        SettingsBadge(text: "\(configuredScreenHeaderCount) angepasst", colorScheme: effectiveColorScheme)
                         SettingsBadge(text: "Overlay aktiv", colorScheme: effectiveColorScheme)
                     }
 
@@ -741,6 +757,36 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme
                     )
 
+                    SettingsInputField(
+                        title: "Home Eyebrow",
+                        text: $homeHeaderEyebrowDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Willkommen bei Sky²²"
+                    )
+
+                    SettingsInputField(
+                        title: "Home Titel",
+                        text: $homeHeaderTitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Sky²²"
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Home Untertitel",
+                        text: $homeHeaderSubtitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Kurze Begruessung oder Positionierung fuer neue User.",
+                        minHeight: 88
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Home Detail / Willkommenstext",
+                        text: $homeHeaderDetailDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Hier kannst du einen etwas laengeren Willkommenstext oder eine kurze Bio fuer die Home-Seite hinterlegen.",
+                        minHeight: 104
+                    )
+
                     EditableImageField(
                         title: "Music Hub Header",
                         imageURL: $musicHubHeaderImageURLDraft,
@@ -756,6 +802,36 @@ struct SettingsView: View {
                             }
                         ),
                         colorScheme: effectiveColorScheme
+                    )
+
+                    SettingsInputField(
+                        title: "Music Hub Eyebrow",
+                        text: $musicHubHeaderEyebrowDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Music"
+                    )
+
+                    SettingsInputField(
+                        title: "Music Hub Titel",
+                        text: $musicHubHeaderTitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Music"
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Music Hub Untertitel",
+                        text: $musicHubHeaderSubtitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Releases, Artists und Studio an einem Ort.",
+                        minHeight: 88
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Music Hub Detail",
+                        text: $musicHubHeaderDetailDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Kurzer Einstieg fuer Songs, Beats und Studio.",
+                        minHeight: 96
                     )
 
                     EditableImageField(
@@ -775,6 +851,36 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme
                     )
 
+                    SettingsInputField(
+                        title: "Shop Eyebrow",
+                        text: $shopHeaderEyebrowDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Store"
+                    )
+
+                    SettingsInputField(
+                        title: "Shop Titel",
+                        text: $shopHeaderTitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Shop"
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Shop Untertitel",
+                        text: $shopHeaderSubtitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Produkte direkt in der App.",
+                        minHeight: 88
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Shop Detail",
+                        text: $shopHeaderDetailDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Eigener Willkommenstext fuer den Merch-Bereich.",
+                        minHeight: 96
+                    )
+
                     EditableImageField(
                         title: "Video Header",
                         imageURL: $videoHeaderImageURLDraft,
@@ -790,6 +896,36 @@ struct SettingsView: View {
                             }
                         ),
                         colorScheme: effectiveColorScheme
+                    )
+
+                    SettingsInputField(
+                        title: "Video Eyebrow",
+                        text: $videoHeaderEyebrowDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Video"
+                    )
+
+                    SettingsInputField(
+                        title: "Video Titel",
+                        text: $videoHeaderTitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. Video"
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Video Untertitel",
+                        text: $videoHeaderSubtitleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Reels, Visuals und starke Kollaborationen.",
+                        minHeight: 88
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Video Detail",
+                        text: $videoHeaderDetailDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Kurzer Einstieg fuer Clips, Looks und Kollabos.",
+                        minHeight: 96
                     )
 
                     Text("Leere Felder lassen den jeweiligen Screen wieder auf den nativen Farbverlauf zurueckfallen.")
@@ -1397,9 +1533,25 @@ struct SettingsView: View {
 
     private func syncScreenHeaderDrafts(with settings: ScreenHeaderSettings) {
         homeHeaderImageURLDraft = settings.homeImageURL
+        homeHeaderEyebrowDraft = settings.homeEyebrow
+        homeHeaderTitleDraft = settings.homeTitle
+        homeHeaderSubtitleDraft = settings.homeSubtitle
+        homeHeaderDetailDraft = settings.homeDetail
         musicHubHeaderImageURLDraft = settings.musicHubImageURL
+        musicHubHeaderEyebrowDraft = settings.musicHubEyebrow
+        musicHubHeaderTitleDraft = settings.musicHubTitle
+        musicHubHeaderSubtitleDraft = settings.musicHubSubtitle
+        musicHubHeaderDetailDraft = settings.musicHubDetail
         shopHeaderImageURLDraft = settings.shopImageURL
+        shopHeaderEyebrowDraft = settings.shopEyebrow
+        shopHeaderTitleDraft = settings.shopTitle
+        shopHeaderSubtitleDraft = settings.shopSubtitle
+        shopHeaderDetailDraft = settings.shopDetail
         videoHeaderImageURLDraft = settings.videoHubImageURL
+        videoHeaderEyebrowDraft = settings.videoHubEyebrow
+        videoHeaderTitleDraft = settings.videoHubTitle
+        videoHeaderSubtitleDraft = settings.videoHubSubtitle
+        videoHeaderDetailDraft = settings.videoHubDetail
     }
 
     private func syncAutomationDrafts(with settings: WorkflowAutomationSettings) {
@@ -1471,16 +1623,32 @@ struct SettingsView: View {
         Task {
             let updated = ScreenHeaderSettings(
                 homeImageURL: homeHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                homeEyebrow: homeHeaderEyebrowDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                homeTitle: homeHeaderTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                homeSubtitle: homeHeaderSubtitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                homeDetail: homeHeaderDetailDraft.trimmingCharacters(in: .whitespacesAndNewlines),
                 musicHubImageURL: musicHubHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                musicHubEyebrow: musicHubHeaderEyebrowDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                musicHubTitle: musicHubHeaderTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                musicHubSubtitle: musicHubHeaderSubtitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                musicHubDetail: musicHubHeaderDetailDraft.trimmingCharacters(in: .whitespacesAndNewlines),
                 shopImageURL: shopHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
-                videoHubImageURL: videoHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                shopEyebrow: shopHeaderEyebrowDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                shopTitle: shopHeaderTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                shopSubtitle: shopHeaderSubtitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                shopDetail: shopHeaderDetailDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                videoHubImageURL: videoHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                videoHubEyebrow: videoHeaderEyebrowDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                videoHubTitle: videoHeaderTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                videoHubSubtitle: videoHeaderSubtitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                videoHubDetail: videoHeaderDetailDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             )
 
             do {
                 try await screenHeaderSettingsStore.save(updated)
-                showToastMessage("Header-Bilder gespeichert. Die Hero-Karten nutzen jetzt die neuen Backdrops.", style: .success)
+                showToastMessage("Header gespeichert. Hero-Bilder und Texte wurden aktualisiert.", style: .success)
             } catch {
-                showToastMessage("Header-Bilder konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+                showToastMessage("Header konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -2426,7 +2594,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
         case .artists:
             return "Artist-Seiten pflegen und Editor-Rechte pro Artist zuteilen."
         case .headers:
-            return "Header-Karten von Home, Music, Shop und Video mit Bild-Backdrops pflegen."
+            return "Hero-Bilder und Texte fuer Home, Music, Shop und Video pflegen."
         case .shopify:
             return "Owner-Quelle fuer Store-Domain, Token und Collection des Merch-Syncs."
         case .commerce:

@@ -272,6 +272,11 @@ private fun AiEmptyStateHeader() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
+        Text(
+            text = "Dein Verlauf wird pro Konto weitergefuehrt, damit der Bot nicht jedes Mal bei null startet.",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
+        )
     }
 }
 

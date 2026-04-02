@@ -3,23 +3,61 @@ import FirebaseFirestore
 
 struct ScreenHeaderSettings: Equatable {
     var homeImageURL: String = ""
+    var homeEyebrow: String = ""
+    var homeTitle: String = ""
+    var homeSubtitle: String = ""
+    var homeDetail: String = ""
     var musicHubImageURL: String = ""
+    var musicHubEyebrow: String = ""
+    var musicHubTitle: String = ""
+    var musicHubSubtitle: String = ""
+    var musicHubDetail: String = ""
     var shopImageURL: String = ""
+    var shopEyebrow: String = ""
+    var shopTitle: String = ""
+    var shopSubtitle: String = ""
+    var shopDetail: String = ""
     var videoHubImageURL: String = ""
+    var videoHubEyebrow: String = ""
+    var videoHubTitle: String = ""
+    var videoHubSubtitle: String = ""
+    var videoHubDetail: String = ""
 
     static let `default` = ScreenHeaderSettings()
 
     var configuredCount: Int {
-        [homeImageURL, musicHubImageURL, shopImageURL, videoHubImageURL]
-            .map(\.trimmed)
-            .filter { !$0.isEmpty }
+        [
+            [homeImageURL, homeEyebrow, homeTitle, homeSubtitle, homeDetail],
+            [musicHubImageURL, musicHubEyebrow, musicHubTitle, musicHubSubtitle, musicHubDetail],
+            [shopImageURL, shopEyebrow, shopTitle, shopSubtitle, shopDetail],
+            [videoHubImageURL, videoHubEyebrow, videoHubTitle, videoHubSubtitle, videoHubDetail]
+        ]
+            .filter { fields in
+                fields.contains { !$0.trimmed.isEmpty }
+            }
             .count
     }
 
     var resolvedHomeImageURL: String? { homeImageURL.trimmed.nilIfEmpty }
+    var resolvedHomeEyebrow: String? { homeEyebrow.trimmed.nilIfEmpty }
+    var resolvedHomeTitle: String? { homeTitle.trimmed.nilIfEmpty }
+    var resolvedHomeSubtitle: String? { homeSubtitle.trimmed.nilIfEmpty }
+    var resolvedHomeDetail: String? { homeDetail.trimmed.nilIfEmpty }
     var resolvedMusicHubImageURL: String? { musicHubImageURL.trimmed.nilIfEmpty }
+    var resolvedMusicHubEyebrow: String? { musicHubEyebrow.trimmed.nilIfEmpty }
+    var resolvedMusicHubTitle: String? { musicHubTitle.trimmed.nilIfEmpty }
+    var resolvedMusicHubSubtitle: String? { musicHubSubtitle.trimmed.nilIfEmpty }
+    var resolvedMusicHubDetail: String? { musicHubDetail.trimmed.nilIfEmpty }
     var resolvedShopImageURL: String? { shopImageURL.trimmed.nilIfEmpty }
+    var resolvedShopEyebrow: String? { shopEyebrow.trimmed.nilIfEmpty }
+    var resolvedShopTitle: String? { shopTitle.trimmed.nilIfEmpty }
+    var resolvedShopSubtitle: String? { shopSubtitle.trimmed.nilIfEmpty }
+    var resolvedShopDetail: String? { shopDetail.trimmed.nilIfEmpty }
     var resolvedVideoHubImageURL: String? { videoHubImageURL.trimmed.nilIfEmpty }
+    var resolvedVideoHubEyebrow: String? { videoHubEyebrow.trimmed.nilIfEmpty }
+    var resolvedVideoHubTitle: String? { videoHubTitle.trimmed.nilIfEmpty }
+    var resolvedVideoHubSubtitle: String? { videoHubSubtitle.trimmed.nilIfEmpty }
+    var resolvedVideoHubDetail: String? { videoHubDetail.trimmed.nilIfEmpty }
 }
 
 protocol ScreenHeaderSettingsServicing {
@@ -60,18 +98,50 @@ final class FirestoreScreenHeaderSettingsService: ScreenHeaderSettingsServicing 
     private static func decode(_ data: [String: Any]) -> ScreenHeaderSettings {
         ScreenHeaderSettings(
             homeImageURL: data["homeImageURL"] as? String ?? "",
+            homeEyebrow: data["homeEyebrow"] as? String ?? "",
+            homeTitle: data["homeTitle"] as? String ?? "",
+            homeSubtitle: data["homeSubtitle"] as? String ?? "",
+            homeDetail: data["homeDetail"] as? String ?? "",
             musicHubImageURL: data["musicHubImageURL"] as? String ?? "",
+            musicHubEyebrow: data["musicHubEyebrow"] as? String ?? "",
+            musicHubTitle: data["musicHubTitle"] as? String ?? "",
+            musicHubSubtitle: data["musicHubSubtitle"] as? String ?? "",
+            musicHubDetail: data["musicHubDetail"] as? String ?? "",
             shopImageURL: data["shopImageURL"] as? String ?? "",
-            videoHubImageURL: data["videoHubImageURL"] as? String ?? ""
+            shopEyebrow: data["shopEyebrow"] as? String ?? "",
+            shopTitle: data["shopTitle"] as? String ?? "",
+            shopSubtitle: data["shopSubtitle"] as? String ?? "",
+            shopDetail: data["shopDetail"] as? String ?? "",
+            videoHubImageURL: data["videoHubImageURL"] as? String ?? "",
+            videoHubEyebrow: data["videoHubEyebrow"] as? String ?? "",
+            videoHubTitle: data["videoHubTitle"] as? String ?? "",
+            videoHubSubtitle: data["videoHubSubtitle"] as? String ?? "",
+            videoHubDetail: data["videoHubDetail"] as? String ?? ""
         )
     }
 
     private static func encode(_ settings: ScreenHeaderSettings) -> [String: Any] {
         [
             "homeImageURL": settings.homeImageURL.trimmed,
+            "homeEyebrow": settings.homeEyebrow.trimmed,
+            "homeTitle": settings.homeTitle.trimmed,
+            "homeSubtitle": settings.homeSubtitle.trimmed,
+            "homeDetail": settings.homeDetail.trimmed,
             "musicHubImageURL": settings.musicHubImageURL.trimmed,
+            "musicHubEyebrow": settings.musicHubEyebrow.trimmed,
+            "musicHubTitle": settings.musicHubTitle.trimmed,
+            "musicHubSubtitle": settings.musicHubSubtitle.trimmed,
+            "musicHubDetail": settings.musicHubDetail.trimmed,
             "shopImageURL": settings.shopImageURL.trimmed,
+            "shopEyebrow": settings.shopEyebrow.trimmed,
+            "shopTitle": settings.shopTitle.trimmed,
+            "shopSubtitle": settings.shopSubtitle.trimmed,
+            "shopDetail": settings.shopDetail.trimmed,
             "videoHubImageURL": settings.videoHubImageURL.trimmed,
+            "videoHubEyebrow": settings.videoHubEyebrow.trimmed,
+            "videoHubTitle": settings.videoHubTitle.trimmed,
+            "videoHubSubtitle": settings.videoHubSubtitle.trimmed,
+            "videoHubDetail": settings.videoHubDetail.trimmed,
             "updatedAt": FieldValue.serverTimestamp()
         ]
     }

@@ -402,10 +402,10 @@ private fun HomeAnimatedItem(
 private fun HomeHeroCard() {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
-        eyebrow = "Sky²² Home",
-        title = "Sky²²",
-        subtitle = "Alles direkt im Blick.",
-        detail = "Musik, Video, Merch, Tools.",
+        eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
+        title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
+        subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Alles direkt im Blick." },
+        detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch, Tools." },
         backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,

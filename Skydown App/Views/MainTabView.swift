@@ -285,10 +285,10 @@ private struct ZweizweiTabView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                         BrandHeroSurface(
                             colorScheme: colorScheme,
-                            eyebrow: "Music",
-                            title: "Music",
-                            subtitle: "Releases, Artists und Studio an einem Ort.",
-                            detail: "Hoer rein, entdecke Artists und spring direkt zu Beats oder Recording.",
+                            eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
+                            title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
+                            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Releases, Artists und Studio an einem Ort.",
+                            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Hoer rein, entdecke Artists und spring direkt zu Beats oder Recording.",
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
                             accent: AppColors.spotify(for: colorScheme),
                             secondaryAccent: AppColors.accent(for: colorScheme),

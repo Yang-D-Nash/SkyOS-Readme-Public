@@ -248,10 +248,10 @@ struct VideoHubView: View {
     private var heroCard: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: "Video",
-            title: "Video",
-            subtitle: "Reels, Visuals und starke Kollaborationen.",
-            detail: "Clips, Looks und Leute hinter dem Vibe.",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedVideoHubEyebrow ?? "Video",
+            title: screenHeaderSettingsStore.settings.resolvedVideoHubTitle ?? "Video",
+            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Reels, Visuals und starke Kollaborationen.",
+            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Clips, Looks und Leute hinter dem Vibe.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),

@@ -511,10 +511,10 @@ private fun VideoHubHeroCard(
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
-        eyebrow = "Video",
-        title = "Video",
-        subtitle = "Reels, Visuals und starke Kollaborationen.",
-        detail = "Clips, Looks und Leute hinter dem Vibe.",
+        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "Video" },
+        title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Reels, Visuals und starke Kollaborationen." },
+        detail = screenHeaderSettings.videoHubDetail.ifBlank { "Clips, Looks und Leute hinter dem Vibe." },
         backgroundImageUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null },
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,

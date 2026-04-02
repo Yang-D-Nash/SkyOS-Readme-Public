@@ -23,7 +23,6 @@ data class ProfileUiState(
     val profileTagline: String = "",
     val profileBio: String = "",
     val instagramHandle: String = "",
-    val selectedMediaType: ProfileMediaType = ProfileMediaType.Image,
     val galleryItems: List<ProfileGalleryItem> = emptyList(),
     val isEditing: Boolean = false,
     val isSavingProfile: Boolean = false,
@@ -33,7 +32,7 @@ data class ProfileUiState(
     val errorMessage: String? = null,
 ) {
     val filteredItems: List<ProfileGalleryItem>
-        get() = galleryItems.filter { it.type == selectedMediaType }
+        get() = galleryItems
 
     val imageCount: Int
         get() = galleryItems.count { it.type == ProfileMediaType.Image }
@@ -94,10 +93,6 @@ class ProfileViewModel : ViewModel() {
 
     fun updateInstagramHandle(value: String) {
         _uiState.update { it.copy(instagramHandle = value) }
-    }
-
-    fun selectMediaType(type: ProfileMediaType) {
-        _uiState.update { it.copy(selectedMediaType = type) }
     }
 
     fun saveProfile() {
@@ -179,7 +174,6 @@ class ProfileViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isUploadingMedia = false,
-                        selectedMediaType = type,
                         toastMessage = "Bild hochgeladen.",
                     )
                 }
