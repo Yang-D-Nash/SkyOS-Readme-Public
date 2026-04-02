@@ -106,6 +106,7 @@ struct MusicView: View {
     @State private var showFeaturedSpotifyPlayer = false
     @State private var showingArtistPage = false
     @State private var hasHandledInitialSelection = false
+    @State private var hasAutoPresentedArtistPage = false
     @EnvironmentObject private var services: AppServices
     @Environment(\.colorScheme) private var colorScheme
 
@@ -118,6 +119,7 @@ struct MusicView: View {
     private let initialTrackID: Int?
     private let autoplaySelectedTrackPreview: Bool
     private let autoPresentSelectedTrackSpotifyPlayer: Bool
+    private let autoPresentArtistPageOnAppear: Bool
 
     init(
         brand: MusicExperienceBrand = .skydown,
@@ -125,6 +127,7 @@ struct MusicView: View {
         initialTrackID: Int? = nil,
         autoplaySelectedTrackPreview: Bool = false,
         autoPresentSelectedTrackSpotifyPlayer: Bool = false,
+        autoPresentArtistPageOnAppear: Bool = false,
         onBack: (() -> Void)? = nil,
         onOpenCart: (() -> Void)? = nil,
         onOpenProfile: (() -> Void)? = nil,
@@ -136,6 +139,7 @@ struct MusicView: View {
         self.initialTrackID = initialTrackID
         self.autoplaySelectedTrackPreview = autoplaySelectedTrackPreview
         self.autoPresentSelectedTrackSpotifyPlayer = autoPresentSelectedTrackSpotifyPlayer
+        self.autoPresentArtistPageOnAppear = autoPresentArtistPageOnAppear
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
@@ -256,6 +260,10 @@ struct MusicView: View {
             }
             .onAppear {
                 activateInitialSelectionIfNeeded()
+                if autoPresentArtistPageOnAppear && brand.showsArtistPages && !hasAutoPresentedArtistPage {
+                    showingArtistPage = true
+                    hasAutoPresentedArtistPage = true
+                }
             }
         }
         .fancyToast(
@@ -298,7 +306,7 @@ struct MusicView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "person.crop.square.fill")
                             .font(.headline.weight(.bold))
-                        Text("Artist Page")
+                        Text("\(selectedArtist) entdecken")
                             .font(.subheadline.weight(.semibold))
                         Spacer()
                         if currentArtistPage.hasCustomPresentation {

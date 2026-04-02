@@ -270,6 +270,8 @@ struct AppSessionToolbarActions: View {
 private struct ZweizweiTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var destination: ZweizweiDestination = .hub
+    @State private var catalogInitialArtist: String?
+    @State private var catalogAutoPresentArtistPage = false
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
@@ -311,9 +313,11 @@ private struct ZweizweiTabView: View {
 
                         ShellActionCard(
                             title: "Songs & Artists",
-                            subtitle: "Releases, Artists und direkte Links.",
+                            subtitle: "Starte direkt mit JANNO und spring von dort in Songs, Spotify und die Artist-Story.",
                             accent: AppColors.spotify(for: colorScheme)
                         ) {
+                            catalogInitialArtist = "JANNO"
+                            catalogAutoPresentArtistPage = true
                             destination = .catalog
                         }
 
@@ -361,7 +365,13 @@ private struct ZweizweiTabView: View {
         case .catalog:
             MusicView(
                 brand: .zweizwei,
-                onBack: { destination = .hub },
+                initialArtist: catalogInitialArtist,
+                autoPresentArtistPageOnAppear: catalogAutoPresentArtistPage,
+                onBack: {
+                    catalogInitialArtist = nil
+                    catalogAutoPresentArtistPage = false
+                    destination = .hub
+                },
                 onOpenCart: onOpenCart,
                 onOpenProfile: onOpenProfile,
                 onOpenSettings: onOpenSettings

@@ -606,15 +606,15 @@ private fun ArtistPageShortcutCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         Text(
-            text = "Artist Page",
+            text = "Artist Profil",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = if (isReady) {
-                "$artistName hat schon eine repraesentative Seite."
+                "$artistName hat schon einen starken Entrance mit Story, Songs und Spotify."
             } else {
-                "$artistName kann jetzt eine eigene repraesentative Seite bekommen."
+                "$artistName kann hier als eigener Artist mit Songs, Story und Links entdeckt werden."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -633,7 +633,7 @@ private fun ArtistPageShortcutCard(
             ),
             shape = RoundedCornerShape(18.dp),
         ) {
-            Text(if (isReady) "Artist oeffnen" else "Artist einrichten")
+            Text(if (isReady) "$artistName entdecken" else "Artist aufbauen")
         }
     }
 }

@@ -6,6 +6,8 @@ struct ArtistPageView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
+    @StateObject private var tracksViewModel = ArtistPageTracksViewModel()
+    @StateObject private var audioManager = AudioPlayerManager()
 
     let brand: ArtistPageBrand
     let artistName: String
@@ -22,6 +24,7 @@ struct ArtistPageView: View {
     @State private var toastMessage = ""
     @State private var showToast = false
     @State private var toastStyle: ToastStyle = .success
+    @State private var selectedTrackID: Int?
 
     init(
         authManager: AuthManager,
@@ -43,11 +46,29 @@ struct ArtistPageView: View {
         store.canEdit(page, user: authManager.userSession)
     }
 
+    private var topTracks: [Track] {
+        Array(tracksViewModel.tracks.prefix(5))
+    }
+
+    private var latestReleaseText: String? {
+        tracksViewModel.tracks
+            .compactMap { track in
+                track.releaseDate.map { String($0.prefix(10)) }
+            }
+            .max()
+    }
+
+    private var spotlightTrack: Track? {
+        tracksViewModel.tracks.first { $0.trackId == selectedTrackID } ?? tracksViewModel.tracks.first
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     heroCard
+                    spotlightCard
+                    topTracksCard
                     linksCard
 
                     if canEdit && isEditing {
@@ -92,10 +113,27 @@ struct ArtistPageView: View {
         .onAppear {
             syncDrafts()
         }
+        .task(id: artistName) {
+            await tracksViewModel.loadTracks(for: artistName)
+        }
         .onChange(of: page) { _, _ in
             if !isEditing {
                 syncDrafts()
             }
+        }
+        .onChange(of: tracksViewModel.tracks.map(\.trackId)) { _, _ in
+            let tracks = tracksViewModel.tracks
+            guard !tracks.isEmpty else {
+                selectedTrackID = nil
+                return
+            }
+
+            if selectedTrackID == nil || !tracks.contains(where: { $0.trackId == selectedTrackID }) {
+                selectedTrackID = tracks.first?.trackId
+            }
+        }
+        .onDisappear {
+            audioManager.stop()
         }
     }
 
@@ -138,6 +176,12 @@ struct ArtistPageView: View {
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
+            artistHighlightsRow
+
+            if !socialLinks.isEmpty {
+                artistCTAButtons
+            }
+
             if !page.editorUids.isEmpty {
                 ArtistPageBadge(
                     text: "\(page.editorUids.count) Editor\(page.editorUids.count == 1 ? "" : "en")",
@@ -172,6 +216,175 @@ struct ArtistPageView: View {
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
+        )
+    }
+
+    private var artistCTAButtons: some View {
+        HStack(spacing: 10) {
+            ForEach(socialLinks.prefix(3)) { link in
+                Button {
+                    if let url = URL(string: link.url) {
+                        openURL(url)
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: link.systemImage)
+                            .font(.subheadline.weight(.bold))
+
+                        Text(link.title)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(link.foregroundColor)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(link.backgroundColor)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var artistHighlightsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ArtistPageBadge(
+                    text: "\(brand.displayTitle) Artist",
+                    colorScheme: colorScheme
+                )
+
+                if !tracksViewModel.tracks.isEmpty {
+                    ArtistPageBadge(
+                        text: "\(tracksViewModel.tracks.count) Songs",
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let latestReleaseText {
+                    ArtistPageBadge(
+                        text: "Latest \(latestReleaseText)",
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if !socialLinks.isEmpty {
+                    ArtistPageBadge(
+                        text: "\(socialLinks.count) Links",
+                        colorScheme: colorScheme
+                    )
+                }
+            }
+        }
+    }
+
+    private var spotlightCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Spotlight")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text(page.tagline ?? "\(page.artistName) auf \(brand.displayTitle) entdecken.")
+                .font(.title3.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            HStack(spacing: 8) {
+                ArtistPageBadge(
+                    text: "\(tracksViewModel.tracks.count) Song\(tracksViewModel.tracks.count == 1 ? "" : "s")",
+                    colorScheme: colorScheme
+                )
+                if let latestReleaseText {
+                    ArtistPageBadge(
+                        text: latestReleaseText,
+                        colorScheme: colorScheme
+                    )
+                }
+                if !socialLinks.isEmpty {
+                    ArtistPageBadge(
+                        text: "\(socialLinks.count) Links",
+                        colorScheme: colorScheme
+                    )
+                }
+            }
+
+            if let spotlightTrack {
+                HStack(alignment: .top, spacing: 14) {
+                    AsyncImage(url: URL(string: spotlightTrack.artworkUrl100 ?? "")) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                    }
+                    .frame(width: 82, height: 82)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Jetzt antesten")
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(AppColors.spotify(for: colorScheme))
+
+                        Text(spotlightTrack.trackName)
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        Text(spotlightTrack.collectionName ?? page.artistName)
+                            .font(.subheadline)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        Text("Direkt unten mit Preview oder Spotify Player weiter.")
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.spotify(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius
+        )
+    }
+
+    private var topTracksCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Top Songs")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            if tracksViewModel.isLoading {
+                ProgressView("Songs werden geladen ...")
+            } else if let errorMessage = tracksViewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            } else if topTracks.isEmpty {
+                Text("Fuer \(page.artistName) sind gerade noch keine Songs hinterlegt.")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            } else {
+                Text("Direkt mit Preview oder Spotify Player in den Sound rein.")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                ForEach(topTracks) { track in
+                    TrackView(
+                        track: track,
+                        audioManager: audioManager,
+                        isSelected: selectedTrackID == track.trackId
+                    ) {
+                        selectedTrackID = track.trackId
+                    }
+                }
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius
         )
     }
 
@@ -217,7 +430,11 @@ struct ArtistPageView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(14)
-                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .background(link.backgroundColor.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(link.tint.opacity(0.18), lineWidth: 1)
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
             }
@@ -303,7 +520,9 @@ struct ArtistPageView: View {
                     subtitle: page.artistName,
                     url: instagramURL,
                     systemImage: "camera.fill",
-                    tint: AppColors.instagramStart(for: colorScheme)
+                    tint: AppColors.instagramStart(for: colorScheme),
+                    backgroundColor: AppColors.instagramStart(for: colorScheme),
+                    foregroundColor: .white
                 )
             )
         }
@@ -315,7 +534,9 @@ struct ArtistPageView: View {
                     subtitle: "Artist Profil",
                     url: spotifyURL,
                     systemImage: "music.note",
-                    tint: AppColors.spotify(for: colorScheme)
+                    tint: AppColors.spotify(for: colorScheme),
+                    backgroundColor: AppColors.spotifySurface(for: colorScheme),
+                    foregroundColor: AppColors.spotify(for: colorScheme)
                 )
             )
         }
@@ -327,7 +548,9 @@ struct ArtistPageView: View {
                     subtitle: "Videos & Releases",
                     url: youtubeURL,
                     systemImage: "play.rectangle.fill",
-                    tint: AppColors.youtube(for: colorScheme)
+                    tint: AppColors.youtube(for: colorScheme),
+                    backgroundColor: AppColors.youtube(for: colorScheme),
+                    foregroundColor: .white
                 )
             )
         }
@@ -390,6 +613,8 @@ private struct ArtistPageSocialLink: Identifiable {
     let url: String
     let systemImage: String
     let tint: Color
+    let backgroundColor: Color
+    let foregroundColor: Color
 }
 
 private struct ArtistPageAvatar: View {
@@ -503,5 +728,38 @@ private extension String {
     var trimmedNilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+@MainActor
+private final class ArtistPageTracksViewModel: ObservableObject {
+    @Published private(set) var tracks: [Track] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
+
+    private let service: MusicServicing
+
+    init(service: MusicServicing = SpotifyMusicService()) {
+        self.service = service
+    }
+
+    func loadTracks(for artist: String) async {
+        let trimmedArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedArtist.isEmpty else {
+            tracks = []
+            errorMessage = nil
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            tracks = try await service.fetchTracks(for: trimmedArtist)
+        } catch {
+            tracks = []
+            errorMessage = "Songs fuer \(trimmedArtist) konnten gerade nicht geladen werden."
+        }
     }
 }

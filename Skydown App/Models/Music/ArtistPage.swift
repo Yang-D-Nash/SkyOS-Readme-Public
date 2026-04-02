@@ -46,6 +46,29 @@ struct ArtistPage: Identifiable, Equatable {
 struct ArtistPageSeed: Identifiable, Equatable {
     let brand: ArtistPageBrand
     let artistName: String
+    let tagline: String?
+    let bio: String?
+    let instagramURL: String?
+    let spotifyURL: String?
+    let youtubeURL: String?
+
+    init(
+        brand: ArtistPageBrand,
+        artistName: String,
+        tagline: String? = nil,
+        bio: String? = nil,
+        instagramURL: String? = nil,
+        spotifyURL: String? = nil,
+        youtubeURL: String? = nil
+    ) {
+        self.brand = brand
+        self.artistName = artistName
+        self.tagline = tagline
+        self.bio = bio
+        self.instagramURL = instagramURL
+        self.spotifyURL = spotifyURL
+        self.youtubeURL = youtubeURL
+    }
 
     var id: String {
         slug
@@ -79,13 +102,13 @@ extension ArtistPage {
             id: seed.slug,
             brand: seed.brand,
             artistName: seed.artistName,
-            tagline: nil,
-            bio: nil,
+            tagline: seed.tagline,
+            bio: seed.bio,
             profileImageURL: nil,
             heroImageURL: nil,
-            instagramURL: nil,
-            spotifyURL: nil,
-            youtubeURL: nil,
+            instagramURL: seed.instagramURL,
+            spotifyURL: seed.spotifyURL,
+            youtubeURL: seed.youtubeURL,
             editorUids: [],
             createdAt: timestamp,
             updatedAt: timestamp,

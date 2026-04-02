@@ -665,6 +665,7 @@ private fun ZweizweiMusicLaneScreen(
 ) {
     var destination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     var selectedArtistPage by rememberSaveable { mutableStateOf<String?>(null) }
+    var artistPageReturnDestination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     when (destination) {
@@ -742,10 +743,14 @@ private fun ZweizweiMusicLaneScreen(
                     }
                     LaunchLandingButton(
                         title = "Songs",
-                        subtitle = "Tracks & Artists.",
+                        subtitle = "Direkt mit JANNO in Songs, Spotify und Story starten.",
                         accentColor = MaterialTheme.colorScheme.primary,
                         icon = Icons.Default.GraphicEq,
-                        onClick = { destination = ZweizweiMusicDestination.Catalog },
+                        onClick = {
+                            selectedArtistPage = "JANNO"
+                            artistPageReturnDestination = ZweizweiMusicDestination.Hub
+                            destination = ZweizweiMusicDestination.ArtistPage
+                        },
                     )
                     LaunchLandingButton(
                         title = "Beat Hub",
@@ -774,6 +779,7 @@ private fun ZweizweiMusicLaneScreen(
             onOpenSettings = onOpenSettings,
             onOpenArtistPage = { artistName ->
                 selectedArtistPage = artistName
+                artistPageReturnDestination = ZweizweiMusicDestination.Catalog
                 destination = ZweizweiMusicDestination.ArtistPage
             },
         )
@@ -781,7 +787,7 @@ private fun ZweizweiMusicLaneScreen(
         ZweizweiMusicDestination.ArtistPage -> ArtistPageScreen(
             artistName = selectedArtistPage ?: "Artist",
             brand = ArtistPageBrand.Zweizwei,
-            onBack = { destination = ZweizweiMusicDestination.Catalog },
+            onBack = { destination = artistPageReturnDestination },
         )
 
         ZweizweiMusicDestination.BeatHub -> BeatHubScreen(
