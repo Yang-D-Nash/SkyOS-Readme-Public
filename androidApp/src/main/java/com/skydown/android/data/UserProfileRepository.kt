@@ -2,6 +2,7 @@ package com.skydown.android.data
 
 import android.net.Uri
 import android.webkit.MimeTypeMap
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.functions.FirebaseFunctions
@@ -15,6 +16,7 @@ import java.util.Date
 import java.util.Locale
 
 class UserProfileRepository(
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
     private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
@@ -22,35 +24,42 @@ class UserProfileRepository(
     fun observeGallery(
         userId: String,
         onResult: (Result<List<ProfileGalleryItem>>) -> Unit,
-    ): ListenerRegistration = firestore.collection("galleryMeta")
-        .document(userId)
-        .collection("items")
-        .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
-        .addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                onResult(Result.failure(error))
-                return@addSnapshotListener
-            }
-
-            val items = snapshot?.documents.orEmpty().mapNotNull { document ->
-                val data = document.data ?: return@mapNotNull null
-                ProfileGalleryItem(
-                    id = document.id,
-                    ownerId = data["ownerUid"] as? String ?: userId,
-                    type = ProfileMediaType.fromRawValue(data["type"] as? String),
-                    title = data["title"] as? String ?: "Profil",
-                    caption = data["caption"] as? String,
-                    mediaUrl = data["mediaURL"] as? String ?: return@mapNotNull null,
-                    thumbnailUrl = data["thumbnailURL"] as? String,
-                    createdAtEpochMillis = (data["createdAt"] as? com.google.firebase.Timestamp)
-                        ?.toDate()
-                        ?.time
-                        ?: System.currentTimeMillis(),
-                )
-            }
-
-            onResult(Result.success(items))
+    ): ListenerRegistration {
+        if (auth.currentUser?.uid != userId) {
+            onResult(Result.success(emptyList()))
+            return NoopListenerRegistration()
         }
+
+        return firestore.collection("galleryMeta")
+            .document(userId)
+            .collection("items")
+            .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onResult(Result.failure(error))
+                    return@addSnapshotListener
+                }
+
+                val items = snapshot?.documents.orEmpty().mapNotNull { document ->
+                    val data = document.data ?: return@mapNotNull null
+                    ProfileGalleryItem(
+                        id = document.id,
+                        ownerId = data["ownerUid"] as? String ?: userId,
+                        type = ProfileMediaType.fromRawValue(data["type"] as? String),
+                        title = data["title"] as? String ?: "Profil",
+                        caption = data["caption"] as? String,
+                        mediaUrl = data["mediaURL"] as? String ?: return@mapNotNull null,
+                        thumbnailUrl = data["thumbnailURL"] as? String,
+                        createdAtEpochMillis = (data["createdAt"] as? com.google.firebase.Timestamp)
+                            ?.toDate()
+                            ?.time
+                            ?: System.currentTimeMillis(),
+                    )
+                }
+
+                onResult(Result.success(items))
+            }
+    }
 
     suspend fun uploadAvatar(
         userId: String,
@@ -213,3 +222,7 @@ private data class UploadSlot(
     val slotId: String,
     val storagePath: String,
 )
+
+private class NoopListenerRegistration : ListenerRegistration {
+    override fun remove() = Unit
+}

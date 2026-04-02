@@ -51,6 +51,10 @@ class ProfileViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
+            runCatching { AppContainer.refreshCurrentUser() }
+        }
+
+        viewModelScope.launch {
             AppContainer.currentUser.collectLatest { user ->
                 _uiState.update {
                     it.copy(

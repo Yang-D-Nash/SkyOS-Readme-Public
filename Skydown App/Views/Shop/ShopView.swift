@@ -628,7 +628,7 @@ private struct HomeStoryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Direkt weiter")
+            Text("Entwickler")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 

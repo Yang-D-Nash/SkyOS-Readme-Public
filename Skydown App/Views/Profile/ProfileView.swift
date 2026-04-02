@@ -64,6 +64,7 @@ struct ProfileView: View {
             style: viewModel.toastStyle
         )
         .task {
+            await authManager.refreshCurrentUser()
             viewModel.configure(user: authManager.userSession)
         }
         .onReceive(authManager.$userSession) { user in

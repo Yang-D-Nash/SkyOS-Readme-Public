@@ -771,7 +771,7 @@ private fun HomeStoryCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Direkt weiter")
+        SectionHeader("Entwickler")
 
         Text(
             text = "Shortcuts.",

@@ -164,27 +164,38 @@ private struct LaunchLandingView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 3/255, green: 9/255, blue: 17/255),
-                    Color(red: 7/255, green: 18/255, blue: 31/255),
-                    AppColors.accent(for: hubColorScheme).opacity(0.28),
-                    AppColors.accentMystic(for: hubColorScheme).opacity(0.20),
-                    Color(red: 4/255, green: 10/255, blue: 19/255)
+                    Color(red: 2/255, green: 6/255, blue: 12/255),
+                    Color(red: 4/255, green: 10/255, blue: 18/255),
+                    Color(red: 6/255, green: 14/255, blue: 24/255),
+                    AppColors.accent(for: hubColorScheme).opacity(0.16),
+                    Color(red: 2/255, green: 7/255, blue: 13/255)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
 
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.26),
+                    Color.black.opacity(0.08),
+                    Color.black.opacity(0.34)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
             Circle()
-                .fill(AppColors.accent(for: hubColorScheme).opacity(0.22))
+                .fill(AppColors.accent(for: hubColorScheme).opacity(0.14))
                 .frame(width: 260, height: 260)
-                .blur(radius: 50)
+                .blur(radius: 62)
                 .offset(x: 150, y: -280)
 
             Circle()
-                .fill(AppColors.accentMystic(for: hubColorScheme).opacity(0.18))
+                .fill(AppColors.accentMystic(for: hubColorScheme).opacity(0.12))
                 .frame(width: 240, height: 240)
-                .blur(radius: 56)
+                .blur(radius: 68)
                 .offset(x: -140, y: 260)
 
             VStack(alignment: .leading, spacing: 22) {
@@ -212,8 +223,8 @@ private struct LaunchLandingView: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.black.opacity(0.42),
-                                    AppColors.cardBackground(for: hubColorScheme).opacity(0.76)
+                                    Color.black.opacity(0.58),
+                                    AppColors.cardBackground(for: hubColorScheme).opacity(0.68)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing

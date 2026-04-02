@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 import FirebaseFunctions
 import FirebaseStorage
@@ -49,7 +50,12 @@ final class FirebaseUserProfileService: UserProfileServicing {
         for userId: String,
         onChange: @escaping (Result<[ProfileGalleryItem], Error>) -> Void
     ) -> ListenerRegistration {
-        firestore
+        guard Auth.auth().currentUser?.uid == userId else {
+            onChange(.success([]))
+            return NoopListenerRegistration()
+        }
+
+        return firestore
             .collection("galleryMeta")
             .document(userId)
             .collection("items")
@@ -369,6 +375,10 @@ final class FirebaseUserProfileService: UserProfileServicing {
             }
         }
     }
+}
+
+private final class NoopListenerRegistration: NSObject, ListenerRegistration {
+    func remove() {}
 }
 
 private struct ProfileUploadSlot {
