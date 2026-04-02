@@ -38,6 +38,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.media3.common.util.UnstableApi
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -99,6 +100,7 @@ import com.skydown.android.ui.theme.TextDark
 import com.skydown.android.ui.theme.TextMutedDark
 
 @OptIn(ExperimentalMaterial3Api::class)
+@UnstableApi
 @Composable
 fun SkydownApp() {
     val navController = rememberNavController()
@@ -433,7 +435,7 @@ private fun LaunchLandingScreen(
                         Brush.linearGradient(
                             colors = listOf(
                                 SurfaceDark.copy(alpha = 0.96f),
-                                androidx.compose.ui.graphics.Color(0xFF132B4D).copy(alpha = 0.34f),
+                                androidx.compose.ui.graphics.Color(0xFF18344F).copy(alpha = 0.24f),
                             ),
                         ),
                         RoundedCornerShape(24.dp),
@@ -481,7 +483,7 @@ private fun LaunchLandingScreen(
                                 Brush.linearGradient(
                                     colors = listOf(
                                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
-                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f),
                                     ),
                                 ),
                                 RoundedCornerShape(24.dp),

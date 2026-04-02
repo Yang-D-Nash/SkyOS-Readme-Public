@@ -11,88 +11,88 @@ struct AppColors {
     static func accent(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 28/255, green: 86/255, blue: 146/255)
+            return Color(red: 53/255, green: 92/255, blue: 134/255)
         case .dark:
-            return Color(red: 134/255, green: 216/255, blue: 255/255)
+            return Color(red: 106/255, green: 182/255, blue: 244/255)
         @unknown default:
-            return Color(red: 28/255, green: 86/255, blue: 146/255)
+            return Color(red: 53/255, green: 92/255, blue: 134/255)
         }
     }
     
     static func accentMystic(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 63/255, green: 122/255, blue: 194/255)
+            return Color(red: 77/255, green: 129/255, blue: 182/255)
         case .dark:
-            return Color(red: 188/255, green: 213/255, blue: 255/255)
+            return Color(red: 139/255, green: 200/255, blue: 255/255)
         @unknown default:
-            return Color(red: 63/255, green: 122/255, blue: 194/255)
+            return Color(red: 77/255, green: 129/255, blue: 182/255)
         }
     }
 
     static func accentHighlight(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 36/255, green: 136/255, blue: 214/255)
+            return Color(red: 117/255, green: 173/255, blue: 229/255)
         case .dark:
-            return Color(red: 220/255, green: 243/255, blue: 255/255)
+            return Color(red: 194/255, green: 230/255, blue: 255/255)
         @unknown default:
-            return Color(red: 36/255, green: 136/255, blue: 214/255)
+            return Color(red: 117/255, green: 173/255, blue: 229/255)
         }
     }
     
     static func primaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 229/255, green: 237/255, blue: 247/255)
+            return Color(red: 231/255, green: 237/255, blue: 243/255)
         case .dark:
-            return Color(red: 4/255, green: 10/255, blue: 19/255)
+            return Color(red: 2/255, green: 7/255, blue: 13/255)
         @unknown default:
-            return Color(red: 229/255, green: 237/255, blue: 247/255)
+            return Color(red: 231/255, green: 237/255, blue: 243/255)
         }
     }
     
     static func secondaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 212/255, green: 223/255, blue: 238/255)
+            return Color(red: 214/255, green: 224/255, blue: 234/255)
         case .dark:
-            return Color(red: 13/255, green: 23/255, blue: 38/255)
+            return Color(red: 10/255, green: 19/255, blue: 29/255)
         @unknown default:
-            return Color(red: 212/255, green: 223/255, blue: 238/255)
+            return Color(red: 214/255, green: 224/255, blue: 234/255)
         }
     }
     
     static func cardBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 248/255, green: 251/255, blue: 255/255)
+            return Color(red: 245/255, green: 248/255, blue: 251/255)
         case .dark:
-            return Color(red: 9/255, green: 18/255, blue: 30/255).opacity(0.96)
+            return Color(red: 8/255, green: 17/255, blue: 26/255).opacity(0.96)
         @unknown default:
-            return Color(red: 248/255, green: 251/255, blue: 255/255)
+            return Color(red: 245/255, green: 248/255, blue: 251/255)
         }
     }
     
     static func text(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 9/255, green: 16/255, blue: 27/255)
+            return Color(red: 10/255, green: 18/255, blue: 26/255)
         case .dark:
-            return Color(red: 243/255, green: 247/255, blue: 252/255)
+            return Color(red: 239/255, green: 244/255, blue: 250/255)
         @unknown default:
-            return Color(red: 9/255, green: 16/255, blue: 27/255)
+            return Color(red: 10/255, green: 18/255, blue: 26/255)
         }
     }
     
     static func secondaryText(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 63/255, green: 75/255, blue: 93/255)
+            return Color(red: 85/255, green: 98/255, blue: 115/255)
         case .dark:
-            return Color(red: 161/255, green: 173/255, blue: 190/255)
+            return Color(red: 149/255, green: 168/255, blue: 185/255)
         @unknown default:
-            return Color(red: 63/255, green: 75/255, blue: 93/255)
+            return Color(red: 85/255, green: 98/255, blue: 115/255)
         }
     }
 
@@ -181,10 +181,10 @@ struct AppColors {
         return LinearGradient(
             colors: [
                 primaryBackground(for: colorScheme),
-                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.24 : 0.16),
-                secondary.opacity(colorScheme == .dark ? 0.18 : 0.12),
-                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.11),
-                Color.white.opacity(colorScheme == .dark ? 0.02 : 0.10),
+                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.10),
+                secondary.opacity(colorScheme == .dark ? 0.14 : 0.09),
+                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.07),
+                Color.black.opacity(colorScheme == .dark ? 0.20 : 0.03),
                 primaryBackground(for: colorScheme)
             ],
             startPoint: .topLeading,

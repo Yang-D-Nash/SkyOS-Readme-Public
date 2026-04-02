@@ -36,15 +36,15 @@ fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingV
 fun skydownScreenBrush(
     primaryColor: Color = MaterialTheme.colorScheme.primary,
     secondaryColor: Color = MaterialTheme.colorScheme.secondary,
-    primaryAlpha: Float = 0.12f,
-    secondaryAlpha: Float = 0.10f,
+    primaryAlpha: Float = 0.10f,
+    secondaryAlpha: Float = 0.08f,
 ): Brush = Brush.linearGradient(
     colors = listOf(
         MaterialTheme.colorScheme.background,
         primaryColor.copy(alpha = primaryAlpha),
         secondaryColor.copy(alpha = secondaryAlpha),
-        MaterialTheme.colorScheme.tertiary.copy(alpha = secondaryAlpha),
-        Color.White.copy(alpha = 0.04f),
+        MaterialTheme.colorScheme.tertiary.copy(alpha = secondaryAlpha * 0.8f),
+        Color.Black.copy(alpha = 0.18f),
         MaterialTheme.colorScheme.background,
     ),
 )

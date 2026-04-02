@@ -146,10 +146,10 @@ private struct LaunchLandingView: View {
             LinearGradient(
                 colors: [
                     Color.black,
-                    Color(red: 3/255, green: 8/255, blue: 16/255),
-                    Color(red: 7/255, green: 18/255, blue: 34/255),
-                    Color(red: 20/255, green: 49/255, blue: 90/255).opacity(0.46),
-                    Color(red: 4/255, green: 10/255, blue: 18/255),
+                    Color(red: 2/255, green: 7/255, blue: 13/255),
+                    Color(red: 7/255, green: 16/255, blue: 26/255),
+                    Color(red: 33/255, green: 63/255, blue: 96/255).opacity(0.34),
+                    Color(red: 5/255, green: 11/255, blue: 18/255),
                     Color.black
                 ],
                 startPoint: .topLeading,
@@ -169,13 +169,13 @@ private struct LaunchLandingView: View {
             .ignoresSafeArea()
 
             Circle()
-                .fill(Color(red: 75/255, green: 131/255, blue: 207/255).opacity(0.16))
+                .fill(Color(red: 91/255, green: 149/255, blue: 216/255).opacity(0.12))
                 .frame(width: 260, height: 260)
                 .blur(radius: 62)
                 .offset(x: 150, y: -280)
 
             Circle()
-                .fill(Color(red: 156/255, green: 189/255, blue: 232/255).opacity(0.10))
+                .fill(Color(red: 138/255, green: 170/255, blue: 206/255).opacity(0.08))
                 .frame(width: 240, height: 240)
                 .blur(radius: 68)
                 .offset(x: -140, y: 260)

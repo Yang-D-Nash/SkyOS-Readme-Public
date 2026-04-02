@@ -23,7 +23,7 @@ function normalizeMimeType(value) {
 
 function normalizeUploadKind(value) {
   const kind = nonEmptyString(value)?.toLowerCase();
-  return kind === "profile" || kind === "gallery" ? kind : null;
+  return kind === "profile" || kind === "gallery" || kind === "asset" ? kind : null;
 }
 
 function resolveExtension(mimeType, requestedExtension) {

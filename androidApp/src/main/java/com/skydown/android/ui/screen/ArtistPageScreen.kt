@@ -1,6 +1,9 @@
 package com.skydown.android.ui.screen
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -62,6 +66,7 @@ import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.data.mediaAttributionContext
 import com.skydown.android.ui.component.SectionHeader
+import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.TrackRow
 import com.skydown.android.ui.component.skydownScreenBrush
@@ -84,6 +89,7 @@ fun ArtistPageScreen(
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
     val pages by ArtistPagesStore.pages.collectAsState()
     val context = LocalContext.current
+    val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     val coroutineScope = rememberCoroutineScope()
     val player = remember(mediaContext) {
@@ -111,6 +117,7 @@ fun ArtistPageScreen(
     var selectedTrackId by rememberSaveable(page.slug) { mutableStateOf<Int?>(null) }
     var currentPreviewUrl by remember(page.slug) { mutableStateOf<String?>(null) }
     var currentlyPlayingId by remember(page.slug) { mutableStateOf<Int?>(null) }
+    var pendingImageTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
 
     val spotlightTrack = remember(tracks, selectedTrackId) {
         tracks.firstOrNull { it.trackId == selectedTrackId } ?: tracks.firstOrNull()
@@ -119,6 +126,37 @@ fun ArtistPageScreen(
     val latestReleaseText = remember(tracks) {
         tracks.mapNotNull { it.releaseDate?.take(10) }
             .maxOrNull()
+    }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        val target = pendingImageTarget ?: return@rememberLauncherForActivityResult
+        if (uri != null) {
+            coroutineScope.launch {
+                val result = editableImageAssetRepository.uploadImageAsset(
+                    uri = uri,
+                    mimeType = context.contentResolver.getType(uri),
+                )
+                if (result.isSuccess) {
+                    val uploadedUrl = result.getOrNull().orEmpty()
+                    when (target) {
+                        ArtistPageImageTarget.Profile -> profileImageDraft = uploadedUrl
+                        ArtistPageImageTarget.Hero -> heroImageDraft = uploadedUrl
+                    }
+                    Toast.makeText(context, "Bild hochgeladen und uebernommen.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+                pendingImageTarget = null
+            }
+        } else {
+            pendingImageTarget = null
+        }
     }
 
     DisposableEffect(player) {
@@ -295,8 +333,28 @@ fun ArtistPageScreen(
 
                         ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
                         ArtistPageInput(title = "Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
-                        ArtistPageInput(title = "Profilbild-URL", value = profileImageDraft, onValueChange = { profileImageDraft = it })
-                        ArtistPageInput(title = "Hero-Bild-URL", value = heroImageDraft, onValueChange = { heroImageDraft = it })
+                        EditableImageFieldCard(
+                            title = "Profilbild",
+                            imageUrl = profileImageDraft,
+                            onPickImage = {
+                                pendingImageTarget = ArtistPageImageTarget.Profile
+                                imagePicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            },
+                            onImageUrlChange = { profileImageDraft = it },
+                        )
+                        EditableImageFieldCard(
+                            title = "Hero-Bild",
+                            imageUrl = heroImageDraft,
+                            onPickImage = {
+                                pendingImageTarget = ArtistPageImageTarget.Hero
+                                imagePicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            },
+                            onImageUrlChange = { heroImageDraft = it },
+                        )
                         ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
                         ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
                         ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
@@ -305,6 +363,11 @@ fun ArtistPageScreen(
             }
         }
     }
+}
+
+private enum class ArtistPageImageTarget {
+    Profile,
+    Hero,
 }
 
 @Composable

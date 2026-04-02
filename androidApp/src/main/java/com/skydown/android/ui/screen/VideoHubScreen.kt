@@ -1,11 +1,14 @@
 package com.skydown.android.ui.screen
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -63,6 +66,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -89,6 +93,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SectionHeader
@@ -134,7 +139,9 @@ fun VideoHubScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val mediaContext = remember(context) { context.mediaAttributionContext() }
+    val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val player = remember(mediaContext) {
@@ -150,6 +157,7 @@ fun VideoHubScreen(
     var selectedVideoId by rememberSaveable { mutableStateOf(initialSelectedVideoId) }
     var showReelViewer by rememberSaveable { mutableStateOf(false) }
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
+    var pendingConfigImageTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
@@ -161,6 +169,36 @@ fun VideoHubScreen(
     ) { uris ->
         if (!uris.isNullOrEmpty()) {
             viewModel.setSelectedFiles(context, uris)
+        }
+    }
+    val configImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        val target = pendingConfigImageTarget ?: return@rememberLauncherForActivityResult
+        if (uri != null) {
+            coroutineScope.launch {
+                val result = editableImageAssetRepository.uploadImageAsset(
+                    uri = uri,
+                    mimeType = context.contentResolver.getType(uri),
+                )
+                if (result.isSuccess) {
+                    val uploadedUrl = result.getOrNull().orEmpty()
+                    when (target) {
+                        is VideoConfigImageTarget.Equipment -> viewModel.updateEquipmentItem(target.itemId, imageUrl = uploadedUrl)
+                        is VideoConfigImageTarget.Collaboration -> viewModel.updateCollaborationItem(target.itemId, imageUrl = uploadedUrl)
+                    }
+                    Toast.makeText(context, "Bild hochgeladen und uebernommen.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+                pendingConfigImageTarget = null
+            }
+        } else {
+            pendingConfigImageTarget = null
         }
     }
 
@@ -362,6 +400,12 @@ fun VideoHubScreen(
                             onUpdateEquipmentImageUrl = { itemId, value ->
                                 viewModel.updateEquipmentItem(itemId, imageUrl = value)
                             },
+                            onPickEquipmentImage = { itemId ->
+                                pendingConfigImageTarget = VideoConfigImageTarget.Equipment(itemId)
+                                configImagePickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            },
                             onRemoveEquipment = viewModel::removeEquipmentItem,
                             onAddCollaboration = viewModel::addCollaborationItem,
                             onUpdateCollaborationName = { itemId, value ->
@@ -378,6 +422,12 @@ fun VideoHubScreen(
                             },
                             onUpdateCollaborationImageUrl = { itemId, value ->
                                 viewModel.updateCollaborationItem(itemId, imageUrl = value)
+                            },
+                            onPickCollaborationImage = { itemId ->
+                                pendingConfigImageTarget = VideoConfigImageTarget.Collaboration(itemId)
+                                configImagePickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
                             },
                             onUpdateCollaborationSpotifyArtistId = { itemId, value ->
                                 viewModel.updateCollaborationItem(itemId, spotifyArtistId = value)
@@ -658,6 +708,7 @@ private fun VideoPublicConfigEditorCard(
     onUpdateEquipmentTitle: (String, String) -> Unit,
     onUpdateEquipmentDetail: (String, String) -> Unit,
     onUpdateEquipmentImageUrl: (String, String) -> Unit,
+    onPickEquipmentImage: (String) -> Unit,
     onRemoveEquipment: (String) -> Unit,
     onAddCollaboration: () -> Unit,
     onUpdateCollaborationName: (String, String) -> Unit,
@@ -665,6 +716,7 @@ private fun VideoPublicConfigEditorCard(
     onUpdateCollaborationHighlight: (String, String) -> Unit,
     onUpdateCollaborationVibe: (String, String) -> Unit,
     onUpdateCollaborationImageUrl: (String, String) -> Unit,
+    onPickCollaborationImage: (String) -> Unit,
     onUpdateCollaborationSpotifyArtistId: (String, String) -> Unit,
     onUpdateCollaborationInstagramUrl: (String, String) -> Unit,
     onUpdateCollaborationYouTubeUrl: (String, String) -> Unit,
@@ -674,7 +726,7 @@ private fun VideoPublicConfigEditorCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Videography Editor")
         Text(
-            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Beide Bereiche koennen jetzt direkt mit Bild-URLs befuellt werden.",
+            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Bilder laufen jetzt picker-first mit Vorschau statt ueber rohe URLs.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -712,11 +764,11 @@ private fun VideoPublicConfigEditorCard(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                     )
-                    OutlinedTextField(
-                        value = item.imageUrl.orEmpty(),
-                        onValueChange = { onUpdateEquipmentImageUrl(item.id, it) },
-                        label = { Text("Bild-URL") },
-                        modifier = Modifier.fillMaxWidth(),
+                    EditableImageFieldCard(
+                        title = "Equipment-Bild",
+                        imageUrl = item.imageUrl.orEmpty(),
+                        onPickImage = { onPickEquipmentImage(item.id) },
+                        onImageUrlChange = { onUpdateEquipmentImageUrl(item.id, it) },
                     )
                     OutlinedButton(
                         onClick = { onRemoveEquipment(item.id) },
@@ -781,11 +833,11 @@ private fun VideoPublicConfigEditorCard(
                         label = { Text("Vibe") },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
-                        value = item.imageUrl.orEmpty(),
-                        onValueChange = { onUpdateCollaborationImageUrl(item.id, it) },
-                        label = { Text("Bild-URL") },
-                        modifier = Modifier.fillMaxWidth(),
+                    EditableImageFieldCard(
+                        title = "Collab-Bild",
+                        imageUrl = item.imageUrl.orEmpty(),
+                        onPickImage = { onPickCollaborationImage(item.id) },
+                        onImageUrlChange = { onUpdateCollaborationImageUrl(item.id, it) },
                     )
                     OutlinedTextField(
                         value = item.spotifyArtistId.orEmpty(),
@@ -1101,6 +1153,7 @@ private fun VideoYouTubeRow(
     }
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun VideoYouTubePlayerDialog(
     item: VideoYouTubeItem,
@@ -2001,4 +2054,9 @@ private fun readableFileSize(bytes: Long): String {
 
 private fun formatVideoDate(timestamp: Long): String {
     return SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date(timestamp))
+}
+
+private sealed interface VideoConfigImageTarget {
+    data class Equipment(val itemId: String) : VideoConfigImageTarget
+    data class Collaboration(val itemId: String) : VideoConfigImageTarget
 }

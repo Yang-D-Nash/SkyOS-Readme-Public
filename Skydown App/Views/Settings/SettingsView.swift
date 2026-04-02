@@ -10,6 +10,7 @@
 
 import SwiftUI
 import MessageUI
+import PhotosUI
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
@@ -42,6 +43,8 @@ struct SettingsView: View {
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
+    @State private var editableImagePickerItem: PhotosPickerItem?
+    @State private var pendingEditableImageTarget: SettingsEditableImageTarget?
     @State private var presentedAdminWorkspace: SettingsAdminWorkspaceSection?
     @State private var showingMailOptions = false
     @State private var showingMailView = false
@@ -87,6 +90,7 @@ struct SettingsView: View {
     @State private var profileBioDraft = ""
     @State private var profileInstagramHandleDraft = ""
     @State private var isSavingProfile = false
+    private let editableImageUploadService = EditableImageAssetUploadService()
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -503,6 +507,36 @@ struct SettingsView: View {
         .onReceive(shopifyAdminSettingsStore.$settings) { settings in
             syncShopifyDrafts(with: settings)
         }
+        .onChange(of: editableImagePickerItem) { _, item in
+            guard let item, let target = pendingEditableImageTarget else { return }
+            Task {
+                do {
+                    guard let data = try await item.loadTransferable(type: Data.self) else {
+                        throw NSError(
+                            domain: "SettingsView",
+                            code: 400,
+                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
+                        )
+                    }
+                    let url = try await editableImageUploadService.uploadImageData(data)
+                    await MainActor.run {
+                        applyEditableImageURL(url, for: target)
+                        showToastMessage("Bild hochgeladen und uebernommen.", style: .success)
+                        editableImagePickerItem = nil
+                        pendingEditableImageTarget = nil
+                    }
+                } catch {
+                    await MainActor.run {
+                        showToastMessage(
+                            "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)",
+                            style: .error
+                        )
+                        editableImagePickerItem = nil
+                        pendingEditableImageTarget = nil
+                    }
+                }
+            }
+        }
         .onReceive(screenHeaderSettingsStore.$settings) { settings in
             syncScreenHeaderDrafts(with: settings)
         }
@@ -690,32 +724,72 @@ struct SettingsView: View {
                             .foregroundColor(AppColors.accentHighlight(for: effectiveColorScheme))
                     }
 
-                    SettingsInputField(
-                        title: "Home Header Bild-URL",
-                        text: $homeHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme,
-                        placeholder: "https://..."
+                    EditableImageField(
+                        title: "Home Header",
+                        imageURL: $homeHeaderImageURLDraft,
+                        selection: Binding(
+                            get: {
+                                pendingEditableImageTarget == .homeHeader
+                                    ? editableImagePickerItem
+                                    : nil
+                            },
+                            set: { newValue in
+                                pendingEditableImageTarget = .homeHeader
+                                editableImagePickerItem = newValue
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme
                     )
 
-                    SettingsInputField(
-                        title: "Music Hub Bild-URL",
-                        text: $musicHubHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme,
-                        placeholder: "https://..."
+                    EditableImageField(
+                        title: "Music Hub Header",
+                        imageURL: $musicHubHeaderImageURLDraft,
+                        selection: Binding(
+                            get: {
+                                pendingEditableImageTarget == .musicHubHeader
+                                    ? editableImagePickerItem
+                                    : nil
+                            },
+                            set: { newValue in
+                                pendingEditableImageTarget = .musicHubHeader
+                                editableImagePickerItem = newValue
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme
                     )
 
-                    SettingsInputField(
-                        title: "Shop Header Bild-URL",
-                        text: $shopHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme,
-                        placeholder: "https://..."
+                    EditableImageField(
+                        title: "Shop Header",
+                        imageURL: $shopHeaderImageURLDraft,
+                        selection: Binding(
+                            get: {
+                                pendingEditableImageTarget == .shopHeader
+                                    ? editableImagePickerItem
+                                    : nil
+                            },
+                            set: { newValue in
+                                pendingEditableImageTarget = .shopHeader
+                                editableImagePickerItem = newValue
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme
                     )
 
-                    SettingsInputField(
-                        title: "Video Header Bild-URL",
-                        text: $videoHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme,
-                        placeholder: "https://..."
+                    EditableImageField(
+                        title: "Video Header",
+                        imageURL: $videoHeaderImageURLDraft,
+                        selection: Binding(
+                            get: {
+                                pendingEditableImageTarget == .videoHeader
+                                    ? editableImagePickerItem
+                                    : nil
+                            },
+                            set: { newValue in
+                                pendingEditableImageTarget = .videoHeader
+                                editableImagePickerItem = newValue
+                            }
+                        ),
+                        colorScheme: effectiveColorScheme
                     )
 
                     Text("Leere Felder lassen den jeweiligen Screen wieder auf den nativen Farbverlauf zurueckfallen.")
@@ -1236,6 +1310,19 @@ struct SettingsView: View {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+
+    private func applyEditableImageURL(_ url: String, for target: SettingsEditableImageTarget) {
+        switch target {
+        case .homeHeader:
+            homeHeaderImageURLDraft = url
+        case .musicHubHeader:
+            musicHubHeaderImageURLDraft = url
+        case .shopHeader:
+            shopHeaderImageURLDraft = url
+        case .videoHeader:
+            videoHeaderImageURLDraft = url
+        }
     }
 
     private func syncProfileDrafts(with user: User?) {
@@ -3078,6 +3165,13 @@ private extension UserQuotaPlan {
             return "Grosses Studio-Kontingent fuer intensivere Nutzung und laengere History."
         }
     }
+}
+
+private enum SettingsEditableImageTarget {
+    case homeHeader
+    case musicHubHeader
+    case shopHeader
+    case videoHeader
 }
 
 #Preview {

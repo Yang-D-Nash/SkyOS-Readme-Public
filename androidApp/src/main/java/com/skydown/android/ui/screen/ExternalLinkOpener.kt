@@ -64,11 +64,11 @@ fun openEmailDraft(
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
-    if (baseIntent.resolveActivity(context.packageManager) != null) {
-        val chooserIntent = Intent.createChooser(baseIntent, chooserTitle).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(chooserIntent)
+    val chooserIntent = Intent.createChooser(baseIntent, chooserTitle).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    if (tryStartActivity(context, chooserIntent)) {
         return
     }
 

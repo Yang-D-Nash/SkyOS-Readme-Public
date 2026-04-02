@@ -27,6 +27,7 @@ import androidx.media3.ui.PlayerView
 import com.skydown.android.data.mediaAttributionContext
 import kotlinx.coroutines.delay
 
+@androidx.media3.common.util.UnstableApi
 @Composable
 fun IntroScreen(
     onFinished: () -> Unit,

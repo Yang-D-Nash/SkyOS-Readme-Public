@@ -29,8 +29,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 @Composable
 fun ToastHost(
     message: String?,
-    type: ToastType = ToastType.Info,
     modifier: Modifier = Modifier,
+    type: ToastType = ToastType.Info,
 ) {
     AnimatedVisibility(
         visible = !message.isNullOrBlank(),

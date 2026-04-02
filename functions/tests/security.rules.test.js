@@ -306,6 +306,31 @@ test("fremder Storage-Pfad wird abgelehnt", async () => {
   ));
 });
 
+test("user darf eigene Asset-Bilder fuer editierbare Bereiche hochladen", async () => {
+  await seedUser("alice");
+  await seedUploadSlot({
+    slotId: "slot_asset_001",
+    uid: "alice",
+    kind: "asset",
+    fileName: "slot_asset_001_valid.jpg",
+  });
+
+  const storage = testEnv.authenticatedContext("alice", {role: "user"}).storage();
+  const fileRef = ref(storage, "users/alice/assets/slot_asset_001_valid.jpg");
+
+  await assertSucceeds(uploadBytes(
+    fileRef,
+    Uint8Array.from([1, 2, 3]),
+    {
+      contentType: "image/jpeg",
+      customMetadata: {
+        uploadSlotId: "slot_asset_001",
+        ownerUid: "alice",
+      },
+    },
+  ));
+});
+
 test("galleryMeta darf nur vom Eigentuemer angelegt werden", async () => {
   await seedUser("alice");
   const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();

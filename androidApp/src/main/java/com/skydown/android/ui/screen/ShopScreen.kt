@@ -41,6 +41,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -382,7 +383,7 @@ private fun MerchandiseDetailSheet(
         MerchandiseVariantResolver.availableColors(item, selectedSize)
     }
     var selectedColor by rememberSaveable(item.id) { mutableStateOf(colorOptions.firstOrNull().orEmpty()) }
-    var quantity by rememberSaveable(item.id) { mutableStateOf(1) }
+    var quantity by rememberSaveable(item.id) { mutableIntStateOf(1) }
 
     LaunchedEffect(item.id, colorOptions) {
         if (selectedColor.isNotBlank() && colorOptions.any { it.equals(selectedColor, ignoreCase = true) }) {

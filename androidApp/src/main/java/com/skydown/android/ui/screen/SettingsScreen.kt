@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,6 +57,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,6 +80,7 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.data.ScreenHeaderSettings
+import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -120,6 +125,7 @@ fun SettingsScreen(
     val artistPagesError by ArtistPagesStore.lastErrorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var stripeAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var stripeSecretKeyDraft by rememberSaveable { mutableStateOf("") }
@@ -181,6 +187,7 @@ fun SettingsScreen(
     var activeAdminWorkspaceKey by rememberSaveable { mutableStateOf(AdminWorkspaceSection.Users.name) }
     val activeAdminWorkspace = AdminWorkspaceSection.valueOf(activeAdminWorkspaceKey)
     var showAdminWorkspaceSheet by rememberSaveable { mutableStateOf(false) }
+    var pendingHeaderImageTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
     val visiblePaymentMethodCount = listOf(
         uiState.paymentMethods.stripe.connected && uiState.paymentMethods.stripe.enabled,
         uiState.paymentMethods.paypal.connected && uiState.paymentMethods.paypal.enabled,
@@ -256,6 +263,39 @@ fun SettingsScreen(
         val message = uiState.paymentFeedbackMessage ?: return@LaunchedEffect
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         viewModel.clearPaymentFeedback()
+    }
+
+    val headerImagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        val target = pendingHeaderImageTarget ?: return@rememberLauncherForActivityResult
+        if (uri != null) {
+            coroutineScope.launch {
+                val result = editableImageAssetRepository.uploadImageAsset(
+                    uri = uri,
+                    mimeType = context.contentResolver.getType(uri),
+                )
+                if (result.isSuccess) {
+                    val uploadedUrl = result.getOrNull().orEmpty()
+                    when (target) {
+                        SettingsHeaderImageTarget.Home -> homeHeaderImageUrlDraft = uploadedUrl
+                        SettingsHeaderImageTarget.MusicHub -> musicHubHeaderImageUrlDraft = uploadedUrl
+                        SettingsHeaderImageTarget.Shop -> shopHeaderImageUrlDraft = uploadedUrl
+                        SettingsHeaderImageTarget.VideoHub -> videoHeaderImageUrlDraft = uploadedUrl
+                    }
+                    Toast.makeText(context, "Bild hochgeladen und uebernommen.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+                pendingHeaderImageTarget = null
+            }
+        } else {
+            pendingHeaderImageTarget = null
+        }
     }
 
     val adminWorkspaceContent: @Composable (AdminWorkspaceSection) -> Unit = { section ->
@@ -414,45 +454,53 @@ fun SettingsScreen(
                     }
                 }
 
-                OutlinedTextField(
-                    value = homeHeaderImageUrlDraft,
-                    onValueChange = { homeHeaderImageUrlDraft = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    label = { Text("Home Header Bild-URL") },
-                    placeholder = { Text("https://...") },
-                    singleLine = true,
+                EditableImageFieldCard(
+                    title = "Home Header",
+                    imageUrl = homeHeaderImageUrlDraft,
+                    onPickImage = {
+                        pendingHeaderImageTarget = SettingsHeaderImageTarget.Home
+                        headerImagePicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onImageUrlChange = { homeHeaderImageUrlDraft = it },
+                    modifier = Modifier.padding(top = 16.dp),
                 )
-                OutlinedTextField(
-                    value = musicHubHeaderImageUrlDraft,
-                    onValueChange = { musicHubHeaderImageUrlDraft = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    label = { Text("Music Hub Bild-URL") },
-                    placeholder = { Text("https://...") },
-                    singleLine = true,
+                EditableImageFieldCard(
+                    title = "Music Hub Header",
+                    imageUrl = musicHubHeaderImageUrlDraft,
+                    onPickImage = {
+                        pendingHeaderImageTarget = SettingsHeaderImageTarget.MusicHub
+                        headerImagePicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onImageUrlChange = { musicHubHeaderImageUrlDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
                 )
-                OutlinedTextField(
-                    value = shopHeaderImageUrlDraft,
-                    onValueChange = { shopHeaderImageUrlDraft = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    label = { Text("Shop Header Bild-URL") },
-                    placeholder = { Text("https://...") },
-                    singleLine = true,
+                EditableImageFieldCard(
+                    title = "Shop Header",
+                    imageUrl = shopHeaderImageUrlDraft,
+                    onPickImage = {
+                        pendingHeaderImageTarget = SettingsHeaderImageTarget.Shop
+                        headerImagePicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onImageUrlChange = { shopHeaderImageUrlDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
                 )
-                OutlinedTextField(
-                    value = videoHeaderImageUrlDraft,
-                    onValueChange = { videoHeaderImageUrlDraft = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    label = { Text("Video Header Bild-URL") },
-                    placeholder = { Text("https://...") },
-                    singleLine = true,
+                EditableImageFieldCard(
+                    title = "Video Header",
+                    imageUrl = videoHeaderImageUrlDraft,
+                    onPickImage = {
+                        pendingHeaderImageTarget = SettingsHeaderImageTarget.VideoHub
+                        headerImagePicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onImageUrlChange = { videoHeaderImageUrlDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
                 )
 
                 Text(
@@ -2162,6 +2210,13 @@ private fun adminWorkspaceStatusText(
     }
 }
 
+private enum class SettingsHeaderImageTarget {
+    Home,
+    MusicHub,
+    Shop,
+    VideoHub,
+}
+
 @Composable
 private fun AdminWorkspaceListRow(
     section: AdminWorkspaceSection,
@@ -2537,7 +2592,7 @@ private fun AdminManagedUserCard(
         mutableStateOf(user.resolvedAiAgentRequestsPerDay.toString())
     }
     var historyRetentionDays by rememberSaveable(user.id, user.aiHistoryRetentionDays) {
-        mutableStateOf(user.resolvedAiHistoryRetentionDays)
+        mutableIntStateOf(user.resolvedAiHistoryRetentionDays)
     }
     var canManageMusicCatalog by rememberSaveable(user.id, user.canManageMusicCatalog) {
         mutableStateOf(user.canManageMusic)

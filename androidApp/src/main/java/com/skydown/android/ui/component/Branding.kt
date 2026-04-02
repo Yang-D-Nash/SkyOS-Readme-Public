@@ -76,10 +76,10 @@ fun BrandHeroCard(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        accent.copy(alpha = 0.14f),
-                        secondaryAccent.copy(alpha = 0.10f),
-                        Color.White.copy(alpha = 0.04f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                        accent.copy(alpha = 0.10f),
+                        secondaryAccent.copy(alpha = 0.08f),
+                        Color.Black.copy(alpha = 0.16f),
                     ),
                 ),
             )
@@ -106,7 +106,7 @@ fun BrandHeroCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.24f)),
+                    .background(Color.Black.copy(alpha = 0.34f)),
             )
             Box(
                 modifier = Modifier
@@ -114,9 +114,9 @@ fun BrandHeroCard(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                accent.copy(alpha = 0.18f),
-                                secondaryAccent.copy(alpha = 0.14f),
-                                Color.Black.copy(alpha = 0.10f),
+                                Color.Black.copy(alpha = 0.24f),
+                                accent.copy(alpha = 0.14f),
+                                secondaryAccent.copy(alpha = 0.10f),
                             ),
                         ),
                     ),
@@ -133,14 +133,14 @@ fun BrandHeroCard(
                         .align(Alignment.TopEnd)
                         .size(160.dp)
                         .blur(42.dp)
-                        .background(accent.copy(alpha = 0.10f), CircleShape),
+                        .background(accent.copy(alpha = 0.07f), CircleShape),
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .size(120.dp)
                         .blur(38.dp)
-                        .background(secondaryAccent.copy(alpha = 0.08f), CircleShape),
+                        .background(secondaryAccent.copy(alpha = 0.06f), CircleShape),
                 )
 
                 Row(

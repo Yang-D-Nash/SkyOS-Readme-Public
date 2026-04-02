@@ -154,6 +154,25 @@ service firebase.storage {
       allow delete: if isSelf(uid) || canModerateProfiles();
     }
 
+    match /users/{uid}/assets/{fileName} {
+      allow read: if isSelf(uid) || canModerateProfiles();
+
+      allow create, update: if isSelf(uid)
+        && uploadsAllowed()
+        && validGalleryFileName(fileName)
+        && allowedImageType()
+        && allowedImageSize()
+        && hasUploadMetadata(uid)
+        && hasValidUploadSlot(
+          request.resource.metadata.uploadSlotId,
+          uid,
+          "asset",
+          fileName
+        );
+
+      allow delete: if isSelf(uid) || canModerateProfiles();
+    }
+
     match /merchandise/{allPaths=**} {
       allow read: if true;
       allow write: if isOwner();

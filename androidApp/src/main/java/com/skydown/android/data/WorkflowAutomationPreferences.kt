@@ -1,6 +1,4 @@
 package com.skydown.android.data
-
-import android.content.Context
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -36,19 +34,14 @@ object WorkflowAutomationPreferences {
     private const val collectionName = "adminConfig"
     private const val legacyDocumentName = "automationN8n"
 
-    private val firestore = FirebaseFirestore.getInstance()
+    private val firestore: FirebaseFirestore
+        get() = FirebaseFirestore.getInstance()
     private val functions = FirebaseFunctions.getInstance("us-central1")
     private val _settings = MutableStateFlow(WorkflowAutomationSettings())
     val settings: StateFlow<WorkflowAutomationSettings> = _settings.asStateFlow()
 
     private var listenerRegistration: ListenerRegistration? = null
     private var currentAdminId: String? = null
-
-    fun initialize(context: Context) {
-        // Legacy no-op. The Automation section is now Firestore-backed.
-        @Suppress("UNUSED_VARIABLE")
-        val ignored = context
-    }
 
     fun setAdminMode(adminId: String?) {
         if (adminId == currentAdminId) {

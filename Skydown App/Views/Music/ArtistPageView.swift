@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ArtistPageView: View {
     @ObservedObject private var authManager: AuthManager
@@ -25,6 +26,9 @@ struct ArtistPageView: View {
     @State private var showToast = false
     @State private var toastStyle: ToastStyle = .success
     @State private var selectedTrackID: Int?
+    @State private var editableImagePickerItem: PhotosPickerItem?
+    @State private var pendingImageTarget: ArtistPageEditableImageTarget?
+    private let editableImageUploadService = EditableImageAssetUploadService()
 
     init(
         authManager: AuthManager,
@@ -134,6 +138,39 @@ struct ArtistPageView: View {
 
             if selectedTrackID == nil || !tracks.contains(where: { $0.trackId == selectedTrackID }) {
                 selectedTrackID = tracks.first?.trackId
+            }
+        }
+        .onChange(of: editableImagePickerItem) { _, item in
+            guard let item, let target = pendingImageTarget else { return }
+            Task {
+                do {
+                    guard let data = try await item.loadTransferable(type: Data.self) else {
+                        throw NSError(
+                            domain: "ArtistPageView",
+                            code: 400,
+                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
+                        )
+                    }
+                    let url = try await editableImageUploadService.uploadImageData(data)
+                    await MainActor.run {
+                        switch target {
+                        case .profile:
+                            profileImageURLDraft = url
+                        case .hero:
+                            heroImageURLDraft = url
+                        }
+                        showToast("Bild hochgeladen und uebernommen.", style: .success)
+                    }
+                } catch {
+                    await MainActor.run {
+                        showToast("Bild konnte nicht hochgeladen werden: \(error.localizedDescription)", style: .error)
+                    }
+                }
+
+                await MainActor.run {
+                    editableImagePickerItem = nil
+                    pendingImageTarget = nil
+                }
             }
         }
         .onDisappear {
@@ -524,17 +561,29 @@ struct ArtistPageView: View {
                 colorScheme: colorScheme
             )
 
-            ArtistPageInputField(
-                title: "Profilbild-URL",
-                text: $profileImageURLDraft,
-                placeholder: "https://...",
+            EditableImageField(
+                title: "Profilbild",
+                imageURL: $profileImageURLDraft,
+                selection: Binding(
+                    get: { pendingImageTarget == .profile ? editableImagePickerItem : nil },
+                    set: { newValue in
+                        pendingImageTarget = .profile
+                        editableImagePickerItem = newValue
+                    }
+                ),
                 colorScheme: colorScheme
             )
 
-            ArtistPageInputField(
-                title: "Hero-Bild-URL",
-                text: $heroImageURLDraft,
-                placeholder: "https://...",
+            EditableImageField(
+                title: "Hero-Bild",
+                imageURL: $heroImageURLDraft,
+                selection: Binding(
+                    get: { pendingImageTarget == .hero ? editableImagePickerItem : nil },
+                    set: { newValue in
+                        pendingImageTarget = .hero
+                        editableImagePickerItem = newValue
+                    }
+                ),
                 colorScheme: colorScheme
             )
 
@@ -661,6 +710,12 @@ struct ArtistPageView: View {
         toastStyle = style
         showToast = true
     }
+
+}
+
+private enum ArtistPageEditableImageTarget {
+    case profile
+    case hero
 }
 
 private struct ArtistPageSocialLink: Identifiable {

@@ -113,9 +113,10 @@ struct BrandHeroSurface<Footer: View>: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                accent.opacity(colorScheme == .dark ? 0.14 : 0.09),
-                                secondaryAccent.opacity(colorScheme == .dark ? 0.10 : 0.08),
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.58)
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.94),
+                                accent.opacity(colorScheme == .dark ? 0.10 : 0.06),
+                                secondaryAccent.opacity(colorScheme == .dark ? 0.08 : 0.05),
+                                Color.black.opacity(colorScheme == .dark ? 0.16 : 0.03)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -139,9 +140,9 @@ struct BrandHeroSurface<Footer: View>: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.black.opacity(colorScheme == .dark ? 0.30 : 0.18),
-                                    accent.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                                    secondaryAccent.opacity(colorScheme == .dark ? 0.18 : 0.10)
+                                    Color.black.opacity(colorScheme == .dark ? 0.46 : 0.26),
+                                    accent.opacity(colorScheme == .dark ? 0.14 : 0.09),
+                                    secondaryAccent.opacity(colorScheme == .dark ? 0.10 : 0.07)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -149,17 +150,17 @@ struct BrandHeroSurface<Footer: View>: View {
                         )
 
                     heroShape
-                        .fill(Color.black.opacity(colorScheme == .dark ? 0.26 : 0.14))
+                        .fill(Color.black.opacity(colorScheme == .dark ? 0.34 : 0.18))
                 }
 
                 Circle()
-                    .fill(accent.opacity(colorScheme == .dark ? 0.14 : 0.08))
+                    .fill(accent.opacity(colorScheme == .dark ? 0.10 : 0.05))
                     .frame(width: 190, height: 190)
                     .blur(radius: 44)
                     .offset(x: 130, y: -74)
 
                 Circle()
-                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.12 : 0.08))
+                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.08 : 0.05))
                     .frame(width: 150, height: 150)
                     .blur(radius: 42)
                     .offset(x: -110, y: 102)
@@ -182,12 +183,12 @@ struct BrandHeroSurface<Footer: View>: View {
                 let height = proxy.size.height
 
                 LinearGradient(
-                    colors: [
-                        Color.white.opacity(0),
-                        Color.white.opacity(colorScheme == .dark ? 0.16 : 0.24),
-                        accent.opacity(colorScheme == .dark ? 0.12 : 0.16),
-                        Color.white.opacity(0)
-                    ],
+                        colors: [
+                            Color.white.opacity(0),
+                            Color.white.opacity(colorScheme == .dark ? 0.10 : 0.18),
+                            accent.opacity(colorScheme == .dark ? 0.08 : 0.12),
+                            Color.white.opacity(0)
+                        ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <attribution
         android:tag="core"
@@ -38,7 +40,8 @@
             android:attributionTags="core"
             android:exported="true"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.Skydown">
+            android:theme="@style/Theme.Skydown"
+            tools:targetApi="s">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -50,15 +53,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data
-                    android:host="spotify-auth"
-                    android:scheme="com.skydown.android" />
-                <data
-                    android:host="checkout-success"
-                    android:scheme="com.skydown.android" />
-                <data
-                    android:host="checkout-cancel"
-                    android:scheme="com.skydown.android" />
+                <data android:scheme="com.skydown.android" />
+                <data android:host="spotify-auth" />
+                <data android:host="checkout-success" />
+                <data android:host="checkout-cancel" />
             </intent-filter>
         </activity>
     </application>

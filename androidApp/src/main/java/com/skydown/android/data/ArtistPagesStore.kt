@@ -93,8 +93,10 @@ private fun ArtistPageSeed.toPlaceholder(now: Long = System.currentTimeMillis())
 }
 
 object ArtistPagesStore {
-    private val firestore = FirebaseFirestore.getInstance()
-    private val collection = firestore.collection("artistPages")
+    private val firestore: FirebaseFirestore
+        get() = FirebaseFirestore.getInstance()
+    private val collection
+        get() = firestore.collection("artistPages")
     private val seedPages = listOf(
         ArtistPageSeed(
             ArtistPageBrand.Zweizwei,

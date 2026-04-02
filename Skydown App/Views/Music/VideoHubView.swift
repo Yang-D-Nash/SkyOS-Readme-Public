@@ -8,6 +8,7 @@
 
 import AVFoundation
 import AVKit
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -1294,6 +1295,9 @@ struct VideoYouTubeRow: View {
 struct VideoPublicConfigEditorCard: View {
     let colorScheme: ColorScheme
     @ObservedObject var viewModel: SkydownVideoHubViewModel
+    @State private var editableImagePickerItem: PhotosPickerItem?
+    @State private var pendingUploadTarget: VideoPublicConfigImageTarget?
+    private let editableImageUploadService = EditableImageAssetUploadService()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1301,7 +1305,7 @@ struct VideoPublicConfigEditorCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Beide Bereiche koennen jetzt direkt mit Bild-URLs befuellt werden.")
+            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Bilder laufen jetzt picker-first und werden direkt mit Vorschau uebernommen.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1328,15 +1332,20 @@ struct VideoPublicConfigEditorCard: View {
                             ),
                             colorScheme: colorScheme
                         )
-                        NicmaUploadField(
-                            title: "Bild-URL",
-                            text: Binding(
+                        EditableImageField(
+                            title: "Equipment-Bild",
+                            imageURL: Binding(
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateEquipmentItem(item.id, imageURLString: $0) }
                             ),
-                            colorScheme: colorScheme,
-                            keyboard: .URL,
-                            autocapitalization: .never
+                            selection: Binding(
+                                get: { pendingUploadTarget == .equipment(item.id) ? editableImagePickerItem : nil },
+                                set: { newValue in
+                                    pendingUploadTarget = .equipment(item.id)
+                                    editableImagePickerItem = newValue
+                                }
+                            ),
+                            colorScheme: colorScheme
                         )
                         Button(role: .destructive) {
                             viewModel.removeEquipmentItem(item.id)
@@ -1399,15 +1408,20 @@ struct VideoPublicConfigEditorCard: View {
                             ),
                             colorScheme: colorScheme
                         )
-                        NicmaUploadField(
-                            title: "Bild-URL",
-                            text: Binding(
+                        EditableImageField(
+                            title: "Collab-Bild",
+                            imageURL: Binding(
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, imageURLString: $0) }
                             ),
-                            colorScheme: colorScheme,
-                            keyboard: .URL,
-                            autocapitalization: .never
+                            selection: Binding(
+                                get: { pendingUploadTarget == .collaboration(item.id) ? editableImagePickerItem : nil },
+                                set: { newValue in
+                                    pendingUploadTarget = .collaboration(item.id)
+                                    editableImagePickerItem = newValue
+                                }
+                            ),
+                            colorScheme: colorScheme
                         )
                         NicmaUploadField(
                             title: "Spotify Artist ID",
@@ -1491,7 +1505,50 @@ struct VideoPublicConfigEditorCard: View {
             RoundedRectangle(cornerRadius: 24)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
+        .onChange(of: editableImagePickerItem) { _, item in
+            guard let item, let target = pendingUploadTarget else { return }
+            Task {
+                do {
+                    guard let data = try await item.loadTransferable(type: Data.self) else {
+                        throw NSError(
+                            domain: "VideoPublicConfigEditorCard",
+                            code: 400,
+                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
+                        )
+                    }
+                    let url = try await editableImageUploadService.uploadImageData(data)
+                    await MainActor.run {
+                        switch target {
+                        case .equipment(let itemId):
+                            viewModel.updateEquipmentItem(itemId, imageURLString: url)
+                        case .collaboration(let itemId):
+                            viewModel.updateCollaborationItem(itemId, imageURLString: url)
+                        }
+                        viewModel.toastMessage = "Bild hochgeladen und uebernommen."
+                        viewModel.toastStyle = .success
+                        viewModel.showToast = true
+                    }
+                } catch {
+                    await MainActor.run {
+                        viewModel.toastMessage = "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)"
+                        viewModel.toastStyle = .error
+                        viewModel.showToast = true
+                    }
+                }
+
+                await MainActor.run {
+                    editableImagePickerItem = nil
+                    pendingUploadTarget = nil
+                }
+            }
+        }
     }
+
+}
+
+private enum VideoPublicConfigImageTarget: Equatable {
+    case equipment(String)
+    case collaboration(String)
 }
 
 struct SkydownSelectedVideoRow: View {

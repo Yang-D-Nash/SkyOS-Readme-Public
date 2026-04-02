@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AppFeatureFlagsStore
@@ -26,6 +27,7 @@ import com.skydown.android.ui.theme.SkydownTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    @UnstableApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -33,7 +35,6 @@ class MainActivity : ComponentActivity() {
         AppFeatureFlagsStore.initialize()
         AiConversationHistoryStore.initialize(applicationContext)
         AiVisualReferenceLibraryPreferences.initialize(applicationContext)
-        WorkflowAutomationPreferences.initialize(applicationContext)
         SpotifyAuthManager.initialize(applicationContext)
         handleIncomingLink(intent?.data)
         volumeControlStream = AudioManager.STREAM_MUSIC

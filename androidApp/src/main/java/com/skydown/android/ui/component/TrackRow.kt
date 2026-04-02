@@ -1,5 +1,6 @@
 package com.skydown.android.ui.component
 
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -53,6 +54,7 @@ import coil3.compose.AsyncImage
 import com.skydown.shared.model.Track
 import com.skydown.android.ui.theme.SpotifyGreen
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun TrackRow(
     track: Track,
