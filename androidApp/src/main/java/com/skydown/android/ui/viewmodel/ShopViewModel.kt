@@ -184,7 +184,7 @@ class ShopViewModel : ViewModel() {
 
     private suspend fun refreshState() {
         val itemsResult = merchandiseService.loadItems()
-        val user = AppContainer.authService.currentUser()
+        val user = AppContainer.currentUser.value
         val isAdmin = user?.isPlatformOwner == true
         val resolvedItems = itemsResult.getOrDefault(emptyList())
         allItems = resolvedItems
@@ -294,7 +294,7 @@ class ShopViewModel : ViewModel() {
         val syncResult = shopifyMerchSyncClient.triggerSync()
         if (syncResult.isSuccess) {
             val itemsResult = merchandiseService.loadItems()
-            val user = AppContainer.authService.currentUser()
+            val user = AppContainer.currentUser.value
             val resolvedItems = itemsResult.getOrDefault(emptyList())
             allItems = resolvedItems
             _uiState.update {

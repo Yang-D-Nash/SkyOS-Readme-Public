@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.FirebaseFunctions
 import com.skydown.shared.model.LoginInput
@@ -380,24 +381,31 @@ class AndroidAuthRepository(
         instagramHandle: String?,
         whatsApp: String?,
     ) {
-        val documentReference = firestore.collection("userProfiles").document(uid)
-        val snapshot = documentReference.get().await()
-        val createdAt = snapshot.data?.get("createdAt") ?: com.google.firebase.Timestamp.now()
-        documentReference.set(
-            mapOf(
-                "ownerUid" to uid,
-                "username" to username,
-                "profileImageURL" to (profileImageUrl ?: FieldValue.delete()),
-                "profileImagePath" to (profileImagePath ?: FieldValue.delete()),
-                "profileTagline" to (profileTagline ?: FieldValue.delete()),
-                "profileBio" to (profileBio ?: FieldValue.delete()),
-                "instagramHandle" to (instagramHandle ?: FieldValue.delete()),
-                "whatsApp" to (whatsApp ?: FieldValue.delete()),
-                "createdAt" to createdAt,
-                "updatedAt" to com.google.firebase.Timestamp.now(),
-            ),
-            com.google.firebase.firestore.SetOptions.merge(),
-        ).await()
+        try {
+            val documentReference = firestore.collection("userProfiles").document(uid)
+            val snapshot = documentReference.get().await()
+            val createdAt = snapshot.data?.get("createdAt") ?: com.google.firebase.Timestamp.now()
+            documentReference.set(
+                mapOf(
+                    "ownerUid" to uid,
+                    "username" to username,
+                    "profileImageURL" to (profileImageUrl ?: FieldValue.delete()),
+                    "profileImagePath" to (profileImagePath ?: FieldValue.delete()),
+                    "profileTagline" to (profileTagline ?: FieldValue.delete()),
+                    "profileBio" to (profileBio ?: FieldValue.delete()),
+                    "instagramHandle" to (instagramHandle ?: FieldValue.delete()),
+                    "whatsApp" to (whatsApp ?: FieldValue.delete()),
+                    "createdAt" to createdAt,
+                    "updatedAt" to com.google.firebase.Timestamp.now(),
+                ),
+                com.google.firebase.firestore.SetOptions.merge(),
+            ).await()
+        } catch (error: FirebaseFirestoreException) {
+            if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                return
+            }
+            throw error
+        }
     }
 }
 

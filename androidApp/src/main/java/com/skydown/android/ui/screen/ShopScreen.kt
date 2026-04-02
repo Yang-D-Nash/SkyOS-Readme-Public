@@ -72,6 +72,8 @@ import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.ShopUiState
+import com.skydown.android.ui.theme.SpotifyGreen
+import com.skydown.android.ui.theme.YouTubeDeepRed
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.usecase.MerchandiseVariantResolver
@@ -237,8 +239,8 @@ private fun ShopOverviewCard(
         } else {
             "Ansicht aktiv, Checkout pausiert."
         },
-        accent = MaterialTheme.colorScheme.tertiary,
-        secondaryAccent = MaterialTheme.colorScheme.secondary,
+        accent = SpotifyGreen,
+        secondaryAccent = YouTubeDeepRed,
         marks = listOf(BrandArtwork.Combined),
     ) {
         Row(

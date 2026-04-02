@@ -28,11 +28,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.skydown.android.ui.theme.SpotifyGreen
+import com.skydown.android.ui.theme.SpotifyGreenContainer
+import com.skydown.android.ui.theme.YouTubeDeepRed
+import com.skydown.android.ui.theme.YouTubeRedContainer
 import com.skydown.shared.model.MerchandiseItem
 import java.util.Locale
 
@@ -43,6 +48,16 @@ fun MerchandiseCard(
     onTap: (MerchandiseItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accentColor = when {
+        item.source == "shopify" || !item.shopifyProductId.isNullOrBlank() -> SpotifyGreen
+        item.featured -> YouTubeDeepRed
+        else -> MaterialTheme.colorScheme.secondary
+    }
+    val accentContainer = when {
+        item.source == "shopify" || !item.shopifyProductId.isNullOrBlank() -> SpotifyGreenContainer
+        item.featured -> YouTubeRedContainer
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
     val displayImageUrls = remember(item.imageUrls, item.customImageOverride) {
         item.customImageOverride.takeIf { it.isNotBlank() }
             ?.let { listOf(it) + item.imageUrls.filterNot { url -> url == it } }
@@ -83,9 +98,9 @@ fun MerchandiseCard(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.04f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.18f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                                    accentColor.copy(alpha = 0.08f),
+                                    accentContainer.copy(alpha = 0.18f),
+                                    Color.Black.copy(alpha = 0.86f),
                                 ),
                             ),
                         ),
@@ -100,17 +115,31 @@ fun MerchandiseCard(
                     MerchStatePill(
                         text = if (item.available) "Drop live" else "Sold out",
                         isAccent = item.available,
+                        accentColor = accentColor,
+                        accentContainer = accentContainer,
                     )
-                    if (displayImageUrls.size > 1) {
+                    if (displayImageUrls.drop(1).isNotEmpty()) {
                         MerchStatePill(
                             text = "${displayImageUrls.size} Bilder",
                             isAccent = false,
+                            accentColor = accentColor,
+                            accentContainer = accentContainer,
                         )
                     }
                     if (item.customBadge.isNotBlank()) {
                         MerchStatePill(
                             text = item.customBadge,
                             isAccent = false,
+                            accentColor = accentColor,
+                            accentContainer = accentContainer,
+                        )
+                    }
+                    if (item.source == "shopify" || !item.shopifyProductId.isNullOrBlank()) {
+                        MerchStatePill(
+                            text = "Shopify",
+                            isAccent = false,
+                            accentColor = accentColor,
+                            accentContainer = accentContainer,
                         )
                     }
                 }
@@ -135,7 +164,7 @@ fun MerchandiseCard(
                     )
                 }
 
-                if (displayImageUrls.size > 1) {
+                if (displayImageUrls.drop(1).isNotEmpty()) {
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -184,7 +213,7 @@ fun MerchandiseCard(
                 Text(
                     text = if (item.available) "Ansehen" else "Produkt",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = accentColor,
                 )
             }
         }
@@ -195,16 +224,18 @@ fun MerchandiseCard(
 private fun MerchStatePill(
     text: String,
     isAccent: Boolean,
+    accentColor: Color,
+    accentContainer: Color,
 ) {
     val backgroundColor = if (isAccent) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f)
+        accentContainer.copy(alpha = 0.96f)
     } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)
+        Color.Black.copy(alpha = 0.52f)
     }
     val contentColor = if (isAccent) {
-        MaterialTheme.colorScheme.onPrimaryContainer
+        accentColor.copy(alpha = 0.98f)
     } else {
-        MaterialTheme.colorScheme.onSurface
+        Color.White.copy(alpha = 0.88f)
     }
 
     Row(
