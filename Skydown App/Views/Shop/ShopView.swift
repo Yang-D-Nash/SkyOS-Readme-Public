@@ -310,6 +310,7 @@ struct ShopView: View {
 
 private struct HomeHeroIntroCard: View {
     let colorScheme: ColorScheme
+    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
 
     var body: some View {
         BrandHeroSurface(
@@ -318,6 +319,7 @@ private struct HomeHeroIntroCard: View {
             title: "Sky²²",
             subtitle: "Alles direkt im Blick.",
             detail: "Musik, Video, Merch, Tools.",
+            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydownX22]
@@ -1195,6 +1197,7 @@ final class HomeInlineVideoPlaybackManager: ObservableObject {
 
 private struct ShopHeroCard: View {
     let colorScheme: ColorScheme
+    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     let itemCount: Int
     let isStoreOpen: Bool
     let isLoggedIn: Bool
@@ -1211,6 +1214,7 @@ private struct ShopHeroCard: View {
             title: "Shop",
             subtitle: "Merch direkt in der App.",
             detail: isStoreOpen ? "Offen fuer Bestellungen." : "Ansicht aktiv, Checkout pausiert.",
+            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedShopImageURL,
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydownX22]

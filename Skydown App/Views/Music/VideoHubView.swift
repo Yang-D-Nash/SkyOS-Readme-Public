@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 struct VideoHubView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
@@ -250,6 +251,7 @@ struct VideoHubView: View {
             title: "Video",
             subtitle: "Reels, Visuals und starke Kollaborationen.",
             detail: "Clips, Looks und Leute hinter dem Vibe.",
+            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
@@ -803,8 +805,7 @@ struct VideoEquipmentCard: View {
             VStack(spacing: 10) {
                 ForEach(items) { item in
                     VideoEquipmentRow(
-                        title: item.title,
-                        detail: item.detail,
+                        item: item,
                         colorScheme: colorScheme
                     )
                 }
@@ -914,24 +915,74 @@ private struct VideoHubQuickActionButton: View {
 }
 
 struct VideoEquipmentRow: View {
-    let title: String
-    let detail: String
+    let item: SkydownVideoEquipmentItem
     let colorScheme: ColorScheme
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.subheadline.weight(.bold))
-                .foregroundColor(AppColors.text(for: colorScheme))
+    private var imageURL: URL? {
+        guard let value = item.imageURLString, !value.isEmpty else { return nil }
+        return URL(string: value)
+    }
 
-            Text(detail)
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            equipmentArtwork
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(item.detail)
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(3)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var equipmentArtwork: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColors.accentMystic(for: colorScheme).opacity(0.88),
+                            AppColors.accent(for: colorScheme).opacity(0.68)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        fallbackEquipmentArtwork
+                    }
+                }
+            } else {
+                fallbackEquipmentArtwork
+            }
+        }
+        .frame(width: 72, height: 72)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var fallbackEquipmentArtwork: some View {
+        Image(systemName: "camera.metering.spot")
+            .font(.title3.weight(.bold))
+            .foregroundColor(.white.opacity(0.9))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -1250,7 +1301,7 @@ struct VideoPublicConfigEditorCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder fuellen die ganze Card und werden automatisch auf den Look zugeschnitten.")
+            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Beide Bereiche koennen jetzt direkt mit Bild-URLs befuellt werden.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1276,6 +1327,16 @@ struct VideoPublicConfigEditorCard: View {
                                 set: { viewModel.updateEquipmentItem(item.id, detail: $0) }
                             ),
                             colorScheme: colorScheme
+                        )
+                        NicmaUploadField(
+                            title: "Bild-URL",
+                            text: Binding(
+                                get: { item.imageURLString ?? "" },
+                                set: { viewModel.updateEquipmentItem(item.id, imageURLString: $0) }
+                            ),
+                            colorScheme: colorScheme,
+                            keyboard: .URL,
+                            autocapitalization: .never
                         )
                         Button(role: .destructive) {
                             viewModel.removeEquipmentItem(item.id)

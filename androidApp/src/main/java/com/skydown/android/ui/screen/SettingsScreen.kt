@@ -72,8 +72,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.AppContainer
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
+import com.skydown.android.data.ScreenHeaderSettings
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -112,6 +114,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val screenHeaderSettingsRepository = remember { AppContainer.screenHeaderSettingsRepository }
+    val screenHeaderSettings by screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     val artistPages by ArtistPagesStore.pages.collectAsStateWithLifecycle()
     val artistPagesError by ArtistPagesStore.lastErrorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -142,6 +146,10 @@ fun SettingsScreen(
     var shopifyStoreDomainDraft by rememberSaveable { mutableStateOf("") }
     var shopifyStorefrontAccessTokenDraft by rememberSaveable { mutableStateOf("") }
     var shopifyCollectionHandleDraft by rememberSaveable { mutableStateOf("") }
+    var homeHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var musicHubHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var shopHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var videoHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
     var automationEnabledDraft by rememberSaveable { mutableStateOf(false) }
     var automationSendsUserContextDraft by rememberSaveable { mutableStateOf(true) }
     var automationWorkflowNameDraft by rememberSaveable { mutableStateOf("") }
@@ -210,6 +218,13 @@ fun SettingsScreen(
         shopifyStoreDomainDraft = uiState.shopifyAdminSettings.storeDomain
         shopifyStorefrontAccessTokenDraft = uiState.shopifyAdminSettings.storefrontAccessToken
         shopifyCollectionHandleDraft = uiState.shopifyAdminSettings.collectionHandle
+    }
+
+    LaunchedEffect(screenHeaderSettings) {
+        homeHeaderImageUrlDraft = screenHeaderSettings.homeImageUrl
+        musicHubHeaderImageUrlDraft = screenHeaderSettings.musicHubImageUrl
+        shopHeaderImageUrlDraft = screenHeaderSettings.shopImageUrl
+        videoHeaderImageUrlDraft = screenHeaderSettings.videoHubImageUrl
     }
 
     LaunchedEffect(uiState.workflowAutomationSettings) {
@@ -369,6 +384,119 @@ fun SettingsScreen(
                             },
                         )
                     }
+                }
+            }
+
+            AdminWorkspaceSection.Headers -> {
+                Text(
+                    text = "Diese Bild-Backdrops laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt sie automatisch ab, damit Schrift und Badges lesbar bleiben.",
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        SettingsBadge(
+                            text = "${screenHeaderSettings.configuredCount} mit Bild",
+                            icon = Icons.Default.Palette,
+                            isActive = screenHeaderSettings.configuredCount > 0,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "Overlay aktiv",
+                            icon = Icons.Default.CheckCircle,
+                            isActive = true,
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = homeHeaderImageUrlDraft,
+                    onValueChange = { homeHeaderImageUrlDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    label = { Text("Home Header Bild-URL") },
+                    placeholder = { Text("https://...") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = musicHubHeaderImageUrlDraft,
+                    onValueChange = { musicHubHeaderImageUrlDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Music Hub Bild-URL") },
+                    placeholder = { Text("https://...") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = shopHeaderImageUrlDraft,
+                    onValueChange = { shopHeaderImageUrlDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Shop Header Bild-URL") },
+                    placeholder = { Text("https://...") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = videoHeaderImageUrlDraft,
+                    onValueChange = { videoHeaderImageUrlDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Video Header Bild-URL") },
+                    placeholder = { Text("https://...") },
+                    singleLine = true,
+                )
+
+                Text(
+                    text = "Leere Felder lassen den jeweiligen Screen wieder auf den nativen Farbverlauf zurueckfallen.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                Button(
+                    onClick = {
+                        if (!uiState.isOwner) {
+                            Toast.makeText(
+                                context,
+                                "Nur der Owner darf Header-Bilder verwalten.",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        } else {
+                            coroutineScope.launch {
+                                val result = screenHeaderSettingsRepository.updateSettings(
+                                    ScreenHeaderSettings(
+                                        homeImageUrl = homeHeaderImageUrlDraft.trim(),
+                                        musicHubImageUrl = musicHubHeaderImageUrlDraft.trim(),
+                                        shopImageUrl = shopHeaderImageUrlDraft.trim(),
+                                        videoHubImageUrl = videoHeaderImageUrlDraft.trim(),
+                                    ),
+                                )
+                                Toast.makeText(
+                                    context,
+                                    if (result.isSuccess) {
+                                        "Header-Bilder gespeichert."
+                                    } else {
+                                        result.exceptionOrNull()?.message ?: "Header-Bilder konnten nicht gespeichert werden."
+                                    },
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("Header speichern")
                 }
             }
 
@@ -1101,6 +1229,7 @@ fun SettingsScreen(
                                             uiState = uiState,
                                             visiblePaymentMethodCount = visiblePaymentMethodCount,
                                             publishedArtistPageCount = publishedArtistPageCount,
+                                            configuredScreenHeaderCount = screenHeaderSettings.configuredCount,
                                         ),
                                         onClick = {
                                             activeAdminWorkspaceKey = section.name
@@ -1987,6 +2116,11 @@ private enum class AdminWorkspaceSection(
         subtitle = "Artist-Seiten pflegen und Editor-Rechte pro Artist zuteilen.",
         icon = Icons.Default.LibraryMusic,
     ),
+    Headers(
+        label = "Header",
+        subtitle = "Header-Karten von Home, Music, Shop und Video mit Bild-Backdrops pflegen.",
+        icon = Icons.Default.Palette,
+    ),
     Shopify(
         label = "Shopify",
         subtitle = "Owner-Quelle fuer Store-Domain, Token und Merch-Sync pflegen.",
@@ -2014,11 +2148,13 @@ private fun adminWorkspaceStatusText(
     uiState: SettingsUiState,
     visiblePaymentMethodCount: Int,
     publishedArtistPageCount: Int,
+    configuredScreenHeaderCount: Int,
 ): String {
     return when (section) {
         AdminWorkspaceSection.Payments -> "$visiblePaymentMethodCount live im Checkout"
         AdminWorkspaceSection.Users -> "${uiState.managedUsers.size} Konten"
         AdminWorkspaceSection.Artists -> "${publishedArtistPageCount} Artist-Seiten"
+        AdminWorkspaceSection.Headers -> "$configuredScreenHeaderCount Header live"
         AdminWorkspaceSection.Shopify -> uiState.shopifyAdminSettings.activeCollectionLabel
         AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
         AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"

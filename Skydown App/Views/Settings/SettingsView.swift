@@ -21,6 +21,7 @@ struct SettingsView: View {
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @StateObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @StateObject private var stripeBackendSecretsStore = StripeBackendSecretsStore.shared
     @StateObject private var artistPagesStore = ArtistPagesStore.shared
     @StateObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
@@ -69,6 +70,10 @@ struct SettingsView: View {
     @State private var shopifyStoreDomainDraft = ""
     @State private var shopifyStorefrontAccessTokenDraft = ""
     @State private var shopifyCollectionHandleDraft = ""
+    @State private var homeHeaderImageURLDraft = ""
+    @State private var musicHubHeaderImageURLDraft = ""
+    @State private var shopHeaderImageURLDraft = ""
+    @State private var videoHeaderImageURLDraft = ""
     @State private var automationEnabledDraft = false
     @State private var automationSendsUserContextDraft = true
     @State private var automationWorkflowNameDraft = ""
@@ -471,6 +476,7 @@ struct SettingsView: View {
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
+            syncScreenHeaderDrafts(with: screenHeaderSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
         }
         .onChange(of: isOwnerUser) { _, isOwner in
@@ -496,6 +502,9 @@ struct SettingsView: View {
         }
         .onReceive(shopifyAdminSettingsStore.$settings) { settings in
             syncShopifyDrafts(with: settings)
+        }
+        .onReceive(screenHeaderSettingsStore.$settings) { settings in
+            syncScreenHeaderDrafts(with: settings)
         }
         .onReceive(workflowAutomationSettings.$settings) { settings in
             syncAutomationDrafts(with: settings)
@@ -535,6 +544,10 @@ struct SettingsView: View {
 
     private var publishedArtistPageCount: Int {
         managedShowcasePages.filter(\.hasCustomPresentation).count
+    }
+
+    private var configuredScreenHeaderCount: Int {
+        screenHeaderSettingsStore.settings.configuredCount
     }
 
     @ViewBuilder
@@ -658,6 +671,63 @@ struct SettingsView: View {
                             .id(page.slug + "-" + page.editorUids.joined(separator: ","))
                         }
                     }
+                }
+
+            case .headers:
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Diese Bild-Backdrops laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt sie automatisch ab, damit Schrift und Badges lesbar bleiben.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(text: "\(configuredScreenHeaderCount) mit Bild", colorScheme: effectiveColorScheme)
+                        SettingsBadge(text: "Overlay aktiv", colorScheme: effectiveColorScheme)
+                    }
+
+                    if let message = screenHeaderSettingsStore.lastErrorMessage {
+                        Text(message)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppColors.accentHighlight(for: effectiveColorScheme))
+                    }
+
+                    SettingsInputField(
+                        title: "Home Header Bild-URL",
+                        text: $homeHeaderImageURLDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "https://..."
+                    )
+
+                    SettingsInputField(
+                        title: "Music Hub Bild-URL",
+                        text: $musicHubHeaderImageURLDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "https://..."
+                    )
+
+                    SettingsInputField(
+                        title: "Shop Header Bild-URL",
+                        text: $shopHeaderImageURLDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "https://..."
+                    )
+
+                    SettingsInputField(
+                        title: "Video Header Bild-URL",
+                        text: $videoHeaderImageURLDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "https://..."
+                    )
+
+                    Text("Leere Felder lassen den jeweiligen Screen wieder auf den nativen Farbverlauf zurueckfallen.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    Button(action: saveScreenHeaderSettings) {
+                        Label("Header speichern", systemImage: "photo.on.rectangle.angled")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: effectiveColorScheme))
                 }
 
             case .shopify:
@@ -1102,6 +1172,8 @@ struct SettingsView: View {
             return "\(adminUserManagementStore.users.count) Konten"
         case .artists:
             return "\(publishedArtistPageCount) Artist-Seiten"
+        case .headers:
+            return "\(configuredScreenHeaderCount) Header live"
         case .shopify:
             return shopifyAdminSettingsStore.settings.activeCollectionLabel
         case .commerce:
@@ -1236,6 +1308,13 @@ struct SettingsView: View {
         shopifyCollectionHandleDraft = settings.collectionHandle
     }
 
+    private func syncScreenHeaderDrafts(with settings: ScreenHeaderSettings) {
+        homeHeaderImageURLDraft = settings.homeImageURL
+        musicHubHeaderImageURLDraft = settings.musicHubImageURL
+        shopHeaderImageURLDraft = settings.shopImageURL
+        videoHeaderImageURLDraft = settings.videoHubImageURL
+    }
+
     private func syncAutomationDrafts(with settings: WorkflowAutomationSettings) {
         automationEnabledDraft = settings.isEnabled
         automationSendsUserContextDraft = settings.sendsUserContext
@@ -1297,6 +1376,24 @@ struct SettingsView: View {
                 )
             } catch {
                 showToastMessage("Shopify-Einstellungen konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveScreenHeaderSettings() {
+        Task {
+            let updated = ScreenHeaderSettings(
+                homeImageURL: homeHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                musicHubImageURL: musicHubHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                shopImageURL: shopHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                videoHubImageURL: videoHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+
+            do {
+                try await screenHeaderSettingsStore.save(updated)
+                showToastMessage("Header-Bilder gespeichert. Die Hero-Karten nutzen jetzt die neuen Backdrops.", style: .success)
+            } catch {
+                showToastMessage("Header-Bilder konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -2204,6 +2301,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
     case payments = "Zahlungen"
     case users = "User"
     case artists = "Artists"
+    case headers = "Header"
     case shopify = "Shopify"
     case commerce = "Versand"
     case visuals = "Visuals"
@@ -2219,6 +2317,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "person.2.fill"
         case .artists:
             return "music.mic.circle.fill"
+        case .headers:
+            return "photo.on.rectangle.angled"
         case .shopify:
             return "bag.fill"
         case .commerce:
@@ -2238,6 +2338,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "Rollen, KI-Zugriff, Tageslimits und History pro Konto steuern."
         case .artists:
             return "Artist-Seiten pflegen und Editor-Rechte pro Artist zuteilen."
+        case .headers:
+            return "Header-Karten von Home, Music, Shop und Video mit Bild-Backdrops pflegen."
         case .shopify:
             return "Owner-Quelle fuer Store-Domain, Token und Collection des Merch-Syncs."
         case .commerce:

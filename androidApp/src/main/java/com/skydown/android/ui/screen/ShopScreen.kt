@@ -59,6 +59,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
@@ -230,6 +231,7 @@ private fun ShopOverviewCard(
     onToggleStore: (() -> Unit)? = null,
     onSyncShopify: (() -> Unit)? = null,
 ) {
+    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
         eyebrow = "Store",
         title = "Shop",
@@ -239,6 +241,7 @@ private fun ShopOverviewCard(
         } else {
             "Ansicht aktiv, Checkout pausiert."
         },
+        backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
         accent = SpotifyGreen,
         secondaryAccent = YouTubeDeepRed,
         marks = listOf(BrandArtwork.Combined),

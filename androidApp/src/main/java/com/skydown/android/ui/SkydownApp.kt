@@ -728,11 +728,13 @@ private fun ZweizweiMusicLaneScreen(
                         .padding(horizontal = 18.dp, vertical = 22.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
+                    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
                     BrandHeroCard(
                         eyebrow = "Music",
                         title = "Music",
                         subtitle = "Releases, Artists, Beats.",
                         detail = "Direkt zu Songs, Beats und Studio.",
+                        backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
                         accent = MaterialTheme.colorScheme.primary,
                         secondaryAccent = MaterialTheme.colorScheme.secondary,
                         marks = listOf(BrandArtwork.Zweizwei),

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.skydown.android.R
 
 enum class BrandArtwork(
@@ -59,6 +61,7 @@ fun BrandHeroCard(
     title: String,
     subtitle: String,
     detail: String? = null,
+    backgroundImageUrl: String? = null,
     accent: Color = MaterialTheme.colorScheme.primary,
     secondaryAccent: Color = MaterialTheme.colorScheme.secondary,
     marks: List<BrandArtwork> = emptyList(),
@@ -66,7 +69,7 @@ fun BrandHeroCard(
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
@@ -91,81 +94,111 @@ fun BrandHeroCard(
                 ),
                 shape = shape,
             )
-            .skydownSheen(accent = accent, alpha = 0.14f)
-            .padding(SkydownUiTokens.heroPadding),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .skydownSheen(accent = accent, alpha = 0.14f),
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(160.dp)
-                    .blur(42.dp)
-                    .background(accent.copy(alpha = 0.10f), CircleShape),
+        if (!backgroundImageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = backgroundImageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
             )
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .size(120.dp)
-                    .blur(38.dp)
-                    .background(secondaryAccent.copy(alpha = 0.08f), CircleShape),
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.24f)),
             )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                accent.copy(alpha = 0.18f),
+                                secondaryAccent.copy(alpha = 0.14f),
+                                Color.Black.copy(alpha = 0.10f),
+                            ),
+                        ),
+                    ),
+            )
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+        Column(
+            modifier = Modifier.padding(SkydownUiTokens.heroPadding),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(160.dp)
+                        .blur(42.dp)
+                        .background(accent.copy(alpha = 0.10f), CircleShape),
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .size(120.dp)
+                        .blur(38.dp)
+                        .background(secondaryAccent.copy(alpha = 0.08f), CircleShape),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Text(
-                        text = eyebrow.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = accent,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Black,
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-                    )
-                    if (!detail.isNullOrBlank()) {
-                        Text(
-                            text = detail,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-
-                if (marks.isNotEmpty()) {
                     Column(
-                        modifier = Modifier
-                            .width(if (marks.size == 1) 118.dp else 96.dp),
+                        modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        marks.take(2).forEach { mark ->
-                            BrandArtworkTile(
-                                mark = mark,
-                                accent = accent,
-                                isFeatured = marks.size == 1,
+                        Text(
+                            text = eyebrow.uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = accent,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Black,
+                        )
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                        )
+                        if (!detail.isNullOrBlank()) {
+                            Text(
+                                text = detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f),
+                                fontWeight = FontWeight.SemiBold,
                             )
+                        }
+                    }
+
+                    if (marks.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .width(if (marks.size == 1) 118.dp else 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            marks.take(2).forEach { mark ->
+                                BrandArtworkTile(
+                                    mark = mark,
+                                    accent = accent,
+                                    isFeatured = marks.size == 1,
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        footer()
+            footer()
+        }
     }
 }
 

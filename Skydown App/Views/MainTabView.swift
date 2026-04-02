@@ -269,6 +269,7 @@ struct AppSessionToolbarActions: View {
 
 private struct ZweizweiTabView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @State private var destination: ZweizweiDestination = .hub
     @State private var catalogInitialArtist: String?
     @State private var catalogAutoPresentArtistPage = false
@@ -288,6 +289,7 @@ private struct ZweizweiTabView: View {
                             title: "Music",
                             subtitle: "Releases, Artists und Studio an einem Ort.",
                             detail: "Hoer rein, entdecke Artists und spring direkt zu Beats oder Recording.",
+                            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
                             accent: AppColors.spotify(for: colorScheme),
                             secondaryAccent: AppColors.accent(for: colorScheme),
                             marks: [.zweizwei]

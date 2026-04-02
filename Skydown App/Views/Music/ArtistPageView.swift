@@ -62,6 +62,10 @@ struct ArtistPageView: View {
         tracksViewModel.tracks.first { $0.trackId == selectedTrackID } ?? tracksViewModel.tracks.first
     }
 
+    private var linkCount: Int {
+        socialLinks.count
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -138,56 +142,107 @@ struct ArtistPageView: View {
     }
 
     private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             ZStack(alignment: .bottomLeading) {
                 heroVisual
-                    .frame(height: 220)
+                    .frame(height: 286)
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
 
                 LinearGradient(
-                    colors: [.clear, Color.black.opacity(0.72)],
+                    colors: [
+                        Color.black.opacity(0.18),
+                        Color.clear,
+                        Color.black.opacity(0.84)
+                    ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
 
-                HStack(alignment: .bottom, spacing: 14) {
-                    ArtistPageAvatar(
-                        imageURL: page.profileImageURL,
-                        fallbackText: page.artistName,
-                        size: 82,
-                        colorScheme: colorScheme
-                    )
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 8) {
+                        ArtistHeroTag(
+                            text: brand.displayTitle,
+                            background: .white.opacity(0.14)
+                        )
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(page.artistName)
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
+                        if page.hasCustomPresentation {
+                            ArtistHeroTag(
+                                text: "Live",
+                                background: AppColors.spotify(for: colorScheme).opacity(0.84)
+                            )
+                        }
 
-                        Text(page.tagline ?? "\(brand.displayTitle) Profil")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.86))
+                        Spacer(minLength: 0)
+
+                        if !tracksViewModel.tracks.isEmpty {
+                            ArtistHeroTag(
+                                text: "\(tracksViewModel.tracks.count) Songs",
+                                background: .black.opacity(0.32)
+                            )
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    HStack(alignment: .bottom, spacing: 16) {
+                        ArtistPageAvatar(
+                            imageURL: page.profileImageURL,
+                            fallbackText: page.artistName,
+                            size: 96,
+                            colorScheme: colorScheme
+                        )
+                        .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(page.artistName)
+                                .font(.system(size: 30, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.28), radius: 14, y: 6)
+
+                            Text(page.tagline ?? "\(brand.displayTitle) Profil")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.white.opacity(0.86))
+                                .lineLimit(2)
+
+                            if let latestReleaseText {
+                                Text("Latest \(latestReleaseText)")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(.white.opacity(0.76))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .padding(20)
             }
 
-            Text(page.bio ?? "Noch keine Artist-Seite hinterlegt. Owner oder zugewiesene Editoren koennen hier eine repraesentative Kurzbeschreibung anlegen.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            VStack(alignment: .leading, spacing: 14) {
+                Text(page.bio ?? "Noch keine Artist-Seite hinterlegt. Owner oder zugewiesene Editoren koennen hier eine repraesentative Kurzbeschreibung anlegen.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            artistHighlightsRow
+                artistHighlightsRow
 
-            if !socialLinks.isEmpty {
-                artistCTAButtons
+                if !socialLinks.isEmpty {
+                    artistCTAButtons
+                }
+
+                if !page.editorUids.isEmpty {
+                    ArtistPageBadge(
+                        text: "\(page.editorUids.count) Editor\(page.editorUids.count == 1 ? "" : "en")",
+                        colorScheme: colorScheme
+                    )
+                }
             }
-
-            if !page.editorUids.isEmpty {
-                ArtistPageBadge(
-                    text: "\(page.editorUids.count) Editor\(page.editorUids.count == 1 ? "" : "en")",
-                    colorScheme: colorScheme
-                )
-            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColors.cardBackground(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
+            )
         }
     }
 
@@ -247,33 +302,35 @@ struct ArtistPageView: View {
     }
 
     private var artistHighlightsRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ArtistPageBadge(
-                    text: "\(brand.displayTitle) Artist",
+        HStack(spacing: 10) {
+            ArtistInfoMetric(
+                title: "Artist",
+                value: brand.displayTitle,
+                colorScheme: colorScheme
+            )
+
+            if !tracksViewModel.tracks.isEmpty {
+                ArtistInfoMetric(
+                    title: "Songs",
+                    value: "\(tracksViewModel.tracks.count)",
                     colorScheme: colorScheme
                 )
+            }
 
-                if !tracksViewModel.tracks.isEmpty {
-                    ArtistPageBadge(
-                        text: "\(tracksViewModel.tracks.count) Songs",
-                        colorScheme: colorScheme
-                    )
-                }
+            if let latestReleaseText {
+                ArtistInfoMetric(
+                    title: "Latest",
+                    value: latestReleaseText,
+                    colorScheme: colorScheme
+                )
+            }
 
-                if let latestReleaseText {
-                    ArtistPageBadge(
-                        text: "Latest \(latestReleaseText)",
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if !socialLinks.isEmpty {
-                    ArtistPageBadge(
-                        text: "\(socialLinks.count) Links",
-                        colorScheme: colorScheme
-                    )
-                }
+            if linkCount > 0 {
+                ArtistInfoMetric(
+                    title: "Links",
+                    value: "\(linkCount)",
+                    colorScheme: colorScheme
+                )
             }
         }
     }
@@ -666,6 +723,46 @@ private struct ArtistPageBadge: View {
                 Capsule()
                     .fill(AppColors.secondaryBackground(for: colorScheme))
             )
+    }
+}
+
+private struct ArtistHeroTag: View {
+    let text: String
+    let background: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.bold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(background, in: Capsule())
+    }
+}
+
+private struct ArtistInfoMetric: View {
+    let title: String
+    let value: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
     }
 }
 

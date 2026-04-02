@@ -33,6 +33,7 @@ object AppContainer {
     val paymentMethodsRepository: PaymentMethodsRepository by lazy { PaymentMethodsRepository() }
     val stripeBackendSecretsRepository: StripeBackendSecretsRepository by lazy { StripeBackendSecretsRepository() }
     val commerceSettingsRepository: CommerceSettingsRepository by lazy { CommerceSettingsRepository() }
+    val screenHeaderSettingsRepository: ScreenHeaderSettingsRepository by lazy { ScreenHeaderSettingsRepository() }
     val shopifyAdminSettingsRepository: ShopifyAdminSettingsRepository by lazy { ShopifyAdminSettingsRepository() }
     val adminUserManagementRepository: AdminUserManagementRepository by lazy { AdminUserManagementRepository() }
     val merchStoreStatusRepository: MerchStoreStatusRepository by lazy { MerchStoreStatusRepository() }

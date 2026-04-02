@@ -82,6 +82,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.AppContainer
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
@@ -358,6 +359,9 @@ fun VideoHubScreen(
                             onUpdateEquipmentDetail = { itemId, value ->
                                 viewModel.updateEquipmentItem(itemId, detail = value)
                             },
+                            onUpdateEquipmentImageUrl = { itemId, value ->
+                                viewModel.updateEquipmentItem(itemId, imageUrl = value)
+                            },
                             onRemoveEquipment = viewModel::removeEquipmentItem,
                             onAddCollaboration = viewModel::addCollaborationItem,
                             onUpdateCollaborationName = { itemId, value ->
@@ -455,11 +459,13 @@ fun VideoHubScreen(
 private fun VideoHubHeroCard(
     isAdmin: Boolean,
 ) {
+    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
         eyebrow = "Video",
         title = "Video",
         subtitle = "Reels, Visuals und starke Kollaborationen.",
         detail = "Clips, Looks und Leute hinter dem Vibe.",
+        backgroundImageUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null },
         accent = MaterialTheme.colorScheme.secondary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Skydown),
@@ -538,8 +544,7 @@ private fun VideoEquipmentCard(
         ) {
             items.forEach { item ->
                 VideoEquipmentRow(
-                    title = item.title,
-                    detail = item.detail,
+                    item = item,
                 )
             }
         }
@@ -585,27 +590,64 @@ private fun VideoYouTubeCard(
 
 @Composable
 private fun VideoEquipmentRow(
-    title: String,
-    detail: String,
+    item: VideoEquipmentItem,
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
             .padding(horizontal = 14.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = detail,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        )
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.90f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.72f),
+                        ),
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (!item.imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.92f),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = item.detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                maxLines = 3,
+            )
+        }
     }
 }
 
@@ -615,6 +657,7 @@ private fun VideoPublicConfigEditorCard(
     onAddEquipment: () -> Unit,
     onUpdateEquipmentTitle: (String, String) -> Unit,
     onUpdateEquipmentDetail: (String, String) -> Unit,
+    onUpdateEquipmentImageUrl: (String, String) -> Unit,
     onRemoveEquipment: (String) -> Unit,
     onAddCollaboration: () -> Unit,
     onUpdateCollaborationName: (String, String) -> Unit,
@@ -631,7 +674,7 @@ private fun VideoPublicConfigEditorCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Videography Editor")
         Text(
-            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Collab-Bilder fuellen die ganze Card und werden automatisch auf den Look zugeschnitten.",
+            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Beide Bereiche koennen jetzt direkt mit Bild-URLs befuellt werden.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -668,6 +711,12 @@ private fun VideoPublicConfigEditorCard(
                         label = { Text("Detail") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
+                    )
+                    OutlinedTextField(
+                        value = item.imageUrl.orEmpty(),
+                        onValueChange = { onUpdateEquipmentImageUrl(item.id, it) },
+                        label = { Text("Bild-URL") },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedButton(
                         onClick = { onRemoveEquipment(item.id) },

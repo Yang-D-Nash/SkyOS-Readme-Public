@@ -515,7 +515,8 @@ service cloud.firestore {
         "merchandiseStore",
         "paymentMethods",
         "commerceSettings",
-        "shopifyMerch"
+        "shopifyMerch",
+        "screenHeaders"
       ];
 
       allow create, update, delete: if isOwner();

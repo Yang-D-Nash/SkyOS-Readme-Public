@@ -2,7 +2,6 @@ package com.skydown.android.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -319,7 +318,7 @@ private fun ArtistPageHeroCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(286.dp)
                 .clip(RoundedCornerShape(24.dp)),
         ) {
             if (!page.heroImageURL.isNullOrBlank()) {
@@ -350,76 +349,127 @@ private fun ArtistPageHeroCard(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.18f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.84f),
+                            ),
                         ),
                     ),
             )
 
-            Row(
+            Column(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
+                    .fillMaxSize()
                     .padding(20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.Bottom,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(82.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (!page.profileImageURL.isNullOrBlank()) {
-                        AsyncImage(
-                            model = page.profileImageURL,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                        )
-                    } else {
-                        Text(
-                            text = page.artistName.take(1).uppercase(),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ArtistHeroTag(text = brand.displayTitle, background = Color.White.copy(alpha = 0.14f))
+                    if (page.hasCustomPresentation) {
+                        ArtistHeroTag(text = "Live", background = SpotifyGreen.copy(alpha = 0.84f))
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (trackCount > 0) {
+                        ArtistHeroTag(text = "$trackCount Songs", background = Color.Black.copy(alpha = 0.32f))
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = page.artistName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                    )
-                    Text(
-                        text = page.tagline ?: "${brand.displayTitle} Profil",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.84f),
-                    )
+                Spacer(modifier = Modifier.weight(1f))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!page.profileImageURL.isNullOrBlank()) {
+                            AsyncImage(
+                                model = page.profileImageURL,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                            )
+                        } else {
+                            Text(
+                                text = page.artistName.take(1).uppercase(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = page.artistName,
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                        )
+                        Text(
+                            text = page.tagline ?: "${brand.displayTitle} Profil",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.84f),
+                        )
+                        latestReleaseText?.let {
+                            Text(
+                                text = "Latest $it",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.76f),
+                            )
+                        }
+                    }
                 }
             }
         }
 
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
                 text = page.bio ?: "Noch keine Artist-Seite hinterlegt. Owner oder zugewiesene Editoren koennen hier eine repraesentative Kurzbeschreibung anlegen.",
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
             )
 
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ArtistPill(text = "${brand.displayTitle} Artist")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ArtistMetricCard(
+                    title = "Artist",
+                    value = brand.displayTitle,
+                    modifier = Modifier.weight(1f),
+                )
                 if (trackCount > 0) {
-                    ArtistPill(text = "$trackCount Songs")
+                    ArtistMetricCard(
+                        title = "Songs",
+                        value = "$trackCount",
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                latestReleaseText?.let { ArtistPill(text = "Latest $it") }
+                latestReleaseText?.let {
+                    ArtistMetricCard(
+                        title = "Latest",
+                        value = it,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                val linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() }
+                if (linkCount > 0) {
+                    ArtistMetricCard(
+                        title = "Links",
+                        value = "$linkCount",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
             ArtistPageHeroQuickLinks(page = page)
@@ -656,6 +706,52 @@ private fun ArtistPill(text: String) {
         color = MaterialTheme.colorScheme.onSurface,
         style = MaterialTheme.typography.labelMedium,
     )
+}
+
+@Composable
+private fun ArtistHeroTag(
+    text: String,
+    background: Color,
+) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(background)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        color = Color.White,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+    )
+}
+
+@Composable
+private fun ArtistMetricCard(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 12.dp, vertical = 11.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+    }
 }
 
 private data class ArtistPageLinkUi(

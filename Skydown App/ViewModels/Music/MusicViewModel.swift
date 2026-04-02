@@ -736,7 +736,8 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             [
                 "id": item.id,
                 "title": item.title,
-                "detail": item.detail
+                "detail": item.detail,
+                "imageURLString": item.imageURLString ?? ""
             ]
         }
         let youtubeItems = config.youtubeItems.map { item in
@@ -970,7 +971,8 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         return SkydownVideoEquipmentItem(
             id: rawID.isEmpty ? UUID().uuidString : rawID,
             title: title,
-            detail: detail
+            detail: detail,
+            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         )
     }
 
@@ -1221,7 +1223,8 @@ final class SkydownVideoHubViewModel: ObservableObject {
             SkydownVideoEquipmentItem(
                 id: UUID().uuidString,
                 title: "",
-                detail: ""
+                detail: "",
+                imageURLString: nil
             )
         )
     }
@@ -1230,7 +1233,12 @@ final class SkydownVideoHubViewModel: ObservableObject {
         publicConfig.equipmentItems.removeAll { $0.id == itemID }
     }
 
-    func updateEquipmentItem(_ itemID: String, title: String? = nil, detail: String? = nil) {
+    func updateEquipmentItem(
+        _ itemID: String,
+        title: String? = nil,
+        detail: String? = nil,
+        imageURLString: String? = nil
+    ) {
         guard let index = publicConfig.equipmentItems.firstIndex(where: { $0.id == itemID }) else {
             return
         }
@@ -1241,6 +1249,10 @@ final class SkydownVideoHubViewModel: ObservableObject {
 
         if let detail {
             publicConfig.equipmentItems[index].detail = detail
+        }
+
+        if let imageURLString {
+            publicConfig.equipmentItems[index].imageURLString = imageURLString
         }
     }
 
@@ -1348,7 +1360,12 @@ final class SkydownVideoHubViewModel: ObservableObject {
             let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
             let detail = item.detail.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty, !detail.isEmpty else { return nil }
-            return SkydownVideoEquipmentItem(id: item.id, title: title, detail: detail)
+            return SkydownVideoEquipmentItem(
+                id: item.id,
+                title: title,
+                detail: detail,
+                imageURLString: item.imageURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            )
         }
         let sanitizedYouTube = publicConfig.youtubeItems.compactMap { item -> SkydownYouTubeVideoItem? in
             let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -29,6 +29,7 @@ struct BrandHeroSurface<Footer: View>: View {
     let title: String
     let subtitle: String
     let detail: String?
+    let backgroundImageURL: String?
     let accent: Color
     let secondaryAccent: Color
     let marks: [BrandMark]
@@ -40,6 +41,7 @@ struct BrandHeroSurface<Footer: View>: View {
         title: String,
         subtitle: String,
         detail: String? = nil,
+        backgroundImageURL: String? = nil,
         accent: Color,
         secondaryAccent: Color,
         marks: [BrandMark] = [],
@@ -50,6 +52,7 @@ struct BrandHeroSurface<Footer: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.detail = detail
+        self.backgroundImageURL = backgroundImageURL
         self.accent = accent
         self.secondaryAccent = secondaryAccent
         self.marks = marks
@@ -100,8 +103,13 @@ struct BrandHeroSurface<Footer: View>: View {
         .padding(SkydownLayout.heroPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
+            let heroShape = RoundedRectangle(
+                cornerRadius: SkydownLayout.heroCornerRadius,
+                style: .continuous
+            )
+
             ZStack {
-                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                heroShape
                     .fill(
                         LinearGradient(
                             colors: [
@@ -113,6 +121,36 @@ struct BrandHeroSurface<Footer: View>: View {
                             endPoint: .bottomTrailing
                         )
                     )
+
+                if let backgroundImageURL, let url = URL(string: backgroundImageURL) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        default:
+                            Color.clear
+                        }
+                    }
+                    .clipShape(heroShape)
+
+                    heroShape
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.black.opacity(colorScheme == .dark ? 0.30 : 0.18),
+                                    accent.opacity(colorScheme == .dark ? 0.22 : 0.14),
+                                    secondaryAccent.opacity(colorScheme == .dark ? 0.18 : 0.10)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    heroShape
+                        .fill(Color.black.opacity(colorScheme == .dark ? 0.26 : 0.14))
+                }
 
                 Circle()
                     .fill(accent.opacity(colorScheme == .dark ? 0.14 : 0.08))

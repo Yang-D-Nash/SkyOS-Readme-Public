@@ -294,6 +294,7 @@ class VideoHubViewModel(
                         id = java.util.UUID.randomUUID().toString(),
                         title = "",
                         detail = "",
+                        imageUrl = null,
                     ),
                 ),
             )
@@ -304,6 +305,7 @@ class VideoHubViewModel(
         itemId: String,
         title: String? = null,
         detail: String? = null,
+        imageUrl: String? = null,
     ) {
         _uiState.update { state ->
             state.copy(
@@ -315,6 +317,7 @@ class VideoHubViewModel(
                             item.copy(
                                 title = title ?: item.title,
                                 detail = detail ?: item.detail,
+                                imageUrl = imageUrl ?: item.imageUrl,
                             )
                         }
                     },
@@ -465,7 +468,11 @@ class VideoHubViewModel(
             if (title.isBlank() || detail.isBlank()) {
                 null
             } else {
-                item.copy(title = title, detail = detail)
+                item.copy(
+                    title = title,
+                    detail = detail,
+                    imageUrl = item.imageUrl?.trim()?.ifBlank { null },
+                )
             }
         }
         val sanitizedYouTube = _uiState.value.publicConfig.youtubeItems.mapNotNull { item ->

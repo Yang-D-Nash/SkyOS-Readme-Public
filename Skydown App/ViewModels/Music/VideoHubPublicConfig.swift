@@ -4,6 +4,7 @@ struct SkydownVideoEquipmentItem: Identifiable, Equatable {
     var id: String
     var title: String
     var detail: String
+    var imageURLString: String?
 }
 
 struct SkydownYouTubeVideoItem: Identifiable, Equatable {
@@ -35,22 +36,26 @@ struct SkydownVideoHubPublicConfig: Equatable {
             SkydownVideoEquipmentItem(
                 id: "drones",
                 title: "Drohnen",
-                detail: "DJI Neo und DJI Avata 2 fuer bewegte Luftshots und FPV-Looks."
+                detail: "DJI Neo und DJI Avata 2 fuer bewegte Luftshots und FPV-Looks.",
+                imageURLString: nil
             ),
             SkydownVideoEquipmentItem(
                 id: "camera",
                 title: "Kamera",
-                detail: "Sony FX30 mit Sigma 18-50 mm f/2.8 plus Gimbals fuer saubere Motion-Shots."
+                detail: "Sony FX30 mit Sigma 18-50 mm f/2.8 plus Gimbals fuer saubere Motion-Shots.",
+                imageURLString: nil
             ),
             SkydownVideoEquipmentItem(
                 id: "mobile-capture",
                 title: "Mobile Capture",
-                detail: "iPhone 16 Pro mit Apple Log fuer flexible schnelle Shoots."
+                detail: "iPhone 16 Pro mit Apple Log fuer flexible schnelle Shoots.",
+                imageURLString: nil
             ),
             SkydownVideoEquipmentItem(
                 id: "post-production",
                 title: "Postproduktion",
-                detail: "Adobe Premiere Pro, DaVinci Resolve Studio und Adobe After Effects."
+                detail: "Adobe Premiere Pro, DaVinci Resolve Studio und Adobe After Effects.",
+                imageURLString: nil
             )
         ],
         youtubeItems: [],

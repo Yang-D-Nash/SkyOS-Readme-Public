@@ -138,6 +138,7 @@ class VideoHubService(
                 "id" to item.id,
                 "title" to item.title,
                 "detail" to item.detail,
+                "imageUrl" to item.imageUrl.orEmpty(),
             )
         }
         val youtubeItems = config.youtubeItems.map { item ->
@@ -355,6 +356,9 @@ class VideoHubService(
             id = ((map["id"] as? String)?.trim()).takeUnless { it.isNullOrBlank() } ?: UUID.randomUUID().toString(),
             title = title,
             detail = detail,
+            imageUrl = ((map["imageUrl"] as? String) ?: (map["imageURLString"] as? String))
+                ?.trim()
+                .takeUnless { it.isNullOrBlank() },
         )
     }
 

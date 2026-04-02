@@ -4,6 +4,7 @@ data class VideoEquipmentItem(
     val id: String,
     val title: String,
     val detail: String,
+    val imageUrl: String? = null,
 )
 
 data class VideoYouTubeItem(
@@ -37,21 +38,25 @@ data class VideoHubPublicConfig(
                     id = "drones",
                     title = "Drohnen",
                     detail = "DJI Neo und DJI Avata 2 fuer bewegte Luftshots und FPV-Looks.",
+                    imageUrl = null,
                 ),
                 VideoEquipmentItem(
                     id = "camera",
                     title = "Kamera",
                     detail = "Sony FX30 mit Sigma 18-50 mm f/2.8 plus Gimbals fuer saubere Motion-Shots.",
+                    imageUrl = null,
                 ),
                 VideoEquipmentItem(
                     id = "mobile-capture",
                     title = "Mobile Capture",
                     detail = "iPhone 16 Pro mit Apple Log fuer flexible schnelle Shoots.",
+                    imageUrl = null,
                 ),
                 VideoEquipmentItem(
                     id = "post-production",
                     title = "Postproduktion",
                     detail = "Adobe Premiere Pro, DaVinci Resolve Studio und Adobe After Effects.",
+                    imageUrl = null,
                 ),
             ),
             youtubeItems = emptyList(),

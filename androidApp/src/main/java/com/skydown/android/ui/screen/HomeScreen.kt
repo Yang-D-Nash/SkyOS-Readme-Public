@@ -68,6 +68,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.AppContainer
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -399,11 +400,13 @@ private fun HomeAnimatedItem(
 
 @Composable
 private fun HomeHeroCard() {
+    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
         eyebrow = "Sky²² Home",
         title = "Sky²²",
         subtitle = "Alles direkt im Blick.",
         detail = "Musik, Video, Merch, Tools.",
+        backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.secondary,
         marks = listOf(BrandArtwork.Combined),
