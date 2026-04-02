@@ -10,6 +10,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.RegistrationInput
 import com.skydown.shared.model.User
+import com.skydown.shared.model.UserRole
 import com.skydown.shared.repository.AuthRepository
 import kotlinx.coroutines.tasks.await
 
@@ -51,13 +52,24 @@ class AndroidAuthRepository(
             val firebaseUser = authResult.user ?: error("Benutzer konnte nicht erstellt werden.")
             refreshAuthToken(firebaseUser)
             val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() } ?: input.email.trim()
+            val resolvedRole = UserRole.resolve(
+                rawValue = null,
+                isAdmin = false,
+                email = registeredEmail,
+            )
             val user = User(
                 id = firebaseUser.uid,
-                email = registeredEmail,
+                email = registeredEmail.lowercase(),
                 username = input.username,
                 whatsApp = input.whatsApp.ifBlank { null },
                 registrationDateEpochMillis = System.currentTimeMillis(),
-                isAdmin = false,
+                isAdmin = resolvedRole.hasStaffAccess,
+                role = resolvedRole.rawValue,
+                aiAccessEnabled = true,
+                aiTextRequestsPerDay = resolvedRole.defaultAiTextRequestsPerDay,
+                aiVisualRequestsPerDay = resolvedRole.defaultAiVisualRequestsPerDay,
+                aiAgentRequestsPerDay = resolvedRole.defaultAiAgentRequestsPerDay,
+                aiHistoryRetentionDays = resolvedRole.defaultAiHistoryRetentionDays,
             )
             firestore.collection("users").document(firebaseUser.uid).set(user).await()
             AppSessionStore.update(user)
@@ -102,14 +114,25 @@ class AndroidAuthRepository(
 
         if (!snapshot.exists()) {
             refreshAuthToken(authUser)
-            val fallbackEmail = authUser.email.orEmpty()
+            val fallbackEmail = authUser.email.orEmpty().lowercase()
+            val resolvedRole = UserRole.resolve(
+                rawValue = null,
+                isAdmin = false,
+                email = fallbackEmail,
+            )
             val user = User(
                 id = authUser.uid,
                 email = fallbackEmail,
                 username = resolvedUsername,
                 whatsApp = null,
                 registrationDateEpochMillis = authUser.metadata?.creationTimestamp ?: System.currentTimeMillis(),
-                isAdmin = false,
+                isAdmin = resolvedRole.hasStaffAccess,
+                role = resolvedRole.rawValue,
+                aiAccessEnabled = true,
+                aiTextRequestsPerDay = resolvedRole.defaultAiTextRequestsPerDay,
+                aiVisualRequestsPerDay = resolvedRole.defaultAiVisualRequestsPerDay,
+                aiAgentRequestsPerDay = resolvedRole.defaultAiAgentRequestsPerDay,
+                aiHistoryRetentionDays = resolvedRole.defaultAiHistoryRetentionDays,
             )
 
             documentReference.set(user).await()
@@ -126,6 +149,46 @@ class AndroidAuthRepository(
         val hasRegistrationDate = data["registrationDateEpochMillis"] is Number || data["registrationDate"] != null
         if (!hasRegistrationDate) {
             updates["registrationDateEpochMillis"] = authUser.metadata?.creationTimestamp ?: System.currentTimeMillis()
+        }
+
+        val storedIsAdmin = data["isAdmin"] as? Boolean ?: false
+        val resolvedRole = UserRole.resolve(
+            rawValue = data["role"] as? String,
+            isAdmin = storedIsAdmin,
+            email = data["email"] as? String ?: authUser.email,
+        )
+
+        if ((data["role"] as? String).isNullOrBlank() || resolvedRole == UserRole.Owner) {
+            updates["role"] = resolvedRole.rawValue
+        }
+
+        val normalizedEmail = authUser.email.orEmpty().trim().lowercase()
+        if ((data["email"] as? String)?.trim()?.lowercase() != normalizedEmail && normalizedEmail.isNotBlank()) {
+            updates["email"] = normalizedEmail
+        }
+
+        if ((data["isAdmin"] as? Boolean) != resolvedRole.hasStaffAccess) {
+            updates["isAdmin"] = resolvedRole.hasStaffAccess
+        }
+
+        if (data["aiAccessEnabled"] !is Boolean) {
+            updates["aiAccessEnabled"] = true
+        }
+
+        if (data["aiTextRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
+            updates["aiTextRequestsPerDay"] = resolvedRole.defaultAiTextRequestsPerDay
+        }
+
+        if (data["aiVisualRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
+            updates["aiVisualRequestsPerDay"] = resolvedRole.defaultAiVisualRequestsPerDay
+        }
+
+        if (data["aiAgentRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
+            updates["aiAgentRequestsPerDay"] = resolvedRole.defaultAiAgentRequestsPerDay
+        }
+
+        if (data["aiHistoryRetentionDays"] !is Number || resolvedRole == UserRole.Owner) {
+            updates["aiHistoryRetentionDays"] = resolvedRole.defaultAiHistoryRetentionDays
         }
 
         if (updates.isNotEmpty()) {

@@ -7,25 +7,193 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function ownerEmail() {
+      return "nash.lioncorna@gmail.com";
+    }
+
+    function isOwnerEmail(email) {
+      return email == ownerEmail();
+    }
+
     function isOwner(userId) {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function hasUserDocument() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentRole() {
+      return hasUserDocument()
+        ? (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == ownerEmail()
+            ? "owner"
+            : (
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["owner", "admin", "subadmin", "user"]
+            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+            : (
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+                ? "admin"
+                : "user"
+            )
+            )
+        )
+        : "user";
+    }
+
+    function isStaff() {
+      return signedIn()
+        && currentRole() in ["owner", "admin"];
+    }
+
     function isAdmin() {
       return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+        && currentRole() in ["owner", "admin"];
+    }
+
+    function defaultAiTextRequestsPerDay(role) {
+      return role == "owner"
+        ? 400
+        : role == "admin"
+          ? 240
+          : role == "subadmin"
+            ? 120
+            : 30;
+    }
+
+    function defaultAiVisualRequestsPerDay(role) {
+      return role == "owner"
+        ? 80
+        : role == "admin"
+          ? 40
+          : role == "subadmin"
+            ? 20
+            : 4;
+    }
+
+    function defaultAiAgentRequestsPerDay(role) {
+      return role == "owner"
+        ? 250
+        : role == "admin"
+          ? 140
+          : role == "subadmin"
+            ? 70
+            : 18;
+    }
+
+    function defaultAiHistoryRetentionDays(role) {
+      return role in ["owner", "admin"]
+        ? 30
+        : role == "subadmin"
+          ? 7
+          : 3;
     }
 
     match /users/{userId} {
       allow create: if isOwner(userId)
-        && request.resource.data.isAdmin == false;
+        && (
+          (
+            isOwnerEmail(request.resource.data.email)
+            && request.resource.data.isAdmin == true
+            && request.resource.data.role == "owner"
+          ) || (
+            !isOwnerEmail(request.resource.data.email)
+            && request.resource.data.isAdmin == false
+            && request.resource.data.role == "user"
+          )
+        )
+        && request.resource.data.aiAccessEnabled == true
+        && request.resource.data.aiTextRequestsPerDay is int
+        && request.resource.data.aiVisualRequestsPerDay is int
+        && request.resource.data.aiAgentRequestsPerDay is int
+        && request.resource.data.aiHistoryRetentionDays is int;
 
       allow read: if isOwner(userId) || isAdmin();
 
-      allow update: if isAdmin() || (
+      allow update: if (
+        isAdmin() || (
         isOwner(userId)
-        && request.resource.data.isAdmin == resource.data.isAdmin
+        && (
+          request.resource.data.isAdmin == resource.data.isAdmin ||
+          (
+            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
+            && request.resource.data.isAdmin == true
+          )
+        )
+        && (
+          request.resource.data.role == resource.data.role ||
+          (
+            resource.data.role == null
+            && request.resource.data.role == (
+              isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email)
+                ? "owner"
+                : (resource.data.isAdmin == true ? "admin" : "user")
+            )
+          ) || (
+            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
+            && request.resource.data.role == "owner"
+          )
+        )
+        && (
+          request.resource.data.aiAccessEnabled == resource.data.aiAccessEnabled ||
+          (
+            resource.data.aiAccessEnabled == null
+            && request.resource.data.aiAccessEnabled == true
+          ) || (
+            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
+            && request.resource.data.aiAccessEnabled == true
+          )
+        )
+        && (
+          request.resource.data.aiTextRequestsPerDay == resource.data.aiTextRequestsPerDay ||
+          (
+            resource.data.aiTextRequestsPerDay == null
+            && request.resource.data.aiTextRequestsPerDay == defaultAiTextRequestsPerDay(request.resource.data.role)
+          ) || (
+            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
+            && request.resource.data.aiTextRequestsPerDay == defaultAiTextRequestsPerDay("owner")
+          )
+        )
+        && (
+          request.resource.data.aiVisualRequestsPerDay == resource.data.aiVisualRequestsPerDay ||
+          (
+            resource.data.aiVisualRequestsPerDay == null
+            && request.resource.data.aiVisualRequestsPerDay == defaultAiVisualRequestsPerDay(request.resource.data.role)
+          ) || (
+            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
+            && request.resource.data.aiVisualRequestsPerDay == defaultAiVisualRequestsPerDay("owner")
+          )
+        )
+        && (
+          request.resource.data.aiAgentRequestsPerDay == resource.data.aiAgentRequestsPerDay ||
+          (
+            resource.data.aiAgentRequestsPerDay == null
+            && request.resource.data.aiAgentRequestsPerDay == defaultAiAgentRequestsPerDay(request.resource.data.role)
+          ) || (
+            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
+            && request.resource.data.aiAgentRequestsPerDay == defaultAiAgentRequestsPerDay("owner")
+          )
+        )
+        && (
+          request.resource.data.aiHistoryRetentionDays == resource.data.aiHistoryRetentionDays ||
+          (
+            resource.data.aiHistoryRetentionDays == null
+            && request.resource.data.aiHistoryRetentionDays == defaultAiHistoryRetentionDays(request.resource.data.role)
+          ) || (
+            (isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email))
+            && request.resource.data.aiHistoryRetentionDays == defaultAiHistoryRetentionDays("owner")
+          )
+        )
+      ))
+      && (
+        isOwnerEmail(resource.data.email) || isOwnerEmail(request.resource.data.email)
+          ? (
+            request.resource.data.email == ownerEmail()
+            && request.resource.data.role == "owner"
+            && request.resource.data.isAdmin == true
+          )
+          : true
       );
 
       allow delete: if isOwner(userId) || isAdmin();
@@ -35,9 +203,14 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    match /users/{userId}/aiUsage/{usageId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update, delete: if false;
+    }
+
     match /merchandise/{itemId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isStaff();
     }
 
     match /orders/{orderId} {
@@ -46,7 +219,7 @@ service cloud.firestore {
         && request.resource.data.userEmail.size() > 0
         && request.resource.data.isCompleted == false;
 
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if isStaff();
     }
 
     match /appConfig/{documentId} {
@@ -65,18 +238,18 @@ service cloud.firestore {
     }
 
     match /nicmaBeatHub/{beatId} {
-      allow read: if isAdmin() || resource.data.isPublic == true;
-      allow create, update, delete: if isAdmin();
+      allow read: if isStaff() || resource.data.isPublic == true;
+      allow create, update, delete: if isStaff();
     }
 
     match /videographyHub/{videoId} {
-      allow read: if isAdmin() || resource.data.isPublic == true;
-      allow create, update, delete: if isAdmin();
+      allow read: if isStaff() || resource.data.isPublic == true;
+      allow create, update, delete: if isStaff();
     }
 
     match /videographyHubMeta/{documentId} {
       allow read: if documentId == "publicConfig";
-      allow create, update, delete: if isAdmin() && documentId == "publicConfig";
+      allow create, update, delete: if isStaff() && documentId == "publicConfig";
     }
 
     match /{document=**} {

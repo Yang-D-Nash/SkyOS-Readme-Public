@@ -22,12 +22,15 @@ const ai = genkit({
 });
 
 const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
+const OWNER_EMAIL = "nash.lioncorna@gmail.com";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
 const SHOPIFY_CONFIG_COLLECTION = "appConfig";
 const SHOPIFY_CONFIG_DOCUMENT = "shopifyMerch";
 const SHOPIFY_PRIVATE_CONFIG_COLLECTION = "adminConfig";
 const SHOPIFY_PRIVATE_CONFIG_DOCUMENT = "shopifyMerchPrivate";
+const AUTOMATION_CONFIG_COLLECTION = "adminConfig";
+const AUTOMATION_CONFIG_DOCUMENT = "automationN8n";
 const SHOPIFY_VARIANT_OPTION_KEYS = {
   size: ["size", "groesse", "größe"],
   color: ["color", "colour", "farbe"],
@@ -118,13 +121,136 @@ Wenn Infos fehlen, triff sinnvolle Annahmen und kennzeichne sie kurz. Frage nur 
 Bevorzuge kurze klare Abschnitte wie Ziel, Deliverables, Schritte, Timing, Assets, Risiken, Naechste Schritte.
 `.trim();
 
+const USER_ROLES = {
+  owner: "owner",
+  admin: "admin",
+  subadmin: "subadmin",
+  user: "user",
+};
+
+const AI_USAGE_KINDS = {
+  text: "text",
+  visual: "visual",
+  agent: "agent",
+};
+
+function normalizeEmail(email) {
+  return nonEmptyString(email)?.toLowerCase() || null;
+}
+
+function resolveUserRole(rawRole, isAdminFlag = false, email = null) {
+  if (normalizeEmail(email) === OWNER_EMAIL) {
+    return USER_ROLES.owner;
+  }
+
+  const normalizedRole = nonEmptyString(rawRole)?.toLowerCase();
+  if (normalizedRole && Object.values(USER_ROLES).includes(normalizedRole)) {
+    return normalizedRole;
+  }
+
+  return isAdminFlag === true ? USER_ROLES.admin : USER_ROLES.user;
+}
+
+function roleHasStaffAccess(role) {
+  return [USER_ROLES.owner, USER_ROLES.admin].includes(role);
+}
+
+function roleHasAdminAccess(role) {
+  return [USER_ROLES.owner, USER_ROLES.admin].includes(role);
+}
+
+function defaultAiLimitsForRole(role) {
+  switch (role) {
+    case USER_ROLES.owner:
+      return {text: 400, visual: 80, agent: 250, historyRetentionDays: 30};
+    case USER_ROLES.admin:
+      return {text: 240, visual: 40, agent: 140, historyRetentionDays: 30};
+    case USER_ROLES.subadmin:
+      return {text: 120, visual: 20, agent: 70, historyRetentionDays: 7};
+    case USER_ROLES.user:
+    default:
+      return {text: 30, visual: 4, agent: 18, historyRetentionDays: 3};
+  }
+}
+
+function resolveAiLimits(userData = {}) {
+  const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const defaults = defaultAiLimitsForRole(role);
+  const text = Number(userData.aiTextRequestsPerDay);
+  const visual = Number(userData.aiVisualRequestsPerDay);
+  const agent = Number(userData.aiAgentRequestsPerDay);
+  const historyRetentionDays = Number(userData.aiHistoryRetentionDays);
+
+  return {
+    role,
+    isEnabled: userData.aiAccessEnabled !== false,
+    text: Number.isFinite(text) && text > 0 ? Math.floor(text) : defaults.text,
+    visual: Number.isFinite(visual) && visual > 0 ? Math.floor(visual) : defaults.visual,
+    agent: Number.isFinite(agent) && agent > 0 ? Math.floor(agent) : defaults.agent,
+    historyRetentionDays: [1, 3, 7, 30].includes(historyRetentionDays) ?
+      historyRetentionDays :
+      defaults.historyRetentionDays,
+  };
+}
+
+function buildUserProfile(userData = {}) {
+  const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const limits = resolveAiLimits(userData);
+  return {
+    role,
+    isStaff: roleHasStaffAccess(role),
+    isAdmin: roleHasAdminAccess(role),
+    aiAccessEnabled: limits.isEnabled,
+    aiLimits: limits,
+  };
+}
+
+async function loadUserData(uid) {
+  if (!uid) {
+    return null;
+  }
+
+  const userSnapshot = await admin.firestore().doc(`users/${uid}`).get();
+  return userSnapshot.exists ? (userSnapshot.data() || {}) : null;
+}
+
 async function isAdminAuth(auth) {
   if (!auth?.uid) {
     return false;
   }
 
-  const userSnapshot = await admin.firestore().doc(`users/${auth.uid}`).get();
-  return userSnapshot.exists && userSnapshot.data()?.isAdmin === true;
+  const userData = await loadUserData(auth.uid);
+  if (!userData) {
+    return false;
+  }
+
+  return buildUserProfile(userData).isAdmin;
+}
+
+async function isStaffAuth(auth) {
+  if (!auth?.uid) {
+    return false;
+  }
+
+  const userData = await loadUserData(auth.uid);
+  if (!userData) {
+    return false;
+  }
+
+  return buildUserProfile(userData).isStaff;
+}
+
+async function canUseAiAuth(auth) {
+  if (!auth?.uid) {
+    return false;
+  }
+
+  const userData = await loadUserData(auth.uid);
+  if (!userData) {
+    return false;
+  }
+
+  return buildUserProfile(userData).aiAccessEnabled;
 }
 
 async function assertAdmin(auth) {
@@ -189,6 +315,309 @@ function normalizeCollectionHandle(value, fallbackURL = null) {
     });
     return null;
   }
+}
+
+function normalizeAutomationWebhookPath(value) {
+  const trimmed = nonEmptyString(value);
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      return nonEmptyString(url.pathname.replace(/^\/+/, ""));
+    } catch (error) {
+      logger.warn("Automation webhook path could not be derived from URL.", {
+        value: trimmed,
+        error: error instanceof Error ? error.message : "unknown_error",
+      });
+      return null;
+    }
+  }
+
+  return nonEmptyString(trimmed.replace(/^\/+/, "").replace(/\/+$/, ""));
+}
+
+function buildAutomationWebhookUrl(baseURL, webhookPath) {
+  const normalizedBaseURL = normalizeUrlString(baseURL);
+  if (!normalizedBaseURL) {
+    return null;
+  }
+
+  const normalizedWebhookPath = normalizeAutomationWebhookPath(webhookPath);
+  if (!normalizedWebhookPath) {
+    return normalizedBaseURL;
+  }
+
+  return `${normalizedBaseURL}/${normalizedWebhookPath}`;
+}
+
+async function loadWorkflowAutomationSettings() {
+  const snapshot = await admin.firestore()
+      .collection(AUTOMATION_CONFIG_COLLECTION)
+      .doc(AUTOMATION_CONFIG_DOCUMENT)
+      .get();
+  const data = snapshot.data() || {};
+
+  return {
+    provider: nonEmptyString(data.provider) || "n8n",
+    isEnabled: data.isEnabled === true,
+    sendsUserContext: data.sendsUserContext !== false,
+    workflowName: nonEmptyString(data.workflowName) || "Skydown Automation",
+    baseURL: normalizeUrlString(data.baseURL) || "",
+    webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
+    authHeaderName: nonEmptyString(data.authHeaderName) || "",
+    authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
+  };
+}
+
+function automationConfigDocumentIdFor(userId) {
+  return `automationN8n_${userId}`;
+}
+
+async function loadWorkflowAutomationSettingsForUser(userId) {
+  if (nonEmptyString(userId)) {
+    const personalSnapshot = await admin.firestore()
+        .collection(AUTOMATION_CONFIG_COLLECTION)
+        .doc(automationConfigDocumentIdFor(userId))
+        .get();
+
+    if (personalSnapshot.exists) {
+      const data = personalSnapshot.data() || {};
+      return {
+        provider: nonEmptyString(data.provider) || "n8n",
+        isEnabled: data.isEnabled === true,
+        sendsUserContext: data.sendsUserContext !== false,
+        workflowName: nonEmptyString(data.workflowName) || "Skydown Automation",
+        baseURL: normalizeUrlString(data.baseURL) || "",
+        webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
+        authHeaderName: nonEmptyString(data.authHeaderName) || "",
+        authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
+      };
+    }
+  }
+
+  return loadWorkflowAutomationSettings();
+}
+
+async function loadAutomationCaller(auth) {
+  if (!auth?.uid) {
+    return null;
+  }
+
+  const userData = await loadUserData(auth.uid) || {};
+  const profile = buildUserProfile(userData);
+
+  return {
+    uid: auth.uid,
+    email: nonEmptyString(auth.token?.email) || nonEmptyString(userData.email) || "",
+    username: nonEmptyString(userData.username) || "",
+    role: profile.role,
+    isAdmin: profile.isAdmin,
+    isStaff: profile.isStaff,
+  };
+}
+
+function extractAutomationResponseMessage(bodyText, workflowName) {
+  const trimmed = typeof bodyText === "string" ? bodyText.trim() : "";
+  if (!trimmed) {
+    return `Test an ${workflowName} gesendet.`;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    const message = nonEmptyString(parsed?.message)
+      || nonEmptyString(parsed?.status)
+      || nonEmptyString(parsed?.result);
+    if (message) {
+      return message;
+    }
+  } catch (error) {
+    // Response body can also be plain text.
+  }
+
+  return trimmed.length > 160 ? `Test an ${workflowName} gesendet.` : trimmed;
+}
+
+async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {}}) {
+  const settings = await loadWorkflowAutomationSettingsForUser(auth?.uid);
+
+  if (settings.provider !== "n8n") {
+    throw new HttpsError("failed-precondition", "Automation ist nicht auf n8n gestellt.");
+  }
+
+  if (!settings.isEnabled) {
+    throw new HttpsError("failed-precondition", "n8n ist aktuell nicht aktiviert.");
+  }
+
+  const webhookUrl = buildAutomationWebhookUrl(settings.baseURL, settings.webhookPath);
+  if (!webhookUrl) {
+    throw new HttpsError("failed-precondition", "n8n ist noch nicht vollstaendig konfiguriert.");
+  }
+
+  const payload = {
+    provider: "n8n",
+    workflowName: settings.workflowName,
+    trigger,
+    source,
+    timestamp: new Date().toISOString(),
+    data: data && typeof data === "object" && !Array.isArray(data) ? data : {},
+  };
+
+  if (settings.sendsUserContext) {
+    payload.user = await loadAutomationCaller(auth);
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  };
+
+  if (settings.authHeaderName && settings.authHeaderValue) {
+    headers[settings.authHeaderName] = settings.authHeaderValue;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const responseBody = await response.text().catch(() => "");
+
+  if (!response.ok) {
+    logger.error("n8n webhook trigger failed.", {
+      trigger,
+      source,
+      workflowName: settings.workflowName,
+      status: response.status,
+      statusText: response.statusText,
+      responseBody: responseBody.slice(0, 500),
+    });
+    throw new HttpsError("internal", `n8n Fehler (${response.status} ${response.statusText}).`);
+  }
+
+  logger.info("n8n webhook triggered.", {
+    trigger,
+    source,
+    workflowName: settings.workflowName,
+    status: response.status,
+    sendsUserContext: settings.sendsUserContext,
+  });
+
+  return {
+    message: extractAutomationResponseMessage(responseBody, settings.workflowName),
+    workflowName: settings.workflowName,
+    status: response.status,
+  };
+}
+
+function aiUsageDateKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function aiUsageCounterField(kind) {
+  switch (kind) {
+    case AI_USAGE_KINDS.visual:
+      return "visualRequests";
+    case AI_USAGE_KINDS.agent:
+      return "agentRequests";
+    case AI_USAGE_KINDS.text:
+    default:
+      return "textRequests";
+  }
+}
+
+function aiUsageLimitForKind(kind, limits) {
+  switch (kind) {
+    case AI_USAGE_KINDS.visual:
+      return limits.visual;
+    case AI_USAGE_KINDS.agent:
+      return limits.agent;
+    case AI_USAGE_KINDS.text:
+    default:
+      return limits.text;
+  }
+}
+
+function aiLimitReachedMessage(kind, limit) {
+  switch (kind) {
+    case AI_USAGE_KINDS.visual:
+      return `Dein Tageslimit fuer Visuals ist erreicht (${limit}/Tag).`;
+    case AI_USAGE_KINDS.agent:
+      return `Dein Tageslimit fuer den Agent ist erreicht (${limit}/Tag).`;
+    case AI_USAGE_KINDS.text:
+    default:
+      return `Dein Tageslimit fuer den Bot ist erreicht (${limit}/Tag).`;
+  }
+}
+
+async function authorizeAiUsage({auth, kind}) {
+  if (!auth?.uid) {
+    throw new HttpsError("unauthenticated", "Bitte melde dich an, um die KI zu nutzen.");
+  }
+
+  if (!Object.values(AI_USAGE_KINDS).includes(kind)) {
+    throw new HttpsError("invalid-argument", "Unbekannte KI-Aktion.");
+  }
+
+  const userData = await loadUserData(auth.uid);
+  const profile = buildUserProfile(userData || {});
+
+  if (!profile.aiAccessEnabled) {
+    throw new HttpsError("permission-denied", "Die KI ist fuer dein Konto gerade pausiert.");
+  }
+
+  const dateKey = aiUsageDateKey();
+  const usageRef = admin.firestore().doc(`users/${auth.uid}/aiUsage/${dateKey}`);
+  const usageSummary = await admin.firestore().runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(usageRef);
+    const currentData = snapshot.exists ? (snapshot.data() || {}) : {};
+    const counterField = aiUsageCounterField(kind);
+    const currentCount = Number(currentData[counterField]) || 0;
+    const currentTotal = Number(currentData.totalRequests) || 0;
+    const limit = aiUsageLimitForKind(kind, profile.aiLimits);
+
+    if (currentCount >= limit) {
+      throw new HttpsError("resource-exhausted", aiLimitReachedMessage(kind, limit));
+    }
+
+    const nextCount = currentCount + 1;
+    const nextTotal = currentTotal + 1;
+
+    transaction.set(usageRef, {
+      dateKey,
+      role: profile.role,
+      textRequests: counterField === "textRequests" ? nextCount : (Number(currentData.textRequests) || 0),
+      visualRequests: counterField === "visualRequests" ? nextCount : (Number(currentData.visualRequests) || 0),
+      agentRequests: counterField === "agentRequests" ? nextCount : (Number(currentData.agentRequests) || 0),
+      totalRequests: nextTotal,
+      lastConsumedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    return {
+      dateKey,
+      role: profile.role,
+      kind,
+      remainingForKind: Math.max(limit - nextCount, 0),
+      limitForKind: limit,
+      textRemaining: Math.max(profile.aiLimits.text - (counterField === "textRequests" ? nextCount : (Number(currentData.textRequests) || 0)), 0),
+      visualRemaining: Math.max(profile.aiLimits.visual - (counterField === "visualRequests" ? nextCount : (Number(currentData.visualRequests) || 0)), 0),
+      agentRemaining: Math.max(profile.aiLimits.agent - (counterField === "agentRequests" ? nextCount : (Number(currentData.agentRequests) || 0)), 0),
+      historyRetentionDays: profile.aiLimits.historyRetentionDays,
+    };
+  });
+
+  logger.info("AI usage authorized.", {
+    uid: auth.uid,
+    role: usageSummary.role,
+    kind,
+    remainingForKind: usageSummary.remainingForKind,
+    dateKey,
+  });
+
+  return usageSummary;
 }
 
 function getShopifyDomain(storeDomain) {
@@ -1153,6 +1582,37 @@ exports.confirmMerchOrderPayment = onCall({
   };
 });
 
+exports.triggerWorkflowAutomation = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertAdmin(request.auth);
+
+  const trigger = nonEmptyString(request.data?.trigger) || "admin_settings_test";
+  const source = nonEmptyString(request.data?.source) || "settings";
+  const data = request.data?.data && typeof request.data.data === "object" && !Array.isArray(request.data.data)
+    ? request.data.data
+    : {};
+
+  return triggerWorkflowAutomationWebhook({
+    trigger,
+    source,
+    auth: request.auth,
+    data,
+  });
+});
+
+exports.authorizeAiUsage = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  const kind = nonEmptyString(request.data?.kind)?.toLowerCase() || AI_USAGE_KINDS.text;
+  return authorizeAiUsage({
+    auth: request.auth,
+    kind,
+  });
+});
+
 function responseFrameworkHint(prompt) {
   const lower = prompt.toLowerCase();
 
@@ -1227,7 +1687,7 @@ exports.skydownAgent = onCallGenkit({
   region: "us-central1",
   enforceAppCheck: false,
   timeoutSeconds: 60,
-  authPolicy: isAdminAuth,
+  authPolicy: canUseAiAuth,
 }, skydownAgentFlow);
 
 exports.syncShopifyMerch = onCall({

@@ -4,8 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.skydown.android.data.AgentHistoryTurn
+import com.skydown.android.data.AiConversationHistorySource
+import com.skydown.android.data.AiConversationHistoryStore
+import com.skydown.android.data.AiUsageAuthorizationKind
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.shared.model.User
+import com.skydown.shared.model.UserRole
+import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.model.AgentUiState
@@ -18,13 +24,28 @@ import kotlinx.coroutines.launch
 
 class AgentViewModel : ViewModel() {
     private val agentClient = AppContainer.agentClient
+    private val aiUsageAuthorizationClient = AppContainer.aiUsageAuthorizationClient
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
+    private var currentUserKey: String? = null
 
     init {
         viewModelScope.launch {
             AppContainer.aiEnabled.collect { isEnabled ->
                 _uiState.update { it.copy(isAgentEnabled = isEnabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            AppContainer.currentUser.collect { user ->
+                AiConversationHistoryStore.updateRetentionDays(
+                    user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays,
+                )
+                val userKey = normalizeUserKey(user)
+                if (userKey != currentUserKey) {
+                    currentUserKey = userKey
+                    restoreHistory()
+                }
             }
         }
     }
@@ -54,50 +75,73 @@ class AgentViewModel : ViewModel() {
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.isSending) return
-
-        val userMessage = AgentMessage(
-            role = AgentMessageRole.User,
-            text = trimmedPrompt,
-        )
-        val assistantMessage = AgentMessage(
-            role = AgentMessageRole.Assistant,
-            text = "",
-            isStreaming = true,
-        )
-        val history = buildHistory(_uiState.value.messages + userMessage)
-
-        _uiState.update {
-            it.copy(
-                draft = "",
-                isSending = true,
-                errorMessage = null,
-                messages = it.messages + userMessage + assistantMessage,
-            )
-        }
+        _uiState.update { it.copy(isSending = true, errorMessage = null) }
 
         viewModelScope.launch {
+            var assistantMessageId: String? = null
             runCatching {
+                val authorization = aiUsageAuthorizationClient.authorize(AiUsageAuthorizationKind.Agent)
+                AiConversationHistoryStore.updateRetentionDays(authorization.historyRetentionDays)
+
+                val userMessage = AgentMessage(
+                    role = AgentMessageRole.User,
+                    text = trimmedPrompt,
+                )
+                val assistantMessage = AgentMessage(
+                    role = AgentMessageRole.Assistant,
+                    text = "",
+                    isStreaming = true,
+                )
+                assistantMessageId = assistantMessage.id
+                val history = buildHistory(_uiState.value.messages + userMessage)
+
+                _uiState.update {
+                    it.copy(
+                        draft = "",
+                        isSending = true,
+                        errorMessage = null,
+                        messages = it.messages + userMessage + assistantMessage,
+                    )
+                }
+
                 agentClient.sendMessage(
                     prompt = trimmedPrompt,
                     history = history,
                 )
             }.onSuccess { reply ->
-                updateAssistantMessage(
-                    messageId = assistantMessage.id,
-                    text = reply,
-                    isStreaming = false,
-                )
+                assistantMessageId?.let { messageId ->
+                    updateAssistantMessage(
+                        messageId = messageId,
+                        text = reply,
+                        isStreaming = false,
+                    )
+                    AiConversationHistoryStore.saveEntry(
+                        userKey = currentUserKey,
+                        source = AiConversationHistorySource.Agent,
+                        prompt = trimmedPrompt,
+                        response = reply,
+                    )
+                }
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
-                updateAssistantMessage(
-                    messageId = assistantMessage.id,
-                    text = userFacingErrorMessage(error),
-                    isStreaming = false,
-                )
+                val errorMessage = userFacingErrorMessage(error)
+                assistantMessageId?.let { messageId ->
+                    updateAssistantMessage(
+                        messageId = messageId,
+                        text = errorMessage,
+                        isStreaming = false,
+                    )
+                    AiConversationHistoryStore.saveEntry(
+                        userKey = currentUserKey,
+                        source = AiConversationHistorySource.Agent,
+                        prompt = trimmedPrompt,
+                        response = errorMessage,
+                    )
+                }
                 _uiState.update {
                     it.copy(
                         isSending = false,
-                        errorMessage = userFacingErrorMessage(error),
+                        errorMessage = errorMessage,
                     )
                 }
             }
@@ -105,6 +149,10 @@ class AgentViewModel : ViewModel() {
     }
 
     fun resetConversation() {
+        AiConversationHistoryStore.clearEntries(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Agent,
+        )
         _uiState.update { currentState ->
             AgentUiState(
                 draft = currentState.draft,
@@ -153,6 +201,33 @@ class AgentViewModel : ViewModel() {
                 )
             }
 
+    private fun restoreHistory() {
+        val restoredMessages = AiConversationHistoryStore.entriesFor(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Agent,
+        ).asReversed().flatMap { entry ->
+            listOf(
+                AgentMessage(
+                    role = AgentMessageRole.User,
+                    text = entry.prompt,
+                ),
+                AgentMessage(
+                    role = AgentMessageRole.Assistant,
+                    text = entry.response,
+                ),
+            )
+        }
+
+        _uiState.update { currentState ->
+            currentState.copy(messages = restoredMessages)
+        }
+    }
+
+    private fun normalizeUserKey(user: User?): String? {
+        return user?.id?.takeIf { it.isNotBlank() }
+            ?: user?.email?.takeIf { it.isNotBlank() }
+    }
+
     private fun userFacingErrorMessage(error: Throwable): String = when (error) {
         is FirebaseFunctionsException -> when (error.code) {
             FirebaseFunctionsException.Code.NOT_FOUND,
@@ -160,9 +235,11 @@ class AgentViewModel : ViewModel() {
             -> "Der Skydown x 22 Agent ist fuer diese Funktion gerade noch nicht verfuegbar."
             FirebaseFunctionsException.Code.UNAVAILABLE -> "Der Skydown x 22 Agent ist gerade nicht erreichbar."
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Der Skydown x 22 Agent hat zu lange fuer die Antwort gebraucht."
-            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> "Der Skydown x 22 Agent ist gerade ausgelastet."
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
+                error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges Agent-Limit ist erreicht."
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
-            FirebaseFunctionsException.Code.PERMISSION_DENIED -> "Der Agent wird gerade vorbereitet und ist fuer dein Konto noch nicht freigeschaltet."
+            FirebaseFunctionsException.Code.PERMISSION_DENIED ->
+                error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist fuer dein Konto gerade nicht freigeschaltet."
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
             else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
         }

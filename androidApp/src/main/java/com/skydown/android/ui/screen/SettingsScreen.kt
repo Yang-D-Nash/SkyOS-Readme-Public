@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -76,6 +78,14 @@ import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.model.resolve
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.ui.viewmodel.SettingsViewModel
+import com.skydown.shared.model.User
+import com.skydown.shared.model.UserRole
+import com.skydown.shared.model.isPlatformOwner
+import com.skydown.shared.model.resolvedAiAgentRequestsPerDay
+import com.skydown.shared.model.resolvedAiHistoryRetentionDays
+import com.skydown.shared.model.resolvedAiTextRequestsPerDay
+import com.skydown.shared.model.resolvedAiVisualRequestsPerDay
+import com.skydown.shared.model.resolvedRole
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,6 +123,13 @@ fun SettingsScreen(
     var shopifyStoreDomainDraft by rememberSaveable { mutableStateOf("") }
     var shopifyStorefrontAccessTokenDraft by rememberSaveable { mutableStateOf("") }
     var shopifyCollectionHandleDraft by rememberSaveable { mutableStateOf("") }
+    var automationEnabledDraft by rememberSaveable { mutableStateOf(false) }
+    var automationSendsUserContextDraft by rememberSaveable { mutableStateOf(true) }
+    var automationWorkflowNameDraft by rememberSaveable { mutableStateOf("") }
+    var automationBaseUrlDraft by rememberSaveable { mutableStateOf("") }
+    var automationWebhookPathDraft by rememberSaveable { mutableStateOf("") }
+    var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
+    var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
@@ -165,6 +182,16 @@ fun SettingsScreen(
         shopifyStoreDomainDraft = uiState.shopifyAdminSettings.storeDomain
         shopifyStorefrontAccessTokenDraft = uiState.shopifyAdminSettings.storefrontAccessToken
         shopifyCollectionHandleDraft = uiState.shopifyAdminSettings.collectionHandle
+    }
+
+    LaunchedEffect(uiState.workflowAutomationSettings) {
+        automationEnabledDraft = uiState.workflowAutomationSettings.isEnabled
+        automationSendsUserContextDraft = uiState.workflowAutomationSettings.sendsUserContext
+        automationWorkflowNameDraft = uiState.workflowAutomationSettings.workflowName
+        automationBaseUrlDraft = uiState.workflowAutomationSettings.baseUrl
+        automationWebhookPathDraft = uiState.workflowAutomationSettings.webhookPath
+        automationAuthHeaderNameDraft = uiState.workflowAutomationSettings.authHeaderName
+        automationAuthHeaderValueDraft = uiState.workflowAutomationSettings.authHeaderValue
     }
 
     LaunchedEffect(uiState.paymentFeedbackMessage) {
@@ -222,9 +249,16 @@ fun SettingsScreen(
                     }
                     item {
                         SettingsBadge(
-                            text = if (uiState.workflowAutomationSettings.isPrepared) "Automation vorbereitet" else "Automation offen",
+                            text = if (uiState.workflowAutomationSettings.isPrepared) "n8n bereit" else "n8n offen",
                             icon = Icons.Default.Settings,
                             isActive = uiState.workflowAutomationSettings.isPrepared,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "${uiState.managedUsers.size} Konten",
+                            icon = Icons.Default.Person,
+                            isActive = uiState.managedUsers.isNotEmpty(),
                         )
                     }
                 }
@@ -233,6 +267,68 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 12.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
+            }
+
+            AdminWorkspaceSection.Users -> {
+                Text(
+                    text = "Hier steuerst du, welche Konten normaler User, Unteradmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.",
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        SettingsBadge(
+                            text = "4 Rollen",
+                            icon = Icons.Default.Person,
+                            isActive = true,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "${uiState.managedUsers.size} Konten",
+                            icon = Icons.Default.Person,
+                            isActive = uiState.managedUsers.isNotEmpty(),
+                        )
+                    }
+                }
+
+                AdminUserRoleGuideCard(
+                    modifier = Modifier.padding(top = 14.dp),
+                )
+
+                uiState.managedUsersErrorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(top = 12.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+
+                if (uiState.managedUsers.isEmpty()) {
+                    Text(
+                        text = "Sobald weitere Konten in der App registriert sind, erscheinen sie hier direkt zur Rollen- und KI-Verwaltung.",
+                        modifier = Modifier.padding(top = 12.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.padding(top = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        uiState.managedUsers.forEach { managedUser ->
+                            AdminManagedUserCard(
+                                user = managedUser,
+                                currentUserId = uiState.currentUserId,
+                                onSave = viewModel::saveManagedUser,
+                            )
+                        }
+                    }
+                }
             }
 
             AdminWorkspaceSection.Shopify -> {
@@ -639,45 +735,122 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Automation -> {
                 Text(
-                    text = "Workflow Google Verbindung",
+                    text = "n8n Verbindung",
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 SettingsToggleRow(
-                    title = "Google fuer Automationen separat halten",
-                    body = "Das normale Google-Login der App bleibt getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.",
-                    checked = uiState.workflowAutomationSettings.keepsGoogleSeparate,
-                    onCheckedChange = viewModel::updateWorkflowKeepsGoogleSeparate,
+                    title = "n8n aktiv",
+                    body = "Die App bleibt normal ueber Firebase eingeloggt. Jeder Admin kann hier seinen eigenen n8n-Webhook hinterlegen.",
+                    checked = automationEnabledDraft,
+                    onCheckedChange = { automationEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 SettingsToggleRow(
-                    title = "Automation-Google vorbereitet",
-                    body = "Markiert, dass ein separates Google-Konto fuer Workflows spaeter angebunden werden soll.",
-                    checked = uiState.workflowAutomationSettings.isPrepared,
-                    onCheckedChange = viewModel::updateWorkflowPrepared,
+                    title = "App-User-Kontext mitsenden",
+                    body = "UID, E-Mail und Username werden serverseitig geprueft und an n8n uebergeben.",
+                    checked = automationSendsUserContextDraft,
+                    onCheckedChange = { automationSendsUserContextDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 OutlinedTextField(
-                    value = uiState.workflowAutomationSettings.googleAccountHint,
-                    onValueChange = viewModel::updateWorkflowGoogleAccountHint,
+                    value = automationWorkflowNameDraft,
+                    onValueChange = { automationWorkflowNameDraft = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Automation Google Konto") },
-                    placeholder = { Text("z. B. automation@deinedomain.de") },
+                    label = { Text("Workflow Name") },
+                    placeholder = { Text("z. B. AI Script Pipeline") },
                     singleLine = true,
                 )
                 OutlinedTextField(
-                    value = uiState.workflowAutomationSettings.googleScopeHint,
-                    onValueChange = viewModel::updateWorkflowGoogleScopeHint,
+                    value = automationBaseUrlDraft,
+                    onValueChange = { automationBaseUrlDraft = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Google Scope / Einsatz") },
-                    placeholder = { Text("z. B. Drive, Sheets, Calendar") },
+                    label = { Text("n8n Base URL") },
+                    placeholder = { Text("https://n8n.deinedomain.de") },
                     singleLine = true,
                 )
+                OutlinedTextField(
+                    value = automationWebhookPathDraft,
+                    onValueChange = { automationWebhookPathDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Webhook Path") },
+                    placeholder = { Text("webhook/skydown-app") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = automationAuthHeaderNameDraft,
+                    onValueChange = { automationAuthHeaderNameDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Auth Header Name") },
+                    placeholder = { Text("z. B. X-Skydown-Automation-Key") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = automationAuthHeaderValueDraft,
+                    onValueChange = { automationAuthHeaderValueDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Auth Header Value") },
+                    placeholder = { Text("optional") },
+                    singleLine = true,
+                )
+
+                val resolvedWebhookUrl = resolveAutomationDraftWebhookUrl(
+                    baseUrl = automationBaseUrlDraft,
+                    webhookPath = automationWebhookPathDraft,
+                )
+
+                Text(
+                    text = resolvedWebhookUrl?.let { "Webhook: $it" } ?: "Webhook noch nicht vollstaendig",
+                    modifier = Modifier.padding(top = 12.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val updatedAutomationSettings = uiState.workflowAutomationSettings.copy(
+                        isEnabled = automationEnabledDraft,
+                        sendsUserContext = automationSendsUserContextDraft,
+                        workflowName = automationWorkflowNameDraft.trim(),
+                        baseUrl = automationBaseUrlDraft.trim(),
+                        webhookPath = automationWebhookPathDraft.trim(),
+                        authHeaderName = automationAuthHeaderNameDraft.trim(),
+                        authHeaderValue = automationAuthHeaderValueDraft.trim(),
+                    )
+
+                    Button(
+                        onClick = {
+                            viewModel.saveWorkflowAutomationSettings(updatedAutomationSettings)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text("n8n speichern")
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.testWorkflowAutomationSettings(updatedAutomationSettings) },
+                        modifier = Modifier.weight(1f),
+                        enabled = automationEnabledDraft && resolvedWebhookUrl != null,
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text("Test senden")
+                    }
+                }
             }
         }
     }
@@ -832,7 +1005,7 @@ fun SettingsScreen(
                         SectionHeader("Admin")
                         Text(
                             text = if (uiState.isAdmin) {
-                                "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand oder Visuals rein, statt alles in einer langen Seite aufzuklappen."
+                                "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand, User oder Visuals rein, statt alles in einer langen Seite aufzuklappen."
                             } else {
                                 "Admin-Bereiche werden erst mit passender Berechtigung aktiv."
                             },
@@ -996,6 +1169,7 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -1548,6 +1722,11 @@ private enum class AdminWorkspaceSection(
         subtitle = "Provider verbinden und fuer den Checkout sichtbar schalten.",
         icon = Icons.Default.CreditCard,
     ),
+    Users(
+        label = "User",
+        subtitle = "Rollen, KI-Zugriff, Tageslimits und History pro Konto steuern.",
+        icon = Icons.Default.Person,
+    ),
     Shopify(
         label = "Shopify",
         subtitle = "Store-Domain, Collection-Link und Sync-Quelle fuer Merch pflegen.",
@@ -1565,7 +1744,7 @@ private enum class AdminWorkspaceSection(
     ),
     Automation(
         label = "Automation",
-        subtitle = "Das getrennte Google-Setup fuer Workflows vorbereiten.",
+        subtitle = "n8n anbinden, User-Kontext steuern und den Webhook testen.",
         icon = Icons.Default.Bolt,
     ),
 }
@@ -1579,10 +1758,11 @@ private fun adminWorkspaceStatusText(
     return when (section) {
         AdminWorkspaceSection.Overview -> "$connectedPaymentMethodCount Bereiche aktiv"
         AdminWorkspaceSection.Payments -> "$visiblePaymentMethodCount live im Checkout"
+        AdminWorkspaceSection.Users -> "${uiState.managedUsers.size} Konten"
         AdminWorkspaceSection.Shopify -> uiState.shopifyAdminSettings.activeCollectionLabel
         AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
         AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"
-        AdminWorkspaceSection.Automation -> if (uiState.workflowAutomationSettings.isPrepared) "Vorbereitet" else "Noch offen"
+        AdminWorkspaceSection.Automation -> if (uiState.workflowAutomationSettings.isPrepared) "n8n bereit" else "Noch offen"
     }
 }
 
@@ -1768,6 +1948,315 @@ private fun AdminWorkspaceSummaryCard(
             )
         }
     }
+}
+
+@Composable
+private fun AdminUserRoleGuideCard(
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        Text(
+            text = "Rollen im System",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Column(
+            modifier = Modifier.padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            UserRole.entries.forEach { role ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = role.displayTitle,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = role.roleSummary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminManagedUserCard(
+    user: User,
+    currentUserId: String?,
+    onSave: (User) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isCurrentUser = user.id == currentUserId
+    var selectedRole by rememberSaveable(user.id, user.role) {
+        mutableStateOf(user.resolvedRole.rawValue)
+    }
+    var aiAccessEnabled by rememberSaveable(user.id, user.aiAccessEnabled) {
+        mutableStateOf(user.aiAccessEnabled)
+    }
+    var textLimitDraft by rememberSaveable(user.id, user.aiTextRequestsPerDay) {
+        mutableStateOf(user.resolvedAiTextRequestsPerDay.toString())
+    }
+    var visualLimitDraft by rememberSaveable(user.id, user.aiVisualRequestsPerDay) {
+        mutableStateOf(user.resolvedAiVisualRequestsPerDay.toString())
+    }
+    var agentLimitDraft by rememberSaveable(user.id, user.aiAgentRequestsPerDay) {
+        mutableStateOf(user.resolvedAiAgentRequestsPerDay.toString())
+    }
+    var historyRetentionDays by rememberSaveable(user.id, user.aiHistoryRetentionDays) {
+        mutableStateOf(user.resolvedAiHistoryRetentionDays)
+    }
+    val resolvedRole = UserRole.resolve(selectedRole, user.isAdmin)
+
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = user.username,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = user.email,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                SettingsBadge(
+                    text = resolvedRole.displayTitle,
+                    icon = Icons.Default.Person,
+                    isActive = true,
+                )
+                if (isCurrentUser) {
+                    SettingsBadge(
+                        text = "Du",
+                        icon = Icons.Default.CheckCircle,
+                        isActive = true,
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = "Rolle",
+            modifier = Modifier.padding(top = 14.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+        LazyRow(
+            modifier = Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(UserRole.entries.toList()) { role ->
+                val selected = resolvedRole == role
+                if (selected) {
+                    Button(
+                        onClick = { selectedRole = role.rawValue },
+                        shape = RoundedCornerShape(999.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Text(role.displayTitle)
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { selectedRole = role.rawValue },
+                        enabled = !isCurrentUser && !user.isPlatformOwner,
+                        shape = RoundedCornerShape(999.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Text(role.displayTitle)
+                    }
+                }
+            }
+        }
+
+        if (user.isPlatformOwner) {
+            Text(
+                text = "Das Owner-Konto ist fest an nash.lioncorna@gmail.com gebunden und bleibt immer Owner.",
+                modifier = Modifier.padding(top = 10.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        } else if (isCurrentUser) {
+            Text(
+                text = "Dein eigenes Konto bleibt vor versehentlichen Rollenwechseln geschuetzt. Limits kannst du hier trotzdem anpassen.",
+                modifier = Modifier.padding(top = 10.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        }
+
+        SettingsToggleRow(
+            title = "KI fuer dieses Konto aktiv",
+            body = "Wenn aus, sind Bot, Visuals und Agent fuer dieses Konto gesperrt.",
+            checked = aiAccessEnabled,
+            onCheckedChange = { aiAccessEnabled = it },
+            modifier = Modifier.padding(top = 14.dp),
+        )
+
+        Text(
+            text = "Tageslimits",
+            modifier = Modifier.padding(top = 14.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+        OutlinedTextField(
+            value = textLimitDraft,
+            onValueChange = { textLimitDraft = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("Bot pro Tag") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = visualLimitDraft,
+            onValueChange = { visualLimitDraft = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("Visuals pro Tag") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = agentLimitDraft,
+            onValueChange = { agentLimitDraft = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("Agent pro Tag") },
+            singleLine = true,
+        )
+
+        Text(
+            text = "History-Aufbewahrung",
+            modifier = Modifier.padding(top = 14.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+        LazyRow(
+            modifier = Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(listOf(1, 3, 7, 30)) { option ->
+                val isSelected = historyRetentionDays == option
+                if (isSelected) {
+                    Button(
+                        onClick = { historyRetentionDays = option },
+                        shape = RoundedCornerShape(999.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Text(historyOptionLabel(option))
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { historyRetentionDays = option },
+                        shape = RoundedCornerShape(999.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Text(historyOptionLabel(option))
+                    }
+                }
+            }
+        }
+
+        Button(
+            onClick = {
+                onSave(
+                    user.copy(
+                        isAdmin = resolvedRole.hasStaffAccess,
+                        role = resolvedRole.rawValue,
+                        aiAccessEnabled = aiAccessEnabled,
+                        aiTextRequestsPerDay = textLimitDraft.parsePositiveIntOrDefault(
+                            resolvedRole.defaultAiTextRequestsPerDay,
+                        ),
+                        aiVisualRequestsPerDay = visualLimitDraft.parsePositiveIntOrDefault(
+                            resolvedRole.defaultAiVisualRequestsPerDay,
+                        ),
+                        aiAgentRequestsPerDay = agentLimitDraft.parsePositiveIntOrDefault(
+                            resolvedRole.defaultAiAgentRequestsPerDay,
+                        ),
+                        aiHistoryRetentionDays = historyRetentionDays,
+                    ),
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Konto speichern")
+        }
+    }
+}
+
+private val UserRole.displayTitle: String
+    get() = when (this) {
+        UserRole.Owner -> "Owner"
+        UserRole.Admin -> "Admin"
+        UserRole.Subadmin -> "Unteradmin"
+        UserRole.User -> "User"
+    }
+
+private val UserRole.roleSummary: String
+    get() = when (this) {
+        UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Voller Zugriff auf alles, inklusive sensibler Settings, Nutzerverwaltung und KI-Limits."
+        UserRole.Admin -> "Teaminterne Leute mit vollem Admin-Workspace, Nutzerverwaltung und internen Betriebsfunktionen. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
+        UserRole.Subadmin -> "Externe Power-User fuer die oeffentliche App. Mehr persoenliche KI-Power und laengere History als normale User, aber kein interner Admin-Workspace."
+        UserRole.User -> "Normales Nutzerkonto fuer die oeffentliche App. Persoenliche KI-History und kleinere Tageslimits. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
+    }
+
+private fun String.parsePositiveIntOrDefault(fallback: Int): Int {
+    val value = trim().toIntOrNull() ?: return fallback
+    return if (value > 0) value else fallback
+}
+
+private fun historyOptionLabel(days: Int): String {
+    return if (days == 1) "1 Tag" else "$days Tage"
+}
+
+private fun resolveAutomationDraftWebhookUrl(
+    baseUrl: String,
+    webhookPath: String,
+): String? {
+    val trimmedBaseUrl = baseUrl.trim()
+    if (trimmedBaseUrl.isBlank()) {
+        return null
+    }
+
+    val normalizedBaseUrl = if (trimmedBaseUrl.startsWith("https://") || trimmedBaseUrl.startsWith("http://")) {
+        trimmedBaseUrl
+    } else {
+        "https://$trimmedBaseUrl"
+    }.trimEnd('/')
+
+    val trimmedPath = webhookPath.trim().trim('/')
+    return if (trimmedPath.isBlank()) normalizedBaseUrl else "$normalizedBaseUrl/$trimmedPath"
 }
 
 private fun openSupportEmail(

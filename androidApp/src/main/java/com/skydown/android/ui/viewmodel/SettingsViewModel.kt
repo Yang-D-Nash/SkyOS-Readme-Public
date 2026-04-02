@@ -10,9 +10,11 @@ import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.WorkflowAutomationPreferences
+import com.skydown.shared.model.User
 import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.theme.AppearanceMode
+import com.skydown.shared.model.hasAdminWorkspaceAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,9 +27,11 @@ class SettingsViewModel : ViewModel() {
     private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
     private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
     private val shopifyAdminSettingsRepository = AppContainer.shopifyAdminSettingsRepository
+    private val adminUserManagementRepository = AppContainer.adminUserManagementRepository
     private var commerceSettingsListener: ListenerRegistration? = null
     private var paymentMethodsListener: ListenerRegistration? = null
     private var shopifyAdminSettingsListener: ListenerRegistration? = null
+    private var adminUsersListener: ListenerRegistration? = null
     private val _uiState = MutableStateFlow(
         SettingsUiState(),
     )
@@ -37,6 +41,10 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collect { user ->
+                val isAdmin = user?.hasAdminWorkspaceAccess == true
+                WorkflowAutomationPreferences.setAdminMode(
+                    if (isAdmin) user?.id else null,
+                )
                 val displayName = user?.username
                     ?.takeIf { it.isNotBlank() }
                     ?: user?.email
@@ -47,12 +55,15 @@ class SettingsViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isLoggedIn = user != null,
+                        currentUserId = user?.id,
                         username = displayName,
                         email = user?.email.orEmpty(),
-                        isAdmin = user?.isAdmin == true,
+                        isAdmin = isAdmin,
                         accountErrorMessage = null,
                     )
                 }
+
+                configureManagedUsersObservation(isEnabled = isAdmin)
             }
         }
 
@@ -138,20 +149,50 @@ class SettingsViewModel : ViewModel() {
         AiVisualReferenceLibraryPreferences.updateReferenceHint(index, value)
     }
 
-    fun updateWorkflowKeepsGoogleSeparate(value: Boolean) {
-        WorkflowAutomationPreferences.updateKeepsGoogleSeparate(value)
+    fun saveWorkflowAutomationSettings(settings: com.skydown.android.data.WorkflowAutomationSettings) {
+        viewModelScope.launch {
+            val result = WorkflowAutomationPreferences.saveSettings(settings)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(workflowAutomationSettings = settings) }
+                showPaymentFeedback(
+                    message = "n8n gespeichert. Die App bleibt normal eingeloggt und schickt nur serverseitig geprueften User-Kontext an deinen Workflow.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "n8n konnte nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
     }
 
-    fun updateWorkflowPrepared(value: Boolean) {
-        WorkflowAutomationPreferences.updatePrepared(value)
-    }
+    fun testWorkflowAutomationSettings(settings: com.skydown.android.data.WorkflowAutomationSettings) {
+        viewModelScope.launch {
+            val saveResult = WorkflowAutomationPreferences.saveSettings(settings)
+            if (saveResult.isFailure) {
+                showPaymentFeedback(
+                    message = saveResult.exceptionOrNull()?.message ?: "n8n konnte nicht gespeichert werden.",
+                    isError = true,
+                )
+                return@launch
+            }
 
-    fun updateWorkflowGoogleAccountHint(value: String) {
-        WorkflowAutomationPreferences.updateGoogleAccountHint(value)
-    }
+            _uiState.update { it.copy(workflowAutomationSettings = settings) }
 
-    fun updateWorkflowGoogleScopeHint(value: String) {
-        WorkflowAutomationPreferences.updateGoogleScopeHint(value)
+            val testResult = WorkflowAutomationPreferences.triggerTest()
+            if (testResult.isSuccess) {
+                showPaymentFeedback(
+                    message = testResult.getOrNull() ?: "Test an n8n gesendet.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = testResult.exceptionOrNull()?.message ?: "n8n-Test fehlgeschlagen.",
+                    isError = true,
+                )
+            }
+        }
     }
 
     fun saveCommerceSettings(settings: CommerceSettings, successMessage: String = "Commerce-Einstellungen gespeichert.") {
@@ -183,6 +224,31 @@ class SettingsViewModel : ViewModel() {
             } else {
                 showPaymentFeedback(
                     message = result.exceptionOrNull()?.message ?: "Shopify-Einstellungen konnten nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun saveManagedUser(user: User) {
+        viewModelScope.launch {
+            if (!_uiState.value.isAdmin) {
+                showPaymentFeedback(
+                    message = "Nur Owner und Admins duerfen Konten verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val result = adminUserManagementRepository.updateUser(user)
+            if (result.isSuccess) {
+                showPaymentFeedback(
+                    message = "Konto gespeichert. Rolle und KI-Limits wurden aktualisiert.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "Konto konnte nicht gespeichert werden.",
                     isError = true,
                 )
             }
@@ -419,7 +485,44 @@ class SettingsViewModel : ViewModel() {
         paymentMethodsListener = null
         shopifyAdminSettingsListener?.remove()
         shopifyAdminSettingsListener = null
+        adminUsersListener?.remove()
+        adminUsersListener = null
         super.onCleared()
+    }
+
+    private fun configureManagedUsersObservation(isEnabled: Boolean) {
+        if (!isEnabled) {
+            adminUsersListener?.remove()
+            adminUsersListener = null
+            _uiState.update {
+                it.copy(
+                    managedUsers = emptyList(),
+                    managedUsersErrorMessage = null,
+                )
+            }
+            return
+        }
+
+        if (adminUsersListener != null) {
+            return
+        }
+
+        adminUsersListener = adminUserManagementRepository.observeUsers { result ->
+            result.onSuccess { users ->
+                _uiState.update {
+                    it.copy(
+                        managedUsers = users,
+                        managedUsersErrorMessage = null,
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        managedUsersErrorMessage = error.message ?: "Konten konnten nicht geladen werden.",
+                    )
+                }
+            }
+        }
     }
 
     private fun updatePaymentMethods(

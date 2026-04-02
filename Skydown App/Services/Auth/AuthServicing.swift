@@ -98,7 +98,7 @@ final class FirebaseAuthService: AuthServicing {
     }
 
     func register(username: String, email: String, whatsApp: String, password: String) async throws {
-        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let normalizedUsername = Self.sanitizedUsername(
             username,
             fallbackEmail: normalizedEmail
@@ -106,13 +106,20 @@ final class FirebaseAuthService: AuthServicing {
         let result = try await auth.createUser(withEmail: normalizedEmail, password: password)
         try await refreshAuthToken(for: result.user)
         let registeredEmail = result.user.email?.trimmedNilIfEmpty ?? normalizedEmail
+        let role = UserRole.resolve(from: nil, isAdmin: false, email: registeredEmail)
         let newUser = User(
             id: nil,
             email: registeredEmail,
             username: normalizedUsername,
             whatsApp: whatsApp.trimmedNilIfEmpty,
             registrationDate: Date(),
-            isAdmin: false
+            isAdmin: role.hasStaffAccess,
+            role: role.rawValue,
+            aiAccessEnabled: true,
+            aiTextRequestsPerDay: role.defaultAITextRequestsPerDay,
+            aiVisualRequestsPerDay: role.defaultAIVisualRequestsPerDay,
+            aiAgentRequestsPerDay: role.defaultAIAgentRequestsPerDay,
+            aiHistoryRetentionDays: role.defaultAIHistoryRetentionDays
         )
 
         try firestore.collection("users").document(result.user.uid).setData(from: newUser)
@@ -157,7 +164,22 @@ final class FirebaseAuthService: AuthServicing {
             fallbackEmail: email
         )
         let whatsApp = data["whatsApp"] as? String
-        let isAdmin = data["isAdmin"] as? Bool ?? false
+        let storedIsAdmin = data["isAdmin"] as? Bool ?? false
+        let resolvedRole = UserRole.resolve(
+            from: data["role"] as? String,
+            isAdmin: storedIsAdmin,
+            email: email
+        )
+        let isAdmin = resolvedRole.hasStaffAccess
+        let aiAccessEnabled = data["aiAccessEnabled"] as? Bool ?? true
+        let aiTextRequestsPerDay = (data["aiTextRequestsPerDay"] as? NSNumber)?.intValue
+            ?? resolvedRole.defaultAITextRequestsPerDay
+        let aiVisualRequestsPerDay = (data["aiVisualRequestsPerDay"] as? NSNumber)?.intValue
+            ?? resolvedRole.defaultAIVisualRequestsPerDay
+        let aiAgentRequestsPerDay = (data["aiAgentRequestsPerDay"] as? NSNumber)?.intValue
+            ?? resolvedRole.defaultAIAgentRequestsPerDay
+        let aiHistoryRetentionDays = (data["aiHistoryRetentionDays"] as? NSNumber)?.intValue
+            ?? resolvedRole.defaultAIHistoryRetentionDays
 
         let registrationDate: Date
         if let timestamp = data["registrationDate"] as? Timestamp {
@@ -176,7 +198,13 @@ final class FirebaseAuthService: AuthServicing {
             username: username,
             whatsApp: whatsApp?.trimmedNilIfEmpty,
             registrationDate: registrationDate,
-            isAdmin: isAdmin
+            isAdmin: isAdmin,
+            role: resolvedRole.rawValue,
+            aiAccessEnabled: aiAccessEnabled,
+            aiTextRequestsPerDay: aiTextRequestsPerDay,
+            aiVisualRequestsPerDay: aiVisualRequestsPerDay,
+            aiAgentRequestsPerDay: aiAgentRequestsPerDay,
+            aiHistoryRetentionDays: aiHistoryRetentionDays
         )
     }
 
@@ -186,12 +214,13 @@ final class FirebaseAuthService: AuthServicing {
     ) async throws {
         let documentReference = firestore.collection("users").document(authUser.uid)
         let snapshot = try await documentReference.getDocument()
-        let email = authUser.email?.trimmedNilIfEmpty ?? ""
+        let email = authUser.email?.trimmedNilIfEmpty?.lowercased() ?? ""
         let username = Self.sanitizedUsername(
             preferredUsername,
             authUserDisplayName: authUser.displayName,
             fallbackEmail: email
         )
+        let bootstrapRole = UserRole.resolve(from: nil, isAdmin: false, email: email)
 
         guard snapshot.exists else {
             try await refreshAuthToken(for: authUser)
@@ -201,7 +230,13 @@ final class FirebaseAuthService: AuthServicing {
                 username: username,
                 whatsApp: nil,
                 registrationDate: authUser.metadata.creationDate ?? .now,
-                isAdmin: false
+                isAdmin: bootstrapRole.hasStaffAccess,
+                role: bootstrapRole.rawValue,
+                aiAccessEnabled: true,
+                aiTextRequestsPerDay: bootstrapRole.defaultAITextRequestsPerDay,
+                aiVisualRequestsPerDay: bootstrapRole.defaultAIVisualRequestsPerDay,
+                aiAgentRequestsPerDay: bootstrapRole.defaultAIAgentRequestsPerDay,
+                aiHistoryRetentionDays: bootstrapRole.defaultAIHistoryRetentionDays
             )
 
             try documentReference.setData(from: newUser)
@@ -217,6 +252,45 @@ final class FirebaseAuthService: AuthServicing {
 
         if data["registrationDate"] == nil && data["registrationDateEpochMillis"] == nil {
             repairFields["registrationDate"] = authUser.metadata.creationDate ?? Date()
+        }
+
+        let storedIsAdmin = data["isAdmin"] as? Bool ?? false
+        let resolvedRole = UserRole.resolve(
+            from: data["role"] as? String,
+            isAdmin: storedIsAdmin,
+            email: email
+        )
+
+        if (data["role"] as? String)?.trimmedNilIfEmpty == nil || resolvedRole == .owner {
+            repairFields["role"] = resolvedRole.rawValue
+        }
+
+        if (data["email"] as? String)?.trimmedNilIfEmpty?.lowercased() != email {
+            repairFields["email"] = email
+        }
+
+        if (data["isAdmin"] as? Bool) != resolvedRole.hasStaffAccess {
+            repairFields["isAdmin"] = resolvedRole.hasStaffAccess
+        }
+
+        if data["aiAccessEnabled"] == nil {
+            repairFields["aiAccessEnabled"] = true
+        }
+
+        if data["aiTextRequestsPerDay"] == nil || resolvedRole == .owner {
+            repairFields["aiTextRequestsPerDay"] = resolvedRole.defaultAITextRequestsPerDay
+        }
+
+        if data["aiVisualRequestsPerDay"] == nil || resolvedRole == .owner {
+            repairFields["aiVisualRequestsPerDay"] = resolvedRole.defaultAIVisualRequestsPerDay
+        }
+
+        if data["aiAgentRequestsPerDay"] == nil || resolvedRole == .owner {
+            repairFields["aiAgentRequestsPerDay"] = resolvedRole.defaultAIAgentRequestsPerDay
+        }
+
+        if data["aiHistoryRetentionDays"] == nil || resolvedRole == .owner {
+            repairFields["aiHistoryRetentionDays"] = resolvedRole.defaultAIHistoryRetentionDays
         }
 
         if !repairFields.isEmpty {
@@ -275,7 +349,8 @@ final class FirebaseAuthService: AuthServicing {
 
 private extension FirebaseAuth.User {
     func toAppUser(isAdmin: Bool = false) -> User {
-        let fallbackEmail = email?.trimmedNilIfEmpty ?? ""
+        let fallbackEmail = email?.trimmedNilIfEmpty?.lowercased() ?? ""
+        let resolvedRole = UserRole.resolve(from: nil, isAdmin: isAdmin, email: fallbackEmail)
         return User(
             id: uid,
             email: fallbackEmail,
@@ -286,7 +361,13 @@ private extension FirebaseAuth.User {
             ),
             whatsApp: nil,
             registrationDate: metadata.creationDate ?? .now,
-            isAdmin: isAdmin
+            isAdmin: isAdmin,
+            role: resolvedRole.rawValue,
+            aiAccessEnabled: true,
+            aiTextRequestsPerDay: resolvedRole.defaultAITextRequestsPerDay,
+            aiVisualRequestsPerDay: resolvedRole.defaultAIVisualRequestsPerDay,
+            aiAgentRequestsPerDay: resolvedRole.defaultAIAgentRequestsPerDay,
+            aiHistoryRetentionDays: resolvedRole.defaultAIHistoryRetentionDays
         )
     }
 }

@@ -6,9 +6,11 @@ import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.WorkflowAutomationSettings
+import com.skydown.shared.model.User
 
 data class SettingsUiState(
     val isLoggedIn: Boolean = false,
+    val currentUserId: String? = null,
     val username: String = "",
     val email: String = "",
     val isAdmin: Boolean = false,
@@ -24,6 +26,8 @@ data class SettingsUiState(
     val commerceSettings: CommerceSettings = CommerceSettings(),
     val shopifyAdminSettings: ShopifyAdminSettings = ShopifyAdminSettings(),
     val paymentMethods: PaymentMethodsSettings = PaymentMethodsSettings(),
+    val managedUsers: List<User> = emptyList(),
+    val managedUsersErrorMessage: String? = null,
     val paymentFeedbackMessage: String? = null,
     val isPaymentFeedbackError: Boolean = false,
 )

@@ -133,6 +133,10 @@ final class AIScriptHistoryStore: ObservableObject {
         pruneExpiredEntries()
     }
 
+    func updateRetentionDays(_ days: Int) {
+        updateRetention(AIScriptHistoryRetention(rawValue: days) ?? .threeDays)
+    }
+
     private func pruneExpiredEntries() {
         let cutoff = Calendar.current.date(byAdding: .day, value: -retention.rawValue, to: .now) ?? .distantPast
         let prunedEntries = entries

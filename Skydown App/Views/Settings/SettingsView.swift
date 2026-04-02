@@ -17,6 +17,7 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var environmentColorScheme
 
     @StateObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
+    @StateObject private var adminUserManagementStore = AdminUserManagementStore.shared
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
@@ -63,6 +64,13 @@ struct SettingsView: View {
     @State private var shopifyStoreDomainDraft = ""
     @State private var shopifyStorefrontAccessTokenDraft = ""
     @State private var shopifyCollectionHandleDraft = ""
+    @State private var automationEnabledDraft = false
+    @State private var automationSendsUserContextDraft = true
+    @State private var automationWorkflowNameDraft = ""
+    @State private var automationBaseURLDraft = ""
+    @State private var automationWebhookPathDraft = ""
+    @State private var automationAuthHeaderNameDraft = ""
+    @State private var automationAuthHeaderValueDraft = ""
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -93,6 +101,28 @@ struct SettingsView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let path = handle.isEmpty ? "" : "/collections/\(handle)"
         return URL(string: "https://\(normalizedDomain)\(path)")
+    }
+
+    private var automationDraftResolvedWebhookURL: String? {
+        let trimmedBaseURL = automationBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedBaseURL.isEmpty else { return nil }
+
+        let normalizedBaseURL: String
+        if trimmedBaseURL.hasPrefix("https://") || trimmedBaseURL.hasPrefix("http://") {
+            normalizedBaseURL = trimmedBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        } else {
+            normalizedBaseURL = "https://\(trimmedBaseURL)".trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+
+        let trimmedPath = automationWebhookPathDraft
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+
+        guard !trimmedPath.isEmpty else {
+            return normalizedBaseURL
+        }
+
+        return "\(normalizedBaseURL)/\(trimmedPath)"
     }
 
     var body: some View {
@@ -405,9 +435,28 @@ struct SettingsView: View {
         }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
+            adminUserManagementStore.configureObservation(isAdmin: isAdminUser)
+            workflowAutomationSettings.configureObservation(
+                isAdmin: isAdminUser,
+                userID: authManager.userSession?.id
+            )
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
+            syncAutomationDrafts(with: workflowAutomationSettings.settings)
+        }
+        .onChange(of: isAdminUser) { _, isAdmin in
+            adminUserManagementStore.configureObservation(isAdmin: isAdmin)
+            workflowAutomationSettings.configureObservation(
+                isAdmin: isAdmin,
+                userID: authManager.userSession?.id
+            )
+        }
+        .onChange(of: authManager.userSession?.id) { _, userID in
+            workflowAutomationSettings.configureObservation(
+                isAdmin: isAdminUser,
+                userID: userID
+            )
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
             syncPaymentDrafts(with: settings)
@@ -418,6 +467,9 @@ struct SettingsView: View {
         .onReceive(shopifyAdminSettingsStore.$settings) { settings in
             syncShopifyDrafts(with: settings)
         }
+        .onReceive(workflowAutomationSettings.$settings) { settings in
+            syncAutomationDrafts(with: settings)
+        }
     }
 
     private var currentAppearanceLabel: String {
@@ -425,7 +477,7 @@ struct SettingsView: View {
     }
 
     private var isAdminUser: Bool {
-        authManager.userSession?.isAdmin == true
+        authManager.userSession?.hasAdminWorkspaceAccess == true
     }
 
     private var connectedPaymentMethodCount: Int {
@@ -450,7 +502,7 @@ struct SettingsView: View {
     private var adminWorkspaceSectionCard: some View {
         SettingsSectionCard(title: "Admin", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isAdminUser ? "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand oder Visuals rein, statt alles in einer langen Seite aufzuklappen." : "Admin-Bereiche werden erst mit passender Berechtigung aktiv.")
+                Text(isAdminUser ? "Die Admin-Bereiche sind jetzt wie kurze Stationen aufgebaut. Du gehst direkt in Zahlungen, Versand, User oder Visuals rein, statt alles in einer langen Seite aufzuklappen." : "Admin-Bereiche werden erst mit passender Berechtigung aktiv.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -520,7 +572,11 @@ struct SettingsView: View {
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: workflowAutomationSettings.settings.isPrepared ? "Automation vorbereitet" : "Automation offen",
+                                text: workflowAutomationSettings.settings.isPrepared ? "n8n bereit" : "n8n offen",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "\(adminUserManagementStore.users.count) Konten",
                                 colorScheme: effectiveColorScheme
                             )
                         }
@@ -530,6 +586,55 @@ struct SettingsView: View {
                     Text("Jeder Bereich oeffnet sich jetzt separat. So bleibt die Settings-Seite kurz und du bist schneller genau da, wo du arbeiten willst.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                }
+
+            case .users:
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Hier steuerst du, welche Konten normaler User, Unteradmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(text: "4 Rollen", colorScheme: effectiveColorScheme)
+                        SettingsBadge(text: "\(adminUserManagementStore.users.count) Konten", colorScheme: effectiveColorScheme)
+                    }
+
+                    SettingsAdminRoleGuideCard(colorScheme: effectiveColorScheme)
+
+                    if let message = adminUserManagementStore.lastErrorMessage {
+                        Text(message)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppColors.accentHighlight(for: effectiveColorScheme))
+                    }
+
+                    if adminUserManagementStore.users.isEmpty {
+                        Text("Sobald weitere Konten in der App registriert sind, erscheinen sie hier direkt zur Rollen- und KI-Verwaltung.")
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    } else {
+                        VStack(spacing: 12) {
+                            ForEach(adminUserManagementStore.users) { managedUser in
+                                SettingsAdminUserCard(
+                                    user: managedUser,
+                                    isCurrentUser: managedUser.id == authManager.userSession?.id,
+                                    colorScheme: effectiveColorScheme
+                                ) { updatedUser in
+                                    saveManagedUser(updatedUser)
+                                }
+                                .id(
+                                    [
+                                        managedUser.id ?? "unknown",
+                                        managedUser.role,
+                                        String(managedUser.aiAccessEnabled),
+                                        String(managedUser.aiTextRequestsPerDay),
+                                        String(managedUser.aiVisualRequestsPerDay),
+                                        String(managedUser.aiAgentRequestsPerDay),
+                                        String(managedUser.aiHistoryRetentionDays)
+                                    ].joined(separator: "-")
+                                )
+                            }
+                        }
+                    }
                 }
 
             case .shopify:
@@ -878,62 +983,80 @@ struct SettingsView: View {
                 }
 
             case .automation:
-                VStack(alignment: .leading, spacing: 12) {
-                    Toggle(
-                        "Google fuer Automationen separat halten",
-                        isOn: Binding(
-                            get: { workflowAutomationSettings.settings.keepsGoogleSeparate },
-                            set: { isEnabled in
-                                workflowAutomationSettings.update { settings in
-                                    settings.keepsGoogleSeparate = isEnabled
-                                }
-                            }
-                        )
-                    )
-
-                    Toggle(
-                        "Automation-Google vorbereitet",
-                        isOn: Binding(
-                            get: { workflowAutomationSettings.settings.isPrepared },
-                            set: { isPrepared in
-                                workflowAutomationSettings.update { settings in
-                                    settings.isPrepared = isPrepared
-                                }
-                            }
-                        )
-                    )
-
-                    Text("Das normale Google-Login der App bleibt damit getrennt von Google fuer spaetere n8n-, Drive-, Sheets- oder Calendar-Automationen.")
-                        .font(.footnote)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Die App bleibt normal ueber Firebase eingeloggt. Jeder Admin kann hier seinen eigenen n8n-Webhook hinterlegen; nur gepruefter User-Kontext geht serverseitig an genau diesen Workflow.")
+                        .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
+                    Toggle("n8n aktiv", isOn: $automationEnabledDraft)
+
+                    Toggle("App-User-Kontext mitsenden", isOn: $automationSendsUserContextDraft)
+
                     SettingsInputField(
-                        title: "Automation Google Konto",
-                        text: Binding(
-                            get: { workflowAutomationSettings.settings.googleAccountHint },
-                            set: { value in
-                                workflowAutomationSettings.update { settings in
-                                    settings.googleAccountHint = value
-                                }
-                            }
-                        ),
+                        title: "Workflow Name",
+                        text: $automationWorkflowNameDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. automation@deinedomain.de"
+                        placeholder: "z. B. AI Script Pipeline"
                     )
 
                     SettingsInputField(
-                        title: "Google Scope / Einsatz",
-                        text: Binding(
-                            get: { workflowAutomationSettings.settings.googleScopeHint },
-                            set: { value in
-                                workflowAutomationSettings.update { settings in
-                                    settings.googleScopeHint = value
-                                }
-                            }
-                        ),
+                        title: "n8n Base URL",
+                        text: $automationBaseURLDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Drive, Sheets, Calendar"
+                        placeholder: "https://n8n.deinedomain.de",
+                        keyboardType: .URL
                     )
+
+                    SettingsInputField(
+                        title: "Webhook Path",
+                        text: $automationWebhookPathDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "webhook/skydown-app"
+                    )
+
+                    SettingsInputField(
+                        title: "Auth Header Name",
+                        text: $automationAuthHeaderNameDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. X-Skydown-Automation-Key",
+                        keyboardType: .asciiCapable
+                    )
+
+                    SettingsInputField(
+                        title: "Auth Header Value",
+                        text: $automationAuthHeaderValueDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "optional",
+                        keyboardType: .asciiCapable
+                    )
+
+                    if let resolvedWebhookURL = automationDraftResolvedWebhookURL {
+                        SettingsBadge(
+                            text: "Webhook: \(resolvedWebhookURL)",
+                            colorScheme: effectiveColorScheme
+                        )
+                    } else {
+                        SettingsBadge(
+                            text: "Webhook noch nicht vollstaendig",
+                            colorScheme: effectiveColorScheme
+                        )
+                    }
+
+                    HStack(spacing: 10) {
+                        Button(action: saveAutomationSettings) {
+                            Label("n8n speichern", systemImage: "bolt.circle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+
+                        Button(action: runAutomationTest) {
+                            Label("Test senden", systemImage: "paperplane.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(automationDraftResolvedWebhookURL == nil || !automationEnabledDraft)
+                    }
                 }
             }
         }
@@ -945,6 +1068,8 @@ struct SettingsView: View {
             return merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert"
         case .payments:
             return "\(visiblePaymentMethodCount) live im Checkout"
+        case .users:
+            return "\(adminUserManagementStore.users.count) Konten"
         case .shopify:
             return shopifyAdminSettingsStore.settings.activeCollectionLabel
         case .commerce:
@@ -952,7 +1077,7 @@ struct SettingsView: View {
         case .visuals:
             return aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus"
         case .automation:
-            return workflowAutomationSettings.settings.isPrepared ? "Vorbereitet" : "Noch offen"
+            return workflowAutomationSettings.settings.isPrepared ? "n8n bereit" : "Noch offen"
         }
     }
 
@@ -1041,6 +1166,16 @@ struct SettingsView: View {
         shopifyCollectionHandleDraft = settings.collectionHandle
     }
 
+    private func syncAutomationDrafts(with settings: WorkflowAutomationSettings) {
+        automationEnabledDraft = settings.isEnabled
+        automationSendsUserContextDraft = settings.sendsUserContext
+        automationWorkflowNameDraft = settings.workflowName
+        automationBaseURLDraft = settings.baseURL
+        automationWebhookPathDraft = settings.webhookPath
+        automationAuthHeaderNameDraft = settings.authHeaderName
+        automationAuthHeaderValueDraft = settings.authHeaderValue
+    }
+
     private func saveCommerceSettings() {
         let domesticCost = domesticShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.domesticCost
         let euCost = euShippingDraft.parseLocalizedDouble() ?? commerceSettingsStore.settings.shipping.euCost
@@ -1092,6 +1227,61 @@ struct SettingsView: View {
                 )
             } catch {
                 showToastMessage("Shopify-Einstellungen konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveManagedUser(_ user: User) {
+        Task {
+            do {
+                try await adminUserManagementStore.save(user)
+                showToastMessage("Konto gespeichert. Rolle und KI-Limits wurden aktualisiert.", style: .success)
+            } catch {
+                showToastMessage("Konto konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveAutomationSettings() {
+        Task {
+            var updated = workflowAutomationSettings.settings
+            updated.isEnabled = automationEnabledDraft
+            updated.sendsUserContext = automationSendsUserContextDraft
+            updated.workflowName = automationWorkflowNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.baseURL = automationBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.webhookPath = automationWebhookPathDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.authHeaderName = automationAuthHeaderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.authHeaderValue = automationAuthHeaderValueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            do {
+                try await workflowAutomationSettings.save(updated)
+                showToastMessage(
+                    "n8n gespeichert. Die App nutzt weiter den normalen Login und schickt nur serverseitig geprueften Kontext an deinen Workflow.",
+                    style: .success
+                )
+            } catch {
+                showToastMessage("n8n konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func runAutomationTest() {
+        Task {
+            do {
+                var updated = workflowAutomationSettings.settings
+                updated.isEnabled = automationEnabledDraft
+                updated.sendsUserContext = automationSendsUserContextDraft
+                updated.workflowName = automationWorkflowNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                updated.baseURL = automationBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                updated.webhookPath = automationWebhookPathDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                updated.authHeaderName = automationAuthHeaderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                updated.authHeaderValue = automationAuthHeaderValueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                try await workflowAutomationSettings.save(updated)
+                let message = try await workflowAutomationSettings.triggerTest()
+                showToastMessage(message, style: .success)
+            } catch {
+                showToastMessage("n8n-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -1677,6 +1867,7 @@ private struct SettingsBadge: View {
 private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
     case overview = "Uebersicht"
     case payments = "Zahlungen"
+    case users = "User"
     case shopify = "Shopify"
     case commerce = "Versand"
     case visuals = "Visuals"
@@ -1690,6 +1881,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "square.grid.2x2.fill"
         case .payments:
             return "creditcard.fill"
+        case .users:
+            return "person.2.fill"
         case .shopify:
             return "bag.fill"
         case .commerce:
@@ -1707,6 +1900,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
             return "Schneller Status fuer Store, Zahlarten, Visuals und Automationen."
         case .payments:
             return "Provider verbinden, pruefen und fuer den Checkout sichtbar schalten."
+        case .users:
+            return "Rollen, KI-Zugriff, Tageslimits und History pro Konto steuern."
         case .shopify:
             return "Store-Domain, Shopify-Link und Kollektion fuer den Merch-Sync pflegen."
         case .commerce:
@@ -1714,7 +1909,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
         case .visuals:
             return "Drive-Link, Namensschema und Referenzhinweise fuer Visual-Prompts pflegen."
         case .automation:
-            return "Das getrennte Google-Setup fuer spaetere Workflows sauber vorbereiten."
+            return "n8n sauber anbinden, User-Kontext mitschicken und den Webhook testen."
         }
     }
 }
@@ -1885,6 +2080,245 @@ private struct SettingsAdminWorkspaceSummaryCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct SettingsAdminRoleGuideCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rollen im System")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            VStack(spacing: 10) {
+                ForEach(UserRole.allCases, id: \.self) { role in
+                    HStack(alignment: .top, spacing: 10) {
+                        SettingsBadge(text: role.displayTitle, colorScheme: colorScheme)
+
+                        Text(role.roleSummary)
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private struct SettingsAdminUserCard: View {
+    let user: User
+    let isCurrentUser: Bool
+    let colorScheme: ColorScheme
+    let onSave: (User) -> Void
+
+    @State private var draftRole: UserRole
+    @State private var aiAccessEnabled: Bool
+    @State private var textLimitDraft: String
+    @State private var visualLimitDraft: String
+    @State private var agentLimitDraft: String
+    @State private var historyRetentionDays: Int
+
+    init(
+        user: User,
+        isCurrentUser: Bool,
+        colorScheme: ColorScheme,
+        onSave: @escaping (User) -> Void
+    ) {
+        self.user = user
+        self.isCurrentUser = isCurrentUser
+        self.colorScheme = colorScheme
+        self.onSave = onSave
+
+        _draftRole = State(initialValue: user.resolvedRole)
+        _aiAccessEnabled = State(initialValue: user.aiAccessEnabled)
+        _textLimitDraft = State(initialValue: String(user.resolvedAITextRequestsPerDay))
+        _visualLimitDraft = State(initialValue: String(user.resolvedAIVisualRequestsPerDay))
+        _agentLimitDraft = State(initialValue: String(user.resolvedAIAgentRequestsPerDay))
+        _historyRetentionDays = State(initialValue: user.resolvedAIHistoryRetentionDays)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(user.username)
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(user.email)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    SettingsBadge(text: draftRole.displayTitle, colorScheme: colorScheme)
+                    if isCurrentUser {
+                        SettingsBadge(text: "Du", colorScheme: colorScheme)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Rolle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Menu {
+                    ForEach(UserRole.allCases, id: \.self) { role in
+                        Button(role.displayTitle) {
+                            draftRole = role
+                        }
+                        .disabled(user.isPlatformOwner || (isCurrentUser && role != user.resolvedRole))
+                    }
+                } label: {
+                    HStack {
+                        Text(draftRole.displayTitle)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.bold))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if user.isPlatformOwner {
+                    Text("Das Owner-Konto ist fest an nash.lioncorna@gmail.com gebunden und bleibt immer Owner.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                } else if isCurrentUser {
+                    Text("Dein eigenes Konto bleibt vor versehentlichen Rollenwechseln geschuetzt. Limits kannst du hier trotzdem anpassen.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            }
+
+            SettingsToggleCard(
+                colorScheme: colorScheme,
+                title: "KI fuer dieses Konto aktiv",
+                subtitle: "Wenn aus, sind Bot, Visuals und Agent fuer dieses Konto gesperrt.",
+                isOn: $aiAccessEnabled
+            )
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Tageslimits")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                HStack(spacing: 10) {
+                    SettingsInputField(
+                        title: "Bot",
+                        text: $textLimitDraft,
+                        colorScheme: colorScheme,
+                        placeholder: "\(draftRole.defaultAITextRequestsPerDay)",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Visuals",
+                        text: $visualLimitDraft,
+                        colorScheme: colorScheme,
+                        placeholder: "\(draftRole.defaultAIVisualRequestsPerDay)",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Agent",
+                        text: $agentLimitDraft,
+                        colorScheme: colorScheme,
+                        placeholder: "\(draftRole.defaultAIAgentRequestsPerDay)",
+                        keyboardType: .numberPad
+                    )
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("History-Aufbewahrung")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Picker("History-Aufbewahrung", selection: $historyRetentionDays) {
+                    Text("1 Tag").tag(1)
+                    Text("3 Tage").tag(3)
+                    Text("7 Tage").tag(7)
+                    Text("30 Tage").tag(30)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Button {
+                onSave(buildUpdatedUser())
+            } label: {
+                Label("Konto speichern", systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accent(for: colorScheme))
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func buildUpdatedUser() -> User {
+        var updatedUser = user
+        updatedUser.role = draftRole.rawValue
+        updatedUser.isAdmin = draftRole.hasStaffAccess
+        updatedUser.aiAccessEnabled = aiAccessEnabled
+        updatedUser.aiTextRequestsPerDay = sanitizedLimit(textLimitDraft, fallback: draftRole.defaultAITextRequestsPerDay)
+        updatedUser.aiVisualRequestsPerDay = sanitizedLimit(visualLimitDraft, fallback: draftRole.defaultAIVisualRequestsPerDay)
+        updatedUser.aiAgentRequestsPerDay = sanitizedLimit(agentLimitDraft, fallback: draftRole.defaultAIAgentRequestsPerDay)
+        updatedUser.aiHistoryRetentionDays = historyRetentionDays
+        return updatedUser
+    }
+
+    private func sanitizedLimit(_ draft: String, fallback: Int) -> Int {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Int(trimmed), value > 0 else {
+            return fallback
+        }
+
+        return value
+    }
+}
+
+private extension UserRole {
+    var displayTitle: String {
+        switch self {
+        case .owner:
+            return "Owner"
+        case .admin:
+            return "Admin"
+        case .subadmin:
+            return "Unteradmin"
+        case .user:
+            return "User"
+        }
+    }
+
+    var roleSummary: String {
+        switch self {
+        case .owner:
+            return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Voller Zugriff auf alles, inklusive sensibler Settings, Nutzerverwaltung und KI-Limits."
+        case .admin:
+            return "Teaminterne Leute mit vollem Admin-Workspace, Nutzerverwaltung und internen Betriebsfunktionen. Standard: 240 Bot, 40 Visuals, 140 Agent, History 30 Tage."
+        case .subadmin:
+            return "Externe Power-User fuer die oeffentliche App. Mehr persoenliche KI-Power und laengere History als normale User, aber kein interner Admin-Workspace."
+        case .user:
+            return "Normales Nutzerkonto fuer die oeffentliche App. Persoenliche KI-History und kleinere Tageslimits. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
+        }
     }
 }
 

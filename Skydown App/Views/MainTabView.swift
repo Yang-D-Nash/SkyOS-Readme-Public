@@ -672,14 +672,14 @@ private struct AIWorkflowWorkspaceCard: View {
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier bereitest du Automationen vor. Verbindungen dafuer bleiben getrennt vom normalen App-Login und werden in den Einstellungen vorbereitet.")
+            Text("Hier bereitest du n8n-Automationen vor. Die App bleibt normal eingeloggt und der User-Kontext wird serverseitig geprueft an deinen Workflow weitergegeben.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: 10) {
-                AIHubBadge(text: "Automation", color: AppColors.accentHighlight(for: colorScheme))
-                AIHubBadge(text: "Manuell", color: AppColors.accent(for: colorScheme))
-                AIHubBadge(text: "Setup", color: AppColors.accentMystic(for: colorScheme))
+                AIHubBadge(text: "n8n", color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: "Webhook", color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: "User-Kontext", color: AppColors.accentMystic(for: colorScheme))
             }
 
             Button(action: onOpenSettings) {

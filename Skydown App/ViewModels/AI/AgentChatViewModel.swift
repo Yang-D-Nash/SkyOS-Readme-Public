@@ -42,9 +42,25 @@ final class AgentChatViewModel: ObservableObject {
     ]
 
     private let service: AgentChatServicing
+    private let authorizationService: AIUsageAuthorizing
+    private let historyStore: AIScriptHistoryStore
+    private var currentUserKey: String?
 
-    init(service: AgentChatServicing = FirebaseFunctionsAgentService()) {
+    init(
+        service: AgentChatServicing = FirebaseFunctionsAgentService(),
+        authorizationService: AIUsageAuthorizing = FirebaseFunctionsAIUsageService()
+    ) {
         self.service = service
+        self.authorizationService = authorizationService
+        self.historyStore = AIScriptHistoryStore.shared
+    }
+
+    func configureUser(user: User?) {
+        let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
+        historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
+        guard normalizedUserKey != currentUserKey else { return }
+        currentUserKey = normalizedUserKey
+        restoreHistory()
     }
 
     func sendDraft() {
@@ -54,25 +70,30 @@ final class AgentChatViewModel: ObservableObject {
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !isSending else { return }
-
-        let assistantID = UUID()
-        let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
-        let history = buildHistory(from: messages + [userMessage])
-
-        messages.append(userMessage)
-        messages.append(
-            AgentChatMessage(
-                id: assistantID,
-                role: .assistant,
-                text: "",
-                isStreaming: true
-            )
-        )
-        draft = ""
         isSending = true
 
+        var appendedAssistantID: UUID?
         Task {
             do {
+                let authorization = try await authorizationService.authorize(kind: .agent)
+                historyStore.updateRetentionDays(authorization.historyRetentionDays)
+
+                let assistantID = UUID()
+                appendedAssistantID = assistantID
+                let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
+                let history = buildHistory(from: messages + [userMessage])
+
+                messages.append(userMessage)
+                messages.append(
+                    AgentChatMessage(
+                        id: assistantID,
+                        role: .assistant,
+                        text: "",
+                        isStreaming: true
+                    )
+                )
+                draft = ""
+
                 let reply = try await service.sendMessage(
                     prompt: trimmedPrompt,
                     history: history
@@ -82,14 +103,28 @@ final class AgentChatViewModel: ObservableObject {
                     text: reply,
                     isStreaming: false
                 )
+                historyStore.saveEntry(
+                    userKey: currentUserKey,
+                    source: .agent,
+                    prompt: trimmedPrompt,
+                    response: reply
+                )
                 isSending = false
             } catch {
                 let message = userFacingErrorMessage(for: error)
-                updateAssistantMessage(
-                    id: assistantID,
-                    text: message,
-                    isStreaming: false
-                )
+                if let assistantID = appendedAssistantID {
+                    updateAssistantMessage(
+                        id: assistantID,
+                        text: message,
+                        isStreaming: false
+                    )
+                    historyStore.saveEntry(
+                        userKey: currentUserKey,
+                        source: .agent,
+                        prompt: trimmedPrompt,
+                        response: message
+                    )
+                }
                 isSending = false
                 showUserToast(message, style: .error)
             }
@@ -97,6 +132,7 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     func resetConversation() {
+        historyStore.clearEntries(userKey: currentUserKey, source: .agent)
         messages = []
     }
 
@@ -108,6 +144,21 @@ final class AgentChatViewModel: ObservableObject {
                     text: message.text
                 )
             }
+    }
+
+    private func restoreHistory() {
+        let restoredEntries = historyStore.entries(for: currentUserKey, source: .agent).reversed()
+        messages = restoredEntries.flatMap { entry in
+            [
+                AgentChatMessage(role: .user, text: entry.prompt),
+                AgentChatMessage(role: .assistant, text: entry.response)
+            ]
+        }
+    }
+
+    private func normalizedUserKey(for userKey: String?) -> String? {
+        let trimmed = userKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
     }
 
     private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool) {
@@ -135,11 +186,11 @@ final class AgentChatViewModel: ObservableObject {
             case .deadlineExceeded:
                 return "Der Skydown x 22 Agent hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
-                return "Der Skydown x 22 Agent ist gerade ausgelastet."
+                return nsError.localizedDescription.isEmpty ? "Dein heutiges Agent-Limit ist erreicht." : nsError.localizedDescription
             case .invalidArgument:
                 return "Die Anfrage konnte so nicht verarbeitet werden."
             case .permissionDenied:
-                return "Der Agent wird gerade vorbereitet und ist fuer dein Konto noch nicht freigeschaltet."
+                return nsError.localizedDescription.isEmpty ? "Der Agent ist fuer dein Konto gerade nicht freigeschaltet." : nsError.localizedDescription
             case .unauthenticated:
                 return "Bitte melde dich erneut an und versuch es noch einmal."
             default:

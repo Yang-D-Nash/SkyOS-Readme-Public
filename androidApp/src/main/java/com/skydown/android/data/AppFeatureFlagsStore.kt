@@ -3,6 +3,7 @@ package com.skydown.android.data
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import com.skydown.shared.model.User
+import com.skydown.shared.model.hasStaffAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,11 +57,13 @@ object AppFeatureFlagsStore {
         isEnabled: Boolean = isAiEnabled.value,
     ): Boolean {
         if (!isEnabled) return false
+        val resolvedUser = user ?: return false
+        if (!resolvedUser.aiAccessEnabled) return false
 
         return when (accessMode) {
             AiAccessMode.Off -> false
-            AiAccessMode.AdminOnly -> user?.isAdmin == true
-            AiAccessMode.SignedIn -> user != null
+            AiAccessMode.AdminOnly -> resolvedUser.hasStaffAccess
+            AiAccessMode.SignedIn -> true
         }
     }
 
@@ -75,11 +78,13 @@ object AppFeatureFlagsStore {
 
         return when {
             user == null && accessMode == AiAccessMode.AdminOnly ->
-                "Melde dich an, dann sagen wir dir Bescheid, sobald die KI fuer dich verfuegbar ist."
+                "Melde dich an, dann sagen wir dir Bescheid, sobald die KI fuer dein Konto verfuegbar ist."
+            user?.aiAccessEnabled == false ->
+                "Die KI ist fuer dein Konto gerade pausiert."
             user == null ->
                 "Bitte melde dich an, um die KI zu nutzen."
-            accessMode == AiAccessMode.AdminOnly && user.isAdmin != true ->
-                "Die KI wird gerade vorbereitet und ist fuer dich noch nicht freigeschaltet."
+            accessMode == AiAccessMode.AdminOnly && !user.hasStaffAccess ->
+                "Die KI ist gerade nur fuer Staff-Konten freigeschaltet."
             else ->
                 "Die KI ist gerade nicht verfuegbar."
         }

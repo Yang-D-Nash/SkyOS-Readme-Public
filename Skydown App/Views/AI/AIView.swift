@@ -4,6 +4,7 @@ import UIKit
 struct AIView: View {
     @StateObject private var viewModel: AIChatViewModel
     @ObservedObject private var featureFlags: FeatureFlagsService
+    @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
     private let showsNavigation: Bool
@@ -45,6 +46,12 @@ struct AIView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .task {
+            viewModel.configureUser(user: authManager.userSession)
+        }
+        .onChange(of: authManager.userSession?.id) { _, _ in
+            viewModel.configureUser(user: authManager.userSession)
+        }
     }
 
     private var content: some View {

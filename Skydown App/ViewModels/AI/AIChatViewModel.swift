@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseAI
+import FirebaseFunctions
 
 enum AIChatRole {
     case user
@@ -83,10 +84,25 @@ final class AIChatViewModel: ObservableObject {
     ]
 
     private let service: AIChatServicing
-    private var chat: Chat?
+    private let authorizationService: AIUsageAuthorizing
+    private let historyStore: AIScriptHistoryStore
+    private var currentUserKey: String?
 
-    init(service: AIChatServicing = FirebaseAIChatService()) {
+    init(
+        service: AIChatServicing = FirebaseAIChatService(),
+        authorizationService: AIUsageAuthorizing = FirebaseFunctionsAIUsageService()
+    ) {
         self.service = service
+        self.authorizationService = authorizationService
+        self.historyStore = AIScriptHistoryStore.shared
+    }
+
+    func configureUser(user: User?) {
+        let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
+        historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
+        guard normalizedUserKey != currentUserKey else { return }
+        currentUserKey = normalizedUserKey
+        restoreHistory()
     }
 
     func sendDraft() {
@@ -101,18 +117,24 @@ final class AIChatViewModel: ObservableObject {
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !isSending else { return }
-
-        let assistantID = UUID()
-        messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
-        messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
-        draft = ""
         isSending = true
 
         var responseBuffer = ""
+        var appendedAssistantID: UUID?
         Task {
             do {
-                let chat = activeChat()
-                let responseStream = try chat.sendMessageStream(buildPrompt(for: trimmedPrompt))
+                let authorization = try await authorizationService.authorize(kind: .text)
+                historyStore.updateRetentionDays(authorization.historyRetentionDays)
+
+                let assistantID = UUID()
+                appendedAssistantID = assistantID
+                let history = buildHistoryContext()
+                messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
+                messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
+                draft = ""
+
+                let chat = service.makeChat()
+                let responseStream = try chat.sendMessageStream(buildPrompt(for: trimmedPrompt, history: history))
 
                 for try await chunk in responseStream {
                     guard let text = chunk.text, !text.isEmpty else { continue }
@@ -131,19 +153,35 @@ final class AIChatViewModel: ObservableObject {
                         : responseBuffer,
                     isStreaming: false
                 )
+                historyStore.saveEntry(
+                    userKey: currentUserKey,
+                    source: .bot,
+                    prompt: trimmedPrompt,
+                    response: responseBuffer.isEmpty
+                        ? "Ich habe gerade keine Antwort erhalten. Versuch es bitte noch einmal."
+                        : responseBuffer
+                )
                 isSending = false
             } catch {
                 let partialText = responseBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
-                let assistantText = assistantMessageText(
-                    for: error,
-                    partialText: partialText
-                )
-                updateAssistantMessage(
-                    id: assistantID,
-                    text: assistantText,
-                    isStreaming: false
-                )
                 isSending = false
+                if let assistantID = appendedAssistantID {
+                    let assistantText = assistantMessageText(
+                        for: error,
+                        partialText: partialText
+                    )
+                    updateAssistantMessage(
+                        id: assistantID,
+                        text: assistantText,
+                        isStreaming: false
+                    )
+                    historyStore.saveEntry(
+                        userKey: currentUserKey,
+                        source: .bot,
+                        prompt: trimmedPrompt,
+                        response: assistantText
+                    )
+                }
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
             }
         }
@@ -152,15 +190,20 @@ final class AIChatViewModel: ObservableObject {
     func generateVisual(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !isSending else { return }
-
-        let assistantID = UUID()
-        messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
-        messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
-        draft = ""
         isSending = true
 
+        var appendedAssistantID: UUID?
         Task {
             do {
+                let authorization = try await authorizationService.authorize(kind: .visual)
+                historyStore.updateRetentionDays(authorization.historyRetentionDays)
+
+                let assistantID = UUID()
+                appendedAssistantID = assistantID
+                messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
+                messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
+                draft = ""
+
                 let result = try await service.generateVisual(prompt: buildVisualPrompt(for: trimmedPrompt))
                 updateAssistantMessage(
                     id: assistantID,
@@ -168,32 +211,37 @@ final class AIChatViewModel: ObservableObject {
                     isStreaming: false,
                     imageData: result.imageData
                 )
-                isSending = false
-            } catch {
-                updateAssistantMessage(
-                    id: assistantID,
-                    text: assistantMessageText(for: error, partialText: ""),
-                    isStreaming: false
+                historyStore.saveEntry(
+                    userKey: currentUserKey,
+                    source: .bot,
+                    prompt: trimmedPrompt,
+                    response: result.text
                 )
                 isSending = false
+            } catch {
+                isSending = false
+                if let assistantID = appendedAssistantID {
+                    let assistantText = assistantMessageText(for: error, partialText: "")
+                    updateAssistantMessage(
+                        id: assistantID,
+                        text: assistantText,
+                        isStreaming: false
+                    )
+                    historyStore.saveEntry(
+                        userKey: currentUserKey,
+                        source: .bot,
+                        prompt: trimmedPrompt,
+                        response: assistantText
+                    )
+                }
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
             }
         }
     }
 
     func resetConversation() {
-        chat = nil
+        historyStore.clearEntries(userKey: currentUserKey, source: .bot)
         messages = []
-    }
-
-    private func activeChat() -> Chat {
-        if let chat {
-            return chat
-        }
-
-        let newChat = service.makeChat()
-        chat = newChat
-        return newChat
     }
 
     private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool, imageData: Data? = nil) {
@@ -203,7 +251,7 @@ final class AIChatViewModel: ObservableObject {
         messages[index].imageData = imageData ?? messages[index].imageData
     }
 
-    private func buildPrompt(for userPrompt: String) -> String {
+    private func buildPrompt(for userPrompt: String, history: String) -> String {
         let lowerPrompt = userPrompt.lowercased()
         let formatHint: String
 
@@ -233,12 +281,44 @@ final class AIChatViewModel: ObservableObject {
         Wenn die Anfrage nach Caption, Hook, Claim, Reel oder Post klingt, liefere echte copy-pastebare Optionen.
         Wenn die Anfrage eher nach Planung, Freigaben, Briefing oder To-dos klingt, antworte kurz hilfreich, verweise aber auf den Agent fuer die tiefe Struktur.
 
+        Bisheriger Verlauf:
+        \(history)
+
         Ausgabeformat:
         \(formatHint)
 
         Nutzeranfrage:
         \(userPrompt)
         """
+    }
+
+    private func restoreHistory() {
+        let restoredEntries = historyStore.entries(for: currentUserKey, source: .bot).reversed()
+        messages = restoredEntries.flatMap { entry in
+            [
+                AIChatMessage(role: .user, text: entry.prompt),
+                AIChatMessage(role: .assistant, text: entry.response)
+            ]
+        }
+    }
+
+    private func buildHistoryContext() -> String {
+        let relevantMessages = messages.suffix(12)
+        guard !relevantMessages.isEmpty else {
+            return "Noch kein Verlauf."
+        }
+
+        return relevantMessages
+            .map { message in
+                let prefix = message.role == .user ? "Nutzer" : "Bot"
+                return "\(prefix): \(message.text)"
+            }
+            .joined(separator: "\n")
+    }
+
+    private func normalizedUserKey(for userKey: String?) -> String? {
+        let trimmed = userKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
     }
 
     private func buildVisualPrompt(for userPrompt: String) -> String {
@@ -284,6 +364,24 @@ final class AIChatViewModel: ObservableObject {
     }
 
     private func userFacingErrorMessage(for error: Error) -> String {
+        let nsError = error as NSError
+
+        if nsError.domain == FunctionsErrorDomain,
+           let code = FunctionsErrorCode(rawValue: nsError.code) {
+            switch code {
+            case .resourceExhausted:
+                return nsError.localizedDescription.isEmpty ? "Dein heutiges KI-Limit ist erreicht." : nsError.localizedDescription
+            case .permissionDenied:
+                return nsError.localizedDescription.isEmpty ? "Die KI ist fuer dein Konto gerade nicht freigeschaltet." : nsError.localizedDescription
+            case .unauthenticated:
+                return "Bitte melde dich erneut an und versuch es noch einmal."
+            case .invalidArgument:
+                return "Die KI-Anfrage konnte so nicht gestartet werden."
+            default:
+                break
+            }
+        }
+
         if case let GenerateContentError.responseStoppedEarly(reason, _) = error {
             return finishReasonMessage(for: reason)
         }

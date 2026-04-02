@@ -49,13 +49,19 @@ final class FeatureFlagsService: ObservableObject {
     func allowsAIAccess(for user: User?) -> Bool {
         guard isAIEnabled else { return false }
 
+        guard let user else { return false }
+
+        guard user.aiAccessEnabled else {
+            return false
+        }
+
         switch aiAccessMode {
         case .off:
             return false
         case .adminOnly:
-            return user?.isAdmin == true
+            return user.hasStaffAccess
         case .signedIn:
-            return user != nil
+            return true
         }
     }
 
@@ -69,11 +75,18 @@ final class FeatureFlagsService: ObservableObject {
             return "Die KI ist gerade pausiert."
         case .adminOnly:
             if user == nil {
-                return "Melde dich an, dann sagen wir dir Bescheid, sobald die KI fuer dich verfuegbar ist."
+                return "Melde dich an, dann sagen wir dir Bescheid, sobald die KI fuer dein Konto verfuegbar ist."
             }
 
-            return "Die KI wird gerade vorbereitet und ist fuer dich noch nicht freigeschaltet."
+            if user?.aiAccessEnabled == false {
+                return "Die KI ist fuer dein Konto gerade pausiert."
+            }
+
+            return "Die KI ist gerade nur fuer Staff-Konten freigeschaltet."
         case .signedIn:
+            if user?.aiAccessEnabled == false {
+                return "Die KI ist fuer dein Konto gerade pausiert."
+            }
             return "Melde dich an, um Bot, Agent und Visuals zu nutzen."
         }
     }

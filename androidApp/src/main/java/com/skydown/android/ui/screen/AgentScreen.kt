@@ -173,9 +173,9 @@ fun AgentScreen(
                         .fillMaxSize()
                         .padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = innerPadding.calculateTopPadding() + if (showTopBar) 4.dp else 2.dp,
+                            top = innerPadding.calculateTopPadding() + if (showTopBar) 2.dp else 0.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = innerPadding.calculateBottomPadding() + 4.dp,
+                            bottom = innerPadding.calculateBottomPadding(),
                         ),
                     verticalArrangement = Arrangement.Bottom,
                 ) {
@@ -185,7 +185,7 @@ fun AgentScreen(
                         onPromptSelected = viewModel::sendPrompt,
                         compactLayout = compactLayout,
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             } else {
                 LazyColumn(
@@ -194,15 +194,15 @@ fun AgentScreen(
                     contentPadding = PaddingValues(
                         start = SkydownUiTokens.screenHorizontalPadding,
                         top = if (showTopBar) {
-                            innerPadding.calculateTopPadding() + 2.dp
+                            innerPadding.calculateTopPadding()
                         } else {
-                            2.dp
+                            0.dp
                         },
                         end = SkydownUiTokens.screenHorizontalPadding,
                         bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
-                            4.dp
+                            2.dp
                         } else {
-                            8.dp
+                            4.dp
                         },
                     ),
                     verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
@@ -220,7 +220,7 @@ fun AgentScreen(
                         }
 
                         item {
-                            Spacer(modifier = Modifier.height(if (showTopBar) 4.dp else 8.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                         }
                     }
                 }
@@ -232,7 +232,7 @@ fun AgentScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = if (uiState.isAgentEnabled) {
-                        if (compactLayout) 76.dp else 92.dp
+                        if (compactLayout) 64.dp else 76.dp
                     } else {
                         28.dp
                     }),
@@ -506,14 +506,14 @@ private fun AgentComposerBar(
             .navigationBarsPadding()
             .imePadding()
             .padding(
-                horizontal = if (compactLayout) 10.dp else 12.dp,
-                vertical = if (compactLayout) 8.dp else 12.dp,
+                horizontal = if (compactLayout) 8.dp else 10.dp,
+                vertical = if (compactLayout) 6.dp else 8.dp,
             ),
     ) {
         SkydownCard(
             contentPadding = PaddingValues(
-                horizontal = if (compactLayout) 12.dp else 14.dp,
-                vertical = if (compactLayout) 10.dp else 12.dp,
+                horizontal = if (compactLayout) 10.dp else 12.dp,
+                vertical = if (compactLayout) 8.dp else 10.dp,
             ),
         ) {
             OutlinedTextField(
@@ -524,7 +524,7 @@ private fun AgentComposerBar(
                     Text("Zum Beispiel: Release-Briefing fuer Freitag.")
                 },
                 minLines = 1,
-                maxLines = if (compactLayout) 4 else 5,
+                maxLines = if (compactLayout) 3 else 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = { onSend() },
@@ -534,14 +534,14 @@ private fun AgentComposerBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = if (compactLayout) 10.dp else 12.dp),
+                    .padding(top = if (compactLayout) 8.dp else 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
                     onClick = onReset,
                     enabled = !isSending,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(36.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -552,7 +552,7 @@ private fun AgentComposerBar(
                 FilledIconButton(
                     onClick = onSend,
                     enabled = draft.isNotBlank() && !isSending,
-                    modifier = Modifier.size(42.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,

@@ -1,125 +1,426 @@
-# Skydown x 22
+# Sky²² / Skydown x 22
 
-Skydown x 22 is a cross-platform music and creator app built for the Skydown / 22 ecosystem.
-It brings together artist discovery, Spotify-powered listening, social touchpoints, producer services, beat listening, merch and in-app AI in one mobile product across iOS and Android.
+Sky²² ist eine plattformübergreifende App für Musik, Video, Merch und KI-gestützte Workflows im Umfeld von `ZweiZwei`, `Skydown` und `Skydown x 22`.
 
-## Product Highlights
+Die App läuft auf:
 
-- artist selection and music discovery
-- Spotify connection with in-app previews and premium handoff
-- Instagram links for artists, Skydown and 22
-- `NICMA MUSIC` producer area for services and inquiries
-- `Beat Hub` for listening and admin-managed uploads
-- merch, cart and order flows
-- bot and agent features inside the app
+- `iOS` mit `SwiftUI`
+- `Android` mit `Jetpack Compose`
+- gemeinsamer Modell- und Business-Logik über `Kotlin Multiplatform`
 
-## Built With
+---
 
-### Client
+## 1. Fuer Nutzer
 
-- `SwiftUI` for the iOS app UI
-- `Jetpack Compose` for the Android app UI
-- `Kotlin Multiplatform` for shared models and business logic
+### Was die App fuer Nutzer sein soll
 
-### Music And Media
+Sky²² ist keine reine Shop-App und auch keine reine Musik-App. Der Gedanke dahinter ist ein gemeinsamer Hub fuer:
 
-- `Spotify Web API + OAuth` for music loading and Spotify connection
-- `AVFoundation` for iOS preview playback
-- `ExoPlayer / Media3` for Android preview playback
+- `Music / ZweiZwei`
+- `Videography / Skydown`
+- `Merch / Skydown x 22`
+- `AI Tools`
 
-### Backend And Data
+Je nach Bereich soll sich die App eher wie eine moderne Medien- und Brand-App anfuehlen als wie ein klassisches Formularsystem.
 
-- `Firebase Auth` for account and sign-in flows
-- `Cloud Firestore` as the main cloud database
-- `Firebase Storage` for media and uploads
-- `Firebase Functions` for backend logic and agent endpoints
-- `Firebase App Distribution` for internal tester releases
-- `Firebase AI / Gemini` for in-app AI features
+### Die Hauptbereiche der App
 
-## Repository Structure
+#### Home
 
-- `Skydown App/` for the iOS source, SwiftUI views, services and view models
-- `androidApp/` for the Android source, Compose screens and integrations
-- `shared/` for shared Kotlin Multiplatform code
+Der Home-Bereich ist die Startflaeche der App. Dort landen Nutzer auf:
 
-## Platform Setup
+- aktuellen Releases
+- direkten Wegen zu Music, Video und Shop
+- persoenlicheren Einstiegen statt rein technischer Menues
 
-- iOS bundle identifier: `com.skydown.ios`
-- Android package name: `com.skydown.android`
-- iOS Firebase config: `Skydown App/GoogleService-Info.plist`
-- Android Firebase config: `androidApp/google-services.json`
+#### Music
 
-## Development Notes
+Im Music-Bereich koennen Nutzer:
 
-- open the repository root in Android Studio, not only `androidApp/`
-- Firebase App Distribution tester lists stay local and should not be committed
+- Artists und Releases sehen
+- Spotify-Links und Musikzugriffe nutzen
+- Beats hoeren
+- Beat Hub aufrufen
 
-## Shopify Merch Flow
+#### Videos
 
-The app keeps its own cart, checkout and payment flow.
-Shopify is used as the external merch catalog + fulfillment bridge to PODpartner.
+Im Video-Bereich koennen Nutzer:
 
-### Architecture
+- Video-Reels anschauen
+- YouTube-Inhalte in der App oeffnen
+- Skydown-/Collab-Inhalte ansehen
 
-- `PODpartner` handles production, shipping and tracking
-- `Shopify` stores products and variants and receives external orders
-- `Firestore` stores app visibility, featured state, sort order and order metadata
-- the app calculates the customer-facing shipping price itself
-- Cloud Functions create the Shopify order after payment is confirmed
+#### Merch
 
-### Shopify Auth For Sync + Order Creation
+Der Merch-Bereich zeigt Produkte, Varianten, Cart und Checkout in der App selbst.
 
-There are now two supported ways to provide the Shopify Admin API token:
+Wichtig:
+
+- Der Nutzer kauft nicht ueber den Shopify-Checkout.
+- Die App hat ihren eigenen Cart- und Checkout-Flow.
+- Versandkosten werden in der App berechnet und vor dem Kauf angezeigt.
+
+#### KI Tools
+
+Der KI-Bereich ist als chat-first Erlebnis gedacht, eher wie `ChatGPT` oder `Gemini` als wie ein kleines Admin-Fenster.
+
+Je nach Freigabe koennen Nutzer:
+
+- Bot-Chats fuehren
+- Agent-Funktionen nutzen
+- visuelle KI-Aktionen ausloesen
+
+### Login-Zustaende
+
+Es gibt fuer normale Nutzung zwei oeffentliche Zustaende:
+
+- `Gast`: nicht eingeloggt, kein persoenliches Konto, keine gespeicherte KI-History
+- `User`: eingeloggt, persoenliche History und persoenliche Limits
+
+Wenn die App oeffentlich genutzt wird, bleibt das fuer die meisten Nutzer die Standardnutzung.
+
+### Datenschutz und Recht
+
+In der App sind direkt erreichbar:
+
+- `AGB`
+- `Datenschutzbestimmungen`
+- `Nutzungsbedingungen`
+
+Der aktuelle Stand wurde auf `April 2026 / Europa / Deutschland` ausgerichtet.
+
+---
+
+## 2. Interne Technik
+
+### Architektur in Kurzform
+
+Die App ist in vier technische Ebenen aufgeteilt:
+
+1. `Client`
+   iOS und Android UI
+2. `Shared`
+   gemeinsame Models und Business-Regeln
+3. `Firebase`
+   Auth, Firestore, Storage, Functions
+4. `Externe Systeme`
+   Shopify, PODpartner, Spotify, n8n, AI
+
+### Repository-Struktur
+
+- `Skydown App/`
+  iOS-App mit SwiftUI Views, Services und ViewModels
+- `androidApp/`
+  Android-App mit Compose Screens, Data Layer und ViewModels
+- `shared/`
+  gemeinsame KMP-Models und Services
+- `functions/`
+  Firebase Functions fuer Backend-Logik
+- `firestore.rules`
+  Firestore-Berechtigungen
+
+### Kernstack
+
+#### Client
+
+- `SwiftUI`
+- `Jetpack Compose`
+- `Kotlin Multiplatform`
+
+#### Backend
+
+- `Firebase Auth`
+- `Cloud Firestore`
+- `Firebase Storage`
+- `Firebase Functions`
+- `Firebase App Distribution`
+
+#### Media / Integrationen
+
+- `Spotify Web API`
+- `AVFoundation`
+- `Media3 / ExoPlayer`
+- `Shopify`
+- `PODpartner`
+- `n8n`
+- `Vertex AI / Gemini`
+
+### Datenhaltung
+
+#### Firestore
+
+Firestore bleibt die zentrale App-Datenbank fuer:
+
+- User
+- Order-Metadaten
+- App-Konfigurationen
+- Merch-Cache / Sichtbarkeit / Overrides
+- oeffentliche Video- und Beat-Daten
+
+#### Shopify + PODpartner
+
+Der Merch-Flow ist bewusst getrennt:
+
+- `Shopify` liefert Produkt- und Variantendaten
+- `PODpartner` uebernimmt Produktion, Versand und Tracking
+- `Firestore` bleibt Cache, Sichtbarkeits- und Override-Schicht
+- `die App` behaelt ihren eigenen Checkout
+
+### Merch-Architektur
+
+#### Grundprinzip
+
+Die App bleibt `Shopify-first`, aber nicht `Shopify-checkout-first`.
+
+Das heisst:
+
+- Produkte und Varianten kommen aus Shopify
+- die Variantenzuordnung laeuft ueber `shopifyVariantId`
+- der Nutzer checkt in der App aus
+- nach bestaetigter Zahlung erstellt das Backend eine Shopify-Order
+- Shopify / PODpartner uebernehmen danach Fulfillment
+
+#### Shopify-Konfiguration in der App
+
+Die App arbeitet fuer den Katalog mit dem Minimalpfad:
+
+- `Store Domain`
+- `Storefront Access Token`
+- optional `Collection Handle`
+
+#### Shopify-Order-Flow
+
+Fuer echte externe Orders nutzt das Backend weiter die Admin-Seite von Shopify:
+
+- `GraphQL Admin API`
+- `orderCreate`
+
+### n8n / Automation
+
+n8n ist als serverseitige Automations-Bruecke vorbereitet.
+
+Wichtig:
+
+- User loggen sich nicht in n8n ein
+- die App bleibt normal ueber Firebase eingeloggt
+- Admins hinterlegen ihre eigene n8n-Verbindung
+- Firebase Functions schicken geprueften User-Kontext an den Webhook
+
+Der saubere Datenweg ist:
+
+`App -> Firebase Function -> n8n Webhook`
+
+### Build / lokale Pruefung
+
+#### Android
 
 ```bash
-export SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...
+./gradlew :androidApp:compileDebugKotlin
+./gradlew :androidApp:assembleDebug
 ```
 
-Important:
+#### iOS
 
-- Admins can also save the token inside the app; it is stored in Firestore under `adminConfig/shopifyMerchPrivate` and is only readable/writable for admins.
-- `syncShopifyMerch` first tries the Admin API token, then falls back to the public Shopify storefront feed.
-- `confirmMerchOrderPayment` + automatic Shopify `orderCreate` require the Admin token.
-
-Optional environment override:
-
-- `SHOPIFY_STORE_DOMAIN`
-  default in code: `k5t1sc-ps.myshopify.com`
-
-### Merch Sync
-
-- callable function: `syncShopifyMerch`
-- admin-triggered from the merch admin UI
-- source config comes from `appConfig/shopifyMerch`
-  - `storeDomain`
-  - `storefrontURL`
-  - `collectionHandle`
-  - `collectionTitle`
-- if `collectionHandle` is set, only that Shopify collection is synced
-- Shopify products that no longer match the active collection are marked inactive in Firestore
-- sync updates Shopify title, description, images, variants, prices and availability
-- app-specific fields stay intact:
-  - `isVisibleInApp`
-  - `featured`
-  - `sortOrder`
-  - `customBadge`
-  - `customImageOverride`
-
-### Payment Confirmation
-
-After an external payment succeeds, confirm the order in one of two ways:
-
-- admin UI button in the order queue
-- callable function: `confirmMerchOrderPayment`
-
-Payload shape:
-
-```json
-{
-  "orderId": "firestore-order-id",
-  "paymentMethod": "PayPal",
-  "paymentReference": "optional-external-reference"
-}
+```bash
+xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -destination 'generic/platform=iOS' build
 ```
 
-Once `paymentStatus` becomes `confirmed`, the backend submits PODpartner-bound merch orders to Shopify through GraphQL `orderCreate`.
+### Aktuell wichtige Collections / Dokumente
+
+- `users/{uid}`
+- `users/{uid}/texts/{textId}`
+- `users/{uid}/aiUsage/{yyyy-mm-dd}`
+- `orders/{orderId}`
+- `merchandise/{itemId}`
+- `appConfig/paymentMethods`
+- `appConfig/commerceSettings`
+- `appConfig/shopifyMerch`
+- `adminConfig/automationN8n`
+- `adminConfig/shopifyMerchPrivate`
+
+---
+
+## 3. Rollen, Adminbetrieb und KI-Kostenkontrolle
+
+### Feste Rollenlogik
+
+Die App kennt jetzt technisch `4` gespeicherte Rollen plus den oeffentlichen Gast-Zustand:
+
+#### 1. Owner
+
+Das feste Hauptkonto der App.
+
+Fuer dieses Projekt gilt:
+
+- `nash.lioncorna@gmail.com` ist immer der `Owner`
+
+Dieses Konto bleibt fest Owner, auch wenn in Firestore einmal etwas anderes stehen sollte. Der Code behandelt diese Mail immer als Owner-Konto.
+
+Rechte:
+
+- voller Zugriff auf die App
+- voller Zugriff auf sensible Settings
+- volle Nutzerverwaltung
+- volle KI-Steuerung
+
+#### 2. Admin
+
+Admins sind `teaminterne Leute`.
+
+Rechte:
+
+- voller Admin-Workspace
+- interne Betriebsfunktionen
+- Nutzerverwaltung
+- keine Owner-Sonderstellung
+
+#### 3. Subadmin
+
+Subadmins sind `externe Power-User`, nicht das interne Kernteam.
+
+Gedacht fuer:
+
+- spaetere externe Partner
+- vertraute Premium-Nutzer
+- people mit mehr persoenlicher KI-Nutzung als normale User
+
+Wichtig:
+
+- `Subadmin` ist **kein** interner Admin-Workspace-Zugang
+- `Subadmin` ist **kein** Staff-/Backoffice-Konto
+- `Subadmin` sitzt zwischen `User` und `Admin`
+
+#### 4. User
+
+Normales eingeloggtes Nutzerkonto fuer die oeffentliche App.
+
+#### Zusaetzlich: Gast
+
+Nicht eingeloggt.
+
+Gast ist aktuell kein gespeichertes Firestore-Rollenobjekt, sondern ein oeffentlicher Nutzungszustand ohne persoenliche Konto-History.
+
+### Standard-Limits fuer KI
+
+Die App hat aktuell eine serverseitige Tageslimit-Logik statt einer exakten Euro-Abrechnung.
+
+Das bedeutet:
+
+- es gibt pro User und pro Rolle Tagesbudgets
+- die Functions zaehlen Nutzung mit
+- die Clients fragen vor KI-Aktionen serverseitig an
+
+#### Defaults
+
+| Rolle | Bot / Tag | Visuals / Tag | Agent / Tag | History |
+|---|---:|---:|---:|---:|
+| Owner | 400 | 80 | 250 | 30 Tage |
+| Admin | 240 | 40 | 140 | 30 Tage |
+| Subadmin | 120 | 20 | 70 | 7 Tage |
+| User | 30 | 4 | 18 | 3 Tage |
+
+Diese Werte koennen pro User im User-Dokument ueberschrieben werden.
+
+### Wie die KI-Kostenkontrolle funktioniert
+
+#### Serverseitig
+
+Vor Bot-, Visual- oder Agent-Nutzung laeuft ein serverseitiger Check:
+
+- `authorizeAiUsage`
+
+Dabei werden geprueft:
+
+- Rolle
+- ob KI fuer das Konto aktiviert ist
+- wie viele Requests fuer diesen Tag schon verbraucht wurden
+- welches Limit fuer diese KI-Art gilt
+
+Die Tageszaehler liegen in:
+
+- `users/{uid}/aiUsage/{yyyy-mm-dd}`
+
+#### Clientseitig
+
+Die App startet KI-Aktionen erst dann, wenn der serverseitige Check sie freigibt.
+
+Das verhindert:
+
+- stille Uebernutzung
+- reine UI-Scheinlimits
+- unterschiedliche lokale Stände zwischen Geraeten
+
+### History
+
+Die KI-History ist jetzt personenbezogen.
+
+Trennung:
+
+- pro User
+- pro KI-Bereich
+- mit konfigurierbarer Retention
+
+### Admin-Workspace
+
+Der Adminbereich in Settings ist jetzt als kurzer Workspace aufgebaut, nicht als endlose Scroll-Seite.
+
+Die wichtigsten Bereiche:
+
+- `Uebersicht`
+- `Zahlungen`
+- `User`
+- `Shopify`
+- `Versand`
+- `Visuals`
+- `Automation`
+
+### Shopify fuer Admins
+
+Admins pflegen fuer Shopify nur:
+
+- `Store Domain`
+- `Storefront Access Token`
+- optional `Collection Handle`
+
+### n8n fuer Admins
+
+Jeder Admin kann seine eigene n8n-Konfiguration pflegen.
+
+Die Konfiguration ist also nicht mehr nur global, sondern adminbezogen nutzbar.
+
+### Wichtige Hinweise fuer das Team
+
+- `Owner` bleibt fest an `nash.lioncorna@gmail.com` gebunden
+- `Admin` ist fuer interne Leute
+- `Subadmin` ist fuer spaetere externe Power-User
+- `User` ist das normale oeffentliche Konto
+- `Gast` ist die nicht eingeloggte Nutzung ohne gespeichertes Konto
+
+### Firebase / Sicherheit
+
+Die wichtigsten Regeln sind:
+
+- Owner/Admin duerfen den sensiblen Admin-Workspace nutzen
+- Subadmins sind bewusst keine internen Staff-Konten
+- normale User duerfen nur ihre eigenen Nutzer- und Textdaten nutzen
+- KI-Nutzung wird serverseitig autorisiert und gezaehlt
+
+---
+
+## Operative Notizen
+
+- Android Studio bitte am Repo-Root oeffnen, nicht nur in `androidApp/`
+- iOS Bundle ID: `com.skydown.ios`
+- Android Package: `com.skydown.android`
+- Firebase iOS Config: `Skydown App/GoogleService-Info.plist`
+- Firebase Android Config: `androidApp/google-services.json`
+
+---
+
+## Kurzfazit
+
+Sky²² ist jetzt technisch auf drei Ebenen lesbar:
+
+1. als oeffentliche Medien-, Shop- und KI-App fuer Nutzer
+2. als Firebase- / Shopify- / n8n-gestuetzte Mobile-Plattform fuer das Team
+3. als rollebasierte App mit serverseitiger KI-Kontrolle und sauberem Adminbetrieb

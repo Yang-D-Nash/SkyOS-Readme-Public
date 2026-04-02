@@ -313,7 +313,7 @@ private fun WorkflowWorkspaceCard(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Hier bereitest du Automationen vor. Verbindungen dafuer bleiben getrennt vom normalen App-Login und werden in den Einstellungen vorbereitet.",
+            text = "Hier bereitest du n8n-Automationen vor. Die App bleibt normal eingeloggt und der User-Kontext wird serverseitig geprueft an deinen Workflow weitergegeben.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -321,9 +321,9 @@ private fun WorkflowWorkspaceCard(
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiHubBadge(text = "Automation", isAgent = false)
-            AiHubBadge(text = "Manuell", isAgent = true)
-            AiHubBadge(text = "Setup", isAgent = false)
+            AiHubBadge(text = "n8n", isAgent = false)
+            AiHubBadge(text = "Webhook", isAgent = true)
+            AiHubBadge(text = "User-Kontext", isAgent = false)
         }
         Button(
             onClick = onOpenSettings,

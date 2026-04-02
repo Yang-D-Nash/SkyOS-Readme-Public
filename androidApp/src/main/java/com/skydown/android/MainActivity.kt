@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AiConversationHistoryStore
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.data.WorkflowAutomationPreferences
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         AppearancePreferences.initialize(applicationContext)
         AppFeatureFlagsStore.initialize()
+        AiConversationHistoryStore.initialize(applicationContext)
         AiVisualReferenceLibraryPreferences.initialize(applicationContext)
         WorkflowAutomationPreferences.initialize(applicationContext)
         SpotifyAuthManager.initialize(applicationContext)
