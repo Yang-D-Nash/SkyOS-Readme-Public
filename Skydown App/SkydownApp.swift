@@ -27,8 +27,13 @@ struct SkydownApp: App {
                 .environmentObject(services.featureFlags)
                 .environmentObject(services.authManager)
                 .environmentObject(services.cartViewModel)
+                .environmentObject(services.hostedCheckoutRedirectStore)
                 .onOpenURL { url in
-                    GIDSignIn.sharedInstance.handle(url)
+                    if services.hostedCheckoutRedirectStore.handle(url) {
+                        return
+                    }
+
+                    _ = GIDSignIn.sharedInstance.handle(url)
                 }
         }
     }

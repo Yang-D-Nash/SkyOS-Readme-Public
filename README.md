@@ -409,6 +409,44 @@ Mehr Details:
 - Checkout bleibt in der App
 - Shopify Checkout wird nicht benutzt
 
+### Zahlungen
+
+- `PayPal` und `Bankueberweisung` bleiben ein manueller Owner-Flow.
+- `Stripe` laeuft als sicherer Hosted Checkout.
+- `Klarna` laeuft ueber `Stripe Checkout`, nicht als eigener Direkt-Provider in der App.
+
+### Was heute zuverlaessig passiert
+
+- eine Bestellung wird serverseitig angelegt
+- unbezahlte POD-/Shopify-Bestellungen werden nicht automatisch versendet
+- erst nach bestaetigter Zahlung wird die Order fuer den Shopify-/POD-Flow freigegeben
+- du kannst als Owner jede Bestellung in der Order-Queue pruefen
+
+### Owner-Setup fuer Stripe und Klarna
+
+1. `STRIPE_SECRET_KEY` als Functions Secret setzen
+2. `stripeMerchWebhook` in Stripe als Webhook hinterlegen
+3. `STRIPE_WEBHOOK_SECRET` als Functions Secret setzen
+4. in Stripe `Klarna` aktivieren, wenn du Klarna live anbieten willst
+5. danach in `Settings > Payments` `Stripe` und optional `Klarna` sichtbar schalten
+
+### Wichtige Webhook Events
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `checkout.session.async_payment_failed`
+- `checkout.session.expired`
+
+### Beispiel fuer die Webhook-URL
+
+- `https://us-central1-<dein-projekt-id>.cloudfunctions.net/stripeMerchWebhook`
+
+### Wichtiger Hinweis zu Klarna
+
+- Klarna braucht einen aktiven Stripe-Account
+- Klarna muss in Stripe fuer dein Land / dein Geschaeft freigeschaltet sein
+- erst dann sollte der Klarna-Schalter in der App fuer Nutzer sichtbar sein
+
 ### Owner-Aufgaben
 
 - Store Domain pflegen

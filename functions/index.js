@@ -6,7 +6,7 @@ const functionsV1 = require("firebase-functions/v1");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onMessagePublished} = require("firebase-functions/v2/pubsub");
 const {enableFirebaseTelemetry} = require("@genkit-ai/firebase");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const {genkit, z} = require("genkit");
 const {vertexAI} = require("@genkit-ai/google-genai");
@@ -29,6 +29,18 @@ const {
   mergeRuntimeConfig,
 } = require("./src/security/runtime-config");
 const {requestUploadSlot} = require("./src/security/upload-slots");
+const {
+  createHostedCheckoutSession,
+  deriveStripeCheckoutStatus,
+  extractStripeCheckoutIdentifiers,
+  formatStripeShippingAddress,
+  isHostedCheckoutMethod,
+  normalizeCheckoutPlatform,
+  normalizeHostedCheckoutMethod,
+  renderCheckoutReturnPage,
+  shouldConfirmPaymentFromStripeEvent,
+  verifyStripeWebhookSignature,
+} = require("./src/payments/stripe-checkout");
 
 admin.initializeApp();
 void enableFirebaseTelemetry().catch((error) => {
@@ -41,6 +53,8 @@ const ai = genkit({
 });
 
 const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const OWNER_EMAIL = "nash.lioncorna@gmail.com";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
@@ -713,6 +727,60 @@ async function loadShopifyAdminToken() {
       .get();
 
   return nonEmptyString(snapshot.data()?.adminApiToken) || "";
+}
+
+async function loadPaymentMethodSettings() {
+  const snapshot = await admin.firestore()
+      .collection("appConfig")
+      .doc("paymentMethods")
+      .get();
+  const data = snapshot.data() || {};
+  const stripe = data.stripe || {};
+  const klarna = data.klarna || {};
+
+  return {
+    stripe: {
+      connected: stripe.connected === true,
+      enabled: stripe.enabled === true,
+    },
+    klarna: {
+      connected: klarna.connected === true,
+      enabled: klarna.enabled === true,
+    },
+  };
+}
+
+function isHostedPaymentMethodEnabled(paymentSettings, paymentMethod) {
+  const normalizedMethod = normalizeHostedCheckoutMethod(paymentMethod);
+  if (normalizedMethod === "Stripe") {
+    return paymentSettings?.stripe?.connected === true && paymentSettings?.stripe?.enabled === true;
+  }
+  if (normalizedMethod === "Klarna") {
+    return paymentSettings?.klarna?.connected === true && paymentSettings?.klarna?.enabled === true;
+  }
+  return false;
+}
+
+function loadStripeSecretKey() {
+  try {
+    return nonEmptyString(stripeSecretKey.value()) || nonEmptyString(process.env.STRIPE_SECRET_KEY) || "";
+  } catch (error) {
+    return nonEmptyString(process.env.STRIPE_SECRET_KEY) || "";
+  }
+}
+
+function loadStripeWebhookSecret() {
+  try {
+    return nonEmptyString(stripeWebhookSecret.value()) || nonEmptyString(process.env.STRIPE_WEBHOOK_SECRET) || "";
+  } catch (error) {
+    return nonEmptyString(process.env.STRIPE_WEBHOOK_SECRET) || "";
+  }
+}
+
+function resolveProjectId() {
+  return nonEmptyString(process.env.GCLOUD_PROJECT) ||
+    nonEmptyString(admin.app().options.projectId) ||
+    "";
 }
 
 function getShopifyGraphqlUrl(storeDomain) {
@@ -1737,6 +1805,77 @@ exports.submitMerchOrder = onCall({
   };
 });
 
+exports.startMerchCheckout = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+  secrets: [stripeSecretKey],
+}, async (request) => {
+  await assertCallableSecurity(request, "startMerchCheckout");
+  const runtimeConfig = await getRuntimeConfig();
+  if (runtimeConfig.lockdown === true || runtimeConfig.userWritesEnabled === false) {
+    throw new HttpsError("failed-precondition", "Bestellungen sind derzeit pausiert.");
+  }
+
+  const paymentMethod = normalizeHostedCheckoutMethod(request.data?.paymentMethod);
+  if (!paymentMethod || !isHostedCheckoutMethod(paymentMethod)) {
+    throw new HttpsError("invalid-argument", "Hosted Checkout ist nur fuer Stripe oder Klarna verfuegbar.");
+  }
+
+  const paymentSettings = await loadPaymentMethodSettings();
+  if (!isHostedPaymentMethodEnabled(paymentSettings, paymentMethod)) {
+    throw new HttpsError("failed-precondition", `${paymentMethod} ist aktuell nicht live fuer den Checkout freigeschaltet.`);
+  }
+
+  const secretKey = loadStripeSecretKey();
+  if (!secretKey) {
+    throw new HttpsError("failed-precondition", "Stripe ist serverseitig noch nicht vollstaendig konfiguriert.");
+  }
+
+  const projectId = resolveProjectId();
+  if (!projectId) {
+    throw new HttpsError("internal", "Firebase-Projekt konnte fuer den Checkout nicht aufgeloest werden.");
+  }
+
+  const platform = normalizeCheckoutPlatform(request.data?.platform);
+  const orderData = normalizeOrderSubmissionPayload({
+    ...request.data,
+    paymentMethod,
+  }, request.auth);
+  const orderRef = admin.firestore().collection("orders").doc();
+
+  const checkoutSession = await createHostedCheckoutSession({
+    secretKey,
+    projectId,
+    orderId: orderRef.id,
+    orderData,
+    paymentMethod,
+    platform,
+  });
+
+  await orderRef.set({
+    ...orderData,
+    paymentMethod,
+    paymentProvider: "stripe",
+    stripeCheckoutSessionId: checkoutSession.sessionId,
+    stripeCheckoutStatus: checkoutSession.stripeCheckoutStatus,
+    stripeCheckoutExpiresAtEpochSeconds: checkoutSession.expiresAtEpochSeconds,
+  });
+
+  logger.info("Hosted merch checkout created.", {
+    orderId: orderRef.id,
+    paymentMethod,
+    platform,
+    userEmail: orderData.userEmail,
+    sessionId: checkoutSession.sessionId,
+  });
+
+  return {
+    orderId: orderRef.id,
+    checkoutUrl: checkoutSession.checkoutUrl,
+    sessionId: checkoutSession.sessionId,
+  };
+});
+
 exports.confirmMerchOrderPayment = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
@@ -1784,6 +1923,154 @@ exports.confirmMerchOrderPayment = onCall({
       ? "Zahlung bestaetigt. Shopify-Order wird jetzt erstellt."
       : "Zahlung bestaetigt.",
   };
+});
+
+exports.stripeCheckoutReturn = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request, response) => {
+  const platform = normalizeCheckoutPlatform(request.query?.platform);
+  const status = `${request.query?.status || ""}`.trim().toLowerCase() === "cancel" ? "cancel" : "success";
+  const orderId = nonEmptyString(request.query?.orderId);
+  const sessionId = nonEmptyString(request.query?.session_id);
+
+  response.set("Content-Type", "text/html; charset=utf-8");
+  response.status(200).send(renderCheckoutReturnPage({
+    platform,
+    status,
+    orderId,
+    sessionId,
+  }));
+});
+
+exports.stripeMerchWebhook = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 60,
+  secrets: [stripeWebhookSecret],
+}, async (request, response) => {
+  if (request.method !== "POST") {
+    response.status(405).send("Method Not Allowed");
+    return;
+  }
+
+  const webhookSecret = loadStripeWebhookSecret();
+  if (!webhookSecret) {
+    logger.error("Stripe webhook secret missing.");
+    response.status(500).send("Stripe webhook secret missing.");
+    return;
+  }
+
+  try {
+    verifyStripeWebhookSignature({
+      payloadBuffer: request.rawBody,
+      signatureHeader: request.headers["stripe-signature"],
+      endpointSecret: webhookSecret,
+    });
+  } catch (error) {
+    logger.error("Stripe webhook signature verification failed.", {
+      error: error instanceof Error ? error.message : "unknown_error",
+    });
+    response.status(400).send("Invalid signature");
+    return;
+  }
+
+  const event = JSON.parse(request.rawBody.toString("utf8"));
+  const eventType = nonEmptyString(event?.type) || "";
+  const session = event?.data?.object || {};
+  const orderId = nonEmptyString(session?.metadata?.orderId) || nonEmptyString(session?.client_reference_id);
+
+  if (!orderId) {
+    logger.warn("Stripe webhook received without order metadata.", {
+      eventType,
+      sessionId: nonEmptyString(session?.id),
+    });
+    response.status(200).json({received: true, ignored: true});
+    return;
+  }
+
+  const orderRef = admin.firestore().doc(`orders/${orderId}`);
+  const orderSnapshot = await orderRef.get();
+  if (!orderSnapshot.exists) {
+    logger.warn("Stripe webhook received for unknown order.", {
+      eventType,
+      orderId,
+      sessionId: nonEmptyString(session?.id),
+    });
+    response.status(200).json({received: true, ignored: true});
+    return;
+  }
+
+  const orderData = orderSnapshot.data() || {};
+  const identifiers = extractStripeCheckoutIdentifiers(session);
+  const stripeCheckoutStatus = deriveStripeCheckoutStatus(eventType, session);
+  const shippingUpdate = formatStripeShippingAddress(session?.shipping_details);
+
+  if (shouldConfirmPaymentFromStripeEvent(eventType, session)) {
+    const paymentMethod = normalizeHostedCheckoutMethod(session?.metadata?.paymentMethod)
+      || normalizeHostedCheckoutMethod(orderData.paymentMethod)
+      || "Stripe";
+    const requiresShopifySubmission = orderData.fulfillmentProvider === "podpartner";
+    const confirmedUpdate = {
+      paymentMethod,
+      paymentProvider: "stripe",
+      paymentStatus: "confirmed",
+      paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentConfirmedByUid: admin.firestore.FieldValue.delete(),
+      paymentConfirmedByEmail: admin.firestore.FieldValue.delete(),
+      paymentReference: identifiers.paymentIntentId || identifiers.sessionId || admin.firestore.FieldValue.delete(),
+      stripeCheckoutSessionId: identifiers.sessionId || orderData.stripeCheckoutSessionId || admin.firestore.FieldValue.delete(),
+      stripePaymentIntentId: identifiers.paymentIntentId || orderData.stripePaymentIntentId || admin.firestore.FieldValue.delete(),
+      stripeCheckoutStatus,
+      paymentFailureReason: admin.firestore.FieldValue.delete(),
+      shopifySyncStatus: requiresShopifySubmission ?
+        "pending_submission" :
+        (orderData.shopifySyncStatus || "not_required"),
+      ...shippingUpdate,
+    };
+
+    await orderRef.set(confirmedUpdate, {merge: true});
+
+    logger.info("Stripe payment confirmed via webhook.", {
+      eventType,
+      orderId,
+      paymentMethod,
+      sessionId: identifiers.sessionId,
+      paymentIntentId: identifiers.paymentIntentId,
+    });
+
+    response.status(200).json({received: true, confirmed: true});
+    return;
+  }
+
+  if (["checkout.session.async_payment_failed", "checkout.session.expired"].includes(eventType)) {
+    await orderRef.set({
+      paymentStatus: eventType === "checkout.session.expired" ? "expired" : "failed",
+      paymentFailureReason: eventType === "checkout.session.expired" ?
+        "Stripe Checkout ist abgelaufen." :
+        "Stripe oder Klarna konnten die Zahlung nicht abschliessen.",
+      stripeCheckoutSessionId: identifiers.sessionId || orderData.stripeCheckoutSessionId || admin.firestore.FieldValue.delete(),
+      stripePaymentIntentId: identifiers.paymentIntentId || orderData.stripePaymentIntentId || admin.firestore.FieldValue.delete(),
+      stripeCheckoutStatus,
+    }, {merge: true});
+
+    logger.warn("Stripe payment not completed.", {
+      eventType,
+      orderId,
+      sessionId: identifiers.sessionId,
+      paymentIntentId: identifiers.paymentIntentId,
+    });
+
+    response.status(200).json({received: true, confirmed: false});
+    return;
+  }
+
+  await orderRef.set({
+    stripeCheckoutSessionId: identifiers.sessionId || orderData.stripeCheckoutSessionId || admin.firestore.FieldValue.delete(),
+    stripePaymentIntentId: identifiers.paymentIntentId || orderData.stripePaymentIntentId || admin.firestore.FieldValue.delete(),
+    stripeCheckoutStatus,
+  }, {merge: true});
+
+  response.status(200).json({received: true, ignored: true});
 });
 
 exports.triggerWorkflowAutomation = onCall({

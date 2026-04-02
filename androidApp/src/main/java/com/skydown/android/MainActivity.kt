@@ -17,6 +17,7 @@ import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.data.AiConversationHistoryStore
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
+import com.skydown.android.data.CheckoutRedirectStore
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.data.WorkflowAutomationPreferences
 import com.skydown.android.ui.SkydownApp
@@ -34,7 +35,7 @@ class MainActivity : ComponentActivity() {
         AiVisualReferenceLibraryPreferences.initialize(applicationContext)
         WorkflowAutomationPreferences.initialize(applicationContext)
         SpotifyAuthManager.initialize(applicationContext)
-        handleSpotifyRedirect(intent?.data)
+        handleIncomingLink(intent?.data)
         volumeControlStream = AudioManager.STREAM_MUSIC
         lifecycleScope.launch {
             AppFeatureFlagsStore.refresh()
@@ -60,10 +61,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        handleSpotifyRedirect(intent.data)
+        handleIncomingLink(intent.data)
     }
 
-    private fun handleSpotifyRedirect(uri: android.net.Uri?) {
+    private fun handleIncomingLink(uri: android.net.Uri?) {
+        if (CheckoutRedirectStore.handle(uri)) {
+            return
+        }
+
         if (uri?.scheme == "com.skydown.android" && uri.host == "spotify-auth") {
             lifecycleScope.launch {
                 SpotifyAuthManager.handleRedirect(uri)

@@ -38,7 +38,9 @@ class AndroidOrderRepository(
                         shippingZone = data["shippingZone"] as? String,
                         shippingCountryCode = data["shippingCountryCode"] as? String,
                         paymentMethod = (data["paymentMethod"] as? String)?.takeIf { it.isNotBlank() },
+                        paymentProvider = (data["paymentProvider"] as? String)?.takeIf { it.isNotBlank() },
                         paymentStatus = data["paymentStatus"] as? String,
+                        paymentReference = (data["paymentReference"] as? String)?.takeIf { it.isNotBlank() },
                         subtotalAmount = (data["subtotalAmount"] as? Number)?.toDouble(),
                         shippingAmount = (data["shippingAmount"] as? Number)?.toDouble(),
                         shippingPriceCharged = (data["shippingPriceCharged"] as? Number)?.toDouble(),
@@ -50,6 +52,9 @@ class AndroidOrderRepository(
                         shopifyOrderId = data["shopifyOrderId"] as? String,
                         shopifyOrderName = data["shopifyOrderName"] as? String,
                         shopifySyncStatus = data["shopifySyncStatus"] as? String,
+                        stripeCheckoutSessionId = (data["stripeCheckoutSessionId"] as? String)?.takeIf { it.isNotBlank() },
+                        stripePaymentIntentId = (data["stripePaymentIntentId"] as? String)?.takeIf { it.isNotBlank() },
+                        stripeCheckoutStatus = (data["stripeCheckoutStatus"] as? String)?.takeIf { it.isNotBlank() },
                         message = data["message"] as? String,
                         items = rawItems.mapIndexed { index, item ->
                             OrderItem(

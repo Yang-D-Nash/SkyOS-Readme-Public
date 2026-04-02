@@ -54,6 +54,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.data.CheckoutRedirectStore
 import com.skydown.android.data.ShippingService
 import com.skydown.android.ui.viewmodel.CartViewModel
 import java.util.Locale
@@ -70,6 +71,7 @@ fun CartScreen(
     viewModel: CartViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val checkoutRedirectEvent by CheckoutRedirectStore.latestEvent.collectAsStateWithLifecycle()
     val appContext = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -80,6 +82,12 @@ fun CartScreen(
             delay(3_000)
             viewModel.clearMessages()
         }
+    }
+
+    LaunchedEffect(checkoutRedirectEvent) {
+        val event = checkoutRedirectEvent ?: return@LaunchedEffect
+        viewModel.handleCheckoutRedirect(event.status)
+        CheckoutRedirectStore.clear()
     }
 
     Scaffold(
@@ -389,7 +397,11 @@ fun CartScreen(
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        text = "Wir melden uns danach per E-Mail oder WhatsApp.",
+                                        text = if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                            "Stripe oeffnet danach den sicheren Live-Checkout."
+                                        } else {
+                                            "Wir melden uns danach per E-Mail oder WhatsApp."
+                                        },
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                     )
                                 }
@@ -400,9 +412,16 @@ fun CartScreen(
                                 onClick = {
                                     val orderSnapshot = uiState
                                     coroutineScope.launch {
-                                        val result = viewModel.submitOrder()
-                                        if (result.isSuccess) {
-                                            openOrderEmail(appContext, orderSnapshot)
+                                        if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                            val result = viewModel.startHostedCheckout()
+                                            result.getOrNull()?.let { session ->
+                                                openExternalUrl(appContext, session.checkoutUrl)
+                                            }
+                                        } else {
+                                            val result = viewModel.submitOrder()
+                                            if (result.isSuccess) {
+                                                openOrderEmail(appContext, orderSnapshot)
+                                            }
                                         }
                                     }
                                 },
@@ -412,7 +431,15 @@ fun CartScreen(
                                     .padding(top = 14.dp),
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text(if (uiState.isSubmitting) "Sende Bestellung..." else "Bestellung abschicken")
+                                Text(
+                                    if (uiState.isSubmitting) {
+                                        "Sende Bestellung..."
+                                    } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                        "Zum sicheren Checkout"
+                                    } else {
+                                        "Bestellung abschicken"
+                                    },
+                                )
                             }
 
                             if (uiState.items.isEmpty()) {
@@ -516,7 +543,7 @@ private fun PaymentMethodAvailabilityCard(
             )
         } else {
             Text(
-                text = "Diese Zahlarten sind aktuell fuer Kunden vorbereitet:",
+                text = "Diese Zahlarten sind aktuell aktiv:",
                 modifier = Modifier.padding(top = 8.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -532,7 +559,7 @@ private fun PaymentMethodAvailabilityCard(
                 text = if (bankTransferEnabled) {
                     "Bankdaten und genaue Anweisung folgen nach der Bestellbestaetigung direkt durch das Team."
                 } else {
-                    "Live-Zahlung kann spaeter erweitert werden. Bis dahin bleibt der Kontakt- und Freigabe-Flow in der App klar steuerbar."
+                    "Stripe und Klarna laufen als sicherer Live-Checkout. PayPal und Bankueberweisung bleiben manuell owner-geprueft."
                 },
                 modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -588,7 +615,7 @@ private fun PaymentMethodSelectionCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Zahlart waehlen")
         Text(
-            text = "Waehle die Zahlart, die fuer diese Bestellung vorbereitet werden soll.",
+            text = "Waehle die Zahlart fuer diese Bestellung.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -617,7 +644,7 @@ private fun PaymentMethodSelectionCard(
 
         if (selectedMethod == "Klarna") {
             Text(
-                text = "Klarna bleibt aktuell als vorbereiteter Checkout-Kanal sichtbar. Der echte Provider-Connect kann spaeter separat live geschaltet werden.",
+                text = "Klarna oeffnet nach dem Absenden einen sicheren Live-Checkout ueber Stripe.",
                 modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -683,7 +710,11 @@ private fun PaymentMethodDetailCard(
 
             "Stripe", "Klarna" -> {
                 Text(
-                    text = "$selectedMethod ist bereits im Checkout sichtbar, bleibt aktuell aber ein vorbereiteter Provider. Der echte Live-Connect kann spaeter separat freigeschaltet werden.",
+                    text = if (selectedMethod == "Klarna") {
+                        "Klarna startet nach dem Absenden einen sicheren Live-Checkout ueber Stripe und bestaetigt die Zahlung automatisch im Backend."
+                    } else {
+                        "Stripe startet nach dem Absenden einen sicheren Live-Checkout fuer Kartenzahlungen."
+                    },
                     modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -904,4 +935,14 @@ private fun openOrderEmail(
         subject = subject,
         body = body,
     )
+}
+
+private fun openExternalUrl(
+    context: Context,
+    url: String,
+) {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(intent)
 }

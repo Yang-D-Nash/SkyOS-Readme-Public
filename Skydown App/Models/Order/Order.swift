@@ -19,7 +19,9 @@ struct Order: Codable, Identifiable {
     var shippingZone: String?
     var shippingCountryCode: String?
     var paymentMethod: String?
+    var paymentProvider: String?
     var paymentStatus: String?
+    var paymentReference: String?
     var subtotalAmount: Double?
     var shippingAmount: Double?
     var shippingPriceCharged: Double?
@@ -31,6 +33,9 @@ struct Order: Codable, Identifiable {
     var shopifyOrderId: String?
     var shopifyOrderName: String?
     var shopifySyncStatus: String?
+    var stripeCheckoutSessionId: String?
+    var stripePaymentIntentId: String?
+    var stripeCheckoutStatus: String?
     var message: String?
     var items: [OrderItem]
     var isCompleted: Bool

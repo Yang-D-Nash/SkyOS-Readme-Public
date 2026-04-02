@@ -18,13 +18,16 @@ class CartViewModel: ObservableObject {
 
     private let authManager: AuthManager
     private let orderService: OrderServicing
+    private let hostedCheckoutService: HostedCheckoutServicing
 
     init(
         authManager: AuthManager,
-        orderService: OrderServicing = FirebaseOrderService()
+        orderService: OrderServicing = FirebaseOrderService(),
+        hostedCheckoutService: HostedCheckoutServicing = FirebaseHostedCheckoutService()
     ) {
         self.authManager = authManager
         self.orderService = orderService
+        self.hostedCheckoutService = hostedCheckoutService
         self.userEmail = authManager.userSession?.email ?? ""
 
         Task { [weak self] in
@@ -168,6 +171,106 @@ class CartViewModel: ObservableObject {
             print("Dev Fehler submitCartAsOrder:", error.localizedDescription)
             showUserToast("Fehler beim Absenden der Bestellung.", style: .error)
             return false
+        }
+    }
+
+    func startHostedCheckout(
+        customerName: String,
+        customerEmail: String,
+        whatsApp: String,
+        shippingAddress: String,
+        message: String,
+        paymentMethod: String,
+        subtotalAmount: Double,
+        shippingAmount: Double,
+        taxRate: Double,
+        taxAmount: Double,
+        totalAmount: Double,
+        isCheckoutAvailable: Bool,
+        platform: String = "ios"
+    ) async -> HostedCheckoutSession? {
+        guard !items.isEmpty else {
+            showUserToast("Warenkorb ist leer.", style: .error)
+            return nil
+        }
+        guard isCheckoutAvailable || authManager.userSession?.isPlatformOwner == true else {
+            showUserToast("Der Merchandise-Store ist gerade pausiert.", style: .error)
+            return nil
+        }
+        guard let email = authManager.userSession?.email else {
+            showUserToast("Benutzer nicht angemeldet.", style: .error)
+            return nil
+        }
+        if hasMixedFulfillmentProviders {
+            showUserToast("Bitte trenne Shopify-Merch und interne Legacy-Artikel in zwei Bestellungen.", style: .error)
+            return nil
+        }
+
+        let countryCode: String
+        do {
+            countryCode = try ShippingService.resolveCountryCode(from: shippingAddressCountryName(from: shippingAddress))
+        } catch {
+            showUserToast(error.localizedDescription, style: .error)
+            return nil
+        }
+
+        let subtotal = items.reduce(0.0) { partialResult, cartItem in
+            partialResult + cartItem.effectiveUnitPrice * Double(cartItem.quantity)
+        }
+
+        let shippingQuote: ShippingQuote
+        do {
+            shippingQuote = try ShippingService.calculateShippingPrice(
+                settings: CommerceSettingsStore.shared.settings.shipping,
+                countryCode: countryCode,
+                items: items,
+                subtotal: subtotal
+            )
+        } catch {
+            showUserToast(error.localizedDescription, style: .error)
+            return nil
+        }
+
+        do {
+            let paymentLine = paymentMethod
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .takeIfNotBlank()
+                .map { "Gewuenschte Zahlart: \($0)\n\n" }
+                ?? ""
+            guard abs(subtotalAmount - subtotal) < 0.01,
+                  abs(shippingAmount - shippingQuote.price) < 0.01,
+                  abs(totalAmount - (subtotal + shippingQuote.price)) < 0.01 else {
+                showUserToast("Die Bestellsumme ist nicht mehr aktuell. Bitte pruefe den Warenkorb noch einmal.", style: .error)
+                return nil
+            }
+
+            let session = try await hostedCheckoutService.startCheckout(
+                userEmail: email,
+                customerName: customerName,
+                customerEmail: customerEmail,
+                whatsApp: whatsApp,
+                shippingAddress: shippingAddress,
+                shippingAddressData: parseShippingAddressData(from: shippingAddress, countryCode: countryCode),
+                shippingZone: shippingQuote.zone.rawValue,
+                shippingCountryCode: countryCode,
+                message: paymentLine + message,
+                items: items,
+                paymentMethod: paymentMethod,
+                subtotalAmount: subtotal,
+                shippingAmount: shippingQuote.price,
+                taxRate: taxRate,
+                taxAmount: taxAmount,
+                totalAmount: subtotal + shippingQuote.price,
+                fulfillmentProvider: deriveFulfillmentProvider(),
+                platform: platform
+            )
+            clearCart()
+            showUserToast("Checkout geoeffnet. Zahlung jetzt sicher abschliessen.", style: .success)
+            return session
+        } catch {
+            print("Dev Fehler startHostedCheckout:", error.localizedDescription)
+            showUserToast("Stripe Checkout konnte nicht gestartet werden.", style: .error)
+            return nil
         }
     }
 

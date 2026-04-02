@@ -53,6 +53,12 @@
                 <data
                     android:host="spotify-auth"
                     android:scheme="com.skydown.android" />
+                <data
+                    android:host="checkout-success"
+                    android:scheme="com.skydown.android" />
+                <data
+                    android:host="checkout-cancel"
+                    android:scheme="com.skydown.android" />
             </intent-filter>
         </activity>
     </application>

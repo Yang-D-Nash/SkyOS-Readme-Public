@@ -227,12 +227,18 @@ private fun OrderCard(
     val whatsApp = order.whatsApp?.takeIf { it.isNotBlank() }
     val shippingAddress = order.shippingAddress?.takeIf { it.isNotBlank() }
     val paymentMethod = order.paymentMethod?.takeIf { it.isNotBlank() }
+    val paymentProvider = order.paymentProvider?.takeIf { it.isNotBlank() }
     val paymentStatus = order.paymentStatus?.takeIf { it.isNotBlank() }
+    val paymentReference = order.paymentReference?.takeIf { it.isNotBlank() }
     val shippingZone = order.shippingZone?.takeIf { it.isNotBlank() }
     val fulfillmentProvider = order.fulfillmentProvider?.takeIf { it.isNotBlank() }
     val fulfillmentStatus = order.fulfillmentStatus?.takeIf { it.isNotBlank() }
+    val shopifyOrderId = order.shopifyOrderId?.takeIf { it.isNotBlank() }
     val shopifyOrderName = order.shopifyOrderName?.takeIf { it.isNotBlank() }
     val shopifySyncStatus = order.shopifySyncStatus?.takeIf { it.isNotBlank() }
+    val stripeCheckoutStatus = order.stripeCheckoutStatus?.takeIf { it.isNotBlank() }
+    val stripeCheckoutSessionId = order.stripeCheckoutSessionId?.takeIf { it.isNotBlank() }
+    val stripePaymentIntentId = order.stripePaymentIntentId?.takeIf { it.isNotBlank() }
     val message = order.message?.takeIf { it.isNotBlank() }
     val totalItems = order.items.sumOf { it.quantity }
 
@@ -313,9 +319,23 @@ private fun OrderCard(
                 )
             }
 
+            paymentProvider?.let { value ->
+                OrderMetaRow(
+                    label = "Provider",
+                    value = value,
+                )
+            }
+
             paymentStatus?.let { value ->
                 OrderMetaRow(
                     label = "Zahlstatus",
+                    value = value,
+                )
+            }
+
+            paymentReference?.let { value ->
+                OrderMetaRow(
+                    label = "Zahlreferenz",
                     value = value,
                 )
             }
@@ -348,9 +368,37 @@ private fun OrderCard(
                 )
             }
 
+            shopifyOrderId?.let { value ->
+                OrderMetaRow(
+                    label = "Shopify ID",
+                    value = value,
+                )
+            }
+
             shopifySyncStatus?.let { value ->
                 OrderMetaRow(
                     label = "Shopify Sync",
+                    value = value,
+                )
+            }
+
+            stripeCheckoutStatus?.let { value ->
+                OrderMetaRow(
+                    label = "Stripe Checkout",
+                    value = value,
+                )
+            }
+
+            stripeCheckoutSessionId?.let { value ->
+                OrderMetaRow(
+                    label = "Stripe Session",
+                    value = value,
+                )
+            }
+
+            stripePaymentIntentId?.let { value ->
+                OrderMetaRow(
+                    label = "Stripe Payment",
                     value = value,
                 )
             }

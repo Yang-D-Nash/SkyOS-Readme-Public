@@ -9,6 +9,7 @@ final class AppServices: ObservableObject {
     let merchandiseService: MerchandiseServicing
     let orderService: OrderServicing
     let musicService: MusicServicing
+    let hostedCheckoutRedirectStore: HostedCheckoutRedirectStore
 
     let authManager: AuthManager
     let cartViewModel: CartViewModel
@@ -28,6 +29,7 @@ final class AppServices: ObservableObject {
         self.merchandiseService = merchandiseService
         self.orderService = orderService
         self.musicService = musicService
+        self.hostedCheckoutRedirectStore = HostedCheckoutRedirectStore()
 
         let authManager = AuthManager(authService: authService)
         self.authManager = authManager

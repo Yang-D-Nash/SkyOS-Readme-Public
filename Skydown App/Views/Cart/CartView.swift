@@ -13,8 +13,10 @@ import MessageUI
 struct CartView: View {
     @EnvironmentObject var cartVM: CartViewModel
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject private var hostedCheckoutRedirectStore: HostedCheckoutRedirectStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
     @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
@@ -69,6 +71,10 @@ struct CartView: View {
         isCheckoutAvailable &&
         isFormValid &&
         (availableCheckoutMethods.isEmpty || !selectedPaymentMethod.isEmpty)
+    }
+
+    private var isHostedCheckoutSelection: Bool {
+        ["Stripe", "Klarna"].contains(selectedPaymentMethod)
     }
 
     private var totalPrice: Double {
@@ -342,6 +348,8 @@ struct CartView: View {
                     CartSubmitBar(
                         colorScheme: colorScheme,
                         totalPrice: pricingSummary.total,
+                        title: isHostedCheckoutSelection ? "Sicherer Checkout" : "Bestellung abschicken",
+                        buttonTitle: isHostedCheckoutSelection ? "Zum Checkout" : "Senden",
                         isFormValid: canSubmitOrder,
                         isSubmitting: isSubmitting
                     ) {
@@ -356,6 +364,18 @@ struct CartView: View {
             .onReceive(paymentMethodSettingsStore.$settings) { settings in
                 syncSelectedPaymentMethod(with: settings.checkoutMethodLabels)
             }
+            .onChange(of: hostedCheckoutRedirectStore.latestEvent) { _, event in
+                guard let event else { return }
+
+                switch event.status {
+                case .success:
+                    cartVM.showUserToast("Checkout abgeschlossen. Zahlung wird jetzt synchronisiert.", style: .success)
+                case .cancel:
+                    cartVM.showUserToast("Checkout abgebrochen. Die Bestellung bleibt unbezahlt.", style: .info)
+                }
+
+                hostedCheckoutRedirectStore.clear()
+            }
         }
         .sheet(isPresented: $showingLoginSheet) {
             LoginView()
@@ -369,7 +389,7 @@ struct CartView: View {
             )
         }
         .confirmationDialog(
-            "Bestellung abschicken",
+            isHostedCheckoutSelection ? "Zum sicheren Checkout" : "Bestellung abschicken",
             isPresented: $showConfirmationDialog,
             titleVisibility: .visible
         ) {
@@ -380,7 +400,11 @@ struct CartView: View {
             }
             Button("Abbrechen", role: .cancel) {}
         } message: {
-            Text("Sie werden in den nächsten Minuten per E-Mail oder WhatsApp kontaktiert.")
+            Text(
+                isHostedCheckoutSelection
+                    ? "Du wirst jetzt zu Stripe Checkout weitergeleitet und schliesst die Zahlung dort sicher ab."
+                    : "Sie werden in den naechsten Minuten per E-Mail oder WhatsApp kontaktiert."
+            )
         }
         .fancyToast(isPresented: $cartVM.showToast,
                     message: cartVM.toastMessage,
@@ -390,7 +414,6 @@ struct CartView: View {
     private func submitOrderAsync() async {
         guard !isSubmitting else { return }
         isSubmitting = true
-        let draft = makeOrderMailDraft(items: cartVM.items)
 
         guard availableCheckoutMethods.isEmpty || !selectedPaymentMethod.isEmpty else {
             cartVM.showUserToast("Bitte waehle zuerst eine Zahlart aus.", style: .error)
@@ -404,6 +427,30 @@ struct CartView: View {
         }
 
         let shippingAddress = composedShippingAddress
+
+        if ["Stripe", "Klarna"].contains(selectedPaymentMethod) {
+            if let session = await cartVM.startHostedCheckout(
+                customerName: name,
+                customerEmail: email,
+                whatsApp: whatsApp,
+                shippingAddress: shippingAddress,
+                message: message,
+                paymentMethod: selectedPaymentMethod,
+                subtotalAmount: pricingSummary.subtotal,
+                shippingAmount: pricingSummary.shipping,
+                taxRate: pricingSummary.taxRate,
+                taxAmount: pricingSummary.includedTax,
+                totalAmount: pricingSummary.total,
+                isCheckoutAvailable: isCheckoutAvailable
+            ) {
+                openURL(session.checkoutURL)
+            }
+
+            isSubmitting = false
+            return
+        }
+
+        let draft = makeOrderMailDraft(items: cartVM.items)
 
         let didSubmit = await cartVM.submitCartAsOrder(
             customerName: name,
@@ -553,7 +600,7 @@ private struct PaymentMethodsCheckoutInfo: View {
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else {
-                Text("Diese Zahlarten sind aktuell fuer Kunden vorbereitet:")
+                Text("Diese Zahlarten sind aktuell aktiv:")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -568,7 +615,7 @@ private struct PaymentMethodsCheckoutInfo: View {
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else {
-                    Text("Live-Zahlung kann spaeter erweitert werden. Bis dahin bleibt der Kontakt- und Freigabe-Flow in der App klar steuerbar.")
+                    Text("Stripe und Klarna laufen als sicherer Live-Checkout. PayPal und Bankueberweisung bleiben manuell owner-geprueft.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -646,7 +693,7 @@ private struct PaymentMethodSelectionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Waehle die Zahlart, die fuer diese Bestellung vorbereitet werden soll.")
+            Text("Waehle die Zahlart fuer diese Bestellung.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -697,7 +744,7 @@ private struct PaymentMethodSelectionCard: View {
             }
 
             if selectedMethod == "Klarna" {
-                Text("Klarna bleibt aktuell als vorbereiteter Checkout-Kanal sichtbar. Der echte Provider-Connect kann spaeter separat live geschaltet werden.")
+                Text("Klarna oeffnet nach dem Absenden einen sicheren Live-Checkout ueber Stripe.")
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -749,8 +796,13 @@ private struct SelectedPaymentMethodInfoCard: View {
                     }
                 }
 
-            case "Stripe", "Klarna":
-                Text("\(selectedMethod) ist bereits im Checkout sichtbar, bleibt aktuell aber ein vorbereiteter Provider. Der echte Live-Connect kann spaeter separat freigeschaltet werden.")
+            case "Stripe":
+                Text("Stripe startet nach dem Absenden einen sicheren Live-Checkout fuer Kartenzahlungen.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            case "Klarna":
+                Text("Klarna startet nach dem Absenden einen sicheren Live-Checkout ueber Stripe und bestaetigt die Zahlung automatisch im Backend.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -967,6 +1019,8 @@ private struct CartInputField: View {
 private struct CartSubmitBar: View {
     let colorScheme: ColorScheme
     let totalPrice: Double
+    let title: String
+    let buttonTitle: String
     let isFormValid: Bool
     let isSubmitting: Bool
     let onSubmit: () -> Void
@@ -978,7 +1032,7 @@ private struct CartSubmitBar: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Bestellung abschicken")
+                    Text(title)
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
                     Text(totalPrice > 0 ? String(format: "EUR %.2f gesamt", totalPrice) : "Warenkorb aktuell leer")
@@ -994,7 +1048,7 @@ private struct CartSubmitBar: View {
                             .tint(.white)
                             .frame(minWidth: 110)
                     } else {
-                        Text("Senden")
+                        Text(buttonTitle)
                             .font(.headline)
                             .frame(minWidth: 110)
                     }

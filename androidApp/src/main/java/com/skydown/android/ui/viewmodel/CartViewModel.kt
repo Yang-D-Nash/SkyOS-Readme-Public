@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppCartStore
+import com.skydown.android.data.HostedCheckoutSession
 import com.skydown.android.data.ShippingService
 import com.skydown.android.ui.model.CartUiState
 import com.google.firebase.firestore.ListenerRegistration
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 
 class CartViewModel : ViewModel() {
     private val orderService = AppContainer.orderService
+    private val hostedMerchCheckoutClient = AppContainer.hostedMerchCheckoutClient
     private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
     private val merchStoreStatusRepository = AppContainer.merchStoreStatusRepository
     private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
@@ -210,35 +212,14 @@ class CartViewModel : ViewModel() {
             }
             return Result.failure(error)
         }
-        val result = orderService.submitOrder(
-            OrderSubmission(
-                userEmail = state.email,
-                items = state.items,
-                customerName = state.name,
-                customerEmail = state.email,
-                whatsApp = state.whatsApp,
-                shippingAddress = shippingAddress,
-                shippingAddressData = ShippingAddressData(
-                    address1 = state.shippingStreet.trim(),
-                    address2 = state.shippingAddressExtra.trim(),
-                    city = state.shippingCity.trim(),
-                    zip = state.shippingPostalCode.trim(),
-                    countryCode = countryCode,
-                    countryName = state.shippingCountry.trim(),
-                ),
-                shippingZone = pricing.zone.name,
-                shippingCountryCode = countryCode,
-                message = paymentLine + state.message,
-                paymentMethod = state.selectedPaymentMethod,
-                paymentStatus = "pending",
-                subtotalAmount = pricing.subtotal,
-                shippingAmount = pricing.shipping,
-                taxRate = pricing.taxRate,
-                taxAmount = pricing.includedTax,
-                totalAmount = pricing.total,
-                fulfillmentProvider = deriveFulfillmentProvider(state.items),
-            ),
+        val submission = buildOrderSubmission(
+            state = state,
+            shippingAddress = shippingAddress,
+            countryCode = countryCode,
+            pricing = pricing,
+            paymentLine = paymentLine,
         )
+        val result = orderService.submitOrder(submission)
         if (result.isSuccess) {
             AppCartStore.clear()
         }
@@ -256,6 +237,107 @@ class CartViewModel : ViewModel() {
             )
         }
         return result.map { }
+    }
+
+    suspend fun startHostedCheckout(): Result<HostedCheckoutSession> {
+        val state = _uiState.value
+        if (!state.isStoreOpen && !state.isAdmin) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Der Merchandise-Store ist gerade pausiert.",
+                    successMessage = null,
+                )
+            }
+            return Result.failure(IllegalStateException("Merchandise-Store pausiert."))
+        }
+        val mixedFulfillmentError = mixedFulfillmentError(state)
+        if (mixedFulfillmentError != null) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = mixedFulfillmentError,
+                    successMessage = null,
+                )
+            }
+            return Result.failure(IllegalStateException(mixedFulfillmentError))
+        }
+        _uiState.update { it.copy(isSubmitting = true, errorMessage = null, successMessage = null) }
+        val shippingAddress = composeShippingAddress(state)
+        val pricing = pricingSummary(state).getOrElse { error ->
+            _uiState.update {
+                it.copy(
+                    isSubmitting = false,
+                    errorMessage = error.message,
+                    successMessage = null,
+                )
+            }
+            return Result.failure(error)
+        }
+        val paymentMethod = state.selectedPaymentMethod.takeIf { it.isNotBlank() }.orEmpty()
+        if (paymentMethod !in setOf("Stripe", "Klarna")) {
+            _uiState.update {
+                it.copy(
+                    isSubmitting = false,
+                    errorMessage = "Hosted Checkout ist nur fuer Stripe oder Klarna verfuegbar.",
+                    successMessage = null,
+                )
+            }
+            return Result.failure(IllegalArgumentException("Hosted Checkout nicht verfuegbar."))
+        }
+        val paymentLine = "Gewuenschte Zahlart: $paymentMethod\n\n"
+        val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
+            _uiState.update {
+                it.copy(
+                    isSubmitting = false,
+                    errorMessage = error.message,
+                    successMessage = null,
+                )
+            }
+            return Result.failure(error)
+        }
+        val submission = buildOrderSubmission(
+            state = state,
+            shippingAddress = shippingAddress,
+            countryCode = countryCode,
+            pricing = pricing,
+            paymentLine = paymentLine,
+        )
+        val result = hostedMerchCheckoutClient.startCheckout(
+            submission = submission,
+            paymentMethod = paymentMethod,
+            platform = "android",
+        )
+        if (result.isSuccess) {
+            AppCartStore.clear()
+        }
+        _uiState.update {
+            it.copy(
+                isSubmitting = false,
+                items = if (result.isSuccess) emptyList() else it.items,
+                selectedPaymentMethod = if (result.isSuccess) {
+                    it.paymentMethods.checkoutMethodLabels.firstOrNull().orEmpty()
+                } else {
+                    it.selectedPaymentMethod
+                },
+                errorMessage = result.exceptionOrNull()?.message,
+                successMessage = if (result.isSuccess) "Checkout geoeffnet." else null,
+            )
+        }
+        return result
+    }
+
+    fun handleCheckoutRedirect(status: com.skydown.android.data.CheckoutRedirectStatus) {
+        _uiState.update {
+            it.copy(
+                errorMessage = when (status) {
+                    com.skydown.android.data.CheckoutRedirectStatus.Cancel -> "Checkout abgebrochen. Die Bestellung bleibt unbezahlt."
+                    com.skydown.android.data.CheckoutRedirectStatus.Success -> null
+                },
+                successMessage = when (status) {
+                    com.skydown.android.data.CheckoutRedirectStatus.Success -> "Checkout abgeschlossen. Zahlung wird jetzt synchronisiert."
+                    com.skydown.android.data.CheckoutRedirectStatus.Cancel -> null
+                },
+            )
+        }
     }
 
     fun clearMessages() {
@@ -315,6 +397,42 @@ class CartViewModel : ViewModel() {
 
     private fun deriveFulfillmentProvider(items: List<com.skydown.shared.model.CartItem>): String {
         return if (items.any { !it.shopifyVariantId.isNullOrBlank() }) "podpartner" else "manual"
+    }
+
+    private fun buildOrderSubmission(
+        state: CartUiState,
+        shippingAddress: String,
+        countryCode: String,
+        pricing: CartPricingSummary,
+        paymentLine: String,
+    ): OrderSubmission {
+        return OrderSubmission(
+            userEmail = state.email,
+            items = state.items,
+            customerName = state.name,
+            customerEmail = state.email,
+            whatsApp = state.whatsApp,
+            shippingAddress = shippingAddress,
+            shippingAddressData = ShippingAddressData(
+                address1 = state.shippingStreet.trim(),
+                address2 = state.shippingAddressExtra.trim(),
+                city = state.shippingCity.trim(),
+                zip = state.shippingPostalCode.trim(),
+                countryCode = countryCode,
+                countryName = state.shippingCountry.trim(),
+            ),
+            shippingZone = pricing.zone.name,
+            shippingCountryCode = countryCode,
+            message = paymentLine + state.message,
+            paymentMethod = state.selectedPaymentMethod,
+            paymentStatus = "pending",
+            subtotalAmount = pricing.subtotal,
+            shippingAmount = pricing.shipping,
+            taxRate = pricing.taxRate,
+            taxAmount = pricing.includedTax,
+            totalAmount = pricing.total,
+            fulfillmentProvider = deriveFulfillmentProvider(state.items),
+        )
     }
 
     private fun mixedFulfillmentError(state: CartUiState): String? {

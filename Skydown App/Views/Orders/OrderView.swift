@@ -230,8 +230,16 @@ private struct OrdersOrderCard: View {
         return paymentMethod
     }
 
+    private var paymentProvider: String? {
+        order.paymentProvider?.takeIfNotBlank()
+    }
+
     private var paymentStatus: String? {
         order.paymentStatus?.takeIfNotBlank()
+    }
+
+    private var paymentReference: String? {
+        order.paymentReference?.takeIfNotBlank()
     }
 
     private var shippingZone: String? {
@@ -250,8 +258,24 @@ private struct OrdersOrderCard: View {
         order.shopifyOrderName?.takeIfNotBlank()
     }
 
+    private var shopifyOrderId: String? {
+        order.shopifyOrderId?.takeIfNotBlank()
+    }
+
     private var shopifySyncStatus: String? {
         order.shopifySyncStatus?.takeIfNotBlank()
+    }
+
+    private var stripeCheckoutStatus: String? {
+        order.stripeCheckoutStatus?.takeIfNotBlank()
+    }
+
+    private var stripeCheckoutSessionId: String? {
+        order.stripeCheckoutSessionId?.takeIfNotBlank()
+    }
+
+    private var stripePaymentIntentId: String? {
+        order.stripePaymentIntentId?.takeIfNotBlank()
     }
 
     private var totalItems: Int {
@@ -314,10 +338,26 @@ private struct OrdersOrderCard: View {
                     )
                 }
 
+                if let paymentProvider {
+                    OrderMetaBlock(
+                        label: "Provider",
+                        value: paymentProvider,
+                        colorScheme: colorScheme
+                    )
+                }
+
                 if let paymentStatus {
                     OrderMetaBlock(
                         label: "Zahlstatus",
                         value: paymentStatus,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let paymentReference {
+                    OrderMetaBlock(
+                        label: "Zahlreferenz",
+                        value: paymentReference,
                         colorScheme: colorScheme
                     )
                 }
@@ -354,10 +394,42 @@ private struct OrdersOrderCard: View {
                     )
                 }
 
+                if let shopifyOrderId {
+                    OrderMetaBlock(
+                        label: "Shopify ID",
+                        value: shopifyOrderId,
+                        colorScheme: colorScheme
+                    )
+                }
+
                 if let shopifySyncStatus {
                     OrderMetaBlock(
                         label: "Shopify Sync",
                         value: shopifySyncStatus,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let stripeCheckoutStatus {
+                    OrderMetaBlock(
+                        label: "Stripe Checkout",
+                        value: stripeCheckoutStatus,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let stripeCheckoutSessionId {
+                    OrderMetaBlock(
+                        label: "Stripe Session",
+                        value: stripeCheckoutSessionId,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if let stripePaymentIntentId {
+                    OrderMetaBlock(
+                        label: "Stripe Payment",
+                        value: stripePaymentIntentId,
                         colorScheme: colorScheme
                     )
                 }
