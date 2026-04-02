@@ -62,6 +62,13 @@ final class FirebaseUserProfileService: UserProfileServicing {
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    let nsError = error as NSError
+                    let firestoreCode = FirestoreErrorCode.Code(rawValue: nsError.code)
+                    if nsError.domain == FirestoreErrorDomain,
+                       firestoreCode == .permissionDenied {
+                        onChange(.success([]))
+                        return
+                    }
                     onChange(.failure(error))
                     return
                 }

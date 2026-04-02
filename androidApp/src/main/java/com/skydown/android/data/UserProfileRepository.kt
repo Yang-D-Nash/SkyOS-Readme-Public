@@ -4,6 +4,7 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
@@ -36,6 +37,10 @@ class UserProfileRepository(
             .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        onResult(Result.success(emptyList()))
+                        return@addSnapshotListener
+                    }
                     onResult(Result.failure(error))
                     return@addSnapshotListener
                 }

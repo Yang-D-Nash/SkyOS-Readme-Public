@@ -46,8 +46,7 @@ struct YouTubeEmbedPlayerView: View {
 }
 
 private struct YouTubePlayerSource {
-    let html: String
-    let baseURL: URL
+    let embedURL: URL
     let externalURL: URL
     let embedKey: String
 }
@@ -82,7 +81,7 @@ private struct YouTubeEmbedWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         if context.coordinator.lastEmbedKey != source.embedKey {
             context.coordinator.lastEmbedKey = source.embedKey
-            webView.loadHTMLString(source.html, baseURL: source.baseURL)
+            webView.load(URLRequest(url: source.embedURL))
         }
     }
 }
@@ -98,49 +97,13 @@ private func youtubePlayerSource(from rawURL: String) -> YouTubePlayerSource? {
 
     let externalURL = URL(string: "https://www.youtube.com/watch?v=\(videoID)") ?? normalizedURL
     guard let embedURL = URL(
-        string: "https://www.youtube-nocookie.com/embed/\(videoID)?playsinline=1&rel=0&modestbranding=1&controls=1"
-    ),
-    let baseURL = URL(string: "https://www.youtube.com") else {
+        string: "https://www.youtube.com/embed/\(videoID)?playsinline=1&rel=0&modestbranding=1&controls=1"
+    ) else {
         return nil
     }
-    let html = """
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-      <style>
-        html, body {
-          margin: 0;
-          padding: 0;
-          width: 100%;
-          height: 100%;
-          background: #000;
-          overflow: hidden;
-        }
-        iframe {
-          width: 100%;
-          height: 100%;
-          border: 0;
-          background: #000;
-        }
-      </style>
-    </head>
-    <body>
-      <iframe
-        src="\(embedURL.absoluteString)"
-        title="YouTube video player"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        referrerpolicy="origin"
-        allowfullscreen>
-      </iframe>
-    </body>
-    </html>
-    """
 
     return YouTubePlayerSource(
-        html: html,
-        baseURL: baseURL,
+        embedURL: embedURL,
         externalURL: externalURL,
         embedKey: videoID
     )
