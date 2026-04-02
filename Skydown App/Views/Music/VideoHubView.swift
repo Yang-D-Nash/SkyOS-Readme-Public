@@ -985,13 +985,13 @@ struct ProducedWithArtistRow: View {
                 endPoint: .bottom
             )
 
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top, spacing: 10) {
                     Text(artist.role.uppercased())
                         .font(.caption2.weight(.bold))
                         .foregroundColor(.white.opacity(0.94))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
                         .background(.black.opacity(0.34), in: Capsule())
 
                     Spacer(minLength: 0)
@@ -1000,25 +1000,25 @@ struct ProducedWithArtistRow: View {
                         Text(artist.vibe)
                             .font(.caption.weight(.bold))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 7)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
                             .background(AppColors.accent(for: colorScheme).opacity(0.72), in: Capsule())
                     }
                 }
 
-                Spacer(minLength: 20)
+                Spacer(minLength: 8)
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(artist.name)
-                        .font(.title3.weight(.bold))
+                        .font(.subheadline.weight(.bold))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
 
                     if !artist.highlight.isEmpty {
                         Text(artist.highlight)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.92))
-                            .lineLimit(3)
+                            .lineLimit(1)
                             .shadow(color: .black.opacity(0.30), radius: 10, y: 4)
                     }
                 }
@@ -1076,10 +1076,10 @@ struct ProducedWithArtistRow: View {
                     }
                 }
             }
-            .padding(18)
+            .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 212)
+        .frame(minHeight: 148)
         .background(
             LinearGradient(
                 colors: [
@@ -1157,9 +1157,9 @@ private struct SocialLinkButton<Background: View>: View {
     var body: some View {
         Link(destination: destination) {
             Image(systemName: systemImage)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundColor(foregroundColor)
-                .frame(width: 40, height: 40)
+                .frame(width: 34, height: 34)
                 .background(background)
                 .clipShape(Circle())
                 .overlay(

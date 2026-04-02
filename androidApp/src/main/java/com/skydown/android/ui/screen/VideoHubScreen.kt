@@ -803,7 +803,7 @@ private fun ProducedWithArtistRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(228.dp)
+            .height(156.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(
@@ -861,8 +861,8 @@ private fun ProducedWithArtistRow(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -872,7 +872,7 @@ private fun ProducedWithArtistRow(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
                         .background(Color.Black.copy(alpha = 0.32f))
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
                     Text(
                         text = artist.role.uppercase(),
@@ -889,7 +889,7 @@ private fun ProducedWithArtistRow(
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.78f))
-                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                            .padding(horizontal = 8.dp, vertical = 5.dp),
                     ) {
                         Text(
                             text = artist.vibe,
@@ -905,7 +905,7 @@ private fun ProducedWithArtistRow(
 
             Text(
                 text = artist.name,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
                 color = Color.White,
             )
@@ -913,9 +913,9 @@ private fun ProducedWithArtistRow(
             if (artist.highlight.isNotBlank()) {
                 Text(
                     text = artist.highlight,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.90f),
-                    maxLines = 3,
+                    maxLines = 1,
                 )
             }
 
@@ -976,7 +976,7 @@ private fun SocialActionChip(
 
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(34.dp)
             .clip(CircleShape)
             .background(gradient)
             .skydownSheen(alpha = 0.14f)
@@ -993,7 +993,7 @@ private fun SocialActionChip(
             imageVector = icon,
             contentDescription = title,
             tint = Color.White,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(15.dp),
         )
     }
 }
