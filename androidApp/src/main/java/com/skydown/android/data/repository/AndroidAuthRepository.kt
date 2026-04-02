@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.FirebaseFunctions
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.ProfileUpdateInput
@@ -329,8 +330,17 @@ class AndroidAuthRepository(
     }
 
     private suspend fun syncSessionClaims(authUser: FirebaseUser) {
-        functions.getHttpsCallable("syncCurrentUserClaims").call(emptyMap<String, Any>()).await()
-        refreshAuthToken(authUser)
+        try {
+            functions.getHttpsCallable("syncCurrentUserClaims").call(emptyMap<String, Any>()).await()
+            refreshAuthToken(authUser)
+        } catch (error: FirebaseFunctionsException) {
+            if (error.code == FirebaseFunctionsException.Code.NOT_FOUND ||
+                error.code == FirebaseFunctionsException.Code.UNIMPLEMENTED
+            ) {
+                return
+            }
+            throw error
+        }
     }
 
     private suspend fun ensureRegistrationsOpen() {

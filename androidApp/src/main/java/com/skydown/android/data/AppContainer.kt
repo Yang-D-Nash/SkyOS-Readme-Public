@@ -59,6 +59,7 @@ object AppContainer {
     val aiEnabled: StateFlow<Boolean> = AppFeatureFlagsStore.isAiEnabled
 
     suspend fun refreshCurrentUser() {
-        AppSessionStore.update(authService.currentUser())
+        runCatching { authService.currentUser() }
+            .onSuccess(AppSessionStore::update)
     }
 }

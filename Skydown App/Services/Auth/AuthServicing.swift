@@ -497,10 +497,20 @@ final class FirebaseAuthService: AuthServicing {
     }
 
     private func syncSessionClaims(for authUser: FirebaseAuth.User) async throws {
-        _ = try await functions
-            .httpsCallable("syncCurrentUserClaims")
-            .call([:])
-        try await refreshAuthToken(for: authUser)
+        do {
+            _ = try await functions
+                .httpsCallable("syncCurrentUserClaims")
+                .call([:])
+            try await refreshAuthToken(for: authUser)
+        } catch {
+            let nsError = error as NSError
+            let functionsCode = FunctionsErrorCode(rawValue: nsError.code)
+            if nsError.domain == FunctionsErrorDomain,
+               functionsCode == .notFound || functionsCode == .unimplemented {
+                return
+            }
+            throw error
+        }
     }
 
     private func ensureRegistrationsOpen() async throws {

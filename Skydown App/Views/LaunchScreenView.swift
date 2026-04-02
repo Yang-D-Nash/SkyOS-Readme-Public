@@ -205,16 +205,16 @@ private struct LaunchLandingView: View {
                     Text("Sky²²")
                         .font(.caption.weight(.semibold))
                         .tracking(1.6)
-                        .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.78))
+                        .foregroundColor(.white.opacity(0.78))
 
                     Text("Sky²²")
                         .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundColor(AppColors.text(for: hubColorScheme))
+                        .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.34), radius: 14, y: 8)
 
                     Text("Waehle deinen Start.")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.72))
+                        .foregroundColor(.white.opacity(0.74))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(18)
@@ -223,8 +223,8 @@ private struct LaunchLandingView: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.black.opacity(0.58),
-                                    AppColors.cardBackground(for: hubColorScheme).opacity(0.68)
+                                    Color.black.opacity(0.78),
+                                    Color(red: 7/255, green: 12/255, blue: 20/255).opacity(0.92)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -233,7 +233,7 @@ private struct LaunchLandingView: View {
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(AppColors.accentHighlight(for: hubColorScheme).opacity(0.18), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
                 }
 
                 HStack(alignment: .center, spacing: 14) {
@@ -264,12 +264,12 @@ private struct LaunchLandingView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Musik, Video, Merch.")
                             .font(.title3.weight(.black))
-                            .foregroundColor(AppColors.text(for: hubColorScheme))
+                            .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.26), radius: 12, y: 6)
 
                         Text("Alles unten direkt griffbereit.")
                             .font(.footnote.weight(.medium))
-                            .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.72))
+                            .foregroundColor(.white.opacity(0.72))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -313,7 +313,7 @@ private struct LaunchLandingView: View {
 
                 Text("Unten wechselst du jederzeit.")
                     .font(.caption.weight(.medium))
-                    .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.68))
+                    .foregroundColor(.white.opacity(0.66))
                     .padding(.top, 4)
 
                 Spacer(minLength: 0)
@@ -362,22 +362,36 @@ private struct LaunchLandingButton: View {
                         Text(eyebrow.uppercased())
                             .font(.caption.weight(.semibold))
                             .tracking(1.2)
-                            .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.72))
+                            .foregroundColor(.white.opacity(0.70))
 
                         Text(title)
                             .font(.system(size: 22, weight: .black, design: .rounded))
-                            .foregroundColor(AppColors.text(for: hubColorScheme))
+                            .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.24), radius: 10, y: 4)
                     }
 
                     Text(subtitle)
                         .font(.footnote.weight(.medium))
-                        .foregroundColor(AppColors.text(for: hubColorScheme).opacity(0.70))
+                        .foregroundColor(.white.opacity(0.74))
                         .multilineTextAlignment(.leading)
                 }
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.82),
+                                Color(red: 8/255, green: 14/255, blue: 24/255).opacity(0.94),
+                                accent.opacity(0.12)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
             .overlay(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                     .fill(accent)
@@ -385,13 +399,11 @@ private struct LaunchLandingButton: View {
                     .padding(.vertical, 16)
                     .padding(.leading, 10)
             }
-            .skydownPanelSurface(
-                colorScheme: hubColorScheme,
-                accent: accent,
-                cornerRadius: 24,
-                shadowRadius: 14,
-                shadowYOffset: 8
-            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.22), radius: 14, y: 8)
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
