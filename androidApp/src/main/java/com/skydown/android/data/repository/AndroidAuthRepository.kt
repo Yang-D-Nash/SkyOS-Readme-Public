@@ -28,7 +28,7 @@ class AndroidAuthRepository(
 ) : AuthRepository {
     override suspend fun currentUser(): User? {
         val authUser = auth.currentUser ?: return null
-        return syncUserDocument(authUser)
+        return resolveCurrentUserAfterAuth(authUser)
             .also(AppSessionStore::update)
     }
 
@@ -36,7 +36,7 @@ class AndroidAuthRepository(
         return runCatching {
             val authResult = auth.signInWithEmailAndPassword(input.email, input.password).await()
             authResult.user?.let { syncSessionClaimsIfPossible(it) }
-            (currentUser() ?: error("Benutzer konnte nicht geladen werden."))
+            (authResult.user?.let { resolveCurrentUserAfterAuth(it) } ?: error("Benutzer konnte nicht geladen werden."))
                 .also(AppSessionStore::update)
         }.recoverCatching { error ->
             throw error.toReadableAuthError()
@@ -48,7 +48,7 @@ class AndroidAuthRepository(
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = auth.signInWithCredential(credential).await()
             val firebaseUser = authResult.user ?: error("Google-Benutzer konnte nicht geladen werden.")
-            syncUserDocument(firebaseUser, preferredUsername)
+            resolveCurrentUserAfterAuth(firebaseUser, preferredUsername)
                 .also(AppSessionStore::update)
         }.recoverCatching { error ->
             throw error.toReadableAuthError()
@@ -346,6 +346,17 @@ class AndroidAuthRepository(
 
     private suspend fun syncSessionClaimsIfPossible(authUser: FirebaseUser) {
         runCatching { syncSessionClaims(authUser) }
+    }
+
+    private suspend fun resolveCurrentUserAfterAuth(
+        authUser: FirebaseUser,
+        preferredUsername: String? = null,
+    ): User {
+        return runCatching {
+            syncUserDocument(authUser, preferredUsername)
+        }.getOrElse {
+            authUser.toSharedUser().copy(username = resolvedUsername(authUser, preferredUsername))
+        }
     }
 
     private suspend fun ensureRegistrationsOpen() {

@@ -15,9 +15,10 @@ internal fun FirebaseUser.toSharedUser(
     return User(
         id = uid,
         email = fallbackEmail,
-        username = displayName
+        username = (displayName
             ?.takeIf { it.isNotBlank() }
-            ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" },
+            ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" }
+        ).trim().take(32).trim().ifBlank { "Skydown User" },
         profileImageURL = null,
         whatsApp = null,
         profileTagline = null,

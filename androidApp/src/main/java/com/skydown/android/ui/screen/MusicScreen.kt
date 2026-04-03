@@ -343,6 +343,15 @@ fun MusicScreen(
                     )
                 }
 
+                if (onOpenBeatHub != null || onOpenStudio != null) {
+                    item {
+                        MusicShortcutHubCard(
+                            onOpenStudio = onOpenStudio,
+                            onOpenBeatHub = onOpenBeatHub,
+                        )
+                    }
+                }
+
                 item {
                     ArtistPagerCard(
                         artists = uiState.availableArtists,
@@ -502,6 +511,65 @@ private fun MusicInstagramHubCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MusicShortcutHubCard(
+    onOpenStudio: (() -> Unit)?,
+    onOpenBeatHub: (() -> Unit)?,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Shortcuts")
+        Text(
+            text = "Direkt zu Studio und Beats.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+
+        Column(
+            modifier = Modifier.padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            onOpenStudio?.let { openStudio ->
+                Button(
+                    onClick = openStudio,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Studio",
+                        modifier = Modifier.padding(start = 10.dp),
+                    )
+                }
+            }
+
+            onOpenBeatHub?.let { openBeatHub ->
+                OutlinedButton(
+                    onClick = openBeatHub,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.GraphicEq,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Beat Hub",
+                        modifier = Modifier.padding(start = 10.dp),
+                    )
                 }
             }
         }

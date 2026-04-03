@@ -106,7 +106,7 @@ final class FirebaseAuthService: AuthServicing {
             accessToken: result.user.accessToken.tokenString
         )
         let authResult = try await auth.signIn(with: credential)
-        try await syncUserDocument(for: authResult.user, preferredUsername: preferredUsername)
+        await syncUserDocumentIfPossible(for: authResult.user, preferredUsername: preferredUsername)
     }
 
     func register(username: String, email: String, whatsApp: String, password: String) async throws {
@@ -518,6 +518,17 @@ final class FirebaseAuthService: AuthServicing {
             try await syncSessionClaims(for: authUser)
         } catch {
             print("Dev Hinweis: Session Claims konnten nicht synchronisiert werden: \(error.localizedDescription)")
+        }
+    }
+
+    private func syncUserDocumentIfPossible(
+        for authUser: FirebaseAuth.User,
+        preferredUsername: String? = nil
+    ) async {
+        do {
+            try await syncUserDocument(for: authUser, preferredUsername: preferredUsername)
+        } catch {
+            print("Dev Hinweis: Benutzerdokument konnte nicht synchronisiert werden: \(error.localizedDescription)")
         }
     }
 
