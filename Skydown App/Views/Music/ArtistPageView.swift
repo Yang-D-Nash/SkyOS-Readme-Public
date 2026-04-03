@@ -144,13 +144,14 @@ struct ArtistPageView: View {
             guard let item, let target = pendingImageTarget else { return }
             Task {
                 do {
-                    guard let data = try await item.loadTransferable(type: Data.self) else {
+                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
                         throw NSError(
                             domain: "ArtistPageView",
                             code: 400,
                             userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
                         )
                     }
+                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
                     let url = try await editableImageUploadService.uploadImageData(data)
                     await MainActor.run {
                         switch target {

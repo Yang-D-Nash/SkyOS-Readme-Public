@@ -86,14 +86,14 @@ fun ProfileScreen(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         if (uri != null) {
-            viewModel.uploadAvatar(uri, context.contentResolver.getType(uri))
+            viewModel.uploadAvatar(uri, context.contentResolver)
         }
     }
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         if (uri != null) {
-            viewModel.uploadMedia(ProfileMediaType.Image, uri, context.contentResolver.getType(uri))
+            viewModel.uploadMedia(ProfileMediaType.Image, uri, context.contentResolver)
         }
     }
 

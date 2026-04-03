@@ -527,13 +527,14 @@ struct SettingsView: View {
             guard let item, let target = pendingEditableImageTarget else { return }
             Task {
                 do {
-                    guard let data = try await item.loadTransferable(type: Data.self) else {
+                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
                         throw NSError(
                             domain: "SettingsView",
                             code: 400,
                             userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
                         )
                     }
+                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
                     let url = try await editableImageUploadService.uploadImageData(data)
                     await MainActor.run {
                         applyEditableImageURL(url, for: target)

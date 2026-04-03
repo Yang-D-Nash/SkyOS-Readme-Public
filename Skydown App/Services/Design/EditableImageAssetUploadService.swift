@@ -2,6 +2,8 @@ import Foundation
 import FirebaseAuth
 import FirebaseFunctions
 import FirebaseStorage
+import ImageIO
+import UniformTypeIdentifiers
 
 protocol EditableImageAssetUploading {
     func uploadImageData(_ data: Data) async throws -> String
@@ -161,4 +163,65 @@ private struct EditableImageAssetUploadSlot {
 private struct EditableImageAssetFileInfo {
     let mimeType: String
     let fileExtension: String
+}
+
+enum PickedImageUploadPreparation {
+    static func normalizedJPEGData(
+        from rawData: Data,
+        maxPixelSize: Int = 2048,
+        compressionQuality: Double = 0.82
+    ) throws -> Data {
+        guard let source = CGImageSourceCreateWithData(
+            rawData as CFData,
+            [kCGImageSourceShouldCache: false] as CFDictionary
+        ) else {
+            return rawData
+        }
+
+        let options: CFDictionary = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCache: false,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ] as CFDictionary
+
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options)
+            ?? CGImageSourceCreateImageAtIndex(
+                source,
+                0,
+                [kCGImageSourceShouldCache: false] as CFDictionary
+            )
+        else {
+            return rawData
+        }
+
+        let destinationData = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            destinationData,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else {
+            throw NSError(
+                domain: "PickedImageUploadPreparation",
+                code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht vorbereitet werden."]
+            )
+        }
+
+        let destinationOptions: CFDictionary = [
+            kCGImageDestinationLossyCompressionQuality: compressionQuality
+        ] as CFDictionary
+        CGImageDestinationAddImage(destination, image, destinationOptions)
+
+        guard CGImageDestinationFinalize(destination) else {
+            throw NSError(
+                domain: "PickedImageUploadPreparation",
+                code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht optimiert werden."]
+            )
+        }
+
+        return destinationData as Data
+    }
 }

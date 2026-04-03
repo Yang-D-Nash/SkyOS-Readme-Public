@@ -1,7 +1,7 @@
 package com.skydown.android.data
 
+import android.content.ContentResolver
 import android.net.Uri
-import android.webkit.MimeTypeMap
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -69,22 +69,22 @@ class UserProfileRepository(
     suspend fun uploadAvatar(
         userId: String,
         uri: Uri,
-        mimeType: String?,
+        contentResolver: ContentResolver,
     ): Result<String> = runCatching {
-        val resolvedMimeType = mimeType ?: "image/jpeg"
+        val preparedUpload = ImageUploadPreparation.prepare(contentResolver, uri)
         val slot = requestUploadSlot(
             userId = userId,
             kind = "profile",
-            mimeType = resolvedMimeType,
-            fileExtension = resolveExtension(ProfileMediaType.Image, resolvedMimeType),
-            byteSize = 0,
+            mimeType = preparedUpload.mimeType,
+            fileExtension = preparedUpload.fileExtension,
+            byteSize = preparedUpload.data.size,
         )
 
         val reference = storage.reference.child(slot.storagePath)
-        reference.putFile(
-            uri,
+        reference.putBytes(
+            preparedUpload.data,
             StorageMetadata.Builder()
-                .setContentType(resolvedMimeType)
+                .setContentType(preparedUpload.mimeType)
                 .setCustomMetadata("uploadSlotId", slot.slotId)
                 .setCustomMetadata("ownerUid", userId)
                 .build(),
@@ -126,27 +126,27 @@ class UserProfileRepository(
     suspend fun uploadGallery(
         userId: String,
         uri: Uri,
+        contentResolver: ContentResolver,
         type: ProfileMediaType,
-        mimeType: String?,
     ): Result<Unit> = runCatching {
         require(type == ProfileMediaType.Image) {
             "Im Testbetrieb sind aktuell nur Bilder aktiviert."
         }
 
-        val resolvedMimeType = mimeType ?: fallbackMimeType(type)
+        val preparedUpload = ImageUploadPreparation.prepare(contentResolver, uri)
         val slot = requestUploadSlot(
             userId = userId,
             kind = "gallery",
-            mimeType = resolvedMimeType,
-            fileExtension = resolveExtension(type, resolvedMimeType),
-            byteSize = 0,
+            mimeType = preparedUpload.mimeType,
+            fileExtension = preparedUpload.fileExtension,
+            byteSize = preparedUpload.data.size,
         )
 
         val reference = storage.reference.child(slot.storagePath)
-        reference.putFile(
-            uri,
+        reference.putBytes(
+            preparedUpload.data,
             StorageMetadata.Builder()
-                .setContentType(resolvedMimeType)
+                .setContentType(preparedUpload.mimeType)
                 .setCustomMetadata("uploadSlotId", slot.slotId)
                 .setCustomMetadata("ownerUid", userId)
                 .build(),
@@ -166,21 +166,12 @@ class UserProfileRepository(
                     "mediaURL" to downloadUrl,
                     "thumbnailURL" to downloadUrl,
                     "storagePath" to slot.storagePath,
-                    "contentType" to resolvedMimeType,
+                    "contentType" to preparedUpload.mimeType,
                     "createdAt" to com.google.firebase.Timestamp.now(),
                     "updatedAt" to com.google.firebase.Timestamp.now(),
                 ),
             )
             .await()
-    }
-
-    private fun resolveExtension(type: ProfileMediaType, mimeType: String?): String {
-        val fromMimeType = mimeType?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
-        return fromMimeType ?: type.fallbackExtension
-    }
-
-    private fun fallbackMimeType(type: ProfileMediaType): String = when (type) {
-        ProfileMediaType.Image -> "image/jpeg"
     }
 
     private fun defaultTitle(type: ProfileMediaType): String {

@@ -305,7 +305,7 @@ fun SettingsScreen(
             coroutineScope.launch {
                 val result = editableImageAssetRepository.uploadImageAsset(
                     uri = uri,
-                    mimeType = context.contentResolver.getType(uri),
+                    contentResolver = context.contentResolver,
                 )
                 if (result.isSuccess) {
                     val uploadedUrl = result.getOrNull().orEmpty()

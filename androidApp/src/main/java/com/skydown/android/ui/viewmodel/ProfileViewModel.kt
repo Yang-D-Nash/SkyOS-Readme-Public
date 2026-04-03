@@ -1,5 +1,6 @@
 package com.skydown.android.ui.viewmodel
 
+import android.content.ContentResolver
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -135,11 +136,15 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    fun uploadAvatar(uri: Uri, mimeType: String?) {
+    fun uploadAvatar(uri: Uri, contentResolver: ContentResolver) {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isUploadingAvatar = true, errorMessage = null) }
-            val result = repository.uploadAvatar(userId = userId, uri = uri, mimeType = mimeType)
+            val result = repository.uploadAvatar(
+                userId = userId,
+                uri = uri,
+                contentResolver = contentResolver,
+            )
             if (result.isSuccess) {
                 AppContainer.refreshCurrentUser()
                 _uiState.update {
@@ -159,15 +164,15 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    fun uploadMedia(type: ProfileMediaType, uri: Uri, mimeType: String?) {
+    fun uploadMedia(type: ProfileMediaType, uri: Uri, contentResolver: ContentResolver) {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isUploadingMedia = true, errorMessage = null) }
             val result = repository.uploadGallery(
                 userId = userId,
                 uri = uri,
+                contentResolver = contentResolver,
                 type = type,
-                mimeType = mimeType,
             )
 
             if (result.isSuccess) {

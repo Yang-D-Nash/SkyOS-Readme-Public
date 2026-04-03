@@ -65,8 +65,20 @@ struct ProfileView: View {
         .onChange(of: avatarPickerItem) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self) {
+                do {
+                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
+                        throw NSError(
+                            domain: "ProfileView",
+                            code: 400,
+                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
+                        )
+                    }
+                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
                     await viewModel.uploadAvatar(data: data)
+                } catch {
+                    await MainActor.run {
+                        viewModel.reportUploadError(error)
+                    }
                 }
                 avatarPickerItem = nil
             }
@@ -74,8 +86,20 @@ struct ProfileView: View {
         .onChange(of: galleryImagePickerItem) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self) {
+                do {
+                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
+                        throw NSError(
+                            domain: "ProfileView",
+                            code: 400,
+                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
+                        )
+                    }
+                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
                     await viewModel.uploadGalleryImage(data: data)
+                } catch {
+                    await MainActor.run {
+                        viewModel.reportUploadError(error)
+                    }
                 }
                 galleryImagePickerItem = nil
             }

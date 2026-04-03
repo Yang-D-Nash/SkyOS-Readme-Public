@@ -1,7 +1,7 @@
 package com.skydown.android.data
 
+import android.content.ContentResolver
 import android.net.Uri
-import android.webkit.MimeTypeMap
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
@@ -15,46 +15,29 @@ class EditableImageAssetRepository(
 ) {
     suspend fun uploadImageAsset(
         uri: Uri,
-        mimeType: String?,
+        contentResolver: ContentResolver,
     ): Result<String> = runCatching {
         val userId = auth.currentUser?.uid ?: error("Bitte zuerst anmelden.")
-        val resolvedMimeType = normalizeMimeType(mimeType)
+        val preparedUpload = ImageUploadPreparation.prepare(contentResolver, uri)
         val slot = requestUploadSlot(
             userId = userId,
             kind = "asset",
-            mimeType = resolvedMimeType,
-            fileExtension = resolveExtension(resolvedMimeType),
-            byteSize = 0,
+            mimeType = preparedUpload.mimeType,
+            fileExtension = preparedUpload.fileExtension,
+            byteSize = preparedUpload.data.size,
         )
 
         val reference = storage.reference.child(slot.storagePath)
-        reference.putFile(
-            uri,
+        reference.putBytes(
+            preparedUpload.data,
             StorageMetadata.Builder()
-                .setContentType(resolvedMimeType)
+                .setContentType(preparedUpload.mimeType)
                 .setCustomMetadata("uploadSlotId", slot.slotId)
                 .setCustomMetadata("ownerUid", userId)
                 .build(),
         ).await()
 
         reference.downloadUrl.await().toString()
-    }
-
-    private fun normalizeMimeType(mimeType: String?): String {
-        return when (mimeType?.lowercase()) {
-            "image/png" -> "image/png"
-            "image/webp" -> "image/webp"
-            else -> "image/jpeg"
-        }
-    }
-
-    private fun resolveExtension(mimeType: String): String {
-        return MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
-            ?: when (mimeType) {
-                "image/png" -> "png"
-                "image/webp" -> "webp"
-                else -> "jpg"
-            }
     }
 
     private suspend fun requestUploadSlot(

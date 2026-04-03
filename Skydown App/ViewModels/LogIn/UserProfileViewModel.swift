@@ -143,6 +143,10 @@ final class UserProfileViewModel: ObservableObject {
         }
     }
 
+    func reportUploadError(_ error: Error) {
+        showError(error.localizedDescription)
+    }
+
     private func observeGallery(for userId: String?) {
         galleryListener?.remove()
         galleryItems = []
