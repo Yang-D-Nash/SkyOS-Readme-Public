@@ -577,10 +577,17 @@ final class FirebaseAuthService: AuthServicing {
         authUserDisplayName: String? = nil,
         fallbackEmail: String
     ) -> String {
-        username?.trimmedNilIfEmpty
+        let candidate = username?.trimmedNilIfEmpty
             ?? authUserDisplayName?.trimmedNilIfEmpty
             ?? fallbackEmail.split(separator: "@").first.map(String.init)?.trimmedNilIfEmpty
             ?? "Skydown User"
+        let trimmedCandidate = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedCandidate.count <= 32 {
+            return trimmedCandidate
+        }
+
+        return String(trimmedCandidate.prefix(32)).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func topViewController() -> UIViewController? {
