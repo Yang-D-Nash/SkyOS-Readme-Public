@@ -27,6 +27,7 @@ struct ArtistPageView: View {
     @State private var selectedTrackID: Int?
     @State private var selectedYouTubeItem: SkydownYouTubeVideoItem?
     @State private var pendingImageTarget: ArtistPageEditableImageTarget?
+    @State private var activeImageUploadTarget: ArtistPageEditableImageTarget?
     private let editableImageUploadService = EditableImageAssetUploadService()
 
     init(
@@ -163,6 +164,9 @@ struct ArtistPageView: View {
         }
 
         Task {
+            await MainActor.run {
+                activeImageUploadTarget = target
+            }
             do {
                 let previousURL = currentEditableImageURL(for: target)
                 let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
@@ -183,6 +187,10 @@ struct ArtistPageView: View {
                 await MainActor.run {
                     showToast("Bild konnte nicht hochgeladen werden: \(error.localizedDescription)", style: .error)
                 }
+            }
+
+            await MainActor.run {
+                activeImageUploadTarget = nil
             }
         }
     }
@@ -602,6 +610,10 @@ struct ArtistPageView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
+            Text("Bilder und Links kannst du hier neu anlegen, ersetzen oder entfernen. Live wird die Artist-Seite erst, wenn du oben auf `Fertig` tippst.")
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
             ArtistPageInputField(
                 title: "Kurzzeile",
                 text: $taglineDraft,
@@ -620,6 +632,8 @@ struct ArtistPageView: View {
                 title: "Profilbild",
                 imageURL: $profileImageURLDraft,
                 colorScheme: colorScheme,
+                isUploading: activeImageUploadTarget == .profile,
+                uploadStatusText: "Profilbild wird fuer die Artist-Seite uebernommen.",
                 onPickImage: { pendingImageTarget = .profile },
                 onRemoveImage: { removeEditableImage(for: .profile) }
             )
@@ -628,6 +642,8 @@ struct ArtistPageView: View {
                 title: "Hero-Bild",
                 imageURL: $heroImageURLDraft,
                 colorScheme: colorScheme,
+                isUploading: activeImageUploadTarget == .hero,
+                uploadStatusText: "Hero-Bild wird fuer die Artist-Seite uebernommen.",
                 onPickImage: { pendingImageTarget = .hero },
                 onRemoveImage: { removeEditableImage(for: .hero) }
             )

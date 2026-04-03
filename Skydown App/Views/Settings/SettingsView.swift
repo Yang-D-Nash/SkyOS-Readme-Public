@@ -43,6 +43,7 @@ struct SettingsView: View {
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
     @State private var pendingEditableImageTarget: SettingsEditableImageTarget?
+    @State private var activeEditableImageUploadTarget: SettingsEditableImageTarget?
     @State private var presentedAdminWorkspace: SettingsAdminWorkspaceSection?
     @State private var showingMailOptions = false
     @State private var showingMailView = false
@@ -549,6 +550,9 @@ struct SettingsView: View {
         }
 
         Task {
+            await MainActor.run {
+                activeEditableImageUploadTarget = target
+            }
             do {
                 let previousURL = currentEditableImageURL(for: target)
                 let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
@@ -567,6 +571,10 @@ struct SettingsView: View {
                         style: .error
                     )
                 }
+            }
+
+            await MainActor.run {
+                activeEditableImageUploadTarget = nil
             }
         }
     }
@@ -738,7 +746,12 @@ struct SettingsView: View {
                     HStack(spacing: 10) {
                         SettingsBadge(text: "\(configuredScreenHeaderCount) angepasst", colorScheme: effectiveColorScheme)
                         SettingsBadge(text: "Overlay aktiv", colorScheme: effectiveColorScheme)
+                        SettingsBadge(text: "CRUD bereit", colorScheme: effectiveColorScheme)
                     }
+
+                    Text("Bilder und Texte kannst du neu setzen, ersetzen oder entfernen. Live gehen die Aenderungen erst, wenn du unten auf `Header speichern` tippst.")
+                        .font(.footnote.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     if let message = screenHeaderSettingsStore.lastErrorMessage {
                         Text(message)
@@ -750,6 +763,8 @@ struct SettingsView: View {
                         title: "Home Header",
                         imageURL: $homeHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
+                        isUploading: activeEditableImageUploadTarget == .homeHeader,
+                        uploadStatusText: "Home Header wird uebernommen.",
                         onPickImage: { pendingEditableImageTarget = .homeHeader },
                         onRemoveImage: { removeEditableImage(for: .homeHeader) }
                     )
@@ -788,6 +803,8 @@ struct SettingsView: View {
                         title: "Music Hub Header",
                         imageURL: $musicHubHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
+                        isUploading: activeEditableImageUploadTarget == .musicHubHeader,
+                        uploadStatusText: "Music Hub Header wird uebernommen.",
                         onPickImage: { pendingEditableImageTarget = .musicHubHeader },
                         onRemoveImage: { removeEditableImage(for: .musicHubHeader) }
                     )
@@ -826,6 +843,8 @@ struct SettingsView: View {
                         title: "Shop Header",
                         imageURL: $shopHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
+                        isUploading: activeEditableImageUploadTarget == .shopHeader,
+                        uploadStatusText: "Shop Header wird uebernommen.",
                         onPickImage: { pendingEditableImageTarget = .shopHeader },
                         onRemoveImage: { removeEditableImage(for: .shopHeader) }
                     )
@@ -864,6 +883,8 @@ struct SettingsView: View {
                         title: "Video Header",
                         imageURL: $videoHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
+                        isUploading: activeEditableImageUploadTarget == .videoHeader,
+                        uploadStatusText: "Video Header wird uebernommen.",
                         onPickImage: { pendingEditableImageTarget = .videoHeader },
                         onRemoveImage: { removeEditableImage(for: .videoHeader) }
                     )

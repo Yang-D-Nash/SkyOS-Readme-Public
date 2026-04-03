@@ -210,6 +210,7 @@ fun SettingsScreen(
     }
     var showAdminWorkspaceSheet by rememberSaveable { mutableStateOf(false) }
     var pendingHeaderImageTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
+    var activeHeaderImageUploadTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
     val visiblePaymentMethodCount = listOf(
         uiState.paymentMethods.stripe.connected && uiState.paymentMethods.stripe.enabled,
         uiState.paymentMethods.paypal.connected && uiState.paymentMethods.paypal.enabled,
@@ -333,6 +334,7 @@ fun SettingsScreen(
     ) { uri ->
         val target = pendingHeaderImageTarget ?: return@rememberLauncherForActivityResult
         if (uri != null) {
+            activeHeaderImageUploadTarget = target
             coroutineScope.launch {
                 val previousImageUrl = currentHeaderImageUrl(target)
                 val result = editableImageAssetRepository.uploadImageAsset(
@@ -353,9 +355,11 @@ fun SettingsScreen(
                     feedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
                     feedbackType = ToastType.Error
                 }
+                activeHeaderImageUploadTarget = null
                 pendingHeaderImageTarget = null
             }
         } else {
+            activeHeaderImageUploadTarget = null
             pendingHeaderImageTarget = null
         }
     }
@@ -511,11 +515,26 @@ fun SettingsScreen(
                             isActive = true,
                         )
                     }
+                    item {
+                        SettingsBadge(
+                            text = "CRUD bereit",
+                            icon = Icons.Default.CheckCircle,
+                            isActive = true,
+                        )
+                    }
                 }
+
+                Text(
+                    text = "Bilder und Texte kannst du neu setzen, ersetzen oder entfernen. Live gehen die Aenderungen erst nach `Header speichern`.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
 
                 EditableImageFieldCard(
                     title = "Home Header",
                     imageUrl = homeHeaderImageUrlDraft,
+                    isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.Home,
+                    uploadStatusText = "Home Header wird uebernommen.",
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.Home
                         headerImagePicker.launch(
@@ -581,6 +600,8 @@ fun SettingsScreen(
                 EditableImageFieldCard(
                     title = "Music Hub Header",
                     imageUrl = musicHubHeaderImageUrlDraft,
+                    isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.MusicHub,
+                    uploadStatusText = "Music Hub Header wird uebernommen.",
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.MusicHub
                         headerImagePicker.launch(
@@ -643,6 +664,8 @@ fun SettingsScreen(
                 EditableImageFieldCard(
                     title = "Shop Header",
                     imageUrl = shopHeaderImageUrlDraft,
+                    isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.Shop,
+                    uploadStatusText = "Shop Header wird uebernommen.",
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.Shop
                         headerImagePicker.launch(
@@ -705,6 +728,8 @@ fun SettingsScreen(
                 EditableImageFieldCard(
                     title = "Video Header",
                     imageUrl = videoHeaderImageUrlDraft,
+                    isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.VideoHub,
+                    uploadStatusText = "Video Header wird uebernommen.",
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.VideoHub
                         headerImagePicker.launch(

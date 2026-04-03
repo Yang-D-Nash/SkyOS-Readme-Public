@@ -5,6 +5,8 @@ struct EditableImageField: View {
     @Binding var imageURL: String
     let colorScheme: ColorScheme
     let buttonTitle: String
+    let isUploading: Bool
+    let uploadStatusText: String
     let onPickImage: () -> Void
     let onRemoveImage: (() -> Void)?
 
@@ -13,6 +15,8 @@ struct EditableImageField: View {
         imageURL: Binding<String>,
         colorScheme: ColorScheme,
         buttonTitle: String = "Vom iPhone waehlen",
+        isUploading: Bool = false,
+        uploadStatusText: String = "Bild wird vorbereitet und hochgeladen.",
         onPickImage: @escaping () -> Void,
         onRemoveImage: (() -> Void)? = nil
     ) {
@@ -20,6 +24,8 @@ struct EditableImageField: View {
         self._imageURL = imageURL
         self.colorScheme = colorScheme
         self.buttonTitle = buttonTitle
+        self.isUploading = isUploading
+        self.uploadStatusText = uploadStatusText
         self.onPickImage = onPickImage
         self.onRemoveImage = onRemoveImage
     }
@@ -69,14 +75,36 @@ struct EditableImageField: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(imageURL.isEmpty ? "Noch kein Bild" : "Bild aktiv")
+                    Text(isUploading ? "Upload laeuft" : imageURL.isEmpty ? "Noch kein Bild" : "Bild aktiv")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.white.opacity(0.92))
-                    Text(imageURL.isEmpty ? "Wird nach dem Upload direkt uebernommen." : "Die App dunkelt es automatisch ab.")
+                    Text(
+                        isUploading
+                            ? uploadStatusText
+                            : imageURL.isEmpty
+                                ? "Wird nach dem Upload direkt uebernommen."
+                                : "Die App dunkelt es automatisch ab."
+                    )
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.72))
                 }
                 .padding(12)
+
+                if isUploading {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.black.opacity(0.62))
+
+                    VStack(spacing: 10) {
+                        ProgressView()
+                            .tint(.white)
+                        Text(uploadStatusText)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.92))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
 
             HStack(spacing: 10) {
@@ -86,6 +114,7 @@ struct EditableImageField: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(AppColors.accentMystic(for: colorScheme))
+                .disabled(isUploading)
             }
 
             if !imageURL.isEmpty {
@@ -97,6 +126,7 @@ struct EditableImageField: View {
                     }
                 }
                 .font(.footnote.weight(.semibold))
+                .disabled(isUploading)
             }
         }
     }

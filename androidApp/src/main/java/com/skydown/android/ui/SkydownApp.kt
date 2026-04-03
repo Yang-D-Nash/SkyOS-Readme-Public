@@ -377,6 +377,8 @@ private fun LaunchLandingScreen(
     onOpenVideography: () -> Unit,
     onOpenShop: () -> Unit,
 ) {
+    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -429,92 +431,20 @@ private fun LaunchLandingScreen(
         ) {
             Spacer(modifier = Modifier.height(1.dp))
 
-            Column(
-                modifier = Modifier
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                SurfaceDark.copy(alpha = 0.96f),
-                                androidx.compose.ui.graphics.Color(0xFF18344F).copy(alpha = 0.24f),
-                            ),
-                        ),
-                        RoundedCornerShape(24.dp),
-                    )
-                    .padding(horizontal = 18.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+            BrandHeroCard(
+                eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
+                title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
+                subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Waehle deinen Start." },
+                detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch und Tools direkt im Einstieg." },
+                backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
+                accent = MaterialTheme.colorScheme.primary,
+                secondaryAccent = MaterialTheme.colorScheme.secondary,
+                marks = listOf(BrandArtwork.Combined),
             ) {
-                Text(
-                    text = "Sky²²",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = TextMutedDark,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = "Sky²²",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Black,
-                    color = TextDark,
-                )
-                Text(
-                    text = "Waehle deinen Start.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextDark.copy(alpha = 0.72f),
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(26.dp),
-                color = SurfaceDark.copy(alpha = 0.94f),
-                tonalElevation = 10.dp,
-                shadowElevation = 12.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.20f)),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(86.dp)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
-                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f),
-                                    ),
-                                ),
-                                RoundedCornerShape(24.dp),
-                            ),
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.skydown_x22_brand_logo),
-                            contentDescription = "Sky²² Logo",
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .size(68.dp),
-                            contentScale = ContentScale.Fit,
-                        )
-                    }
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            text = "Musik, Video, Merch.",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = TextDark,
-                            fontWeight = FontWeight.Black,
-                        )
-                        Text(
-                            text = "Alles unten direkt griffbereit.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextDark.copy(alpha = 0.70f),
-                        )
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)
+                    BrandPill(text = "Music", tint = MaterialTheme.colorScheme.secondary)
+                    BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
                 }
             }
 

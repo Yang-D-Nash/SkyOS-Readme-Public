@@ -138,6 +138,7 @@ private struct LaunchLandingView: View {
     let onOpenMusic: () -> Void
     let onOpenVideography: () -> Void
     let onOpenShop: () -> Void
+    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
 
     private var hubColorScheme: ColorScheme { .dark }
 
@@ -183,86 +184,35 @@ private struct LaunchLandingView: View {
             VStack(alignment: .leading, spacing: 22) {
                 Spacer(minLength: 0)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Sky²²")
-                        .font(AppTypography.heroEyebrow)
-                        .tracking(1.6)
-                        .foregroundColor(.white.opacity(0.78))
-
-                    Text("Sky²²")
-                        .font(AppTypography.scaledFont(size: 32, relativeTo: .largeTitle))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.34), radius: 14, y: 8)
-
-                    Text("Waehle deinen Start.")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.white.opacity(0.74))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(18)
-                .background(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.black.opacity(0.78),
-                                    Color(red: 7/255, green: 12/255, blue: 20/255).opacity(0.92)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                BrandHeroSurface(
+                    colorScheme: hubColorScheme,
+                    eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Sky²² Home",
+                    title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "Sky²²",
+                    subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Waehle deinen Start.",
+                    detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch und Tools direkt im Einstieg.",
+                    backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
+                    accent: AppColors.accent(for: hubColorScheme),
+                    secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
+                    marks: [.skydownX22]
+                ) {
+                    HStack(spacing: 10) {
+                        BrandHeroPill(
+                            text: "Music",
+                            colorScheme: hubColorScheme,
+                            tint: AppColors.spotify(for: hubColorScheme)
                         )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                }
-
-                HStack(alignment: .center, spacing: 14) {
-                    Image(BrandMark.skydownX22.imageName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 72, height: 72)
-                        .padding(8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColors.cardBackground(for: hubColorScheme).opacity(0.94),
-                                            AppColors.accentHighlight(for: hubColorScheme).opacity(0.16)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                        BrandHeroPill(
+                            text: "Video",
+                            colorScheme: hubColorScheme,
+                            tint: AppColors.accentMystic(for: hubColorScheme)
                         )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .stroke(AppColors.accentHighlight(for: hubColorScheme).opacity(0.22), lineWidth: 1)
-                        }
-                        .shadow(color: .black.opacity(0.24), radius: 18, y: 10)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Musik, Video, Merch.")
-                            .font(AppTypography.cardTitle)
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.26), radius: 12, y: 6)
-
-                        Text("Alles unten direkt griffbereit.")
-                            .font(.footnote.weight(.medium))
-                            .foregroundColor(.white.opacity(0.72))
-                            .fixedSize(horizontal: false, vertical: true)
+                        BrandHeroPill(
+                            text: "Merch",
+                            colorScheme: hubColorScheme,
+                            tint: AppColors.accentHighlight(for: hubColorScheme)
+                        )
                     }
                 }
-                .padding(14)
-                .skydownPanelSurface(
-                    colorScheme: hubColorScheme,
-                    accent: AppColors.accentHighlight(for: hubColorScheme),
-                    cornerRadius: 24,
-                    shadowRadius: 14,
-                    shadowYOffset: 8
-                )
 
                 VStack(spacing: 12) {
                     LaunchLandingButton(

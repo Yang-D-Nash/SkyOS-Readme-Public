@@ -26,6 +26,15 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     profileHeader
+
+                    if let uploadStatus = currentUploadStatus {
+                        ProfileUploadStatusCard(
+                            title: uploadStatus.title,
+                            detail: uploadStatus.detail,
+                            colorScheme: colorScheme
+                        )
+                    }
+
                     mediaSection
 
                     if viewModel.isEditing && viewModel.canEditCurrentProfile {
@@ -165,9 +174,28 @@ struct ProfileView: View {
         }
     }
 
+    private var currentUploadStatus: (title: String, detail: String)? {
+        if viewModel.isUploadingAvatar {
+            return (
+                "Profilbild wird hochgeladen",
+                "Dein Avatar wird gerade vorbereitet, hochgeladen und direkt im Profil uebernommen."
+            )
+        }
+
+        if viewModel.isUploadingMedia {
+            return (
+                "Galeriebild wird hochgeladen",
+                "Das Bild landet gleich in deiner Galerie und wird danach automatisch angezeigt."
+            )
+        }
+
+        return nil
+    }
+
     private var profileHeader: some View {
         let isUploadingAvatar = viewModel.isUploadingAvatar
         let isUploadingMedia = viewModel.isUploadingMedia
+        let isUploadingImageFlow = isUploadingAvatar || isUploadingMedia
 
         return ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
@@ -309,6 +337,7 @@ struct ProfileView: View {
                             textColor: .white
                         )
                     )
+                    .disabled(isUploadingImageFlow)
 
                     if let currentAvatar = viewModel.currentUser?.profileImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
                        !currentAvatar.isEmpty {
@@ -329,6 +358,7 @@ struct ProfileView: View {
                                 textColor: .white
                             )
                         )
+                        .disabled(isUploadingImageFlow)
                     }
 
                     Button {
@@ -346,6 +376,7 @@ struct ProfileView: View {
                             textColor: .white
                         )
                     )
+                    .disabled(isUploadingImageFlow)
                 }
                 .padding(18)
             }
@@ -386,6 +417,7 @@ struct ProfileView: View {
                     }
                     .buttonStyle(.plain)
                     .skydownTactileAction()
+                    .disabled(isUploadingMedia || viewModel.isUploadingAvatar)
                 }
             }
 
@@ -504,6 +536,38 @@ private enum ProfileImagePickerTarget: String, Identifiable {
     case gallery
 
     var id: String { rawValue }
+}
+
+private struct ProfileUploadStatusCard: View {
+    let title: String
+    let detail: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 14) {
+            ProgressView()
+                .tint(AppColors.accent(for: colorScheme))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentHighlight(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 10,
+            shadowYOffset: 6
+        )
+    }
 }
 
 private extension String {

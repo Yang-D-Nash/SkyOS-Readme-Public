@@ -1444,6 +1444,7 @@ struct VideoPublicConfigEditorCard: View {
     let colorScheme: ColorScheme
     @ObservedObject var viewModel: SkydownVideoHubViewModel
     @State private var pendingUploadTarget: VideoPublicConfigImageTarget?
+    @State private var activeUploadTarget: VideoPublicConfigImageTarget?
     private let editableImageUploadService = EditableImageAssetUploadService()
 
     var body: some View {
@@ -1454,6 +1455,10 @@ struct VideoPublicConfigEditorCard: View {
 
             Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Bilder laufen jetzt picker-first und werden direkt mit Vorschau uebernommen.")
                 .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text("Eintraege kannst du neu anlegen, ersetzen oder entfernen. Oeffentliche Daten werden erst nach `Oeffentliche Daten speichern` live.")
+                .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(alignment: .leading, spacing: 12) {
@@ -1486,6 +1491,8 @@ struct VideoPublicConfigEditorCard: View {
                                 set: { viewModel.updateEquipmentItem(item.id, imageURLString: $0) }
                             ),
                             colorScheme: colorScheme,
+                            isUploading: activeUploadTarget == .equipment(item.id),
+                            uploadStatusText: "Equipment-Bild wird uebernommen.",
                             onPickImage: { pendingUploadTarget = .equipment(item.id) },
                             onRemoveImage: { removeEditableImage(for: .equipment(item.id)) }
                         )
@@ -1557,6 +1564,8 @@ struct VideoPublicConfigEditorCard: View {
                                 set: { viewModel.updateCollaborationItem(item.id, imageURLString: $0) }
                             ),
                             colorScheme: colorScheme,
+                            isUploading: activeUploadTarget == .collaboration(item.id),
+                            uploadStatusText: "Collab-Bild wird uebernommen.",
                             onPickImage: { pendingUploadTarget = .collaboration(item.id) },
                             onRemoveImage: { removeEditableImage(for: .collaboration(item.id)) }
                         )
@@ -1660,6 +1669,9 @@ struct VideoPublicConfigEditorCard: View {
         }
 
         Task {
+            await MainActor.run {
+                activeUploadTarget = target
+            }
             do {
                 let previousURL = currentEditableImageURL(for: target)
                 let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
@@ -1684,6 +1696,10 @@ struct VideoPublicConfigEditorCard: View {
                     viewModel.toastStyle = .error
                     viewModel.showToast = true
                 }
+            }
+
+            await MainActor.run {
+                activeUploadTarget = nil
             }
         }
     }

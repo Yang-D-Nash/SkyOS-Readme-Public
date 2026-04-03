@@ -158,6 +158,7 @@ fun VideoHubScreen(
     var showReelViewer by rememberSaveable { mutableStateOf(false) }
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
     var pendingConfigImageTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
+    var activeConfigImageUploadTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackIsError by remember { mutableStateOf(false) }
@@ -186,6 +187,7 @@ fun VideoHubScreen(
     ) { uri ->
         val target = pendingConfigImageTarget ?: return@rememberLauncherForActivityResult
         if (uri != null) {
+            activeConfigImageUploadTarget = target
             coroutineScope.launch {
                 val previousImageUrl = currentConfigImageUrl(target)
                 val result = editableImageAssetRepository.uploadImageAsset(
@@ -211,9 +213,11 @@ fun VideoHubScreen(
                     localFeedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
                     localFeedbackIsError = true
                 }
+                activeConfigImageUploadTarget = null
                 pendingConfigImageTarget = null
             }
         } else {
+            activeConfigImageUploadTarget = null
             pendingConfigImageTarget = null
         }
     }
@@ -423,6 +427,7 @@ fun VideoHubScreen(
                     item {
                         VideoPublicConfigEditorCard(
                             uiState = uiState,
+                            activeImageUploadTarget = activeConfigImageUploadTarget,
                             onAddEquipment = viewModel::addEquipmentItem,
                             onUpdateEquipmentTitle = { itemId, value ->
                                 viewModel.updateEquipmentItem(itemId, title = value)
@@ -798,6 +803,7 @@ private fun VideoEquipmentRow(
 @Composable
 private fun VideoPublicConfigEditorCard(
     uiState: com.skydown.android.ui.model.VideoHubUiState,
+    activeImageUploadTarget: VideoConfigImageTarget?,
     onAddEquipment: () -> Unit,
     onUpdateEquipmentTitle: (String, String) -> Unit,
     onUpdateEquipmentDetail: (String, String) -> Unit,
@@ -825,6 +831,12 @@ private fun VideoPublicConfigEditorCard(
             text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Bilder laufen jetzt picker-first mit Vorschau statt ueber rohe URLs.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        Text(
+            text = "Eintraege kannst du neu anlegen, ersetzen oder entfernen. Oeffentliche Daten werden erst nach `Speichern` live.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
         )
 
@@ -863,6 +875,8 @@ private fun VideoPublicConfigEditorCard(
                     EditableImageFieldCard(
                         title = "Equipment-Bild",
                         imageUrl = item.imageUrl.orEmpty(),
+                        isUploading = activeImageUploadTarget == VideoConfigImageTarget.Equipment(item.id),
+                        uploadStatusText = "Equipment-Bild wird uebernommen.",
                         onPickImage = { onPickEquipmentImage(item.id) },
                         onImageUrlChange = { onUpdateEquipmentImageUrl(item.id, it) },
                         onRemoveImage = { onRemoveEquipmentImage(item.id) },
@@ -933,6 +947,8 @@ private fun VideoPublicConfigEditorCard(
                     EditableImageFieldCard(
                         title = "Collab-Bild",
                         imageUrl = item.imageUrl.orEmpty(),
+                        isUploading = activeImageUploadTarget == VideoConfigImageTarget.Collaboration(item.id),
+                        uploadStatusText = "Collab-Bild wird uebernommen.",
                         onPickImage = { onPickCollaborationImage(item.id) },
                         onImageUrlChange = { onUpdateCollaborationImageUrl(item.id, it) },
                         onRemoveImage = { onRemoveCollaborationImage(item.id) },

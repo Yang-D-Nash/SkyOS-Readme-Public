@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -33,6 +34,8 @@ fun EditableImageFieldCard(
     onRemoveImage: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     buttonLabel: String = "Vom Handy waehlen",
+    isUploading: Boolean = false,
+    uploadStatusText: String = "Bild wird vorbereitet und hochgeladen.",
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -95,22 +98,52 @@ fun EditableImageFieldCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = if (imageUrl.isBlank()) "Noch kein Bild" else "Bild aktiv",
+                    text = if (isUploading) "Upload laeuft" else if (imageUrl.isBlank()) "Noch kein Bild" else "Bild aktiv",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = if (imageUrl.isBlank()) "Wird nach dem Upload direkt gesetzt." else "Die App dunkelt es automatisch fuer Text ab.",
+                    text = if (isUploading) {
+                        uploadStatusText
+                    } else if (imageUrl.isBlank()) {
+                        "Wird nach dem Upload direkt gesetzt."
+                    } else {
+                        "Die App dunkelt es automatisch fuer Text ab."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
                 )
+            }
+
+            if (isUploading) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.62f)),
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Text(
+                        text = uploadStatusText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
             }
         }
 
         OutlinedButton(
             onClick = onPickImage,
             modifier = Modifier.fillMaxWidth(),
+            enabled = !isUploading,
         ) {
             Text(buttonLabel)
         }
@@ -125,6 +158,7 @@ fun EditableImageFieldCard(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = !isUploading,
             ) {
                 Text("Bild entfernen")
             }

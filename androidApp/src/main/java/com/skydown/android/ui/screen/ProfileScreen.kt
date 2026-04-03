@@ -37,6 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -51,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
@@ -184,6 +186,21 @@ fun ProfileScreen(
                     },
                 )
 
+                if (uiState.isUploadingAvatar || uiState.isUploadingMedia) {
+                    ProfileUploadStatusCard(
+                        title = if (uiState.isUploadingAvatar) {
+                            "Profilbild wird hochgeladen"
+                        } else {
+                            "Galeriebild wird hochgeladen"
+                        },
+                        detail = if (uiState.isUploadingAvatar) {
+                            "Dein Avatar wird vorbereitet, hochgeladen und danach direkt im Profil aktualisiert."
+                        } else {
+                            "Das Bild landet gleich in deiner Galerie und wird danach automatisch angezeigt."
+                        },
+                    )
+                }
+
                 ProfileGalleryCard(
                     uiState = uiState,
                     onPickImage = {
@@ -279,6 +296,8 @@ private fun ProfileHeroCard(
     onDeleteAvatar: (() -> Unit)?,
     onPickGalleryImage: () -> Unit,
 ) {
+    val isUploadingImageFlow = uiState.isUploadingAvatar || uiState.isUploadingMedia
+
     SkydownCard(contentPadding = PaddingValues(0.dp)) {
         Box(
             modifier = Modifier
@@ -438,18 +457,21 @@ private fun ProfileHeroCard(
                         icon = Icons.Default.CameraAlt,
                         contentDescription = "Avatar aendern",
                         onClick = onPickAvatar,
+                        enabled = !isUploadingImageFlow,
                     )
                     if (onDeleteAvatar != null) {
                         ProfileHeroFab(
                             icon = Icons.Default.Delete,
                             contentDescription = "Avatar entfernen",
                             onClick = onDeleteAvatar,
+                            enabled = !isUploadingImageFlow,
                         )
                     }
                     ProfileHeroFab(
                         icon = Icons.Default.PermMedia,
                         contentDescription = "Bild hochladen",
                         onClick = onPickGalleryImage,
+                        enabled = !isUploadingImageFlow,
                     )
                 }
             }
@@ -489,6 +511,7 @@ private fun ProfileGalleryCard(
                         title = if (uiState.isUploadingMedia) "Laedt..." else "Bild",
                         icon = Icons.Default.PermMedia,
                         onClick = onPickImage,
+                        enabled = !uiState.isUploadingAvatar && !uiState.isUploadingMedia,
                     )
                 }
             }
@@ -616,11 +639,18 @@ private fun ProfileHeroFab(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
 ) {
     FloatingActionButton(
-        onClick = onClick,
-        modifier = Modifier.size(48.dp),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        onClick = {
+            if (enabled) {
+                onClick()
+            }
+        },
+        modifier = Modifier
+            .size(48.dp)
+            .alpha(if (enabled) 1f else 0.58f),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 0.92f else 0.78f),
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Icon(icon, contentDescription = contentDescription)
@@ -632,9 +662,11 @@ private fun ProfileGalleryActionButton(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
+    enabled: Boolean = true,
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -644,6 +676,42 @@ private fun ProfileGalleryActionButton(
         Icon(icon, contentDescription = null)
         Spacer(modifier = Modifier.width(6.dp))
         Text(title)
+    }
+}
+
+@Composable
+private fun ProfileUploadStatusCard(
+    title: String,
+    detail: String,
+) {
+    SkydownCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.PermMedia,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+        }
     }
 }
 

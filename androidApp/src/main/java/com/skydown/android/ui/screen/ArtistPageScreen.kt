@@ -122,6 +122,7 @@ fun ArtistPageScreen(
     var currentlyPlayingId by remember(page.slug) { mutableStateOf<Int?>(null) }
     var selectedYouTubeItem by remember(page.slug) { mutableStateOf<VideoYouTubeItem?>(null) }
     var pendingImageTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
+    var activeImageUploadTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
     var feedbackMessage by remember(page.slug) { mutableStateOf<String?>(null) }
     var feedbackType by remember(page.slug) { mutableStateOf(ToastType.Info) }
 
@@ -152,6 +153,7 @@ fun ArtistPageScreen(
     ) { uri ->
         val target = pendingImageTarget ?: return@rememberLauncherForActivityResult
         if (uri != null) {
+            activeImageUploadTarget = target
             coroutineScope.launch {
                 val previousImageUrl = currentEditableImageUrl(target)
                 val result = editableImageAssetRepository.uploadImageAsset(
@@ -172,9 +174,11 @@ fun ArtistPageScreen(
                     feedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
                     feedbackType = ToastType.Error
                 }
+                activeImageUploadTarget = null
                 pendingImageTarget = null
             }
         } else {
+            activeImageUploadTarget = null
             pendingImageTarget = null
         }
     }
@@ -364,12 +368,19 @@ fun ArtistPageScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
+                            Text(
+                                text = "Bilder und Links kannst du hier neu anlegen, ersetzen oder entfernen. Live wird die Seite erst nach `Speichern`.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
 
                             ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
                             ArtistPageInput(title = "Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
                             EditableImageFieldCard(
                                 title = "Profilbild",
                                 imageUrl = profileImageDraft,
+                                isUploading = activeImageUploadTarget == ArtistPageImageTarget.Profile,
+                                uploadStatusText = "Profilbild wird fuer die Artist-Seite uebernommen.",
                                 onPickImage = {
                                     pendingImageTarget = ArtistPageImageTarget.Profile
                                     imagePicker.launch(
@@ -390,6 +401,8 @@ fun ArtistPageScreen(
                             EditableImageFieldCard(
                                 title = "Hero-Bild",
                                 imageUrl = heroImageDraft,
+                                isUploading = activeImageUploadTarget == ArtistPageImageTarget.Hero,
+                                uploadStatusText = "Hero-Bild wird fuer die Artist-Seite uebernommen.",
                                 onPickImage = {
                                     pendingImageTarget = ArtistPageImageTarget.Hero
                                     imagePicker.launch(
