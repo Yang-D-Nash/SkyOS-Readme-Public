@@ -69,8 +69,10 @@ import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.TrackRow
+import com.skydown.android.ui.component.YouTubePlayerDialog
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.model.VideoYouTubeItem
 import com.skydown.android.ui.theme.InstagramPink
 import com.skydown.android.ui.theme.SpotifyGreen
 import androidx.media3.common.MediaItem
@@ -117,6 +119,7 @@ fun ArtistPageScreen(
     var selectedTrackId by rememberSaveable(page.slug) { mutableStateOf<Int?>(null) }
     var currentPreviewUrl by remember(page.slug) { mutableStateOf<String?>(null) }
     var currentlyPlayingId by remember(page.slug) { mutableStateOf<Int?>(null) }
+    var selectedYouTubeItem by remember(page.slug) { mutableStateOf<VideoYouTubeItem?>(null) }
     var pendingImageTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
 
     val spotlightTrack = remember(tracks, selectedTrackId) {
@@ -293,6 +296,7 @@ fun ArtistPageScreen(
                 brand = brand,
                 trackCount = tracks.size,
                 latestReleaseText = latestReleaseText,
+                onOpenYouTube = { item -> selectedYouTubeItem = item },
             )
             ArtistPageSpotlightCard(
                 page = page,
@@ -320,7 +324,10 @@ fun ArtistPageScreen(
                     }
                 },
             )
-            ArtistPageLinksCard(page = page)
+            ArtistPageLinksCard(
+                page = page,
+                onOpenYouTube = { item -> selectedYouTubeItem = item },
+            )
 
             if (canEdit && isEditing) {
                 SkydownCard {
@@ -363,6 +370,14 @@ fun ArtistPageScreen(
             }
         }
     }
+
+    selectedYouTubeItem?.let { item ->
+        YouTubePlayerDialog(
+            item = item,
+            onDismiss = { selectedYouTubeItem = null },
+            onOpenExternal = { url -> openExternalLink(context, url) },
+        )
+    }
 }
 
 private enum class ArtistPageImageTarget {
@@ -376,6 +391,7 @@ private fun ArtistPageHeroCard(
     brand: ArtistPageBrand,
     trackCount: Int,
     latestReleaseText: String?,
+    onOpenYouTube: (VideoYouTubeItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(0.dp)) {
         Box(
@@ -535,7 +551,10 @@ private fun ArtistPageHeroCard(
                 }
             }
 
-            ArtistPageHeroQuickLinks(page = page)
+            ArtistPageHeroQuickLinks(
+                page = page,
+                onOpenYouTube = onOpenYouTube,
+            )
 
             if (page.editorUids.isNotEmpty()) {
                 ArtistEditorBadge(count = page.editorUids.size)
@@ -545,7 +564,10 @@ private fun ArtistPageHeroCard(
 }
 
 @Composable
-private fun ArtistPageLinksCard(page: ArtistPageUi) {
+private fun ArtistPageLinksCard(
+    page: ArtistPageUi,
+    onOpenYouTube: (VideoYouTubeItem) -> Unit,
+) {
     val context = LocalContext.current
     val links = rememberArtistLinks(page)
 
@@ -565,7 +587,20 @@ private fun ArtistPageLinksCard(page: ArtistPageUi) {
             } else {
                 links.forEach { link ->
                     Button(
-                        onClick = { openExternalLink(context, link.url) },
+                        onClick = {
+                            if (link.kind == ArtistPageLinkKind.YouTube) {
+                                onOpenYouTube(
+                                    VideoYouTubeItem(
+                                        id = "artist-${page.slug}-links-youtube",
+                                        title = page.artistName,
+                                        subtitle = link.subtitle,
+                                        url = link.url,
+                                    ),
+                                )
+                            } else {
+                                openExternalLink(context, link.url)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -599,7 +634,10 @@ private fun ArtistPageLinksCard(page: ArtistPageUi) {
 }
 
 @Composable
-private fun ArtistPageHeroQuickLinks(page: ArtistPageUi) {
+private fun ArtistPageHeroQuickLinks(
+    page: ArtistPageUi,
+    onOpenYouTube: (VideoYouTubeItem) -> Unit,
+) {
     val context = LocalContext.current
     val links = rememberArtistLinks(page).take(3)
 
@@ -610,7 +648,20 @@ private fun ArtistPageHeroQuickLinks(page: ArtistPageUi) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         links.forEach { link ->
             Button(
-                onClick = { openExternalLink(context, link.url) },
+                onClick = {
+                    if (link.kind == ArtistPageLinkKind.YouTube) {
+                        onOpenYouTube(
+                            VideoYouTubeItem(
+                                id = "artist-${page.slug}-hero-youtube",
+                                title = page.artistName,
+                                subtitle = link.subtitle,
+                                url = link.url,
+                            ),
+                        )
+                    } else {
+                        openExternalLink(context, link.url)
+                    }
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -821,11 +872,18 @@ private data class ArtistPageLinkUi(
     val title: String,
     val subtitle: String,
     val url: String,
+    val kind: ArtistPageLinkKind,
     val icon: ImageVector,
     val accentColor: Color,
     val backgroundColor: Color,
     val foregroundColor: Color,
 )
+
+private enum class ArtistPageLinkKind {
+    Instagram,
+    Spotify,
+    YouTube,
+}
 
 @Composable
 private fun rememberArtistLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
@@ -841,6 +899,7 @@ private fun rememberArtistLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
                         title = "Instagram",
                         subtitle = "${page.artistName} direkt verfolgen",
                         url = it,
+                        kind = ArtistPageLinkKind.Instagram,
                         icon = Icons.Default.CameraAlt,
                         accentColor = InstagramPink,
                         backgroundColor = InstagramPink.copy(alpha = 0.14f),
@@ -854,6 +913,7 @@ private fun rememberArtistLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
                         title = "Spotify",
                         subtitle = "Artist Profil und ganze Releases",
                         url = it,
+                        kind = ArtistPageLinkKind.Spotify,
                         icon = Icons.Default.MusicNote,
                         accentColor = SpotifyGreen,
                         backgroundColor = SpotifyGreen.copy(alpha = 0.16f),
@@ -867,6 +927,7 @@ private fun rememberArtistLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
                         title = "YouTube",
                         subtitle = "Videos und Releases",
                         url = it,
+                        kind = ArtistPageLinkKind.YouTube,
                         icon = Icons.Default.PlayCircleFilled,
                         accentColor = youtubeTint,
                         backgroundColor = surfaceVariant.copy(alpha = 0.92f),

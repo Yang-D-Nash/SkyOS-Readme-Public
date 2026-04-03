@@ -22,6 +22,7 @@ struct VideoHubView: View {
     @State private var showingFileImporter = false
     @State private var showingUploadSheet = false
     @State private var showingReelViewer = false
+    @State private var selectedYouTubeItem: SkydownYouTubeVideoItem?
     @State private var hasHandledInitialSelection = false
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
@@ -56,6 +57,14 @@ struct VideoHubView: View {
                 )
                 playerCard
                 libraryCard
+                if !viewModel.publicConfig.youtubeItems.isEmpty {
+                    VideoYouTubeCard(
+                        colorScheme: colorScheme,
+                        items: viewModel.publicConfig.youtubeItems
+                    ) { item in
+                        selectedYouTubeItem = item
+                    }
+                }
                 collaborationsCard
 
                 if viewModel.isAdmin {
@@ -188,6 +197,9 @@ struct VideoHubView: View {
                 )
             }
         }
+        .sheet(item: $selectedYouTubeItem) { item in
+            YouTubeEmbedPlayerView(item: item)
+        }
         .skydownKeyboardDismissToolbar()
     }
 
@@ -208,7 +220,14 @@ struct VideoHubView: View {
                     ProducedWithArtistRow(
                         artist: artist,
                         colorScheme: colorScheme
-                    )
+                    ) { urlString in
+                        selectedYouTubeItem = SkydownYouTubeVideoItem(
+                            id: "collab-\(artist.id)",
+                            title: artist.name,
+                            subtitle: artist.highlight.isEmpty ? artist.role : artist.highlight,
+                            urlString: urlString
+                        )
+                    }
                 }
             }
             .padding(SkydownLayout.cardPadding)
@@ -1077,6 +1096,7 @@ struct VideoEquipmentRow: View {
 struct ProducedWithArtistRow: View {
     let artist: SkydownProducedWithArtist
     let colorScheme: ColorScheme
+    let onOpenYouTube: (String) -> Void
 
     private var imageURL: URL? {
         guard let imageURLString = artist.imageURLString, !imageURLString.isEmpty else {
@@ -1211,7 +1231,9 @@ struct ProducedWithArtistRow: View {
                                 endPoint: .bottomTrailing
                             ),
                             destination: youtubeURL
-                        )
+                        ) {
+                                onOpenYouTube(youtubeURL.absoluteString)
+                        }
                     }
                 }
             }
@@ -1292,38 +1314,67 @@ private struct SocialLinkButton<Background: View>: View {
     let foregroundColor: Color
     let background: Background
     let destination: URL
+    let action: (() -> Void)?
+
+    init(
+        accessibilityTitle: String,
+        systemImage: String,
+        foregroundColor: Color,
+        background: Background,
+        destination: URL,
+        action: (() -> Void)? = nil
+    ) {
+        self.accessibilityTitle = accessibilityTitle
+        self.systemImage = systemImage
+        self.foregroundColor = foregroundColor
+        self.background = background
+        self.destination = destination
+        self.action = action
+    }
 
     var body: some View {
-        Link(destination: destination) {
-            Image(systemName: systemImage)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(foregroundColor)
-                .frame(width: 34, height: 34)
-                .background(background)
-                .clipShape(Circle())
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                )
-                .overlay(
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.22),
-                                    Color.white.opacity(0)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .scaleEffect(0.92)
-                )
-                .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
+        Group {
+            if let action {
+                Button(action: action) {
+                    buttonBody
+                }
+            } else {
+                Link(destination: destination) {
+                    buttonBody
+                }
+            }
         }
         .accessibilityLabel(accessibilityTitle)
         .buttonStyle(.plain)
         .skydownTactileAction()
+    }
+
+    private var buttonBody: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundColor(foregroundColor)
+            .frame(width: 34, height: 34)
+            .background(background)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .overlay(
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.22),
+                                Color.white.opacity(0)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .scaleEffect(0.92)
+            )
+            .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
     }
 }
 

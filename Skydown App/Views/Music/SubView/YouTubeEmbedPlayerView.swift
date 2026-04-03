@@ -46,7 +46,8 @@ struct YouTubeEmbedPlayerView: View {
 }
 
 private struct YouTubePlayerSource {
-    let embedURL: URL
+    let html: String
+    let baseURL: URL?
     let externalURL: URL
     let embedKey: String
 }
@@ -81,7 +82,7 @@ private struct YouTubeEmbedWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         if context.coordinator.lastEmbedKey != source.embedKey {
             context.coordinator.lastEmbedKey = source.embedKey
-            webView.load(URLRequest(url: source.embedURL))
+            webView.loadHTMLString(source.html, baseURL: source.baseURL)
         }
     }
 }
@@ -96,14 +97,48 @@ private func youtubePlayerSource(from rawURL: String) -> YouTubePlayerSource? {
     }
 
     let externalURL = URL(string: "https://www.youtube.com/watch?v=\(videoID)") ?? normalizedURL
-    guard let embedURL = URL(
-        string: "https://www.youtube.com/embed/\(videoID)?playsinline=1&rel=0&modestbranding=1&controls=1"
-    ) else {
-        return nil
-    }
+    let embedURL = "https://www.youtube-nocookie.com/embed/\(videoID)?playsinline=1&rel=0&modestbranding=1&controls=1"
+    let html = """
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+            />
+            <style>
+              html, body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                overflow: hidden;
+              }
+              iframe {
+                width: 100%;
+                height: 100%;
+                border: 0;
+                background: #000;
+              }
+            </style>
+          </head>
+          <body>
+            <iframe
+              src="\(embedURL)"
+              title="YouTube video player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="origin"
+              allowfullscreen>
+            </iframe>
+          </body>
+        </html>
+    """
 
     return YouTubePlayerSource(
-        embedURL: embedURL,
+        html: html,
+        baseURL: URL(string: "https://www.youtube.com"),
         externalURL: externalURL,
         embedKey: videoID
     )

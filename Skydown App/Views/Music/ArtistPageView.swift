@@ -25,6 +25,7 @@ struct ArtistPageView: View {
     @State private var showToast = false
     @State private var toastStyle: ToastStyle = .success
     @State private var selectedTrackID: Int?
+    @State private var selectedYouTubeItem: SkydownYouTubeVideoItem?
     @State private var pendingImageTarget: ArtistPageEditableImageTarget?
     private let editableImageUploadService = EditableImageAssetUploadService()
 
@@ -116,6 +117,9 @@ struct ArtistPageView: View {
             message: toastMessage,
             style: toastStyle
         )
+        .sheet(item: $selectedYouTubeItem) { item in
+            YouTubeEmbedPlayerView(item: item)
+        }
         .onAppear {
             syncDrafts()
         }
@@ -317,7 +321,14 @@ struct ArtistPageView: View {
         HStack(spacing: 10) {
             ForEach(socialLinks.prefix(3)) { link in
                 Button {
-                    if let url = URL(string: link.url) {
+                    if link.kind == .youtube {
+                        selectedYouTubeItem = SkydownYouTubeVideoItem(
+                            id: "artist-\(page.slug)-hero-youtube",
+                            title: page.artistName,
+                            subtitle: "Videos & Releases",
+                            urlString: link.url
+                        )
+                    } else if let url = URL(string: link.url) {
                         openURL(url)
                     }
                 } label: {
@@ -497,7 +508,14 @@ struct ArtistPageView: View {
             } else {
                 ForEach(socialLinks) { link in
                     Button {
-                        if let url = URL(string: link.url) {
+                        if link.kind == .youtube {
+                            selectedYouTubeItem = SkydownYouTubeVideoItem(
+                                id: "artist-\(page.slug)-links-youtube",
+                                title: page.artistName,
+                                subtitle: link.subtitle,
+                                urlString: link.url
+                            )
+                        } else if let url = URL(string: link.url) {
                             openURL(url)
                         }
                     } label: {
@@ -614,6 +632,7 @@ struct ArtistPageView: View {
         if let instagramURL = page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines), !instagramURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
+                    kind: .instagram,
                     title: "Instagram",
                     subtitle: page.artistName,
                     url: instagramURL,
@@ -628,6 +647,7 @@ struct ArtistPageView: View {
         if let spotifyURL = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !spotifyURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
+                    kind: .spotify,
                     title: "Spotify",
                     subtitle: "Artist Profil",
                     url: spotifyURL,
@@ -642,6 +662,7 @@ struct ArtistPageView: View {
         if let youtubeURL = page.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines), !youtubeURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
+                    kind: .youtube,
                     title: "YouTube",
                     subtitle: "Videos & Releases",
                     url: youtubeURL,
@@ -713,7 +734,14 @@ private enum ArtistPageEditableImageTarget: String, Identifiable {
 }
 
 private struct ArtistPageSocialLink: Identifiable {
+    enum Kind {
+        case instagram
+        case spotify
+        case youtube
+    }
+
     let id = UUID()
+    let kind: Kind
     let title: String
     let subtitle: String
     let url: String

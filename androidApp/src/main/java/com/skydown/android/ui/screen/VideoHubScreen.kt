@@ -2,7 +2,6 @@ package com.skydown.android.ui.screen
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.Uri
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -101,6 +100,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.YouTubePlayerDialog
 import com.skydown.android.ui.component.dismissKeyboardOnTap
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownContentPadding
@@ -155,6 +155,7 @@ fun VideoHubScreen(
         Unit
     }
     var selectedVideoId by rememberSaveable { mutableStateOf(initialSelectedVideoId) }
+    var selectedYouTubeItem by remember { mutableStateOf<VideoYouTubeItem?>(null) }
     var showReelViewer by rememberSaveable { mutableStateOf(false) }
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
     var pendingConfigImageTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
@@ -377,10 +378,20 @@ fun VideoHubScreen(
                     )
                 }
 
+                if (uiState.publicConfig.youtubeItems.isNotEmpty()) {
+                    item {
+                        VideoYouTubeCard(
+                            items = uiState.publicConfig.youtubeItems,
+                            onPlayItem = { item -> selectedYouTubeItem = item },
+                        )
+                    }
+                }
+
                 item {
                     VideoCollaborationsCard(
                         items = uiState.publicConfig.collaborationItems,
                         onOpenLink = { url -> openExternalLink(context, url) },
+                        onOpenYouTube = { item -> selectedYouTubeItem = item },
                     )
                 }
 
@@ -463,6 +474,14 @@ fun VideoHubScreen(
                     selectedVideoId = selectedVideoId,
                     onSelectVideo = { video -> selectedVideoId = video.id },
                     onDismiss = { showReelViewer = false },
+                )
+            }
+
+            selectedYouTubeItem?.let { item ->
+                YouTubePlayerDialog(
+                    item = item,
+                    onDismiss = { selectedYouTubeItem = null },
+                    onOpenExternal = { url -> openExternalLink(context, url) },
                 )
             }
 
@@ -558,6 +577,7 @@ private fun VideoFormatCard() {
 private fun VideoCollaborationsCard(
     items: List<ProducedWithArtist>,
     onOpenLink: (String) -> Unit,
+    onOpenYouTube: (VideoYouTubeItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Featured Collabs")
@@ -572,13 +592,14 @@ private fun VideoCollaborationsCard(
             modifier = Modifier.padding(top = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items.forEach { artist ->
-                ProducedWithArtistRow(
-                    artist = artist,
-                    onOpenLink = onOpenLink,
-                )
+                items.forEach { artist ->
+                    ProducedWithArtistRow(
+                        artist = artist,
+                        onOpenLink = onOpenLink,
+                        onOpenYouTube = onOpenYouTube,
+                    )
+                }
             }
-        }
     }
 }
 
@@ -907,6 +928,7 @@ private fun VideoPublicConfigEditorCard(
 private fun ProducedWithArtistRow(
     artist: com.skydown.android.ui.model.ProducedWithArtist,
     onOpenLink: (String) -> Unit,
+    onOpenYouTube: (VideoYouTubeItem) -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -1065,7 +1087,16 @@ private fun ProducedWithArtistRow(
                                 YouTubeDeepRed,
                             ),
                         ),
-                        onClick = { onOpenLink(youtubeUrl) },
+                        onClick = {
+                            onOpenYouTube(
+                                VideoYouTubeItem(
+                                    id = "collab-${artist.id}",
+                                    title = artist.name,
+                                    subtitle = artist.highlight.ifBlank { artist.role },
+                                    url = youtubeUrl,
+                                ),
+                            )
+                        },
                     )
                 }
             }
@@ -1158,229 +1189,6 @@ private fun VideoYouTubeRow(
             Text("YouTube")
         }
     }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-private fun VideoYouTubePlayerDialog(
-    item: VideoYouTubeItem,
-    onDismiss: () -> Unit,
-    onOpenExternal: (String) -> Unit,
-) {
-    val playerSource = remember(item.url) { youtubePlayerSource(item.url) }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        SkydownCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(18.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    if (item.subtitle.isNotBlank()) {
-                        Text(
-                            text = item.subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
-                    }
-                }
-
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Dialog schliessen",
-                    )
-                }
-            }
-
-            if (playerSource != null) {
-                AndroidView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(420.dp)
-                        .clip(RoundedCornerShape(22.dp))
-                        .padding(top = 12.dp),
-                    factory = { playerContext ->
-                        WebView(playerContext).apply {
-                            webViewClient = WebViewClient()
-                            webChromeClient = WebChromeClient()
-                            settings.javaScriptEnabled = true
-                            settings.domStorageEnabled = true
-                            settings.mediaPlaybackRequiresUserGesture = false
-                            settings.javaScriptCanOpenWindowsAutomatically = true
-                            settings.loadsImagesAutomatically = true
-                            settings.useWideViewPort = true
-                            settings.loadWithOverviewMode = true
-                            setBackgroundColor(android.graphics.Color.BLACK)
-                            loadDataWithBaseURL(
-                                playerSource.baseUrl,
-                                playerSource.html,
-                                "text/html",
-                                "utf-8",
-                                null,
-                            )
-                            tag = playerSource.embedKey
-                        }
-                    },
-                    update = { webView ->
-                        if (webView.tag != playerSource.embedKey) {
-                            webView.tag = playerSource.embedKey
-                            webView.loadDataWithBaseURL(
-                                playerSource.baseUrl,
-                                playerSource.html,
-                                "text/html",
-                                "utf-8",
-                                null,
-                            )
-                        }
-                    },
-                )
-            } else {
-                Text(
-                    text = "Der YouTube Player konnte fuer dieses Video nicht aufgebaut werden.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                FilledTonalButton(
-                    onClick = { onOpenExternal(playerSource?.externalUrl ?: item.url) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("In YouTube oeffnen")
-                }
-
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Schliessen")
-                }
-            }
-        }
-    }
-}
-
-private data class YouTubePlayerSource(
-    val html: String,
-    val baseUrl: String,
-    val externalUrl: String,
-    val embedKey: String,
-)
-
-private fun youtubePlayerSource(rawUrl: String): YouTubePlayerSource? {
-    val normalizedUrl = normalizedYouTubeUrl(rawUrl) ?: return null
-    val videoId = resolvedYouTubeVideoId(rawUrl, normalizedUrl)
-    if (videoId == null) {
-        return null
-    }
-
-    val embedUrl = "https://www.youtube-nocookie.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1&controls=1"
-    val html = """
-        <!doctype html>
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
-            />
-            <style>
-              html, body {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                background: #000;
-                overflow: hidden;
-              }
-              iframe {
-                width: 100%;
-                height: 100%;
-                border: 0;
-                background: #000;
-              }
-            </style>
-          </head>
-          <body>
-            <iframe
-              src="$embedUrl"
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="origin"
-              allowfullscreen>
-            </iframe>
-          </body>
-        </html>
-    """.trimIndent()
-
-    return YouTubePlayerSource(
-        html = html,
-        baseUrl = "https://www.youtube.com",
-        externalUrl = "https://www.youtube.com/watch?v=$videoId",
-        embedKey = videoId,
-    )
-}
-
-private fun normalizedYouTubeUrl(rawUrl: String): String? {
-    val trimmed = rawUrl.trim()
-    if (trimmed.isBlank()) return null
-    return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-        trimmed
-    } else {
-        "https://$trimmed"
-    }
-}
-
-private fun resolvedYouTubeVideoId(rawUrl: String, normalizedUrl: String): String? {
-    val uri = Uri.parse(normalizedUrl)
-    val host = uri.host?.lowercase(Locale.ROOT).orEmpty()
-
-    when {
-        "youtu.be" in host -> {
-            uri.pathSegments.firstOrNull()?.takeIfYouTubeId()?.let { return it }
-        }
-        uri.path?.contains("/embed/") == true ||
-            uri.path?.contains("/shorts/") == true ||
-            uri.path?.contains("/live/") == true -> {
-            uri.lastPathSegment?.takeIfYouTubeId()?.let { return it }
-        }
-    }
-
-    uri.getQueryParameter("v")?.takeIfYouTubeId()?.let { return it }
-    uri.getQueryParameter("vi")?.takeIfYouTubeId()?.let { return it }
-
-    val pattern = Regex("""(?:(?<=v=)|(?<=vi=)|(?<=/embed/)|(?<=/shorts/)|(?<=youtu\.be/)|(?<=/live/))([A-Za-z0-9_-]{11})""")
-    return pattern.find(rawUrl.trim())?.groupValues?.getOrNull(1)?.takeIfYouTubeId()
-}
-
-private fun String.takeIfYouTubeId(): String? {
-    val trimmed = trim()
-    return trimmed.takeIf { it.length == 11 }
 }
 
 @Composable
