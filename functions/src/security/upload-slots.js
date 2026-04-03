@@ -26,6 +26,30 @@ function normalizeUploadKind(value) {
   return kind === "profile" || kind === "gallery" || kind === "asset" ? kind : null;
 }
 
+function resolveMaxUploadsPer24Hours(role, kind) {
+  if (role === "owner") {
+    return 250;
+  }
+
+  if (role === "admin") {
+    return 120;
+  }
+
+  return kind === "asset" ? 40 : SECURITY_LIMITS.maxUploadsPer24Hours;
+}
+
+function resolveMaxGalleryImagesPerUser(role) {
+  if (role === "owner") {
+    return 60;
+  }
+
+  if (role === "admin") {
+    return 30;
+  }
+
+  return SECURITY_LIMITS.maxGalleryImagesPerUser;
+}
+
 function resolveExtension(mimeType, requestedExtension) {
   const normalizedRequested = nonEmptyString(requestedExtension)?.toLowerCase()?.replace(/^\./, "");
   const fallbackByMime = {
@@ -68,6 +92,11 @@ async function requestUploadSlot({auth, data, appCheckState}) {
   }
 
   const role = resolveRoleFromClaims(auth);
+  const requestedUserId = nonEmptyString(data?.userId);
+  if (requestedUserId && requestedUserId !== auth.uid) {
+    throw new HttpsError("permission-denied", "Uploads sind nur fuer das eigene Konto erlaubt.");
+  }
+
   const runtimeConfig = await getRuntimeConfig();
   if (areUploadsBlocked(runtimeConfig, role)) {
     return {
@@ -79,7 +108,7 @@ async function requestUploadSlot({auth, data, appCheckState}) {
 
   const kind = normalizeUploadKind(data?.kind);
   if (!kind) {
-    throw new HttpsError("invalid-argument", "kind muss profile oder gallery sein.");
+    throw new HttpsError("invalid-argument", "kind muss profile, gallery oder asset sein.");
   }
 
   const mimeType = normalizeMimeType(data?.mimeType);
@@ -102,13 +131,14 @@ async function requestUploadSlot({auth, data, appCheckState}) {
   }
 
   const extension = resolveExtension(mimeType, data?.fileExtension);
+  const maxGalleryImagesPerUser = resolveMaxGalleryImagesPerUser(role);
   const galleryCount = kind === "gallery" ? await countGalleryItems(auth.uid) : 0;
-  if (kind === "gallery" && galleryCount >= SECURITY_LIMITS.maxGalleryImagesPerUser) {
+  if (kind === "gallery" && galleryCount >= maxGalleryImagesPerUser) {
     return {
       allowed: false,
       reason: "gallery_limit_reached",
       message: "Das Galerie-Limit ist erreicht.",
-      maxGalleryImagesPerUser: SECURITY_LIMITS.maxGalleryImagesPerUser,
+      maxGalleryImagesPerUser,
     };
   }
 
@@ -122,12 +152,13 @@ async function requestUploadSlot({auth, data, appCheckState}) {
     count: Number(usage.windowUploadCount) || 0,
   } : nextUsageWindow(now);
 
-  if (nextWindow.count >= SECURITY_LIMITS.maxUploadsPer24Hours) {
+  const maxUploadsPer24Hours = resolveMaxUploadsPer24Hours(role, kind);
+  if (nextWindow.count >= maxUploadsPer24Hours) {
     return {
       allowed: false,
       reason: "daily_upload_limit_reached",
       message: "Das Upload-Limit fuer 24 Stunden ist erreicht.",
-      maxUploadsPer24Hours: SECURITY_LIMITS.maxUploadsPer24Hours,
+      maxUploadsPer24Hours,
       windowExpiresAt: nextWindow.expiresAt.toDate().toISOString(),
     };
   }

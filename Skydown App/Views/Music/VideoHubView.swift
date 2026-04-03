@@ -57,13 +57,11 @@ struct VideoHubView: View {
                 )
                 playerCard
                 libraryCard
-                if !viewModel.publicConfig.youtubeItems.isEmpty {
-                    VideoYouTubeCard(
-                        colorScheme: colorScheme,
-                        items: viewModel.publicConfig.youtubeItems
-                    ) { item in
-                        selectedYouTubeItem = item
-                    }
+                VideoYouTubeCard(
+                    colorScheme: colorScheme,
+                    items: viewModel.publicConfig.youtubeItems
+                ) { item in
+                    selectedYouTubeItem = item
                 }
                 collaborationsCard
 
@@ -206,16 +204,21 @@ struct VideoHubView: View {
     @ViewBuilder
     private var collaborationsCard: some View {
         let collaborationItems = viewModel.publicConfig.collaborationItems
-        if !collaborationItems.isEmpty {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Featured Collabs")
-                    .font(.headline)
-                    .foregroundColor(AppColors.text(for: colorScheme))
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Featured Collabs")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Artists und Creatives, mit denen die Visuals entstehen.")
+            Text("Artists und Creatives, mit denen die Visuals entstehen.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            if collaborationItems.isEmpty {
+                Text("Noch keine Featured Collabs hinterlegt.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
+                    .padding(.top, 4)
+            } else {
                 ForEach(collaborationItems) { artist in
                     ProducedWithArtistRow(
                         artist: artist,
@@ -230,16 +233,16 @@ struct VideoHubView: View {
                     }
                 }
             }
-            .padding(SkydownLayout.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .skydownPanelSurface(
-                colorScheme: colorScheme,
-                accent: AppColors.accentMystic(for: colorScheme),
-                cornerRadius: SkydownLayout.cardCornerRadius,
-                shadowRadius: 12,
-                shadowYOffset: 6
-            )
         }
+        .padding(SkydownLayout.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentMystic(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
+        )
     }
 
     private func activateInitialSelectionIfNeeded(with videos: [SkydownVideoHubItem]) {
@@ -909,12 +912,19 @@ struct VideoEquipmentCard: View {
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            VStack(spacing: 10) {
-                ForEach(items) { item in
-                    VideoEquipmentRow(
-                        item: item,
-                        colorScheme: colorScheme
-                    )
+            if items.isEmpty {
+                Text("Noch kein Setup hinterlegt.")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .padding(.top, 4)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        VideoEquipmentRow(
+                            item: item,
+                            colorScheme: colorScheme
+                        )
+                    }
                 }
             }
         }

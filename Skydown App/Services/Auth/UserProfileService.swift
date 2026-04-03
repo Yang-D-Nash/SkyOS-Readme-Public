@@ -100,6 +100,8 @@ final class FirebaseUserProfileService: UserProfileServicing {
     }
 
     func uploadAvatar(userId: String, imageData: Data) async throws -> String {
+        try await ensureProfileDocumentsExist(for: userId)
+
         let slot = try await requestUploadSlot(
             kind: "profile",
             userId: userId,
@@ -162,6 +164,8 @@ final class FirebaseUserProfileService: UserProfileServicing {
             )
         }
 
+        try await ensureProfileDocumentsExist(for: userId)
+
         let slot = try await requestUploadSlot(
             kind: "gallery",
             userId: userId,
@@ -203,6 +207,8 @@ final class FirebaseUserProfileService: UserProfileServicing {
                 userInfo: [NSLocalizedDescriptionKey: "Im Testbetrieb sind aktuell nur Bilder aktiviert."]
             )
         }
+
+        try await ensureProfileDocumentsExist(for: userId)
 
         let ext = fileURL.pathExtension.isEmpty ? fallbackFileExtension(for: type) : fileURL.pathExtension
         let slot = try await requestUploadSlot(
@@ -268,6 +274,86 @@ final class FirebaseUserProfileService: UserProfileServicing {
         switch type {
         case .image:
             return "jpg"
+        }
+    }
+
+    private func ensureProfileDocumentsExist(for userId: String) async throws {
+        guard let authUser = Auth.auth().currentUser, authUser.uid == userId else {
+            throw NSError(
+                domain: "FirebaseUserProfileService",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "Bitte zuerst mit dem richtigen Konto anmelden."]
+            )
+        }
+
+        let userReference = firestore.collection("users").document(userId)
+        let profileReference = firestore.collection("userProfiles").document(userId)
+        let userSnapshot = try await userReference.getDocument()
+        let profileSnapshot = try await profileReference.getDocument()
+
+        let email = authUser.email?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        let storedUserData = userSnapshot.data() ?? [:]
+        let resolvedRole = UserRole.resolve(
+            from: storedUserData["role"] as? String,
+            isAdmin: storedUserData["isAdmin"] as? Bool ?? false,
+            email: email
+        )
+        let resolvedQuotaPlan = UserQuotaPlan.resolve(
+            from: storedUserData["quotaPlan"] as? String,
+            role: resolvedRole
+        )
+        let storedUsername = (storedUserData["username"] as? String)?.nilIfBlank
+        let storedProfileUsername = (profileSnapshot.data()?["username"] as? String)?.nilIfBlank
+        let authDisplayName = authUser.displayName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank
+        let emailUsername = email.split(separator: "@").first.map(String.init)?.nilIfBlank
+        let username = storedUsername
+            ?? storedProfileUsername
+            ?? authDisplayName
+            ?? emailUsername
+            ?? "Skydown User"
+        let registrationDateEpochMillis = (storedUserData["registrationDateEpochMillis"] as? NSNumber)?.int64Value
+            ?? authUser.metadata.creationDate.map { Int64($0.timeIntervalSince1970 * 1000) }
+            ?? Int64(Date().timeIntervalSince1970 * 1000)
+
+        if !userSnapshot.exists {
+            try await userReference.setData([
+                "email": email,
+                "username": username,
+                "profileImageURL": storedUserData["profileImageURL"] as? String ?? NSNull(),
+                "profileImagePath": storedUserData["profileImagePath"] as? String ?? NSNull(),
+                "whatsApp": storedUserData["whatsApp"] as? String ?? NSNull(),
+                "profileTagline": storedUserData["profileTagline"] as? String ?? NSNull(),
+                "profileBio": storedUserData["profileBio"] as? String ?? NSNull(),
+                "instagramHandle": storedUserData["instagramHandle"] as? String ?? NSNull(),
+                "registrationDateEpochMillis": registrationDateEpochMillis,
+                "isAdmin": resolvedRole.hasStaffAccess,
+                "role": resolvedRole.rawValue,
+                "quotaPlan": resolvedQuotaPlan.rawValue,
+                "aiAccessEnabled": true,
+                "aiTextRequestsPerDay": resolvedQuotaPlan.aiTextRequestsPerDay,
+                "aiVisualRequestsPerDay": resolvedQuotaPlan.aiVisualRequestsPerDay,
+                "aiAgentRequestsPerDay": resolvedQuotaPlan.aiAgentRequestsPerDay,
+                "aiHistoryRetentionDays": resolvedQuotaPlan.aiHistoryRetentionDays,
+                "canManageMusicCatalog": resolvedRole == .owner,
+                "canManageVideoCatalog": resolvedRole == .owner,
+                "canModerateProfiles": resolvedRole == .owner
+            ])
+        }
+
+        if !profileSnapshot.exists {
+            let now = Timestamp(date: .now)
+            try await profileReference.setData([
+                "ownerUid": userId,
+                "username": username,
+                "profileImageURL": storedUserData["profileImageURL"] as? String ?? NSNull(),
+                "profileImagePath": storedUserData["profileImagePath"] as? String ?? NSNull(),
+                "profileTagline": storedUserData["profileTagline"] as? String ?? NSNull(),
+                "profileBio": storedUserData["profileBio"] as? String ?? NSNull(),
+                "instagramHandle": storedUserData["instagramHandle"] as? String ?? NSNull(),
+                "whatsApp": storedUserData["whatsApp"] as? String ?? NSNull(),
+                "createdAt": now,
+                "updatedAt": now
+            ])
         }
     }
 

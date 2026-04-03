@@ -16,20 +16,17 @@ service cloud.firestore {
     }
 
     function isOwner() {
-      return signedIn() && claimRole() == "owner";
+      return signedIn() && (claimRole() == "owner" || isOwnerEmail());
     }
 
     function isOwnerEmail() {
       return signedIn()
+        && request.auth.token.keys().hasAny(["email"])
         && request.auth.token.email is string
         && request.auth.token.email.lower() == "nash.lioncorna@gmail.com";
     }
 
     function isAdmin() {
-      return signedIn() && claimRole() in ["owner", "admin"];
-    }
-
-    function isModerator() {
       return signedIn() && claimRole() in ["owner", "admin"];
     }
 

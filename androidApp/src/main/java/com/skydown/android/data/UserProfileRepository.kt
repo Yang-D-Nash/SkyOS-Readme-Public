@@ -11,6 +11,8 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.skydown.android.ui.model.ProfileGalleryItem
 import com.skydown.android.ui.model.ProfileMediaType
+import com.skydown.shared.model.UserQuotaPlan
+import com.skydown.shared.model.UserRole
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -71,6 +73,7 @@ class UserProfileRepository(
         uri: Uri,
         contentResolver: ContentResolver,
     ): Result<String> = runCatching {
+        ensureProfileDocumentsExist(userId)
         val preparedUpload = ImageUploadPreparation.prepare(contentResolver, uri)
         val slot = requestUploadSlot(
             userId = userId,
@@ -133,6 +136,7 @@ class UserProfileRepository(
             "Im Testbetrieb sind aktuell nur Bilder aktiviert."
         }
 
+        ensureProfileDocumentsExist(userId)
         val preparedUpload = ImageUploadPreparation.prepare(contentResolver, uri)
         val slot = requestUploadSlot(
             userId = userId,
@@ -172,6 +176,82 @@ class UserProfileRepository(
                 ),
             )
             .await()
+    }
+
+    private suspend fun ensureProfileDocumentsExist(userId: String) {
+        val authUser = auth.currentUser ?: error("Bitte zuerst anmelden.")
+        require(authUser.uid == userId) {
+            "Bitte zuerst mit dem richtigen Konto anmelden."
+        }
+
+        val userReference = firestore.collection("users").document(userId)
+        val profileReference = firestore.collection("userProfiles").document(userId)
+        val userSnapshot = userReference.get().await()
+        val profileSnapshot = profileReference.get().await()
+        val userData = userSnapshot.data.orEmpty()
+        val email = authUser.email.orEmpty().trim().lowercase()
+        val resolvedRole = UserRole.resolve(
+            rawValue = userData["role"] as? String,
+            isAdmin = userData["isAdmin"] as? Boolean ?: false,
+            email = email,
+        )
+        val resolvedQuotaPlan = UserQuotaPlan.resolve(
+            rawValue = userData["quotaPlan"] as? String,
+            role = resolvedRole,
+        )
+        val username = (userData["username"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+            ?: (profileSnapshot.data?.get("username") as? String)?.trim()?.takeIf { it.isNotEmpty() }
+            ?: authUser.displayName?.trim()?.takeIf { it.isNotEmpty() }
+            ?: email.substringBefore("@").trim().takeIf { it.isNotEmpty() }
+            ?: "Skydown User"
+        val registrationDateEpochMillis = (userData["registrationDateEpochMillis"] as? Number)?.toLong()
+            ?: authUser.metadata?.creationTimestamp
+            ?: System.currentTimeMillis()
+
+        if (!userSnapshot.exists()) {
+            userReference.set(
+                mapOf(
+                    "email" to email,
+                    "username" to username,
+                    "profileImageURL" to (userData["profileImageURL"] as? String),
+                    "profileImagePath" to (userData["profileImagePath"] as? String),
+                    "whatsApp" to (userData["whatsApp"] as? String),
+                    "profileTagline" to (userData["profileTagline"] as? String),
+                    "profileBio" to (userData["profileBio"] as? String),
+                    "instagramHandle" to (userData["instagramHandle"] as? String),
+                    "registrationDateEpochMillis" to registrationDateEpochMillis,
+                    "isAdmin" to resolvedRole.hasStaffAccess,
+                    "role" to resolvedRole.rawValue,
+                    "quotaPlan" to resolvedQuotaPlan.rawValue,
+                    "aiAccessEnabled" to true,
+                    "aiTextRequestsPerDay" to resolvedQuotaPlan.aiTextRequestsPerDay,
+                    "aiVisualRequestsPerDay" to resolvedQuotaPlan.aiVisualRequestsPerDay,
+                    "aiAgentRequestsPerDay" to resolvedQuotaPlan.aiAgentRequestsPerDay,
+                    "aiHistoryRetentionDays" to resolvedQuotaPlan.aiHistoryRetentionDays,
+                    "canManageMusicCatalog" to (resolvedRole == UserRole.Owner),
+                    "canManageVideoCatalog" to (resolvedRole == UserRole.Owner),
+                    "canModerateProfiles" to (resolvedRole == UserRole.Owner),
+                ),
+            ).await()
+        }
+
+        if (!profileSnapshot.exists()) {
+            val now = com.google.firebase.Timestamp.now()
+            profileReference.set(
+                mapOf(
+                    "ownerUid" to userId,
+                    "username" to username,
+                    "profileImageURL" to (userData["profileImageURL"] as? String),
+                    "profileImagePath" to (userData["profileImagePath"] as? String),
+                    "profileTagline" to (userData["profileTagline"] as? String),
+                    "profileBio" to (userData["profileBio"] as? String),
+                    "instagramHandle" to (userData["instagramHandle"] as? String),
+                    "whatsApp" to (userData["whatsApp"] as? String),
+                    "createdAt" to now,
+                    "updatedAt" to now,
+                ),
+            ).await()
+        }
     }
 
     private fun defaultTitle(type: ProfileMediaType): String {

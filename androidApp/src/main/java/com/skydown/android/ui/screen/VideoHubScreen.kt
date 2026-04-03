@@ -378,13 +378,11 @@ fun VideoHubScreen(
                     )
                 }
 
-                if (uiState.publicConfig.youtubeItems.isNotEmpty()) {
-                    item {
-                        VideoYouTubeCard(
-                            items = uiState.publicConfig.youtubeItems,
-                            onPlayItem = { item -> selectedYouTubeItem = item },
-                        )
-                    }
+                item {
+                    VideoYouTubeCard(
+                        items = uiState.publicConfig.youtubeItems,
+                        onPlayItem = { item -> selectedYouTubeItem = item },
+                    )
                 }
 
                 item {
@@ -588,10 +586,18 @@ private fun VideoCollaborationsCard(
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        Column(
-            modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        if (items.isEmpty()) {
+            Text(
+                text = "Noch keine Featured Collabs hinterlegt.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier.padding(top = 14.dp),
+            )
+        } else {
+            Column(
+                modifier = Modifier.padding(top = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 items.forEach { artist ->
                     ProducedWithArtistRow(
                         artist = artist,
@@ -600,6 +606,7 @@ private fun VideoCollaborationsCard(
                     )
                 }
             }
+        }
     }
 }
 
@@ -616,14 +623,23 @@ private fun VideoEquipmentCard(
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        Column(
-            modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items.forEach { item ->
-                VideoEquipmentRow(
-                    item = item,
-                )
+        if (items.isEmpty()) {
+            Text(
+                text = "Noch kein Setup hinterlegt.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier.padding(top = 14.dp),
+            )
+        } else {
+            Column(
+                modifier = Modifier.padding(top = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items.forEach { item ->
+                    VideoEquipmentRow(
+                        item = item,
+                    )
+                }
             }
         }
     }

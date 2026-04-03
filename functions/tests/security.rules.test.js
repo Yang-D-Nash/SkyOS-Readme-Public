@@ -149,6 +149,62 @@ test("user darf eigene Daten lesen und Profil aktualisieren", async () => {
   }));
 });
 
+test("user darf eigenes userProfiles Dokument fuer Bild-Uploads anlegen", async () => {
+  await seedUser("alice");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertSucceeds(setDoc(doc(aliceDb, "userProfiles", "alice"), {
+    ownerUid: "alice",
+    username: "alice",
+    profileImageURL: "https://example.com/avatar.jpg",
+    profileImagePath: "users/alice/profile/avatar.jpg",
+    createdAt: Timestamp.fromDate(new Date("2026-04-03T08:00:00.000Z")),
+    updatedAt: Timestamp.fromDate(new Date("2026-04-03T08:00:00.000Z")),
+  }));
+});
+
+test("user darf eigenes galleryMeta Bild nach Upload speichern", async () => {
+  await seedUser("alice");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertSucceeds(setDoc(doc(aliceDb, "galleryMeta", "alice", "items", "img_1"), {
+    ownerUid: "alice",
+    type: "image",
+    title: "Bild 03.04 10:00",
+    mediaURL: "https://firebasestorage.googleapis.com/v0/b/demo/o/users%2Falice%2Fgallery%2Fimg_1.jpg",
+    thumbnailURL: "https://firebasestorage.googleapis.com/v0/b/demo/o/users%2Falice%2Fgallery%2Fimg_1.jpg",
+    storagePath: "users/alice/gallery/img_1.jpg",
+    contentType: "image/jpeg",
+    createdAt: Timestamp.fromDate(new Date("2026-04-03T08:00:00.000Z")),
+    updatedAt: Timestamp.fromDate(new Date("2026-04-03T08:00:00.000Z")),
+  }));
+});
+
+test("owner email darf eigenes User-Dokument auch ohne owner claim fuer Profilbilder aktualisieren", async () => {
+  await seedUser("owneruid", {
+    email: "nash.lioncorna@gmail.com",
+    isAdmin: true,
+    role: "owner",
+    quotaPlan: "owner_unlimited",
+    aiTextRequestsPerDay: 5000,
+    aiVisualRequestsPerDay: 1200,
+    aiAgentRequestsPerDay: 3000,
+    aiHistoryRetentionDays: 30,
+    canManageMusicCatalog: true,
+    canManageVideoCatalog: true,
+    canModerateProfiles: true,
+  });
+  const ownerDb = testEnv.authenticatedContext("owneruid", {
+    email: "nash.lioncorna@gmail.com",
+    role: "user",
+  }).firestore();
+
+  await assertSucceeds(updateDoc(doc(ownerDb, "users", "owneruid"), {
+    profileImageURL: "https://example.com/avatar.jpg",
+    profileImagePath: "users/owneruid/profile/avatar.jpg",
+  }));
+});
+
 test("user darf keine fremden User-Daten lesen oder schreiben", async () => {
   await seedUser("alice");
   await seedUser("bob");
@@ -331,6 +387,37 @@ test("user darf eigene Asset-Bilder fuer editierbare Bereiche hochladen", async 
   ));
 });
 
+test("owner email darf eigene Asset-Bilder auch ohne owner claim hochladen", async () => {
+  await seedUser("nash-owner", {
+    email: "nash.lioncorna@gmail.com",
+    role: "user",
+  });
+  await seedUploadSlot({
+    slotId: "slot_asset_owner_email_001",
+    uid: "nash-owner",
+    kind: "asset",
+    fileName: "slot_asset_owner_email_001.jpg",
+  });
+
+  const storage = testEnv.authenticatedContext("nash-owner", {
+    role: "user",
+    email: "nash.lioncorna@gmail.com",
+  }).storage();
+  const fileRef = ref(storage, "users/nash-owner/assets/slot_asset_owner_email_001.jpg");
+
+  await assertSucceeds(uploadBytes(
+    fileRef,
+    Uint8Array.from([1, 2, 3]),
+    {
+      contentType: "image/jpeg",
+      customMetadata: {
+        uploadSlotId: "slot_asset_owner_email_001",
+        ownerUid: "nash-owner",
+      },
+    },
+  ));
+});
+
 test("screenHeaders bleiben oeffentlich lesbar, aber nur der Owner darf valide Home-Texte speichern", async () => {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), "appConfig", "screenHeaders"), {
@@ -389,6 +476,37 @@ test("screenHeaders bleiben oeffentlich lesbar, aber nur der Owner darf valide H
   await assertFails(updateDoc(doc(userDb, "appConfig", "screenHeaders"), {
     homeTitle: "Nope",
     updatedAt: Timestamp.fromDate(new Date("2026-04-03T11:00:00.000Z")),
+  }));
+});
+
+test("owner email darf screenHeaders auch ohne owner claim speichern", async () => {
+  const ownerEmailDb = testEnv.authenticatedContext("nash-owner", {
+    role: "user",
+    email: "nash.lioncorna@gmail.com",
+  }).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerEmailDb, "appConfig", "screenHeaders"), {
+    homeImageURL: "https://example.com/home-owner-email.jpg",
+    homeEyebrow: "Willkommen",
+    homeTitle: "Owner Mail Fallback",
+    homeSubtitle: "Rules und UI sind jetzt gleichgezogen.",
+    homeDetail: "Dieses Dokument darf ueber die feste Owner-Mail geschrieben werden.",
+    musicHubEyebrow: "Music",
+    musicHubTitle: "Music",
+    musicHubSubtitle: "Releases, Artists und Studio.",
+    musicHubDetail: "Direkt zu Songs, Beats und Recording.",
+    musicHubImageURL: "https://example.com/music.jpg",
+    shopEyebrow: "Store",
+    shopTitle: "Shop",
+    shopSubtitle: "Merch direkt in der App.",
+    shopDetail: "Exklusive Drops und Essentials.",
+    shopImageURL: "",
+    videoHubEyebrow: "Video",
+    videoHubTitle: "Video",
+    videoHubSubtitle: "Reels, Visuals und starke Kollabos.",
+    videoHubDetail: "Clips, Looks und Leute hinter dem Vibe.",
+    videoHubImageURL: "",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-03T11:30:00.000Z")),
   }));
 });
 
@@ -492,6 +610,29 @@ test("Owner darf artistPages anlegen und Editoren setzen", async () => {
     spotifyURL: "https://open.spotify.com/artist/example",
     youtubeURL: "https://youtube.com/@ydnash",
     editorUids: ["editor1"],
+    createdAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+    updatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+  }));
+});
+
+test("owner email darf artistPages auch ohne owner claim anlegen", async () => {
+  const ownerEmailDb = testEnv.authenticatedContext("nash-owner", {
+    role: "user",
+    email: "nash.lioncorna@gmail.com",
+  }).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerEmailDb, "artistPages", "owner-email-artist"), {
+    slug: "owner-email-artist",
+    brand: "zweizwei",
+    artistName: "Owner Mail Artist",
+    tagline: "Fallback",
+    bio: "Die feste Owner-Mail darf diese Artist-Page anlegen.",
+    profileImageURL: "https://example.com/avatar.jpg",
+    heroImageURL: "https://example.com/hero.jpg",
+    instagramURL: "https://instagram.com/owner",
+    spotifyURL: "https://open.spotify.com/artist/example",
+    youtubeURL: "https://youtube.com/@owner",
+    editorUids: [],
     createdAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
     updatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
   }));
