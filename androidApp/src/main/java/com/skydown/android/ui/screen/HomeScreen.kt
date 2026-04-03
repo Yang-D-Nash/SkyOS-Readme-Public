@@ -542,6 +542,7 @@ private fun HomeLatestBeatCard(
     isPlaying: Boolean,
     onPlayToggle: (FeaturedBeatHighlight) -> Unit,
 ) {
+    val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         SectionHeader("Beat im Fokus")
         val beat = uiState.featuredBeat
@@ -610,6 +611,17 @@ private fun HomeLatestBeatCard(
                 onClick = { onPlayToggle(beat) },
             )
         }
+
+        if (beat.openUrl.isNotBlank()) {
+            OutlinedButton(
+                onClick = { openExternalLink(context, beat.openUrl) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+            ) {
+                Text("Original oeffnen")
+            }
+        }
     }
 }
 
@@ -620,6 +632,7 @@ private fun HomeLatestVideoCard(
     isPlaying: Boolean,
     onPlayToggle: (FeaturedVideoHighlight) -> Unit,
 ) {
+    val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         SectionHeader("Video im Fokus")
         val video = uiState.featuredVideo
@@ -685,7 +698,16 @@ private fun HomeLatestVideoCard(
             modifier = Modifier.padding(top = 14.dp),
         )
 
-        if (video.downloadUrl.isNotBlank()) {
+        if (video.usesEmbeddedPreview) {
+            ExternalVideoWebPlayer(
+                url = video.embedUrl,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .padding(top = 14.dp)
+                    .clip(MaterialTheme.shapes.extraLarge),
+            )
+        } else if (video.downloadUrl.isNotBlank()) {
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -702,6 +724,22 @@ private fun HomeLatestVideoCard(
                     view.player = player
                 },
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .padding(top = 14.dp)
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "Dieser Clip wird ueber einen externen Link geoeffnet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
         }
 
         if (video.downloadUrl.isNotBlank()) {
@@ -713,6 +751,17 @@ private fun HomeLatestVideoCard(
                     .padding(top = 14.dp),
                 onClick = { onPlayToggle(video) },
             )
+        }
+
+        if (video.openUrl.isNotBlank()) {
+            OutlinedButton(
+                onClick = { openExternalLink(context, video.openUrl) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+            ) {
+                Text("Original oeffnen")
+            }
         }
     }
 }

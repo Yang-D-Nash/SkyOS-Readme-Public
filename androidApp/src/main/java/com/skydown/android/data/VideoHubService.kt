@@ -27,6 +27,14 @@ data class VideoHubUploadRequest(
     val files: List<SelectedVideoFile>,
 )
 
+data class ExternalVideoHubRequest(
+    val title: String,
+    val projectName: String,
+    val email: String,
+    val notes: String,
+    val externalUrl: String,
+)
+
 class VideoHubService(
     private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
@@ -91,6 +99,50 @@ class VideoHubService(
                 currentUser = currentUser,
             )
         }
+    }
+
+    suspend fun addExternalVideo(
+        request: ExternalVideoHubRequest,
+        currentUser: User?,
+    ) {
+        val source = resolveExternalVideoSource(request.externalUrl)
+            ?: error("Externer Video-Link konnte nicht erkannt werden.")
+        val trimmedTitle = request.title.trim()
+        val title = trimmedTitle.ifBlank {
+            "${request.projectName.trim().ifBlank { "Video" }} Clip"
+        }
+        val fallbackFileName = source.sourceFileId?.takeIf { it.isNotBlank() }?.let { "source-$it" }
+            ?: "${source.provider.rawValue}-video"
+        val fileName = source.normalizedUrl.substringAfterLast('/').substringBefore('?')
+            .takeIf { candidate ->
+                candidate.isNotBlank() &&
+                    !candidate.equals("view", ignoreCase = true) &&
+                    !candidate.equals("preview", ignoreCase = true)
+            }
+            ?: fallbackFileName
+
+        firestore.collection(collectionName).add(
+            hashMapOf(
+                "title" to title,
+                "projectName" to request.projectName,
+                "email" to request.email,
+                "notes" to request.notes,
+                "fileName" to fileName,
+                "mimeType" to source.mimeType,
+                "downloadURL" to source.downloadUrl.orEmpty(),
+                "storagePath" to "",
+                "uploaderName" to (currentUser?.username ?: request.projectName),
+                "uploaderEmail" to (currentUser?.email ?: request.email),
+                "uploaderID" to currentUser?.id.orEmpty(),
+                "isPublic" to true,
+                "isHomeFeatured" to false,
+                "sourceProvider" to source.provider.rawValue,
+                "externalURL" to source.externalUrl,
+                "embedURL" to source.embedUrl.orEmpty(),
+                "sourceFileID" to source.sourceFileId.orEmpty(),
+                "createdAt" to FieldValue.serverTimestamp(),
+            ),
+        ).await()
     }
 
     suspend fun deleteVideo(video: VideoHubItem) {
@@ -229,12 +281,16 @@ class VideoHubService(
                 "fileName" to file.fileName,
                 "mimeType" to file.mimeType,
                 "downloadURL" to downloadUrl,
+                "externalURL" to "",
+                "embedURL" to "",
                 "storagePath" to storagePath,
                 "uploaderName" to (currentUser?.username ?: request.projectName),
                 "uploaderEmail" to (currentUser?.email ?: request.email),
                 "uploaderID" to (currentUser?.id.orEmpty()),
                 "isPublic" to true,
                 "isHomeFeatured" to false,
+                "sourceProvider" to ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
+                "sourceFileID" to "",
                 "createdAt" to FieldValue.serverTimestamp(),
             ),
         ).await()
@@ -244,8 +300,13 @@ class VideoHubService(
         val data = document.data
         val title = data["title"] as? String ?: return null
         val projectName = data["projectName"] as? String ?: return null
-        val fileName = data["fileName"] as? String ?: return null
-        val downloadUrl = data["downloadURL"] as? String ?: return null
+        val fileName = data["fileName"] as? String ?: title
+        val downloadUrl = data["downloadURL"] as? String ?: ""
+        val externalUrl = data["externalURL"] as? String ?: ""
+        val embedUrl = data["embedURL"] as? String ?: ""
+        if (downloadUrl.isBlank() && externalUrl.isBlank() && embedUrl.isBlank()) {
+            return null
+        }
 
         val createdAtMillis = when (val createdAt = data["createdAt"]) {
             is Timestamp -> createdAt.toDate().time
@@ -268,6 +329,10 @@ class VideoHubService(
             storagePath = data["storagePath"] as? String ?: "",
             isPublic = data["isPublic"] as? Boolean ?: true,
             isHomeFeatured = data["isHomeFeatured"] as? Boolean ?: false,
+            sourceProvider = data["sourceProvider"] as? String ?: ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
+            externalUrl = externalUrl,
+            embedUrl = embedUrl,
+            sourceFileId = data["sourceFileID"] as? String ?: "",
             createdAtMillis = createdAtMillis,
         )
     }

@@ -4,10 +4,6 @@ import com.skydown.android.data.repository.AndroidAuthRepository
 import com.skydown.android.data.repository.AndroidMerchandiseRepository
 import com.skydown.android.data.repository.AndroidMusicRepository
 import com.skydown.android.data.repository.AndroidOrderRepository
-import com.skydown.android.data.repository.FakeAuthRepository
-import com.skydown.android.data.repository.FakeMerchandiseRepository
-import com.skydown.android.data.repository.FakeMusicRepository
-import com.skydown.android.data.repository.FakeOrderRepository
 import com.skydown.shared.repository.AuthRepository
 import com.skydown.shared.repository.MerchandiseRepository
 import com.skydown.shared.repository.MusicRepository
@@ -19,8 +15,6 @@ import com.skydown.shared.service.OrderService
 import kotlinx.coroutines.flow.StateFlow
 
 object AppContainer {
-    private const val useFirebaseRepositories = true
-
     val aiChatClient: AiChatClient by lazy { AiChatClient() }
     val aiImageClient: AiImageClient by lazy { AiImageClient() }
     val aiUsageAuthorizationClient: AiUsageAuthorizationClient by lazy { AiUsageAuthorizationClient() }
@@ -39,21 +33,10 @@ object AppContainer {
     val adminUserManagementRepository: AdminUserManagementRepository by lazy { AdminUserManagementRepository() }
     val merchStoreStatusRepository: MerchStoreStatusRepository by lazy { MerchStoreStatusRepository() }
 
-    val authRepository: AuthRepository by lazy {
-        if (useFirebaseRepositories) AndroidAuthRepository() else FakeAuthRepository()
-    }
-
-    val merchandiseRepository: MerchandiseRepository by lazy {
-        if (useFirebaseRepositories) AndroidMerchandiseRepository() else FakeMerchandiseRepository()
-    }
-
-    val orderRepository: OrderRepository by lazy {
-        if (useFirebaseRepositories) AndroidOrderRepository() else FakeOrderRepository()
-    }
-
-    val musicRepository: MusicRepository by lazy {
-        if (useFirebaseRepositories) AndroidMusicRepository() else FakeMusicRepository()
-    }
+    val authRepository: AuthRepository by lazy { AndroidAuthRepository() }
+    val merchandiseRepository: MerchandiseRepository by lazy { AndroidMerchandiseRepository() }
+    val orderRepository: OrderRepository by lazy { AndroidOrderRepository() }
+    val musicRepository: MusicRepository by lazy { AndroidMusicRepository() }
 
     val authService: AuthService by lazy { AuthService(authRepository) }
     val merchandiseService: MerchandiseService by lazy { MerchandiseService(merchandiseRepository) }

@@ -81,8 +81,155 @@ class MusicViewModel: ObservableObject {
 }
 
 private extension String {
-    var nilIfEmpty: String? {
+    var musicNilIfEmpty: String? {
         isEmpty ? nil : self
+    }
+}
+
+enum ExternalMediaProvider: String {
+    case firebaseStorage = "firebase_storage"
+    case googleDrive = "google_drive"
+    case mega = "mega"
+    case externalLink = "external_link"
+
+    init(rawValueOrDefault value: String?) {
+        self = ExternalMediaProvider(rawValue: value ?? "") ?? .firebaseStorage
+    }
+
+    var badgeLabel: String {
+        switch self {
+        case .firebaseStorage:
+            return "Storage"
+        case .googleDrive:
+            return "Drive"
+        case .mega:
+            return "MEGA"
+        case .externalLink:
+            return "Extern"
+        }
+    }
+}
+
+private struct ExternalMediaSource {
+    let provider: ExternalMediaProvider
+    let normalizedURL: URL
+    let externalURL: URL
+    let embedURL: URL?
+    let downloadURL: URL?
+    let sourceFileID: String?
+    let mimeType: String
+}
+
+private enum ExternalMediaKind {
+    case video
+    case audio
+}
+
+private func resolveExternalVideoSource(from rawURL: String) -> ExternalMediaSource? {
+    resolveExternalMediaSource(from: rawURL, kind: .video)
+}
+
+private func resolveExternalAudioSource(from rawURL: String) -> ExternalMediaSource? {
+    resolveExternalMediaSource(from: rawURL, kind: .audio)
+}
+
+private func resolveExternalMediaSource(from rawURL: String, kind: ExternalMediaKind) -> ExternalMediaSource? {
+    guard let normalizedURL = normalizedExternalMediaURL(from: rawURL),
+          let host = normalizedURL.host?.lowercased() else {
+        return nil
+    }
+
+    if host.contains("drive.google.com") || host.contains("docs.google.com"),
+       let fileID = googleDriveFileID(from: rawURL, normalizedURL: normalizedURL),
+       let externalURL = URL(string: "https://drive.google.com/file/d/\(fileID)/view") {
+        return ExternalMediaSource(
+            provider: .googleDrive,
+            normalizedURL: normalizedURL,
+            externalURL: externalURL,
+            embedURL: kind == .video ? URL(string: "https://drive.google.com/file/d/\(fileID)/preview") : nil,
+            downloadURL: nil,
+            sourceFileID: fileID,
+            mimeType: kind == .video ? "video/external" : "audio/external"
+        )
+    }
+
+    if host.contains("mega.nz") || host.contains("mega.io") {
+        return ExternalMediaSource(
+            provider: .mega,
+            normalizedURL: normalizedURL,
+            externalURL: normalizedURL,
+            embedURL: nil,
+            downloadURL: isDirectMediaURL(normalizedURL, kind: kind) ? normalizedURL : nil,
+            sourceFileID: nil,
+            mimeType: directMimeType(for: normalizedURL, kind: kind) ?? (kind == .video ? "video/external" : "audio/external")
+        )
+    }
+
+    let isDirect = isDirectMediaURL(normalizedURL, kind: kind)
+    return ExternalMediaSource(
+        provider: .externalLink,
+        normalizedURL: normalizedURL,
+        externalURL: normalizedURL,
+        embedURL: nil,
+        downloadURL: isDirect ? normalizedURL : nil,
+        sourceFileID: nil,
+        mimeType: directMimeType(for: normalizedURL, kind: kind) ?? (kind == .video ? "video/external" : "audio/external")
+    )
+}
+
+private func normalizedExternalMediaURL(from rawURL: String) -> URL? {
+    let trimmed = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    if let directURL = URL(string: trimmed), directURL.scheme != nil, directURL.host != nil {
+        return directURL
+    }
+    return URL(string: "https://\(trimmed)")
+}
+
+private func googleDriveFileID(from rawURL: String, normalizedURL: URL) -> String? {
+    if let components = URLComponents(url: normalizedURL, resolvingAgainstBaseURL: false),
+       let id = components.queryItems?.first(where: { $0.name == "id" })?.value,
+       !id.isEmpty {
+        return id
+    }
+
+    let pathComponents = normalizedURL.pathComponents
+    if let markerIndex = pathComponents.firstIndex(of: "d"), markerIndex + 1 < pathComponents.count {
+        return pathComponents[markerIndex + 1]
+    }
+
+    let pattern = #"\/d\/([A-Za-z0-9_-]+)"#
+    guard let regex = try? NSRegularExpression(pattern: pattern) else {
+        return nil
+    }
+    let range = NSRange(rawURL.startIndex..<rawURL.endIndex, in: rawURL)
+    guard let match = regex.firstMatch(in: rawURL, range: range),
+          let idRange = Range(match.range(at: 1), in: rawURL) else {
+        return nil
+    }
+    return String(rawURL[idRange])
+}
+
+private func isDirectMediaURL(_ url: URL, kind: ExternalMediaKind) -> Bool {
+    directMimeType(for: url, kind: kind) != nil
+}
+
+private func directMimeType(for url: URL, kind: ExternalMediaKind) -> String? {
+    let path = url.path.lowercased()
+    switch kind {
+    case .video:
+        if path.hasSuffix(".mp4") { return "video/mp4" }
+        if path.hasSuffix(".mov") { return "video/quicktime" }
+        if path.hasSuffix(".m4v") { return "video/x-m4v" }
+        if path.hasSuffix(".webm") { return "video/webm" }
+        return nil
+    case .audio:
+        if path.hasSuffix(".mp3") { return "audio/mpeg" }
+        if path.hasSuffix(".wav") { return "audio/wav" }
+        if path.hasSuffix(".m4a") { return "audio/mp4" }
+        if path.hasSuffix(".aac") { return "audio/aac" }
+        if path.hasSuffix(".flac") { return "audio/flac" }
+        return nil
     }
 }
 
@@ -100,6 +247,7 @@ struct NicmaBeatHubItem: Identifiable {
     let artistName: String
     let fileName: String
     let downloadURL: String
+    let externalURL: String
     let notes: String
     let uploaderName: String
     let uploaderEmail: String
@@ -107,10 +255,31 @@ struct NicmaBeatHubItem: Identifiable {
     let mimeType: String
     let storagePath: String
     let isPublic: Bool
+    let sourceProvider: String
+    let sourceFileID: String
     let createdAt: Date
 
+    var provider: ExternalMediaProvider {
+        ExternalMediaProvider(rawValueOrDefault: sourceProvider)
+    }
+
+    var openURLString: String {
+        externalURL.musicNilIfEmpty ?? downloadURL
+    }
+
     var isPlayable: Bool {
-        mimeType.hasPrefix("audio/")
+        !downloadURL.isEmpty && (
+            mimeType.hasPrefix("audio/")
+            || fileName.lowercased().hasSuffix(".mp3")
+            || fileName.lowercased().hasSuffix(".wav")
+            || fileName.lowercased().hasSuffix(".m4a")
+            || fileName.lowercased().hasSuffix(".aac")
+            || fileName.lowercased().hasSuffix(".flac")
+        )
+    }
+
+    var supportsInlinePlayback: Bool {
+        isPlayable
     }
 }
 
@@ -122,12 +291,21 @@ struct NicmaBeatUploadRequest {
     let files: [NicmaSelectedFile]
 }
 
+struct NicmaExternalBeatRequest {
+    let beatTitle: String
+    let artistName: String
+    let email: String
+    let notes: String
+    let externalURL: String
+}
+
 protocol NicmaBeatHubServicing {
     func observeBeats(
         isAdmin: Bool,
         _ onChange: @escaping @MainActor (Result<[NicmaBeatHubItem], Error>) -> Void
     ) -> () -> Void
     func uploadBeats(_ request: NicmaBeatUploadRequest, currentUser: User?) async throws
+    func addExternalBeat(_ request: NicmaExternalBeatRequest, currentUser: User?) async throws
     func updateBeatVisibility(beatID: String, isPublic: Bool) async throws
     func deleteBeat(_ beat: NicmaBeatHubItem) async throws
 }
@@ -174,6 +352,47 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
         for file in request.files {
             try await upload(file, request: request, currentUser: currentUser)
         }
+    }
+
+    func addExternalBeat(_ request: NicmaExternalBeatRequest, currentUser: User?) async throws {
+        guard let source = resolveExternalAudioSource(from: request.externalURL) else {
+            throw NSError(domain: "SkydownExternalBeat", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Externer Beat-Link konnte nicht erkannt werden."
+            ])
+        }
+
+        let trimmedTitle = request.beatTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let beatTitle = trimmedTitle.isEmpty
+            ? "\(request.artistName.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty ?? "Beat") Beat"
+            : trimmedTitle
+        let fallbackFileName = (source.sourceFileID ?? "").musicNilIfEmpty.map { "source-\($0)" } ?? "\(source.provider.rawValue)-beat"
+        let candidateFileName = source.normalizedURL.lastPathComponent.musicNilIfEmpty
+        let fileName = {
+            guard let candidateFileName else { return fallbackFileName }
+            let lowered = candidateFileName.lowercased()
+            return lowered == "view" || lowered == "preview" ? fallbackFileName : candidateFileName
+        }()
+
+        let payload: [String: Any] = [
+            "title": beatTitle,
+            "artistName": request.artistName,
+            "email": request.email,
+            "notes": request.notes,
+            "fileName": fileName,
+            "mimeType": source.mimeType,
+            "downloadURL": source.downloadURL?.absoluteString ?? "",
+            "externalURL": source.externalURL.absoluteString,
+            "storagePath": "",
+            "uploaderName": currentUser?.username ?? request.artistName,
+            "uploaderEmail": currentUser?.email ?? request.email,
+            "uploaderID": currentUser?.id ?? "",
+            "isPublic": true,
+            "sourceProvider": source.provider.rawValue,
+            "sourceFileID": source.sourceFileID ?? "",
+            "createdAt": Timestamp()
+        ]
+
+        try await firestore.collection(collectionName).addDocument(data: payload)
     }
 
     func updateBeatVisibility(beatID: String, isPublic: Bool) async throws {
@@ -241,11 +460,14 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
             "fileName": file.fileName,
             "mimeType": file.mimeType,
             "downloadURL": downloadURL.absoluteString,
+            "externalURL": "",
             "storagePath": path,
             "uploaderName": currentUser?.username ?? request.artistName,
             "uploaderEmail": currentUser?.email ?? request.email,
             "uploaderID": currentUser?.id ?? "",
             "isPublic": currentUser?.canManageMusic == true,
+            "sourceProvider": ExternalMediaProvider.firebaseStorage.rawValue,
+            "sourceFileID": "",
             "createdAt": Timestamp()
         ]
 
@@ -311,9 +533,13 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
     private func mapBeat(document: QueryDocumentSnapshot) -> NicmaBeatHubItem? {
         let data = document.data()
         guard let title = data["title"] as? String,
-              let artistName = data["artistName"] as? String,
-              let fileName = data["fileName"] as? String,
-              let downloadURL = data["downloadURL"] as? String else {
+              let artistName = data["artistName"] as? String else {
+            return nil
+        }
+        let fileName = data["fileName"] as? String ?? title
+        let downloadURL = data["downloadURL"] as? String ?? ""
+        let externalURL = data["externalURL"] as? String ?? ""
+        guard !downloadURL.isEmpty || !externalURL.isEmpty else {
             return nil
         }
 
@@ -332,6 +558,7 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
             artistName: artistName,
             fileName: fileName,
             downloadURL: downloadURL,
+            externalURL: externalURL,
             notes: data["notes"] as? String ?? "",
             uploaderName: data["uploaderName"] as? String ?? artistName,
             uploaderEmail: data["uploaderEmail"] as? String ?? (data["email"] as? String ?? ""),
@@ -339,6 +566,8 @@ final class FirebaseNicmaBeatHubService: NicmaBeatHubServicing {
             mimeType: data["mimeType"] as? String ?? "application/octet-stream",
             storagePath: data["storagePath"] as? String ?? "",
             isPublic: data["isPublic"] as? Bool ?? false,
+            sourceProvider: data["sourceProvider"] as? String ?? ExternalMediaProvider.firebaseStorage.rawValue,
+            sourceFileID: data["sourceFileID"] as? String ?? "",
             createdAt: createdAt
         )
     }
@@ -362,6 +591,7 @@ final class NicmaProducerViewModel: ObservableObject {
     @Published var artistName = ""
     @Published var email = ""
     @Published var notes = ""
+    @Published var externalBeatURL = ""
     @Published var selectedFiles: [NicmaSelectedFile] = []
     @Published var beats: [NicmaBeatHubItem] = []
     @Published var isLoadingBeats = true
@@ -391,6 +621,14 @@ final class NicmaProducerViewModel: ObservableObject {
         !artistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         email.contains("@") &&
         !selectedFiles.isEmpty &&
+        !isUploading
+    }
+
+    var canAddExternalBeat: Bool {
+        isAdmin &&
+        !artistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        email.contains("@") &&
+        !externalBeatURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !isUploading
     }
 
@@ -518,6 +756,64 @@ final class NicmaProducerViewModel: ObservableObject {
         isUploading = false
     }
 
+    func addExternalBeat() async {
+        guard isAdmin else {
+            validationMessage = "Nur Admins koennen externe Beats freigeben."
+            showUserToast("Externe Beats sind nur fuer Admins verfuegbar.", style: .info)
+            return
+        }
+
+        let trimmedTitle = beatTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedArtist = artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedURL = externalBeatURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedArtist.isEmpty else {
+            validationMessage = "Bitte trag dein Projekt oder deinen Artist-Namen ein."
+            return
+        }
+
+        guard trimmedEmail.contains("@") else {
+            validationMessage = "Bitte trag eine gueltige E-Mail ein."
+            return
+        }
+
+        guard !trimmedURL.isEmpty else {
+            validationMessage = "Bitte trag einen Drive-, MEGA- oder anderen Audio-Link ein."
+            return
+        }
+
+        isUploading = true
+        validationMessage = nil
+
+        do {
+            try await service.addExternalBeat(
+                NicmaExternalBeatRequest(
+                    beatTitle: trimmedTitle,
+                    artistName: trimmedArtist,
+                    email: trimmedEmail,
+                    notes: trimmedNotes,
+                    externalURL: trimmedURL
+                ),
+                currentUser: currentUser
+            )
+            beatTitle = ""
+            notes = ""
+            externalBeatURL = ""
+            showUserToast("Externer Beat wurde freigegeben.", style: .success)
+        } catch {
+            let detail = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+            if detail.isEmpty {
+                showUserToast("Der externe Beat-Link konnte nicht gespeichert werden.", style: .error)
+            } else {
+                showUserToast("Der externe Beat-Link konnte nicht gespeichert werden: \(detail)", style: .error)
+            }
+        }
+
+        isUploading = false
+    }
+
     private func resolveSelectedFile(from url: URL) -> NicmaSelectedFile? {
         let hasAccess = url.startAccessingSecurityScopedResource()
         defer {
@@ -587,6 +883,8 @@ struct SkydownVideoHubItem: Identifiable {
     let projectName: String
     let fileName: String
     let downloadURL: String
+    let externalURL: String
+    let embedURL: String
     let notes: String
     let uploaderName: String
     let uploaderEmail: String
@@ -595,13 +893,37 @@ struct SkydownVideoHubItem: Identifiable {
     let storagePath: String
     let isPublic: Bool
     let isHomeFeatured: Bool
+    let sourceProvider: String
+    let sourceFileID: String
     let createdAt: Date
 
+    var provider: ExternalMediaProvider {
+        ExternalMediaProvider(rawValueOrDefault: sourceProvider)
+    }
+
+    var nativePlaybackURLString: String {
+        downloadURL
+    }
+
+    var openURLString: String {
+        externalURL.musicNilIfEmpty ?? downloadURL
+    }
+
+    var usesEmbeddedPreview: Bool {
+        provider != .firebaseStorage && !embedURL.isEmpty && nativePlaybackURLString.isEmpty
+    }
+
+    var supportsInlinePlayback: Bool {
+        usesEmbeddedPreview || isPlayable
+    }
+
     var isPlayable: Bool {
-        mimeType.hasPrefix("video/") ||
-        fileName.lowercased().hasSuffix(".mp4") ||
-        fileName.lowercased().hasSuffix(".mov") ||
-        fileName.lowercased().hasSuffix(".m4v")
+        !nativePlaybackURLString.isEmpty && (
+            mimeType.hasPrefix("video/")
+            || fileName.lowercased().hasSuffix(".mp4")
+            || fileName.lowercased().hasSuffix(".mov")
+            || fileName.lowercased().hasSuffix(".m4v")
+        )
     }
 }
 
@@ -613,6 +935,14 @@ struct SkydownVideoUploadRequest {
     let files: [SkydownSelectedVideoFile]
 }
 
+struct SkydownExternalVideoRequest {
+    let title: String
+    let projectName: String
+    let email: String
+    let notes: String
+    let externalURL: String
+}
+
 protocol SkydownVideoHubServicing {
     func observeVideos(
         isAdmin: Bool,
@@ -622,6 +952,7 @@ protocol SkydownVideoHubServicing {
         _ onChange: @escaping @MainActor (Result<SkydownVideoHubPublicConfig, Error>) -> Void
     ) -> () -> Void
     func uploadVideos(_ request: SkydownVideoUploadRequest, currentUser: User?) async throws
+    func addExternalVideo(_ request: SkydownExternalVideoRequest, currentUser: User?) async throws
     func setHomeFeaturedVideo(_ video: SkydownVideoHubItem?) async throws
     func deleteVideo(_ video: SkydownVideoHubItem) async throws
     func savePublicConfig(_ config: SkydownVideoHubPublicConfig, currentUser: User?) async throws
@@ -699,6 +1030,49 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         for file in request.files {
             try await upload(file, request: request, currentUser: currentUser)
         }
+    }
+
+    func addExternalVideo(_ request: SkydownExternalVideoRequest, currentUser: User?) async throws {
+        guard let source = resolveExternalVideoSource(from: request.externalURL) else {
+            throw NSError(domain: "SkydownExternalVideo", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Externer Video-Link konnte nicht erkannt werden."
+            ])
+        }
+
+        let trimmedTitle = request.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = trimmedTitle.isEmpty
+            ? "\(request.projectName.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty ?? "Video") Clip"
+            : trimmedTitle
+        let fallbackFileName = (source.sourceFileID ?? "").musicNilIfEmpty.map { "source-\($0)" } ?? "\(source.provider.rawValue)-video"
+        let candidateFileName = source.normalizedURL.lastPathComponent.musicNilIfEmpty
+        let fileName = {
+            guard let candidateFileName else { return fallbackFileName }
+            let lowered = candidateFileName.lowercased()
+            return lowered == "view" || lowered == "preview" ? fallbackFileName : candidateFileName
+        }()
+
+        let payload: [String: Any] = [
+            "title": title,
+            "projectName": request.projectName,
+            "email": request.email,
+            "notes": request.notes,
+            "fileName": fileName,
+            "mimeType": source.mimeType,
+            "downloadURL": source.downloadURL?.absoluteString ?? "",
+            "externalURL": source.externalURL.absoluteString,
+            "embedURL": source.embedURL?.absoluteString ?? "",
+            "storagePath": "",
+            "uploaderName": currentUser?.username ?? request.projectName,
+            "uploaderEmail": currentUser?.email ?? request.email,
+            "uploaderID": currentUser?.id ?? "",
+            "isPublic": true,
+            "isHomeFeatured": false,
+            "sourceProvider": source.provider.rawValue,
+            "sourceFileID": source.sourceFileID ?? "",
+            "createdAt": Timestamp()
+        ]
+
+        try await firestore.collection(collectionName).addDocument(data: payload)
     }
 
     func deleteVideo(_ video: SkydownVideoHubItem) async throws {
@@ -827,12 +1201,16 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             "fileName": file.fileName,
             "mimeType": file.mimeType,
             "downloadURL": downloadURL.absoluteString,
+            "externalURL": "",
+            "embedURL": "",
             "storagePath": path,
             "uploaderName": currentUser?.username ?? request.projectName,
             "uploaderEmail": currentUser?.email ?? request.email,
             "uploaderID": currentUser?.id ?? "",
             "isPublic": currentUser?.canManageVideos == true,
             "isHomeFeatured": false,
+            "sourceProvider": ExternalMediaProvider.firebaseStorage.rawValue,
+            "sourceFileID": "",
             "createdAt": Timestamp()
         ]
 
@@ -864,9 +1242,14 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
     private func mapVideo(document: QueryDocumentSnapshot) -> SkydownVideoHubItem? {
         let data = document.data()
         guard let title = data["title"] as? String,
-              let projectName = data["projectName"] as? String,
-              let fileName = data["fileName"] as? String,
-              let downloadURL = data["downloadURL"] as? String else {
+              let projectName = data["projectName"] as? String else {
+            return nil
+        }
+        let fileName = data["fileName"] as? String ?? title
+        let downloadURL = data["downloadURL"] as? String ?? ""
+        let externalURL = data["externalURL"] as? String ?? ""
+        let embedURL = data["embedURL"] as? String ?? ""
+        guard !downloadURL.isEmpty || !externalURL.isEmpty || !embedURL.isEmpty else {
             return nil
         }
 
@@ -885,6 +1268,8 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             projectName: projectName,
             fileName: fileName,
             downloadURL: downloadURL,
+            externalURL: externalURL,
+            embedURL: embedURL,
             notes: data["notes"] as? String ?? "",
             uploaderName: data["uploaderName"] as? String ?? projectName,
             uploaderEmail: data["uploaderEmail"] as? String ?? (data["email"] as? String ?? ""),
@@ -893,6 +1278,8 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             storagePath: data["storagePath"] as? String ?? "",
             isPublic: data["isPublic"] as? Bool ?? false,
             isHomeFeatured: data["isHomeFeatured"] as? Bool ?? false,
+            sourceProvider: data["sourceProvider"] as? String ?? ExternalMediaProvider.firebaseStorage.rawValue,
+            sourceFileID: data["sourceFileID"] as? String ?? "",
             createdAt: createdAt
         )
     }
@@ -972,7 +1359,7 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             id: rawID.isEmpty ? UUID().uuidString : rawID,
             title: title,
             detail: detail,
-            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
         )
     }
 
@@ -1005,10 +1392,10 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             role: role,
             highlight: highlight,
             vibe: vibe,
-            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-            spotifyArtistID: (value["spotifyArtistID"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-            instagramURLString: (value["instagramURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-            youtubeURLString: (value["youtubeURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+            spotifyArtistID: (value["spotifyArtistID"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+            instagramURLString: (value["instagramURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+            youtubeURLString: (value["youtubeURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
         )
     }
 }
@@ -1054,6 +1441,7 @@ final class SkydownVideoHubViewModel: ObservableObject {
     @Published var projectName = ""
     @Published var email = ""
     @Published var notes = ""
+    @Published var externalVideoURL = ""
     @Published var selectedFiles: [SkydownSelectedVideoFile] = []
     @Published var videos: [SkydownVideoHubItem] = []
     @Published var isLoadingVideos = true
@@ -1089,6 +1477,14 @@ final class SkydownVideoHubViewModel: ObservableObject {
         !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         email.contains("@") &&
         !selectedFiles.isEmpty &&
+        !isUploading
+    }
+
+    var canAddExternalVideo: Bool {
+        isAdmin &&
+        !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        email.contains("@") &&
+        !externalVideoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !isUploading
     }
 
@@ -1190,6 +1586,64 @@ final class SkydownVideoHubViewModel: ObservableObject {
                 showUserToast("Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.", style: .error)
             } else {
                 showUserToast("Der Video-Upload ist fehlgeschlagen: \(detail)", style: .error)
+            }
+        }
+
+        isUploading = false
+    }
+
+    func addExternalVideo() async {
+        guard isAdmin else {
+            validationMessage = "Nur Admins koennen externe Reels freigeben."
+            showUserToast("Externe Reels sind nur fuer Admins verfuegbar.", style: .info)
+            return
+        }
+
+        let trimmedTitle = videoTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedProject = projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedURL = externalVideoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedProject.isEmpty else {
+            validationMessage = "Bitte trag ein Projekt, einen Artist oder einen Videotitel ein."
+            return
+        }
+
+        guard trimmedEmail.contains("@") else {
+            validationMessage = "Bitte trag eine gueltige E-Mail ein."
+            return
+        }
+
+        guard !trimmedURL.isEmpty else {
+            validationMessage = "Bitte trag einen Google-Drive-, MEGA- oder anderen Video-Link ein."
+            return
+        }
+
+        isUploading = true
+        validationMessage = nil
+
+        do {
+            try await service.addExternalVideo(
+                SkydownExternalVideoRequest(
+                    title: trimmedTitle,
+                    projectName: trimmedProject,
+                    email: trimmedEmail,
+                    notes: trimmedNotes,
+                    externalURL: trimmedURL
+                ),
+                currentUser: currentUser
+            )
+            videoTitle = ""
+            notes = ""
+            externalVideoURL = ""
+            showUserToast("Externes Reel wurde freigegeben.", style: .success)
+        } catch {
+            let detail = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+            if detail.isEmpty {
+                showUserToast("Der externe Reel-Link konnte nicht gespeichert werden.", style: .error)
+            } else {
+                showUserToast("Der externe Reel-Link konnte nicht gespeichert werden: \(detail)", style: .error)
             }
         }
 
@@ -1364,7 +1818,7 @@ final class SkydownVideoHubViewModel: ObservableObject {
                 id: item.id,
                 title: title,
                 detail: detail,
-                imageURLString: item.imageURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                imageURLString: item.imageURLString?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
             )
         }
         let sanitizedYouTube = publicConfig.youtubeItems.compactMap { item -> SkydownYouTubeVideoItem? in
@@ -1386,10 +1840,10 @@ final class SkydownVideoHubViewModel: ObservableObject {
                 role: role,
                 highlight: highlight,
                 vibe: vibe,
-                imageURLString: item.imageURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                spotifyArtistID: item.spotifyArtistID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                instagramURLString: item.instagramURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
-                youtubeURLString: item.youtubeURLString?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                imageURLString: item.imageURLString?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+                spotifyArtistID: item.spotifyArtistID?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+                instagramURLString: item.instagramURLString?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+                youtubeURLString: item.youtubeURLString?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
             )
         }
 

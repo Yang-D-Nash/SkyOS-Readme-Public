@@ -206,8 +206,8 @@ fun VideoHubScreen(
         onDispose { player.release() }
     }
 
-    LaunchedEffect(selectedVideo?.downloadUrl, shouldAutoplaySelection) {
-        val url = selectedVideo?.downloadUrl
+    LaunchedEffect(selectedVideo?.nativePlaybackUrl, shouldAutoplaySelection) {
+        val url = selectedVideo?.nativePlaybackUrl
         if (url.isNullOrBlank()) {
             player.stop()
             player.clearMediaItems()
@@ -349,6 +349,7 @@ fun VideoHubScreen(
                     VideoPlayerCard(
                         video = selectedVideo,
                         player = player,
+                        onOpenOriginal = { url -> openExternalLink(context, url) },
                         onOpenReel = if (selectedVideo != null) {
                             {
                                 player.pause()
@@ -370,6 +371,7 @@ fun VideoHubScreen(
                             player.pause()
                             showReelViewer = true
                         },
+                        onOpenOriginal = { url -> openExternalLink(context, url) },
                         onToggleHomeFeatured = viewModel::toggleHomeFeatured,
                         onDeleteVideo = viewModel::deleteVideo,
                     )
@@ -480,6 +482,7 @@ fun VideoHubScreen(
                                 onUpdateProjectName = viewModel::updateProjectName,
                                 onUpdateEmail = viewModel::updateEmail,
                                 onUpdateNotes = viewModel::updateNotes,
+                                onUpdateExternalVideoUrl = viewModel::updateExternalVideoUrl,
                                 onPickFiles = {
                                     dismissKeyboard()
                                     videoPickerLauncher.launch(
@@ -495,6 +498,10 @@ fun VideoHubScreen(
                                 onUpload = {
                                     dismissKeyboard()
                                     viewModel.upload(context)
+                                },
+                                onAddExternalVideo = {
+                                    dismissKeyboard()
+                                    viewModel.addExternalVideo()
                                 },
                             )
                         }
@@ -1383,9 +1390,11 @@ private fun VideoUploadCard(
     onUpdateProjectName: (String) -> Unit,
     onUpdateEmail: (String) -> Unit,
     onUpdateNotes: (String) -> Unit,
+    onUpdateExternalVideoUrl: (String) -> Unit,
     onPickFiles: () -> Unit,
     onRemoveFile: (SelectedVideoFile) -> Unit,
     onUpload: () -> Unit,
+    onAddExternalVideo: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         SectionHeader("Video Upload")
@@ -1439,6 +1448,23 @@ private fun VideoUploadCard(
         ) {
             Text("Videos auswaehlen")
         }
+
+        Text(
+            text = "Oder als externer Reel-Link freigeben.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            modifier = Modifier.padding(top = 14.dp),
+        )
+
+        OutlinedTextField(
+            value = uiState.externalVideoUrl,
+            onValueChange = onUpdateExternalVideoUrl,
+            label = { Text("Google Drive / MEGA / anderer Video-Link") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            minLines = 2,
+        )
 
         if (uiState.selectedFiles.isNotEmpty()) {
             Column(
@@ -1510,6 +1536,17 @@ private fun VideoUploadCard(
                 Text("Videos hochladen")
             }
         }
+
+        OutlinedButton(
+            onClick = onAddExternalVideo,
+            enabled = !uiState.isUploading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Externes Reel freigeben")
+        }
     }
 }
 
@@ -1517,6 +1554,7 @@ private fun VideoUploadCard(
 private fun VideoPlayerCard(
     video: VideoHubItem?,
     player: ExoPlayer,
+    onOpenOriginal: (String) -> Unit,
     onOpenReel: (() -> Unit)?,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
@@ -1546,18 +1584,44 @@ private fun VideoPlayerCard(
                 .padding(top = 14.dp)
                 .clip(RoundedCornerShape(24.dp)),
         ) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { playerContext ->
-                    PlayerView(playerContext).apply {
-                        useController = true
-                        this.player = player
+            when {
+                video.usesEmbeddedPreview -> {
+                    ExternalVideoWebPlayer(
+                        url = video.embedUrl,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
+                video.nativePlaybackUrl.isNotBlank() -> {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { playerContext ->
+                            PlayerView(playerContext).apply {
+                                useController = true
+                                this.player = player
+                            }
+                        },
+                        update = { view ->
+                            view.player = player
+                        },
+                    )
+                }
+
+                else -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Dieser Clip wird ueber einen externen Link ausgeliefert.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
                     }
-                },
-                update = { view ->
-                    view.player = player
-                },
-            )
+                }
+            }
 
             Box(
                 modifier = Modifier
@@ -1582,6 +1646,7 @@ private fun VideoPlayerCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     VideoPill(text = "Reel", isActive = true)
                     VideoPill(text = video.projectName, isActive = false)
+                    VideoPill(text = video.providerBadge, isActive = false)
                 }
                 Text(
                     text = video.title,
@@ -1599,15 +1664,29 @@ private fun VideoPlayerCard(
             }
         }
 
-        onOpenReel?.let { openReel ->
-            Button(
-                onClick = openReel,
+        if (video.supportsInlinePlayback) {
+            onOpenReel?.let { openReel ->
+                Button(
+                    onClick = openReel,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("Im Reel ansehen")
+                }
+            }
+        }
+
+        if (video.openUrl.isNotBlank()) {
+            OutlinedButton(
+                onClick = { onOpenOriginal(video.openUrl) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 10.dp),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text("Im Reel ansehen")
+                Text("Original oeffnen")
             }
         }
 
@@ -1628,6 +1707,7 @@ private fun VideoLibraryCard(
     selectedVideoId: String?,
     onSelectVideo: (VideoHubItem) -> Unit,
     onOpenReel: (VideoHubItem) -> Unit,
+    onOpenOriginal: (String) -> Unit,
     onToggleHomeFeatured: (VideoHubItem) -> Unit,
     onDeleteVideo: (VideoHubItem) -> Unit,
 ) {
@@ -1680,6 +1760,7 @@ private fun VideoLibraryCard(
                             isAdmin = uiState.isAdmin,
                             onSelect = { onSelectVideo(video) },
                             onOpenReel = { onOpenReel(video) },
+                            onOpenOriginal = { onOpenOriginal(video.openUrl) },
                             onToggleHomeFeatured = { onToggleHomeFeatured(video) },
                             onDelete = { onDeleteVideo(video) },
                         )
@@ -1697,6 +1778,7 @@ private fun VideoLibraryRow(
     isAdmin: Boolean,
     onSelect: () -> Unit,
     onOpenReel: () -> Unit,
+    onOpenOriginal: () -> Unit,
     onToggleHomeFeatured: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -1759,6 +1841,7 @@ private fun VideoLibraryRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             VideoPill(text = if (isSelected) "Im Player" else "Auswaehlen", isActive = isSelected)
             VideoPill(text = if (video.isPublic) "Public" else "Private", isActive = video.isPublic)
+            VideoPill(text = video.providerBadge, isActive = false)
             if (isAdmin && video.isHomeFeatured) {
                 VideoPill(text = "Home", isActive = true)
             } else if (!isAdmin) {
@@ -1807,12 +1890,24 @@ private fun VideoLibraryRow(
                 }
             }
         } else {
-            Button(
-                onClick = onOpenReel,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text("Direkt im Reel")
+            if (video.supportsInlinePlayback) {
+                Button(
+                    onClick = onOpenReel,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("Direkt im Reel")
+                }
+            }
+
+            if (video.openUrl.isNotBlank()) {
+                OutlinedButton(
+                    onClick = onOpenOriginal,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("Original oeffnen")
+                }
             }
         }
     }
@@ -1844,7 +1939,7 @@ private fun VideoReelViewerDialog(
     LaunchedEffect(pagerState.currentPage, videos) {
         val video = videos.getOrNull(pagerState.currentPage)
         video?.let(onSelectVideo)
-        val url = video?.downloadUrl
+        val url = video?.nativePlaybackUrl
         if (url.isNullOrBlank()) {
             reelPlayer.stop()
             reelPlayer.clearMediaItems()
@@ -1879,7 +1974,12 @@ private fun VideoReelViewerDialog(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomStart,
                 ) {
-                    if (video != null && page == pagerState.currentPage) {
+                    if (video != null && page == pagerState.currentPage && video.usesEmbeddedPreview) {
+                        ExternalVideoWebPlayer(
+                            url = video.embedUrl,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else if (video != null && page == pagerState.currentPage && video.nativePlaybackUrl.isNotBlank()) {
                         AndroidView(
                             modifier = Modifier.fillMaxSize(),
                             factory = { playerContext ->
@@ -2010,6 +2110,33 @@ private fun VideoReelViewerDialog(
             }
         }
     }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun ExternalVideoWebPlayer(
+    url: String,
+    modifier: Modifier = Modifier,
+) {
+    AndroidView(
+        modifier = modifier,
+        factory = { playerContext ->
+            WebView(playerContext).apply {
+                webViewClient = WebViewClient()
+                webChromeClient = WebChromeClient()
+                settings.javaScriptEnabled = true
+                settings.mediaPlaybackRequiresUserGesture = false
+                settings.domStorageEnabled = true
+                settings.loadsImagesAutomatically = true
+                setBackgroundColor(android.graphics.Color.BLACK)
+            }
+        },
+        update = { webView ->
+            if (webView.url != url) {
+                webView.loadUrl(url)
+            }
+        },
+    )
 }
 
 @Composable

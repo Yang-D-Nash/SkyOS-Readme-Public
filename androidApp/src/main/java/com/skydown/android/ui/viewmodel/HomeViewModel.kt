@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.skydown.android.data.ExternalMediaProvider
 import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.model.FeaturedBeatHighlight
 import com.skydown.android.ui.model.FeaturedVideoHighlight
@@ -186,6 +187,10 @@ class HomeViewModel : ViewModel() {
             projectName = document.getString("projectName").orEmpty().ifBlank { "Skydown Visual" },
             notes = document.getString("notes").orEmpty(),
             downloadUrl = document.getString("downloadURL").orEmpty(),
+            externalUrl = document.getString("externalURL").orEmpty(),
+            embedUrl = document.getString("embedURL").orEmpty(),
+            sourceProvider = document.getString("sourceProvider")
+                ?: ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
         )
     }
 
@@ -203,6 +208,9 @@ class HomeViewModel : ViewModel() {
             artistName = artistName.ifBlank { "Skydown Beat" },
             notes = document.getString("notes").orEmpty(),
             downloadUrl = downloadUrl,
+            externalUrl = document.getString("externalURL").orEmpty(),
+            sourceProvider = document.getString("sourceProvider")
+                ?: ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
             isPlayable = mimeType.startsWith("audio/") ||
                 fileName.endsWith(".mp3", ignoreCase = true) ||
                 fileName.endsWith(".wav", ignoreCase = true) ||

@@ -451,6 +451,7 @@ private struct HomeLatestBeatCard: View {
     @ObservedObject var playbackManager: BeatPlaybackManager
     let colorScheme: ColorScheme
     let onPlayToggle: (FeaturedHomeBeat) -> Void
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -497,6 +498,17 @@ private struct HomeLatestBeatCard: View {
                         isPrimary: playbackManager.currentBeatID == beat.id
                     ) {
                         onPlayToggle(beat)
+                    }
+                }
+
+                if let beatURL = URL(string: beat.openURLString), !beat.openURLString.isEmpty {
+                    HomeActionButton(
+                        title: "Original",
+                        icon: "arrow.up.forward.square",
+                        colorScheme: colorScheme,
+                        isPrimary: false
+                    ) {
+                        openURL(beatURL)
                     }
                 }
             } else {
@@ -564,7 +576,15 @@ private struct HomeLatestVideoCard: View {
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                if !video.downloadURL.isEmpty {
+                if video.usesEmbeddedPreview {
+                    ExternalVideoEmbedSurface(urlString: video.embedURL)
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                        )
+                } else if !video.downloadURL.isEmpty {
                     VideoPlayer(player: playbackManager.player)
                         .frame(height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -578,6 +598,28 @@ private struct HomeLatestVideoCard: View {
                         .onChange(of: video.id) { _, _ in
                             playbackManager.prepare(video: video)
                         }
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+
+                        VStack(spacing: 10) {
+                            Image(systemName: "arrow.up.forward.square")
+                                .font(.title2.weight(.bold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+
+                            Text("Dieser Clip wird ueber einen externen Link geoeffnet.")
+                                .font(.footnote.weight(.semibold))
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                .padding(.horizontal, 18)
+                        }
+                    }
+                    .frame(height: 220)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                    )
                 }
 
                 VStack(spacing: 10) {
@@ -592,7 +634,7 @@ private struct HomeLatestVideoCard: View {
                         }
                     }
 
-                    if let videoURL = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
+                    if let videoURL = URL(string: video.openURLString), !video.openURLString.isEmpty {
                         HomeActionButton(
                             title: "Original",
                             icon: "video.fill",
@@ -902,6 +944,7 @@ private extension FeaturedHomeBeat {
             artistName: artistName,
             fileName: title,
             downloadURL: downloadURL,
+            externalURL: externalURL,
             notes: notes,
             uploaderName: artistName,
             uploaderEmail: "",
@@ -909,6 +952,8 @@ private extension FeaturedHomeBeat {
             mimeType: "audio/mpeg",
             storagePath: "",
             isPublic: true,
+            sourceProvider: sourceProvider,
+            sourceFileID: "",
             createdAt: .now
         )
     }
@@ -1136,7 +1181,7 @@ final class HomeInlineVideoPlaybackManager: ObservableObject {
 
     func prepare(video: FeaturedHomeVideo?) {
         guard let video,
-              let url = URL(string: video.downloadURL) else {
+              let url = URL(string: video.downloadURL), !video.downloadURL.isEmpty else {
             stop()
             player.replaceCurrentItem(with: nil)
             currentVideoID = nil

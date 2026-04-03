@@ -144,6 +144,104 @@ service cloud.firestore {
       return value in ["image/jpeg", "image/png", "image/webp"];
     }
 
+    function validMediaProvider(value) {
+      return value == null || (
+        value is string
+        && value in ["firebase_storage", "google_drive", "mega", "external_link"]
+      );
+    }
+
+    function hasBeatSource(data) {
+      return (data.downloadURL is string && data.downloadURL.size() > 0)
+        || (data.externalURL is string && data.externalURL.size() > 0);
+    }
+
+    function hasVideoSource(data) {
+      return (data.downloadURL is string && data.downloadURL.size() > 0)
+        || (data.externalURL is string && data.externalURL.size() > 0)
+        || (data.embedURL is string && data.embedURL.size() > 0);
+    }
+
+    function validBeatHubPayload() {
+      return request.resource.data.keys().hasOnly([
+        "title",
+        "artistName",
+        "email",
+        "notes",
+        "fileName",
+        "mimeType",
+        "downloadURL",
+        "externalURL",
+        "storagePath",
+        "uploaderName",
+        "uploaderEmail",
+        "uploaderID",
+        "isPublic",
+        "createdAt",
+        "sourceProvider",
+        "sourceFileID"
+      ])
+      && requiredString(request.resource.data.title, 1, 120)
+      && requiredString(request.resource.data.artistName, 1, 80)
+      && requiredString(request.resource.data.email, 5, 160)
+      && requiredString(request.resource.data.fileName, 1, 256)
+      && requiredString(request.resource.data.mimeType, 3, 160)
+      && optionalMapString(request.resource.data, "notes", 1000)
+      && optionalMapShortUrlOrBlank(request.resource.data, "downloadURL")
+      && optionalMapShortUrlOrBlank(request.resource.data, "externalURL")
+      && optionalMapString(request.resource.data, "storagePath", 512)
+      && requiredString(request.resource.data.uploaderName, 1, 80)
+      && requiredString(request.resource.data.uploaderEmail, 5, 160)
+      && optionalMapString(request.resource.data, "uploaderID", 128)
+      && request.resource.data.isPublic is bool
+      && request.resource.data.createdAt is timestamp
+      && validMediaProvider(request.resource.data.sourceProvider)
+      && optionalMapString(request.resource.data, "sourceFileID", 256)
+      && hasBeatSource(request.resource.data);
+    }
+
+    function validVideoHubPayload() {
+      return request.resource.data.keys().hasOnly([
+        "title",
+        "projectName",
+        "email",
+        "notes",
+        "fileName",
+        "mimeType",
+        "downloadURL",
+        "externalURL",
+        "embedURL",
+        "storagePath",
+        "uploaderName",
+        "uploaderEmail",
+        "uploaderID",
+        "isPublic",
+        "isHomeFeatured",
+        "createdAt",
+        "sourceProvider",
+        "sourceFileID"
+      ])
+      && requiredString(request.resource.data.title, 1, 120)
+      && requiredString(request.resource.data.projectName, 1, 80)
+      && requiredString(request.resource.data.email, 5, 160)
+      && requiredString(request.resource.data.fileName, 1, 256)
+      && requiredString(request.resource.data.mimeType, 3, 160)
+      && optionalMapString(request.resource.data, "notes", 1000)
+      && optionalMapShortUrlOrBlank(request.resource.data, "downloadURL")
+      && optionalMapShortUrlOrBlank(request.resource.data, "externalURL")
+      && optionalMapShortUrlOrBlank(request.resource.data, "embedURL")
+      && optionalMapString(request.resource.data, "storagePath", 512)
+      && requiredString(request.resource.data.uploaderName, 1, 80)
+      && requiredString(request.resource.data.uploaderEmail, 5, 160)
+      && optionalMapString(request.resource.data, "uploaderID", 128)
+      && request.resource.data.isPublic is bool
+      && request.resource.data.isHomeFeatured is bool
+      && request.resource.data.createdAt is timestamp
+      && validMediaProvider(request.resource.data.sourceProvider)
+      && optionalMapString(request.resource.data, "sourceFileID", 256)
+      && hasVideoSource(request.resource.data);
+    }
+
     function validScreenHeadersPayload() {
       return request.resource.data.keys().hasOnly([
         "homeImageURL",
@@ -594,12 +692,16 @@ service cloud.firestore {
 
     match /nicmaBeatHub/{beatId} {
       allow read: if canManageMusicCatalog() || resource.data.isPublic == true;
-      allow create, update, delete: if canManageMusicCatalog();
+      allow create, update: if canManageMusicCatalog()
+        && validBeatHubPayload();
+      allow delete: if canManageMusicCatalog();
     }
 
     match /videographyHub/{videoId} {
       allow read: if canManageVideoCatalog() || resource.data.isPublic == true;
-      allow create, update, delete: if canManageVideoCatalog();
+      allow create, update: if canManageVideoCatalog()
+        && validVideoHubPayload();
+      allow delete: if canManageVideoCatalog();
     }
 
     match /videographyHubMeta/{documentId} {

@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.ExternalVideoHubRequest
 import com.skydown.android.data.VideoHubService
 import com.skydown.android.data.VideoHubUploadRequest
 import com.skydown.android.ui.model.VideoEquipmentItem
@@ -86,6 +87,10 @@ class VideoHubViewModel(
 
     fun updateNotes(value: String) {
         _uiState.update { it.copy(notes = value) }
+    }
+
+    fun updateExternalVideoUrl(value: String) {
+        _uiState.update { it.copy(externalVideoUrl = value) }
     }
 
     fun setSelectedFiles(
@@ -221,6 +226,94 @@ class VideoHubViewModel(
                         feedbackMessage = detail?.let { message ->
                             "Der Video-Upload ist fehlgeschlagen: $message"
                         } ?: "Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
+                        feedbackIsError = true,
+                    )
+                }
+            }
+        }
+    }
+
+    fun addExternalVideo() {
+        val currentState = _uiState.value
+        if (!currentState.isAdmin) {
+            _uiState.update {
+                it.copy(
+                    validationMessage = "Nur Admins koennen externe Videos freigeben.",
+                    feedbackMessage = "Externe Reels sind nur fuer Admins verfuegbar.",
+                    feedbackIsError = true,
+                )
+            }
+            return
+        }
+
+        val trimmedProject = currentState.projectName.trim()
+        val trimmedEmail = currentState.email.trim()
+        val trimmedTitle = currentState.videoTitle.trim()
+        val trimmedNotes = currentState.notes.trim()
+        val trimmedUrl = currentState.externalVideoUrl.trim()
+
+        when {
+            trimmedProject.isBlank() -> {
+                _uiState.update {
+                    it.copy(validationMessage = "Bitte trag ein Projekt, einen Artist oder einen Videotitel ein.")
+                }
+                return
+            }
+
+            !trimmedEmail.contains("@") -> {
+                _uiState.update {
+                    it.copy(validationMessage = "Bitte trag eine gueltige E-Mail ein.")
+                }
+                return
+            }
+
+            trimmedUrl.isBlank() -> {
+                _uiState.update {
+                    it.copy(validationMessage = "Bitte trag einen Google-Drive-, MEGA- oder anderen Video-Link ein.")
+                }
+                return
+            }
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isUploading = true,
+                    validationMessage = null,
+                    feedbackMessage = null,
+                )
+            }
+
+            runCatching {
+                videoHubService.addExternalVideo(
+                    request = ExternalVideoHubRequest(
+                        title = trimmedTitle,
+                        projectName = trimmedProject,
+                        email = trimmedEmail,
+                        notes = trimmedNotes,
+                        externalUrl = trimmedUrl,
+                    ),
+                    currentUser = currentUser,
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        videoTitle = "",
+                        notes = "",
+                        externalVideoUrl = "",
+                        isUploading = false,
+                        feedbackMessage = "Externes Reel wurde freigegeben.",
+                        feedbackIsError = false,
+                    )
+                }
+            }.onFailure { error ->
+                val detail = error.localizedMessage?.takeIf { message -> message.isNotBlank() }
+                _uiState.update {
+                    it.copy(
+                        isUploading = false,
+                        feedbackMessage = detail?.let { message ->
+                            "Der externe Reel-Link ist fehlgeschlagen: $message"
+                        } ?: "Der externe Reel-Link konnte nicht gespeichert werden.",
                         feedbackIsError = true,
                     )
                 }

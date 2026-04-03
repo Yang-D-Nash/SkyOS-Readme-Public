@@ -516,3 +516,76 @@ test("Owner darf auch NICMA als editierbare Seite anlegen", async () => {
     updatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
   }));
 });
+
+test("Owner darf ein externes Drive-Video fuer alle User freigeben", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerDb, "videographyHub", "drive_reel"), {
+    title: "Launch Reel",
+    projectName: "Sky²²",
+    email: "owner@example.com",
+    notes: "Extern ueber Drive",
+    fileName: "launch-reel",
+    mimeType: "video/external",
+    downloadURL: "",
+    externalURL: "https://drive.google.com/file/d/demo123/view",
+    embedURL: "https://drive.google.com/file/d/demo123/preview",
+    storagePath: "",
+    uploaderName: "Owner",
+    uploaderEmail: "owner@example.com",
+    uploaderID: "owner",
+    isPublic: true,
+    isHomeFeatured: false,
+    sourceProvider: "google_drive",
+    sourceFileID: "demo123",
+    createdAt: Timestamp.fromDate(new Date("2026-04-03T18:00:00.000Z")),
+  }));
+});
+
+test("Owner darf keine ungueltigen Video-Provider speichern", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertFails(setDoc(doc(ownerDb, "videographyHub", "broken_provider"), {
+    title: "Broken Reel",
+    projectName: "Sky²²",
+    email: "owner@example.com",
+    notes: "",
+    fileName: "broken",
+    mimeType: "video/external",
+    downloadURL: "",
+    externalURL: "https://example.com/reel",
+    embedURL: "",
+    storagePath: "",
+    uploaderName: "Owner",
+    uploaderEmail: "owner@example.com",
+    uploaderID: "owner",
+    isPublic: true,
+    isHomeFeatured: false,
+    sourceProvider: "dropbox",
+    sourceFileID: "",
+    createdAt: Timestamp.fromDate(new Date("2026-04-03T18:00:00.000Z")),
+  }));
+});
+
+test("Owner darf einen externen Beat-Link fuer alle User freigeben", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerDb, "nicmaBeatHub", "external_beat"), {
+    title: "Atmosphere",
+    artistName: "NICMA MUSIC",
+    email: "owner@example.com",
+    notes: "Direkter Beat-Link",
+    fileName: "atmosphere.mp3",
+    mimeType: "audio/mpeg",
+    downloadURL: "https://cdn.example.com/beats/atmosphere.mp3",
+    externalURL: "https://cdn.example.com/beats/atmosphere.mp3",
+    storagePath: "",
+    uploaderName: "Owner",
+    uploaderEmail: "owner@example.com",
+    uploaderID: "owner",
+    isPublic: true,
+    sourceProvider: "external_link",
+    sourceFileID: "",
+    createdAt: Timestamp.fromDate(new Date("2026-04-03T18:00:00.000Z")),
+  }));
+});

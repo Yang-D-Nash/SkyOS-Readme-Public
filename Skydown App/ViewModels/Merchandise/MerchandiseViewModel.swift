@@ -257,6 +257,25 @@ struct FeaturedHomeVideo: Identifiable {
     let projectName: String
     let notes: String
     let downloadURL: String
+    let externalURL: String
+    let embedURL: String
+    let sourceProvider: String
+
+    var provider: ExternalMediaProvider {
+        ExternalMediaProvider(rawValueOrDefault: sourceProvider)
+    }
+
+    var usesEmbeddedPreview: Bool {
+        provider != .firebaseStorage && !embedURL.isEmpty && downloadURL.isEmpty
+    }
+
+    var supportsInlinePlayback: Bool {
+        usesEmbeddedPreview || !downloadURL.isEmpty
+    }
+
+    var openURLString: String {
+        externalURL.isEmpty ? downloadURL : externalURL
+    }
 }
 
 struct FeaturedHomeBeat {
@@ -265,7 +284,13 @@ struct FeaturedHomeBeat {
     let artistName: String
     let notes: String
     let downloadURL: String
+    let externalURL: String
+    let sourceProvider: String
     let isPlayable: Bool
+
+    var openURLString: String {
+        externalURL.isEmpty ? downloadURL : externalURL
+    }
 }
 
 @MainActor
@@ -472,7 +497,10 @@ final class HomeViewModel: ObservableObject {
             title: title,
             projectName: document.data()["projectName"] as? String ?? "Skydown Visual",
             notes: document.data()["notes"] as? String ?? "",
-            downloadURL: document.data()["downloadURL"] as? String ?? ""
+            downloadURL: document.data()["downloadURL"] as? String ?? "",
+            externalURL: document.data()["externalURL"] as? String ?? "",
+            embedURL: document.data()["embedURL"] as? String ?? "",
+            sourceProvider: document.data()["sourceProvider"] as? String ?? ExternalMediaProvider.firebaseStorage.rawValue
         )
     }
 
@@ -492,6 +520,8 @@ final class HomeViewModel: ObservableObject {
             artistName: data["artistName"] as? String ?? "Skydown Beat",
             notes: data["notes"] as? String ?? "",
             downloadURL: data["downloadURL"] as? String ?? "",
+            externalURL: data["externalURL"] as? String ?? "",
+            sourceProvider: data["sourceProvider"] as? String ?? ExternalMediaProvider.firebaseStorage.rawValue,
             isPlayable: mimeType.hasPrefix("audio/") ||
                 fileName.lowercased().hasSuffix(".mp3") ||
                 fileName.lowercased().hasSuffix(".wav") ||

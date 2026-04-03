@@ -1,5 +1,6 @@
 package com.skydown.android.ui.model
 
+import com.skydown.android.data.ExternalMediaProvider
 import com.skydown.shared.model.Track
 
 data class FeaturedBeatHighlight(
@@ -8,8 +9,16 @@ data class FeaturedBeatHighlight(
     val artistName: String,
     val notes: String,
     val downloadUrl: String,
+    val externalUrl: String,
+    val sourceProvider: String,
     val isPlayable: Boolean,
-)
+) {
+    val provider: ExternalMediaProvider
+        get() = ExternalMediaProvider.from(sourceProvider)
+
+    val openUrl: String
+        get() = externalUrl.ifBlank { downloadUrl }
+}
 
 data class FeaturedVideoHighlight(
     val id: String,
@@ -17,7 +26,24 @@ data class FeaturedVideoHighlight(
     val projectName: String,
     val notes: String,
     val downloadUrl: String,
-)
+    val externalUrl: String,
+    val embedUrl: String,
+    val sourceProvider: String,
+) {
+    val provider: ExternalMediaProvider
+        get() = ExternalMediaProvider.from(sourceProvider)
+
+    val usesEmbeddedPreview: Boolean
+        get() = provider != ExternalMediaProvider.FIREBASE_STORAGE &&
+            embedUrl.isNotBlank() &&
+            downloadUrl.isBlank()
+
+    val supportsInlinePlayback: Boolean
+        get() = usesEmbeddedPreview || downloadUrl.isNotBlank()
+
+    val openUrl: String
+        get() = externalUrl.ifBlank { downloadUrl }
+}
 
 data class HomeUiState(
     val featuredTrack: Track? = null,

@@ -1,6 +1,7 @@
 package com.skydown.android.ui.model
 
 import android.net.Uri
+import com.skydown.android.data.ExternalMediaProvider
 
 data class SelectedVideoFile(
     val uri: Uri,
@@ -23,13 +24,44 @@ data class VideoHubItem(
     val storagePath: String,
     val isPublic: Boolean,
     val isHomeFeatured: Boolean,
+    val sourceProvider: String = ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
+    val externalUrl: String = "",
+    val embedUrl: String = "",
+    val sourceFileId: String = "",
     val createdAtMillis: Long,
 ) {
+    val provider: ExternalMediaProvider
+        get() = ExternalMediaProvider.from(sourceProvider)
+
+    val nativePlaybackUrl: String
+        get() = downloadUrl.takeIf { it.isNotBlank() }.orEmpty()
+
+    val openUrl: String
+        get() = externalUrl.takeIf { it.isNotBlank() } ?: nativePlaybackUrl
+
+    val usesEmbeddedPreview: Boolean
+        get() = provider != ExternalMediaProvider.FIREBASE_STORAGE &&
+            embedUrl.isNotBlank() &&
+            nativePlaybackUrl.isBlank()
+
+    val supportsInlinePlayback: Boolean
+        get() = usesEmbeddedPreview || isPlayable
+
+    val providerBadge: String
+        get() = when (provider) {
+            ExternalMediaProvider.FIREBASE_STORAGE -> "Storage"
+            ExternalMediaProvider.GOOGLE_DRIVE -> "Drive"
+            ExternalMediaProvider.MEGA -> "MEGA"
+            ExternalMediaProvider.EXTERNAL_LINK -> "Extern"
+        }
+
     val isPlayable: Boolean
-        get() = mimeType.startsWith("video/") ||
+        get() = nativePlaybackUrl.isNotBlank() && (
+            mimeType.startsWith("video/") ||
             fileName.lowercase().endsWith(".mp4") ||
             fileName.lowercase().endsWith(".mov") ||
             fileName.lowercase().endsWith(".m4v")
+        )
 }
 
 data class VideoHubUiState(
@@ -37,6 +69,7 @@ data class VideoHubUiState(
     val projectName: String = "",
     val email: String = "",
     val notes: String = "",
+    val externalVideoUrl: String = "",
     val publicConfig: VideoHubPublicConfig = VideoHubPublicConfig.default(),
     val selectedFiles: List<SelectedVideoFile> = emptyList(),
     val videos: List<VideoHubItem> = emptyList(),

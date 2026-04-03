@@ -372,6 +372,7 @@ fun openTrackInSpotify(
     )
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun SpotifyEmbedDialog(
     track: Track,

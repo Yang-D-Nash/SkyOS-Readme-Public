@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 struct BeatHubView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
     @StateObject private var viewModel = NicmaProducerViewModel()
     @StateObject private var playbackManager = BeatPlaybackManager()
     @State private var showingFileImporter = false
@@ -201,6 +202,18 @@ struct BeatHubView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
+
+            Text("Oder als externer Beat-Link freigeben.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            NicmaUploadField(
+                title: "Drive / MEGA / anderer Audio-Link",
+                text: $viewModel.externalBeatURL,
+                colorScheme: colorScheme,
+                keyboard: .URL,
+                autocapitalization: .never
+            )
             .buttonStyle(.bordered)
             .tint(AppColors.accentMystic(for: colorScheme))
 
@@ -245,6 +258,20 @@ struct BeatHubView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .disabled(!viewModel.canUpload)
             .opacity(viewModel.canUpload ? 1 : 0.6)
+
+            Button {
+                Task {
+                    await viewModel.addExternalBeat()
+                }
+            } label: {
+                Label("Externen Beat freigeben", systemImage: "link.badge.plus")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!viewModel.canAddExternalBeat)
+            .opacity(viewModel.canAddExternalBeat ? 1 : 0.6)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -282,6 +309,11 @@ struct BeatHubView: View {
                         isPlaying: playbackManager.currentBeatID == beat.id,
                         colorScheme: colorScheme,
                         onPlayToggle: { playbackManager.togglePlayback(for: beat) },
+                        onOpenOriginal: {
+                            if let url = URL(string: beat.openURLString), !beat.openURLString.isEmpty {
+                                openURL(url)
+                            }
+                        },
                         onVisibilityToggle: {
                             Task {
                                 await viewModel.toggleBeatVisibility(beat)
@@ -315,6 +347,7 @@ struct BeatHubLibraryRow: View {
     let isPlaying: Bool
     let colorScheme: ColorScheme
     let onPlayToggle: () -> Void
+    let onOpenOriginal: () -> Void
     let onVisibilityToggle: () -> Void
     let onDelete: () -> Void
 
@@ -351,6 +384,7 @@ struct BeatHubLibraryRow: View {
 
             HStack(spacing: 8) {
                 MusicBadge(text: beat.isPublic ? "Live" : "Review", isAccent: beat.isPublic)
+                MusicBadge(text: beat.provider.badgeLabel, isAccent: false)
                 if isAdmin {
                     MusicBadge(text: beat.fileName, isAccent: false)
                 } else if beat.isPlayable {
@@ -367,9 +401,11 @@ struct BeatHubLibraryRow: View {
                     .buttonStyle(.borderedProminent)
                     .tint(AppColors.accent(for: colorScheme))
                 } else {
-                    Text("Nicht direkt abspielbar")
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Button(action: onOpenOriginal) {
+                        Label("Original oeffnen", systemImage: "arrow.up.forward.square")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
 
                 if isAdmin {

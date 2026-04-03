@@ -159,22 +159,3 @@ val User.resolvedAiHistoryRetentionDays: Int
 
 val User.isPlatformOwner: Boolean
     get() = resolvedRole == UserRole.Owner
-
-fun sampleUser(): User = User(
-    id = "demo-user",
-    email = "demo@skydown.app",
-    username = "Yang D. Nash",
-    profileImageURL = null,
-    whatsApp = "+49 170 0000000",
-    registrationDateEpochMillis = 1_725_000_000_000,
-    isAdmin = true,
-    role = UserRole.Owner.rawValue,
-    quotaPlan = UserQuotaPlan.OwnerUnlimited.rawValue,
-    aiTextRequestsPerDay = UserRole.Owner.defaultAiTextRequestsPerDay,
-    aiVisualRequestsPerDay = UserRole.Owner.defaultAiVisualRequestsPerDay,
-    aiAgentRequestsPerDay = UserRole.Owner.defaultAiAgentRequestsPerDay,
-    aiHistoryRetentionDays = UserRole.Owner.defaultAiHistoryRetentionDays,
-    canManageMusicCatalog = true,
-    canManageVideoCatalog = true,
-    canModerateProfiles = true,
-)

@@ -23,6 +23,14 @@ data class NicmaBeatUploadRequest(
     val files: List<NicmaSelectedBeatFile>,
 )
 
+data class ExternalBeatUploadRequest(
+    val beatTitle: String,
+    val artistName: String,
+    val email: String,
+    val notes: String,
+    val externalUrl: String,
+)
+
 class NicmaBeatUploadService(
     private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
@@ -66,6 +74,48 @@ class NicmaBeatUploadService(
                 currentUser = currentUser,
             )
         }
+    }
+
+    suspend fun addExternalBeat(
+        request: ExternalBeatUploadRequest,
+        currentUser: User?,
+    ) {
+        val source = resolveExternalAudioSource(request.externalUrl)
+            ?: error("Externer Beat-Link konnte nicht erkannt werden.")
+        val trimmedTitle = request.beatTitle.trim()
+        val beatTitle = trimmedTitle.ifBlank {
+            "${request.artistName.trim().ifBlank { "Beat" }} Beat"
+        }
+        val fallbackFileName = source.sourceFileId?.takeIf { it.isNotBlank() }?.let { "source-$it" }
+            ?: "${source.provider.rawValue}-beat"
+        val fileName = source.normalizedUrl.substringAfterLast('/').substringBefore('?')
+            .takeIf { candidate ->
+                candidate.isNotBlank() &&
+                    !candidate.equals("view", ignoreCase = true) &&
+                    !candidate.equals("preview", ignoreCase = true)
+            }
+            ?: fallbackFileName
+
+        firestore.collection(collectionName).add(
+            hashMapOf(
+                "title" to beatTitle,
+                "artistName" to request.artistName,
+                "email" to request.email,
+                "notes" to request.notes,
+                "fileName" to fileName,
+                "mimeType" to source.mimeType,
+                "downloadURL" to source.downloadUrl.orEmpty(),
+                "storagePath" to "",
+                "uploaderName" to (currentUser?.username ?: request.artistName),
+                "uploaderEmail" to (currentUser?.email ?: request.email),
+                "uploaderID" to currentUser?.id.orEmpty(),
+                "isPublic" to true,
+                "sourceProvider" to source.provider.rawValue,
+                "externalURL" to source.externalUrl,
+                "sourceFileID" to source.sourceFileId.orEmpty(),
+                "createdAt" to FieldValue.serverTimestamp(),
+            ),
+        ).await()
     }
 
     suspend fun updateBeatVisibility(
@@ -142,11 +192,14 @@ class NicmaBeatUploadService(
                 "fileName" to file.fileName,
                 "mimeType" to file.mimeType,
                 "downloadURL" to downloadUrl,
+                "externalURL" to "",
                 "storagePath" to storagePath,
                 "uploaderName" to (currentUser?.username ?: request.artistName),
                 "uploaderEmail" to (currentUser?.email ?: request.email),
                 "uploaderID" to (currentUser?.id.orEmpty()),
                 "isPublic" to (currentUser?.canManageMusic == true),
+                "sourceProvider" to ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
+                "sourceFileID" to "",
                 "createdAt" to FieldValue.serverTimestamp(),
             ),
         ).await()
@@ -156,8 +209,12 @@ class NicmaBeatUploadService(
         val data = document.data
         val title = data["title"] as? String ?: return null
         val artistName = data["artistName"] as? String ?: return null
-        val fileName = data["fileName"] as? String ?: return null
-        val downloadUrl = data["downloadURL"] as? String ?: return null
+        val fileName = data["fileName"] as? String ?: title
+        val downloadUrl = data["downloadURL"] as? String ?: ""
+        val externalUrl = data["externalURL"] as? String ?: ""
+        if (downloadUrl.isBlank() && externalUrl.isBlank()) {
+            return null
+        }
 
         val createdAtMillis = when (val createdAt = data["createdAt"]) {
             is Timestamp -> createdAt.toDate().time
@@ -179,6 +236,9 @@ class NicmaBeatUploadService(
             mimeType = data["mimeType"] as? String ?: "application/octet-stream",
             storagePath = data["storagePath"] as? String ?: "",
             isPublic = data["isPublic"] as? Boolean ?: false,
+            sourceProvider = data["sourceProvider"] as? String ?: ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
+            externalUrl = externalUrl,
+            sourceFileId = data["sourceFileID"] as? String ?: "",
             createdAtMillis = createdAtMillis,
         )
     }

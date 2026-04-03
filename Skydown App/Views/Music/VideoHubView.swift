@@ -11,10 +11,12 @@ import AVKit
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
+import WebKit
 
 struct VideoHubView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
@@ -344,6 +346,18 @@ struct VideoHubView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
+
+            Text("Oder als externer Reel-Link freigeben.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            NicmaUploadField(
+                title: "Google Drive / MEGA / anderer Video-Link",
+                text: $viewModel.externalVideoURL,
+                colorScheme: colorScheme,
+                keyboard: .URL,
+                autocapitalization: .never
+            )
             .buttonStyle(.bordered)
             .tint(AppColors.accentMystic(for: colorScheme))
 
@@ -388,6 +402,20 @@ struct VideoHubView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .disabled(!viewModel.canUpload)
             .opacity(viewModel.canUpload ? 1 : 0.6)
+
+            Button {
+                Task {
+                    await viewModel.addExternalVideo()
+                }
+            } label: {
+                Label("Externes Reel freigeben", systemImage: "link.badge.plus")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!viewModel.canAddExternalVideo)
+            .opacity(viewModel.canAddExternalVideo ? 1 : 0.6)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -413,9 +441,32 @@ struct VideoHubView: View {
 
             if let selectedVideo {
                 ZStack(alignment: .bottomLeading) {
-                    VideoPlayer(player: playbackManager.player)
-                        .frame(height: 560)
-                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                    Group {
+                        if selectedVideo.usesEmbeddedPreview {
+                            ExternalVideoEmbedSurface(urlString: selectedVideo.embedURL)
+                        } else if selectedVideo.isPlayable {
+                            VideoPlayer(player: playbackManager.player)
+                        } else {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 24)
+                                    .fill(AppColors.secondaryBackground(for: colorScheme))
+
+                                VStack(spacing: 12) {
+                                    Image(systemName: "link")
+                                        .font(.system(size: 34, weight: .bold))
+                                        .foregroundColor(.white.opacity(0.86))
+
+                                    Text("Dieser Clip wird ueber einen externen Link ausgeliefert.")
+                                        .font(.subheadline.weight(.semibold))
+                                        .multilineTextAlignment(.center)
+                                        .foregroundColor(.white.opacity(0.86))
+                                        .padding(.horizontal, 28)
+                                }
+                            }
+                        }
+                    }
+                    .frame(height: 560)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
 
                     LinearGradient(
                         colors: [
@@ -432,6 +483,7 @@ struct VideoHubView: View {
                         HStack(spacing: 8) {
                             MusicBadge(text: "Reel", isAccent: true)
                             MusicBadge(text: selectedVideo.projectName, isAccent: false)
+                            MusicBadge(text: selectedVideo.provider.badgeLabel, isAccent: false)
                         }
 
                         Text(selectedVideo.title)
@@ -448,17 +500,31 @@ struct VideoHubView: View {
                     .padding(18)
                 }
 
-                Button {
-                    playbackManager.player.pause()
-                    showingReelViewer = true
-                } label: {
-                    Label("Im Reel ansehen", systemImage: "rectangle.portrait.and.arrow.right")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                if selectedVideo.supportsInlinePlayback {
+                    Button {
+                        playbackManager.player.pause()
+                        showingReelViewer = true
+                    } label: {
+                        Label("Im Reel ansehen", systemImage: "rectangle.portrait.and.arrow.right")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accentMystic(for: colorScheme))
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accentMystic(for: colorScheme))
+
+                if let originalURL = URL(string: selectedVideo.openURLString), !selectedVideo.openURLString.isEmpty {
+                    Button {
+                        openURL(originalURL)
+                    } label: {
+                        Label("Original oeffnen", systemImage: "arrow.up.forward.square")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.bordered)
+                }
 
                 if !selectedVideo.notes.isEmpty {
                     Text(selectedVideo.notes)
@@ -514,6 +580,11 @@ struct VideoHubView: View {
                             playbackManager.player.pause()
                             showingReelViewer = true
                         },
+                        onOpenOriginal: {
+                            if let url = URL(string: video.openURLString), !video.openURLString.isEmpty {
+                                openURL(url)
+                            }
+                        },
                         onToggleHomeFeatured: {
                             Task {
                                 await viewModel.toggleHomeFeatured(video)
@@ -550,6 +621,7 @@ struct VideoHubLibraryRow: View {
     let onSelect: () -> Void
     let onPlayToggle: () -> Void
     let onOpenReel: () -> Void
+    let onOpenOriginal: () -> Void
     let onToggleHomeFeatured: () -> Void
     let onDelete: () -> Void
 
@@ -586,6 +658,7 @@ struct VideoHubLibraryRow: View {
 
             HStack(spacing: 8) {
                 MusicBadge(text: video.isPublic ? "Public" : "Private", isAccent: video.isPublic)
+                MusicBadge(text: video.provider.badgeLabel, isAccent: false)
                 if isAdmin && video.isHomeFeatured {
                     MusicBadge(text: "Home", isAccent: true)
                 }
@@ -613,13 +686,24 @@ struct VideoHubLibraryRow: View {
                     .disabled(!video.isPlayable)
                 }
             } else {
-                Button(action: onOpenReel) {
-                    Label("Direkt im Reel", systemImage: "play.rectangle.fill")
-                        .frame(maxWidth: .infinity)
+                VStack(spacing: 10) {
+                    if video.supportsInlinePlayback {
+                        Button(action: onOpenReel) {
+                            Label("Direkt im Reel", systemImage: "play.rectangle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accentMystic(for: colorScheme))
+                    }
+
+                    if !video.openURLString.isEmpty {
+                        Button(action: onOpenOriginal) {
+                            Label("Original oeffnen", systemImage: "arrow.up.forward.square")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accentMystic(for: colorScheme))
-                .disabled(!video.isPlayable)
             }
 
             if isAdmin {
@@ -670,7 +754,10 @@ private struct VideoReelViewer: View {
                 TabView(selection: $currentIndex) {
                     ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
                         ZStack(alignment: .bottomLeading) {
-                            if index == currentIndex {
+                            if index == currentIndex && video.usesEmbeddedPreview {
+                                ExternalVideoEmbedSurface(urlString: video.embedURL)
+                                    .ignoresSafeArea()
+                            } else if index == currentIndex && video.isPlayable {
                                 VideoPlayer(player: player)
                                     .ignoresSafeArea()
                             } else {
@@ -776,7 +863,8 @@ private struct VideoReelViewer: View {
 
     private func playCurrent() {
         guard videos.indices.contains(currentIndex),
-              let url = URL(string: videos[currentIndex].downloadURL) else {
+              let url = URL(string: videos[currentIndex].nativePlaybackURLString),
+              !videos[currentIndex].nativePlaybackURLString.isEmpty else {
             player.pause()
             player.replaceCurrentItem(with: nil)
             return
@@ -1605,10 +1693,16 @@ final class VideoPlaybackManager: ObservableObject {
         clearPlaybackObserver()
         player.pause()
 
-        guard let video,
-              let url = URL(string: video.downloadURL) else {
+        guard let video else {
             player.replaceCurrentItem(with: nil)
             selectedVideoID = nil
+            playingVideoID = nil
+            return
+        }
+
+        guard let url = URL(string: video.nativePlaybackURLString), !video.nativePlaybackURLString.isEmpty else {
+            player.replaceCurrentItem(with: nil)
+            selectedVideoID = video.id
             playingVideoID = nil
             return
         }
@@ -1674,6 +1768,32 @@ final class VideoPlaybackManager: ObservableObject {
         if let playbackObserver {
             NotificationCenter.default.removeObserver(playbackObserver)
             self.playbackObserver = nil
+        }
+    }
+}
+
+struct ExternalVideoEmbedSurface: UIViewRepresentable {
+    let urlString: String
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.isOpaque = false
+        webView.backgroundColor = .black
+        webView.scrollView.backgroundColor = .black
+        webView.scrollView.isScrollEnabled = false
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        guard let url = URL(string: urlString) else { return }
+        if webView.url?.absoluteString != url.absoluteString {
+            webView.load(URLRequest(url: url))
         }
     }
 }

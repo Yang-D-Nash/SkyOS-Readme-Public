@@ -234,6 +234,11 @@ fun BeatHubScreen(
                                 }
                             }
                         },
+                        onOpenOriginal = { beat ->
+                            if (beat.openUrl.isNotBlank()) {
+                                openExternalLink(context, beat.openUrl)
+                            }
+                        },
                         onVisibilityToggle = viewModel::toggleBeatVisibility,
                         onDeleteBeat = viewModel::deleteBeat,
                     )
@@ -264,6 +269,7 @@ fun BeatHubScreen(
                                 onArtistNameChanged = viewModel::updateArtistName,
                                 onEmailChanged = viewModel::updateEmail,
                                 onNotesChanged = viewModel::updateNotes,
+                                onExternalBeatUrlChanged = viewModel::updateExternalBeatUrl,
                                 onPickFiles = {
                                     dismissKeyboard()
                                     pickerLauncher.launch(
@@ -278,6 +284,10 @@ fun BeatHubScreen(
                                 onUpload = {
                                     dismissKeyboard()
                                     viewModel.upload(context)
+                                },
+                                onAddExternalBeat = {
+                                    dismissKeyboard()
+                                    viewModel.addExternalBeat()
                                 },
                             )
                         }
@@ -350,9 +360,11 @@ private fun BeatHubUploadCard(
     onArtistNameChanged: (String) -> Unit,
     onEmailChanged: (String) -> Unit,
     onNotesChanged: (String) -> Unit,
+    onExternalBeatUrlChanged: (String) -> Unit,
     onPickFiles: () -> Unit,
     onRemoveFile: (NicmaSelectedBeatFile) -> Unit,
     onUpload: () -> Unit,
+    onAddExternalBeat: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -439,6 +451,23 @@ private fun BeatHubUploadCard(
             }
         }
 
+        Text(
+            text = "Oder als externer Beat-Link freigeben.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            modifier = Modifier.padding(top = 14.dp),
+        )
+
+        OutlinedTextField(
+            value = uiState.externalBeatUrl,
+            onValueChange = onExternalBeatUrlChanged,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            label = { Text("Drive / MEGA / anderer Audio-Link") },
+            minLines = 2,
+        )
+
         if (!uiState.validationMessage.isNullOrBlank()) {
             Text(
                 text = uiState.validationMessage.orEmpty(),
@@ -471,6 +500,17 @@ private fun BeatHubUploadCard(
                 Text("In den Beat Hub hochladen")
             }
         }
+
+        OutlinedButton(
+            onClick = onAddExternalBeat,
+            enabled = !uiState.isUploading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Text("Externen Beat freigeben")
+        }
     }
 }
 
@@ -479,6 +519,7 @@ private fun BeatHubLibrarySection(
     uiState: NicmaProducerUiState,
     currentBeatId: String?,
     onPlayToggle: (NicmaBeatHubItem) -> Unit,
+    onOpenOriginal: (NicmaBeatHubItem) -> Unit,
     onVisibilityToggle: (NicmaBeatHubItem) -> Unit,
     onDeleteBeat: (NicmaBeatHubItem) -> Unit,
 ) {
@@ -537,6 +578,7 @@ private fun BeatHubLibrarySection(
                             isAdmin = uiState.isAdmin,
                             isPlaying = currentBeatId == beat.id,
                             onPlayToggle = { onPlayToggle(beat) },
+                            onOpenOriginal = { onOpenOriginal(beat) },
                             onVisibilityToggle = { onVisibilityToggle(beat) },
                             onDelete = { onDeleteBeat(beat) },
                         )
@@ -553,6 +595,7 @@ private fun BeatHubLibraryRow(
     isAdmin: Boolean,
     isPlaying: Boolean,
     onPlayToggle: () -> Unit,
+    onOpenOriginal: () -> Unit,
     onVisibilityToggle: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -611,6 +654,15 @@ private fun BeatHubLibraryRow(
                     text = if (beat.isPublic) "Live" else "Review",
                     isActive = beat.isPublic,
                 )
+                BeatHubBadge(
+                    text = when (beat.provider.rawValue) {
+                        "google_drive" -> "Drive"
+                        "mega" -> "MEGA"
+                        "external_link" -> "Extern"
+                        else -> "Storage"
+                    },
+                    isActive = false,
+                )
                 if (isAdmin) {
                     BeatHubBadge(
                         text = beat.fileName,
@@ -644,11 +696,10 @@ private fun BeatHubLibraryRow(
                     }
                 } else {
                     OutlinedButton(
-                        onClick = {},
-                        enabled = false,
+                        onClick = onOpenOriginal,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Nicht direkt abspielbar")
+                        Text(if (beat.openUrl.isNotBlank()) "Original oeffnen" else "Nicht direkt abspielbar")
                     }
                 }
 

@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.ExternalBeatUploadRequest
 import com.skydown.android.data.NicmaBeatUploadRequest
 import com.skydown.android.data.NicmaBeatUploadService
 import com.skydown.android.ui.model.NicmaBeatHubItem
@@ -81,6 +82,10 @@ class NicmaProducerViewModel(
 
     fun updateNotes(value: String) {
         _uiState.update { it.copy(notes = value) }
+    }
+
+    fun updateExternalBeatUrl(value: String) {
+        _uiState.update { it.copy(externalBeatUrl = value) }
     }
 
     fun setSelectedFiles(
@@ -272,6 +277,94 @@ class NicmaProducerViewModel(
                         feedbackMessage = detail?.let { message ->
                             "Der Upload ist fehlgeschlagen: $message"
                         } ?: "Der Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
+                        feedbackIsError = true,
+                    )
+                }
+            }
+        }
+    }
+
+    fun addExternalBeat() {
+        val currentState = _uiState.value
+        if (!currentState.isAdmin) {
+            _uiState.update {
+                it.copy(
+                    validationMessage = "Nur Admins koennen externe Beats freigeben.",
+                    feedbackMessage = "Externe Beats sind nur fuer Admins verfuegbar.",
+                    feedbackIsError = true,
+                )
+            }
+            return
+        }
+
+        val trimmedArtist = currentState.artistName.trim()
+        val trimmedEmail = currentState.email.trim()
+        val trimmedTitle = currentState.beatTitle.trim()
+        val trimmedNotes = currentState.notes.trim()
+        val trimmedUrl = currentState.externalBeatUrl.trim()
+
+        when {
+            trimmedArtist.isBlank() -> {
+                _uiState.update {
+                    it.copy(validationMessage = "Bitte trag dein Projekt oder deinen Artist-Namen ein.")
+                }
+                return
+            }
+
+            !trimmedEmail.contains("@") -> {
+                _uiState.update {
+                    it.copy(validationMessage = "Bitte trag eine gueltige E-Mail ein.")
+                }
+                return
+            }
+
+            trimmedUrl.isBlank() -> {
+                _uiState.update {
+                    it.copy(validationMessage = "Bitte trag einen Drive-, MEGA- oder anderen Audio-Link ein.")
+                }
+                return
+            }
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isUploading = true,
+                    validationMessage = null,
+                    feedbackMessage = null,
+                )
+            }
+
+            runCatching {
+                beatHubService.addExternalBeat(
+                    request = ExternalBeatUploadRequest(
+                        beatTitle = trimmedTitle,
+                        artistName = trimmedArtist,
+                        email = trimmedEmail,
+                        notes = trimmedNotes,
+                        externalUrl = trimmedUrl,
+                    ),
+                    currentUser = currentUser,
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        beatTitle = "",
+                        notes = "",
+                        externalBeatUrl = "",
+                        isUploading = false,
+                        feedbackMessage = "Externer Beat wurde freigegeben.",
+                        feedbackIsError = false,
+                    )
+                }
+            }.onFailure { error ->
+                val detail = error.localizedMessage?.takeIf { message -> message.isNotBlank() }
+                _uiState.update {
+                    it.copy(
+                        isUploading = false,
+                        feedbackMessage = detail?.let { message ->
+                            "Der externe Beat-Link ist fehlgeschlagen: $message"
+                        } ?: "Der externe Beat-Link konnte nicht gespeichert werden.",
                         feedbackIsError = true,
                     )
                 }
