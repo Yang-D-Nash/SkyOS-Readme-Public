@@ -46,7 +46,7 @@ enum class BrandArtwork(
         label = "Skydown",
     ),
     Zweizwei(
-        drawableRes = R.drawable.zweizwei_brand_logo,
+        drawableRes = R.drawable.sky22_brand_logo,
         label = "Zweizwei",
     ),
     Combined(

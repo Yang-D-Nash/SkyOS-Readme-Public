@@ -1,12 +1,23 @@
 import SwiftUI
 
 enum BrandMark: String, Identifiable {
-    case sky22 = "Sky22BrandLogo"
-    case skydown = "SkydownBrandLogo"
-    case zweizwei = "ZweizweiBrandLogo"
-    case skydownX22 = "SkydownX22BrandLogo"
+    case sky22
+    case skydown
+    case zweizwei
+    case skydownX22
 
     var id: String { rawValue }
+
+    var imageName: String {
+        switch self {
+        case .sky22, .zweizwei:
+            return "Sky22BrandLogo"
+        case .skydown:
+            return "SkydownBrandLogo"
+        case .skydownX22:
+            return "SkydownX22BrandLogo"
+        }
+    }
 
     var label: String {
         switch self {
@@ -248,7 +259,7 @@ private struct BrandMarkTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(mark.rawValue)
+            Image(mark.imageName)
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)

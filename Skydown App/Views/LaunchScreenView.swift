@@ -219,7 +219,7 @@ private struct LaunchLandingView: View {
                 }
 
                 HStack(alignment: .center, spacing: 14) {
-                    Image(BrandMark.skydownX22.rawValue)
+                    Image(BrandMark.skydownX22.imageName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 72, height: 72)
@@ -319,7 +319,7 @@ private struct LaunchLandingButton: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 14) {
-                Image(brandMark.rawValue)
+                Image(brandMark.imageName)
                     .resizable()
                     .scaledToFit()
                     .padding(6)
