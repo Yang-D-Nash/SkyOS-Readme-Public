@@ -1,4 +1,3 @@
-import PhotosUI
 import SwiftUI
 
 struct ProfileView: View {
@@ -7,8 +6,7 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
-    @State private var avatarPickerItem: PhotosPickerItem?
-    @State private var galleryImagePickerItem: PhotosPickerItem?
+    @State private var pendingImagePickerTarget: ProfileImagePickerTarget?
 
     init(
         authManager: AuthManager,
@@ -62,46 +60,39 @@ struct ProfileView: View {
         .onReceive(authManager.$userSession) { user in
             viewModel.configure(user: user)
         }
-        .onChange(of: avatarPickerItem) { _, item in
-            guard let item else { return }
-            Task {
-                do {
-                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
-                        throw NSError(
-                            domain: "ProfileView",
-                            code: 400,
-                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
-                        )
-                    }
-                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
-                    await viewModel.uploadAvatar(data: data)
-                } catch {
-                    await MainActor.run {
-                        viewModel.reportUploadError(error)
-                    }
-                }
-                avatarPickerItem = nil
+        .sheet(item: $pendingImagePickerTarget) { target in
+            SingleImagePicker { provider in
+                handlePickedImageProvider(provider, for: target)
             }
         }
-        .onChange(of: galleryImagePickerItem) { _, item in
-            guard let item else { return }
-            Task {
-                do {
-                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
-                        throw NSError(
-                            domain: "ProfileView",
-                            code: 400,
-                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
-                        )
-                    }
-                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
+    }
+
+    private func handlePickedImageProvider(
+        _ provider: NSItemProvider?,
+        for target: ProfileImagePickerTarget
+    ) {
+        guard let provider else {
+            pendingImagePickerTarget = nil
+            return
+        }
+
+        Task {
+            do {
+                let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
+                switch target {
+                case .avatar:
+                    await viewModel.uploadAvatar(data: data)
+                case .gallery:
                     await viewModel.uploadGalleryImage(data: data)
-                } catch {
-                    await MainActor.run {
-                        viewModel.reportUploadError(error)
-                    }
                 }
-                galleryImagePickerItem = nil
+            } catch {
+                await MainActor.run {
+                    viewModel.reportUploadError(error)
+                }
+            }
+
+            await MainActor.run {
+                pendingImagePickerTarget = nil
             }
         }
     }
@@ -306,7 +297,9 @@ struct ProfileView: View {
                         )
                     )
 
-                    PhotosPicker(selection: $avatarPickerItem, matching: .images) {
+                    Button {
+                        pendingImagePickerTarget = .avatar
+                    } label: {
                         ProfileActionCapsuleLabel(
                             title: isUploadingAvatar ? "Avatar..." : "Avatar",
                             systemImage: "camera.fill"
@@ -320,7 +313,9 @@ struct ProfileView: View {
                         )
                     )
 
-                    PhotosPicker(selection: $galleryImagePickerItem, matching: .images) {
+                    Button {
+                        pendingImagePickerTarget = .gallery
+                    } label: {
                         ProfileActionCapsuleLabel(
                             title: isUploadingMedia ? "Laedt..." : "Bild",
                             systemImage: "photo.badge.plus"
@@ -362,7 +357,9 @@ struct ProfileView: View {
                 Spacer()
 
                 if viewModel.canEditCurrentProfile {
-                    PhotosPicker(selection: $galleryImagePickerItem, matching: .images) {
+                    Button {
+                        pendingImagePickerTarget = .gallery
+                    } label: {
                         ProfileCompactActionPill(
                             title: isUploadingMedia ? "Laedt..." : "Bild hinzufuegen",
                             systemImage: "photo.badge.plus",
@@ -474,6 +471,13 @@ struct ProfileView: View {
             shadowYOffset: 6
         )
     }
+}
+
+private enum ProfileImagePickerTarget: String, Identifiable {
+    case avatar
+    case gallery
+
+    var id: String { rawValue }
 }
 
 private extension String {

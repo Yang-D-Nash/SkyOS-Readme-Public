@@ -3,6 +3,7 @@ import FirebaseAuth
 import FirebaseFunctions
 import FirebaseStorage
 import ImageIO
+import PhotosUI
 import UniformTypeIdentifiers
 
 protocol EditableImageAssetUploading {
@@ -44,7 +45,7 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
         metadata.customMetadata = slot.metadata
 
         try await putData(data, to: reference, metadata: metadata)
-        return try await fetchDownloadURL(for: reference).absoluteString
+        return try await reference.awaitStableDownloadURL().absoluteString
     }
 
     private func requestUploadSlot(
@@ -97,26 +98,6 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
         )
     }
 
-    private func fetchDownloadURL(for reference: StorageReference) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
-            reference.downloadURL { url, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let url {
-                    continuation.resume(returning: url)
-                } else {
-                    continuation.resume(
-                        throwing: NSError(
-                            domain: "EditableImageAssetUploadService",
-                            code: 500,
-                            userInfo: [NSLocalizedDescriptionKey: "Download-URL fehlt."]
-                        )
-                    )
-                }
-            }
-        }
-    }
-
     private func putData(
         _ data: Data,
         to reference: StorageReference,
@@ -167,6 +148,36 @@ private struct EditableImageAssetFileInfo {
 
 enum PickedImageUploadPreparation {
     static func normalizedJPEGData(
+        from itemProvider: NSItemProvider,
+        maxPixelSize: Int = 2048,
+        compressionQuality: Double = 0.82
+    ) async throws -> Data {
+        let typeIdentifier = itemProvider.registeredTypeIdentifiers.first {
+            UTType($0)?.conforms(to: .image) == true
+        } ?? UTType.image.identifier
+
+        do {
+            if let fileURL = try await loadImageFileURL(from: itemProvider, typeIdentifier: typeIdentifier) {
+                defer { try? FileManager.default.removeItem(at: fileURL) }
+                return try normalizedJPEGData(
+                    fromFileURL: fileURL,
+                    maxPixelSize: maxPixelSize,
+                    compressionQuality: compressionQuality
+                )
+            }
+        } catch {
+            // Fall through to data representation as a compatibility fallback.
+        }
+
+        let rawData = try await loadImageDataRepresentation(from: itemProvider, typeIdentifier: typeIdentifier)
+        return try normalizedJPEGData(
+            from: rawData,
+            maxPixelSize: maxPixelSize,
+            compressionQuality: compressionQuality
+        )
+    }
+
+    static func normalizedJPEGData(
         from rawData: Data,
         maxPixelSize: Int = 2048,
         compressionQuality: Double = 0.82
@@ -177,6 +188,43 @@ enum PickedImageUploadPreparation {
         ) else {
             return rawData
         }
+
+        return try normalizedJPEGData(
+            from: source,
+            maxPixelSize: maxPixelSize,
+            compressionQuality: compressionQuality
+        )
+    }
+
+    private static func normalizedJPEGData(
+        fromFileURL fileURL: URL,
+        maxPixelSize: Int,
+        compressionQuality: Double
+    ) throws -> Data {
+        guard let source = CGImageSourceCreateWithURL(
+            fileURL as CFURL,
+            [kCGImageSourceShouldCache: false] as CFDictionary
+        ) else {
+            let rawData = try Data(contentsOf: fileURL, options: [.mappedIfSafe])
+            return try normalizedJPEGData(
+                from: rawData,
+                maxPixelSize: maxPixelSize,
+                compressionQuality: compressionQuality
+            )
+        }
+
+        return try normalizedJPEGData(
+            from: source,
+            maxPixelSize: maxPixelSize,
+            compressionQuality: compressionQuality
+        )
+    }
+
+    private static func normalizedJPEGData(
+        from source: CGImageSource,
+        maxPixelSize: Int,
+        compressionQuality: Double
+    ) throws -> Data {
 
         let options: CFDictionary = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -192,7 +240,11 @@ enum PickedImageUploadPreparation {
                 [kCGImageSourceShouldCache: false] as CFDictionary
             )
         else {
-            return rawData
+            throw NSError(
+                domain: "PickedImageUploadPreparation",
+                code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht vorbereitet werden."]
+            )
         }
 
         let destinationData = NSMutableData()
@@ -223,5 +275,63 @@ enum PickedImageUploadPreparation {
         }
 
         return destinationData as Data
+    }
+
+    private static func loadImageFileURL(
+        from itemProvider: NSItemProvider,
+        typeIdentifier: String
+    ) async throws -> URL? {
+        try await withCheckedThrowingContinuation { continuation in
+            itemProvider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { fileURL, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let fileURL else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let fileManager = FileManager.default
+                let fileExtension = fileURL.pathExtension.isEmpty ? "img" : fileURL.pathExtension
+                let copiedURL = fileManager.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension(fileExtension)
+
+                do {
+                    if fileManager.fileExists(atPath: copiedURL.path) {
+                        try fileManager.removeItem(at: copiedURL)
+                    }
+                    try fileManager.copyItem(at: fileURL, to: copiedURL)
+                    continuation.resume(returning: copiedURL)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    private static func loadImageDataRepresentation(
+        from itemProvider: NSItemProvider,
+        typeIdentifier: String
+    ) async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            itemProvider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let data {
+                    continuation.resume(returning: data)
+                } else {
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "PickedImageUploadPreparation",
+                            code: 500,
+                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
+                        )
+                    )
+                }
+            }
+        }
     }
 }

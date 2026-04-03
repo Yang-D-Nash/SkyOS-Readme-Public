@@ -8,7 +8,6 @@
 
 import AVFoundation
 import AVKit
-import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
@@ -1383,7 +1382,6 @@ struct VideoYouTubeRow: View {
 struct VideoPublicConfigEditorCard: View {
     let colorScheme: ColorScheme
     @ObservedObject var viewModel: SkydownVideoHubViewModel
-    @State private var editableImagePickerItem: PhotosPickerItem?
     @State private var pendingUploadTarget: VideoPublicConfigImageTarget?
     private let editableImageUploadService = EditableImageAssetUploadService()
 
@@ -1426,15 +1424,10 @@ struct VideoPublicConfigEditorCard: View {
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateEquipmentItem(item.id, imageURLString: $0) }
                             ),
-                            selection: Binding(
-                                get: { pendingUploadTarget == .equipment(item.id) ? editableImagePickerItem : nil },
-                                set: { newValue in
-                                    pendingUploadTarget = .equipment(item.id)
-                                    editableImagePickerItem = newValue
-                                }
-                            ),
                             colorScheme: colorScheme
-                        )
+                        ) {
+                            pendingUploadTarget = .equipment(item.id)
+                        }
                         Button(role: .destructive) {
                             viewModel.removeEquipmentItem(item.id)
                         } label: {
@@ -1502,15 +1495,10 @@ struct VideoPublicConfigEditorCard: View {
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, imageURLString: $0) }
                             ),
-                            selection: Binding(
-                                get: { pendingUploadTarget == .collaboration(item.id) ? editableImagePickerItem : nil },
-                                set: { newValue in
-                                    pendingUploadTarget = .collaboration(item.id)
-                                    editableImagePickerItem = newValue
-                                }
-                            ),
                             colorScheme: colorScheme
-                        )
+                        ) {
+                            pendingUploadTarget = .collaboration(item.id)
+                        }
                         NicmaUploadField(
                             title: "Spotify Artist ID",
                             text: Binding(
@@ -1593,51 +1581,62 @@ struct VideoPublicConfigEditorCard: View {
             RoundedRectangle(cornerRadius: 24)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .onChange(of: editableImagePickerItem) { _, item in
-            guard let item, let target = pendingUploadTarget else { return }
-            Task {
-                do {
-                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
-                        throw NSError(
-                            domain: "VideoPublicConfigEditorCard",
-                            code: 400,
-                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
-                        )
-                    }
-                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
-                    let url = try await editableImageUploadService.uploadImageData(data)
-                    await MainActor.run {
-                        switch target {
-                        case .equipment(let itemId):
-                            viewModel.updateEquipmentItem(itemId, imageURLString: url)
-                        case .collaboration(let itemId):
-                            viewModel.updateCollaborationItem(itemId, imageURLString: url)
-                        }
-                        viewModel.toastMessage = "Bild hochgeladen und uebernommen."
-                        viewModel.toastStyle = .success
-                        viewModel.showToast = true
-                    }
-                } catch {
-                    await MainActor.run {
-                        viewModel.toastMessage = "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)"
-                        viewModel.toastStyle = .error
-                        viewModel.showToast = true
-                    }
-                }
+        .sheet(item: $pendingUploadTarget) { target in
+            SingleImagePicker { provider in
+                handleEditableImageProvider(provider, for: target)
+            }
+        }
+    }
 
+    private func handleEditableImageProvider(
+        _ provider: NSItemProvider?,
+        for target: VideoPublicConfigImageTarget
+    ) {
+        guard let provider else {
+            pendingUploadTarget = nil
+            return
+        }
+
+        Task {
+            do {
+                let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
+                let url = try await editableImageUploadService.uploadImageData(data)
                 await MainActor.run {
-                    editableImagePickerItem = nil
+                    switch target {
+                    case .equipment(let itemId):
+                        viewModel.updateEquipmentItem(itemId, imageURLString: url)
+                    case .collaboration(let itemId):
+                        viewModel.updateCollaborationItem(itemId, imageURLString: url)
+                    }
+                    viewModel.toastMessage = "Bild hochgeladen und uebernommen."
+                    viewModel.toastStyle = .success
+                    viewModel.showToast = true
+                    pendingUploadTarget = nil
+                }
+            } catch {
+                await MainActor.run {
+                    viewModel.toastMessage = "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)"
+                    viewModel.toastStyle = .error
+                    viewModel.showToast = true
                     pendingUploadTarget = nil
                 }
             }
         }
     }
-
 }
 
-private enum VideoPublicConfigImageTarget: Equatable {
+private enum VideoPublicConfigImageTarget: Equatable, Identifiable {
     case equipment(String)
     case collaboration(String)
+
+    var id: String {
+        switch self {
+        case .equipment(let itemId):
+            return "equipment-\(itemId)"
+        case .collaboration(let itemId):
+            return "collaboration-\(itemId)"
+        }
+    }
 }
 
 struct SkydownSelectedVideoRow: View {

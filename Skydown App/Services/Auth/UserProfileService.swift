@@ -114,7 +114,7 @@ final class FirebaseUserProfileService: UserProfileServicing {
         metadata.customMetadata = slot.metadata
 
         try await putData(imageData, to: avatarReference, metadata: metadata)
-        let downloadURL = try await fetchDownloadURL(for: avatarReference)
+        let downloadURL = try await avatarReference.awaitStableDownloadURL()
         let now = Timestamp(date: .now)
         let userSnapshot = try await firestore.collection("users").document(userId).getDocument()
         let username = (userSnapshot.data()?["username"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -241,7 +241,7 @@ final class FirebaseUserProfileService: UserProfileServicing {
         storagePath: String,
         contentType: String
     ) async throws {
-        let downloadURL = try await fetchDownloadURL(for: reference)
+        let downloadURL = try await reference.awaitStableDownloadURL()
         var item: [String: Any] = [
             "ownerUid": userId,
             "type": type.rawValue,
@@ -363,25 +363,6 @@ final class FirebaseUserProfileService: UserProfileServicing {
         }
     }
 
-    private func fetchDownloadURL(for reference: StorageReference) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
-            reference.downloadURL { url, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let url {
-                    continuation.resume(returning: url)
-                } else {
-                    continuation.resume(
-                        throwing: NSError(
-                            domain: "FirebaseUserProfileService",
-                            code: 500,
-                            userInfo: [NSLocalizedDescriptionKey: "Profilmedium konnte nicht geladen werden."]
-                        )
-                    )
-                }
-            }
-        }
-    }
 }
 
 private final class NoopListenerRegistration: NSObject, ListenerRegistration {

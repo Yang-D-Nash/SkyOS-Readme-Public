@@ -20,6 +20,23 @@ Der Stand in diesem Repository ist auf einen harten, testfaehigen `Stand 1` fuer
 
 ## 1. Schnellstart
 
+### Android Release Signing
+
+Fuer eine echte Android-Release-Distribution braucht das Projekt ein lokales
+`keystore.properties` im Repo-Root. Dafuer:
+
+1. `keystore.properties.example` nach `keystore.properties` kopieren
+2. den Pfad zum Release-Keystore und die Passwoerter eintragen
+3. alternativ dieselben Werte ueber Umgebungsvariablen setzen:
+   - `SKYDOWN_UPLOAD_STORE_FILE`
+   - `SKYDOWN_UPLOAD_STORE_PASSWORD`
+   - `SKYDOWN_UPLOAD_KEY_ALIAS`
+   - `SKYDOWN_UPLOAD_KEY_PASSWORD`
+
+Wenn keine Release-Credentials gesetzt sind, baut Android weiter unsigned
+`release`-Artefakte. Mit gesetztem Keystore wird derselbe `release`-Build
+automatisch signiert.
+
 ### Was die App fuer Nutzer ist
 
 Die App ist kein klassischer Shop und kein reiner Musikplayer.

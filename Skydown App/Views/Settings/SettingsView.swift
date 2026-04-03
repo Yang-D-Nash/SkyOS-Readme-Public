@@ -10,7 +10,6 @@
 
 import SwiftUI
 import MessageUI
-import PhotosUI
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
@@ -43,7 +42,6 @@ struct SettingsView: View {
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
-    @State private var editableImagePickerItem: PhotosPickerItem?
     @State private var pendingEditableImageTarget: SettingsEditableImageTarget?
     @State private var presentedAdminWorkspace: SettingsAdminWorkspaceSection?
     @State private var showingMailOptions = false
@@ -523,35 +521,9 @@ struct SettingsView: View {
         .onReceive(shopifyAdminSettingsStore.$settings) { settings in
             syncShopifyDrafts(with: settings)
         }
-        .onChange(of: editableImagePickerItem) { _, item in
-            guard let item, let target = pendingEditableImageTarget else { return }
-            Task {
-                do {
-                    guard let rawData = try await item.loadTransferable(type: Data.self) else {
-                        throw NSError(
-                            domain: "SettingsView",
-                            code: 400,
-                            userInfo: [NSLocalizedDescriptionKey: "Bild konnte nicht geladen werden."]
-                        )
-                    }
-                    let data = try PickedImageUploadPreparation.normalizedJPEGData(from: rawData)
-                    let url = try await editableImageUploadService.uploadImageData(data)
-                    await MainActor.run {
-                        applyEditableImageURL(url, for: target)
-                        showToastMessage("Bild hochgeladen und uebernommen.", style: .success)
-                        editableImagePickerItem = nil
-                        pendingEditableImageTarget = nil
-                    }
-                } catch {
-                    await MainActor.run {
-                        showToastMessage(
-                            "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)",
-                            style: .error
-                        )
-                        editableImagePickerItem = nil
-                        pendingEditableImageTarget = nil
-                    }
-                }
+        .sheet(item: $pendingEditableImageTarget) { target in
+            SingleImagePicker { provider in
+                handleEditableImageProvider(provider, for: target)
             }
         }
         .onReceive(screenHeaderSettingsStore.$settings) { settings in
@@ -564,6 +536,36 @@ struct SettingsView: View {
 
     private var currentAppearanceLabel: String {
         Appearance(rawValue: colorScheme)?.rawValue.capitalized ?? "System"
+    }
+
+    private func handleEditableImageProvider(
+        _ provider: NSItemProvider?,
+        for target: SettingsEditableImageTarget
+    ) {
+        guard let provider else {
+            pendingEditableImageTarget = nil
+            return
+        }
+
+        Task {
+            do {
+                let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
+                let url = try await editableImageUploadService.uploadImageData(data)
+                await MainActor.run {
+                    applyEditableImageURL(url, for: target)
+                    showToastMessage("Bild hochgeladen und uebernommen.", style: .success)
+                    pendingEditableImageTarget = nil
+                }
+            } catch {
+                await MainActor.run {
+                    showToastMessage(
+                        "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)",
+                        style: .error
+                    )
+                    pendingEditableImageTarget = nil
+                }
+            }
+        }
     }
 
     private var isOwnerUser: Bool {
@@ -744,19 +746,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Home Header",
                         imageURL: $homeHeaderImageURLDraft,
-                        selection: Binding(
-                            get: {
-                                pendingEditableImageTarget == .homeHeader
-                                    ? editableImagePickerItem
-                                    : nil
-                            },
-                            set: { newValue in
-                                pendingEditableImageTarget = .homeHeader
-                                editableImagePickerItem = newValue
-                            }
-                        ),
                         colorScheme: effectiveColorScheme
-                    )
+                    ) {
+                        pendingEditableImageTarget = .homeHeader
+                    }
 
                     SettingsInputField(
                         title: "Home Eyebrow",
@@ -791,19 +784,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Music Hub Header",
                         imageURL: $musicHubHeaderImageURLDraft,
-                        selection: Binding(
-                            get: {
-                                pendingEditableImageTarget == .musicHubHeader
-                                    ? editableImagePickerItem
-                                    : nil
-                            },
-                            set: { newValue in
-                                pendingEditableImageTarget = .musicHubHeader
-                                editableImagePickerItem = newValue
-                            }
-                        ),
                         colorScheme: effectiveColorScheme
-                    )
+                    ) {
+                        pendingEditableImageTarget = .musicHubHeader
+                    }
 
                     SettingsInputField(
                         title: "Music Hub Eyebrow",
@@ -838,19 +822,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Shop Header",
                         imageURL: $shopHeaderImageURLDraft,
-                        selection: Binding(
-                            get: {
-                                pendingEditableImageTarget == .shopHeader
-                                    ? editableImagePickerItem
-                                    : nil
-                            },
-                            set: { newValue in
-                                pendingEditableImageTarget = .shopHeader
-                                editableImagePickerItem = newValue
-                            }
-                        ),
                         colorScheme: effectiveColorScheme
-                    )
+                    ) {
+                        pendingEditableImageTarget = .shopHeader
+                    }
 
                     SettingsInputField(
                         title: "Shop Eyebrow",
@@ -885,19 +860,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Video Header",
                         imageURL: $videoHeaderImageURLDraft,
-                        selection: Binding(
-                            get: {
-                                pendingEditableImageTarget == .videoHeader
-                                    ? editableImagePickerItem
-                                    : nil
-                            },
-                            set: { newValue in
-                                pendingEditableImageTarget = .videoHeader
-                                editableImagePickerItem = newValue
-                            }
-                        ),
                         colorScheme: effectiveColorScheme
-                    )
+                    ) {
+                        pendingEditableImageTarget = .videoHeader
+                    }
 
                     SettingsInputField(
                         title: "Video Eyebrow",
@@ -3336,11 +3302,13 @@ private extension UserQuotaPlan {
     }
 }
 
-private enum SettingsEditableImageTarget {
+private enum SettingsEditableImageTarget: String, Identifiable {
     case homeHeader
     case musicHubHeader
     case shopHeader
     case videoHeader
+
+    var id: String { rawValue }
 }
 
 #Preview {

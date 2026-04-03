@@ -37,7 +37,7 @@ class EditableImageAssetRepository(
                 .build(),
         ).await()
 
-        reference.downloadUrl.await().toString()
+        reference.awaitStableDownloadUrl()
     }
 
     private suspend fun requestUploadSlot(

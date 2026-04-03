@@ -1,25 +1,24 @@
 import SwiftUI
-import PhotosUI
 
 struct EditableImageField: View {
     let title: String
     @Binding var imageURL: String
-    @Binding var selection: PhotosPickerItem?
     let colorScheme: ColorScheme
     let buttonTitle: String
+    let onPickImage: () -> Void
 
     init(
         title: String,
         imageURL: Binding<String>,
-        selection: Binding<PhotosPickerItem?>,
         colorScheme: ColorScheme,
-        buttonTitle: String = "Vom iPhone waehlen"
+        buttonTitle: String = "Vom iPhone waehlen",
+        onPickImage: @escaping () -> Void
     ) {
         self.title = title
         self._imageURL = imageURL
-        self._selection = selection
         self.colorScheme = colorScheme
         self.buttonTitle = buttonTitle
+        self.onPickImage = onPickImage
     }
 
     var body: some View {
@@ -78,7 +77,7 @@ struct EditableImageField: View {
             }
 
             HStack(spacing: 10) {
-                PhotosPicker(selection: $selection, matching: .images) {
+                Button(action: onPickImage) {
                     Label(buttonTitle, systemImage: "photo.badge.plus")
                         .frame(maxWidth: .infinity)
                 }

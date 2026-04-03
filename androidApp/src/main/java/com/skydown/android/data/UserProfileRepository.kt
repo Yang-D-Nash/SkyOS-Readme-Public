@@ -90,7 +90,7 @@ class UserProfileRepository(
                 .build(),
         ).await()
 
-        val downloadUrl = reference.downloadUrl.await().toString()
+        val downloadUrl = reference.awaitStableDownloadUrl()
         val now = com.google.firebase.Timestamp.now()
         val userSnapshot = firestore.collection("users").document(userId).get().await()
         val username = (userSnapshot.data?.get("username") as? String)?.takeIf { it.isNotBlank() } ?: "Skydown User"
@@ -152,7 +152,7 @@ class UserProfileRepository(
                 .build(),
         ).await()
 
-        val downloadUrl = reference.downloadUrl.await().toString()
+        val downloadUrl = reference.awaitStableDownloadUrl()
         firestore.collection("galleryMeta")
             .document(userId)
             .collection("items")

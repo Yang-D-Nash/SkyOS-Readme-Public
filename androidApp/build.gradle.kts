@@ -1,9 +1,34 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
     id("org.jetbrains.kotlin.plugin.compose")
     kotlin("plugin.serialization")
 }
+
+val releaseKeystoreProperties = Properties()
+val releaseKeystorePropertiesFile = rootProject.file("keystore.properties")
+
+if (releaseKeystorePropertiesFile.exists()) {
+    releaseKeystorePropertiesFile.inputStream().use(releaseKeystoreProperties::load)
+}
+
+fun releaseSigningValue(key: String): String? =
+    releaseKeystoreProperties.getProperty(key)
+        ?: providers.environmentVariable(key).orNull
+
+val releaseStoreFilePath = releaseSigningValue("SKYDOWN_UPLOAD_STORE_FILE")
+val releaseStorePassword = releaseSigningValue("SKYDOWN_UPLOAD_STORE_PASSWORD")
+val releaseKeyAlias = releaseSigningValue("SKYDOWN_UPLOAD_KEY_ALIAS")
+val releaseKeyPassword = releaseSigningValue("SKYDOWN_UPLOAD_KEY_PASSWORD")
+val hasReleaseSigning =
+    listOf(
+        releaseStoreFilePath,
+        releaseStorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword,
+    ).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.skydown.android"
@@ -22,9 +47,26 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
