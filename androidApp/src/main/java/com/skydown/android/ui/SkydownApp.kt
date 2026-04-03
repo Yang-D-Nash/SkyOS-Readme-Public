@@ -783,6 +783,7 @@ private fun ZweizweiMusicLaneScreen(
                 destination = ZweizweiMusicDestination.Hub
             },
             onOpenBeatHub = { destination = ZweizweiMusicDestination.BeatHub },
+            onOpenStudio = { destination = ZweizweiMusicDestination.NicmaProducer },
             onOpenCart = onOpenCart,
             onOpenProfile = onOpenProfile,
             onOpenSettings = onOpenSettings,

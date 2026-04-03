@@ -542,8 +542,9 @@ struct SettingsView: View {
         _ provider: NSItemProvider?,
         for target: SettingsEditableImageTarget
     ) {
+        pendingEditableImageTarget = nil
+
         guard let provider else {
-            pendingEditableImageTarget = nil
             return
         }
 
@@ -554,7 +555,6 @@ struct SettingsView: View {
                 await MainActor.run {
                     applyEditableImageURL(url, for: target)
                     showToastMessage("Bild hochgeladen und uebernommen.", style: .success)
-                    pendingEditableImageTarget = nil
                 }
             } catch {
                 await MainActor.run {
@@ -562,7 +562,6 @@ struct SettingsView: View {
                         "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)",
                         style: .error
                     )
-                    pendingEditableImageTarget = nil
                 }
             }
         }

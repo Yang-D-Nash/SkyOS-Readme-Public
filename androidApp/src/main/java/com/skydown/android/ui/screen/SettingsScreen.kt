@@ -3,7 +3,6 @@ package com.skydown.android.ui.screen
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -84,6 +83,8 @@ import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
+import com.skydown.android.ui.component.ToastHost
+import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
@@ -106,6 +107,7 @@ import com.skydown.shared.model.resolvedAiVisualRequestsPerDay
 import com.skydown.shared.model.resolvedQuotaPlan
 import com.skydown.shared.model.resolvedRole
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,6 +128,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var feedbackType by remember { mutableStateOf(ToastType.Info) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var stripeAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var stripeSecretKeyDraft by rememberSaveable { mutableStateOf("") }
@@ -293,8 +297,16 @@ fun SettingsScreen(
 
     LaunchedEffect(uiState.paymentFeedbackMessage) {
         val message = uiState.paymentFeedbackMessage ?: return@LaunchedEffect
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        feedbackMessage = message
+        feedbackType = ToastType.Success
         viewModel.clearPaymentFeedback()
+    }
+
+    LaunchedEffect(feedbackMessage) {
+        if (!feedbackMessage.isNullOrBlank()) {
+            delay(3000)
+            feedbackMessage = null
+        }
     }
 
     val headerImagePicker = rememberLauncherForActivityResult(
@@ -315,13 +327,11 @@ fun SettingsScreen(
                         SettingsHeaderImageTarget.Shop -> shopHeaderImageUrlDraft = uploadedUrl
                         SettingsHeaderImageTarget.VideoHub -> videoHeaderImageUrlDraft = uploadedUrl
                     }
-                    Toast.makeText(context, "Bild hochgeladen und uebernommen.", Toast.LENGTH_SHORT).show()
+                    feedbackMessage = "Bild hochgeladen und uebernommen."
+                    feedbackType = ToastType.Success
                 } else {
-                    Toast.makeText(
-                        context,
-                        result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden.",
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    feedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
+                    feedbackType = ToastType.Error
                 }
                 pendingHeaderImageTarget = null
             }
@@ -443,15 +453,12 @@ fun SettingsScreen(
                             onSave = { updatedPage ->
                                 coroutineScope.launch {
                                     val result = ArtistPagesStore.save(updatedPage)
-                                    Toast.makeText(
-                                        context,
-                                        if (result.isSuccess) {
-                                            "${updatedPage.artistName} gespeichert."
-                                        } else {
-                                            result.exceptionOrNull()?.message ?: "Artist-Seite konnte nicht gespeichert werden."
-                                        },
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                                    feedbackMessage = if (result.isSuccess) {
+                                        "${updatedPage.artistName} gespeichert."
+                                    } else {
+                                        result.exceptionOrNull()?.message ?: "Artist-Seite konnte nicht gespeichert werden."
+                                    }
+                                    feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
                                 }
                             },
                         )
@@ -711,11 +718,8 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         if (!uiState.isOwner) {
-                            Toast.makeText(
-                                context,
-                                "Nur der Owner darf Header-Bilder verwalten.",
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                            feedbackMessage = "Nur der Owner darf Header-Bilder verwalten."
+                            feedbackType = ToastType.Error
                         } else {
                             coroutineScope.launch {
                                 val result = screenHeaderSettingsRepository.updateSettings(
@@ -742,15 +746,12 @@ fun SettingsScreen(
                                         videoHubDetail = videoHeaderDetailDraft.trim(),
                                     ),
                                 )
-                                Toast.makeText(
-                                    context,
-                                    if (result.isSuccess) {
-                                        "Header gespeichert."
-                                    } else {
-                                        result.exceptionOrNull()?.message ?: "Header konnten nicht gespeichert werden."
-                                    },
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                                feedbackMessage = if (result.isSuccess) {
+                                    "Header gespeichert."
+                                } else {
+                                    result.exceptionOrNull()?.message ?: "Header konnten nicht gespeichert werden."
+                                }
+                                feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
                             }
                         }
                     },
@@ -1615,6 +1616,14 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            ToastHost(
+                message = feedbackMessage,
+                type = feedbackType,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+            )
         }
     }
 

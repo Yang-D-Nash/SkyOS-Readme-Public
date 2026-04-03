@@ -1,7 +1,6 @@
 package com.skydown.android.ui.screen
 
 import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MusicNote
@@ -93,6 +93,7 @@ import com.skydown.android.ui.viewmodel.MusicViewModel
 fun MusicScreen(
     onBack: (() -> Unit)? = null,
     onOpenBeatHub: (() -> Unit)? = null,
+    onOpenStudio: (() -> Unit)? = null,
     initialArtist: String? = null,
     initialTrackId: Int? = null,
     autoplaySelectedTrackPreview: Boolean = false,
@@ -263,20 +264,44 @@ fun MusicScreen(
             )
         },
         floatingActionButton = {
-            onOpenBeatHub?.let { openBeatHub ->
-                ExtendedFloatingActionButton(
-                    onClick = openBeatHub,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            if (onOpenBeatHub != null || onOpenStudio != null) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.End,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.GraphicEq,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Beat Hub",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
+                    onOpenStudio?.let { openStudio ->
+                        ExtendedFloatingActionButton(
+                            onClick = openStudio,
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = "Studio",
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
+
+                    onOpenBeatHub?.let { openBeatHub ->
+                        ExtendedFloatingActionButton(
+                            onClick = openBeatHub,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GraphicEq,
+                                contentDescription = null,
+                            )
+                            Text(
+                                text = "Beat Hub",
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
                 }
             }
         },

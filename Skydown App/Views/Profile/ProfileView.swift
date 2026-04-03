@@ -71,8 +71,9 @@ struct ProfileView: View {
         _ provider: NSItemProvider?,
         for target: ProfileImagePickerTarget
     ) {
+        pendingImagePickerTarget = nil
+
         guard let provider else {
-            pendingImagePickerTarget = nil
             return
         }
 
@@ -89,10 +90,6 @@ struct ProfileView: View {
                 await MainActor.run {
                     viewModel.reportUploadError(error)
                 }
-            }
-
-            await MainActor.run {
-                pendingImagePickerTarget = nil
             }
         }
     }

@@ -5,7 +5,6 @@ import android.content.Intent
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -160,6 +159,8 @@ fun VideoHubScreen(
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
     var pendingConfigImageTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
+    var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
+    var localFeedbackIsError by remember { mutableStateOf(false) }
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
     }
@@ -188,13 +189,11 @@ fun VideoHubScreen(
                         is VideoConfigImageTarget.Equipment -> viewModel.updateEquipmentItem(target.itemId, imageUrl = uploadedUrl)
                         is VideoConfigImageTarget.Collaboration -> viewModel.updateCollaborationItem(target.itemId, imageUrl = uploadedUrl)
                     }
-                    Toast.makeText(context, "Bild hochgeladen und uebernommen.", Toast.LENGTH_SHORT).show()
+                    localFeedbackMessage = "Bild hochgeladen und uebernommen."
+                    localFeedbackIsError = false
                 } else {
-                    Toast.makeText(
-                        context,
-                        result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden.",
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    localFeedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
+                    localFeedbackIsError = true
                 }
                 pendingConfigImageTarget = null
             }
@@ -240,6 +239,13 @@ fun VideoHubScreen(
         if (!uiState.feedbackMessage.isNullOrBlank()) {
             delay(3_000)
             viewModel.dismissFeedback()
+        }
+    }
+
+    LaunchedEffect(localFeedbackMessage) {
+        if (!localFeedbackMessage.isNullOrBlank()) {
+            delay(3_000)
+            localFeedbackMessage = null
         }
     }
 
@@ -457,8 +463,12 @@ fun VideoHubScreen(
             }
 
             ToastHost(
-                message = uiState.feedbackMessage,
-                type = if (uiState.feedbackIsError) ToastType.Error else ToastType.Success,
+                message = localFeedbackMessage ?: uiState.feedbackMessage,
+                type = if (localFeedbackMessage != null) {
+                    if (localFeedbackIsError) ToastType.Error else ToastType.Success
+                } else {
+                    if (uiState.feedbackIsError) ToastType.Error else ToastType.Success
+                },
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(

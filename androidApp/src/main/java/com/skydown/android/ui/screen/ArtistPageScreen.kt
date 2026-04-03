@@ -1,6 +1,4 @@
 package com.skydown.android.ui.screen
-
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,6 +66,8 @@ import com.skydown.android.data.mediaAttributionContext
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.ToastHost
+import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.TrackRow
 import com.skydown.android.ui.component.YouTubePlayerDialog
 import com.skydown.android.ui.component.skydownScreenBrush
@@ -79,6 +79,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.skydown.shared.model.Track
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,6 +122,8 @@ fun ArtistPageScreen(
     var currentlyPlayingId by remember(page.slug) { mutableStateOf<Int?>(null) }
     var selectedYouTubeItem by remember(page.slug) { mutableStateOf<VideoYouTubeItem?>(null) }
     var pendingImageTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
+    var feedbackMessage by remember(page.slug) { mutableStateOf<String?>(null) }
+    var feedbackType by remember(page.slug) { mutableStateOf(ToastType.Info) }
 
     val spotlightTrack = remember(tracks, selectedTrackId) {
         tracks.firstOrNull { it.trackId == selectedTrackId } ?: tracks.firstOrNull()
@@ -147,13 +150,11 @@ fun ArtistPageScreen(
                         ArtistPageImageTarget.Profile -> profileImageDraft = uploadedUrl
                         ArtistPageImageTarget.Hero -> heroImageDraft = uploadedUrl
                     }
-                    Toast.makeText(context, "Bild hochgeladen und uebernommen.", Toast.LENGTH_SHORT).show()
+                    feedbackMessage = "Bild hochgeladen und uebernommen."
+                    feedbackType = ToastType.Success
                 } else {
-                    Toast.makeText(
-                        context,
-                        result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden.",
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    feedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
+                    feedbackType = ToastType.Error
                 }
                 pendingImageTarget = null
             }
@@ -223,6 +224,13 @@ fun ArtistPageScreen(
         }
     }
 
+    LaunchedEffect(feedbackMessage) {
+        if (!feedbackMessage.isNullOrBlank()) {
+            delay(3000)
+            feedbackMessage = null
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -254,13 +262,12 @@ fun ArtistPageScreen(
                                         isSaving = false
                                         if (result.isSuccess) {
                                             isEditing = false
-                                            Toast.makeText(context, "Artist-Seite gespeichert.", Toast.LENGTH_SHORT).show()
+                                            feedbackMessage = "Artist-Seite gespeichert."
+                                            feedbackType = ToastType.Success
                                         } else {
-                                            Toast.makeText(
-                                                context,
-                                                result.exceptionOrNull()?.message ?: "Artist-Seite konnte nicht gespeichert werden.",
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
+                                            feedbackMessage = result.exceptionOrNull()?.message
+                                                ?: "Artist-Seite konnte nicht gespeichert werden."
+                                            feedbackType = ToastType.Error
                                         }
                                     }
                                 } else {
@@ -282,92 +289,105 @@ fun ArtistPageScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(skydownScreenBrush())
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            ArtistPageHeroCard(
-                page = page,
-                brand = brand,
-                trackCount = tracks.size,
-                latestReleaseText = latestReleaseText,
-                onOpenYouTube = { item -> selectedYouTubeItem = item },
-            )
-            ArtistPageSpotlightCard(
-                page = page,
-                trackCount = tracks.size,
-                latestReleaseText = latestReleaseText,
-                spotlightTrack = spotlightTrack,
-                linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() },
-            )
-            ArtistPageTracksCard(
-                artistName = page.artistName,
-                tracks = tracks.take(5),
-                isLoading = isLoadingTracks,
-                errorMessage = tracksError,
-                selectedTrackId = selectedTrackId,
-                currentlyPlayingId = currentlyPlayingId,
-                onSelectTrack = { selectedTrackId = it },
-                onPlayToggle = { track ->
-                    if (currentlyPlayingId == track.trackId) {
-                        currentlyPlayingId = null
-                        currentPreviewUrl = null
-                    } else {
-                        selectedTrackId = track.trackId
-                        currentlyPlayingId = track.trackId
-                        currentPreviewUrl = track.previewUrl
-                    }
-                },
-            )
-            ArtistPageLinksCard(
-                page = page,
-                onOpenYouTube = { item -> selectedYouTubeItem = item },
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                ArtistPageHeroCard(
+                    page = page,
+                    brand = brand,
+                    trackCount = tracks.size,
+                    latestReleaseText = latestReleaseText,
+                    onOpenYouTube = { item -> selectedYouTubeItem = item },
+                )
+                ArtistPageSpotlightCard(
+                    page = page,
+                    trackCount = tracks.size,
+                    latestReleaseText = latestReleaseText,
+                    spotlightTrack = spotlightTrack,
+                    linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() },
+                )
+                ArtistPageTracksCard(
+                    artistName = page.artistName,
+                    tracks = tracks.take(5),
+                    isLoading = isLoadingTracks,
+                    errorMessage = tracksError,
+                    selectedTrackId = selectedTrackId,
+                    currentlyPlayingId = currentlyPlayingId,
+                    onSelectTrack = { selectedTrackId = it },
+                    onPlayToggle = { track ->
+                        if (currentlyPlayingId == track.trackId) {
+                            currentlyPlayingId = null
+                            currentPreviewUrl = null
+                        } else {
+                            selectedTrackId = track.trackId
+                            currentlyPlayingId = track.trackId
+                            currentPreviewUrl = track.previewUrl
+                        }
+                    },
+                )
+                ArtistPageLinksCard(
+                    page = page,
+                    onOpenYouTube = { item -> selectedYouTubeItem = item },
+                )
 
-            if (canEdit && isEditing) {
-                SkydownCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "Artist-Seite bearbeiten",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                if (canEdit && isEditing) {
+                    SkydownCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "Artist-Seite bearbeiten",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
 
-                        ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
-                        ArtistPageInput(title = "Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
-                        EditableImageFieldCard(
-                            title = "Profilbild",
-                            imageUrl = profileImageDraft,
-                            onPickImage = {
-                                pendingImageTarget = ArtistPageImageTarget.Profile
-                                imagePicker.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                )
-                            },
-                            onImageUrlChange = { profileImageDraft = it },
-                        )
-                        EditableImageFieldCard(
-                            title = "Hero-Bild",
-                            imageUrl = heroImageDraft,
-                            onPickImage = {
-                                pendingImageTarget = ArtistPageImageTarget.Hero
-                                imagePicker.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                )
-                            },
-                            onImageUrlChange = { heroImageDraft = it },
-                        )
-                        ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
-                        ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
-                        ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
+                            ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
+                            ArtistPageInput(title = "Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
+                            EditableImageFieldCard(
+                                title = "Profilbild",
+                                imageUrl = profileImageDraft,
+                                onPickImage = {
+                                    pendingImageTarget = ArtistPageImageTarget.Profile
+                                    imagePicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                    )
+                                },
+                                onImageUrlChange = { profileImageDraft = it },
+                            )
+                            EditableImageFieldCard(
+                                title = "Hero-Bild",
+                                imageUrl = heroImageDraft,
+                                onPickImage = {
+                                    pendingImageTarget = ArtistPageImageTarget.Hero
+                                    imagePicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                    )
+                                },
+                                onImageUrlChange = { heroImageDraft = it },
+                            )
+                            ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
+                            ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
+                            ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
+                        }
                     }
                 }
             }
+
+            ToastHost(
+                message = feedbackMessage,
+                type = feedbackType,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+            )
         }
     }
 

@@ -2,7 +2,6 @@ package com.skydown.android.ui.screen
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,6 +45,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +61,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.ToastHost
+import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.component.skydownSheen
@@ -73,6 +77,7 @@ import com.skydown.shared.model.UserQuotaPlan
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedQuotaPlan
 import com.skydown.shared.model.resolvedRole
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +87,8 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var feedbackType by remember { mutableStateOf(ToastType.Info) }
     val avatarPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
@@ -98,9 +105,26 @@ fun ProfileScreen(
     }
 
     LaunchedEffect(uiState.toastMessage, uiState.errorMessage) {
-        val message = uiState.toastMessage ?: uiState.errorMessage ?: return@LaunchedEffect
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        viewModel.clearMessages()
+        when {
+            !uiState.toastMessage.isNullOrBlank() -> {
+                feedbackMessage = uiState.toastMessage
+                feedbackType = ToastType.Success
+                viewModel.clearMessages()
+            }
+
+            !uiState.errorMessage.isNullOrBlank() -> {
+                feedbackMessage = uiState.errorMessage
+                feedbackType = ToastType.Error
+                viewModel.clearMessages()
+            }
+        }
+    }
+
+    LaunchedEffect(feedbackMessage) {
+        if (!feedbackMessage.isNullOrBlank()) {
+            delay(3000)
+            feedbackMessage = null
+        }
     }
 
     Scaffold(
@@ -116,107 +140,120 @@ fun ProfileScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(skydownScreenBrush())
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            ProfileHeroCard(
-                uiState = uiState,
-                onOpenInstagram = {
-                    normalizedInstagramUri(uiState.instagramHandle)?.let {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, it))
-                    }
-                },
-                onOpenWhatsApp = {
-                    normalizedWhatsAppUri(uiState.whatsApp)?.let {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, it))
-                    }
-                },
-                onEditToggle = { viewModel.setEditing(!uiState.isEditing) },
-                onPickAvatar = {
-                    avatarPicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                    )
-                },
-                onPickGalleryImage = {
-                    imagePicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                    )
-                },
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                ProfileHeroCard(
+                    uiState = uiState,
+                    onOpenInstagram = {
+                        normalizedInstagramUri(uiState.instagramHandle)?.let {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, it))
+                        }
+                    },
+                    onOpenWhatsApp = {
+                        normalizedWhatsAppUri(uiState.whatsApp)?.let {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, it))
+                        }
+                    },
+                    onEditToggle = { viewModel.setEditing(!uiState.isEditing) },
+                    onPickAvatar = {
+                        avatarPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onPickGalleryImage = {
+                        imagePicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                )
 
-            ProfileGalleryCard(
-                uiState = uiState,
-                onPickImage = {
-                    imagePicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                    )
-                },
-                onOpenItem = { item ->
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(item.mediaUrl)),
-                    )
-                },
-            )
+                ProfileGalleryCard(
+                    uiState = uiState,
+                    onPickImage = {
+                        imagePicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onOpenItem = { item ->
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(item.mediaUrl)),
+                        )
+                    },
+                )
 
-            if (uiState.isEditing && uiState.canEditCurrentProfile) {
-                SkydownCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "Profil bearbeiten",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                if (uiState.isEditing && uiState.canEditCurrentProfile) {
+                    SkydownCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "Profil bearbeiten",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
 
-                        OutlinedTextField(
-                            value = uiState.username,
-                            onValueChange = viewModel::updateUsername,
-                            label = { Text("Benutzername") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = uiState.profileTagline,
-                            onValueChange = viewModel::updateProfileTagline,
-                            label = { Text("Kurzinfo") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = uiState.instagramHandle,
-                            onValueChange = viewModel::updateInstagramHandle,
-                            label = { Text("Instagram") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = uiState.whatsApp,
-                            onValueChange = viewModel::updateWhatsApp,
-                            label = { Text("WhatsApp") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = uiState.profileBio,
-                            onValueChange = viewModel::updateProfileBio,
-                            label = { Text("Bio") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 4,
-                        )
+                            OutlinedTextField(
+                                value = uiState.username,
+                                onValueChange = viewModel::updateUsername,
+                                label = { Text("Benutzername") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = uiState.profileTagline,
+                                onValueChange = viewModel::updateProfileTagline,
+                                label = { Text("Kurzinfo") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = uiState.instagramHandle,
+                                onValueChange = viewModel::updateInstagramHandle,
+                                label = { Text("Instagram") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = uiState.whatsApp,
+                                onValueChange = viewModel::updateWhatsApp,
+                                label = { Text("WhatsApp") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = uiState.profileBio,
+                                onValueChange = viewModel::updateProfileBio,
+                                label = { Text("Bio") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 4,
+                            )
 
-                        Button(
-                            onClick = viewModel::saveProfile,
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !uiState.isSavingProfile,
-                        ) {
-                            Icon(Icons.Default.Save, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (uiState.isSavingProfile) "Speichert..." else "Speichern")
+                            Button(
+                                onClick = viewModel::saveProfile,
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !uiState.isSavingProfile,
+                            ) {
+                                Icon(Icons.Default.Save, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(if (uiState.isSavingProfile) "Speichert..." else "Speichern")
+                            }
                         }
                     }
                 }
             }
+
+            ToastHost(
+                message = feedbackMessage,
+                type = feedbackType,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+            )
         }
     }
 }

@@ -159,7 +159,7 @@ enum PickedImageUploadPreparation {
         do {
             if let fileURL = try await loadImageFileURL(from: itemProvider, typeIdentifier: typeIdentifier) {
                 defer { try? FileManager.default.removeItem(at: fileURL) }
-                return try normalizedJPEGData(
+                return try await normalizedJPEGDataOffMain(
                     fromFileURL: fileURL,
                     maxPixelSize: maxPixelSize,
                     compressionQuality: compressionQuality
@@ -170,11 +170,43 @@ enum PickedImageUploadPreparation {
         }
 
         let rawData = try await loadImageDataRepresentation(from: itemProvider, typeIdentifier: typeIdentifier)
-        return try normalizedJPEGData(
+        return try await normalizedJPEGDataOffMain(
             from: rawData,
             maxPixelSize: maxPixelSize,
             compressionQuality: compressionQuality
         )
+    }
+
+    private static func normalizedJPEGDataOffMain(
+        from rawData: Data,
+        maxPixelSize: Int,
+        compressionQuality: Double
+    ) async throws -> Data {
+        try await Task.detached(priority: .userInitiated) {
+            try autoreleasepool {
+                try normalizedJPEGData(
+                    from: rawData,
+                    maxPixelSize: maxPixelSize,
+                    compressionQuality: compressionQuality
+                )
+            }
+        }.value
+    }
+
+    private static func normalizedJPEGDataOffMain(
+        fromFileURL fileURL: URL,
+        maxPixelSize: Int,
+        compressionQuality: Double
+    ) async throws -> Data {
+        try await Task.detached(priority: .userInitiated) {
+            try autoreleasepool {
+                try normalizedJPEGData(
+                    fromFileURL: fileURL,
+                    maxPixelSize: maxPixelSize,
+                    compressionQuality: compressionQuality
+                )
+            }
+        }.value
     }
 
     static func normalizedJPEGData(

@@ -156,8 +156,9 @@ struct ArtistPageView: View {
         _ provider: NSItemProvider?,
         for target: ArtistPageEditableImageTarget
     ) {
+        pendingImageTarget = nil
+
         guard let provider else {
-            pendingImageTarget = nil
             return
         }
 
@@ -173,12 +174,10 @@ struct ArtistPageView: View {
                         heroImageURLDraft = url
                     }
                     showToast("Bild hochgeladen und uebernommen.", style: .success)
-                    pendingImageTarget = nil
                 }
             } catch {
                 await MainActor.run {
                     showToast("Bild konnte nicht hochgeladen werden: \(error.localizedDescription)", style: .error)
-                    pendingImageTarget = nil
                 }
             }
         }

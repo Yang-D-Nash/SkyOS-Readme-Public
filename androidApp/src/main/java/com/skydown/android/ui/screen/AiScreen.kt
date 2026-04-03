@@ -1,7 +1,6 @@
 package com.skydown.android.ui.screen
 
 import android.graphics.BitmapFactory
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -97,6 +96,8 @@ fun AiScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
+    var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
 
     val dismissKeyboard: () -> Unit = {
         focusManager.clearFocus(force = true)
@@ -118,6 +119,13 @@ fun AiScreen(
         if (!uiState.errorMessage.isNullOrBlank()) {
             delay(3500)
             viewModel.dismissError()
+        }
+    }
+
+    LaunchedEffect(localFeedbackMessage) {
+        if (!localFeedbackMessage.isNullOrBlank()) {
+            delay(3000)
+            localFeedbackMessage = null
         }
     }
 
@@ -232,6 +240,10 @@ fun AiScreen(
                             AiMessageBubble(
                                 message = message,
                                 compactLayout = compactLayout,
+                                onFeedback = { messageText, type ->
+                                    localFeedbackMessage = messageText
+                                    localFeedbackType = type
+                                },
                             )
                         }
 
@@ -243,8 +255,8 @@ fun AiScreen(
             }
 
             ToastHost(
-                message = uiState.errorMessage,
-                type = ToastType.Error,
+                message = localFeedbackMessage ?: uiState.errorMessage,
+                type = if (localFeedbackMessage != null) localFeedbackType else ToastType.Error,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = if (uiState.isAiEnabled) {
@@ -439,6 +451,7 @@ private fun VisualPromptCard(
 private fun AiMessageBubble(
     message: AiMessage,
     compactLayout: Boolean,
+    onFeedback: (String, ToastType) -> Unit,
 ) {
     val context = LocalContext.current
     val isUser = message.role == AiMessageRole.User
@@ -541,7 +554,7 @@ private fun AiMessageBubble(
                         Button(
                             onClick = {
                                 copyAiText(context, "X22 Bot", message.text)
-                                Toast.makeText(context, "Antwort kopiert.", Toast.LENGTH_SHORT).show()
+                                onFeedback("Antwort kopiert.", ToastType.Success)
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {
@@ -559,16 +572,16 @@ private fun AiMessageBubble(
 
                         if (message.imageBytes != null) {
                             OutlinedButton(
-                                onClick = {
-                                    saveAiImage(context, message.imageBytes, message.imageMimeType)
-                                        .onSuccess {
-                                            Toast.makeText(context, "Bild gespeichert.", Toast.LENGTH_SHORT).show()
-                                        }
-                                        .onFailure {
-                                            Toast.makeText(context, "Bild konnte nicht gespeichert werden.", Toast.LENGTH_SHORT).show()
-                                        }
-                                },
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            onClick = {
+                                saveAiImage(context, message.imageBytes, message.imageMimeType)
+                                    .onSuccess {
+                                            onFeedback("Bild gespeichert.", ToastType.Success)
+                                    }
+                                    .onFailure {
+                                            onFeedback("Bild konnte nicht gespeichert werden.", ToastType.Error)
+                                    }
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                             ) {
                                 Text("Bild speichern")
                             }

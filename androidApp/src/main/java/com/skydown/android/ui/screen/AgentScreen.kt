@@ -90,6 +90,8 @@ fun AgentScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
+    var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
     val dismissKeyboard: () -> Unit = {
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
@@ -110,6 +112,13 @@ fun AgentScreen(
         if (!uiState.errorMessage.isNullOrBlank()) {
             delay(3500)
             viewModel.dismissError()
+        }
+    }
+
+    LaunchedEffect(localFeedbackMessage) {
+        if (!localFeedbackMessage.isNullOrBlank()) {
+            delay(3000)
+            localFeedbackMessage = null
         }
     }
 
@@ -216,6 +225,10 @@ fun AgentScreen(
                             AgentMessageBubble(
                                 message = message,
                                 compactLayout = compactLayout,
+                                onFeedback = { messageText, type ->
+                                    localFeedbackMessage = messageText
+                                    localFeedbackType = type
+                                },
                             )
                         }
 
@@ -227,8 +240,8 @@ fun AgentScreen(
             }
 
             ToastHost(
-                message = uiState.errorMessage,
-                type = ToastType.Error,
+                message = localFeedbackMessage ?: uiState.errorMessage,
+                type = if (localFeedbackMessage != null) localFeedbackType else ToastType.Error,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = if (uiState.isAgentEnabled) {
@@ -389,6 +402,7 @@ private fun AgentQuickPromptCard(
 private fun AgentMessageBubble(
     message: AgentMessage,
     compactLayout: Boolean,
+    onFeedback: (String, ToastType) -> Unit,
 ) {
     val context = LocalContext.current
     val isUser = message.role == AgentMessageRole.User
@@ -472,7 +486,7 @@ private fun AgentMessageBubble(
                         Button(
                             onClick = {
                                 copyAiText(context, "X22 Agent", message.text)
-                                android.widget.Toast.makeText(context, "Antwort kopiert.", android.widget.Toast.LENGTH_SHORT).show()
+                                onFeedback("Antwort kopiert.", ToastType.Success)
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {

@@ -29,6 +29,7 @@ struct SingleImagePicker: UIViewControllerRepresentable {
         }
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            picker.dismiss(animated: true)
             Task { @MainActor in
                 onSelection(results.first?.itemProvider)
             }

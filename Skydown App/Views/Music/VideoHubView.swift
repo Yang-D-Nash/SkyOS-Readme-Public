@@ -1653,8 +1653,9 @@ struct VideoPublicConfigEditorCard: View {
         _ provider: NSItemProvider?,
         for target: VideoPublicConfigImageTarget
     ) {
+        pendingUploadTarget = nil
+
         guard let provider else {
-            pendingUploadTarget = nil
             return
         }
 
@@ -1672,14 +1673,12 @@ struct VideoPublicConfigEditorCard: View {
                     viewModel.toastMessage = "Bild hochgeladen und uebernommen."
                     viewModel.toastStyle = .success
                     viewModel.showToast = true
-                    pendingUploadTarget = nil
                 }
             } catch {
                 await MainActor.run {
                     viewModel.toastMessage = "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)"
                     viewModel.toastStyle = .error
                     viewModel.showToast = true
-                    pendingUploadTarget = nil
                 }
             }
         }
