@@ -205,7 +205,9 @@ fun SettingsScreen(
         mutableStateOf(false)
     }
     var activeAdminWorkspaceKey by rememberSaveable { mutableStateOf(AdminWorkspaceSection.Users.name) }
-    val activeAdminWorkspace = AdminWorkspaceSection.valueOf(activeAdminWorkspaceKey)
+    val activeAdminWorkspace = remember(activeAdminWorkspaceKey) {
+        AdminWorkspaceSection.fromSavedKey(activeAdminWorkspaceKey)
+    }
     var showAdminWorkspaceSheet by rememberSaveable { mutableStateOf(false) }
     var pendingHeaderImageTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
     val visiblePaymentMethodCount = listOf(
@@ -2413,6 +2415,17 @@ private enum class AdminWorkspaceSection(
         subtitle = "Owner-seitig n8n anbinden, User-Kontext steuern und den Webhook testen.",
         icon = Icons.Default.Bolt,
     ),
+
+    ;
+
+    companion object {
+        fun fromSavedKey(key: String): AdminWorkspaceSection {
+            return when (key) {
+                "Overview" -> Users
+                else -> entries.firstOrNull { it.name == key } ?: Users
+            }
+        }
+    }
 }
 
 private fun adminWorkspaceStatusText(
