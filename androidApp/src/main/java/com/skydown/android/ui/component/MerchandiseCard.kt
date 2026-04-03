@@ -134,14 +134,6 @@ fun MerchandiseCard(
                             accentContainer = accentContainer,
                         )
                     }
-                    if (item.source == "shopify" || !item.shopifyProductId.isNullOrBlank()) {
-                        MerchStatePill(
-                            text = "Shopify",
-                            isAccent = false,
-                            accentColor = accentColor,
-                            accentContainer = accentContainer,
-                        )
-                    }
                 }
 
                 Column(

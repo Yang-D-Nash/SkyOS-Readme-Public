@@ -131,6 +131,21 @@ const SHOPIFY_STOREFRONT_COLLECTION_PRODUCTS_QUERY = `
     }
   }
 `;
+const DEFAULT_COMMERCE_SETTINGS = Object.freeze({
+  shipping: {
+    domesticCost: 4.90,
+    euCost: 6.90,
+    internationalCost: 11.90,
+    freeShippingThreshold: 89.0,
+  },
+  invoice: {
+    taxRate: 19.0,
+  },
+});
+const EU_COUNTRY_CODES = new Set([
+  "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
+  "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",
+]);
 
 const agentTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -755,6 +770,34 @@ async function loadPaymentMethodSettings() {
   };
 }
 
+async function loadCommerceSettings() {
+  const snapshot = await admin.firestore()
+      .collection("appConfig")
+      .doc("commerceSettings")
+      .get();
+  const data = snapshot.data() || {};
+  const shipping = data.shipping || {};
+  const invoice = data.invoice || {};
+
+  return {
+    shipping: {
+      domesticCost: Math.max(0, parsePrice(shipping.domesticCost || DEFAULT_COMMERCE_SETTINGS.shipping.domesticCost)),
+      euCost: Math.max(0, parsePrice(shipping.euCost || DEFAULT_COMMERCE_SETTINGS.shipping.euCost)),
+      internationalCost: Math.max(
+          0,
+          parsePrice(shipping.internationalCost || DEFAULT_COMMERCE_SETTINGS.shipping.internationalCost),
+      ),
+      freeShippingThreshold: Math.max(
+          0,
+          parsePrice(shipping.freeShippingThreshold || DEFAULT_COMMERCE_SETTINGS.shipping.freeShippingThreshold),
+      ),
+    },
+    invoice: {
+      taxRate: Math.max(0, parsePrice(invoice.taxRate || DEFAULT_COMMERCE_SETTINGS.invoice.taxRate)),
+    },
+  };
+}
+
 function isHostedPaymentMethodEnabled(paymentSettings, paymentMethod) {
   const normalizedMethod = normalizeHostedCheckoutMethod(paymentMethod);
   if (normalizedMethod === "Stripe") {
@@ -780,6 +823,45 @@ function loadStripeWebhookSecret() {
   } catch (error) {
     return nonEmptyString(process.env.STRIPE_WEBHOOK_SECRET) || "";
   }
+}
+
+function resolveShippingZoneFromCountryCode(countryCode) {
+  const normalizedCountryCode = nonEmptyString(countryCode)?.toUpperCase();
+  if (!normalizedCountryCode) {
+    throw new HttpsError("invalid-argument", "Lieferland fehlt.");
+  }
+
+  if (normalizedCountryCode === "DE") {
+    return "DE";
+  }
+
+  if (EU_COUNTRY_CODES.has(normalizedCountryCode)) {
+    return "EU";
+  }
+
+  return "INTL";
+}
+
+function calculateCanonicalShipping({
+  settings,
+  countryCode,
+  subtotalAmount,
+}) {
+  const shippingZone = resolveShippingZoneFromCountryCode(countryCode);
+  const shippingSettings = settings?.shipping || DEFAULT_COMMERCE_SETTINGS.shipping;
+  const normalizedSubtotal = roundCurrency(subtotalAmount);
+  const baseRate = shippingZone === "DE" ?
+    shippingSettings.domesticCost :
+    shippingZone === "EU" ?
+      shippingSettings.euCost :
+      shippingSettings.internationalCost;
+  const freeShippingApplied = shippingSettings.freeShippingThreshold > 0 &&
+    normalizedSubtotal >= shippingSettings.freeShippingThreshold;
+
+  return {
+    shippingZone,
+    shippingAmount: freeShippingApplied ? 0 : roundCurrency(baseRate),
+  };
 }
 
 function resolveProjectId() {
@@ -926,6 +1008,10 @@ function parsePrice(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function roundCurrency(value) {
+  return Math.round(parsePrice(value) * 100) / 100;
+}
+
 function stripHtml(value) {
   return typeof value === "string"
     ? value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
@@ -934,6 +1020,10 @@ function stripHtml(value) {
 
 function nonEmptyString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeComparableString(value) {
+  return nonEmptyString(value)?.toLowerCase() || "";
 }
 
 function uniqueStrings(values) {
@@ -1479,6 +1569,135 @@ function normalizeOrderItems(items) {
   });
 }
 
+function resolveMatchingVariant(variants, item, itemLabel) {
+  const normalizedVariantId = nonEmptyString(item.shopifyVariantId);
+  const normalizedSize = normalizeComparableString(item.size);
+  const normalizedColor = normalizeComparableString(item.color);
+
+  if (!Array.isArray(variants) || variants.length === 0) {
+    return null;
+  }
+
+  if (normalizedVariantId) {
+    const exactMatch = variants.find((variant) => {
+      return nonEmptyString(variant.shopifyVariantId) === normalizedVariantId ||
+        nonEmptyString(variant.id) === normalizedVariantId;
+    });
+
+    if (!exactMatch) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} ist nicht mehr in der gewaehlten Variante verfuegbar. Bitte aktualisiere den Warenkorb.`,
+      );
+    }
+
+    if (exactMatch.availableForSale === false) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} ist aktuell nicht verfuegbar. Bitte aktualisiere den Warenkorb.`,
+      );
+    }
+
+    return exactMatch;
+  }
+
+  if (normalizedSize || normalizedColor) {
+    const optionMatch = variants.find((variant) => {
+      const sameSize = !normalizedSize || normalizeComparableString(variant.size) === normalizedSize;
+      const sameColor = !normalizedColor || normalizeComparableString(variant.color) === normalizedColor;
+      return sameSize && sameColor;
+    });
+
+    if (!optionMatch) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} ist in dieser Auswahl nicht mehr verfuegbar. Bitte aktualisiere den Warenkorb.`,
+      );
+    }
+
+    if (optionMatch.availableForSale === false) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} ist aktuell nicht verfuegbar. Bitte aktualisiere den Warenkorb.`,
+      );
+    }
+
+    return optionMatch;
+  }
+
+  return variants.find((variant) => variant.availableForSale !== false) || variants[0] || null;
+}
+
+async function resolveCanonicalOrderItems(items) {
+  const firestore = admin.firestore();
+
+  return Promise.all(items.map(async (item, index) => {
+    const productId = nonEmptyString(item.productId);
+    const itemLabel = nonEmptyString(item.name) || `Artikel ${index + 1}`;
+
+    if (!productId) {
+      throw new HttpsError("invalid-argument", `${itemLabel} hat keine gueltige Produkt-ID.`);
+    }
+
+    const productSnapshot = await firestore.collection("merchandise").doc(productId).get();
+    if (!productSnapshot.exists) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} wurde im aktuellen Katalog nicht gefunden. Bitte aktualisiere den Warenkorb.`,
+      );
+    }
+
+    const productData = productSnapshot.data() || {};
+    if (productData.isVisibleInApp === false) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} ist aktuell nicht sichtbar. Bitte aktualisiere den Warenkorb.`,
+      );
+    }
+
+    if (productData.available === false || productData.availableForSale === false || productData.shopifySyncActive === false) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} ist aktuell nicht verfuegbar. Bitte aktualisiere den Warenkorb.`,
+      );
+    }
+
+    const variants = Array.isArray(productData.variants) ? productData.variants : [];
+    const matchedVariant = resolveMatchingVariant(variants, item, itemLabel);
+    const canonicalUnitPrice = matchedVariant ?
+      roundCurrency(matchedVariant.price) :
+      roundCurrency(productData.price);
+    const canonicalCurrency = nonEmptyString(matchedVariant?.currency) ||
+      nonEmptyString(productData.currency) ||
+      "EUR";
+    const canonicalSku = nonEmptyString(matchedVariant?.sku) ||
+      nonEmptyString(productData.sku) ||
+      "";
+    const canonicalVariantId = nonEmptyString(matchedVariant?.shopifyVariantId) || "";
+    const canonicalSize = nonEmptyString(matchedVariant?.size) || nonEmptyString(item.size) || "";
+    const canonicalColor = nonEmptyString(matchedVariant?.color) || nonEmptyString(item.color) || "";
+
+    if (!Number.isFinite(canonicalUnitPrice) || canonicalUnitPrice < 0) {
+      throw new HttpsError(
+          "failed-precondition",
+          `${itemLabel} hat keinen gueltigen Preis im Katalog.`,
+      );
+    }
+
+    return {
+      productId,
+      name: nonEmptyString(productData.name) || itemLabel,
+      quantity: item.quantity,
+      size: canonicalSize,
+      color: canonicalColor,
+      shopifyVariantId: canonicalVariantId,
+      sku: canonicalSku,
+      unitPrice: canonicalUnitPrice,
+      currency: canonicalCurrency,
+    };
+  }));
+}
+
 function normalizeFulfillmentProvider(value) {
   const provider = nonEmptyString(value)?.toLowerCase();
   if (provider === "podpartner" || provider === "manual") {
@@ -1504,7 +1723,7 @@ function buildInitialOrderState(fulfillmentProvider) {
   };
 }
 
-function normalizeOrderSubmissionPayload(data, auth) {
+async function normalizeOrderSubmissionPayload(data, auth) {
   const authUid = nonEmptyString(auth?.uid);
   const authEmail = normalizeEmail(auth?.token?.email);
   if (!authUid || !authEmail) {
@@ -1524,14 +1743,15 @@ function normalizeOrderSubmissionPayload(data, auth) {
   const paymentMethod = nonEmptyString(data?.paymentMethod) || "";
   const whatsApp = nonEmptyString(data?.whatsApp) || "";
   const message = nonEmptyString(data?.message) || "";
-  const items = normalizeOrderItems(data?.items);
+  const submittedItems = normalizeOrderItems(data?.items);
+  const items = await resolveCanonicalOrderItems(submittedItems);
   const shippingAddressData = ensureShippingAddress(data);
   const fulfillmentProvider = normalizeFulfillmentProvider(data?.fulfillmentProvider);
-  const subtotalAmount = parsePrice(data?.subtotalAmount);
-  const shippingAmount = parsePrice(data?.shippingAmount);
-  const taxRate = parsePrice(data?.taxRate);
-  const taxAmount = parsePrice(data?.taxAmount);
-  const totalAmount = parsePrice(data?.totalAmount);
+  const submittedSubtotalAmount = roundCurrency(data?.subtotalAmount);
+  const submittedShippingAmount = roundCurrency(data?.shippingAmount);
+  const submittedTaxRate = roundCurrency(data?.taxRate);
+  const submittedTaxAmount = roundCurrency(data?.taxAmount);
+  const submittedTotalAmount = roundCurrency(data?.totalAmount);
 
   if (!customerName || !customerEmail || !shippingAddress || !shippingZone || !shippingCountryCode) {
     throw new HttpsError("invalid-argument", "Bestellung ist unvollstaendig.");
@@ -1541,13 +1761,44 @@ function normalizeOrderSubmissionPayload(data, auth) {
     throw new HttpsError("invalid-argument", "Lieferland und Lieferadresse passen nicht zusammen.");
   }
 
+  const commerceSettings = await loadCommerceSettings();
+  const subtotalAmount = roundCurrency(
+      items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0),
+  );
+  const canonicalShipping = calculateCanonicalShipping({
+    settings: commerceSettings,
+    countryCode: shippingCountryCode,
+    subtotalAmount,
+  });
+  const shippingAmount = canonicalShipping.shippingAmount;
+  const taxRate = roundCurrency(commerceSettings.invoice.taxRate);
+  const totalAmount = roundCurrency(subtotalAmount + shippingAmount);
+  const taxAmount = taxRate > 0 ?
+    roundCurrency(totalAmount * (taxRate / (100 + taxRate))) :
+    0;
+  const currency = items[0]?.currency || "EUR";
+  const hasMixedCurrencies = items.some((item) => (item.currency || currency) !== currency);
+
+  if (hasMixedCurrencies) {
+    throw new HttpsError("failed-precondition", "Der Warenkorb enthaelt gemischte Waehrungen und kann nicht verarbeitet werden.");
+  }
+
   if (subtotalAmount < 0 || shippingAmount < 0 || taxRate < 0 || taxAmount < 0 || totalAmount <= 0) {
     throw new HttpsError("invalid-argument", "Summen der Bestellung sind ungueltig.");
   }
 
-  const expectedTotal = subtotalAmount + shippingAmount;
-  if (Math.abs(totalAmount - expectedTotal) > 0.01) {
-    throw new HttpsError("invalid-argument", "Gesamtsumme stimmt nicht mit Warenkorb und Versand ueberein.");
+  const hasTotalsMismatch = Math.abs(submittedSubtotalAmount - subtotalAmount) > 0.01 ||
+    Math.abs(submittedShippingAmount - shippingAmount) > 0.01 ||
+    Math.abs(submittedTaxRate - taxRate) > 0.01 ||
+    Math.abs(submittedTaxAmount - taxAmount) > 0.01 ||
+    Math.abs(submittedTotalAmount - totalAmount) > 0.01;
+  const hasZoneMismatch = shippingZone !== canonicalShipping.shippingZone;
+
+  if (hasTotalsMismatch || hasZoneMismatch) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Warenkorb oder Versanddaten haben sich geaendert. Bitte aktualisiere den Checkout und pruefe die Summe erneut.",
+    );
   }
 
   return {
@@ -1558,7 +1809,7 @@ function normalizeOrderSubmissionPayload(data, auth) {
     whatsApp,
     shippingAddress,
     shippingAddressData,
-    shippingZone,
+    shippingZone: canonicalShipping.shippingZone,
     shippingCountryCode,
     paymentMethod,
     message,
@@ -1569,6 +1820,7 @@ function normalizeOrderSubmissionPayload(data, auth) {
     taxRate,
     taxAmount,
     totalAmount,
+    currency,
     fulfillmentProvider,
     ...buildInitialOrderState(fulfillmentProvider),
     isCompleted: false,
@@ -1878,7 +2130,7 @@ exports.submitMerchOrder = onCall({
     throw new HttpsError("failed-precondition", "Bestellungen sind derzeit pausiert.");
   }
 
-  const orderData = normalizeOrderSubmissionPayload(request.data, request.auth);
+  const orderData = await normalizeOrderSubmissionPayload(request.data, request.auth);
   const orderRef = await admin.firestore().collection("orders").add(orderData);
 
   logger.info("Merch order created.", {
@@ -1927,7 +2179,7 @@ exports.startMerchCheckout = onCall({
   }
 
   const platform = normalizeCheckoutPlatform(request.data?.platform);
-  const orderData = normalizeOrderSubmissionPayload({
+  const orderData = await normalizeOrderSubmissionPayload({
     ...request.data,
     paymentMethod,
   }, request.auth);
