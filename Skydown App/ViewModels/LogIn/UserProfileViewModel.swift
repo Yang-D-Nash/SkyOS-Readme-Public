@@ -143,6 +143,35 @@ final class UserProfileViewModel: ObservableObject {
         }
     }
 
+    func deleteAvatar() async {
+        guard let userId = currentUser?.id, canEditCurrentProfile else { return }
+        isUploadingAvatar = true
+        defer { isUploadingAvatar = false }
+
+        do {
+            try await service.deleteAvatar(userId: userId)
+            await authManager.refreshCurrentUser()
+            currentUser = authManager.userSession
+            showSuccess("Profilbild entfernt.")
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    func deleteGalleryItem(_ item: ProfileGalleryItem) async {
+        guard let userId = currentUser?.id, canEditCurrentProfile else { return }
+        isUploadingMedia = true
+        defer { isUploadingMedia = false }
+
+        do {
+            try await service.deleteGalleryItem(userId: userId, item: item)
+            galleryItems.removeAll { $0.id == item.id }
+            showSuccess("Bild entfernt.")
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
     func reportUploadError(_ error: Error) {
         showError(error.localizedDescription)
     }

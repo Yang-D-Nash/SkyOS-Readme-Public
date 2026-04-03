@@ -173,21 +173,37 @@ fun VideoHubScreen(
             viewModel.setSelectedFiles(context, uris)
         }
     }
+    val currentConfigImageUrl: (VideoConfigImageTarget) -> String = { target ->
+        when (target) {
+            is VideoConfigImageTarget.Equipment ->
+                uiState.publicConfig.equipmentItems.firstOrNull { it.id == target.itemId }?.imageUrl.orEmpty()
+            is VideoConfigImageTarget.Collaboration ->
+                uiState.publicConfig.collaborationItems.firstOrNull { it.id == target.itemId }?.imageUrl.orEmpty()
+        }
+    }
     val configImagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         val target = pendingConfigImageTarget ?: return@rememberLauncherForActivityResult
         if (uri != null) {
             coroutineScope.launch {
+                val previousImageUrl = currentConfigImageUrl(target)
                 val result = editableImageAssetRepository.uploadImageAsset(
                     uri = uri,
                     contentResolver = context.contentResolver,
                 )
                 if (result.isSuccess) {
-                    val uploadedUrl = result.getOrNull().orEmpty()
-                    when (target) {
-                        is VideoConfigImageTarget.Equipment -> viewModel.updateEquipmentItem(target.itemId, imageUrl = uploadedUrl)
-                        is VideoConfigImageTarget.Collaboration -> viewModel.updateCollaborationItem(target.itemId, imageUrl = uploadedUrl)
+                    val uploadedImage = result.getOrNull()
+                    if (uploadedImage != null) {
+                        when (target) {
+                            is VideoConfigImageTarget.Equipment ->
+                                viewModel.updateEquipmentItem(target.itemId, imageUrl = uploadedImage.downloadUrl)
+                            is VideoConfigImageTarget.Collaboration ->
+                                viewModel.updateCollaborationItem(target.itemId, imageUrl = uploadedImage.downloadUrl)
+                        }
+                        if (previousImageUrl.isNotBlank() && previousImageUrl != uploadedImage.downloadUrl) {
+                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                        }
                     }
                     localFeedbackMessage = "Bild hochgeladen und uebernommen."
                     localFeedbackIsError = false
@@ -423,6 +439,18 @@ fun VideoHubScreen(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                                 )
                             },
+                            onRemoveEquipmentImage = { itemId ->
+                                val previousImageUrl = uiState.publicConfig.equipmentItems
+                                    .firstOrNull { it.id == itemId }
+                                    ?.imageUrl
+                                    .orEmpty()
+                                viewModel.updateEquipmentItem(itemId, imageUrl = "")
+                                coroutineScope.launch {
+                                    editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                    localFeedbackMessage = "Bild entfernt."
+                                    localFeedbackIsError = false
+                                }
+                            },
                             onRemoveEquipment = viewModel::removeEquipmentItem,
                             onAddCollaboration = viewModel::addCollaborationItem,
                             onUpdateCollaborationName = { itemId, value ->
@@ -445,6 +473,18 @@ fun VideoHubScreen(
                                 configImagePickerLauncher.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                                 )
+                            },
+                            onRemoveCollaborationImage = { itemId ->
+                                val previousImageUrl = uiState.publicConfig.collaborationItems
+                                    .firstOrNull { it.id == itemId }
+                                    ?.imageUrl
+                                    .orEmpty()
+                                viewModel.updateCollaborationItem(itemId, imageUrl = "")
+                                coroutineScope.launch {
+                                    editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                    localFeedbackMessage = "Bild entfernt."
+                                    localFeedbackIsError = false
+                                }
                             },
                             onUpdateCollaborationSpotifyArtistId = { itemId, value ->
                                 viewModel.updateCollaborationItem(itemId, spotifyArtistId = value)
@@ -763,6 +803,7 @@ private fun VideoPublicConfigEditorCard(
     onUpdateEquipmentDetail: (String, String) -> Unit,
     onUpdateEquipmentImageUrl: (String, String) -> Unit,
     onPickEquipmentImage: (String) -> Unit,
+    onRemoveEquipmentImage: (String) -> Unit,
     onRemoveEquipment: (String) -> Unit,
     onAddCollaboration: () -> Unit,
     onUpdateCollaborationName: (String, String) -> Unit,
@@ -771,6 +812,7 @@ private fun VideoPublicConfigEditorCard(
     onUpdateCollaborationVibe: (String, String) -> Unit,
     onUpdateCollaborationImageUrl: (String, String) -> Unit,
     onPickCollaborationImage: (String) -> Unit,
+    onRemoveCollaborationImage: (String) -> Unit,
     onUpdateCollaborationSpotifyArtistId: (String, String) -> Unit,
     onUpdateCollaborationInstagramUrl: (String, String) -> Unit,
     onUpdateCollaborationYouTubeUrl: (String, String) -> Unit,
@@ -823,6 +865,7 @@ private fun VideoPublicConfigEditorCard(
                         imageUrl = item.imageUrl.orEmpty(),
                         onPickImage = { onPickEquipmentImage(item.id) },
                         onImageUrlChange = { onUpdateEquipmentImageUrl(item.id, it) },
+                        onRemoveImage = { onRemoveEquipmentImage(item.id) },
                     )
                     OutlinedButton(
                         onClick = { onRemoveEquipment(item.id) },
@@ -892,6 +935,7 @@ private fun VideoPublicConfigEditorCard(
                         imageUrl = item.imageUrl.orEmpty(),
                         onPickImage = { onPickCollaborationImage(item.id) },
                         onImageUrlChange = { onUpdateCollaborationImageUrl(item.id, it) },
+                        onRemoveImage = { onRemoveCollaborationImage(item.id) },
                     )
                     OutlinedTextField(
                         value = item.spotifyArtistId.orEmpty(),

@@ -11,15 +11,18 @@ const {
 } = require("@firebase/rules-unit-testing");
 const {
   doc,
+  deleteDoc,
   getDoc,
   setDoc,
   updateDoc,
   Timestamp,
 } = require("firebase/firestore");
 const {
+  deleteObject,
   ref,
   uploadBytes,
 } = require("firebase/storage");
+const {buildUploadStoragePath} = require("../src/security/upload-slots");
 
 const PROJECT_ID = "demo-skydown";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -107,7 +110,7 @@ async function seedUploadSlot({
       ownerUid: uid,
       kind,
       fileName,
-      storagePath: `users/${uid}/${kind}/${fileName}`,
+      storagePath: buildUploadStoragePath(uid, kind, fileName),
       contentType,
       maxBytes,
       status: "approved",
@@ -362,6 +365,63 @@ test("fremder Storage-Pfad wird abgelehnt", async () => {
   ));
 });
 
+test("user darf eigenes Gallery-Bild im Storage wieder loeschen", async () => {
+  await seedUser("alice");
+  await seedUploadSlot({
+    slotId: "slot_gallery_delete_001",
+    uid: "alice",
+    kind: "gallery",
+    fileName: "slot_gallery_delete_001_valid.jpg",
+  });
+
+  const storage = testEnv.authenticatedContext("alice", {role: "user"}).storage();
+  const fileRef = ref(storage, "users/alice/gallery/slot_gallery_delete_001_valid.jpg");
+
+  await assertSucceeds(uploadBytes(
+    fileRef,
+    Uint8Array.from([1, 2, 3]),
+    {
+      contentType: "image/jpeg",
+      customMetadata: {
+        uploadSlotId: "slot_gallery_delete_001",
+        ownerUid: "alice",
+      },
+    },
+  ));
+
+  await assertSucceeds(deleteObject(fileRef));
+});
+
+test("fremde Gallery-Bilder duerfen im Storage nicht geloescht werden", async () => {
+  await seedUser("alice");
+  await seedUser("bob");
+  await seedUploadSlot({
+    slotId: "slot_gallery_delete_002",
+    uid: "alice",
+    kind: "gallery",
+    fileName: "slot_gallery_delete_002_valid.jpg",
+  });
+
+  const aliceStorage = testEnv.authenticatedContext("alice", {role: "user"}).storage();
+  const aliceFileRef = ref(aliceStorage, "users/alice/gallery/slot_gallery_delete_002_valid.jpg");
+
+  await assertSucceeds(uploadBytes(
+    aliceFileRef,
+    Uint8Array.from([1, 2, 3]),
+    {
+      contentType: "image/jpeg",
+      customMetadata: {
+        uploadSlotId: "slot_gallery_delete_002",
+        ownerUid: "alice",
+      },
+    },
+  ));
+
+  const bobStorage = testEnv.authenticatedContext("bob", {role: "user"}).storage();
+  const bobFileRef = ref(bobStorage, "users/alice/gallery/slot_gallery_delete_002_valid.jpg");
+  await assertFails(deleteObject(bobFileRef));
+});
+
 test("user darf eigene Asset-Bilder fuer editierbare Bereiche hochladen", async () => {
   await seedUser("alice");
   await seedUploadSlot({
@@ -413,6 +473,38 @@ test("owner email darf eigene Asset-Bilder auch ohne owner claim hochladen", asy
       customMetadata: {
         uploadSlotId: "slot_asset_owner_email_001",
         ownerUid: "nash-owner",
+      },
+    },
+  ));
+});
+
+test("asset upload slots verwenden den pluralen assets-Pfad", () => {
+  assert.equal(
+    buildUploadStoragePath("alice", "asset", "slot_asset_path.jpg"),
+    "users/alice/assets/slot_asset_path.jpg",
+  );
+});
+
+test("singularer asset-Pfad wird im Storage abgelehnt", async () => {
+  await seedUser("alice");
+  await seedUploadSlot({
+    slotId: "slot_asset_wrong_path_001",
+    uid: "alice",
+    kind: "asset",
+    fileName: "slot_asset_wrong_path_001.jpg",
+  });
+
+  const storage = testEnv.authenticatedContext("alice", {role: "user"}).storage();
+  const fileRef = ref(storage, "users/alice/asset/slot_asset_wrong_path_001.jpg");
+
+  await assertFails(uploadBytes(
+    fileRef,
+    Uint8Array.from([1, 2, 3]),
+    {
+      contentType: "image/jpeg",
+      customMetadata: {
+        uploadSlotId: "slot_asset_wrong_path_001",
+        ownerUid: "alice",
       },
     },
   ));
@@ -561,6 +653,30 @@ test("galleryMeta darf nur vom Eigentuemer angelegt werden", async () => {
 
   const bobDb = testEnv.authenticatedContext("bob", {role: "user"}).firestore();
   await assertFails(getDoc(doc(bobDb, "galleryMeta", "alice", "items", "img_1")));
+});
+
+test("user darf eigenes galleryMeta Bild wieder loeschen", async () => {
+  await seedUser("alice");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+  const createdAt = Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z"));
+
+  await assertSucceeds(setDoc(
+    doc(aliceDb, "galleryMeta", "alice", "items", "img_delete_1"),
+    {
+      ownerUid: "alice",
+      type: "image",
+      title: "Bild 1",
+      caption: null,
+      mediaURL: "https://example.com/image.jpg",
+      thumbnailURL: "https://example.com/image.jpg",
+      storagePath: "users/alice/gallery/img_delete_1.jpg",
+      contentType: "image/jpeg",
+      createdAt,
+      updatedAt: createdAt,
+    },
+  ));
+
+  await assertSucceeds(deleteDoc(doc(aliceDb, "galleryMeta", "alice", "items", "img_delete_1")));
 });
 
 test("artistPages sind oeffentlich lesbar, aber nur Owner oder Editoren duerfen Inhalte aendern", async () => {

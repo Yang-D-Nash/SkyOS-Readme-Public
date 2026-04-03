@@ -28,6 +28,8 @@ protocol UserProfileServicing {
         title: String,
         caption: String?
     ) async throws
+    func deleteAvatar(userId: String) async throws
+    func deleteGalleryItem(userId: String, item: ProfileGalleryItem) async throws
 }
 
 final class FirebaseUserProfileService: UserProfileServicing {
@@ -92,6 +94,7 @@ final class FirebaseUserProfileService: UserProfileServicing {
                         caption: data["caption"] as? String,
                         mediaURL: mediaURL,
                         thumbnailURL: data["thumbnailURL"] as? String,
+                        storagePath: data["storagePath"] as? String,
                         createdAt: createdAt
                     )
                 } ?? []
@@ -119,6 +122,7 @@ final class FirebaseUserProfileService: UserProfileServicing {
         let downloadURL = try await avatarReference.awaitStableDownloadURL()
         let now = Timestamp(date: .now)
         let userSnapshot = try await firestore.collection("users").document(userId).getDocument()
+        let previousAvatarPath = userSnapshot.data()?["profileImagePath"] as? String
         let username = (userSnapshot.data()?["username"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             .nilIfBlank
             ?? "Skydown User"
@@ -143,6 +147,11 @@ final class FirebaseUserProfileService: UserProfileServicing {
             ],
             merge: true
         )
+
+        if let previousAvatarPath,
+           previousAvatarPath != slot.storagePath {
+            try? await deleteStorageObjectIfOwned(path: previousAvatarPath, userId: userId, expectedFolder: "profile")
+        }
 
         return downloadURL.absoluteString
     }
@@ -235,6 +244,47 @@ final class FirebaseUserProfileService: UserProfileServicing {
             storagePath: slot.storagePath,
             contentType: metadata.contentType ?? "image/jpeg"
         )
+    }
+
+    func deleteAvatar(userId: String) async throws {
+        try await ensureProfileDocumentsExist(for: userId)
+
+        let userReference = firestore.collection("users").document(userId)
+        let profileReference = firestore.collection("userProfiles").document(userId)
+        let userSnapshot = try await userReference.getDocument()
+        let profileSnapshot = try await profileReference.getDocument()
+        let avatarPath = (userSnapshot.data()?["profileImagePath"] as? String)
+            ?? (profileSnapshot.data()?["profileImagePath"] as? String)
+
+        if let avatarPath {
+            try? await deleteStorageObjectIfOwned(path: avatarPath, userId: userId, expectedFolder: "profile")
+        }
+
+        try await userReference.setData([
+            "profileImageURL": FieldValue.delete(),
+            "profileImagePath": FieldValue.delete()
+        ], merge: true)
+
+        try await profileReference.setData([
+            "profileImageURL": FieldValue.delete(),
+            "profileImagePath": FieldValue.delete(),
+            "updatedAt": Timestamp(date: .now)
+        ], merge: true)
+    }
+
+    func deleteGalleryItem(userId: String, item: ProfileGalleryItem) async throws {
+        try await ensureProfileDocumentsExist(for: userId)
+        guard let itemId = item.id, !itemId.isEmpty else { return }
+
+        if let storagePath = item.storagePath?.nilIfBlank {
+            try? await deleteStorageObjectIfOwned(path: storagePath, userId: userId, expectedFolder: "gallery")
+        }
+
+        try await firestore.collection("galleryMeta")
+            .document(userId)
+            .collection("items")
+            .document(itemId)
+            .delete()
     }
 
     private func persistGalleryEntry(
@@ -415,6 +465,35 @@ final class FirebaseUserProfileService: UserProfileServicing {
     private func fileSize(for fileURL: URL) -> Int {
         let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey])
         return values?.fileSize ?? 0
+    }
+
+    private func deleteStorageObjectIfOwned(
+        path: String,
+        userId: String,
+        expectedFolder: String
+    ) async throws {
+        let normalizedPath = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedPath.hasPrefix("users/\(userId)/\(expectedFolder)/") else {
+            return
+        }
+
+        let reference = storage.reference().child(normalizedPath)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            reference.delete { error in
+                if let nsError = error as NSError?,
+                   nsError.domain == StorageErrorDomain,
+                   StorageErrorCode(rawValue: nsError.code) == .objectNotFound {
+                    continuation.resume(returning: ())
+                    return
+                }
+
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
     }
 
     private func putData(

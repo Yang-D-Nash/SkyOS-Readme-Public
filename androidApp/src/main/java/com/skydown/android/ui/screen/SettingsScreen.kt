@@ -311,23 +311,41 @@ fun SettingsScreen(
         }
     }
 
+    val currentHeaderImageUrl: (SettingsHeaderImageTarget) -> String = { target ->
+        when (target) {
+            SettingsHeaderImageTarget.Home -> homeHeaderImageUrlDraft
+            SettingsHeaderImageTarget.MusicHub -> musicHubHeaderImageUrlDraft
+            SettingsHeaderImageTarget.Shop -> shopHeaderImageUrlDraft
+            SettingsHeaderImageTarget.VideoHub -> videoHeaderImageUrlDraft
+        }
+    }
+    val applyHeaderImageUrl: (SettingsHeaderImageTarget, String) -> Unit = { target, imageUrl ->
+        when (target) {
+            SettingsHeaderImageTarget.Home -> homeHeaderImageUrlDraft = imageUrl
+            SettingsHeaderImageTarget.MusicHub -> musicHubHeaderImageUrlDraft = imageUrl
+            SettingsHeaderImageTarget.Shop -> shopHeaderImageUrlDraft = imageUrl
+            SettingsHeaderImageTarget.VideoHub -> videoHeaderImageUrlDraft = imageUrl
+        }
+    }
+
     val headerImagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         val target = pendingHeaderImageTarget ?: return@rememberLauncherForActivityResult
         if (uri != null) {
             coroutineScope.launch {
+                val previousImageUrl = currentHeaderImageUrl(target)
                 val result = editableImageAssetRepository.uploadImageAsset(
                     uri = uri,
                     contentResolver = context.contentResolver,
                 )
                 if (result.isSuccess) {
-                    val uploadedUrl = result.getOrNull().orEmpty()
-                    when (target) {
-                        SettingsHeaderImageTarget.Home -> homeHeaderImageUrlDraft = uploadedUrl
-                        SettingsHeaderImageTarget.MusicHub -> musicHubHeaderImageUrlDraft = uploadedUrl
-                        SettingsHeaderImageTarget.Shop -> shopHeaderImageUrlDraft = uploadedUrl
-                        SettingsHeaderImageTarget.VideoHub -> videoHeaderImageUrlDraft = uploadedUrl
+                    val uploadedImage = result.getOrNull()
+                    if (uploadedImage != null) {
+                        applyHeaderImageUrl(target, uploadedImage.downloadUrl)
+                        if (previousImageUrl.isNotBlank() && previousImageUrl != uploadedImage.downloadUrl) {
+                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                        }
                     }
                     feedbackMessage = "Bild hochgeladen und uebernommen."
                     feedbackType = ToastType.Success
@@ -505,6 +523,15 @@ fun SettingsScreen(
                         )
                     },
                     onImageUrlChange = { homeHeaderImageUrlDraft = it },
+                    onRemoveImage = {
+                        val previousImageUrl = homeHeaderImageUrlDraft
+                        homeHeaderImageUrlDraft = ""
+                        coroutineScope.launch {
+                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                            feedbackMessage = "Bild entfernt."
+                            feedbackType = ToastType.Success
+                        }
+                    },
                     modifier = Modifier.padding(top = 16.dp),
                 )
 
@@ -561,6 +588,15 @@ fun SettingsScreen(
                         )
                     },
                     onImageUrlChange = { musicHubHeaderImageUrlDraft = it },
+                    onRemoveImage = {
+                        val previousImageUrl = musicHubHeaderImageUrlDraft
+                        musicHubHeaderImageUrlDraft = ""
+                        coroutineScope.launch {
+                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                            feedbackMessage = "Bild entfernt."
+                            feedbackType = ToastType.Success
+                        }
+                    },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 OutlinedTextField(
@@ -614,6 +650,15 @@ fun SettingsScreen(
                         )
                     },
                     onImageUrlChange = { shopHeaderImageUrlDraft = it },
+                    onRemoveImage = {
+                        val previousImageUrl = shopHeaderImageUrlDraft
+                        shopHeaderImageUrlDraft = ""
+                        coroutineScope.launch {
+                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                            feedbackMessage = "Bild entfernt."
+                            feedbackType = ToastType.Success
+                        }
+                    },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 OutlinedTextField(
@@ -667,6 +712,15 @@ fun SettingsScreen(
                         )
                     },
                     onImageUrlChange = { videoHeaderImageUrlDraft = it },
+                    onRemoveImage = {
+                        val previousImageUrl = videoHeaderImageUrlDraft
+                        videoHeaderImageUrlDraft = ""
+                        coroutineScope.launch {
+                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                            feedbackMessage = "Bild entfernt."
+                            feedbackType = ToastType.Success
+                        }
+                    },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 OutlinedTextField(

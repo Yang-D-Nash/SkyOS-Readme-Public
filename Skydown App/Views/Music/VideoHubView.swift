@@ -1485,10 +1485,10 @@ struct VideoPublicConfigEditorCard: View {
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateEquipmentItem(item.id, imageURLString: $0) }
                             ),
-                            colorScheme: colorScheme
-                        ) {
-                            pendingUploadTarget = .equipment(item.id)
-                        }
+                            colorScheme: colorScheme,
+                            onPickImage: { pendingUploadTarget = .equipment(item.id) },
+                            onRemoveImage: { removeEditableImage(for: .equipment(item.id)) }
+                        )
                         Button(role: .destructive) {
                             viewModel.removeEquipmentItem(item.id)
                         } label: {
@@ -1556,10 +1556,10 @@ struct VideoPublicConfigEditorCard: View {
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, imageURLString: $0) }
                             ),
-                            colorScheme: colorScheme
-                        ) {
-                            pendingUploadTarget = .collaboration(item.id)
-                        }
+                            colorScheme: colorScheme,
+                            onPickImage: { pendingUploadTarget = .collaboration(item.id) },
+                            onRemoveImage: { removeEditableImage(for: .collaboration(item.id)) }
+                        )
                         NicmaUploadField(
                             title: "Spotify Artist ID",
                             text: Binding(
@@ -1661,8 +1661,12 @@ struct VideoPublicConfigEditorCard: View {
 
         Task {
             do {
+                let previousURL = currentEditableImageURL(for: target)
                 let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
                 let url = try await editableImageUploadService.uploadImageData(data)
+                if previousURL != url {
+                    try? await editableImageUploadService.deleteImage(at: previousURL)
+                }
                 await MainActor.run {
                     switch target {
                     case .equipment(let itemId):
@@ -1677,6 +1681,42 @@ struct VideoPublicConfigEditorCard: View {
             } catch {
                 await MainActor.run {
                     viewModel.toastMessage = "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)"
+                    viewModel.toastStyle = .error
+                    viewModel.showToast = true
+                }
+            }
+        }
+    }
+
+    private func currentEditableImageURL(for target: VideoPublicConfigImageTarget) -> String {
+        switch target {
+        case .equipment(let itemId):
+            return viewModel.publicConfig.equipmentItems.first { $0.id == itemId }?.imageURLString ?? ""
+        case .collaboration(let itemId):
+            return viewModel.publicConfig.collaborationItems.first { $0.id == itemId }?.imageURLString ?? ""
+        }
+    }
+
+    private func removeEditableImage(for target: VideoPublicConfigImageTarget) {
+        let previousURL = currentEditableImageURL(for: target)
+        switch target {
+        case .equipment(let itemId):
+            viewModel.updateEquipmentItem(itemId, imageURLString: "")
+        case .collaboration(let itemId):
+            viewModel.updateCollaborationItem(itemId, imageURLString: "")
+        }
+
+        Task {
+            do {
+                try await editableImageUploadService.deleteImage(at: previousURL)
+                await MainActor.run {
+                    viewModel.toastMessage = "Bild entfernt."
+                    viewModel.toastStyle = .success
+                    viewModel.showToast = true
+                }
+            } catch {
+                await MainActor.run {
+                    viewModel.toastMessage = "Bild wurde entfernt. Alter Upload konnte nicht geloescht werden: \(error.localizedDescription)"
                     viewModel.toastStyle = .error
                     viewModel.showToast = true
                 }

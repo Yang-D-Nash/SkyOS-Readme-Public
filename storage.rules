@@ -93,6 +93,10 @@ service firebase.storage {
       return fileName.matches("^[A-Za-z0-9_-]{20,120}\\.(jpg|jpeg|png|webp)$");
     }
 
+    function uploadFolder(kind) {
+      return kind == "asset" ? "assets" : kind;
+    }
+
     function uploadSlotExists(slotId) {
       return firestore.exists(/databases/(default)/documents/uploadSlots/$(slotId));
     }
@@ -107,7 +111,7 @@ service firebase.storage {
         && uploadSlot(slotId).ownerUid == request.auth.uid
         && uploadSlot(slotId).kind == kind
         && uploadSlot(slotId).fileName == fileName
-        && uploadSlot(slotId).storagePath == "users/" + uid + "/" + kind + "/" + fileName
+        && uploadSlot(slotId).storagePath == "users/" + uid + "/" + uploadFolder(kind) + "/" + fileName
         && uploadSlot(slotId).contentType == request.resource.contentType
         && uploadSlot(slotId).maxBytes >= request.resource.size
         && uploadSlot(slotId).status == "approved"

@@ -8,6 +8,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
 import com.skydown.android.ui.model.ProfileGalleryItem
 import com.skydown.android.ui.model.ProfileMediaType
@@ -57,6 +58,7 @@ class UserProfileRepository(
                         caption = data["caption"] as? String,
                         mediaUrl = data["mediaURL"] as? String ?: return@mapNotNull null,
                         thumbnailUrl = data["thumbnailURL"] as? String,
+                        storagePath = data["storagePath"] as? String,
                         createdAtEpochMillis = (data["createdAt"] as? com.google.firebase.Timestamp)
                             ?.toDate()
                             ?.time
@@ -96,6 +98,7 @@ class UserProfileRepository(
         val downloadUrl = reference.awaitStableDownloadUrl()
         val now = com.google.firebase.Timestamp.now()
         val userSnapshot = firestore.collection("users").document(userId).get().await()
+        val previousAvatarPath = userSnapshot.data?.get("profileImagePath") as? String
         val username = (userSnapshot.data?.get("username") as? String)?.takeIf { it.isNotBlank() } ?: "Skydown User"
         val profileSnapshot = firestore.collection("userProfiles").document(userId).get().await()
         val createdAt = profileSnapshot.data?.get("createdAt") ?: now
@@ -123,6 +126,9 @@ class UserProfileRepository(
                 com.google.firebase.firestore.SetOptions.merge(),
             )
             .await()
+        if (!previousAvatarPath.isNullOrBlank() && previousAvatarPath != slot.storagePath) {
+            deleteStorageObjectIfOwned(previousAvatarPath, userId, "profile")
+        }
         downloadUrl
     }
 
@@ -175,6 +181,54 @@ class UserProfileRepository(
                     "updatedAt" to com.google.firebase.Timestamp.now(),
                 ),
             )
+            .await()
+    }
+
+    suspend fun deleteAvatar(
+        userId: String,
+    ): Result<Unit> = runCatching {
+        ensureProfileDocumentsExist(userId)
+        val userReference = firestore.collection("users").document(userId)
+        val profileReference = firestore.collection("userProfiles").document(userId)
+        val userSnapshot = userReference.get().await()
+        val profileSnapshot = profileReference.get().await()
+        val avatarPath = (userSnapshot.data?.get("profileImagePath") as? String)
+            ?: (profileSnapshot.data?.get("profileImagePath") as? String)
+
+        if (!avatarPath.isNullOrBlank()) {
+            deleteStorageObjectIfOwned(avatarPath, userId, "profile")
+        }
+
+        userReference.update(
+            mapOf(
+                "profileImageURL" to com.google.firebase.firestore.FieldValue.delete(),
+                "profileImagePath" to com.google.firebase.firestore.FieldValue.delete(),
+            ),
+        ).await()
+
+        profileReference.update(
+            mapOf(
+                "profileImageURL" to com.google.firebase.firestore.FieldValue.delete(),
+                "profileImagePath" to com.google.firebase.firestore.FieldValue.delete(),
+                "updatedAt" to com.google.firebase.Timestamp.now(),
+            ),
+        ).await()
+    }
+
+    suspend fun deleteGalleryItem(
+        userId: String,
+        item: ProfileGalleryItem,
+    ): Result<Unit> = runCatching {
+        ensureProfileDocumentsExist(userId)
+        if (!item.storagePath.isNullOrBlank()) {
+            deleteStorageObjectIfOwned(item.storagePath, userId, "gallery")
+        }
+
+        firestore.collection("galleryMeta")
+            .document(userId)
+            .collection("items")
+            .document(item.id)
+            .delete()
             .await()
     }
 
@@ -291,6 +345,26 @@ class UserProfileRepository(
             slotId = data["slotId"] as? String ?: error("Upload-Slot fehlt."),
             storagePath = data["storagePath"] as? String ?: error("Upload-Pfad fehlt."),
         )
+    }
+
+    private suspend fun deleteStorageObjectIfOwned(
+        path: String,
+        userId: String,
+        expectedFolder: String,
+    ) {
+        val normalizedPath = path.trim()
+        if (!normalizedPath.startsWith("users/$userId/$expectedFolder/")) {
+            return
+        }
+
+        try {
+            storage.reference.child(normalizedPath).delete().await()
+        } catch (error: Exception) {
+            if (error is StorageException && error.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                return
+            }
+            throw error
+        }
     }
 }
 

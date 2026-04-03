@@ -134,21 +134,37 @@ fun ArtistPageScreen(
             .maxOrNull()
     }
 
+    val currentEditableImageUrl: (ArtistPageImageTarget) -> String = { target ->
+        when (target) {
+            ArtistPageImageTarget.Profile -> profileImageDraft
+            ArtistPageImageTarget.Hero -> heroImageDraft
+        }
+    }
+    val applyEditableImageUrl: (ArtistPageImageTarget, String) -> Unit = { target, imageUrl ->
+        when (target) {
+            ArtistPageImageTarget.Profile -> profileImageDraft = imageUrl
+            ArtistPageImageTarget.Hero -> heroImageDraft = imageUrl
+        }
+    }
+
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         val target = pendingImageTarget ?: return@rememberLauncherForActivityResult
         if (uri != null) {
             coroutineScope.launch {
+                val previousImageUrl = currentEditableImageUrl(target)
                 val result = editableImageAssetRepository.uploadImageAsset(
                     uri = uri,
                     contentResolver = context.contentResolver,
                 )
                 if (result.isSuccess) {
-                    val uploadedUrl = result.getOrNull().orEmpty()
-                    when (target) {
-                        ArtistPageImageTarget.Profile -> profileImageDraft = uploadedUrl
-                        ArtistPageImageTarget.Hero -> heroImageDraft = uploadedUrl
+                    val uploadedImage = result.getOrNull()
+                    if (uploadedImage != null) {
+                        applyEditableImageUrl(target, uploadedImage.downloadUrl)
+                        if (previousImageUrl.isNotBlank() && previousImageUrl != uploadedImage.downloadUrl) {
+                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                        }
                     }
                     feedbackMessage = "Bild hochgeladen und uebernommen."
                     feedbackType = ToastType.Success
@@ -361,6 +377,15 @@ fun ArtistPageScreen(
                                     )
                                 },
                                 onImageUrlChange = { profileImageDraft = it },
+                                onRemoveImage = {
+                                    val previousImageUrl = profileImageDraft
+                                    profileImageDraft = ""
+                                    coroutineScope.launch {
+                                        editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                        feedbackMessage = "Bild entfernt."
+                                        feedbackType = ToastType.Success
+                                    }
+                                },
                             )
                             EditableImageFieldCard(
                                 title = "Hero-Bild",
@@ -372,6 +397,15 @@ fun ArtistPageScreen(
                                     )
                                 },
                                 onImageUrlChange = { heroImageDraft = it },
+                                onRemoveImage = {
+                                    val previousImageUrl = heroImageDraft
+                                    heroImageDraft = ""
+                                    coroutineScope.launch {
+                                        editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                        feedbackMessage = "Bild entfernt."
+                                        feedbackType = ToastType.Success
+                                    }
+                                },
                             )
                             ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
                             ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })

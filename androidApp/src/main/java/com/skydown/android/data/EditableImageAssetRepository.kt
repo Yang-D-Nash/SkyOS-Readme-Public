@@ -6,7 +6,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
+import com.google.firebase.storage.StorageException
 import kotlinx.coroutines.tasks.await
+
+data class EditableImageAssetUploadResult(
+    val downloadUrl: String,
+    val storagePath: String,
+)
 
 class EditableImageAssetRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
@@ -16,7 +22,7 @@ class EditableImageAssetRepository(
     suspend fun uploadImageAsset(
         uri: Uri,
         contentResolver: ContentResolver,
-    ): Result<String> = runCatching {
+    ): Result<EditableImageAssetUploadResult> = runCatching {
         val userId = auth.currentUser?.uid ?: error("Bitte zuerst anmelden.")
         val preparedUpload = ImageUploadPreparation.prepare(contentResolver, uri)
         val slot = requestUploadSlot(
@@ -37,7 +43,34 @@ class EditableImageAssetRepository(
                 .build(),
         ).await()
 
-        reference.awaitStableDownloadUrl()
+        EditableImageAssetUploadResult(
+            downloadUrl = reference.awaitStableDownloadUrl(),
+            storagePath = slot.storagePath,
+        )
+    }
+
+    suspend fun deleteImageAsset(
+        imageUrl: String,
+    ): Result<Unit> = runCatching {
+        val userId = auth.currentUser?.uid ?: return@runCatching
+        val trimmedUrl = imageUrl.trim()
+        if (trimmedUrl.isEmpty()) {
+            return@runCatching
+        }
+
+        val reference = runCatching { storage.getReferenceFromUrl(trimmedUrl) }.getOrNull() ?: return@runCatching
+        if (!reference.path.startsWith("/users/$userId/assets/")) {
+            return@runCatching
+        }
+
+        try {
+            reference.delete().await()
+        } catch (error: Exception) {
+            if (error is StorageException && error.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                return@runCatching
+            }
+            throw error
+        }
     }
 
     private suspend fun requestUploadSlot(

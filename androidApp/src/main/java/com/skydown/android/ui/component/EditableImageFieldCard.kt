@@ -30,6 +30,7 @@ fun EditableImageFieldCard(
     imageUrl: String,
     onPickImage: () -> Unit,
     onImageUrlChange: (String) -> Unit,
+    onRemoveImage: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     buttonLabel: String = "Vom Handy waehlen",
 ) {
@@ -116,7 +117,13 @@ fun EditableImageFieldCard(
 
         if (imageUrl.isNotBlank()) {
             TextButton(
-                onClick = { onImageUrlChange("") },
+                onClick = {
+                    if (onRemoveImage != null) {
+                        onRemoveImage()
+                    } else {
+                        onImageUrlChange("")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Bild entfernen")

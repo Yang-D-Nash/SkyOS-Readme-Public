@@ -164,8 +164,12 @@ struct ArtistPageView: View {
 
         Task {
             do {
+                let previousURL = currentEditableImageURL(for: target)
                 let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
                 let url = try await editableImageUploadService.uploadImageData(data)
+                if previousURL != url {
+                    try? await editableImageUploadService.deleteImage(at: previousURL)
+                }
                 await MainActor.run {
                     switch target {
                     case .profile:
@@ -178,6 +182,38 @@ struct ArtistPageView: View {
             } catch {
                 await MainActor.run {
                     showToast("Bild konnte nicht hochgeladen werden: \(error.localizedDescription)", style: .error)
+                }
+            }
+        }
+    }
+
+    private func currentEditableImageURL(for target: ArtistPageEditableImageTarget) -> String {
+        switch target {
+        case .profile:
+            return profileImageURLDraft
+        case .hero:
+            return heroImageURLDraft
+        }
+    }
+
+    private func removeEditableImage(for target: ArtistPageEditableImageTarget) {
+        let previousURL = currentEditableImageURL(for: target)
+        switch target {
+        case .profile:
+            profileImageURLDraft = ""
+        case .hero:
+            heroImageURLDraft = ""
+        }
+
+        Task {
+            do {
+                try await editableImageUploadService.deleteImage(at: previousURL)
+                await MainActor.run {
+                    showToast("Bild entfernt.", style: .success)
+                }
+            } catch {
+                await MainActor.run {
+                    showToast("Bild wurde entfernt. Alter Upload konnte nicht geloescht werden: \(error.localizedDescription)", style: .error)
                 }
             }
         }
@@ -583,18 +619,18 @@ struct ArtistPageView: View {
             EditableImageField(
                 title: "Profilbild",
                 imageURL: $profileImageURLDraft,
-                colorScheme: colorScheme
-            ) {
-                pendingImageTarget = .profile
-            }
+                colorScheme: colorScheme,
+                onPickImage: { pendingImageTarget = .profile },
+                onRemoveImage: { removeEditableImage(for: .profile) }
+            )
 
             EditableImageField(
                 title: "Hero-Bild",
                 imageURL: $heroImageURLDraft,
-                colorScheme: colorScheme
-            ) {
-                pendingImageTarget = .hero
-            }
+                colorScheme: colorScheme,
+                onPickImage: { pendingImageTarget = .hero },
+                onRemoveImage: { removeEditableImage(for: .hero) }
+            )
 
             ArtistPageInputField(
                 title: "Instagram",

@@ -23,13 +23,15 @@ struct SingleImagePicker: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         private let onSelection: @MainActor (NSItemProvider?) -> Void
+        private var didCompleteSelection = false
 
         init(onSelection: @escaping @MainActor (NSItemProvider?) -> Void) {
             self.onSelection = onSelection
         }
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            picker.dismiss(animated: true)
+            guard !didCompleteSelection else { return }
+            didCompleteSelection = true
             Task { @MainActor in
                 onSelection(results.first?.itemProvider)
             }

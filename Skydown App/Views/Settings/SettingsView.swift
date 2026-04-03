@@ -550,8 +550,12 @@ struct SettingsView: View {
 
         Task {
             do {
+                let previousURL = currentEditableImageURL(for: target)
                 let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
                 let url = try await editableImageUploadService.uploadImageData(data)
+                if previousURL != url {
+                    try? await editableImageUploadService.deleteImage(at: previousURL)
+                }
                 await MainActor.run {
                     applyEditableImageURL(url, for: target)
                     showToastMessage("Bild hochgeladen und uebernommen.", style: .success)
@@ -745,10 +749,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Home Header",
                         imageURL: $homeHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme
-                    ) {
-                        pendingEditableImageTarget = .homeHeader
-                    }
+                        colorScheme: effectiveColorScheme,
+                        onPickImage: { pendingEditableImageTarget = .homeHeader },
+                        onRemoveImage: { removeEditableImage(for: .homeHeader) }
+                    )
 
                     SettingsInputField(
                         title: "Home Eyebrow",
@@ -783,10 +787,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Music Hub Header",
                         imageURL: $musicHubHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme
-                    ) {
-                        pendingEditableImageTarget = .musicHubHeader
-                    }
+                        colorScheme: effectiveColorScheme,
+                        onPickImage: { pendingEditableImageTarget = .musicHubHeader },
+                        onRemoveImage: { removeEditableImage(for: .musicHubHeader) }
+                    )
 
                     SettingsInputField(
                         title: "Music Hub Eyebrow",
@@ -821,10 +825,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Shop Header",
                         imageURL: $shopHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme
-                    ) {
-                        pendingEditableImageTarget = .shopHeader
-                    }
+                        colorScheme: effectiveColorScheme,
+                        onPickImage: { pendingEditableImageTarget = .shopHeader },
+                        onRemoveImage: { removeEditableImage(for: .shopHeader) }
+                    )
 
                     SettingsInputField(
                         title: "Shop Eyebrow",
@@ -859,10 +863,10 @@ struct SettingsView: View {
                     EditableImageField(
                         title: "Video Header",
                         imageURL: $videoHeaderImageURLDraft,
-                        colorScheme: effectiveColorScheme
-                    ) {
-                        pendingEditableImageTarget = .videoHeader
-                    }
+                        colorScheme: effectiveColorScheme,
+                        onPickImage: { pendingEditableImageTarget = .videoHeader },
+                        onRemoveImage: { removeEditableImage(for: .videoHeader) }
+                    )
 
                     SettingsInputField(
                         title: "Video Eyebrow",
@@ -1424,6 +1428,37 @@ struct SettingsView: View {
             shopHeaderImageURLDraft = url
         case .videoHeader:
             videoHeaderImageURLDraft = url
+        }
+    }
+
+    private func currentEditableImageURL(for target: SettingsEditableImageTarget) -> String {
+        switch target {
+        case .homeHeader:
+            return homeHeaderImageURLDraft
+        case .musicHubHeader:
+            return musicHubHeaderImageURLDraft
+        case .shopHeader:
+            return shopHeaderImageURLDraft
+        case .videoHeader:
+            return videoHeaderImageURLDraft
+        }
+    }
+
+    private func removeEditableImage(for target: SettingsEditableImageTarget) {
+        let previousURL = currentEditableImageURL(for: target)
+        applyEditableImageURL("", for: target)
+
+        Task {
+            do {
+                try await editableImageUploadService.deleteImage(at: previousURL)
+                await MainActor.run {
+                    showToastMessage("Bild entfernt.", style: .success)
+                }
+            } catch {
+                await MainActor.run {
+                    showToastMessage("Bild wurde entfernt. Alter Upload konnte nicht geloescht werden: \(error.localizedDescription)", style: .error)
+                }
+            }
         }
     }
 

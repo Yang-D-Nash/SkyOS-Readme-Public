@@ -193,6 +193,54 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
+    fun deleteAvatar() {
+        val userId = _uiState.value.currentUser?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploadingAvatar = true, errorMessage = null) }
+            val result = repository.deleteAvatar(userId)
+            if (result.isSuccess) {
+                AppContainer.refreshCurrentUser()
+                _uiState.update {
+                    it.copy(
+                        isUploadingAvatar = false,
+                        toastMessage = "Profilbild entfernt.",
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isUploadingAvatar = false,
+                        errorMessage = result.exceptionOrNull()?.message ?: "Profilbild konnte nicht entfernt werden.",
+                    )
+                }
+            }
+        }
+    }
+
+    fun deleteGalleryItem(item: ProfileGalleryItem) {
+        val userId = _uiState.value.currentUser?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploadingMedia = true, errorMessage = null) }
+            val result = repository.deleteGalleryItem(userId, item)
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isUploadingMedia = false,
+                        galleryItems = it.galleryItems.filterNot { galleryItem -> galleryItem.id == item.id },
+                        toastMessage = "Bild entfernt.",
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isUploadingMedia = false,
+                        errorMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht entfernt werden.",
+                    )
+                }
+            }
+        }
+    }
+
     fun clearMessages() {
         _uiState.update { it.copy(toastMessage = null, errorMessage = null) }
     }

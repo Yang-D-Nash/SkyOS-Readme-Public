@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 
 protocol EditableImageAssetUploading {
     func uploadImageData(_ data: Data) async throws -> String
+    func deleteImage(at imageURL: String) async throws
 }
 
 final class EditableImageAssetUploadService: EditableImageAssetUploading {
@@ -46,6 +47,33 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
 
         try await putData(data, to: reference, metadata: metadata)
         return try await reference.awaitStableDownloadURL().absoluteString
+    }
+
+    func deleteImage(at imageURL: String) async throws {
+        let trimmedURL = imageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedURL.isEmpty else { return }
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        guard let reference = ownedAssetReferenceIfPossible(for: trimmedURL, userId: userId) else {
+            return
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            reference.delete { error in
+                if let nsError = error as NSError?,
+                   nsError.domain == StorageErrorDomain,
+                   StorageErrorCode(rawValue: nsError.code) == .objectNotFound {
+                    continuation.resume(returning: ())
+                    return
+                }
+
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
     }
 
     private func requestUploadSlot(
@@ -112,6 +140,25 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
                 }
             }
         }
+    }
+
+    private func ownedAssetReferenceIfPossible(
+        for imageURL: String,
+        userId: String
+    ) -> StorageReference? {
+        if imageURL.hasPrefix("gs://") {
+            let reference = storage.reference(forURL: imageURL)
+            return reference.fullPath.hasPrefix("users/\(userId)/assets/") ? reference : nil
+        }
+
+        guard let url = URL(string: imageURL),
+              let host = url.host?.lowercased(),
+              host.contains("firebasestorage.googleapis.com") else {
+            return nil
+        }
+
+        let reference = storage.reference(forURL: imageURL)
+        return reference.fullPath.hasPrefix("users/\(userId)/assets/") ? reference : nil
     }
 
     private func detectFileInfo(from data: Data) -> EditableImageAssetFileInfo {

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PermMedia
 import androidx.compose.material.icons.filled.Save
@@ -171,6 +172,11 @@ fun ProfileScreen(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                         )
                     },
+                    onDeleteAvatar = if (!uiState.currentUser?.profileImageURL.isNullOrBlank()) {
+                        viewModel::deleteAvatar
+                    } else {
+                        null
+                    },
                     onPickGalleryImage = {
                         imagePicker.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -189,6 +195,11 @@ fun ProfileScreen(
                         context.startActivity(
                             Intent(Intent.ACTION_VIEW, Uri.parse(item.mediaUrl)),
                         )
+                    },
+                    onDeleteItem = if (uiState.canEditCurrentProfile) {
+                        viewModel::deleteGalleryItem
+                    } else {
+                        null
                     },
                 )
 
@@ -265,6 +276,7 @@ private fun ProfileHeroCard(
     onOpenWhatsApp: () -> Unit,
     onEditToggle: () -> Unit,
     onPickAvatar: () -> Unit,
+    onDeleteAvatar: (() -> Unit)?,
     onPickGalleryImage: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(0.dp)) {
@@ -427,6 +439,13 @@ private fun ProfileHeroCard(
                         contentDescription = "Avatar aendern",
                         onClick = onPickAvatar,
                     )
+                    if (onDeleteAvatar != null) {
+                        ProfileHeroFab(
+                            icon = Icons.Default.Delete,
+                            contentDescription = "Avatar entfernen",
+                            onClick = onDeleteAvatar,
+                        )
+                    }
                     ProfileHeroFab(
                         icon = Icons.Default.PermMedia,
                         contentDescription = "Bild hochladen",
@@ -443,6 +462,7 @@ private fun ProfileGalleryCard(
     uiState: com.skydown.android.ui.viewmodel.ProfileUiState,
     onPickImage: () -> Unit,
     onOpenItem: (ProfileGalleryItem) -> Unit,
+    onDeleteItem: ((ProfileGalleryItem) -> Unit)?,
 ) {
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -483,6 +503,12 @@ private fun ProfileGalleryCard(
                                 GalleryTile(
                                     item = item,
                                     modifier = Modifier.weight(1f),
+                                    canDelete = uiState.canEditCurrentProfile,
+                                    onDelete = if (onDeleteItem != null) {
+                                        { onDeleteItem(item) }
+                                    } else {
+                                        null
+                                    },
                                 ) {
                                     onOpenItem(item)
                                 }
@@ -657,6 +683,8 @@ private fun ProfileGalleryEmptyState(
 private fun GalleryTile(
     item: ProfileGalleryItem,
     modifier: Modifier = Modifier,
+    canDelete: Boolean = false,
+    onDelete: (() -> Unit)? = null,
     onOpen: () -> Unit,
 ) {
     Box(
@@ -705,6 +733,23 @@ private fun GalleryTile(
                         maxLines = 1,
                     )
                 }
+            }
+        }
+
+        if (canDelete && onDelete != null) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .clip(CircleShape)
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.52f)),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Bild entfernen",
+                    tint = androidx.compose.ui.graphics.Color.White,
+                )
             }
         }
     }

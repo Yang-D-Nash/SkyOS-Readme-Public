@@ -8,6 +8,7 @@ data class ProfileGalleryItem(
     val caption: String?,
     val mediaUrl: String,
     val thumbnailUrl: String?,
+    val storagePath: String?,
     val createdAtEpochMillis: Long,
 )
 

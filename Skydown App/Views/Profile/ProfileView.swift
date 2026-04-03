@@ -310,6 +310,27 @@ struct ProfileView: View {
                         )
                     )
 
+                    if let currentAvatar = viewModel.currentUser?.profileImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+                       !currentAvatar.isEmpty {
+                        Button {
+                            Task {
+                                await viewModel.deleteAvatar()
+                            }
+                        } label: {
+                            ProfileActionCapsuleLabel(
+                                title: isUploadingAvatar ? "Entferne..." : "Avatar loeschen",
+                                systemImage: "trash.fill"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .modifier(
+                            ProfileActionCapsuleModifier(
+                                tint: Color.red.opacity(0.84),
+                                textColor: .white
+                            )
+                        )
+                    }
+
                     Button {
                         pendingImagePickerTarget = .gallery
                     } label: {
@@ -379,7 +400,15 @@ struct ProfileView: View {
                     spacing: 12
                 ) {
                     ForEach(viewModel.filteredItems) { item in
-                        ProfileMediaGridTile(item: item, colorScheme: colorScheme)
+                        ProfileMediaGridTile(
+                            item: item,
+                            colorScheme: colorScheme,
+                            canDelete: viewModel.canEditCurrentProfile
+                        ) {
+                            Task {
+                                await viewModel.deleteGalleryItem(item)
+                            }
+                        }
                     }
                 }
             }
@@ -657,59 +686,76 @@ private struct ProfileGalleryEmptyState: View {
 private struct ProfileMediaGridTile: View {
     let item: ProfileGalleryItem
     let colorScheme: ColorScheme
+    var canDelete: Bool = false
+    var onDelete: (() -> Void)?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        Button {
-            if let url = URL(string: item.mediaURL) {
-                openURL(url)
-            }
-        } label: {
-            ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(AppColors.secondaryBackground(for: colorScheme))
-                    .aspectRatio(0.92, contentMode: .fit)
+        ZStack(alignment: .topTrailing) {
+            Button {
+                if let url = URL(string: item.mediaURL) {
+                    openURL(url)
+                }
+            } label: {
+                ZStack(alignment: .bottomLeading) {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(AppColors.secondaryBackground(for: colorScheme))
+                        .aspectRatio(0.92, contentMode: .fit)
 
-                if item.mediaType == .image,
-                   let thumb = URL(string: item.thumbnailURL ?? item.mediaURL) {
-                    AsyncImage(url: thumb) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
+                    if item.mediaType == .image,
+                       let thumb = URL(string: item.thumbnailURL ?? item.mediaURL) {
+                        AsyncImage(url: thumb) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            tileFallback
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    } else {
                         tileFallback
                     }
+
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.55)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                } else {
-                    tileFallback
-                }
 
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.55)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                HStack(spacing: 6) {
-                    Image(systemName: item.mediaType.systemImage)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.title)
-                            .lineLimit(1)
-                        if let caption = item.caption, !caption.isEmpty {
-                            Text(caption)
+                    HStack(spacing: 6) {
+                        Image(systemName: item.mediaType.systemImage)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
                                 .lineLimit(1)
-                                .foregroundColor(.white.opacity(0.72))
+                            if let caption = item.caption, !caption.isEmpty {
+                                Text(caption)
+                                    .lineLimit(1)
+                                    .foregroundColor(.white.opacity(0.72))
+                            }
                         }
                     }
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(.white)
+                    .padding(8)
                 }
-                .font(.caption2.weight(.bold))
-                .foregroundColor(.white)
-                .padding(8)
+            }
+            .buttonStyle(.plain)
+            .skydownTactileAction()
+
+            if canDelete, let onDelete {
+                Button(action: onDelete) {
+                    Image(systemName: "trash.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(Color.black.opacity(0.58))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(10)
             }
         }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
     }
 
     private var tileFallback: some View {

@@ -26,6 +26,7 @@ struct ProfileGalleryItem: Codable, Identifiable {
     var caption: String?
     var mediaURL: String
     var thumbnailURL: String?
+    var storagePath: String?
     var createdAt: Date
 
     var mediaType: ProfileMediaType {

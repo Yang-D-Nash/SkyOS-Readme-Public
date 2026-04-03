@@ -6,19 +6,22 @@ struct EditableImageField: View {
     let colorScheme: ColorScheme
     let buttonTitle: String
     let onPickImage: () -> Void
+    let onRemoveImage: (() -> Void)?
 
     init(
         title: String,
         imageURL: Binding<String>,
         colorScheme: ColorScheme,
         buttonTitle: String = "Vom iPhone waehlen",
-        onPickImage: @escaping () -> Void
+        onPickImage: @escaping () -> Void,
+        onRemoveImage: (() -> Void)? = nil
     ) {
         self.title = title
         self._imageURL = imageURL
         self.colorScheme = colorScheme
         self.buttonTitle = buttonTitle
         self.onPickImage = onPickImage
+        self.onRemoveImage = onRemoveImage
     }
 
     var body: some View {
@@ -87,7 +90,11 @@ struct EditableImageField: View {
 
             if !imageURL.isEmpty {
                 Button("Bild entfernen", role: .destructive) {
-                    imageURL = ""
+                    if let onRemoveImage {
+                        onRemoveImage()
+                    } else {
+                        imageURL = ""
+                    }
                 }
                 .font(.footnote.weight(.semibold))
             }

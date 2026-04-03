@@ -63,6 +63,14 @@ function resolveExtension(mimeType, requestedExtension) {
     expected;
 }
 
+function resolveStorageFolder(kind) {
+  return kind === "asset" ? "assets" : kind;
+}
+
+function buildUploadStoragePath(uid, kind, fileName) {
+  return `users/${uid}/${resolveStorageFolder(kind)}/${fileName}`;
+}
+
 async function loadUploadUsage(uid) {
   const snapshot = await admin.firestore().collection(UPLOAD_USAGE_COLLECTION).doc(uid).get();
   return snapshot.exists ? (snapshot.data() || {}) : {};
@@ -165,7 +173,7 @@ async function requestUploadSlot({auth, data, appCheckState}) {
 
   const slotId = admin.firestore().collection(UPLOAD_SLOT_COLLECTION).doc().id;
   const fileName = kind === "profile" ? `avatar.${extension}` : `${slotId}.${extension}`;
-  const storagePath = `users/${auth.uid}/${kind}/${fileName}`;
+  const storagePath = buildUploadStoragePath(auth.uid, kind, fileName);
   const expiresAt = admin.firestore.Timestamp.fromDate(
       new Date(now.getTime() + (SECURITY_LIMITS.uploadSlotTtlMinutes * 60 * 1000)),
   );
@@ -216,5 +224,6 @@ async function requestUploadSlot({auth, data, appCheckState}) {
 }
 
 module.exports = {
+  buildUploadStoragePath,
   requestUploadSlot,
 };
