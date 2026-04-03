@@ -24,7 +24,6 @@ struct SkydownApp: App {
     var body: some Scene {
         WindowGroup {
             LaunchScreenView()
-                .font(AppTypography.body)
                 .environmentObject(services)
                 .environmentObject(services.featureFlags)
                 .environmentObject(services.authManager)

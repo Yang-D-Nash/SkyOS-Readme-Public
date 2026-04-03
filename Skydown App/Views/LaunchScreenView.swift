@@ -185,7 +185,7 @@ private struct LaunchLandingView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Sky²²")
-                        .font(AppTypography.caption)
+                        .font(AppTypography.heroEyebrow)
                         .tracking(1.6)
                         .foregroundColor(.white.opacity(0.78))
 
@@ -195,7 +195,7 @@ private struct LaunchLandingView: View {
                         .shadow(color: .black.opacity(0.34), radius: 14, y: 8)
 
                     Text("Waehle deinen Start.")
-                        .font(AppTypography.subheadline)
+                        .font(.subheadline.weight(.medium))
                         .foregroundColor(.white.opacity(0.74))
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -245,12 +245,12 @@ private struct LaunchLandingView: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Musik, Video, Merch.")
-                            .font(AppTypography.scaledFont(size: 20, relativeTo: .title3))
+                            .font(AppTypography.cardTitle)
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.26), radius: 12, y: 6)
 
                         Text("Alles unten direkt griffbereit.")
-                            .font(AppTypography.footnote)
+                            .font(.footnote.weight(.medium))
                             .foregroundColor(.white.opacity(0.72))
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -294,7 +294,7 @@ private struct LaunchLandingView: View {
                 }
 
                 Text("Unten wechselst du jederzeit.")
-                    .font(AppTypography.caption)
+                    .font(.caption.weight(.medium))
                     .foregroundColor(.white.opacity(0.66))
                     .padding(.top, 4)
 
@@ -342,18 +342,18 @@ private struct LaunchLandingButton: View {
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(eyebrow.uppercased())
-                            .font(AppTypography.caption)
+                            .font(AppTypography.heroEyebrow)
                             .tracking(1.2)
                             .foregroundColor(.white.opacity(0.70))
 
                         Text(title)
-                            .font(AppTypography.scaledFont(size: 22, relativeTo: .title2))
+                            .font(AppTypography.sectionTitle)
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.24), radius: 10, y: 4)
                     }
 
                     Text(subtitle)
-                        .font(AppTypography.footnote)
+                        .font(.footnote.weight(.medium))
                         .foregroundColor(.white.opacity(0.74))
                         .multilineTextAlignment(.leading)
                 }

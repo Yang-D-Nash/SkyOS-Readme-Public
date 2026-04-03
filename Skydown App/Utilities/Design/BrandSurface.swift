@@ -64,21 +64,21 @@ struct BrandHeroSurface<Footer: View>: View {
             HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(eyebrow.uppercased())
-                        .font(AppTypography.caption)
+                        .font(AppTypography.heroEyebrow)
                         .tracking(1.4)
                         .foregroundColor(accent)
 
                     Text(title)
-                        .font(AppTypography.scaledFont(size: 30, relativeTo: .largeTitle))
+                        .font(AppTypography.heroTitle)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
                     Text(subtitle)
-                        .font(AppTypography.subheadline)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
-                            .font(AppTypography.footnote)
+                            .font(.footnote.weight(.semibold))
                             .foregroundColor(AppColors.text(for: colorScheme).opacity(0.86))
                     }
                 }

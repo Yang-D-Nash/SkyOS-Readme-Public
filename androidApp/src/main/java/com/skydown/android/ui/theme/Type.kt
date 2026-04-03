@@ -17,6 +17,8 @@ private val AwergyFontFamily = FontFamily(
     Font(R.font.awergy_regular, FontWeight.Black),
 )
 
+private val DefaultAppFontFamily = FontFamily.SansSerif
+
 val Typography = Typography(
     headlineLarge = TextStyle(
         fontFamily = AwergyFontFamily,
@@ -41,19 +43,19 @@ val Typography = Typography(
         fontSize = 17.sp,
     ),
     bodyLarge = TextStyle(
-        fontFamily = AwergyFontFamily,
+        fontFamily = DefaultAppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         lineHeight = 22.sp,
     ),
     bodyMedium = TextStyle(
-        fontFamily = AwergyFontFamily,
+        fontFamily = DefaultAppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
     ),
     labelLarge = TextStyle(
-        fontFamily = AwergyFontFamily,
+        fontFamily = DefaultAppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 13.sp,
     ),

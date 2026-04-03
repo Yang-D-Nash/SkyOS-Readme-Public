@@ -12,24 +12,20 @@ enum AppTypography {
         configureAppearance()
     }
 
-    static var body: Font {
-        scaledFont(size: 17, relativeTo: .body)
-    }
-
-    static var subheadline: Font {
-        scaledFont(size: 15, relativeTo: .subheadline)
-    }
-
-    static var footnote: Font {
-        scaledFont(size: 13, relativeTo: .footnote)
-    }
-
-    static var caption: Font {
+    static var heroEyebrow: Font {
         scaledFont(size: 12, relativeTo: .caption)
     }
 
-    static var headline: Font {
-        scaledFont(size: 17, relativeTo: .headline)
+    static var heroTitle: Font {
+        scaledFont(size: 30, relativeTo: .largeTitle)
+    }
+
+    static var sectionTitle: Font {
+        scaledFont(size: 22, relativeTo: .title2)
+    }
+
+    static var cardTitle: Font {
+        scaledFont(size: 20, relativeTo: .title3)
     }
 
     static func scaledFont(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
@@ -70,12 +66,6 @@ enum AppTypography {
         UINavigationBar.appearance().standardAppearance = navigationAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navigationAppearance
         UINavigationBar.appearance().compactAppearance = navigationAppearance
-
-        let tabAttributes: [NSAttributedString.Key: Any] = [
-            .font: scaledUIFont(size: 12, textStyle: .caption1)
-        ]
-        UITabBarItem.appearance().setTitleTextAttributes(tabAttributes, for: .normal)
-        UITabBarItem.appearance().setTitleTextAttributes(tabAttributes, for: .selected)
     }
 
     private static func fallbackFont(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
