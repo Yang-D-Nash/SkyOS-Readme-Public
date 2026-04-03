@@ -35,7 +35,7 @@ class AndroidAuthRepository(
     override suspend fun signIn(input: LoginInput): Result<User> {
         return runCatching {
             val authResult = auth.signInWithEmailAndPassword(input.email, input.password).await()
-            authResult.user?.let { syncSessionClaims(it) }
+            authResult.user?.let { syncSessionClaimsIfPossible(it) }
             (currentUser() ?: error("Benutzer konnte nicht geladen werden."))
                 .also(AppSessionStore::update)
         }.recoverCatching { error ->
@@ -95,7 +95,7 @@ class AndroidAuthRepository(
                 instagramHandle = null,
                 whatsApp = user.whatsApp,
             )
-            syncSessionClaims(firebaseUser)
+            syncSessionClaimsIfPossible(firebaseUser)
             AppSessionStore.update(user)
             user
         }.recoverCatching { error ->
@@ -218,7 +218,7 @@ class AndroidAuthRepository(
                 instagramHandle = null,
                 whatsApp = null,
             )
-            syncSessionClaims(authUser)
+            syncSessionClaimsIfPossible(authUser)
             return user
         }
 
@@ -297,7 +297,7 @@ class AndroidAuthRepository(
 
         if (updates.isNotEmpty()) {
             documentReference.update(updates).await()
-            syncSessionClaims(authUser)
+            syncSessionClaimsIfPossible(authUser)
             syncPublicProfileDocument(
                 uid = authUser.uid,
                 username = (updates["username"] as? String) ?: (data["username"] as? String ?: resolvedUsername),
@@ -312,7 +312,7 @@ class AndroidAuthRepository(
                 ?: fallbackUser.copy(username = resolvedUsername)
         }
 
-        syncSessionClaims(authUser)
+        syncSessionClaimsIfPossible(authUser)
         syncPublicProfileDocument(
             uid = authUser.uid,
             username = data["username"] as? String ?: resolvedUsername,
@@ -342,6 +342,10 @@ class AndroidAuthRepository(
             }
             throw error
         }
+    }
+
+    private suspend fun syncSessionClaimsIfPossible(authUser: FirebaseUser) {
+        runCatching { syncSessionClaims(authUser) }
     }
 
     private suspend fun ensureRegistrationsOpen() {

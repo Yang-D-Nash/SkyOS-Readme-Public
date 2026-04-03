@@ -82,7 +82,7 @@ final class FirebaseAuthService: AuthServicing {
 
     func signIn(email: String, password: String) async throws {
         let result = try await auth.signIn(withEmail: email, password: password)
-        try await syncSessionClaims(for: result.user)
+        await syncSessionClaimsIfPossible(for: result.user)
     }
 
     func signInWithGoogle(preferredUsername: String? = nil) async throws {
@@ -117,7 +117,7 @@ final class FirebaseAuthService: AuthServicing {
             fallbackEmail: normalizedEmail
         )
         let result = try await auth.createUser(withEmail: normalizedEmail, password: password)
-        try await syncSessionClaims(for: result.user)
+        await syncSessionClaimsIfPossible(for: result.user)
         let registeredEmail = result.user.email?.trimmedNilIfEmpty ?? normalizedEmail
         let role: UserRole = .user
         let quotaPlan = UserQuotaPlan.defaultPlan(for: role)
@@ -382,7 +382,7 @@ final class FirebaseAuthService: AuthServicing {
                 instagramHandle: nil,
                 whatsApp: nil
             )
-            try await syncSessionClaims(for: authUser)
+            await syncSessionClaimsIfPossible(for: authUser)
             return
         }
 
@@ -472,7 +472,7 @@ final class FirebaseAuthService: AuthServicing {
             instagramHandle: (data["instagramHandle"] as? String)?.trimmedNilIfEmpty,
             whatsApp: (data["whatsApp"] as? String)?.trimmedNilIfEmpty
         )
-        try await syncSessionClaims(for: authUser)
+        await syncSessionClaimsIfPossible(for: authUser)
     }
 
     private func currentSessionUser(for firebaseUser: FirebaseAuth.User) async -> User {
@@ -510,6 +510,14 @@ final class FirebaseAuthService: AuthServicing {
                 return
             }
             throw error
+        }
+    }
+
+    private func syncSessionClaimsIfPossible(for authUser: FirebaseAuth.User) async {
+        do {
+            try await syncSessionClaims(for: authUser)
+        } catch {
+            print("Dev Hinweis: Session Claims konnten nicht synchronisiert werden: \(error.localizedDescription)")
         }
     }
 
@@ -569,7 +577,17 @@ final class FirebaseAuthService: AuthServicing {
         payload["instagramHandle"] = instagramHandle ?? NSNull()
         payload["whatsApp"] = whatsApp ?? NSNull()
 
-        try await documentReference.setData(payload, merge: true)
+        do {
+            try await documentReference.setData(payload, merge: true)
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == FirestoreErrorDomain,
+               nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
+                return
+            }
+
+            throw error
+        }
     }
 
     fileprivate static func sanitizedUsername(
