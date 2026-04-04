@@ -1,42 +1,34 @@
+import SafariServices
 import SwiftUI
-import WebKit
 
 struct YouTubeEmbedPlayerView: View {
     let item: SkydownYouTubeVideoItem
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
+
+    private var playbackURL: URL? {
+        resolvedYouTubePlaybackURL(from: item.urlString)
+    }
 
     var body: some View {
-        let playerSource = youtubePlayerSource(from: item.urlString)
-
-        NavigationStack {
-            Group {
-                if let playerSource {
-                    YouTubeEmbedWebView(source: playerSource)
-                        .background(Color.black)
-                } else {
+        Group {
+            if let playbackURL {
+                YouTubeSafariPlayerView(url: playbackURL)
+                    .ignoresSafeArea()
+            } else {
+                NavigationStack {
                     ContentUnavailableView(
                         "YouTube Player nicht verfuegbar",
-                        systemImage: "play.rectangle"
+                        systemImage: "play.rectangle",
+                        description: Text("Der Link enthaelt keine gueltige Video-Adresse.")
                     )
-                }
-            }
-            .navigationTitle(item.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-
-                if let webURL = playerSource?.externalURL {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            openURL(webURL)
-                        } label: {
-                            Image(systemName: "arrow.up.forward.circle")
+                    .navigationTitle(item.title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Fertig") {
+                                dismiss()
+                            }
                         }
                     }
                 }
@@ -45,103 +37,35 @@ struct YouTubeEmbedPlayerView: View {
     }
 }
 
-private struct YouTubePlayerSource {
-    let html: String
-    let baseURL: URL?
-    let externalURL: URL
-    let embedKey: String
+private struct YouTubeSafariPlayerView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let configuration = SFSafariViewController.Configuration()
+        configuration.entersReaderIfAvailable = false
+        configuration.barCollapsingEnabled = false
+
+        let viewController = SFSafariViewController(url: url, configuration: configuration)
+        viewController.dismissButtonStyle = .close
+        viewController.preferredControlTintColor = .white
+        viewController.preferredBarTintColor = .black
+        return viewController
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
-private struct YouTubeEmbedWebView: UIViewRepresentable {
-    let source: YouTubePlayerSource
-
-    final class Coordinator {
-        var lastEmbedKey: String?
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.allowsInlineMediaPlayback = true
-        configuration.mediaTypesRequiringUserActionForPlayback = []
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
-        webView.scrollView.isScrollEnabled = false
-        webView.isOpaque = false
-        webView.backgroundColor = .black
-        webView.scrollView.backgroundColor = .black
-        webView.allowsBackForwardNavigationGestures = false
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        if context.coordinator.lastEmbedKey != source.embedKey {
-            context.coordinator.lastEmbedKey = source.embedKey
-            webView.loadHTMLString(source.html, baseURL: source.baseURL)
-        }
-    }
-}
-
-private func youtubePlayerSource(from rawURL: String) -> YouTubePlayerSource? {
+private func resolvedYouTubePlaybackURL(from rawURL: String) -> URL? {
     guard let normalizedURL = normalizedYouTubeURL(from: rawURL) else {
         return nil
     }
 
-    guard let videoID = resolvedYouTubeVideoID(from: rawURL, normalizedURL: normalizedURL) else {
-        return nil
+    if let videoID = resolvedYouTubeVideoID(from: rawURL, normalizedURL: normalizedURL),
+       let canonicalURL = URL(string: "https://www.youtube.com/watch?v=\(videoID)") {
+        return canonicalURL
     }
 
-    let externalURL = URL(string: "https://www.youtube.com/watch?v=\(videoID)") ?? normalizedURL
-    let embedURL = "https://www.youtube-nocookie.com/embed/\(videoID)?playsinline=1&rel=0&modestbranding=1&controls=1"
-    let html = """
-        <!doctype html>
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
-            />
-            <style>
-              html, body {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                background: #000;
-                overflow: hidden;
-              }
-              iframe {
-                width: 100%;
-                height: 100%;
-                border: 0;
-                background: #000;
-              }
-            </style>
-          </head>
-          <body>
-            <iframe
-              src="\(embedURL)"
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="origin"
-              allowfullscreen>
-            </iframe>
-          </body>
-        </html>
-    """
-
-    return YouTubePlayerSource(
-        html: html,
-        baseURL: URL(string: "https://www.youtube.com"),
-        externalURL: externalURL,
-        embedKey: videoID
-    )
+    return normalizedURL
 }
 
 private func normalizedYouTubeURL(from rawURL: String) -> URL? {

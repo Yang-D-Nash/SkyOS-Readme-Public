@@ -20,6 +20,7 @@ struct VideoHubView: View {
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
+    @State private var showingUploadComposer = false
     @State private var activePresentedSheet: VideoHubPresentedSheet?
     @State private var queuedPresentedSheet: VideoHubPresentedSheet?
     @State private var showingReelViewer = false
@@ -51,6 +52,10 @@ struct VideoHubView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                 heroCard
+                if viewModel.isAdmin && showingUploadComposer {
+                    uploadCard
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
                 VideoEquipmentCard(
                     colorScheme: colorScheme,
                     items: viewModel.publicConfig.equipmentItems
@@ -80,9 +85,12 @@ struct VideoHubView: View {
         .overlay(alignment: .bottomTrailing) {
             if viewModel.isAdmin {
                 VideoHubQuickActionDock(
-                    colorScheme: colorScheme
+                    colorScheme: colorScheme,
+                    isUploadOpen: showingUploadComposer
                 ) {
-                    presentSheet(.upload)
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                        showingUploadComposer.toggle()
+                    }
                 }
                 .padding(.trailing, SkydownLayout.screenHorizontalPadding)
                 .padding(.bottom, 20)
@@ -119,9 +127,11 @@ struct VideoHubView: View {
 
                 if viewModel.isAdmin {
                     Button {
-                        presentSheet(.upload)
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                            showingUploadComposer.toggle()
+                        }
                     } label: {
-                        Image(systemName: "arrow.up.circle")
+                        Image(systemName: showingUploadComposer ? "xmark.circle" : "arrow.up.circle")
                             .font(.headline.weight(.semibold))
                     }
                 }
@@ -153,41 +163,6 @@ struct VideoHubView: View {
         )
         .sheet(item: $activePresentedSheet) { sheet in
             switch sheet {
-            case .upload:
-                NavigationStack {
-                    ScrollView {
-                        uploadCard
-                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, SkydownLayout.screenTopPadding)
-                            .padding(.bottom, SkydownLayout.screenBottomPadding)
-                    }
-                    .scrollDismissesKeyboard(.interactively)
-                    .skydownDismissKeyboardOnTap()
-                    .background(
-                        AppColors.screenGradient(
-                            for: colorScheme,
-                            secondaryAccent: AppColors.accentHighlight(for: colorScheme)
-                        )
-                        .ignoresSafeArea()
-                    )
-                    .navigationTitle("Video Upload")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("Schliessen") {
-                                activePresentedSheet = nil
-                            }
-                        }
-
-                        if viewModel.isUploading {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-                        }
-                    }
-                }
-                .presentationDetents([.large])
             case .youTube(let item):
                 YouTubeEmbedPlayerView(item: item)
             }
@@ -1010,13 +985,14 @@ struct VideoYouTubeCard: View {
 
 private struct VideoHubQuickActionDock: View {
     let colorScheme: ColorScheme
+    let isUploadOpen: Bool
     let onOpenUpload: () -> Void
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 10) {
             VideoHubQuickActionButton(
-                title: "Upload",
-                systemImage: "arrow.up.circle.fill",
+                title: isUploadOpen ? "Schliessen" : "Upload",
+                systemImage: isUploadOpen ? "xmark.circle.fill" : "arrow.up.circle.fill",
                 tint: AppColors.accent(for: colorScheme),
                 textColor: .white,
                 action: onOpenUpload
@@ -1911,13 +1887,10 @@ final class VideoPlaybackManager: ObservableObject {
 }
 
 private enum VideoHubPresentedSheet: Identifiable, Equatable {
-    case upload
     case youTube(SkydownYouTubeVideoItem)
 
     var id: String {
         switch self {
-        case .upload:
-            return "upload"
         case .youTube(let item):
             return "youtube-\(item.id)"
         }
