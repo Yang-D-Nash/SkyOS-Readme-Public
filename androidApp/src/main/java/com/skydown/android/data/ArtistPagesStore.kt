@@ -64,6 +64,9 @@ private data class ArtistPageSeed(
 ) {
     val slug: String
         get() = artistPageSlug(artistName)
+
+    val documentId: String
+        get() = artistPageDocumentId(brand, artistName)
 }
 
 private fun artistPageSlug(artistName: String): String {
@@ -76,9 +79,13 @@ private fun artistPageSlug(artistName: String): String {
     return normalized.ifBlank { "artist" }
 }
 
+private fun artistPageDocumentId(brand: ArtistPageBrand, artistName: String): String {
+    return "${brand.rawValue}-${artistPageSlug(artistName)}"
+}
+
 private fun ArtistPageSeed.toPlaceholder(now: Long = System.currentTimeMillis()): ArtistPageUi {
-    return ArtistPageUi(
-        slug = slug,
+        return ArtistPageUi(
+        slug = documentId,
         brand = brand,
         artistName = artistName,
         tagline = tagline,
@@ -207,7 +214,7 @@ object ArtistPagesStore {
     }
 
     fun pageFor(brand: ArtistPageBrand, artistName: String): ArtistPageUi {
-        val slug = artistPageSlug(artistName)
+        val slug = artistPageDocumentId(brand, artistName)
         return pages.value.firstOrNull { it.brand == brand && it.slug == slug }
             ?: ArtistPageSeed(brand, artistName).toPlaceholder()
     }
@@ -223,9 +230,10 @@ object ArtistPagesStore {
 
     suspend fun save(page: ArtistPageUi): Result<Unit> {
         return runCatching {
-            collection.document(page.slug).set(
+            val documentId = artistPageDocumentId(page.brand, page.artistName)
+            collection.document(documentId).set(
                 mapOf(
-                    "slug" to page.slug,
+                    "slug" to artistPageSlug(page.artistName),
                     "brand" to page.brand.rawValue,
                     "artistName" to page.artistName.trim(),
                     "tagline" to page.tagline.trimmedOrNull(),
@@ -264,7 +272,7 @@ object ArtistPagesStore {
                     if (artistName.isBlank()) return@mapNotNull null
 
                     ArtistPageUi(
-                        slug = document.id,
+                        slug = artistPageDocumentId(brand, artistName),
                         brand = brand,
                         artistName = artistName,
                         tagline = document.getString("tagline")?.trimmedOrNull(),
@@ -288,10 +296,21 @@ object ArtistPagesStore {
     }
 
     private fun mergePages(remotePages: List<ArtistPageUi>): List<ArtistPageUi> {
-        val pagesBySlug = remotePages.associateBy { it.slug }.toMutableMap()
+        val pagesBySlug = linkedMapOf<String, ArtistPageUi>()
+        remotePages.forEach { page ->
+            val existing = pagesBySlug[page.slug]
+            pagesBySlug[page.slug] = when {
+                existing == null -> page
+                existing.updatedAtEpochMillis != page.updatedAtEpochMillis ->
+                    if (existing.updatedAtEpochMillis > page.updatedAtEpochMillis) existing else page
+                existing.isPlaceholder != page.isPlaceholder ->
+                    if (existing.isPlaceholder) page else existing
+                else -> existing
+            }
+        }
         seedPages.forEach { seed ->
-            if (pagesBySlug[seed.slug] == null) {
-                pagesBySlug[seed.slug] = seed.toPlaceholder()
+            if (pagesBySlug[seed.documentId] == null) {
+                pagesBySlug[seed.documentId] = seed.toPlaceholder()
             }
         }
 

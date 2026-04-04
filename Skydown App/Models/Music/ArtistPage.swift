@@ -71,11 +71,15 @@ struct ArtistPageSeed: Identifiable, Equatable {
     }
 
     var id: String {
-        slug
+        documentID
     }
 
     var slug: String {
         artistPageSlug(from: artistName)
+    }
+
+    var documentID: String {
+        artistPageDocumentID(brand: brand, artistName: artistName)
     }
 }
 
@@ -93,13 +97,17 @@ func artistPageSlug(from artistName: String) -> String {
     return normalized.isEmpty ? "artist" : normalized
 }
 
+func artistPageDocumentID(brand: ArtistPageBrand, artistName: String) -> String {
+    "\(brand.rawValue)-\(artistPageSlug(from: artistName))"
+}
+
 extension ArtistPage {
     static func placeholder(
         seed: ArtistPageSeed,
         timestamp: Date = .now
     ) -> ArtistPage {
         ArtistPage(
-            id: seed.slug,
+            id: seed.documentID,
             brand: seed.brand,
             artistName: seed.artistName,
             tagline: seed.tagline,

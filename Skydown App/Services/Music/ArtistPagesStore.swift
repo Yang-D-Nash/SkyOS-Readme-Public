@@ -36,7 +36,7 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
 
     func save(page: ArtistPage) async throws {
         let payload: [String: Any] = [
-            "slug": page.slug,
+            "slug": artistPageSlug(from: page.artistName),
             "brand": page.brand.rawValue,
             "artistName": page.artistName.trimmingCharacters(in: .whitespacesAndNewlines),
             "tagline": page.tagline?.trimmingCharacters(in: .whitespacesAndNewlines) ?? NSNull(),
@@ -51,7 +51,8 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
             "updatedAt": FieldValue.serverTimestamp()
         ]
 
-        try await firestore.collection(collectionName).document(page.slug).setData(payload, merge: true)
+        let documentID = artistPageDocumentID(brand: page.brand, artistName: page.artistName)
+        try await firestore.collection(collectionName).document(documentID).setData(payload, merge: true)
     }
 
     private static func mapPage(document: QueryDocumentSnapshot) -> ArtistPage? {
@@ -71,7 +72,7 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
             .filter { !$0.isEmpty }
 
         return ArtistPage(
-            id: document.documentID,
+            id: artistPageDocumentID(brand: brand, artistName: artistName),
             brand: brand,
             artistName: artistName,
             tagline: (data["tagline"] as? String)?.trimmedNilIfEmpty,
@@ -110,7 +111,7 @@ final class ArtistPagesStore: ObservableObject {
     }
 
     func page(for brand: ArtistPageBrand, artistName: String) -> ArtistPage {
-        let slug = artistPageSlug(from: artistName)
+        let slug = artistPageDocumentID(brand: brand, artistName: artistName)
         if let page = pages.first(where: { $0.brand == brand && $0.slug == slug }) {
             return page
         }
@@ -148,19 +149,37 @@ final class ArtistPagesStore: ObservableObject {
     }
 
     private func merge(remotePages: [ArtistPage]) -> [ArtistPage] {
-        let seeded = Dictionary(uniqueKeysWithValues: ArtistPagesStore.seedPages().map { ($0.slug, $0) })
-        var pagesBySlug = Dictionary(uniqueKeysWithValues: remotePages.map { ($0.slug, $0) })
+        let seeded = Dictionary(uniqueKeysWithValues: ArtistPagesStore.seedPages().map { ($0.documentID, $0) })
+        var pagesByID: [String: ArtistPage] = [:]
 
-        for (_, seed) in seeded where pagesBySlug[seed.slug] == nil {
-            pagesBySlug[seed.slug] = .placeholder(seed: seed)
+        for page in remotePages {
+            if let existing = pagesByID[page.slug] {
+                pagesByID[page.slug] = resolvedPreferredPage(between: existing, and: page)
+            } else {
+                pagesByID[page.slug] = page
+            }
         }
 
-        return pagesBySlug.values.sorted { lhs, rhs in
+        for (documentID, seed) in seeded where pagesByID[documentID] == nil {
+            pagesByID[documentID] = .placeholder(seed: seed)
+        }
+
+        return pagesByID.values.sorted { lhs, rhs in
             if lhs.brand != rhs.brand {
                 return lhs.brand.rawValue < rhs.brand.rawValue
             }
             return lhs.artistName.localizedCaseInsensitiveCompare(rhs.artistName) == .orderedAscending
         }
+    }
+
+    private func resolvedPreferredPage(between lhs: ArtistPage, and rhs: ArtistPage) -> ArtistPage {
+        if lhs.updatedAt != rhs.updatedAt {
+            return lhs.updatedAt > rhs.updatedAt ? lhs : rhs
+        }
+        if lhs.isPlaceholder != rhs.isPlaceholder {
+            return lhs.isPlaceholder ? rhs : lhs
+        }
+        return lhs
     }
 
     private static func seedPages() -> [ArtistPageSeed] {
