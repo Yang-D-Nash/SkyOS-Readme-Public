@@ -601,7 +601,7 @@ final class FirebaseAuthService: AuthServicing {
         }
     }
 
-    fileprivate static func sanitizedUsername(
+    static func sanitizedUsername(
         _ username: String?,
         authUserDisplayName: String? = nil,
         fallbackEmail: String
