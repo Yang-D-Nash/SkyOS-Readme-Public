@@ -1,7 +1,7 @@
 import Foundation
 import FirebaseFirestore
 
-struct ScreenHeaderSettings: Equatable {
+struct ScreenHeaderSettings: Codable, Equatable {
     var homeImageURL: String = ""
     var homeEyebrow: String = ""
     var homeTitle: String = ""
@@ -156,9 +156,11 @@ final class ScreenHeaderSettingsStore: ObservableObject {
 
     private let service: ScreenHeaderSettingsServicing
     private var stopObserving: (() -> Void)?
+    private let cache = CachedScreenHeaderSettingsStore()
 
     init(service: ScreenHeaderSettingsServicing = FirestoreScreenHeaderSettingsService()) {
         self.service = service
+        self.settings = cache.load()
         startObserving()
     }
 
@@ -175,6 +177,7 @@ final class ScreenHeaderSettingsStore: ObservableObject {
             case .success(let settings):
                 self.settings = settings
                 self.lastErrorMessage = nil
+                self.cache.store(settings)
             case .failure(let error):
                 self.lastErrorMessage = error.localizedDescription
             }
@@ -183,6 +186,34 @@ final class ScreenHeaderSettingsStore: ObservableObject {
 
     deinit {
         stopObserving?()
+    }
+}
+
+private final class CachedScreenHeaderSettingsStore {
+    private let defaults: UserDefaults
+    private let cacheKey = "skydown.cached.screen.headers"
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func load() -> ScreenHeaderSettings {
+        guard let data = defaults.data(forKey: cacheKey),
+              let settings = try? decoder.decode(ScreenHeaderSettings.self, from: data) else {
+            return .default
+        }
+
+        return settings
+    }
+
+    func store(_ settings: ScreenHeaderSettings) {
+        guard let data = try? encoder.encode(settings) else {
+            return
+        }
+
+        defaults.set(data, forKey: cacheKey)
     }
 }
 

@@ -89,6 +89,7 @@ private extension String {
 enum ExternalMediaProvider: String {
     case firebaseStorage = "firebase_storage"
     case googleDrive = "google_drive"
+    case youTube = "youtube"
     case mega = "mega"
     case externalLink = "external_link"
 
@@ -102,6 +103,8 @@ enum ExternalMediaProvider: String {
             return "Storage"
         case .googleDrive:
             return "Drive"
+        case .youTube:
+            return "YouTube"
         case .mega:
             return "MEGA"
         case .externalLink:
@@ -137,6 +140,20 @@ private func resolveExternalMediaSource(from rawURL: String, kind: ExternalMedia
     guard let normalizedURL = normalizedExternalMediaURL(from: rawURL),
           let host = normalizedURL.host?.lowercased() else {
         return nil
+    }
+
+    if kind == .video,
+       let videoID = externalYouTubeVideoID(from: rawURL, normalizedURL: normalizedURL),
+       let externalURL = URL(string: "https://www.youtube.com/watch?v=\(videoID)") {
+        return ExternalMediaSource(
+            provider: .youTube,
+            normalizedURL: normalizedURL,
+            externalURL: externalURL,
+            embedURL: URL(string: "https://www.youtube-nocookie.com/embed/\(videoID)?playsinline=1&rel=0&modestbranding=1&controls=1"),
+            downloadURL: nil,
+            sourceFileID: videoID,
+            mimeType: "video/youtube"
+        )
     }
 
     if host.contains("drive.google.com") || host.contains("docs.google.com"),
@@ -210,6 +227,44 @@ private func googleDriveFileID(from rawURL: String, normalizedURL: URL) -> Strin
     return String(rawURL[idRange])
 }
 
+private func externalYouTubeVideoID(from rawURL: String, normalizedURL: URL) -> String? {
+    guard let components = URLComponents(url: normalizedURL, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+
+    if let host = components.host?.lowercased(), host.contains("youtu.be") {
+        return components.path
+            .split(separator: "/")
+            .first
+            .map(String.init)?
+            .externalTakeIfYouTubeID()
+    }
+
+    let pathComponents = components.path.split(separator: "/").map(String.init)
+    if let markerIndex = pathComponents.firstIndex(where: { ["embed", "shorts", "live", "watch"].contains($0.lowercased()) }),
+       markerIndex + 1 < pathComponents.count {
+        return pathComponents[markerIndex + 1].externalTakeIfYouTubeID()
+    }
+
+    if let queryID = components.queryItems?.first(where: { $0.name == "v" || $0.name == "vi" })?.value?.externalTakeIfYouTubeID() {
+        return queryID
+    }
+
+    let trimmed = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    let pattern = #"(?:(?<=v=)|(?<=vi=)|(?<=\/embed\/)|(?<=\/shorts\/)|(?<=youtu\.be\/)|(?<=\/live\/))([A-Za-z0-9_-]{11})"#
+    guard let regex = try? NSRegularExpression(pattern: pattern) else {
+        return nil
+    }
+
+    let range = NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)
+    guard let match = regex.firstMatch(in: trimmed, range: range),
+          let idRange = Range(match.range(at: 1), in: trimmed) else {
+        return nil
+    }
+
+    return String(trimmed[idRange]).externalTakeIfYouTubeID()
+}
+
 private func isDirectMediaURL(_ url: URL, kind: ExternalMediaKind) -> Bool {
     directMimeType(for: url, kind: kind) != nil
 }
@@ -230,6 +285,14 @@ private func directMimeType(for url: URL, kind: ExternalMediaKind) -> String? {
         if path.hasSuffix(".aac") { return "audio/aac" }
         if path.hasSuffix(".flac") { return "audio/flac" }
         return nil
+    }
+}
+
+private extension String {
+    func externalTakeIfYouTubeID() -> String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count == 11 else { return nil }
+        return trimmed
     }
 }
 
@@ -909,12 +972,24 @@ struct SkydownVideoHubItem: Identifiable {
         externalURL.musicNilIfEmpty ?? downloadURL
     }
 
+    var youTubeItem: SkydownYouTubeVideoItem? {
+        guard provider == .youTube else { return nil }
+        let resolvedURL = openURLString.musicNilIfEmpty ?? embedURL.musicNilIfEmpty
+        guard let resolvedURL else { return nil }
+        return SkydownYouTubeVideoItem(
+            id: id,
+            title: title,
+            subtitle: notes.musicNilIfEmpty ?? projectName,
+            urlString: resolvedURL
+        )
+    }
+
     var usesEmbeddedPreview: Bool {
-        provider != .firebaseStorage && !embedURL.isEmpty && nativePlaybackURLString.isEmpty
+        provider != .firebaseStorage && provider != .youTube && !embedURL.isEmpty && nativePlaybackURLString.isEmpty
     }
 
     var supportsInlinePlayback: Bool {
-        usesEmbeddedPreview || isPlayable
+        youTubeItem != nil || usesEmbeddedPreview || isPlayable
     }
 
     var isPlayable: Bool {

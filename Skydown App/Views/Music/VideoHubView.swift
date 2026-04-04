@@ -457,7 +457,38 @@ struct VideoHubView: View {
             if let selectedVideo {
                 ZStack(alignment: .bottomLeading) {
                     Group {
-                        if selectedVideo.usesEmbeddedPreview {
+                        if selectedVideo.youTubeItem != nil {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 24)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color(red: 0.18, green: 0.02, blue: 0.03),
+                                                Color(red: 0.45, green: 0.05, blue: 0.06),
+                                                Color.black
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+
+                                VStack(spacing: 16) {
+                                    Image(systemName: "play.rectangle.fill")
+                                        .font(.system(size: 54, weight: .bold))
+                                        .foregroundColor(.white.opacity(0.95))
+
+                                    Text("YouTube Clip")
+                                        .font(.title3.weight(.bold))
+                                        .foregroundColor(.white)
+
+                                    Text("Der Clip ist als YouTube-Video hinterlegt und laeuft direkt in der App.")
+                                        .font(.subheadline.weight(.semibold))
+                                        .multilineTextAlignment(.center)
+                                        .foregroundColor(.white.opacity(0.84))
+                                        .padding(.horizontal, 28)
+                                }
+                            }
+                        } else if selectedVideo.usesEmbeddedPreview {
                             ExternalVideoEmbedSurface(urlString: selectedVideo.embedURL)
                         } else if selectedVideo.isPlayable {
                             VideoPlayer(player: playbackManager.player)
@@ -515,7 +546,18 @@ struct VideoHubView: View {
                     .padding(18)
                 }
 
-                if selectedVideo.supportsInlinePlayback {
+                if let youTubeItem = selectedVideo.youTubeItem {
+                    Button {
+                        presentSheet(.youTube(youTubeItem))
+                    } label: {
+                        Label("In YouTube ansehen", systemImage: "play.rectangle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.youtube(for: colorScheme))
+                } else if selectedVideo.supportsInlinePlayback {
                     Button {
                         playbackManager.player.pause()
                         activePresentedSheet = nil
@@ -694,13 +736,20 @@ struct VideoHubLibraryRow: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Button(action: onPlayToggle) {
-                        Label(isPlaying ? "Stoppen" : "Abspielen", systemImage: isPlaying ? "stop.fill" : "play.fill")
+                    Button(action: video.isPlayable ? onPlayToggle : onOpenReel) {
+                        Label(
+                            video.isPlayable
+                                ? (isPlaying ? "Stoppen" : "Abspielen")
+                                : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen"),
+                            systemImage: video.isPlayable
+                                ? (isPlaying ? "stop.fill" : "play.fill")
+                                : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square")
+                        )
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(AppColors.accent(for: colorScheme))
-                    .disabled(!video.isPlayable)
+                    .tint(video.provider == .youTube ? AppColors.youtube(for: colorScheme) : AppColors.accent(for: colorScheme))
+                    .disabled(!video.supportsInlinePlayback && video.openURLString.isEmpty)
                 }
             } else {
                 VStack(spacing: 10) {
