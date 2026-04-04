@@ -16,16 +16,16 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
 
-    @StateObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
-    @StateObject private var adminUserManagementStore = AdminUserManagementStore.shared
-    @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
-    @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
-    @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
-    @StateObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
-    @StateObject private var stripeBackendSecretsStore = StripeBackendSecretsStore.shared
-    @StateObject private var artistPagesStore = ArtistPagesStore.shared
-    @StateObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
-    @StateObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
+    @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
+    @ObservedObject private var adminUserManagementStore = AdminUserManagementStore.shared
+    @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
+    @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
+    @ObservedObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
+    @ObservedObject private var stripeBackendSecretsStore = StripeBackendSecretsStore.shared
+    @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
+    @ObservedObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
+    @ObservedObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
     @Binding var colorScheme: String
 
     @State private var language = "Deutsch"

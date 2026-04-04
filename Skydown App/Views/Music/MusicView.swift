@@ -100,7 +100,7 @@ enum MusicExperienceBrand {
 struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
-    @StateObject private var artistPagesStore = ArtistPagesStore.shared
+    @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @State private var selectedArtist: String
     @State private var selectedTrackID: Int?

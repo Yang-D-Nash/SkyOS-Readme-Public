@@ -11,7 +11,7 @@ struct NicmaProducerView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authManager: AuthManager
-    @StateObject private var artistPagesStore = ArtistPagesStore.shared
+    @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
     let onBack: (() -> Void)?
     @State private var showingEditor = false
 

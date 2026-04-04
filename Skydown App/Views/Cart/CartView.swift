@@ -17,9 +17,9 @@ struct CartView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
-    @StateObject private var commerceSettingsStore = CommerceSettingsStore.shared
-    @StateObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
-    @StateObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
+    @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
+    @ObservedObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
 
