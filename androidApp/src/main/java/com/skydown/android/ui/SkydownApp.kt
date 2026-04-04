@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -95,9 +96,6 @@ import com.skydown.android.ui.screen.SettingsScreen
 import com.skydown.android.ui.screen.ShopScreen
 import com.skydown.android.ui.screen.VideoHubScreen
 import com.skydown.android.ui.theme.BackgroundDark
-import com.skydown.android.ui.theme.SurfaceDark
-import com.skydown.android.ui.theme.TextDark
-import com.skydown.android.ui.theme.TextMutedDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @UnstableApi
@@ -421,66 +419,66 @@ private fun LaunchLandingScreen(
                 ),
         )
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 18.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .navigationBarsPadding(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            BrandHeroCard(
-                eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
-                title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
-                subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Waehle deinen Start." },
-                detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch und Tools direkt im Einstieg." },
-                backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
-                accent = MaterialTheme.colorScheme.primary,
-                secondaryAccent = MaterialTheme.colorScheme.secondary,
-                marks = listOf(BrandArtwork.Combined),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)
-                    BrandPill(text = "Music", tint = MaterialTheme.colorScheme.secondary)
-                    BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
+            item {
+                BrandHeroCard(
+                    eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
+                    title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
+                    subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Waehle deinen Start." },
+                    detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch und Tools direkt im Einstieg." },
+                    backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
+                    accent = MaterialTheme.colorScheme.primary,
+                    secondaryAccent = MaterialTheme.colorScheme.secondary,
+                    marks = listOf(BrandArtwork.Combined),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)
+                        BrandPill(text = "Music", tint = MaterialTheme.colorScheme.secondary)
+                        BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
+                    }
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item {
                 LaunchLandingChoiceCard(
                     eyebrow = "Music",
                     title = "Music",
-                    subtitle = "Releases, Artists, Beats.",
+                    subtitle = "Songs, Artists und Beats.",
                     accentColor = MaterialTheme.colorScheme.primary,
                     icon = Icons.Default.GraphicEq,
                     artwork = BrandArtwork.Zweizwei,
                     onClick = onOpenMusic,
                 )
+            }
+            item {
                 LaunchLandingChoiceCard(
                     eyebrow = "Video",
                     title = "Videos",
-                    subtitle = "Reels, Clips, Collabs.",
+                    subtitle = "Reels, Clips und Collabs.",
                     accentColor = MaterialTheme.colorScheme.tertiary,
                     icon = Icons.Default.PlayCircleFilled,
                     artwork = BrandArtwork.Skydown,
                     onClick = onOpenVideography,
                 )
+            }
+            item {
                 LaunchLandingChoiceCard(
                     eyebrow = "Store",
                     title = "Merch",
-                    subtitle = "Drops, Styles, Checkout.",
+                    subtitle = "Drops und Checkout.",
                     accentColor = MaterialTheme.colorScheme.secondary,
                     icon = Icons.Default.ShoppingBag,
                     artwork = BrandArtwork.Combined,
                     onClick = onOpenShop,
                 )
             }
-
-            Text(
-                text = "Unten wechselst du jederzeit.",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextMutedDark,
-            )
         }
     }
 }
@@ -495,85 +493,15 @@ private fun LaunchLandingChoiceCard(
     artwork: BrandArtwork,
     onClick: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = SurfaceDark.copy(alpha = 0.95f),
-        tonalElevation = 8.dp,
-        shadowElevation = 10.dp,
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
+    HubEntryCard(
+        eyebrow = eyebrow,
+        title = title,
+        subtitle = subtitle,
+        accentColor = accentColor,
+        icon = icon,
+        artwork = artwork,
         onClick = onClick,
-        interactionSource = interactionSource,
-        modifier = Modifier.skydownPressable(interactionSource),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                SurfaceDark.copy(alpha = 0.98f),
-                                accentColor.copy(alpha = 0.18f),
-                            ),
-                        ),
-                        RoundedCornerShape(18.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(id = artwork.drawableRes),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .padding(4.dp),
-                        contentScale = ContentScale.Fit,
-                    )
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = TextDark.copy(alpha = 0.88f),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(16.dp),
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(
-                        text = eyebrow.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TextDark.copy(alpha = 0.68f),
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = TextDark,
-                        fontWeight = FontWeight.Black,
-                    )
-                }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextDark.copy(alpha = 0.70f),
-                )
-            }
-        }
-    }
+    )
 }
 
 private enum class ZweizweiMusicDestination {
@@ -744,73 +672,120 @@ private fun LaunchLandingButton(
     icon: ImageVector,
     onClick: () -> Unit,
 ) {
+    HubEntryCard(
+        title = title,
+        subtitle = subtitle,
+        accentColor = accentColor,
+        icon = icon,
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun HubEntryCard(
+    title: String,
+    subtitle: String,
+    accentColor: androidx.compose.ui.graphics.Color,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    eyebrow: String? = null,
+    artwork: BrandArtwork? = null,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
         tonalElevation = 8.dp,
         shadowElevation = 10.dp,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.24f)),
+        onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = Modifier.skydownPressable(interactionSource),
     ) {
-        Button(
-            onClick = onClick,
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp),
-            elevation = null,
-            modifier = Modifier.fillMaxWidth(),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    accentColor.copy(alpha = 0.22f),
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                                ),
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                accentColor.copy(alpha = 0.22f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
                             ),
-                            RoundedCornerShape(14.dp),
                         ),
-                    contentAlignment = Alignment.Center,
-                ) {
+                        RoundedCornerShape(14.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (artwork != null) {
+                    Image(
+                        painter = painterResource(id = artwork.drawableRes),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .padding(3.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(14.dp),
+                    )
+                } else {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
                     )
                 }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (!eyebrow.isNullOrBlank()) {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        text = eyebrow.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .background(
-                            accentColor.copy(alpha = 0.92f),
-                            RoundedCornerShape(999.dp),
-                        ),
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        accentColor.copy(alpha = 0.92f),
+                        RoundedCornerShape(999.dp),
+                    ),
+            )
         }
     }
 }

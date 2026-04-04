@@ -105,8 +105,10 @@ fun BrandHeroCard(
             AsyncImage(
                 model = backgroundImageUrl,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                contentScale = ContentScale.Fit,
             )
 
             Box(
