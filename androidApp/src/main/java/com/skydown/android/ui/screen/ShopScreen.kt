@@ -235,12 +235,12 @@ private fun ShopOverviewCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "Store" },
         title = screenHeaderSettings.shopTitle.ifBlank { "Shop" },
-        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Produkte direkt in der App." },
+        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Produkte und Checkout." },
         detail = screenHeaderSettings.shopDetail.ifBlank {
             if (uiState.isStoreOpen) {
-                "Offen fuer Bestellungen."
+                "Bestellungen direkt in der App."
             } else {
-                "Ansicht aktiv, Checkout pausiert."
+                "Checkout pausiert."
             }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
@@ -251,13 +251,13 @@ private fun ShopOverviewCard(
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            BrandPill(text = "${uiState.items.size} Produkte", tint = SpotifyGreen)
+            BrandPill(text = "${uiState.items.size} Artikel", tint = SpotifyGreen)
             BrandPill(
-                text = if (uiState.isStoreOpen) "Store offen" else "Store pausiert",
+                text = if (uiState.isStoreOpen) "Live" else "Pause",
                 tint = if (uiState.isStoreOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
             )
             BrandPill(
-                text = if (uiState.isLoggedIn) "Konto aktiv" else "Gast",
+                text = if (uiState.isLoggedIn) "Account" else "Gast",
                 tint = MaterialTheme.colorScheme.tertiary,
             )
         }
