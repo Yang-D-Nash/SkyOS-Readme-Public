@@ -46,6 +46,7 @@ struct MainTabView: View {
     @EnvironmentObject private var authManager: AuthManager
     @State private var selectedTab: MainTab = .hub
     @State private var showingSettings = false
+    @State private var isPreparingSettingsPresentation = false
     @State private var showingProfile = false
     @State private var showingCart = false
     @State private var showingLogin = false
@@ -83,7 +84,7 @@ struct MainTabView: View {
                         onOpenLogin: { showingLogin = true },
                         onOpenCart: { showingCart = true },
                         onOpenProfile: { showingProfile = true },
-                        onOpenSettings: { showingSettings = true },
+                        onOpenSettings: openSettings,
                         merchandiseService: services.merchandiseService
                     )
                 }
@@ -94,7 +95,7 @@ struct MainTabView: View {
                     ZweizweiTabView(
                         onOpenCart: { showingCart = true },
                         onOpenProfile: { showingProfile = true },
-                        onOpenSettings: { showingSettings = true }
+                        onOpenSettings: openSettings
                     )
                 }
                 .tabItem { Label("Music", systemImage: "waveform.circle.fill") }
@@ -104,7 +105,7 @@ struct MainTabView: View {
                     HomeView(
                         onOpenCart: { showingCart = true },
                         onOpenProfile: { showingProfile = true },
-                        onOpenSettings: { showingSettings = true },
+                        onOpenSettings: openSettings,
                         onOpenWorkflow: hasAIAccess ? {
                             showsWorkflowWorkspace = true
                             selectedTab = .tools
@@ -118,7 +119,7 @@ struct MainTabView: View {
                     VideoHubTabView(
                         onOpenCart: { showingCart = true },
                         onOpenProfile: { showingProfile = true },
-                        onOpenSettings: { showingSettings = true }
+                        onOpenSettings: openSettings
                     )
                 }
                 .tabItem { Label("Videos", systemImage: "play.rectangle.fill") }
@@ -133,7 +134,7 @@ struct MainTabView: View {
                         onOpenCart: { showingCart = true },
                         onOpenLogin: { showingLogin = true },
                         onOpenProfile: { showingProfile = true },
-                        onOpenSettings: { showingSettings = true }
+                        onOpenSettings: openSettings
                     )
                 }
                 .tabItem { Label("Tools", systemImage: "sparkles") }
@@ -144,8 +145,8 @@ struct MainTabView: View {
         .accentColor(AppColors.accent(for: currentScheme))
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
         .preferredColorScheme(preferredScheme)
-        .sheet(isPresented: $showingSettings) {
-            SettingsView(colorScheme: $colorScheme)
+        .fullScreenCover(isPresented: $showingSettings) {
+            DeferredSettingsPresentation(colorScheme: $colorScheme)
         }
         .sheet(isPresented: $showingProfile) {
             ProfileView(authManager: services.authManager)
@@ -167,6 +168,67 @@ struct MainTabView: View {
         .onChange(of: selectedTab) { _, newTab in
             if newTab != .tools {
                 showsWorkflowWorkspace = false
+            }
+        }
+        .onChange(of: showingSettings) { _, isPresented in
+            if !isPresented {
+                isPreparingSettingsPresentation = false
+            }
+        }
+    }
+
+    private func openSettings() {
+        guard !showingSettings, !isPreparingSettingsPresentation else { return }
+        isPreparingSettingsPresentation = true
+        DispatchQueue.main.async {
+            showingSettings = true
+        }
+    }
+}
+
+private struct DeferredSettingsPresentation: View {
+    @Binding var colorScheme: String
+    @Environment(\.colorScheme) private var systemColorScheme
+    @State private var isReady = false
+
+    private var effectiveColorScheme: ColorScheme {
+        switch colorScheme {
+        case "light":
+            return .light
+        case "dark":
+            return .dark
+        default:
+            return systemColorScheme
+        }
+    }
+
+    var body: some View {
+        Group {
+            if isReady {
+                SettingsView(colorScheme: $colorScheme)
+            } else {
+                ZStack {
+                    AppColors.screenGradient(
+                        for: effectiveColorScheme,
+                        secondaryAccent: AppColors.accentHighlight(for: effectiveColorScheme)
+                    )
+                    .ignoresSafeArea()
+
+                    VStack(spacing: 14) {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(AppColors.accent(for: effectiveColorScheme))
+
+                        Text("Einstellungen werden geladen")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                    }
+                }
+                .task {
+                    guard !isReady else { return }
+                    await Task.yield()
+                    isReady = true
+                }
             }
         }
     }
