@@ -79,7 +79,7 @@ async function seedUserProfile(uid, overrides = {}) {
 async function seedArtistPage(artistId, overrides = {}) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), "artistPages", artistId), {
-      slug: artistId,
+      slug: "janno",
       brand: "zweizwei",
       artistName: "JANNO",
       tagline: "Artist",
@@ -680,7 +680,7 @@ test("user darf eigenes galleryMeta Bild wieder loeschen", async () => {
 });
 
 test("artistPages sind oeffentlich lesbar, aber nur Owner oder Editoren duerfen Inhalte aendern", async () => {
-  await seedArtistPage("janno", {
+  await seedArtistPage("zweizwei-janno", {
     editorUids: ["editor1"],
   });
 
@@ -688,24 +688,24 @@ test("artistPages sind oeffentlich lesbar, aber nur Owner oder Editoren duerfen 
   const editorDb = testEnv.authenticatedContext("editor1", {role: "user"}).firestore();
   const strangerDb = testEnv.authenticatedContext("stranger", {role: "user"}).firestore();
 
-  await assertSucceeds(getDoc(doc(guestDb, "artistPages", "janno")));
-  await assertSucceeds(updateDoc(doc(editorDb, "artistPages", "janno"), {
+  await assertSucceeds(getDoc(doc(guestDb, "artistPages", "zweizwei-janno")));
+  await assertSucceeds(updateDoc(doc(editorDb, "artistPages", "zweizwei-janno"), {
     bio: "Neue Bio",
     updatedAt: Timestamp.fromDate(new Date("2026-04-02T11:00:00.000Z")),
   }));
-  await assertFails(updateDoc(doc(strangerDb, "artistPages", "janno"), {
+  await assertFails(updateDoc(doc(strangerDb, "artistPages", "zweizwei-janno"), {
     bio: "Nope",
     updatedAt: Timestamp.fromDate(new Date("2026-04-02T11:00:00.000Z")),
   }));
 });
 
 test("Editoren duerfen artistPages nicht selbst umhaengen", async () => {
-  await seedArtistPage("janno", {
+  await seedArtistPage("zweizwei-janno", {
     editorUids: ["editor1"],
   });
 
   const editorDb = testEnv.authenticatedContext("editor1", {role: "user"}).firestore();
-  await assertFails(updateDoc(doc(editorDb, "artistPages", "janno"), {
+  await assertFails(updateDoc(doc(editorDb, "artistPages", "zweizwei-janno"), {
     editorUids: ["editor1", "editor2"],
     updatedAt: Timestamp.fromDate(new Date("2026-04-02T11:00:00.000Z")),
   }));
@@ -714,7 +714,7 @@ test("Editoren duerfen artistPages nicht selbst umhaengen", async () => {
 test("Owner darf artistPages anlegen und Editoren setzen", async () => {
   const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
 
-  await assertSucceeds(setDoc(doc(ownerDb, "artistPages", "yang-d-nash"), {
+  await assertSucceeds(setDoc(doc(ownerDb, "artistPages", "zweizwei-yang-d-nash"), {
     slug: "yang-d-nash",
     brand: "zweizwei",
     artistName: "Yang D. Nash",
@@ -737,7 +737,7 @@ test("owner email darf artistPages auch ohne owner claim anlegen", async () => {
     email: "nash.lioncorna@gmail.com",
   }).firestore();
 
-  await assertSucceeds(setDoc(doc(ownerEmailDb, "artistPages", "owner-email-artist"), {
+  await assertSucceeds(setDoc(doc(ownerEmailDb, "artistPages", "zweizwei-owner-email-artist"), {
     slug: "owner-email-artist",
     brand: "zweizwei",
     artistName: "Owner Mail Artist",
@@ -757,7 +757,7 @@ test("owner email darf artistPages auch ohne owner claim anlegen", async () => {
 test("Owner darf auch NICMA als editierbare Seite anlegen", async () => {
   const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
 
-  await assertSucceeds(setDoc(doc(ownerDb, "artistPages", "nicma-music"), {
+  await assertSucceeds(setDoc(doc(ownerDb, "artistPages", "nicma-nicma-music"), {
     slug: "nicma-music",
     brand: "nicma",
     artistName: "NICMA MUSIC",

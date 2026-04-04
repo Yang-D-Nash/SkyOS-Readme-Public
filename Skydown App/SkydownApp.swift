@@ -9,9 +9,13 @@ import FirebaseAppCheck
 import FirebaseCore
 import AVKit
 import GoogleSignIn
+import UIKit
+
+final class SkydownApplicationDelegate: NSObject, UIApplicationDelegate {}
 
 @main
 struct SkydownApp: App {
+    @UIApplicationDelegateAdaptor(SkydownApplicationDelegate.self) private var appDelegate
     @StateObject private var services = AppServices()
 
     init() {
