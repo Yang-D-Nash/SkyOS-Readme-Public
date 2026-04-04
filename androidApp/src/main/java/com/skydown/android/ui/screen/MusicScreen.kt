@@ -714,18 +714,11 @@ private fun MusicOverviewCard(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
             BrandPill(text = "Songs", tint = MaterialTheme.colorScheme.primary)
-            BrandPill(text = "Pages", tint = MaterialTheme.colorScheme.secondary)
+            BrandPill(
+                text = if (uiState.currentPreviewUrl != null) "Preview" else "${uiState.tracks.size} Tracks",
+                tint = MaterialTheme.colorScheme.secondary,
+            )
         }
-
-        Text(
-            text = if (uiState.currentPreviewUrl != null) {
-                "Preview laeuft."
-            } else {
-                "${uiState.tracks.size} Tracks."
-            },
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
-        )
     }
 }
 

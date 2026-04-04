@@ -64,6 +64,7 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.MerchandiseCard
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
@@ -250,20 +251,14 @@ private fun ShopOverviewCard(
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ShopBadge(
-                text = "${uiState.items.size} Produkte",
-                icon = Icons.Default.ShoppingBag,
-                isActive = uiState.items.isNotEmpty(),
-            )
-            ShopBadge(
+            BrandPill(text = "${uiState.items.size} Produkte", tint = SpotifyGreen)
+            BrandPill(
                 text = if (uiState.isStoreOpen) "Store offen" else "Store pausiert",
-                icon = if (uiState.isStoreOpen) Icons.Default.CheckCircle else Icons.Default.Sync,
-                isActive = uiState.isStoreOpen,
+                tint = if (uiState.isStoreOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
             )
-            ShopBadge(
+            BrandPill(
                 text = if (uiState.isLoggedIn) "Konto aktiv" else "Gast",
-                icon = if (uiState.isLoggedIn) Icons.Default.CheckCircle else Icons.Default.Sync,
-                isActive = uiState.isLoggedIn,
+                tint = MaterialTheme.colorScheme.tertiary,
             )
         }
     }

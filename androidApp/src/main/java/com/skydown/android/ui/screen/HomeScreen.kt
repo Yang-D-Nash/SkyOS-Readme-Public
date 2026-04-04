@@ -71,6 +71,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.AppContainer
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -79,6 +80,9 @@ import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.openTrackInSpotify
 import coil3.compose.AsyncImage
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
@@ -106,6 +110,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
 
     if (activeDestination == homeDestinationNicmaProducer) {
@@ -259,6 +264,27 @@ fun HomeScreen(
             ) {
                 item {
                     HomeAnimatedItem(order = 0) {
+                        BrandHeroCard(
+                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
+                            title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Releases, Beats und Videos." },
+                            detail = screenHeaderSettings.homeDetail.ifBlank { "Alles direkt im Home-Hub." },
+                            backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
+                            accent = MaterialTheme.colorScheme.primary,
+                            secondaryAccent = MaterialTheme.colorScheme.secondary,
+                            marks = listOf(BrandArtwork.Combined),
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                BrandPill(text = "Music", tint = MaterialTheme.colorScheme.primary)
+                                BrandPill(text = "Beats", tint = MaterialTheme.colorScheme.secondary)
+                                BrandPill(text = "Videos", tint = MaterialTheme.colorScheme.tertiary)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    HomeAnimatedItem(order = 1) {
                         HomeLatestReleaseCard(
                             uiState = uiState,
                             isPlaying = currentAudioKey == uiState.featuredTrack?.let(::homeTrackAudioKey),
@@ -293,13 +319,13 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 1) {
+                    HomeAnimatedItem(order = 2) {
                         HomeFieldGuideCard(uiState = uiState)
                     }
                 }
 
                 item {
-                    HomeAnimatedItem(order = 2) {
+                    HomeAnimatedItem(order = 3) {
                         HomeLatestBeatCard(
                             uiState = uiState,
                             isPlaying = currentAudioKey == uiState.featuredBeat?.let(::homeBeatAudioKey),
@@ -325,7 +351,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 3) {
+                    HomeAnimatedItem(order = 4) {
                         HomeLatestVideoCard(
                             uiState = uiState,
                             player = videoPlayer,
@@ -350,7 +376,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 4) {
+                    HomeAnimatedItem(order = 5) {
                         HomeStoryCard(
                             onOpenBeatHub = {
                                 audioPlayer.stop()
