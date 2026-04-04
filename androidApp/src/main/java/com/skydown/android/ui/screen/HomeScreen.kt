@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,15 +18,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
@@ -35,6 +37,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,7 +71,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.skydown.android.data.AppContainer
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -77,10 +79,6 @@ import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.openTrackInSpotify
 import coil3.compose.AsyncImage
 import com.skydown.android.ui.component.AppTopBarSessionActions
-import com.skydown.android.ui.component.BrandArtwork
-import com.skydown.android.ui.component.BrandHeroCard
-import com.skydown.android.ui.component.BrandPill
-import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
@@ -198,7 +196,6 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "Sky²²",
-                        "Alles direkt da.",
                     )
                 },
                 actions = {
@@ -247,11 +244,14 @@ fun HomeScreen(
                     skydownScreenBrush(),
                 ),
         ) {
+            HomeMapBackdrop(
+                modifier = Modifier.fillMaxSize(),
+            )
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = SkydownUiTokens.screenHorizontalPadding,
-                    top = innerPadding.calculateTopPadding() + SkydownUiTokens.screenTopPadding,
+                    top = innerPadding.calculateTopPadding() + 4.dp,
                     end = SkydownUiTokens.screenHorizontalPadding,
                     bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
                 ),
@@ -259,12 +259,6 @@ fun HomeScreen(
             ) {
                 item {
                     HomeAnimatedItem(order = 0) {
-                        HomeHeroCard()
-                    }
-                }
-
-                item {
-                    HomeAnimatedItem(order = 1) {
                         HomeLatestReleaseCard(
                             uiState = uiState,
                             isPlaying = currentAudioKey == uiState.featuredTrack?.let(::homeTrackAudioKey),
@@ -295,6 +289,12 @@ fun HomeScreen(
                                 )
                             },
                         )
+                    }
+                }
+
+                item {
+                    HomeAnimatedItem(order = 1) {
+                        HomeFieldGuideCard(uiState = uiState)
                     }
                 }
 
@@ -399,25 +399,412 @@ private fun HomeAnimatedItem(
 }
 
 @Composable
-private fun HomeHeroCard() {
-    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
-    BrandHeroCard(
-        eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
-        title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
-        subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Alles direkt im Blick." },
-        detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch, Tools." },
-        backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
-        accent = MaterialTheme.colorScheme.primary,
-        secondaryAccent = MaterialTheme.colorScheme.secondary,
-        marks = listOf(BrandArtwork.Combined),
+private fun HomeMapBackdrop(
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        HomeBackdropHalo(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 82.dp, y = (-38).dp),
+            size = 220.dp,
+            tint = SpotifyGreen.copy(alpha = 0.06f),
+        )
+        HomeBackdropHalo(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(x = (-94).dp, y = 96.dp),
+            size = 210.dp,
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.06f),
+        )
+        HomeBackdropHalo(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 92.dp, y = 156.dp),
+            size = 250.dp,
+            tint = InstagramOrange.copy(alpha = 0.05f),
+        )
+    }
+}
+
+@Composable
+private fun HomeBackdropHalo(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp,
+    tint: Color,
+) {
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)
-            BrandPill(text = "Shop", tint = MaterialTheme.colorScheme.tertiary)
-            BrandPill(text = "Tools", tint = MaterialTheme.colorScheme.secondary)
+        Box(
+            modifier = Modifier
+                .size(size)
+                .background(
+                    color = tint.copy(alpha = 0.18f),
+                    shape = CircleShape,
+                ),
+        )
+        listOf(0.78f, 0.56f, 0.34f).forEachIndexed { index, scale ->
+            Box(
+                modifier = Modifier
+                    .size(size * scale)
+                    .border(
+                        width = 1.dp,
+                        color = tint.copy(alpha = 0.16f - (index * 0.03f)),
+                        shape = CircleShape,
+                    ),
+            )
         }
     }
 }
+
+@Composable
+private fun HomeFieldGuideCard(
+    uiState: HomeUiState,
+) {
+    val signals = listOf(
+        HomeRadarSignal(
+            title = "Musik",
+            subtitle = uiState.featuredTrack?.trackName ?: "Naechster Release wird gesucht",
+            icon = Icons.Default.MusicNote,
+            accent = SpotifyGreen,
+            isActive = uiState.featuredTrack != null,
+        ),
+        HomeRadarSignal(
+            title = "Beats",
+            subtitle = uiState.featuredBeat?.title ?: "Beat Hub wird gescannt",
+            icon = Icons.Default.GraphicEq,
+            accent = MaterialTheme.colorScheme.secondary,
+            isActive = uiState.featuredBeat != null,
+        ),
+        HomeRadarSignal(
+            title = "Videos",
+            subtitle = uiState.featuredVideo?.title ?: "Naechster Clip wird gesucht",
+            icon = Icons.Default.Movie,
+            accent = InstagramOrange,
+            isActive = uiState.featuredVideo != null,
+        ),
+    )
+
+    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
+        HomeSectionBanner(
+            title = "Radar",
+            subtitle = "Schneller Ueberblick ueber neue Inhalte.",
+            icon = Icons.Default.Radar,
+            accent = MaterialTheme.colorScheme.secondary,
+        )
+
+        Text(
+            text = "Statt eines grossen Headers steht hier jetzt der aktuelle Status von Musik, Beats und Videos im Fokus.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier.padding(top = 10.dp),
+        )
+
+        HomeRadarSurface(
+            signals = signals,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+                .height(196.dp),
+        )
+
+        Column(
+            modifier = Modifier.padding(top = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            signals.forEach { signal ->
+                HomeRadarSignalRow(signal = signal)
+            }
+        }
+
+        Text(
+            text = "Zieh nach unten, um den Status neu zu laden.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+            modifier = Modifier.padding(top = 14.dp),
+        )
+    }
+}
+
+@Composable
+private fun HomeSectionBanner(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accent: Color,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.24f),
+                            accent.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = accent.copy(alpha = 0.26f),
+                    shape = RoundedCornerShape(18.dp),
+                )
+                .padding(10.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeRadarSurface(
+    signals: List<HomeRadarSignal>,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                        Color.Black.copy(alpha = 0.22f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f),
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                    ),
+                ),
+                shape = RoundedCornerShape(28.dp),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(196.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
+                            Color.Transparent,
+                        ),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+        listOf(188.dp, 134.dp, 80.dp).forEachIndexed { index, ringSize ->
+            Box(
+                modifier = Modifier
+                    .size(ringSize)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f - (index * 0.03f)),
+                        shape = CircleShape,
+                    ),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.84f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.78f),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.16f),
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+
+        signals.getOrNull(0)?.let { signal ->
+            HomeRadarNode(
+                signal = signal,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = 28.dp),
+            )
+        }
+        signals.getOrNull(1)?.let { signal ->
+            HomeRadarNode(
+                signal = signal,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = 46.dp, y = 26.dp),
+            )
+        }
+        signals.getOrNull(2)?.let { signal ->
+            HomeRadarNode(
+                signal = signal,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = (-40).dp, y = (-34).dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeRadarNode(
+    signal: HomeRadarSignal,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(if (signal.isActive) 54.dp else 48.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            signal.accent.copy(alpha = if (signal.isActive) 0.92f else 0.22f),
+                            signal.accent.copy(alpha = if (signal.isActive) 0.44f else 0.10f),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = signal.accent.copy(alpha = if (signal.isActive) 0.52f else 0.18f),
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = signal.icon,
+                contentDescription = null,
+                tint = if (signal.isActive) Color.White else signal.accent,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Text(
+            text = signal.title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun HomeRadarSignalRow(
+    signal: HomeRadarSignal,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        signal.accent.copy(alpha = if (signal.isActive) 0.16f else 0.06f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = signal.accent.copy(alpha = if (signal.isActive) 0.20f else 0.10f),
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(signal.accent.copy(alpha = if (signal.isActive) 1f else 0.32f)),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = signal.title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = signal.subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        }
+        HomeBadge(
+            text = if (signal.isActive) "AKTIV" else "SUCHE",
+            icon = if (signal.isActive) Icons.Default.CheckCircle else Icons.Default.Refresh,
+            isActive = signal.isActive,
+            accent = signal.accent,
+        )
+    }
+}
+
+private data class HomeRadarSignal(
+    val title: String,
+    val subtitle: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val accent: Color,
+    val isActive: Boolean,
+)
 
 @Composable
 private fun HomeLatestReleaseCard(
@@ -427,7 +814,12 @@ private fun HomeLatestReleaseCard(
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Gerade neu")
+        HomeSectionBanner(
+            title = "Musik",
+            subtitle = "Neuester Release direkt auf Home.",
+            icon = Icons.Default.MusicNote,
+            accent = SpotifyGreen,
+        )
         val track = uiState.featuredTrack
 
         if (track == null) {
@@ -485,11 +877,37 @@ private fun HomeLatestReleaseCard(
         val hasPreview = !track.previewUrl.isNullOrBlank()
         val hasSpotifyTarget = homeHasSpotifyTarget(track)
 
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HomeBadge(
+                text = track.artistName ?: "Zweizwei",
+                icon = Icons.Default.Person,
+                isActive = true,
+                accent = MaterialTheme.colorScheme.primary,
+            )
+            HomeBadge(
+                text = if (hasPreview) "Vorschau" else "Extern",
+                icon = if (hasPreview) Icons.Default.PlayArrow else Icons.Default.Info,
+                isActive = hasPreview,
+                accent = SpotifyGreen,
+            )
+            if (hasSpotifyTarget) {
+                HomeBadge(
+                    text = "Spotify",
+                    icon = Icons.Default.MusicNote,
+                    isActive = true,
+                    accent = SpotifyGreen,
+                )
+            }
+        }
+
         Text(
-                text = when {
-                hasPreview -> "Preview hier."
-                hasSpotifyTarget -> "Spotify."
-                else -> "Neuester Track."
+            text = when {
+                hasPreview -> "Die Vorschau startet direkt hier."
+                hasSpotifyTarget -> "Falls keine Vorschau da ist, springst du direkt zu Spotify."
+                else -> "Der neueste Track ist hier hinterlegt."
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
@@ -527,7 +945,7 @@ private fun HomeLatestReleaseCard(
                         contentDescription = null,
                     )
                     Text(
-                        text = "Spotify",
+                        text = homeSpotifyActionLabel(track),
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
@@ -544,7 +962,12 @@ private fun HomeLatestBeatCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Beat im Fokus")
+        HomeSectionBanner(
+            title = "Beats",
+            subtitle = "Neuester Beat aus dem Hub.",
+            icon = Icons.Default.GraphicEq,
+            accent = MaterialTheme.colorScheme.secondary,
+        )
         val beat = uiState.featuredBeat
 
         if (beat == null) {
@@ -601,6 +1024,24 @@ private fun HomeLatestBeatCard(
             }
         }
 
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HomeBadge(
+                text = beat.artistName,
+                icon = Icons.Default.Person,
+                isActive = true,
+                accent = MaterialTheme.colorScheme.secondary,
+            )
+            HomeBadge(
+                text = if (beat.isPlayable) "Abspielbar" else "Extern",
+                icon = if (beat.isPlayable) Icons.Default.PlayArrow else Icons.Default.Language,
+                isActive = beat.isPlayable,
+                accent = MaterialTheme.colorScheme.secondary,
+            )
+        }
+
         if (beat.isPlayable && beat.downloadUrl.isNotBlank()) {
             HomeMediaActionButton(
                 label = if (isPlaying) "Stop" else "Play",
@@ -634,7 +1075,12 @@ private fun HomeLatestVideoCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Video im Fokus")
+        HomeSectionBanner(
+            title = "Videos",
+            subtitle = "Aktueller Clip direkt auf Home.",
+            icon = Icons.Default.Movie,
+            accent = InstagramOrange,
+        )
         val video = uiState.featuredVideo
 
         if (video == null) {
@@ -689,6 +1135,24 @@ private fun HomeLatestVideoCard(
                     )
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HomeBadge(
+                text = video.projectName,
+                icon = Icons.Default.Movie,
+                isActive = true,
+                accent = InstagramOrange,
+            )
+            HomeBadge(
+                text = if (video.supportsInlinePlayback) "Direkt" else "Extern",
+                icon = if (video.supportsInlinePlayback) Icons.Default.PlayArrow else Icons.Default.Language,
+                isActive = video.supportsInlinePlayback,
+                accent = InstagramOrange,
+            )
         }
 
         Text(
@@ -823,10 +1287,15 @@ private fun HomeStoryCard(
 ) {
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        SectionHeader("Entdecken")
+        HomeSectionBanner(
+            title = "Direkt weiter",
+            subtitle = "Schnell zu Beats, Studio und Kontakt.",
+            icon = Icons.Default.AutoAwesome,
+            accent = MaterialTheme.colorScheme.primary,
+        )
 
         Text(
-            text = "Schnell rein in Musik, Studio und Kontakt.",
+            text = "Von hier aus springst du ohne Umwege in die wichtigsten Bereiche.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1036,7 +1505,20 @@ private fun HomeLaneSection(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.04f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(18.dp),
+            )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -1059,14 +1541,15 @@ private fun HomeBadge(
     text: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isActive: Boolean,
+    accent: Color,
 ) {
     val backgroundColor = if (isActive) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+        accent.copy(alpha = 0.16f)
     } else {
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.70f)
     }
     val contentColor = if (isActive) {
-        MaterialTheme.colorScheme.primary
+        accent
     } else {
         MaterialTheme.colorScheme.onSecondaryContainer
     }

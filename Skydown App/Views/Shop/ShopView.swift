@@ -40,8 +40,16 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                    HomeHeroIntroCard(colorScheme: colorScheme)
+                    HomeHeroIntroCard(
+                        viewModel: viewModel,
+                        colorScheme: colorScheme
+                    )
                         .homeReveal(0)
+                    HomeFieldGuideCard(
+                        viewModel: viewModel,
+                        colorScheme: colorScheme
+                    )
+                    .homeReveal(1)
                     HomeLatestReleaseCard(
                         viewModel: viewModel,
                         playbackManager: audioPlayerManager,
@@ -51,7 +59,7 @@ struct HomeView: View {
                         videoPlaybackManager.stop()
                         audioPlayerManager.playPreview(for: track)
                     }
-                    .homeReveal(1)
+                    .homeReveal(2)
                     HomeLatestBeatCard(
                         viewModel: viewModel,
                         playbackManager: beatPlaybackManager,
@@ -61,7 +69,7 @@ struct HomeView: View {
                         videoPlaybackManager.stop()
                         beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
                     }
-                    .homeReveal(2)
+                    .homeReveal(3)
                     HomeLatestVideoCard(
                         viewModel: viewModel,
                         playbackManager: videoPlaybackManager,
@@ -71,7 +79,7 @@ struct HomeView: View {
                         audioPlayerManager.stop()
                         videoPlaybackManager.togglePlayback(for: video)
                     }
-                    .homeReveal(3)
+                    .homeReveal(4)
                     HomeStoryCard(
                         colorScheme: colorScheme,
                         onOpenBeatHub: {
@@ -87,7 +95,7 @@ struct HomeView: View {
                             presentSheet(.nicmaProducer)
                         }
                     )
-                    .homeReveal(4)
+                    .homeReveal(5)
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.top, SkydownLayout.screenTopPadding * 0.5)
@@ -97,7 +105,13 @@ struct HomeView: View {
             .refreshable {
                 viewModel.refresh()
             }
-            .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+            .background {
+                AppColors.screenGradient(for: colorScheme)
+                    .overlay {
+                        HomeMapBackdrop(colorScheme: colorScheme)
+                    }
+                    .ignoresSafeArea()
+            }
             .navigationTitle("Sky²²")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
@@ -332,11 +346,77 @@ struct ShopView: View {
     }
 }
 
+private struct HomeMapBackdrop: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        ZStack {
+            HomeBackdropHalo(
+                tint: AppColors.spotify(for: colorScheme),
+                size: 280,
+                opacity: colorScheme == .dark ? 0.09 : 0.07
+            )
+            .offset(x: 168, y: -138)
+
+            HomeBackdropHalo(
+                tint: AppColors.accentMystic(for: colorScheme),
+                size: 240,
+                opacity: colorScheme == .dark ? 0.10 : 0.08
+            )
+            .offset(x: -172, y: 210)
+
+            HomeBackdropHalo(
+                tint: AppColors.instagramEnd(for: colorScheme),
+                size: 320,
+                opacity: colorScheme == .dark ? 0.08 : 0.06
+            )
+            .offset(x: 154, y: 498)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+private struct HomeBackdropHalo: View {
+    let tint: Color
+    let size: CGFloat
+    let opacity: Double
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(tint.opacity(opacity))
+                .frame(width: size, height: size)
+                .blur(radius: 34)
+
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .stroke(
+                        tint.opacity(opacity - Double(index) * 0.02),
+                        lineWidth: 1
+                    )
+                    .frame(
+                        width: size * (1 - CGFloat(index) * 0.22),
+                        height: size * (1 - CGFloat(index) * 0.22)
+                    )
+            }
+        }
+    }
+}
+
 private struct HomeHeroIntroCard: View {
+    @ObservedObject var viewModel: HomeViewModel
     let colorScheme: ColorScheme
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
 
     var body: some View {
+        let availableSignals = [
+            viewModel.featuredTrack != nil,
+            viewModel.featuredBeat != nil,
+            viewModel.featuredVideo != nil
+        ]
+        .filter { $0 }
+        .count
+
         BrandHeroSurface(
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Sky²² Home",
@@ -348,24 +428,384 @@ private struct HomeHeroIntroCard: View {
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydownX22]
         ) {
-            HStack(spacing: 10) {
-                BrandHeroPill(
-                    text: "Home",
-                    colorScheme: colorScheme,
-                    tint: AppColors.accent(for: colorScheme)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    BrandHeroPill(
+                        text: viewModel.featuredTrack == nil ? "Track scannt" : "Track live",
+                        colorScheme: colorScheme,
+                        tint: AppColors.spotify(for: colorScheme)
+                    )
+                    BrandHeroPill(
+                        text: viewModel.featuredBeat == nil ? "Beat scannt" : "Beat live",
+                        colorScheme: colorScheme,
+                        tint: AppColors.accentMystic(for: colorScheme)
+                    )
+                    BrandHeroPill(
+                        text: viewModel.featuredVideo == nil ? "Video scannt" : "Video live",
+                        colorScheme: colorScheme,
+                        tint: AppColors.instagramEnd(for: colorScheme)
+                    )
+                }
+
+                Text(
+                    availableSignals > 0
+                        ? "\(availableSignals) Signale in Reichweite. Pull to refresh haelt den Radar scharf."
+                        : "Der Radar sucht gerade nach neuen Drops, Visuals und Hubs."
                 )
-                BrandHeroPill(
-                    text: "Shop",
-                    colorScheme: colorScheme,
-                    tint: AppColors.accentHighlight(for: colorScheme)
-                )
-                BrandHeroPill(
-                    text: "Tools",
-                    colorScheme: colorScheme,
-                    tint: AppColors.accentMystic(for: colorScheme)
-                )
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.82))
             }
         }
+    }
+}
+
+private struct HomeFieldGuideCard: View {
+    @ObservedObject var viewModel: HomeViewModel
+    let colorScheme: ColorScheme
+
+    private var signals: [HomeRadarSignal] {
+        [
+            HomeRadarSignal(
+                title: "Music",
+                subtitle: viewModel.featuredTrack?.trackName ?? "Naechster Release wird gesucht",
+                icon: "music.note",
+                accent: AppColors.spotify(for: colorScheme),
+                isActive: viewModel.featuredTrack != nil
+            ),
+            HomeRadarSignal(
+                title: "Beat",
+                subtitle: viewModel.featuredBeat?.title ?? "Beat Hub wird gescannt",
+                icon: "waveform",
+                accent: AppColors.accentMystic(for: colorScheme),
+                isActive: viewModel.featuredBeat != nil
+            ),
+            HomeRadarSignal(
+                title: "Visual",
+                subtitle: viewModel.featuredVideo?.title ?? "Naechster Clip wird gesucht",
+                icon: "video.fill",
+                accent: AppColors.instagramEnd(for: colorScheme),
+                isActive: viewModel.featuredVideo != nil
+            )
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HomeSectionBanner(
+                title: "Expedition Radar",
+                subtitle: "Nearby feed fuer Musik, Beats und Visuals.",
+                icon: "scope",
+                colorScheme: colorScheme,
+                accent: AppColors.accentMystic(for: colorScheme)
+            )
+
+            Text("Der Hub fuehlt sich jetzt wie eine Karte an: Alles Wichtige taucht direkt im Scan-Bereich auf.")
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HomeRadarSurface(
+                signals: signals,
+                colorScheme: colorScheme
+            )
+            .frame(height: 240)
+
+            VStack(spacing: 10) {
+                ForEach(signals) { signal in
+                    HomeRadarSignalRow(
+                        signal: signal,
+                        colorScheme: colorScheme
+                    )
+                }
+            }
+
+            Text("Pull to refresh fuer einen neuen Scan.")
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentMystic(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
+        )
+    }
+}
+
+private struct HomeSectionBanner: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let colorScheme: ColorScheme
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                accent.opacity(colorScheme == .dark ? 0.24 : 0.18),
+                                accent.opacity(colorScheme == .dark ? 0.12 : 0.08),
+                                AppColors.secondaryBackground(for: colorScheme).opacity(0.68)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accent.opacity(0.26), lineWidth: 1)
+
+                Image(systemName: icon)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(accent)
+            }
+            .frame(width: 48, height: 48)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(AppTypography.cardTitle)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(subtitle)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Spacer()
+        }
+    }
+}
+
+private struct HomeSignalBadge: View {
+    let text: String
+    let icon: String
+    let colorScheme: ColorScheme
+    let accent: Color
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2.weight(.bold))
+
+            Text(text)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+        }
+        .foregroundColor(isActive ? accent : AppColors.secondaryText(for: colorScheme))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            Capsule(style: .continuous)
+                .fill(
+                    isActive
+                        ? accent.opacity(colorScheme == .dark ? 0.18 : 0.14)
+                        : AppColors.secondaryBackground(for: colorScheme).opacity(0.72)
+                )
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(
+                    isActive
+                        ? accent.opacity(0.20)
+                        : AppColors.accent(for: colorScheme).opacity(0.10),
+                    lineWidth: 1
+                )
+        )
+    }
+}
+
+private struct HomeRadarSignal: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let icon: String
+    let accent: Color
+    let isActive: Bool
+}
+
+private struct HomeRadarSurface: View {
+    let signals: [HomeRadarSignal]
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = min(proxy.size.width, proxy.size.height)
+            let outerRing = size * 0.78
+            let middleRing = size * 0.56
+            let innerRing = size * 0.34
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.995),
+                                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.12),
+                                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08),
+                                Color.black.opacity(colorScheme == .dark ? 0.26 : 0.06)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
+
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.14),
+                                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.08),
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 18,
+                            endRadius: outerRing * 0.62
+                        )
+                    )
+                    .frame(width: outerRing, height: outerRing)
+
+                ForEach([outerRing, middleRing, innerRing], id: \.self) { ring in
+                    Circle()
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                        .frame(width: ring, height: ring)
+                }
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppColors.accent(for: colorScheme).opacity(0.88),
+                                AppColors.accentMystic(for: colorScheme).opacity(0.78)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                    )
+
+                Image(systemName: "sparkles")
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(.white)
+
+                if let first = signals[safe: 0] {
+                    HomeRadarNode(signal: first, colorScheme: colorScheme)
+                        .offset(y: -76)
+                }
+
+                if let second = signals[safe: 1] {
+                    HomeRadarNode(signal: second, colorScheme: colorScheme)
+                        .offset(x: -82, y: 32)
+                }
+
+                if let third = signals[safe: 2] {
+                    HomeRadarNode(signal: third, colorScheme: colorScheme)
+                        .offset(x: 86, y: 78)
+                }
+            }
+        }
+    }
+}
+
+private struct HomeRadarNode: View {
+    let signal: HomeRadarSignal
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            signal.accent.opacity(signal.isActive ? 0.92 : 0.24),
+                            signal.accent.opacity(signal.isActive ? 0.42 : 0.10)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(
+                    width: signal.isActive ? 54 : 48,
+                    height: signal.isActive ? 54 : 48
+                )
+                .overlay(
+                    Circle()
+                        .stroke(signal.accent.opacity(signal.isActive ? 0.46 : 0.18), lineWidth: 1)
+                )
+                .overlay {
+                    Image(systemName: signal.icon)
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(signal.isActive ? .white : signal.accent)
+                }
+
+            Text(signal.title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+        }
+    }
+}
+
+private struct HomeRadarSignalRow: View {
+    let signal: HomeRadarSignal
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(signal.accent.opacity(signal.isActive ? 1 : 0.32))
+                .frame(width: 12, height: 12)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(signal.title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(signal.subtitle)
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            HomeSignalBadge(
+                text: signal.isActive ? "LIVE" : "SCAN",
+                icon: signal.isActive ? "checkmark.circle.fill" : "arrow.clockwise",
+                colorScheme: colorScheme,
+                accent: signal.accent,
+                isActive: signal.isActive
+            )
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.995),
+                            signal.accent.opacity(signal.isActive ? 0.16 : 0.06)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(signal.accent.opacity(signal.isActive ? 0.20 : 0.10), lineWidth: 1)
+        )
     }
 }
 
@@ -378,9 +818,13 @@ private struct HomeLatestReleaseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Gerade neu")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            HomeSectionBanner(
+                title: "Music Radar",
+                subtitle: "Frischer Release direkt im Hub.",
+                icon: "music.note",
+                colorScheme: colorScheme,
+                accent: AppColors.spotify(for: colorScheme)
+            )
 
             if let track = viewModel.featuredTrack {
                 let hasPreview = !(track.previewUrl?.isEmpty ?? true)
@@ -415,11 +859,37 @@ private struct HomeLatestReleaseCard: View {
                     Spacer()
                 }
 
-                HStack(spacing: 10) {
-                    Text(hasPreview ? "Preview hier." : (hasSpotifyTarget ? "Spotify." : "Neuester Track."))
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        HomeSignalBadge(
+                            text: track.artistName ?? "Zweizwei",
+                            icon: "person.fill",
+                            colorScheme: colorScheme,
+                            accent: AppColors.accent(for: colorScheme),
+                            isActive: true
+                        )
+                        HomeSignalBadge(
+                            text: hasPreview ? "Preview" : "Nur extern",
+                            icon: hasPreview ? "play.fill" : "info.circle.fill",
+                            colorScheme: colorScheme,
+                            accent: AppColors.spotify(for: colorScheme),
+                            isActive: hasPreview
+                        )
+                        if hasSpotifyTarget {
+                            HomeSignalBadge(
+                                text: "Spotify",
+                                icon: "music.note",
+                                colorScheme: colorScheme,
+                                accent: AppColors.spotify(for: colorScheme),
+                                isActive: true
+                            )
+                        }
+                    }
                 }
+
+                Text(hasPreview ? "Preview hier." : (hasSpotifyTarget ? "Spotify." : "Neuester Track."))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 VStack(spacing: 10) {
                     if hasPreview {
@@ -435,7 +905,7 @@ private struct HomeLatestReleaseCard: View {
 
                     if let spotifyURL = homeSpotifyTargetURL(for: track) {
                         HomeActionButton(
-                            title: "Spotify",
+                            title: homeSpotifyActionTitle(for: track),
                             icon: "music.note",
                             colorScheme: colorScheme,
                             brand: .spotify,
@@ -479,9 +949,13 @@ private struct HomeLatestBeatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Beat im Fokus")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            HomeSectionBanner(
+                title: "Beat Radar",
+                subtitle: "Studio-Energie fuer den naechsten Drop.",
+                icon: "waveform",
+                colorScheme: colorScheme,
+                accent: AppColors.accentMystic(for: colorScheme)
+            )
 
             if let beat = viewModel.featuredBeat {
                 HStack(alignment: .top, spacing: 14) {
@@ -512,6 +986,25 @@ private struct HomeLatestBeatCard: View {
                     }
 
                     Spacer()
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        HomeSignalBadge(
+                            text: beat.artistName,
+                            icon: "person.fill",
+                            colorScheme: colorScheme,
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            isActive: true
+                        )
+                        HomeSignalBadge(
+                            text: beat.isPlayable ? "Playable" : "Extern",
+                            icon: beat.isPlayable ? "play.fill" : "globe",
+                            colorScheme: colorScheme,
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            isActive: beat.isPlayable
+                        )
+                    }
                 }
 
                 if beat.isPlayable, !beat.downloadURL.isEmpty {
@@ -561,9 +1054,13 @@ private struct HomeLatestVideoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Video im Fokus")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            HomeSectionBanner(
+                title: "Visual Radar",
+                subtitle: "Dein naechster Clip im direkten Sichtfeld.",
+                icon: "video.fill",
+                colorScheme: colorScheme,
+                accent: AppColors.instagramEnd(for: colorScheme)
+            )
 
             if let video = viewModel.featuredVideo {
                 HStack(alignment: .top, spacing: 14) {
@@ -594,6 +1091,25 @@ private struct HomeLatestVideoCard: View {
                     }
 
                     Spacer()
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        HomeSignalBadge(
+                            text: video.projectName,
+                            icon: "video.fill",
+                            colorScheme: colorScheme,
+                            accent: AppColors.instagramEnd(for: colorScheme),
+                            isActive: true
+                        )
+                        HomeSignalBadge(
+                            text: video.supportsInlinePlayback ? "Inline" : "Extern",
+                            icon: video.supportsInlinePlayback ? "play.fill" : "globe",
+                            colorScheme: colorScheme,
+                            accent: AppColors.instagramEnd(for: colorScheme),
+                            isActive: video.supportsInlinePlayback
+                        )
+                    }
                 }
 
                 Text("Direkt hier.")
@@ -696,11 +1212,15 @@ private struct HomeStoryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Entdecken")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            HomeSectionBanner(
+                title: "Routen & Hubs",
+                subtitle: "Naechste Stationen fuer Musik, Studio und Kontakt.",
+                icon: "sparkles",
+                colorScheme: colorScheme,
+                accent: AppColors.accent(for: colorScheme)
+            )
 
-            Text("Schnell rein in Musik, Studio und Kontakt.")
+            Text("Starte direkt in deine naechste Route und spring von der Karte in den passenden Hub.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -830,6 +1350,20 @@ private struct HomeLaneSection<Content: View>: View {
             }
         }
         .padding(SkydownLayout.cardPadding - 2)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius + 2, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.99),
+                            AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.54),
+                            AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.05)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
         .skydownPanelSurface(
             colorScheme: colorScheme,
             accent: AppColors.accent(for: colorScheme),
@@ -924,6 +1458,13 @@ private struct HomeRevealModifier: ViewModifier {
 private extension View {
     func homeReveal(_ order: Int) -> some View {
         modifier(HomeRevealModifier(order: order))
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else { return nil }
+        return self[index]
     }
 }
 
