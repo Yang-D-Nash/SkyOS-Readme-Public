@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -67,7 +68,10 @@ fun BrandHeroCard(
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
-    val hasHeaderImage = !backgroundImageUrl.isNullOrBlank()
+    val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
+    val titleColor = if (hasBackgroundImage) Color.White else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.84f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
+    val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.96f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f)
 
     Box(
         modifier = Modifier
@@ -96,17 +100,53 @@ fun BrandHeroCard(
             )
             .skydownSheen(accent = accent, alpha = 0.14f),
     ) {
+        if (hasBackgroundImage) {
+            AsyncImage(
+                model = backgroundImageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.38f)),
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.18f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.48f),
+                            ),
+                        ),
+                    ),
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                accent.copy(alpha = 0.10f),
+                                Color.Transparent,
+                                secondaryAccent.copy(alpha = 0.10f),
+                            ),
+                        ),
+                    ),
+            )
+        }
+
         Column(
             modifier = Modifier.padding(SkydownUiTokens.heroPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (hasHeaderImage) {
-                BrandHeaderImagePanel(
-                    imageUrl = backgroundImageUrl.orEmpty(),
-                    accent = accent,
-                )
-            }
-
             Box(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
@@ -141,38 +181,36 @@ fun BrandHeroCard(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = titleColor,
                             fontWeight = FontWeight.Black,
                         )
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                            color = subtitleColor,
                         )
                         if (!detail.isNullOrBlank()) {
                             Text(
                                 text = detail,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f),
+                                color = detailColor,
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
                     }
 
-                    when {
-                        !hasHeaderImage && marks.isNotEmpty() -> {
-                            Column(
-                                modifier = Modifier
-                                    .width(if (marks.size == 1) 118.dp else 96.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                marks.take(2).forEach { mark ->
-                                    BrandArtworkTile(
-                                        mark = mark,
-                                        accent = accent,
-                                        isFeatured = marks.size == 1,
-                                    )
-                                }
+                    if (marks.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .width(if (marks.size == 1) 118.dp else 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            marks.take(2).forEach { mark ->
+                                BrandArtworkTile(
+                                    mark = mark,
+                                    accent = accent,
+                                    isFeatured = marks.size == 1,
+                                )
                             }
                         }
                     }
@@ -181,44 +219,6 @@ fun BrandHeroCard(
 
             footer()
         }
-    }
-}
-
-@Composable
-private fun BrandHeaderImagePanel(
-    imageUrl: String,
-    accent: Color,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(132.dp)
-            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
-                        accent.copy(alpha = 0.10f),
-                        Color.Black.copy(alpha = 0.20f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = 0.16f),
-                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-            )
-            .padding(10.dp),
-    ) {
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(112.dp)
-                .align(Alignment.Center),
-            contentScale = ContentScale.Fit,
-        )
     }
 }
 
