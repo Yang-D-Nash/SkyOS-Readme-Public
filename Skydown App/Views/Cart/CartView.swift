@@ -42,8 +42,8 @@ struct CartView: View {
     @State private var message = "Ich interessiere mich für die Artikel in meinem Warenkorb."
     @State private var showConfirmationDialog = false
     @State private var isSubmitting = false
-    @State private var showingLoginSheet = false
-    @State private var orderMailDraft: OrderMailDraft?
+    @State private var activePresentedSheet: CartPresentedSheet?
+    @State private var queuedPresentedSheet: CartPresentedSheet?
     @State private var selectedPaymentMethod = ""
 
     private var isFormValid: Bool {
@@ -146,7 +146,7 @@ struct CartView: View {
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                             Button {
-                                showingLoginSheet = true
+                                presentSheet(.login)
                             } label: {
                                 Label("Anmelden", systemImage: "person.crop.circle.fill.badge.plus")
                                     .font(.headline)
@@ -377,16 +377,18 @@ struct CartView: View {
                 hostedCheckoutRedirectStore.clear()
             }
         }
-        .sheet(isPresented: $showingLoginSheet) {
-            LoginView()
-        }
-        .sheet(item: $orderMailDraft) { draft in
-            MailView(
-                subject: draft.subject,
-                body: draft.body,
-                recipients: [supportMailbox],
-                preferredSendingEmailAddress: draft.preferredSendingEmailAddress
-            )
+        .sheet(item: $activePresentedSheet) { sheet in
+            switch sheet {
+            case .login:
+                LoginView()
+            case .mail(let draft):
+                MailView(
+                    subject: draft.subject,
+                    body: draft.body,
+                    recipients: [supportMailbox],
+                    preferredSendingEmailAddress: draft.preferredSendingEmailAddress
+                )
+            }
         }
         .confirmationDialog(
             isHostedCheckoutSelection ? "Zum sicheren Checkout" : "Bestellung abschicken",
@@ -409,6 +411,23 @@ struct CartView: View {
         .fancyToast(isPresented: $cartVM.showToast,
                     message: cartVM.toastMessage,
                     style: cartVM.toastStyle)
+        .onChange(of: activePresentedSheet) { _, sheet in
+            guard sheet == nil, let queuedPresentedSheet else { return }
+            self.queuedPresentedSheet = nil
+            DispatchQueue.main.async {
+                activePresentedSheet = queuedPresentedSheet
+            }
+        }
+    }
+
+    private func presentSheet(_ sheet: CartPresentedSheet) {
+        guard activePresentedSheet == nil else {
+            queuedPresentedSheet = sheet
+            activePresentedSheet = nil
+            return
+        }
+
+        activePresentedSheet = sheet
     }
 
     private func submitOrderAsync() async {
@@ -563,7 +582,7 @@ struct CartView: View {
 
     private func presentOrderMailDraft(_ draft: OrderMailDraft) {
         if MFMailComposeViewController.canSendMail() {
-            orderMailDraft = draft
+            presentSheet(.mail(draft))
             return
         }
 
@@ -825,11 +844,25 @@ private struct SelectedPaymentMethodInfoCard: View {
     }
 }
 
-private struct OrderMailDraft: Identifiable {
+private struct OrderMailDraft: Identifiable, Equatable {
     let id = UUID()
     let subject: String
     let body: String
     let preferredSendingEmailAddress: String?
+}
+
+private enum CartPresentedSheet: Identifiable, Equatable {
+    case login
+    case mail(OrderMailDraft)
+
+    var id: String {
+        switch self {
+        case .login:
+            return "login"
+        case .mail(let draft):
+            return "mail-\(draft.id.uuidString)"
+        }
+    }
 }
 
 private struct CartPricingSummary {

@@ -25,8 +25,8 @@ struct ArtistPageView: View {
     @State private var showToast = false
     @State private var toastStyle: ToastStyle = .success
     @State private var selectedTrackID: Int?
-    @State private var selectedYouTubeItem: SkydownYouTubeVideoItem?
-    @State private var pendingImageTarget: ArtistPageEditableImageTarget?
+    @State private var activePresentedSheet: ArtistPagePresentedSheet?
+    @State private var queuedPresentedSheet: ArtistPagePresentedSheet?
     @State private var activeImageUploadTarget: ArtistPageEditableImageTarget?
     private let editableImageUploadService = EditableImageAssetUploadService()
 
@@ -118,9 +118,6 @@ struct ArtistPageView: View {
             message: toastMessage,
             style: toastStyle
         )
-        .sheet(item: $selectedYouTubeItem) { item in
-            YouTubeEmbedPlayerView(item: item)
-        }
         .onAppear {
             syncDrafts()
         }
@@ -143,9 +140,21 @@ struct ArtistPageView: View {
                 selectedTrackID = tracks.first?.trackId
             }
         }
-        .sheet(item: $pendingImageTarget) { target in
-            SingleImagePicker { provider in
-                handleEditableImageProvider(provider, for: target)
+        .sheet(item: $activePresentedSheet) { sheet in
+            switch sheet {
+            case .youTube(let item):
+                YouTubeEmbedPlayerView(item: item)
+            case .editableImage(let target):
+                SingleImagePicker { provider in
+                    handleEditableImageProvider(provider, for: target)
+                }
+            }
+        }
+        .onChange(of: activePresentedSheet) { _, sheet in
+            guard sheet == nil, let queuedPresentedSheet else { return }
+            self.queuedPresentedSheet = nil
+            DispatchQueue.main.async {
+                activePresentedSheet = queuedPresentedSheet
             }
         }
         .onDisappear {
@@ -153,11 +162,21 @@ struct ArtistPageView: View {
         }
     }
 
+    private func presentSheet(_ sheet: ArtistPagePresentedSheet) {
+        guard activePresentedSheet == nil else {
+            queuedPresentedSheet = sheet
+            activePresentedSheet = nil
+            return
+        }
+
+        activePresentedSheet = sheet
+    }
+
     private func handleEditableImageProvider(
         _ temporaryFileURL: URL?,
         for target: ArtistPageEditableImageTarget
     ) {
-        pendingImageTarget = nil
+        activePresentedSheet = nil
 
         guard let temporaryFileURL else {
             return
@@ -366,12 +385,12 @@ struct ArtistPageView: View {
             ForEach(socialLinks.prefix(3)) { link in
                 Button {
                     if link.kind == .youtube {
-                        selectedYouTubeItem = SkydownYouTubeVideoItem(
+                        presentSheet(.youTube(SkydownYouTubeVideoItem(
                             id: "artist-\(page.slug)-hero-youtube",
                             title: page.artistName,
                             subtitle: "Videos & Releases",
                             urlString: link.url
-                        )
+                        )))
                     } else if let url = URL(string: link.url) {
                         openURL(url)
                     }
@@ -553,12 +572,12 @@ struct ArtistPageView: View {
                 ForEach(socialLinks) { link in
                     Button {
                         if link.kind == .youtube {
-                            selectedYouTubeItem = SkydownYouTubeVideoItem(
+                            presentSheet(.youTube(SkydownYouTubeVideoItem(
                                 id: "artist-\(page.slug)-links-youtube",
                                 title: page.artistName,
                                 subtitle: link.subtitle,
                                 urlString: link.url
-                            )
+                            )))
                         } else if let url = URL(string: link.url) {
                             openURL(url)
                         }
@@ -635,7 +654,7 @@ struct ArtistPageView: View {
                 colorScheme: colorScheme,
                 isUploading: activeImageUploadTarget == .profile,
                 uploadStatusText: "Profilbild wird fuer die Artist-Seite uebernommen.",
-                onPickImage: { pendingImageTarget = .profile },
+                onPickImage: { presentSheet(.editableImage(.profile)) },
                 onRemoveImage: { removeEditableImage(for: .profile) }
             )
 
@@ -645,7 +664,7 @@ struct ArtistPageView: View {
                 colorScheme: colorScheme,
                 isUploading: activeImageUploadTarget == .hero,
                 uploadStatusText: "Hero-Bild wird fuer die Artist-Seite uebernommen.",
-                onPickImage: { pendingImageTarget = .hero },
+                onPickImage: { presentSheet(.editableImage(.hero)) },
                 onRemoveImage: { removeEditableImage(for: .hero) }
             )
 
@@ -778,11 +797,25 @@ struct ArtistPageView: View {
 
 }
 
-private enum ArtistPageEditableImageTarget: String, Identifiable {
+private enum ArtistPageEditableImageTarget: String, Identifiable, Equatable {
     case profile
     case hero
 
     var id: String { rawValue }
+}
+
+private enum ArtistPagePresentedSheet: Identifiable, Equatable {
+    case youTube(SkydownYouTubeVideoItem)
+    case editableImage(ArtistPageEditableImageTarget)
+
+    var id: String {
+        switch self {
+        case .youTube(let item):
+            return "youtube-\(item.id)"
+        case .editableImage(let target):
+            return "editable-image-\(target.rawValue)"
+        }
+    }
 }
 
 private struct ArtistPageSocialLink: Identifiable {

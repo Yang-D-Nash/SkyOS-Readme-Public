@@ -15,8 +15,8 @@ struct HomeView: View {
     @StateObject private var beatPlaybackManager = BeatPlaybackManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
     @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
-    @State private var showingBeatHub = false
-    @State private var showingNicmaProducer = false
+    @State private var activePresentedSheet: HomePresentedSheet?
+    @State private var queuedPresentedSheet: HomePresentedSheet?
     @State private var hasLoadedInitialHomeContent = false
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
@@ -78,13 +78,13 @@ struct HomeView: View {
                             beatPlaybackManager.stop()
                             audioPlayerManager.stop()
                             videoPlaybackManager.stop()
-                            showingBeatHub = true
+                            presentSheet(.beatHub)
                         },
                         onOpenNicma: {
                             beatPlaybackManager.stop()
                             audioPlayerManager.stop()
                             videoPlaybackManager.stop()
-                            showingNicmaProducer = true
+                            presentSheet(.nicmaProducer)
                         }
                     )
                     .homeReveal(4)
@@ -143,17 +143,41 @@ struct HomeView: View {
                 videoPlaybackManager.stop()
             }
         }
-        .sheet(isPresented: $showingBeatHub) {
+        .sheet(item: $activePresentedSheet) { sheet in
             NavigationStack {
-                BeatHubView()
+                switch sheet {
+                case .beatHub:
+                    BeatHubView()
+                case .nicmaProducer:
+                    NicmaProducerView()
+                }
             }
         }
-        .sheet(isPresented: $showingNicmaProducer) {
-            NavigationStack {
-                NicmaProducerView()
+        .onChange(of: activePresentedSheet) { _, sheet in
+            guard sheet == nil, let queuedPresentedSheet else { return }
+            self.queuedPresentedSheet = nil
+            DispatchQueue.main.async {
+                activePresentedSheet = queuedPresentedSheet
             }
         }
     }
+
+    private func presentSheet(_ sheet: HomePresentedSheet) {
+        guard activePresentedSheet == nil else {
+            queuedPresentedSheet = sheet
+            activePresentedSheet = nil
+            return
+        }
+
+        activePresentedSheet = sheet
+    }
+}
+
+private enum HomePresentedSheet: String, Identifiable, Equatable {
+    case beatHub
+    case nicmaProducer
+
+    var id: String { rawValue }
 }
 
 struct ShopView: View {

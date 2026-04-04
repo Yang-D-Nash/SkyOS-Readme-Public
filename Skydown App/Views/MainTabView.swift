@@ -38,6 +38,15 @@ private enum ZweizweiDestination {
     case nicma
 }
 
+private enum MainTabModal: String, Identifiable, Equatable {
+    case settings
+    case profile
+    case cart
+    case login
+
+    var id: String { rawValue }
+}
+
 struct MainTabView: View {
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @Environment(\.colorScheme) private var systemColorScheme
@@ -45,11 +54,8 @@ struct MainTabView: View {
     @EnvironmentObject private var featureFlags: FeatureFlagsService
     @EnvironmentObject private var authManager: AuthManager
     @State private var selectedTab: MainTab = .hub
-    @State private var showingSettings = false
-    @State private var isPreparingSettingsPresentation = false
-    @State private var showingProfile = false
-    @State private var showingCart = false
-    @State private var showingLogin = false
+    @State private var activeModal: MainTabModal?
+    @State private var queuedModal: MainTabModal?
     @State private var showsWorkflowWorkspace = false
 
     private var preferredScheme: ColorScheme? {
@@ -81,10 +87,10 @@ struct MainTabView: View {
                 DeferredView {
                     ShopView(
                         authManager: services.authManager,
-                        onOpenLogin: { showingLogin = true },
-                        onOpenCart: { showingCart = true },
-                        onOpenProfile: { showingProfile = true },
-                        onOpenSettings: openSettings,
+                        onOpenLogin: { presentModal(.login) },
+                        onOpenCart: { presentModal(.cart) },
+                        onOpenProfile: { presentModal(.profile) },
+                        onOpenSettings: { presentModal(.settings) },
                         merchandiseService: services.merchandiseService
                     )
                 }
@@ -93,9 +99,9 @@ struct MainTabView: View {
 
                 DeferredView {
                     ZweizweiTabView(
-                        onOpenCart: { showingCart = true },
-                        onOpenProfile: { showingProfile = true },
-                        onOpenSettings: openSettings
+                        onOpenCart: { presentModal(.cart) },
+                        onOpenProfile: { presentModal(.profile) },
+                        onOpenSettings: { presentModal(.settings) }
                     )
                 }
                 .tabItem { Label("Music", systemImage: "waveform.circle.fill") }
@@ -103,9 +109,9 @@ struct MainTabView: View {
 
                 DeferredView {
                     HomeView(
-                        onOpenCart: { showingCart = true },
-                        onOpenProfile: { showingProfile = true },
-                        onOpenSettings: openSettings,
+                        onOpenCart: { presentModal(.cart) },
+                        onOpenProfile: { presentModal(.profile) },
+                        onOpenSettings: { presentModal(.settings) },
                         onOpenWorkflow: hasAIAccess ? {
                             showsWorkflowWorkspace = true
                             selectedTab = .tools
@@ -117,9 +123,9 @@ struct MainTabView: View {
 
                 DeferredView {
                     VideoHubTabView(
-                        onOpenCart: { showingCart = true },
-                        onOpenProfile: { showingProfile = true },
-                        onOpenSettings: openSettings
+                        onOpenCart: { presentModal(.cart) },
+                        onOpenProfile: { presentModal(.profile) },
+                        onOpenSettings: { presentModal(.settings) }
                     )
                 }
                 .tabItem { Label("Videos", systemImage: "play.rectangle.fill") }
@@ -131,10 +137,10 @@ struct MainTabView: View {
                         agentChatService: services.agentChatService,
                         featureFlags: services.featureFlags,
                         showsWorkflowWorkspace: $showsWorkflowWorkspace,
-                        onOpenCart: { showingCart = true },
-                        onOpenLogin: { showingLogin = true },
-                        onOpenProfile: { showingProfile = true },
-                        onOpenSettings: openSettings
+                        onOpenCart: { presentModal(.cart) },
+                        onOpenLogin: { presentModal(.login) },
+                        onOpenProfile: { presentModal(.profile) },
+                        onOpenSettings: { presentModal(.settings) }
                     )
                 }
                 .tabItem { Label("Tools", systemImage: "sparkles") }
@@ -145,20 +151,20 @@ struct MainTabView: View {
         .accentColor(AppColors.accent(for: currentScheme))
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
         .preferredColorScheme(preferredScheme)
-        .fullScreenCover(isPresented: $showingSettings) {
-            DeferredSettingsPresentation(colorScheme: $colorScheme)
-        }
-        .sheet(isPresented: $showingProfile) {
-            ProfileView(authManager: services.authManager)
-        }
-        .sheet(isPresented: $showingCart) {
-            CartView(
-                onOpenProfile: { showingProfile = true },
-                onOpenSettings: { showingSettings = true }
-            )
-        }
-        .sheet(isPresented: $showingLogin) {
-            LoginView()
+        .sheet(item: $activeModal) { modal in
+            switch modal {
+            case .settings:
+                DeferredSettingsPresentation(colorScheme: $colorScheme)
+            case .profile:
+                ProfileView(authManager: services.authManager)
+            case .cart:
+                CartView(
+                    onOpenProfile: { presentModal(.profile) },
+                    onOpenSettings: { presentModal(.settings) }
+                )
+            case .login:
+                LoginView()
+            }
         }
         .onChange(of: hasAIAccess) { _, allowed in
             if !allowed {
@@ -170,19 +176,24 @@ struct MainTabView: View {
                 showsWorkflowWorkspace = false
             }
         }
-        .onChange(of: showingSettings) { _, isPresented in
-            if !isPresented {
-                isPreparingSettingsPresentation = false
+        .onChange(of: activeModal) { _, modal in
+            guard modal == nil, let queuedModal else { return }
+            self.queuedModal = nil
+            DispatchQueue.main.async {
+                activeModal = queuedModal
             }
         }
     }
 
-    private func openSettings() {
-        guard !showingSettings, !isPreparingSettingsPresentation else { return }
-        isPreparingSettingsPresentation = true
-        DispatchQueue.main.async {
-            showingSettings = true
+    private func presentModal(_ modal: MainTabModal) {
+        guard activeModal != modal else { return }
+        guard activeModal == nil else {
+            queuedModal = modal
+            activeModal = nil
+            return
         }
+
+        activeModal = modal
     }
 }
 

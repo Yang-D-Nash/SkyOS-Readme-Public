@@ -32,21 +32,14 @@ struct SettingsView: View {
     @State private var notificationsEnabled = true
 
     @State private var activeAlert: SettingsAlert?
-    @State private var showingLoginSheet = false
-    @State private var showingRegistrationSheet = false
-    @State private var showingTermsAndConditions = false
-    @State private var showingPrivacyPolicy = false
-    @State private var showingTermsOfService = false
-    @State private var showingOrders = false
-    @State private var showingProfileEditor = false
+    @State private var activePresentedSheet: SettingsPresentedSheet?
+    @State private var queuedPresentedSheet: SettingsPresentedSheet?
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
-    @State private var pendingEditableImageTarget: SettingsEditableImageTarget?
     @State private var activeEditableImageUploadTarget: SettingsEditableImageTarget?
-    @State private var presentedAdminWorkspace: SettingsAdminWorkspaceSection?
+    @State private var activeAdminWorkspace: SettingsAdminWorkspaceSection?
     @State private var showingMailOptions = false
-    @State private var showingMailView = false
     @State private var stripeAccountHintDraft = ""
     @State private var stripeSecretKeyDraft = ""
     @State private var stripeWebhookSecretDraft = ""
@@ -185,7 +178,7 @@ struct SettingsView: View {
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 Button {
-                                    showingProfileEditor = true
+                                    presentSheet(.profileEditor)
                                 } label: {
                                     Label("Profil bearbeiten", systemImage: "person.crop.circle")
                                         .frame(maxWidth: .infinity)
@@ -209,7 +202,9 @@ struct SettingsView: View {
                                     Button {
                                         Task {
                                             await authManager.signOut()
-                                            showingLoginSheet = true
+                                            await MainActor.run {
+                                                presentSheet(.login)
+                                            }
                                         }
                                     } label: {
                                         Text("Anderes Konto")
@@ -233,7 +228,7 @@ struct SettingsView: View {
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 Button {
-                                    showingLoginSheet = true
+                                    presentSheet(.login)
                                 } label: {
                                     Label("Anmelden", systemImage: "person.crop.circle.fill.badge.plus")
                                         .frame(maxWidth: .infinity)
@@ -242,7 +237,7 @@ struct SettingsView: View {
                                 .tint(AppColors.accent(for: effectiveColorScheme))
 
                                 Button {
-                                    showingRegistrationSheet = true
+                                    presentSheet(.registration)
                                 } label: {
                                     Label("Registrieren", systemImage: "person.crop.circle.badge.plus")
                                         .frame(maxWidth: .infinity)
@@ -299,17 +294,17 @@ struct SettingsView: View {
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
                             Button("AGB") {
-                                showingTermsAndConditions = true
+                                presentSheet(.termsAndConditions)
                             }
                             .buttonStyle(.bordered)
 
                             Button("Datenschutzbestimmungen") {
-                                showingPrivacyPolicy = true
+                                presentSheet(.privacyPolicy)
                             }
                             .buttonStyle(.bordered)
 
                             Button("Nutzungsbedingungen") {
-                                showingTermsOfService = true
+                                presentSheet(.termsOfService)
                             }
                             .buttonStyle(.bordered)
 
@@ -326,7 +321,7 @@ struct SettingsView: View {
                             Button {
                                 #if targetEnvironment(simulator)
                                 if MFMailComposeViewController.canSendMail() {
-                                    showingMailView = true
+                                    presentSheet(.mailComposer)
                                 } else {
                                     showToastMessage("Mail kann im Simulator nicht gesendet werden", style: .error)
                                 }
@@ -373,60 +368,8 @@ struct SettingsView: View {
             .environment(\.colorScheme, effectiveColorScheme)
             .accessibilityIdentifier("settings.root")
         }
-        .sheet(isPresented: $showingLoginSheet) {
-            LoginView()
-        }
-        .sheet(isPresented: $showingRegistrationSheet) {
-            RegistrationSheet()
-        }
-        .sheet(isPresented: $showingOrders) {
-            OrderView()
-        }
-        .sheet(isPresented: $showingProfileEditor) {
-            ProfileView(
-                authManager: authManager,
-                startsInEditMode: true
-            )
-        }
-        .sheet(isPresented: $showingTermsAndConditions) {
-            PolicyView(title: "AGB", text: .termsAndConditionsText)
-        }
-        .sheet(isPresented: $showingPrivacyPolicy) {
-            PolicyView(title: "Datenschutzbestimmungen", text: .privacyPolicyText)
-        }
-        .sheet(isPresented: $showingTermsOfService) {
-            PolicyView(title: "Nutzungsbedingungen", text: .termsOfServiceText)
-        }
-        .sheet(item: $presentedAdminWorkspace) { section in
-            NavigationStack {
-                ScrollView {
-                    adminWorkspaceContent(for: section)
-                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                        .padding(.top, SkydownLayout.screenTopPadding * 0.75)
-                        .padding(.bottom, SkydownLayout.screenBottomPadding)
-                }
-                .scrollIndicators(.hidden)
-                .background(
-                    AppColors.screenGradient(
-                        for: effectiveColorScheme,
-                        secondaryAccent: AppColors.accentHighlight(for: effectiveColorScheme)
-                    )
-                    .ignoresSafeArea()
-                )
-                .navigationTitle(section.rawValue)
-                .navigationBarTitleDisplayMode(.inline)
-                .skydownNavigationChrome(colorScheme: effectiveColorScheme)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            presentedAdminWorkspace = nil
-                        } label: {
-                            Label("Schliessen", systemImage: "xmark")
-                        }
-                    }
-                }
-            }
-            .environment(\.colorScheme, effectiveColorScheme)
+        .sheet(item: $activePresentedSheet) { sheet in
+            settingsSheetContent(for: sheet)
         }
         .confirmationDialog(
             "Support-Anfrage senden",
@@ -435,7 +378,7 @@ struct SettingsView: View {
         ) {
             Button("In-App senden") {
                 if MFMailComposeViewController.canSendMail() {
-                    showingMailView = true
+                    presentSheet(.mailComposer)
                 } else {
                     showToastMessage("Mail kann auf diesem Geraet nicht gesendet werden", style: .error)
                 }
@@ -446,14 +389,6 @@ struct SettingsView: View {
             }
 
             Button("Abbrechen", role: .cancel) {}
-        }
-        .sheet(isPresented: $showingMailView) {
-            MailView(
-                subject: supportMailSubject,
-                body: supportMailBody,
-                recipients: [supportMailbox],
-                preferredSendingEmailAddress: preferredSupportSenderEmail
-            )
         }
         .alert(item: $activeAlert) { alert in
             switch alert {
@@ -492,11 +427,11 @@ struct SettingsView: View {
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
             syncScreenHeaderDrafts(with: screenHeaderSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
-            refreshOwnerWorkspaceObservation(for: presentedAdminWorkspace)
+            refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
         }
         .onChange(of: isOwnerUser) { _, isOwner in
             guard !isOwner else {
-                refreshOwnerWorkspaceObservation(for: presentedAdminWorkspace)
+                refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
                 return
             }
 
@@ -506,9 +441,9 @@ struct SettingsView: View {
         }
         .onChange(of: authManager.userSession?.id) { _, userID in
             syncProfileDrafts(with: authManager.userSession)
-            refreshOwnerWorkspaceObservation(for: presentedAdminWorkspace, userID: userID)
+            refreshOwnerWorkspaceObservation(for: activeAdminWorkspace, userID: userID)
         }
-        .onChange(of: presentedAdminWorkspace) { _, section in
+        .onChange(of: activeAdminWorkspace) { _, section in
             refreshOwnerWorkspaceObservation(for: section)
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
@@ -520,16 +455,25 @@ struct SettingsView: View {
         .onReceive(shopifyAdminSettingsStore.$settings) { settings in
             syncShopifyDrafts(with: settings)
         }
-        .sheet(item: $pendingEditableImageTarget) { target in
-            SingleImagePicker { provider in
-                handleEditableImageProvider(provider, for: target)
-            }
-        }
         .onReceive(screenHeaderSettingsStore.$settings) { settings in
             syncScreenHeaderDrafts(with: settings)
         }
         .onReceive(workflowAutomationSettings.$settings) { settings in
             syncAutomationDrafts(with: settings)
+        }
+        .onChange(of: activePresentedSheet) { _, sheet in
+            switch sheet {
+            case .adminWorkspace(let section):
+                activeAdminWorkspace = section
+            default:
+                activeAdminWorkspace = nil
+            }
+
+            guard sheet == nil, let queuedPresentedSheet else { return }
+            self.queuedPresentedSheet = nil
+            DispatchQueue.main.async {
+                activePresentedSheet = queuedPresentedSheet
+            }
         }
         .onDisappear {
             adminUserManagementStore.configureObservation(isAdmin: false)
@@ -546,7 +490,7 @@ struct SettingsView: View {
         _ temporaryFileURL: URL?,
         for target: SettingsEditableImageTarget
     ) {
-        pendingEditableImageTarget = nil
+        activePresentedSheet = nil
 
         guard let temporaryFileURL else {
             return
@@ -627,7 +571,7 @@ struct SettingsView: View {
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                 Button {
-                    showingOrders = true
+                    presentSheet(.orders)
                 } label: {
                     Label("Bestellungen oeffnen", systemImage: "suitcase.cart")
                         .frame(maxWidth: .infinity)
@@ -643,7 +587,7 @@ struct SettingsView: View {
                                 colorScheme: effectiveColorScheme,
                                 detailText: adminWorkspaceStatusText(for: section)
                             ) {
-                                presentedAdminWorkspace = section
+                                presentSheet(.adminWorkspace(section))
                             }
                         }
                     }
@@ -769,7 +713,7 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .homeHeader,
                         uploadStatusText: "Home Header wird uebernommen.",
-                        onPickImage: { pendingEditableImageTarget = .homeHeader },
+                        onPickImage: { presentSheet(.editableImage(.homeHeader)) },
                         onRemoveImage: { removeEditableImage(for: .homeHeader) }
                     )
 
@@ -809,7 +753,7 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .musicHubHeader,
                         uploadStatusText: "Music Hub Header wird uebernommen.",
-                        onPickImage: { pendingEditableImageTarget = .musicHubHeader },
+                        onPickImage: { presentSheet(.editableImage(.musicHubHeader)) },
                         onRemoveImage: { removeEditableImage(for: .musicHubHeader) }
                     )
 
@@ -849,7 +793,7 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .shopHeader,
                         uploadStatusText: "Shop Header wird uebernommen.",
-                        onPickImage: { pendingEditableImageTarget = .shopHeader },
+                        onPickImage: { presentSheet(.editableImage(.shopHeader)) },
                         onRemoveImage: { removeEditableImage(for: .shopHeader) }
                     )
 
@@ -889,7 +833,7 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .videoHeader,
                         uploadStatusText: "Video Header wird uebernommen.",
-                        onPickImage: { pendingEditableImageTarget = .videoHeader },
+                        onPickImage: { presentSheet(.editableImage(.videoHeader)) },
                         onRemoveImage: { removeEditableImage(for: .videoHeader) }
                     )
 
@@ -1605,6 +1549,81 @@ struct SettingsView: View {
             isAdmin: shouldObserveAutomation,
             userID: shouldObserveAutomation ? resolvedUserID : nil
         )
+    }
+
+    private func presentSheet(_ sheet: SettingsPresentedSheet) {
+        guard activePresentedSheet != sheet else { return }
+        guard activePresentedSheet == nil else {
+            queuedPresentedSheet = sheet
+            activePresentedSheet = nil
+            return
+        }
+
+        activePresentedSheet = sheet
+    }
+
+    @ViewBuilder
+    private func settingsSheetContent(for sheet: SettingsPresentedSheet) -> some View {
+        switch sheet {
+        case .login:
+            LoginView()
+        case .registration:
+            RegistrationSheet()
+        case .orders:
+            OrderView()
+        case .profileEditor:
+            ProfileView(
+                authManager: authManager,
+                startsInEditMode: true
+            )
+        case .termsAndConditions:
+            PolicyView(title: "AGB", text: .termsAndConditionsText)
+        case .privacyPolicy:
+            PolicyView(title: "Datenschutzbestimmungen", text: .privacyPolicyText)
+        case .termsOfService:
+            PolicyView(title: "Nutzungsbedingungen", text: .termsOfServiceText)
+        case .adminWorkspace(let section):
+            NavigationStack {
+                ScrollView {
+                    adminWorkspaceContent(for: section)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding * 0.75)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                }
+                .scrollIndicators(.hidden)
+                .background(
+                    AppColors.screenGradient(
+                        for: effectiveColorScheme,
+                        secondaryAccent: AppColors.accentHighlight(for: effectiveColorScheme)
+                    )
+                    .ignoresSafeArea()
+                )
+                .navigationTitle(section.rawValue)
+                .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: effectiveColorScheme)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            activePresentedSheet = nil
+                        } label: {
+                            Label("Schliessen", systemImage: "xmark")
+                        }
+                    }
+                }
+            }
+            .environment(\.colorScheme, effectiveColorScheme)
+        case .mailComposer:
+            MailView(
+                subject: supportMailSubject,
+                body: supportMailBody,
+                recipients: [supportMailbox],
+                preferredSendingEmailAddress: preferredSupportSenderEmail
+            )
+        case .editableImage(let target):
+            SingleImagePicker { provider in
+                handleEditableImageProvider(provider, for: target)
+            }
+        }
     }
 
     private func saveCommerceSettings() {
@@ -2595,7 +2614,7 @@ private struct SettingsBadge: View {
     }
 }
 
-private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable {
+private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, Equatable {
     case payments = "Zahlungen"
     case users = "User"
     case artists = "Artists"
@@ -3378,13 +3397,51 @@ private extension UserQuotaPlan {
     }
 }
 
-private enum SettingsEditableImageTarget: String, Identifiable {
+private enum SettingsEditableImageTarget: String, Identifiable, Equatable {
     case homeHeader
     case musicHubHeader
     case shopHeader
     case videoHeader
 
     var id: String { rawValue }
+}
+
+private enum SettingsPresentedSheet: Identifiable, Equatable {
+    case login
+    case registration
+    case orders
+    case profileEditor
+    case termsAndConditions
+    case privacyPolicy
+    case termsOfService
+    case adminWorkspace(SettingsAdminWorkspaceSection)
+    case mailComposer
+    case editableImage(SettingsEditableImageTarget)
+
+    var id: String {
+        switch self {
+        case .login:
+            return "login"
+        case .registration:
+            return "registration"
+        case .orders:
+            return "orders"
+        case .profileEditor:
+            return "profileEditor"
+        case .termsAndConditions:
+            return "termsAndConditions"
+        case .privacyPolicy:
+            return "privacyPolicy"
+        case .termsOfService:
+            return "termsOfService"
+        case .adminWorkspace(let section):
+            return "adminWorkspace-\(section.rawValue)"
+        case .mailComposer:
+            return "mailComposer"
+        case .editableImage(let target):
+            return "editableImage-\(target.rawValue)"
+        }
+    }
 }
 
 #Preview {

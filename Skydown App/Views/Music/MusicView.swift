@@ -104,8 +104,8 @@ struct MusicView: View {
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @State private var selectedArtist: String
     @State private var selectedTrackID: Int?
-    @State private var showFeaturedSpotifyPlayer = false
-    @State private var showingArtistPage = false
+    @State private var activePresentedSheet: MusicPresentedSheet?
+    @State private var queuedPresentedSheet: MusicPresentedSheet?
     @State private var hasHandledInitialSelection = false
     @State private var hasAutoPresentedArtistPage = false
     @EnvironmentObject private var services: AppServices
@@ -262,7 +262,7 @@ struct MusicView: View {
             .onAppear {
                 activateInitialSelectionIfNeeded()
                 if autoPresentArtistPageOnAppear && brand.showsArtistPages && !hasAutoPresentedArtistPage {
-                    showingArtistPage = true
+                    presentSheet(.artistPage)
                     hasAutoPresentedArtistPage = true
                 }
             }
@@ -272,19 +272,38 @@ struct MusicView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
-        .sheet(isPresented: $showFeaturedSpotifyPlayer) {
-            if let selectedTrack {
-                SpotifyEmbedPlayerView(track: selectedTrack)
+        .sheet(item: $activePresentedSheet) { sheet in
+            switch sheet {
+            case .spotifyPlayer:
+                if let selectedTrack {
+                    SpotifyEmbedPlayerView(track: selectedTrack)
+                }
+            case .artistPage:
+                ArtistPageView(
+                    authManager: services.authManager,
+                    store: artistPagesStore,
+                    brand: brand.artistPageBrand,
+                    artistName: selectedArtist
+                )
             }
         }
-        .sheet(isPresented: $showingArtistPage) {
-            ArtistPageView(
-                authManager: services.authManager,
-                store: artistPagesStore,
-                brand: brand.artistPageBrand,
-                artistName: selectedArtist
-            )
+        .onChange(of: activePresentedSheet) { _, sheet in
+            guard sheet == nil, let queuedPresentedSheet else { return }
+            self.queuedPresentedSheet = nil
+            DispatchQueue.main.async {
+                activePresentedSheet = queuedPresentedSheet
+            }
         }
+    }
+
+    private func presentSheet(_ sheet: MusicPresentedSheet) {
+        guard activePresentedSheet == nil else {
+            queuedPresentedSheet = sheet
+            activePresentedSheet = nil
+            return
+        }
+
+        activePresentedSheet = sheet
     }
 
     private var heroCard: some View {
@@ -489,7 +508,7 @@ struct MusicView: View {
 
             Button {
                 selectedArtist = artist
-                showingArtistPage = true
+                presentSheet(.artistPage)
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "person.crop.square.fill")
@@ -669,7 +688,7 @@ struct MusicView: View {
 
                     if resolvedMusicViewSpotifyTrackID(selectedTrack) != nil {
                         Button {
-                            showFeaturedSpotifyPlayer = true
+                            presentSheet(.spotifyPlayer)
                         } label: {
                             Label("Spotify Player", systemImage: "music.note.tv")
                                 .font(.subheadline.weight(.semibold))
@@ -775,7 +794,7 @@ struct MusicView: View {
             audioManager.playPreview(for: track)
         } else if autoPresentSelectedTrackSpotifyPlayer,
                   resolvedMusicViewSpotifyTrackID(track) != nil {
-            showFeaturedSpotifyPlayer = true
+            presentSheet(.spotifyPlayer)
         }
 
         hasHandledInitialSelection = true
@@ -791,6 +810,13 @@ struct MusicView: View {
             return [zweizweiInstagramDestination] + artistDestinations
         }
     }
+}
+
+private enum MusicPresentedSheet: String, Identifiable, Equatable {
+    case spotifyPlayer
+    case artistPage
+
+    var id: String { rawValue }
 }
 
 private struct MusicShortcutFab: View {

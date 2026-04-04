@@ -20,9 +20,9 @@ struct VideoHubView: View {
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
-    @State private var showingUploadSheet = false
+    @State private var activePresentedSheet: VideoHubPresentedSheet?
+    @State private var queuedPresentedSheet: VideoHubPresentedSheet?
     @State private var showingReelViewer = false
-    @State private var selectedYouTubeItem: SkydownYouTubeVideoItem?
     @State private var hasHandledInitialSelection = false
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
@@ -61,7 +61,7 @@ struct VideoHubView: View {
                     colorScheme: colorScheme,
                     items: viewModel.publicConfig.youtubeItems
                 ) { item in
-                    selectedYouTubeItem = item
+                    presentSheet(.youTube(item))
                 }
                 collaborationsCard
 
@@ -82,7 +82,7 @@ struct VideoHubView: View {
                 VideoHubQuickActionDock(
                     colorScheme: colorScheme
                 ) {
-                    showingUploadSheet = true
+                    presentSheet(.upload)
                 }
                 .padding(.trailing, SkydownLayout.screenHorizontalPadding)
                 .padding(.bottom, 20)
@@ -119,7 +119,7 @@ struct VideoHubView: View {
 
                 if viewModel.isAdmin {
                     Button {
-                        showingUploadSheet = true
+                        presentSheet(.upload)
                     } label: {
                         Image(systemName: "arrow.up.circle")
                             .font(.headline.weight(.semibold))
@@ -151,41 +151,46 @@ struct VideoHubView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
-        .sheet(isPresented: $showingUploadSheet) {
-            NavigationStack {
-                ScrollView {
-                    uploadCard
-                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                        .padding(.top, SkydownLayout.screenTopPadding)
-                        .padding(.bottom, SkydownLayout.screenBottomPadding)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .skydownDismissKeyboardOnTap()
-                .background(
-                    AppColors.screenGradient(
-                        for: colorScheme,
-                        secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+        .sheet(item: $activePresentedSheet) { sheet in
+            switch sheet {
+            case .upload:
+                NavigationStack {
+                    ScrollView {
+                        uploadCard
+                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                            .padding(.top, SkydownLayout.screenTopPadding)
+                            .padding(.bottom, SkydownLayout.screenBottomPadding)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .skydownDismissKeyboardOnTap()
+                    .background(
+                        AppColors.screenGradient(
+                            for: colorScheme,
+                            secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                        )
+                        .ignoresSafeArea()
                     )
-                    .ignoresSafeArea()
-                )
-                .navigationTitle("Video Upload")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Schliessen") {
-                            showingUploadSheet = false
+                    .navigationTitle("Video Upload")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Schliessen") {
+                                activePresentedSheet = nil
+                            }
                         }
-                    }
 
-                    if viewModel.isUploading {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            ProgressView()
-                                .controlSize(.small)
+                        if viewModel.isUploading {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
                         }
                     }
                 }
+                .presentationDetents([.large])
+            case .youTube(let item):
+                YouTubeEmbedPlayerView(item: item)
             }
-            .presentationDetents([.large])
         }
         .fullScreenCover(isPresented: $showingReelViewer) {
             if !viewModel.videos.isEmpty {
@@ -195,10 +200,24 @@ struct VideoHubView: View {
                 )
             }
         }
-        .sheet(item: $selectedYouTubeItem) { item in
-            YouTubeEmbedPlayerView(item: item)
+        .onChange(of: activePresentedSheet) { _, sheet in
+            guard sheet == nil, let queuedPresentedSheet else { return }
+            self.queuedPresentedSheet = nil
+            DispatchQueue.main.async {
+                activePresentedSheet = queuedPresentedSheet
+            }
         }
         .skydownKeyboardDismissToolbar()
+    }
+
+    private func presentSheet(_ sheet: VideoHubPresentedSheet) {
+        guard activePresentedSheet == nil else {
+            queuedPresentedSheet = sheet
+            activePresentedSheet = nil
+            return
+        }
+
+        activePresentedSheet = sheet
     }
 
     @ViewBuilder
@@ -224,12 +243,12 @@ struct VideoHubView: View {
                         artist: artist,
                         colorScheme: colorScheme
                     ) { urlString in
-                        selectedYouTubeItem = SkydownYouTubeVideoItem(
+                        presentSheet(.youTube(SkydownYouTubeVideoItem(
                             id: "collab-\(artist.id)",
                             title: artist.name,
                             subtitle: artist.highlight.isEmpty ? artist.role : artist.highlight,
                             urlString: urlString
-                        )
+                        )))
                     }
                 }
             }
@@ -524,6 +543,7 @@ struct VideoHubView: View {
                 if selectedVideo.supportsInlinePlayback {
                     Button {
                         playbackManager.player.pause()
+                        activePresentedSheet = nil
                         showingReelViewer = true
                     } label: {
                         Label("Im Reel ansehen", systemImage: "rectangle.portrait.and.arrow.right")
@@ -599,6 +619,7 @@ struct VideoHubView: View {
                         onOpenReel: {
                             playbackManager.load(video: video)
                             playbackManager.player.pause()
+                            activePresentedSheet = nil
                             showingReelViewer = true
                         },
                         onOpenOriginal: {
@@ -1885,6 +1906,20 @@ final class VideoPlaybackManager: ObservableObject {
         if let playbackObserver {
             NotificationCenter.default.removeObserver(playbackObserver)
             self.playbackObserver = nil
+        }
+    }
+}
+
+private enum VideoHubPresentedSheet: Identifiable, Equatable {
+    case upload
+    case youTube(SkydownYouTubeVideoItem)
+
+    var id: String {
+        switch self {
+        case .upload:
+            return "upload"
+        case .youTube(let item):
+            return "youtube-\(item.id)"
         }
     }
 }
