@@ -77,18 +77,19 @@ struct ProfileView: View {
     }
 
     private func handlePickedImageProvider(
-        _ provider: NSItemProvider?,
+        _ temporaryFileURL: URL?,
         for target: ProfileImagePickerTarget
     ) {
         pendingImagePickerTarget = nil
 
-        guard let provider else {
+        guard let temporaryFileURL else {
             return
         }
 
         Task {
             do {
-                let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
+                defer { try? FileManager.default.removeItem(at: temporaryFileURL) }
+                let data = try await PickedImageUploadPreparation.normalizedJPEGData(fromTemporaryFileURL: temporaryFileURL)
                 switch target {
                 case .avatar:
                     await viewModel.uploadAvatar(data: data)

@@ -163,7 +163,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     SettingsHeroCard(
                         colorScheme: effectiveColorScheme,
                         username: authManager.userSession?.username,
@@ -371,6 +371,7 @@ struct SettingsView: View {
             )
             .skydownNavigationChrome(colorScheme: effectiveColorScheme)
             .environment(\.colorScheme, effectiveColorScheme)
+            .accessibilityIdentifier("settings.root")
         }
         .sheet(isPresented: $showingLoginSheet) {
             LoginView()
@@ -485,33 +486,30 @@ struct SettingsView: View {
         }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
-            adminUserManagementStore.configureObservation(isAdmin: isOwnerUser)
-            stripeBackendSecretsStore.setObservationEnabled(isOwnerUser)
-            workflowAutomationSettings.configureObservation(
-                isAdmin: isOwnerUser,
-                userID: authManager.userSession?.id
-            )
             syncProfileDrafts(with: authManager.userSession)
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
             syncScreenHeaderDrafts(with: screenHeaderSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
+            refreshOwnerWorkspaceObservation(for: presentedAdminWorkspace)
         }
         .onChange(of: isOwnerUser) { _, isOwner in
-            adminUserManagementStore.configureObservation(isAdmin: isOwner)
-            stripeBackendSecretsStore.setObservationEnabled(isOwner)
-            workflowAutomationSettings.configureObservation(
-                isAdmin: isOwner,
-                userID: authManager.userSession?.id
-            )
+            guard !isOwner else {
+                refreshOwnerWorkspaceObservation(for: presentedAdminWorkspace)
+                return
+            }
+
+            adminUserManagementStore.configureObservation(isAdmin: false)
+            stripeBackendSecretsStore.setObservationEnabled(false)
+            workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
         }
         .onChange(of: authManager.userSession?.id) { _, userID in
-            workflowAutomationSettings.configureObservation(
-                isAdmin: isOwnerUser,
-                userID: userID
-            )
             syncProfileDrafts(with: authManager.userSession)
+            refreshOwnerWorkspaceObservation(for: presentedAdminWorkspace, userID: userID)
+        }
+        .onChange(of: presentedAdminWorkspace) { _, section in
+            refreshOwnerWorkspaceObservation(for: section)
         }
         .onReceive(paymentMethodSettingsStore.$settings) { settings in
             syncPaymentDrafts(with: settings)
@@ -533,6 +531,11 @@ struct SettingsView: View {
         .onReceive(workflowAutomationSettings.$settings) { settings in
             syncAutomationDrafts(with: settings)
         }
+        .onDisappear {
+            adminUserManagementStore.configureObservation(isAdmin: false)
+            stripeBackendSecretsStore.setObservationEnabled(false)
+            workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
+        }
     }
 
     private var currentAppearanceLabel: String {
@@ -540,12 +543,12 @@ struct SettingsView: View {
     }
 
     private func handleEditableImageProvider(
-        _ provider: NSItemProvider?,
+        _ temporaryFileURL: URL?,
         for target: SettingsEditableImageTarget
     ) {
         pendingEditableImageTarget = nil
 
-        guard let provider else {
+        guard let temporaryFileURL else {
             return
         }
 
@@ -555,7 +558,8 @@ struct SettingsView: View {
             }
             do {
                 let previousURL = currentEditableImageURL(for: target)
-                let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
+                defer { try? FileManager.default.removeItem(at: temporaryFileURL) }
+                let data = try await PickedImageUploadPreparation.normalizedJPEGData(fromTemporaryFileURL: temporaryFileURL)
                 let url = try await editableImageUploadService.uploadImageData(data)
                 if previousURL != url {
                     try? await editableImageUploadService.deleteImage(at: previousURL)
@@ -1584,6 +1588,23 @@ struct SettingsView: View {
         automationWebhookPathDraft = settings.webhookPath
         automationAuthHeaderNameDraft = settings.authHeaderName
         automationAuthHeaderValueDraft = settings.authHeaderValue
+    }
+
+    private func refreshOwnerWorkspaceObservation(
+        for section: SettingsAdminWorkspaceSection?,
+        userID: String? = nil
+    ) {
+        let resolvedUserID = userID ?? authManager.userSession?.id
+        let shouldObserveUsers = isOwnerUser && (section == .users || section == .artists)
+        let shouldObserveStripeSecrets = isOwnerUser && section == .payments
+        let shouldObserveAutomation = isOwnerUser && section == .automation
+
+        adminUserManagementStore.configureObservation(isAdmin: shouldObserveUsers)
+        stripeBackendSecretsStore.setObservationEnabled(shouldObserveStripeSecrets)
+        workflowAutomationSettings.configureObservation(
+            isAdmin: shouldObserveAutomation,
+            userID: shouldObserveAutomation ? resolvedUserID : nil
+        )
     }
 
     private func saveCommerceSettings() {

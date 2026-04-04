@@ -194,31 +194,48 @@ private struct EditableImageAssetFileInfo {
 }
 
 enum PickedImageUploadPreparation {
-    static func normalizedJPEGData(
-        from itemProvider: NSItemProvider,
-        maxPixelSize: Int = 2048,
-        compressionQuality: Double = 0.82
-    ) async throws -> Data {
+    static func stableTemporaryImageURL(from itemProvider: NSItemProvider) async throws -> URL {
         let typeIdentifier = itemProvider.registeredTypeIdentifiers.first {
             UTType($0)?.conforms(to: .image) == true
         } ?? UTType.image.identifier
 
         do {
             if let fileURL = try await loadImageFileURL(from: itemProvider, typeIdentifier: typeIdentifier) {
-                defer { try? FileManager.default.removeItem(at: fileURL) }
-                return try await normalizedJPEGDataOffMain(
-                    fromFileURL: fileURL,
-                    maxPixelSize: maxPixelSize,
-                    compressionQuality: compressionQuality
-                )
+                return fileURL
             }
         } catch {
             // Fall through to data representation as a compatibility fallback.
         }
 
         let rawData = try await loadImageDataRepresentation(from: itemProvider, typeIdentifier: typeIdentifier)
-        return try await normalizedJPEGDataOffMain(
-            from: rawData,
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("jpg")
+        try rawData.write(to: fileURL, options: [.atomic])
+        return fileURL
+    }
+
+    static func normalizedJPEGData(
+        from itemProvider: NSItemProvider,
+        maxPixelSize: Int = 2048,
+        compressionQuality: Double = 0.82
+    ) async throws -> Data {
+        let fileURL = try await stableTemporaryImageURL(from: itemProvider)
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        return try await normalizedJPEGData(
+            fromTemporaryFileURL: fileURL,
+            maxPixelSize: maxPixelSize,
+            compressionQuality: compressionQuality
+        )
+    }
+
+    static func normalizedJPEGData(
+        fromTemporaryFileURL fileURL: URL,
+        maxPixelSize: Int = 2048,
+        compressionQuality: Double = 0.82
+    ) async throws -> Data {
+        try await normalizedJPEGDataOffMain(
+            fromFileURL: fileURL,
             maxPixelSize: maxPixelSize,
             compressionQuality: compressionQuality
         )

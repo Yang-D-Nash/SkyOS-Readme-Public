@@ -1659,12 +1659,12 @@ struct VideoPublicConfigEditorCard: View {
     }
 
     private func handleEditableImageProvider(
-        _ provider: NSItemProvider?,
+        _ temporaryFileURL: URL?,
         for target: VideoPublicConfigImageTarget
     ) {
         pendingUploadTarget = nil
 
-        guard let provider else {
+        guard let temporaryFileURL else {
             return
         }
 
@@ -1674,7 +1674,8 @@ struct VideoPublicConfigEditorCard: View {
             }
             do {
                 let previousURL = currentEditableImageURL(for: target)
-                let data = try await PickedImageUploadPreparation.normalizedJPEGData(from: provider)
+                defer { try? FileManager.default.removeItem(at: temporaryFileURL) }
+                let data = try await PickedImageUploadPreparation.normalizedJPEGData(fromTemporaryFileURL: temporaryFileURL)
                 let url = try await editableImageUploadService.uploadImageData(data)
                 if previousURL != url {
                     try? await editableImageUploadService.deleteImage(at: previousURL)

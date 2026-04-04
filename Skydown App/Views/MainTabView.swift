@@ -250,6 +250,7 @@ struct AppSessionToolbarActions: View {
                     .padding(9)
                     .skydownCapsuleSurface(colorScheme: colorScheme)
             }
+            .accessibilityIdentifier("app.open_settings")
             .skydownTactileAction()
         }
     }

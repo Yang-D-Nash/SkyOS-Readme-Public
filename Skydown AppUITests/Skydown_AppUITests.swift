@@ -38,4 +38,24 @@ final class Skydown_AppUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
+
+    @MainActor
+    func testSettingsCanOpenFromMainShell() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let settingsButton = app.buttons["app.open_settings"].firstMatch
+        XCTAssertTrue(
+            settingsButton.waitForExistence(timeout: 20),
+            "Der Settings-Button sollte nach dem Intro sichtbar werden."
+        )
+
+        settingsButton.tap()
+
+        let settingsRoot = app.otherElements["settings.root"].firstMatch
+        XCTAssertTrue(
+            settingsRoot.waitForExistence(timeout: 10),
+            "Die Settings-Ansicht sollte ohne Crash erscheinen."
+        )
+    }
 }
