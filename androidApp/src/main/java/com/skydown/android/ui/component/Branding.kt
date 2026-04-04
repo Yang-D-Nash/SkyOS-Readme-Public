@@ -100,6 +100,13 @@ fun BrandHeroCard(
             modifier = Modifier.padding(SkydownUiTokens.heroPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (hasHeaderImage) {
+                BrandHeaderImagePanel(
+                    imageUrl = backgroundImageUrl.orEmpty(),
+                    accent = accent,
+                )
+            }
+
             Box(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
@@ -153,16 +160,7 @@ fun BrandHeroCard(
                     }
 
                     when {
-                        hasHeaderImage -> {
-                            BrandHeaderImageTile(
-                                imageUrl = backgroundImageUrl.orEmpty(),
-                                accent = accent,
-                                width = if (marks.size == 1) 118.dp else 96.dp,
-                                isFeatured = marks.size == 1,
-                            )
-                        }
-
-                        marks.isNotEmpty() -> {
+                        !hasHeaderImage && marks.isNotEmpty() -> {
                             Column(
                                 modifier = Modifier
                                     .width(if (marks.size == 1) 118.dp else 96.dp),
@@ -187,23 +185,21 @@ fun BrandHeroCard(
 }
 
 @Composable
-private fun BrandHeaderImageTile(
+private fun BrandHeaderImagePanel(
     imageUrl: String,
     accent: Color,
-    width: androidx.compose.ui.unit.Dp,
-    isFeatured: Boolean,
 ) {
     Box(
         modifier = Modifier
-            .width(width)
-            .height(if (isFeatured) 112.dp else 92.dp)
+            .fillMaxWidth()
+            .height(132.dp)
             .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.Black.copy(alpha = 0.30f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
-                        accent.copy(alpha = 0.08f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
+                        accent.copy(alpha = 0.10f),
+                        Color.Black.copy(alpha = 0.20f),
                     ),
                 ),
             )
@@ -219,7 +215,7 @@ private fun BrandHeaderImageTile(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (isFeatured) 92.dp else 72.dp)
+                .height(112.dp)
                 .align(Alignment.Center),
             contentScale = ContentScale.Fit,
         )
