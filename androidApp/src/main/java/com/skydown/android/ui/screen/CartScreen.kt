@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownTopBarColors
@@ -96,9 +97,9 @@ fun CartScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Warenkorb",
-                        fontWeight = FontWeight.Bold,
+                    SkydownTopBarTitle(
+                        title = "Warenkorb",
+                        subtitle = "Produkte und Checkout.",
                     )
                 },
                 navigationIcon = if (onBack != null) {

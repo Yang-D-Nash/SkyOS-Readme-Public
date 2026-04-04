@@ -140,17 +140,17 @@ fun ShopScreen(
                 item {
                     ShopOverviewCard(
                         uiState = uiState,
-                        onToggleStore = if (uiState.isAdmin) {
-                            viewModel::toggleStoreOpen
-                        } else {
-                            null
-                        },
-                        onSyncShopify = if (uiState.isAdmin) {
-                            viewModel::syncShopifyCatalog
-                        } else {
-                            null
-                        },
                     )
+                }
+
+                if (uiState.isAdmin) {
+                    item {
+                        ShopAdminControlsCard(
+                            uiState = uiState,
+                            onToggleStore = viewModel::toggleStoreOpen,
+                            onSyncShopify = viewModel::syncShopifyCatalog,
+                        )
+                    }
                 }
 
                 val errorMessage = uiState.errorMessage
@@ -229,8 +229,6 @@ fun ShopScreen(
 @Composable
 private fun ShopOverviewCard(
     uiState: ShopUiState,
-    onToggleStore: (() -> Unit)? = null,
-    onSyncShopify: (() -> Unit)? = null,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
@@ -268,53 +266,58 @@ private fun ShopOverviewCard(
                 isActive = uiState.isLoggedIn,
             )
         }
+    }
+}
 
-        if (onToggleStore != null || onSyncShopify != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+@Composable
+private fun ShopAdminControlsCard(
+    uiState: ShopUiState,
+    onToggleStore: () -> Unit,
+    onSyncShopify: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+        Text(
+            text = "Store Kontrolle",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "Shopify liefert Produkte. Hier steuerst du Sichtbarkeit und Sync getrennt vom Header.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Button(
+                onClick = onToggleStore,
+                modifier = Modifier.weight(1f),
+                enabled = !uiState.isUpdatingStoreState,
+                shape = RoundedCornerShape(18.dp),
             ) {
-                onToggleStore?.let { toggleStore ->
-                    Button(
-                        onClick = toggleStore,
-                        modifier = Modifier.weight(1f),
-                        enabled = !uiState.isUpdatingStoreState,
-                        shape = RoundedCornerShape(18.dp),
-                    ) {
-                        Text(
-                            if (uiState.isUpdatingStoreState) {
-                                "Store wird aktualisiert..."
-                            } else if (uiState.isStoreOpen) {
-                                "Store schliessen"
-                            } else {
-                                "Store oeffnen"
-                            },
-                        )
-                    }
-                }
-
-                onSyncShopify?.let { syncShopify ->
-                    Button(
-                        onClick = syncShopify,
-                        modifier = Modifier.weight(1f),
-                        enabled = !uiState.isSyncingCatalog,
-                        shape = RoundedCornerShape(18.dp),
-                    ) {
-                        Text(if (uiState.isSyncingCatalog) "Katalog laedt..." else "Shopify syncen")
-                    }
-                }
+                Text(
+                    if (uiState.isUpdatingStoreState) {
+                        "Store wird aktualisiert..."
+                    } else if (uiState.isStoreOpen) {
+                        "Store schliessen"
+                    } else {
+                        "Store oeffnen"
+                    },
+                )
             }
-        }
 
-        if (uiState.isAdmin) {
-            Text(
-                text = "Shopify liefert Produkte. Hier steuerst du nur Sichtbarkeit und Reihenfolge.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                modifier = Modifier.padding(top = 12.dp),
-            )
+            Button(
+                onClick = onSyncShopify,
+                modifier = Modifier.weight(1f),
+                enabled = !uiState.isSyncingCatalog,
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text(if (uiState.isSyncingCatalog) "Katalog laedt..." else "Shopify syncen")
+            }
         }
     }
 }

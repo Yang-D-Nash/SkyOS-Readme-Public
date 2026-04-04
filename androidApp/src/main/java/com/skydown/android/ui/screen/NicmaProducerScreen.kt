@@ -13,15 +13,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -38,7 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,8 +41,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.data.ArtistPagesStore
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
+import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,21 +77,14 @@ fun NicmaProducerScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "NICMA MUSIC",
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = page.tagline ?: "Producing, Preise und direkter Kontakt.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
-                    }
+                    SkydownTopBarTitle(
+                        title = "NICMA MUSIC",
+                        subtitle = page.tagline ?: "Producing, Preise und direkter Kontakt.",
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
+                        androidx.compose.material3.Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Zurueck",
                         )
@@ -112,30 +105,25 @@ fun NicmaProducerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-                            MaterialTheme.colorScheme.background,
-                        ),
+                    skydownScreenBrush(
+                        primaryColor = MaterialTheme.colorScheme.tertiary,
+                        secondaryColor = MaterialTheme.colorScheme.primary,
+                        primaryAlpha = 0.08f,
+                        secondaryAlpha = 0.06f,
                     ),
                 ),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
+                contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
                     NicmaHeroCard(
                         headline = page.artistName,
                         body = page.bio ?: "Mixing, Mastering und Recording sind hier als klare Producer-Seite gebuendelt, mit direktem Kontakt und transparenter Preisliste.",
+                        tagline = page.tagline ?: "Studio, Production und Sound-Handwerk.",
+                        heroImageUrl = page.heroImageURL,
                     )
                 }
 
@@ -160,50 +148,22 @@ fun NicmaProducerScreen(
 private fun NicmaHeroCard(
     headline: String,
     body: String,
+    tagline: String,
+    heroImageUrl: String?,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = headline,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            NicmaBadge(text = "Mixing")
-            NicmaBadge(text = "Mastering")
-            NicmaBadge(text = "Recording")
+    BrandHeroCard(
+        eyebrow = "NICMA",
+        title = headline,
+        subtitle = tagline,
+        detail = body,
+        backgroundImageUrl = heroImageUrl?.takeIf { it.isNotBlank() },
+        accent = MaterialTheme.colorScheme.tertiary,
+        secondaryAccent = MaterialTheme.colorScheme.primary,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandPill(text = "Mixing", tint = MaterialTheme.colorScheme.tertiary)
+            BrandPill(text = "Mastering", tint = MaterialTheme.colorScheme.primary)
+            BrandPill(text = "Recording", tint = MaterialTheme.colorScheme.secondary)
         }
     }
 }

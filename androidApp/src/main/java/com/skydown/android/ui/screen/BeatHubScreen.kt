@@ -64,12 +64,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.ArtistPageBrand
+import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.dismissKeyboardOnTap
@@ -89,6 +94,7 @@ fun BeatHubScreen(
     viewModel: NicmaProducerViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val nicmaPage = ArtistPagesStore.pageFor(brand = ArtistPageBrand.Nicma, artistName = "NICMA MUSIC")
     val context = LocalContext.current
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     val focusManager = LocalFocusManager.current
@@ -144,23 +150,14 @@ fun BeatHubScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Beat Hub",
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = if (uiState.isAdmin) {
-                                "Beats, Uploads, Freigaben."
-                            } else {
-                                "Freigegebene Beats."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    SkydownTopBarTitle(
+                        title = "Beat Hub",
+                        subtitle = if (uiState.isAdmin) {
+                            "Beats, Uploads, Freigaben."
+                        } else {
+                            "Freigegebene Beats."
+                        },
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -213,7 +210,10 @@ fun BeatHubScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    BeatHubHeroCard(isAdmin = uiState.isAdmin)
+                    BeatHubHeroCard(
+                        isAdmin = uiState.isAdmin,
+                        heroImageUrl = nicmaPage.heroImageURL,
+                    )
                 }
 
                 item {
@@ -301,54 +301,29 @@ fun BeatHubScreen(
 @Composable
 private fun BeatHubHeroCard(
     isAdmin: Boolean,
+    heroImageUrl: String?,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Beat Hub",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = if (isAdmin) {
-                        "Du siehst alle Beats, kannst sie direkt anhoeren und per Tap oeffentlich oder privat schalten."
-                    } else {
-                        "Der Hub ist fuer die oeffentliche Beat-Library gedacht. Du kannst hier freigegebene Beats direkt anhoeren."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            BeatHubBadge(text = if (isAdmin) "Upload" else "Curated", isActive = true)
-            BeatHubBadge(text = "Listen", isActive = false)
-            BeatHubBadge(text = if (isAdmin) "Admin aktiv" else "Public Beats", isActive = false)
+    BrandHeroCard(
+        eyebrow = "NICMA",
+        title = "Beat Hub",
+        subtitle = if (isAdmin) {
+            "Uploads, Freigaben und Beat-Library in einem Flow."
+        } else {
+            "Freigegebene Beats direkt hoeren und durchsuchen."
+        },
+        detail = if (isAdmin) {
+            "Header kompakt, Aktionen darunter."
+        } else {
+            "Public Beat-Library."
+        },
+        backgroundImageUrl = heroImageUrl?.takeIf { it.isNotBlank() },
+        accent = MaterialTheme.colorScheme.primary,
+        secondaryAccent = MaterialTheme.colorScheme.tertiary,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandPill(text = if (isAdmin) "Upload" else "Curated", tint = MaterialTheme.colorScheme.primary)
+            BrandPill(text = "Listen", tint = MaterialTheme.colorScheme.secondary)
+            BrandPill(text = if (isAdmin) "Admin aktiv" else "Public Beats", tint = MaterialTheme.colorScheme.tertiary)
         }
     }
 }

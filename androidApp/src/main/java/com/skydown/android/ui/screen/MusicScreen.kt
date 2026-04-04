@@ -324,6 +324,12 @@ fun MusicScreen(
                 item {
                     MusicOverviewCard(
                         uiState = uiState,
+                    )
+                }
+
+                item {
+                    MusicConnectionCard(
+                        uiState = uiState,
                         onOpenInstagram = {
                             uiState.selectedArtistSocialProfile?.let { socialProfile ->
                                 openExternalLink(context, socialProfile.instagramUrl)
@@ -693,9 +699,6 @@ private fun MusicPlayerCard(
 @Composable
 private fun MusicOverviewCard(
     uiState: MusicUiState,
-    onOpenInstagram: () -> Unit,
-    onConnect: () -> Unit,
-    onDisconnect: () -> Unit,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
@@ -720,16 +723,43 @@ private fun MusicOverviewCard(
             } else {
                 "${uiState.tracks.size} Tracks."
             },
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
         )
+    }
+}
 
-        uiState.selectedArtistSocialProfile?.let { socialProfile ->
+@Composable
+private fun MusicConnectionCard(
+    uiState: MusicUiState,
+    onOpenInstagram: () -> Unit,
+    onConnect: () -> Unit,
+    onDisconnect: () -> Unit,
+) {
+    val socialProfile = uiState.selectedArtistSocialProfile
+    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+        Text(
+            text = "Verbindungen",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = if (socialProfile != null) {
+                "${uiState.selectedArtist} auf Instagram und Spotify direkt steuern."
+            } else {
+                "Spotify Verbindung direkt unter dem Header verwalten."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 6.dp),
+        )
+
+        socialProfile?.let {
             OutlinedButton(
                 onClick = onOpenInstagram,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
+                    .padding(top = 12.dp),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
@@ -738,7 +768,7 @@ private fun MusicOverviewCard(
                     contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Text(socialProfile.handle)
+                Text(it.handle)
             }
         }
 
@@ -747,7 +777,7 @@ private fun MusicOverviewCard(
                 onClick = onDisconnect,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
+                    .padding(top = 10.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.5f)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = SpotifyGreen),
             ) {
@@ -765,7 +795,7 @@ private fun MusicOverviewCard(
                 onClick = onConnect,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
+                    .padding(top = 10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = SpotifyGreen,
                     contentColor = MaterialTheme.colorScheme.scrim,

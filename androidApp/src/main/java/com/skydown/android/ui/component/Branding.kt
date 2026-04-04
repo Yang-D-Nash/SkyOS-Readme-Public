@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.skydown.android.R
@@ -144,57 +145,65 @@ fun BrandHeroCard(
         }
 
         Column(
-            modifier = Modifier.padding(SkydownUiTokens.heroPadding),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(128.dp)
-                        .blur(34.dp)
-                        .background(accent.copy(alpha = 0.05f), CircleShape),
+                        .size(84.dp)
+                        .blur(24.dp)
+                        .background(accent.copy(alpha = 0.04f), CircleShape),
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .size(96.dp)
-                        .blur(30.dp)
-                        .background(secondaryAccent.copy(alpha = 0.05f), CircleShape),
+                        .size(62.dp)
+                        .blur(20.dp)
+                        .background(secondaryAccent.copy(alpha = 0.04f), CircleShape),
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
                             text = eyebrow.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                             color = accent,
                             fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleLarge,
                             color = titleColor,
                             fontWeight = FontWeight.Black,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = subtitleColor,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         if (!detail.isNullOrBlank()) {
                             Text(
                                 text = detail,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelMedium,
                                 color = detailColor,
                                 fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -202,8 +211,8 @@ fun BrandHeroCard(
                     if (marks.isNotEmpty()) {
                         Column(
                             modifier = Modifier
-                                .width(if (marks.size == 1) 118.dp else 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                                .width(if (marks.size == 1) 82.dp else 72.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             marks.take(2).forEach { mark ->
                                 BrandArtworkTile(
@@ -236,11 +245,11 @@ fun BrandPill(
                 color = tint.copy(alpha = 0.18f),
                 shape = RoundedCornerShape(999.dp),
             )
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             color = tint,
             fontWeight = FontWeight.SemiBold,
         )
@@ -253,9 +262,10 @@ private fun BrandArtworkTile(
     accent: Color,
     isFeatured: Boolean,
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(if (isFeatured) 74.dp else 60.dp)
             .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(
                 Brush.linearGradient(
@@ -270,23 +280,17 @@ private fun BrandArtworkTile(
                 color = accent.copy(alpha = 0.16f),
                 shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Image(
             painter = painterResource(id = mark.drawableRes),
             contentDescription = mark.label,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (isFeatured) 84.dp else 56.dp)
+                .height(if (isFeatured) 38.dp else 30.dp)
                 .clip(RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)),
             contentScale = ContentScale.Fit,
-        )
-        Text(
-            text = mark.label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
         )
     }
 }
