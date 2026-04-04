@@ -426,11 +426,9 @@ private fun LaunchLandingScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 18.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp, Alignment.CenterVertically),
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(modifier = Modifier.height(1.dp))
-
             BrandHeroCard(
                 eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
                 title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
@@ -483,8 +481,6 @@ private fun LaunchLandingScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMutedDark,
             )
-
-            Spacer(modifier = Modifier.height(1.dp))
         }
     }
 }

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -68,6 +67,7 @@ fun BrandHeroCard(
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
+    val hasHeaderImage = !backgroundImageUrl.isNullOrBlank()
 
     Box(
         modifier = Modifier
@@ -96,51 +96,24 @@ fun BrandHeroCard(
             )
             .skydownSheen(accent = accent, alpha = 0.14f),
     ) {
-        if (!backgroundImageUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = backgroundImageUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.34f)),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.24f),
-                                accent.copy(alpha = 0.14f),
-                                secondaryAccent.copy(alpha = 0.10f),
-                            ),
-                        ),
-                    ),
-            )
-        }
-
         Column(
             modifier = Modifier.padding(SkydownUiTokens.heroPadding),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(160.dp)
-                        .blur(42.dp)
-                        .background(accent.copy(alpha = 0.07f), CircleShape),
+                        .size(128.dp)
+                        .blur(34.dp)
+                        .background(accent.copy(alpha = 0.05f), CircleShape),
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .size(120.dp)
-                        .blur(38.dp)
-                        .background(secondaryAccent.copy(alpha = 0.06f), CircleShape),
+                        .size(96.dp)
+                        .blur(30.dp)
+                        .background(secondaryAccent.copy(alpha = 0.05f), CircleShape),
                 )
 
                 Row(
@@ -150,7 +123,7 @@ fun BrandHeroCard(
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             text = eyebrow.uppercase(),
@@ -179,18 +152,29 @@ fun BrandHeroCard(
                         }
                     }
 
-                    if (marks.isNotEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .width(if (marks.size == 1) 118.dp else 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            marks.take(2).forEach { mark ->
-                                BrandArtworkTile(
-                                    mark = mark,
-                                    accent = accent,
-                                    isFeatured = marks.size == 1,
-                                )
+                    when {
+                        hasHeaderImage -> {
+                            BrandHeaderImageTile(
+                                imageUrl = backgroundImageUrl.orEmpty(),
+                                accent = accent,
+                                width = if (marks.size == 1) 118.dp else 96.dp,
+                                isFeatured = marks.size == 1,
+                            )
+                        }
+
+                        marks.isNotEmpty() -> {
+                            Column(
+                                modifier = Modifier
+                                    .width(if (marks.size == 1) 118.dp else 96.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                marks.take(2).forEach { mark ->
+                                    BrandArtworkTile(
+                                        mark = mark,
+                                        accent = accent,
+                                        isFeatured = marks.size == 1,
+                                    )
+                                }
                             }
                         }
                     }
@@ -199,6 +183,46 @@ fun BrandHeroCard(
 
             footer()
         }
+    }
+}
+
+@Composable
+private fun BrandHeaderImageTile(
+    imageUrl: String,
+    accent: Color,
+    width: androidx.compose.ui.unit.Dp,
+    isFeatured: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .height(if (isFeatured) 112.dp else 92.dp)
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.30f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
+                        accent.copy(alpha = 0.08f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.16f),
+                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
+            )
+            .padding(10.dp),
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(if (isFeatured) 92.dp else 72.dp)
+                .align(Alignment.Center),
+            contentScale = ContentScale.Fit,
+        )
     }
 }
 
