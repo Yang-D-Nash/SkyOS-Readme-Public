@@ -6,11 +6,16 @@ struct AgentHistoryTurn {
     let text: String
 }
 
+struct AgentChatResponse {
+    let reply: String
+    let historyRetentionDays: Int
+}
+
 protocol AgentChatServicing {
     func sendMessage(
         prompt: String,
         history: [AgentHistoryTurn]
-    ) async throws -> String
+    ) async throws -> AgentChatResponse
 }
 
 enum AgentServiceError: LocalizedError {
@@ -34,7 +39,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
     func sendMessage(
         prompt: String,
         history: [AgentHistoryTurn]
-    ) async throws -> String {
+    ) async throws -> AgentChatResponse {
         let payload: [String: Any] = [
             "prompt": prompt,
             "history": history.map { turn in
@@ -50,13 +55,20 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             .call(payload)
 
         if let reply = result.data as? String, !reply.isEmpty {
-            return reply
+            return AgentChatResponse(
+                reply: reply,
+                historyRetentionDays: UserRole.user.defaultAIHistoryRetentionDays
+            )
         }
 
         if let payload = result.data as? [String: Any],
            let reply = payload["reply"] as? String,
            !reply.isEmpty {
-            return reply
+            return AgentChatResponse(
+                reply: reply,
+                historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
+                    ?? UserRole.user.defaultAIHistoryRetentionDays
+            )
         }
 
         throw AgentServiceError.invalidResponse

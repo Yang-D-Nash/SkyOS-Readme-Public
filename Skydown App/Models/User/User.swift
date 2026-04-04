@@ -231,3 +231,50 @@ struct User: Codable, Identifiable {
         resolvedRole == .owner
     }
 }
+
+extension User {
+    var registrationDateEpochMillis: Int64 {
+        Int64((registrationDate.timeIntervalSince1970 * 1000).rounded())
+    }
+
+    var firestorePayload: [String: Any] {
+        [
+            "email": email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            "username": username.trimmingCharacters(in: .whitespacesAndNewlines),
+            "profileImageURL": profileImageURL ?? NSNull(),
+            "profileImagePath": NSNull(),
+            "whatsApp": whatsApp ?? NSNull(),
+            "profileTagline": profileTagline ?? NSNull(),
+            "profileBio": profileBio ?? NSNull(),
+            "instagramHandle": instagramHandle ?? NSNull(),
+            "registrationDateEpochMillis": registrationDateEpochMillis,
+            "isAdmin": isAdmin,
+            "role": role,
+            "quotaPlan": quotaPlan,
+            "aiAccessEnabled": aiAccessEnabled,
+            "aiTextRequestsPerDay": aiTextRequestsPerDay,
+            "aiVisualRequestsPerDay": aiVisualRequestsPerDay,
+            "aiAgentRequestsPerDay": aiAgentRequestsPerDay,
+            "aiHistoryRetentionDays": aiHistoryRetentionDays,
+            "canManageMusicCatalog": canManageMusicCatalog,
+            "canManageVideoCatalog": canManageVideoCatalog,
+            "canModerateProfiles": canModerateProfiles
+        ]
+    }
+
+    static func registrationDate(from data: [String: Any], fallback: Date? = nil) -> Date {
+        if let epochMillis = (data["registrationDateEpochMillis"] as? NSNumber)?.int64Value {
+            return Date(timeIntervalSince1970: TimeInterval(epochMillis) / 1000)
+        }
+
+        if let timestamp = data["registrationDate"] as? Timestamp {
+            return timestamp.dateValue()
+        }
+
+        if let date = data["registrationDate"] as? Date {
+            return date
+        }
+
+        return fallback ?? .now
+    }
+}

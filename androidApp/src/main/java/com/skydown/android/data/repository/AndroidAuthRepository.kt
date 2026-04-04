@@ -113,14 +113,12 @@ class AndroidAuthRepository(
 
     override suspend fun deleteCurrentAccount(): Result<Unit> {
         return runCatching {
-            val authUser = auth.currentUser ?: error("Kein Benutzer angemeldet.")
-            val uid = authUser.uid
-
-            authUser.delete().await()
+            checkNotNull(auth.currentUser) { "Kein Benutzer angemeldet." }
+            functions.getHttpsCallable("deleteCurrentUserAccount").call(emptyMap<String, Any>()).await()
             runCatching {
-                firestore.collection("users").document(uid).delete().await()
+                GoogleSignInManager.client(auth.app.applicationContext).signOut().await()
             }
-            GoogleSignInManager.client(auth.app.applicationContext).signOut().await()
+            auth.signOut()
             AppSessionStore.update(null)
         }.recoverCatching { error ->
             throw error.toReadableAuthError()
@@ -451,5 +449,20 @@ private fun Throwable.toReadableAuthError(): Throwable {
         }
     }
 
-    return IllegalStateException(firebaseMessage ?: message ?: "Authentifizierung fehlgeschlagen.")
+    val functionsMessage = (this as? FirebaseFunctionsException)?.let { error ->
+        when (error.code) {
+            FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
+                "Bitte melde dich erneut an, bevor du dein Konto loeschst."
+            FirebaseFunctionsException.Code.UNAUTHENTICATED ->
+                "Bitte melde dich an, bevor du dein Konto loeschst."
+            FirebaseFunctionsException.Code.NOT_FOUND,
+            FirebaseFunctionsException.Code.UNIMPLEMENTED ->
+                "Die serverseitige Kontoloeschung ist noch nicht verfuegbar."
+            else -> error.message
+        }
+    }
+
+    return IllegalStateException(
+        firebaseMessage ?: functionsMessage ?: message ?: "Authentifizierung fehlgeschlagen.",
+    )
 }

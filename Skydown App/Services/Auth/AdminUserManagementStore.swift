@@ -47,6 +47,7 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
         let resolvedQuotaPlan = user.resolvedQuotaPlan
         let payload: [String: Any] = [
             "email": user.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            "registrationDateEpochMillis": user.registrationDateEpochMillis,
             "role": resolvedRole.rawValue,
             "isAdmin": resolvedRole.hasStaffAccess,
             "quotaPlan": resolvedQuotaPlan.rawValue,
@@ -85,14 +86,7 @@ private func mapManagedUser(document: QueryDocumentSnapshot) -> User? {
         role: resolvedRole
     )
     let isAdmin = resolvedRole.hasStaffAccess
-    let registrationDate: Date
-    if let timestamp = data["registrationDate"] as? Timestamp {
-        registrationDate = timestamp.dateValue()
-    } else if let date = data["registrationDate"] as? Date {
-        registrationDate = date
-    } else {
-        registrationDate = .now
-    }
+    let registrationDate = User.registrationDate(from: data)
 
     return User(
         id: document.documentID,

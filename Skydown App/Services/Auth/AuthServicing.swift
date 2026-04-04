@@ -140,7 +140,7 @@ final class FirebaseAuthService: AuthServicing {
             canModerateProfiles: false
         )
 
-        try firestore.collection("users").document(result.user.uid).setData(from: newUser)
+        try await firestore.collection("users").document(result.user.uid).setData(newUser.firestorePayload)
         try await syncPublicProfileDocument(
             uid: result.user.uid,
             username: normalizedUsername,
@@ -245,7 +245,24 @@ final class FirebaseAuthService: AuthServicing {
     }
 
     func deleteCurrentAccount() async throws {
-        try await auth.currentUser?.delete()
+        guard auth.currentUser != nil else {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "Kein Benutzer angemeldet."]
+            )
+        }
+
+        do {
+            _ = try await functions
+                .httpsCallable("deleteCurrentUserAccount")
+                .call([:])
+        } catch {
+            throw readableAccountDeletionError(error)
+        }
+
+        GIDSignIn.sharedInstance.signOut()
+        try? auth.signOut()
     }
 
     func fetchCurrentUser() async throws -> User? {
@@ -299,16 +316,10 @@ final class FirebaseAuthService: AuthServicing {
         let aiHistoryRetentionDays = (data["aiHistoryRetentionDays"] as? NSNumber)?.intValue
             ?? resolvedQuotaPlan.aiHistoryRetentionDays
 
-        let registrationDate: Date
-        if let timestamp = data["registrationDate"] as? Timestamp {
-            registrationDate = timestamp.dateValue()
-        } else if let date = data["registrationDate"] as? Date {
-            registrationDate = date
-        } else if let createdAt = authUser?.metadata.creationDate {
-            registrationDate = createdAt
-        } else {
-            registrationDate = .now
-        }
+        let registrationDate = User.registrationDate(
+            from: data,
+            fallback: authUser?.metadata.creationDate
+        )
 
         return User(
             id: snapshot.documentID,
@@ -371,7 +382,7 @@ final class FirebaseAuthService: AuthServicing {
                 canModerateProfiles: bootstrapRole == .owner
             )
 
-            try documentReference.setData(from: newUser)
+            try await documentReference.setData(newUser.firestorePayload)
             try await syncPublicProfileDocument(
                 uid: authUser.uid,
                 username: username,
@@ -391,10 +402,6 @@ final class FirebaseAuthService: AuthServicing {
 
         if (data["username"] as? String)?.trimmedNilIfEmpty == nil {
             repairFields["username"] = username
-        }
-
-        if data["registrationDate"] == nil && data["registrationDateEpochMillis"] == nil {
-            repairFields["registrationDate"] = authUser.metadata.creationDate ?? Date()
         }
 
         let storedIsAdmin = data["isAdmin"] as? Bool ?? false
@@ -519,6 +526,42 @@ final class FirebaseAuthService: AuthServicing {
         } catch {
             print("Dev Hinweis: Session Claims konnten nicht synchronisiert werden: \(error.localizedDescription)")
         }
+    }
+
+    private func readableAccountDeletionError(_ error: Error) -> Error {
+        let nsError = error as NSError
+
+        if nsError.domain == FunctionsErrorDomain,
+           let functionsCode = FunctionsErrorCode(rawValue: nsError.code) {
+            let message: String
+            switch functionsCode {
+            case .failedPrecondition:
+                message = "Bitte melde dich erneut an, bevor du dein Konto loeschst."
+            case .unauthenticated:
+                message = "Bitte melde dich an, bevor du dein Konto loeschst."
+            case .notFound, .unimplemented:
+                message = "Die serverseitige Kontoloeschung ist noch nicht verfuegbar."
+            default:
+                message = nsError.localizedDescription
+            }
+
+            return NSError(
+                domain: "FirebaseAuthService",
+                code: nsError.code,
+                userInfo: [NSLocalizedDescriptionKey: message]
+            )
+        }
+
+        if let authCode = AuthErrorCode(rawValue: nsError.code),
+           authCode == .requiresRecentLogin {
+            return NSError(
+                domain: "FirebaseAuthService",
+                code: nsError.code,
+                userInfo: [NSLocalizedDescriptionKey: "Bitte melde dich erneut an, bevor du dein Konto loeschst."]
+            )
+        }
+
+        return error
     }
 
     private func syncUserDocumentIfPossible(

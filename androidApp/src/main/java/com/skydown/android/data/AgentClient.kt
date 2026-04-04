@@ -8,13 +8,18 @@ data class AgentHistoryTurn(
     val text: String,
 )
 
+data class AgentResponse(
+    val reply: String,
+    val historyRetentionDays: Int,
+)
+
 class AgentClient {
     private val functions = FirebaseFunctions.getInstance("us-central1")
 
     suspend fun sendMessage(
         prompt: String,
         history: List<AgentHistoryTurn>,
-    ): String {
+    ): AgentResponse {
         val payload = mapOf(
             "prompt" to prompt,
             "history" to history.map { turn ->
@@ -31,10 +36,17 @@ class AgentClient {
             .await()
 
         return when (val data = result.data) {
-            is String -> data
-            is Map<*, *> -> data["reply"] as? String
-            else -> null
-        }?.takeIf { it.isNotBlank() }
-            ?: error("Der Skydown x 22 Agent hat keine Antwort geliefert.")
+            is String -> AgentResponse(
+                reply = data.takeIf { it.isNotBlank() }
+                    ?: error("Der Skydown x 22 Agent hat keine Antwort geliefert."),
+                historyRetentionDays = 3,
+            )
+            is Map<*, *> -> AgentResponse(
+                reply = (data["reply"] as? String)?.takeIf { it.isNotBlank() }
+                    ?: error("Der Skydown x 22 Agent hat keine Antwort geliefert."),
+                historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
+            )
+            else -> error("Der Skydown x 22 Agent hat keine Antwort geliefert.")
+        }
     }
 }

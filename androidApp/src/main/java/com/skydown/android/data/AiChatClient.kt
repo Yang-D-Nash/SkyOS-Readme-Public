@@ -1,24 +1,27 @@
 package com.skydown.android.data
 
-import com.google.firebase.ai.FirebaseAI
-import com.google.firebase.ai.type.GenerativeBackend
-import com.google.firebase.ai.type.generationConfig
-import com.google.firebase.ai.type.thinkingConfig
+import com.google.firebase.functions.FirebaseFunctions
+import kotlinx.coroutines.tasks.await
 
-class AiChatClient {
-    private val model by lazy {
-        FirebaseAI.getInstance(backend = GenerativeBackend.googleAI())
-            .generativeModel(
-                modelName = "gemini-2.5-flash-lite",
-                generationConfig = generationConfig {
-                    candidateCount = 1
-                    maxOutputTokens = 768
-                    thinkingConfig = thinkingConfig {
-                        thinkingBudget = 0
-                    }
-                },
-            )
+data class AiGeneratedTextResult(
+    val text: String,
+    val historyRetentionDays: Int,
+)
+
+class AiChatClient(
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
+) {
+    suspend fun generateText(prompt: String): AiGeneratedTextResult {
+        val result = functions
+            .getHttpsCallable("generateAiText")
+            .call(mapOf("prompt" to prompt))
+            .await()
+
+        val data = result.data as? Map<*, *> ?: error("Die Bot-Antwort konnte nicht gelesen werden.")
+        val reply = data["reply"] as? String
+        return AiGeneratedTextResult(
+            text = reply?.takeIf { it.isNotBlank() } ?: error("Die Bot-Antwort fehlt."),
+            historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
+        )
     }
-
-    fun createChat() = model.startChat()
 }

@@ -157,6 +157,14 @@ const agentRequestSchema = z.object({
   history: z.array(agentTurnSchema).max(24).default([]),
 });
 
+const aiTextRequestSchema = z.object({
+  prompt: z.string().trim().min(1).max(12000),
+});
+
+const aiVisualRequestSchema = z.object({
+  prompt: z.string().trim().min(1).max(12000),
+});
+
 const systemPrompt = `
 Du bist Skydown Agent, der umsetzungsorientierte Assistent fuer Skydown Entertainment und 22.
 Markenkontext:
@@ -193,6 +201,20 @@ const AI_USAGE_KINDS = {
   text: "text",
   visual: "visual",
   agent: "agent",
+};
+
+const AI_ACCESS_MODES = {
+  off: "off",
+  adminOnly: "admin_only",
+  signedIn: "signed_in",
+};
+
+const AI_REMOTE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+const ACCOUNT_DELETE_RECENT_AUTH_MAX_AGE_SECONDS = 5 * 60;
+
+let aiFeatureConfigCache = {
+  expiresAt: 0,
+  values: null,
 };
 
 function resolveRoleFromAuthClaims(auth) {
@@ -295,6 +317,91 @@ async function loadUserData(uid) {
   return userSnapshot.exists ? (userSnapshot.data() || {}) : null;
 }
 
+function resolveAiAccessMode(value) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  return Object.values(AI_ACCESS_MODES).includes(normalized) ?
+    normalized :
+    AI_ACCESS_MODES.adminOnly;
+}
+
+function resolveRemoteConfigBoolean(value, fallbackValue) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+
+  if (normalized === "false") {
+    return false;
+  }
+
+  return fallbackValue;
+}
+
+async function loadAiFeatureConfig() {
+  const now = Date.now();
+  if (aiFeatureConfigCache.values && aiFeatureConfigCache.expiresAt > now) {
+    return aiFeatureConfigCache.values;
+  }
+
+  let values = {
+    isEnabled: true,
+    accessMode: AI_ACCESS_MODES.adminOnly,
+  };
+
+  try {
+    // Enforce the published global AI rollout server-side as well.
+    const template = await admin.remoteConfig().getTemplate();
+    const parameters = template?.parameters || {};
+    values = {
+      isEnabled: resolveRemoteConfigBoolean(parameters.ai_enabled?.defaultValue?.value, true),
+      accessMode: resolveAiAccessMode(parameters.ai_access_mode?.defaultValue?.value),
+    };
+  } catch (error) {
+    logger.warn("AI Remote Config could not be loaded. Using cached/default AI access policy.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+
+  aiFeatureConfigCache = {
+    expiresAt: now + AI_REMOTE_CONFIG_CACHE_TTL_MS,
+    values,
+  };
+
+  return values;
+}
+
+async function assertAiAccess(auth) {
+  if (!auth?.uid) {
+    throw new HttpsError("unauthenticated", "Bitte melde dich an, um die KI zu nutzen.");
+  }
+
+  const userData = await loadUserData(auth.uid);
+  if (!userData) {
+    throw new HttpsError("permission-denied", "Dein Konto ist noch nicht vollstaendig eingerichtet.");
+  }
+
+  const profile = buildUserProfile(userData);
+  const featureConfig = await loadAiFeatureConfig();
+
+  if (!featureConfig.isEnabled || featureConfig.accessMode === AI_ACCESS_MODES.off) {
+    throw new HttpsError("permission-denied", "Die KI ist gerade pausiert.");
+  }
+
+  if (!profile.aiAccessEnabled) {
+    throw new HttpsError("permission-denied", "Die KI ist fuer dein Konto gerade pausiert.");
+  }
+
+  if (featureConfig.accessMode === AI_ACCESS_MODES.adminOnly && !profile.isStaff) {
+    throw new HttpsError("permission-denied", "Die KI ist gerade nur fuer Staff-Konten freigeschaltet.");
+  }
+
+  return {
+    userData,
+    profile,
+    featureConfig,
+  };
+}
+
 async function isAdminAuth(auth) {
   return Boolean(auth?.uid) &&
     [USER_ROLES.owner, USER_ROLES.admin].includes(resolveRoleFromAuthClaims(auth));
@@ -314,16 +421,16 @@ async function isStaffAuth(auth) {
 }
 
 async function canUseAiAuth(auth) {
-  if (!auth?.uid) {
+  try {
+    await assertAiAccess(auth);
+    return true;
+  } catch (error) {
+    logger.debug("AI access denied.", {
+      uid: auth?.uid || null,
+      code: error instanceof HttpsError ? error.code : "internal",
+    });
     return false;
   }
-
-  const userData = await loadUserData(auth.uid);
-  if (!userData) {
-    return false;
-  }
-
-  return buildUserProfile(userData).aiAccessEnabled;
 }
 
 async function assertAdmin(auth) {
@@ -337,6 +444,138 @@ async function assertOwner(auth) {
 async function assertCallableSecurity(request, functionName) {
   const runtimeConfig = await getRuntimeConfig();
   return assertAppCheck(request, runtimeConfig, functionName);
+}
+
+function assertAuthenticatedUser(auth, message = "Bitte melde dich an.") {
+  const uid = nonEmptyString(auth?.uid);
+  if (!uid) {
+    throw new HttpsError("unauthenticated", message);
+  }
+
+  return uid;
+}
+
+function assertRecentAccountDeletionAuth(auth) {
+  const uid = assertAuthenticatedUser(
+      auth,
+      "Bitte melde dich an, bevor du dein Konto loeschst.",
+  );
+  const authTimeSeconds = Number(auth?.token?.auth_time);
+
+  if (!Number.isFinite(authTimeSeconds)) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Bitte melde dich erneut an, bevor du dein Konto loeschst.",
+    );
+  }
+
+  const authAgeSeconds = Math.max(
+      0,
+      Math.floor(Date.now() / 1000) - Math.floor(authTimeSeconds),
+  );
+
+  if (authAgeSeconds > ACCOUNT_DELETE_RECENT_AUTH_MAX_AGE_SECONDS) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Bitte melde dich erneut an, bevor du dein Konto loeschst.",
+    );
+  }
+
+  return uid;
+}
+
+async function deleteDocumentsFromSnapshot(snapshot) {
+  if (!snapshot || snapshot.empty) {
+    return 0;
+  }
+
+  return deleteDocumentReferences(snapshot.docs.map((document) => document.ref));
+}
+
+async function deleteDocumentReferences(references) {
+  if (!Array.isArray(references) || references.length === 0) {
+    return 0;
+  }
+
+  const firestore = admin.firestore();
+  let deletedCount = 0;
+  const uniqueReferences = Array.from(
+      new Map(
+          references
+              .filter(Boolean)
+              .map((reference) => [reference.path, reference]),
+      ).values(),
+  );
+
+  for (let index = 0; index < uniqueReferences.length; index += 400) {
+    const batch = firestore.batch();
+    const chunk = uniqueReferences.slice(index, index + 400);
+
+    for (const reference of chunk) {
+      batch.delete(reference);
+      deletedCount += 1;
+    }
+
+    await batch.commit();
+  }
+
+  return deletedCount;
+}
+
+async function deleteStoragePrefix(prefix) {
+  const bucket = admin.storage().bucket();
+  const [files] = await bucket.getFiles({prefix});
+
+  await Promise.all(files.map((file) => file.delete()));
+  return files.length;
+}
+
+async function deleteOrdersForAccount(uid, email = null) {
+  const firestore = admin.firestore();
+  const orderReferences = [];
+  const ordersByUidSnapshot = await firestore
+      .collection("orders")
+      .where("orderOwnerUid", "==", uid)
+      .get();
+
+  orderReferences.push(...ordersByUidSnapshot.docs.map((document) => document.ref));
+
+  if (email) {
+    const legacyOrdersSnapshot = await firestore
+        .collection("orders")
+        .where("userEmail", "==", email)
+        .get();
+    orderReferences.push(...legacyOrdersSnapshot.docs.map((document) => document.ref));
+  }
+
+  return deleteDocumentReferences(orderReferences);
+}
+
+async function purgeCurrentUserAccountData(uid, email = null) {
+  const firestore = admin.firestore();
+
+  await firestore.recursiveDelete(firestore.doc(`users/${uid}`));
+  await firestore.recursiveDelete(
+      firestore.collection("galleryMeta").doc(uid).collection("items"),
+  );
+  await firestore.doc(`galleryMeta/${uid}`).delete();
+  await firestore.doc(`userProfiles/${uid}`).delete();
+  await firestore.doc(`uploadUsage/${uid}`).delete();
+  await firestore.doc(`adminConfig/automationN8n_${uid}`).delete();
+
+  const uploadSlotsSnapshot = await firestore
+      .collection("uploadSlots")
+      .where("ownerUid", "==", uid)
+      .get();
+  const deletedOrders = await deleteOrdersForAccount(uid, email);
+  const deletedUploadSlots = await deleteDocumentsFromSnapshot(uploadSlotsSnapshot);
+  const deletedStorageObjects = await deleteStoragePrefix(`users/${uid}/`);
+
+  return {
+    deletedOrders,
+    deletedStorageObjects,
+    deletedUploadSlots,
+  };
 }
 
 function normalizeStoreDomain(value) {
@@ -635,20 +874,11 @@ function aiLimitReachedMessage(kind, limit) {
 }
 
 async function authorizeAiUsage({auth, kind}) {
-  if (!auth?.uid) {
-    throw new HttpsError("unauthenticated", "Bitte melde dich an, um die KI zu nutzen.");
-  }
-
   if (!Object.values(AI_USAGE_KINDS).includes(kind)) {
     throw new HttpsError("invalid-argument", "Unbekannte KI-Aktion.");
   }
 
-  const userData = await loadUserData(auth.uid);
-  const profile = buildUserProfile(userData || {});
-
-  if (!profile.aiAccessEnabled) {
-    throw new HttpsError("permission-denied", "Die KI ist fuer dein Konto gerade pausiert.");
-  }
+  const {profile} = await assertAiAccess(auth);
 
   const dateKey = aiUsageDateKey();
   const usageRef = admin.firestore().doc(`users/${auth.uid}/aiUsage/${dateKey}`);
@@ -699,6 +929,81 @@ async function authorizeAiUsage({auth, kind}) {
   });
 
   return usageSummary;
+}
+
+function parseCallableInput(schema, data, message) {
+  const parsed = schema.safeParse(data || {});
+  if (!parsed.success) {
+    logger.warn("Invalid callable input.", {
+      issues: parsed.error.issues,
+    });
+    throw new HttpsError("invalid-argument", message);
+  }
+
+  return parsed.data;
+}
+
+function extractInlineBase64Media(dataUrl, contentType = null) {
+  const normalized = nonEmptyString(dataUrl);
+  if (!normalized) {
+    return null;
+  }
+
+  const dataUrlMatch = normalized.match(/^data:([^;]+);base64,(.+)$/i);
+  if (dataUrlMatch) {
+    return {
+      base64: dataUrlMatch[2],
+      mimeType: contentType || dataUrlMatch[1],
+    };
+  }
+
+  if (normalized.startsWith("http://") || normalized.startsWith("https://") || normalized.startsWith("gs://")) {
+    return null;
+  }
+
+  return {
+    base64: normalized,
+    mimeType: contentType,
+  };
+}
+
+async function generateAiTextReply(prompt) {
+  const response = await ai.generate({
+    prompt,
+    config: {
+      temperature: 0.7,
+      maxOutputTokens: 768,
+    },
+  });
+
+  const reply = nonEmptyString(response.text);
+  if (!reply) {
+    throw new HttpsError("internal", "Skydown Bot konnte keine Antwort erzeugen.");
+  }
+
+  return reply;
+}
+
+async function generateAiVisualResult(prompt) {
+  const response = await ai.generate({
+    model: vertexAI.model("gemini-2.5-flash-image"),
+    prompt,
+    config: {
+      responseModalities: ["TEXT", "IMAGE"],
+    },
+  });
+
+  const media = response.media;
+  const encodedImage = extractInlineBase64Media(media?.url, media?.contentType);
+  if (!encodedImage?.base64) {
+    throw new HttpsError("internal", "Skydown Bot konnte kein Visual erzeugen.");
+  }
+
+  return {
+    text: nonEmptyString(response.text) || "Visual generiert.",
+    imageBase64: encodedImage.base64,
+    mimeType: encodedImage.mimeType || "image/png",
+  };
 }
 
 function getShopifyDomain(storeDomain) {
@@ -2448,6 +2753,50 @@ exports.authorizeAiUsage = onCall({
   });
 });
 
+exports.generateAiText = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "generateAiText");
+  const input = parseCallableInput(
+      aiTextRequestSchema,
+      request.data,
+      "Die KI-Anfrage konnte so nicht gestartet werden.",
+  );
+  const usage = await authorizeAiUsage({
+    auth: request.auth,
+    kind: AI_USAGE_KINDS.text,
+  });
+  const reply = await generateAiTextReply(input.prompt);
+
+  return {
+    reply,
+    historyRetentionDays: usage.historyRetentionDays,
+  };
+});
+
+exports.generateAiVisual = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "generateAiVisual");
+  const input = parseCallableInput(
+      aiVisualRequestSchema,
+      request.data,
+      "Die Visual-Anfrage konnte so nicht gestartet werden.",
+  );
+  const usage = await authorizeAiUsage({
+    auth: request.auth,
+    kind: AI_USAGE_KINDS.visual,
+  });
+  const visual = await generateAiVisualResult(input.prompt);
+
+  return {
+    ...visual,
+    historyRetentionDays: usage.historyRetentionDays,
+  };
+});
+
 function responseFrameworkHint(prompt) {
   const lower = prompt.toLowerCase();
 
@@ -2523,11 +2872,21 @@ exports.skydownAgent = onCall({
   timeoutSeconds: 60,
 }, async (request) => {
   await assertCallableSecurity(request, "skydownAgent");
-  if (!(await canUseAiAuth(request.auth))) {
-    throw new HttpsError("permission-denied", "KI-Zugriff ist fuer dieses Konto nicht freigeschaltet.");
-  }
+  const input = parseCallableInput(
+      agentRequestSchema,
+      request.data,
+      "Die Agent-Anfrage konnte so nicht verarbeitet werden.",
+  );
+  const usage = await authorizeAiUsage({
+    auth: request.auth,
+    kind: AI_USAGE_KINDS.agent,
+  });
+  const reply = await skydownAgentFlow(input);
 
-  return skydownAgentFlow(request.data);
+  return {
+    reply,
+    historyRetentionDays: usage.historyRetentionDays,
+  };
 });
 
 exports.syncShopifyMerch = onCall({
@@ -2545,6 +2904,29 @@ exports.syncCurrentUserClaims = onCall({
 }, async (request) => {
   await assertCallableSecurity(request, "syncCurrentUserClaims");
   return syncClaimsForCurrentUser(request.auth);
+});
+
+exports.deleteCurrentUserAccount = onCall({
+  region: "us-central1",
+  timeoutSeconds: 120,
+}, async (request) => {
+  await assertCallableSecurity(request, "deleteCurrentUserAccount");
+  const uid = assertRecentAccountDeletionAuth(request.auth);
+  const email = normalizeEmail(request.auth?.token?.email);
+  const deletionSummary = await purgeCurrentUserAccountData(uid, email);
+  await admin.auth().deleteUser(uid);
+
+  logger.info("User account deleted with server cleanup.", {
+    uid,
+    deletedOrders: deletionSummary.deletedOrders,
+    deletedStorageObjects: deletionSummary.deletedStorageObjects,
+    deletedUploadSlots: deletionSummary.deletedUploadSlots,
+  });
+
+  return {
+    deleted: true,
+    ...deletionSummary,
+  };
 });
 
 exports.setUserRole = onCall({

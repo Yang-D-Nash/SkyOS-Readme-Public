@@ -6,7 +6,6 @@ import com.google.firebase.functions.FirebaseFunctionsException
 import com.skydown.android.data.AgentHistoryTurn
 import com.skydown.android.data.AiConversationHistorySource
 import com.skydown.android.data.AiConversationHistoryStore
-import com.skydown.android.data.AiUsageAuthorizationKind
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.shared.model.User
@@ -24,7 +23,6 @@ import kotlinx.coroutines.launch
 
 class AgentViewModel : ViewModel() {
     private val agentClient = AppContainer.agentClient
-    private val aiUsageAuthorizationClient = AppContainer.aiUsageAuthorizationClient
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
     private var currentUserKey: String? = null
@@ -80,9 +78,6 @@ class AgentViewModel : ViewModel() {
         viewModelScope.launch {
             var assistantMessageId: String? = null
             runCatching {
-                val authorization = aiUsageAuthorizationClient.authorize(AiUsageAuthorizationKind.Agent)
-                AiConversationHistoryStore.updateRetentionDays(authorization.historyRetentionDays)
-
                 val userMessage = AgentMessage(
                     role = AgentMessageRole.User,
                     text = trimmedPrompt,
@@ -108,18 +103,19 @@ class AgentViewModel : ViewModel() {
                     prompt = trimmedPrompt,
                     history = history,
                 )
-            }.onSuccess { reply ->
+            }.onSuccess { result ->
+                AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
                 assistantMessageId?.let { messageId ->
                     updateAssistantMessage(
                         messageId = messageId,
-                        text = reply,
+                        text = result.reply,
                         isStreaming = false,
                     )
                     AiConversationHistoryStore.saveEntry(
                         userKey = currentUserKey,
                         source = AiConversationHistorySource.Agent,
                         prompt = trimmedPrompt,
-                        response = reply,
+                        response = result.reply,
                     )
                 }
                 _uiState.update { it.copy(isSending = false) }

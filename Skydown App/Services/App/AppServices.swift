@@ -16,7 +16,7 @@ final class AppServices: ObservableObject {
 
     init(
         authService: AuthServicing = FirebaseAuthService(),
-        aiChatService: AIChatServicing = FirebaseAIChatService(),
+        aiChatService: AIChatServicing = FirebaseFunctionsAIChatService(),
         agentChatService: AgentChatServicing = FirebaseFunctionsAgentService(),
         merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
         orderService: OrderServicing = FirebaseOrderService(),

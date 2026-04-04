@@ -10,7 +10,7 @@ struct AIView: View {
     private let showsNavigation: Bool
 
     init(
-        aiChatService: AIChatServicing = FirebaseAIChatService(),
+        aiChatService: AIChatServicing = FirebaseFunctionsAIChatService(),
         featureFlags: FeatureFlagsService,
         showsNavigation: Bool = true
     ) {

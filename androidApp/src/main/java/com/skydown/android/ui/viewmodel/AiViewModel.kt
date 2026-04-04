@@ -2,16 +2,12 @@ package com.skydown.android.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.skydown.android.data.AiConversationHistorySource
 import com.skydown.android.data.AiConversationHistoryStore
-import com.skydown.android.data.AiUsageAuthorizationKind
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
-import com.google.firebase.functions.FirebaseFunctionsException
-import com.google.firebase.ai.type.FinishReason
-import com.google.firebase.ai.type.PromptBlockedException
-import com.google.firebase.ai.type.ResponseStoppedException
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
@@ -29,7 +25,6 @@ import kotlinx.coroutines.launch
 class AiViewModel : ViewModel() {
     private val aiChatClient = AppContainer.aiChatClient
     private val aiImageClient = AppContainer.aiImageClient
-    private val aiUsageAuthorizationClient = AppContainer.aiUsageAuthorizationClient
     private val _uiState = MutableStateFlow(AiUiState())
     val uiState: StateFlow<AiUiState> = _uiState.asStateFlow()
     private var currentUserKey: String? = null
@@ -90,7 +85,6 @@ class AiViewModel : ViewModel() {
         _uiState.update { it.copy(isSending = true, errorMessage = null) }
 
         viewModelScope.launch {
-            val responseBuffer = StringBuilder()
             val assistantMessage = AiMessage(
                 role = AiMessageRole.Assistant,
                 text = "",
@@ -99,9 +93,6 @@ class AiViewModel : ViewModel() {
             val assistantMessageId = assistantMessage.id
 
             runCatching {
-                val authorization = aiUsageAuthorizationClient.authorize(AiUsageAuthorizationKind.Text)
-                AiConversationHistoryStore.updateRetentionDays(authorization.historyRetentionDays)
-
                 val userMessage = AiMessage(
                     role = AiMessageRole.User,
                     text = trimmedPrompt,
@@ -117,44 +108,28 @@ class AiViewModel : ViewModel() {
                     )
                 }
 
-                aiChatClient.createChat().sendMessageStream(
+                aiChatClient.generateText(
                     buildPrompt(
                         userPrompt = trimmedPrompt,
                         history = history,
                     ),
-                ).collect { response ->
-                    val chunk = response.text.orEmpty()
-                    if (chunk.isNotBlank()) {
-                        responseBuffer.append(chunk)
-                        updateAssistantMessage(
-                            messageId = assistantMessageId,
-                            text = responseBuffer.toString(),
-                            isStreaming = true,
-                        )
-                    }
-                }
-            }.onSuccess {
-                val finalText = responseBuffer.toString().ifBlank {
-                    "Ich habe gerade keine Antwort erhalten. Versuch es bitte noch einmal."
-                }
+                )
+            }.onSuccess { result ->
+                AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
-                    text = finalText,
+                    text = result.text,
                     isStreaming = false,
                 )
                 AiConversationHistoryStore.saveEntry(
                     userKey = currentUserKey,
                     source = AiConversationHistorySource.Bot,
                     prompt = trimmedPrompt,
-                    response = finalText,
+                    response = result.text,
                 )
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
-                val partialText = responseBuffer.toString().trim()
-                val assistantText = assistantMessageText(
-                    error = error,
-                    partialText = partialText,
-                )
+                val assistantText = userFacingErrorMessage(error)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = assistantText,
@@ -203,9 +178,6 @@ class AiViewModel : ViewModel() {
             )
             val assistantMessageId = assistantMessage.id
             runCatching {
-                val authorization = aiUsageAuthorizationClient.authorize(AiUsageAuthorizationKind.Visual)
-                AiConversationHistoryStore.updateRetentionDays(authorization.historyRetentionDays)
-
                 val userMessage = AiMessage(
                     role = AiMessageRole.User,
                     text = trimmedPrompt,
@@ -222,6 +194,7 @@ class AiViewModel : ViewModel() {
 
                 aiImageClient.generateVisual(buildVisualPrompt(trimmedPrompt))
             }.onSuccess { result ->
+                AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = result.text,
@@ -237,10 +210,7 @@ class AiViewModel : ViewModel() {
                 )
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
-                val assistantText = assistantMessageText(
-                    error = error,
-                    partialText = "",
-                )
+                val assistantText = userFacingErrorMessage(error)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = assistantText,
@@ -417,30 +387,15 @@ class AiViewModel : ViewModel() {
         return keywords.any { keyword -> lower.contains(keyword) }
     }
 
-    private fun assistantMessageText(
-        error: Throwable,
-        partialText: String,
-    ): String {
-        if (partialText.isNotBlank()) {
-            return buildString {
-                append(partialText)
-                append("\n\n")
-                append(userFacingErrorMessage(error))
-            }
-        }
-
-        return when (error) {
-            is PromptBlockedException -> {
-                error.response?.promptFeedback?.blockReasonMessage
-                    ?.takeIf { it.isNotBlank() }
-                    ?: "Die Anfrage konnte so nicht verarbeitet werden. Versuch es etwas neutraler oder konkreter."
-            }
-            else -> userFacingErrorMessage(error)
-        }
-    }
-
     private fun userFacingErrorMessage(error: Throwable): String = when (error) {
         is FirebaseFunctionsException -> when (error.code) {
+            FirebaseFunctionsException.Code.NOT_FOUND,
+            FirebaseFunctionsException.Code.UNIMPLEMENTED,
+            -> "Der Skydown x 22 Bot ist fuer diese Funktion gerade noch nicht verfuegbar."
+            FirebaseFunctionsException.Code.UNAVAILABLE ->
+                "Der Skydown x 22 Bot ist gerade nicht erreichbar."
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
+                "Der Skydown x 22 Bot hat zu lange fuer die Antwort gebraucht."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges KI-Limit ist erreicht."
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
@@ -452,26 +407,6 @@ class AiViewModel : ViewModel() {
             else ->
                 "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
         }
-        is ResponseStoppedException -> finishReasonMessage(
-            error.response.candidates.firstOrNull()?.finishReason,
-        )
-        is PromptBlockedException -> {
-            error.response?.promptFeedback?.blockReasonMessage
-                ?.takeIf { it.isNotBlank() }
-                ?: "Die Anfrage konnte so nicht verarbeitet werden."
-        }
-        else -> "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
-    }
-
-    private fun finishReasonMessage(reason: FinishReason?): String = when (reason) {
-        FinishReason.MAX_TOKENS -> "Die Antwort wurde wegen des Antwortlimits gekuerzt."
-        FinishReason.SAFETY,
-        FinishReason.PROHIBITED_CONTENT,
-        FinishReason.BLOCKLIST,
-        FinishReason.SPII
-        -> "Die Antwort wurde aus Sicherheitsgruenden gestoppt."
-        FinishReason.RECITATION -> "Die Antwort wurde wegen Zitat-Schutz gestoppt."
-        FinishReason.MALFORMED_FUNCTION_CALL -> "Die Antwort konnte nicht sauber abgeschlossen werden. Versuch es bitte noch einmal."
-        else -> "Die Antwort wurde vorzeitig beendet."
+        else -> error.message?.takeIf { it.isNotBlank() } ?: "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
     }
 }

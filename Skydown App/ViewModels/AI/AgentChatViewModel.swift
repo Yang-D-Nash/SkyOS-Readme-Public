@@ -42,16 +42,13 @@ final class AgentChatViewModel: ObservableObject {
     ]
 
     private let service: AgentChatServicing
-    private let authorizationService: AIUsageAuthorizing
     private let historyStore: AIScriptHistoryStore
     private var currentUserKey: String?
 
     init(
-        service: AgentChatServicing = FirebaseFunctionsAgentService(),
-        authorizationService: AIUsageAuthorizing = FirebaseFunctionsAIUsageService()
+        service: AgentChatServicing = FirebaseFunctionsAgentService()
     ) {
         self.service = service
-        self.authorizationService = authorizationService
         self.historyStore = AIScriptHistoryStore.shared
     }
 
@@ -75,9 +72,6 @@ final class AgentChatViewModel: ObservableObject {
         var appendedAssistantID: UUID?
         Task {
             do {
-                let authorization = try await authorizationService.authorize(kind: .agent)
-                historyStore.updateRetentionDays(authorization.historyRetentionDays)
-
                 let assistantID = UUID()
                 appendedAssistantID = assistantID
                 let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
@@ -94,20 +88,21 @@ final class AgentChatViewModel: ObservableObject {
                 )
                 draft = ""
 
-                let reply = try await service.sendMessage(
+                let result = try await service.sendMessage(
                     prompt: trimmedPrompt,
                     history: history
                 )
+                historyStore.updateRetentionDays(result.historyRetentionDays)
                 updateAssistantMessage(
                     id: assistantID,
-                    text: reply,
+                    text: result.reply,
                     isStreaming: false
                 )
                 historyStore.saveEntry(
                     userKey: currentUserKey,
                     source: .agent,
                     prompt: trimmedPrompt,
-                    response: reply
+                    response: result.reply
                 )
                 isSending = false
             } catch {

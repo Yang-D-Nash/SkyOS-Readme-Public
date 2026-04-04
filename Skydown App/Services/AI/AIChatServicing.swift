@@ -1,63 +1,92 @@
 import Foundation
-import FirebaseAI
+import FirebaseFunctions
+
+struct AITextResponse {
+    let text: String
+    let historyRetentionDays: Int
+}
 
 struct AIGeneratedVisual {
     let text: String
     let imageData: Data
     let mimeType: String
+    let historyRetentionDays: Int
 }
 
 protocol AIChatServicing {
-    func makeChat() -> Chat
+    func generateText(prompt: String) async throws -> AITextResponse
     func generateVisual(prompt: String) async throws -> AIGeneratedVisual
 }
 
-struct FirebaseAIChatService: AIChatServicing {
-    func makeChat() -> Chat {
-        let config = GenerationConfig(
-            candidateCount: 1,
-            maxOutputTokens: 768,
-            thinkingConfig: ThinkingConfig(thinkingBudget: 0)
-        )
+enum AIChatServiceError: LocalizedError {
+    case invalidResponse
+    case invalidImageData
 
-        return FirebaseAI
-            .firebaseAI(backend: .googleAI())
-            .generativeModel(
-                modelName: "gemini-2.5-flash-lite",
-                generationConfig: config
-            )
-            .startChat()
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            return "Der Skydown x 22 Bot hat keine gueltige Antwort geliefert."
+        case .invalidImageData:
+            return "Das generierte Visual konnte nicht gelesen werden."
+        }
+    }
+}
+
+struct FirebaseFunctionsAIChatService: AIChatServicing {
+    private let functions: Functions
+
+    init(functions: Functions = Functions.functions(region: "us-central1")) {
+        self.functions = functions
+    }
+
+    func generateText(prompt: String) async throws -> AITextResponse {
+        let result = try await functions
+            .httpsCallable("generateAiText")
+            .call(["prompt": prompt])
+
+        guard
+            let payload = result.data as? [String: Any],
+            let reply = (payload["reply"] as? String)?.trimmedNilIfEmpty
+        else {
+            throw AIChatServiceError.invalidResponse
+        }
+
+        return AITextResponse(
+            text: reply,
+            historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
+                ?? UserRole.user.defaultAIHistoryRetentionDays
+        )
     }
 
     func generateVisual(prompt: String) async throws -> AIGeneratedVisual {
-        let response = try await FirebaseAI
-            .firebaseAI(backend: .googleAI())
-            .generativeModel(
-                modelName: "gemini-2.5-flash-image",
-                generationConfig: GenerationConfig(
-                    responseModalities: [.text, .image]
-                )
-            )
-            .generateContent(prompt)
+        let result = try await functions
+            .httpsCallable("generateAiVisual")
+            .call(["prompt": prompt])
 
-        guard let inlinePart = response.inlineDataParts.first else {
-            throw GenerateVisualError.missingImage
+        guard let payload = result.data as? [String: Any] else {
+            throw AIChatServiceError.invalidResponse
+        }
+
+        guard
+            let imageBase64 = (payload["imageBase64"] as? String)?.trimmedNilIfEmpty,
+            let imageData = Data(base64Encoded: imageBase64, options: [.ignoreUnknownCharacters])
+        else {
+            throw AIChatServiceError.invalidImageData
         }
 
         return AIGeneratedVisual(
-            text: response.text?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? "Visual generiert.",
-            imageData: inlinePart.data,
-            mimeType: inlinePart.mimeType,
-            )
+            text: (payload["text"] as? String)?.trimmedNilIfEmpty ?? "Visual generiert.",
+            imageData: imageData,
+            mimeType: (payload["mimeType"] as? String)?.trimmedNilIfEmpty ?? "image/png",
+            historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
+                ?? UserRole.user.defaultAIHistoryRetentionDays
+        )
     }
 }
 
-private enum GenerateVisualError: LocalizedError {
-    case missingImage
-}
-
 private extension String {
-    var nilIfEmpty: String? {
-        isEmpty ? nil : self
+    var trimmedNilIfEmpty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 }

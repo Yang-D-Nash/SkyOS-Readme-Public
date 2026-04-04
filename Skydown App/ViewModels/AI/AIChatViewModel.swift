@@ -1,5 +1,4 @@
 import Foundation
-import FirebaseAI
 import FirebaseFunctions
 
 enum AIChatRole {
@@ -84,16 +83,13 @@ final class AIChatViewModel: ObservableObject {
     ]
 
     private let service: AIChatServicing
-    private let authorizationService: AIUsageAuthorizing
     private let historyStore: AIScriptHistoryStore
     private var currentUserKey: String?
 
     init(
-        service: AIChatServicing = FirebaseAIChatService(),
-        authorizationService: AIUsageAuthorizing = FirebaseFunctionsAIUsageService()
+        service: AIChatServicing = FirebaseFunctionsAIChatService()
     ) {
         self.service = service
-        self.authorizationService = authorizationService
         self.historyStore = AIScriptHistoryStore.shared
     }
 
@@ -119,13 +115,9 @@ final class AIChatViewModel: ObservableObject {
         guard !trimmedPrompt.isEmpty, !isSending else { return }
         isSending = true
 
-        var responseBuffer = ""
         var appendedAssistantID: UUID?
         Task {
             do {
-                let authorization = try await authorizationService.authorize(kind: .text)
-                historyStore.updateRetentionDays(authorization.historyRetentionDays)
-
                 let assistantID = UUID()
                 appendedAssistantID = assistantID
                 let history = buildHistoryContext()
@@ -133,55 +125,35 @@ final class AIChatViewModel: ObservableObject {
                 messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
                 draft = ""
 
-                let chat = service.makeChat()
-                let responseStream = try chat.sendMessageStream(buildPrompt(for: trimmedPrompt, history: history))
-
-                for try await chunk in responseStream {
-                    guard let text = chunk.text, !text.isEmpty else { continue }
-                    responseBuffer += text
-                    updateAssistantMessage(
-                        id: assistantID,
-                        text: responseBuffer,
-                        isStreaming: true
-                    )
-                }
+                let result = try await service.generateText(
+                    prompt: buildPrompt(for: trimmedPrompt, history: history)
+                )
+                historyStore.updateRetentionDays(result.historyRetentionDays)
 
                 updateAssistantMessage(
                     id: assistantID,
-                    text: responseBuffer.isEmpty
-                        ? "Ich habe gerade keine Antwort erhalten. Versuch es bitte noch einmal."
-                        : responseBuffer,
+                    text: result.text,
                     isStreaming: false
                 )
                 historyStore.saveEntry(
                     userKey: currentUserKey,
                     source: .bot,
                     prompt: trimmedPrompt,
-                    response: responseBuffer.isEmpty
-                        ? "Ich habe gerade keine Antwort erhalten. Versuch es bitte noch einmal."
-                        : responseBuffer
+                    response: result.text
                 )
                 isSending = false
             } catch {
-                let partialText = responseBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
                 isSending = false
+                let assistantText = userFacingErrorMessage(for: error)
                 if let assistantID = appendedAssistantID {
-                    let assistantText = assistantMessageText(
-                        for: error,
-                        partialText: partialText
-                    )
-                    updateAssistantMessage(
-                        id: assistantID,
-                        text: assistantText,
-                        isStreaming: false
-                    )
-                    historyStore.saveEntry(
-                        userKey: currentUserKey,
-                        source: .bot,
-                        prompt: trimmedPrompt,
-                        response: assistantText
-                    )
+                    updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
                 }
+                historyStore.saveEntry(
+                    userKey: currentUserKey,
+                    source: .bot,
+                    prompt: trimmedPrompt,
+                    response: assistantText
+                )
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
             }
         }
@@ -195,9 +167,6 @@ final class AIChatViewModel: ObservableObject {
         var appendedAssistantID: UUID?
         Task {
             do {
-                let authorization = try await authorizationService.authorize(kind: .visual)
-                historyStore.updateRetentionDays(authorization.historyRetentionDays)
-
                 let assistantID = UUID()
                 appendedAssistantID = assistantID
                 messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
@@ -205,6 +174,7 @@ final class AIChatViewModel: ObservableObject {
                 draft = ""
 
                 let result = try await service.generateVisual(prompt: buildVisualPrompt(for: trimmedPrompt))
+                historyStore.updateRetentionDays(result.historyRetentionDays)
                 updateAssistantMessage(
                     id: assistantID,
                     text: result.text,
@@ -220,20 +190,16 @@ final class AIChatViewModel: ObservableObject {
                 isSending = false
             } catch {
                 isSending = false
+                let assistantText = userFacingErrorMessage(for: error)
                 if let assistantID = appendedAssistantID {
-                    let assistantText = assistantMessageText(for: error, partialText: "")
-                    updateAssistantMessage(
-                        id: assistantID,
-                        text: assistantText,
-                        isStreaming: false
-                    )
-                    historyStore.saveEntry(
-                        userKey: currentUserKey,
-                        source: .bot,
-                        prompt: trimmedPrompt,
-                        response: assistantText
-                    )
+                    updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
                 }
+                historyStore.saveEntry(
+                    userKey: currentUserKey,
+                    source: .bot,
+                    prompt: trimmedPrompt,
+                    response: assistantText
+                )
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
             }
         }
@@ -350,25 +316,18 @@ final class AIChatViewModel: ObservableObject {
         showToast = true
     }
 
-    private func assistantMessageText(for error: Error, partialText: String) -> String {
-        if !partialText.isEmpty {
-            return "\(partialText)\n\n\(userFacingErrorMessage(for: error))"
-        }
-
-        if case let GenerateContentError.promptBlocked(response) = error {
-            return response.promptFeedback?.blockReasonMessage
-                ?? "Die Anfrage konnte so nicht verarbeitet werden. Versuch es etwas neutraler oder konkreter."
-        }
-
-        return userFacingErrorMessage(for: error)
-    }
-
     private func userFacingErrorMessage(for error: Error) -> String {
         let nsError = error as NSError
 
         if nsError.domain == FunctionsErrorDomain,
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
+            case .notFound, .unimplemented:
+                return "Der Skydown x 22 Bot ist fuer diesen Bereich gerade noch nicht verfuegbar."
+            case .unavailable:
+                return "Der Skydown x 22 Bot ist gerade nicht erreichbar."
+            case .deadlineExceeded:
+                return "Der Skydown x 22 Bot hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
                 return nsError.localizedDescription.isEmpty ? "Dein heutiges KI-Limit ist erreicht." : nsError.localizedDescription
             case .permissionDenied:
@@ -382,34 +341,8 @@ final class AIChatViewModel: ObservableObject {
             }
         }
 
-        if case let GenerateContentError.responseStoppedEarly(reason, _) = error {
-            return finishReasonMessage(for: reason)
-        }
-
-        if case let GenerateContentError.promptBlocked(response) = error {
-            return response.promptFeedback?.blockReasonMessage
-                ?? "Die Anfrage konnte so nicht verarbeitet werden."
-        }
-
-        if case GenerateContentError.internalError = error {
-            return "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
-        }
-
-        return "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
-    }
-
-    private func finishReasonMessage(for reason: FinishReason) -> String {
-        switch reason {
-        case .maxTokens:
-            return "Die Antwort wurde wegen des Antwortlimits gekuerzt."
-        case .safety, .prohibitedContent, .blocklist, .spii:
-            return "Die Antwort wurde aus Sicherheitsgruenden gestoppt."
-        case .recitation:
-            return "Die Antwort wurde wegen Zitat-Schutz gestoppt."
-        case .malformedFunctionCall:
-            return "Die Antwort konnte nicht sauber abgeschlossen werden. Versuch es bitte noch einmal."
-        default:
-            return "Die Antwort wurde vorzeitig beendet."
-        }
+        return error.localizedDescription.isEmpty
+            ? "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
+            : error.localizedDescription
     }
 }

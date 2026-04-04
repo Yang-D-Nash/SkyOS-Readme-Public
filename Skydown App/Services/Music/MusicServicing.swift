@@ -3,6 +3,7 @@
 import AuthenticationServices
 import CryptoKit
 import Foundation
+import Security
 import UIKit
 
 protocol MusicServicing {
@@ -40,6 +41,10 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     private let encoder = JSONEncoder()
     private let userDefaults = UserDefaults.standard
     private let tokenStorageKey = "spotify.token.storage"
+    private let secureTokenStore = SpotifyTokenKeychainStore(
+        service: "com.skydown.spotify",
+        account: "oauth-token"
+    )
     private let anchorProvider = PresentationAnchorProvider()
     private var authorizationURLString: String?
 
@@ -61,6 +66,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     func disconnect() {
+        secureTokenStore.deleteToken()
         userDefaults.removeObject(forKey: tokenStorageKey)
         authorizationURLString = nil
     }
@@ -1116,13 +1122,97 @@ final class SpotifyMusicService: NSObject, MusicServicing {
     }
 
     private func loadStoredToken() -> StoredToken? {
-        guard let data = userDefaults.data(forKey: tokenStorageKey) else { return nil }
-        return try? decoder.decode(StoredToken.self, from: data)
+        if let keychainData = secureTokenStore.loadTokenData() {
+            return try? decoder.decode(StoredToken.self, from: keychainData)
+        }
+
+        guard let legacyData = userDefaults.data(forKey: tokenStorageKey) else { return nil }
+        guard let token = try? decoder.decode(StoredToken.self, from: legacyData) else {
+            userDefaults.removeObject(forKey: tokenStorageKey)
+            return nil
+        }
+
+        // Migrate older installs to the Keychain the first time we read their Spotify token.
+        if secureTokenStore.saveTokenData(legacyData) {
+            userDefaults.removeObject(forKey: tokenStorageKey)
+        }
+
+        return token
     }
 
     private func saveStoredToken(_ token: StoredToken) {
         guard let data = try? encoder.encode(token) else { return }
-        userDefaults.set(data, forKey: tokenStorageKey)
+        if secureTokenStore.saveTokenData(data) {
+            userDefaults.removeObject(forKey: tokenStorageKey)
+        }
+    }
+}
+
+private struct SpotifyTokenKeychainStore {
+    let service: String
+    let account: String
+
+    func loadTokenData() -> Data? {
+        var query = baseQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+
+        switch status {
+        case errSecSuccess:
+            return item as? Data
+        case errSecItemNotFound:
+            return nil
+        default:
+            print("Spotify Keychain Load Error:", status)
+            return nil
+        }
+    }
+
+    @discardableResult
+    func saveTokenData(_ data: Data) -> Bool {
+        var query = baseQuery
+        query[kSecValueData as String] = data
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+
+        let addStatus = SecItemAdd(query as CFDictionary, nil)
+        if addStatus == errSecSuccess {
+            return true
+        }
+
+        guard addStatus == errSecDuplicateItem else {
+            print("Spotify Keychain Save Error:", addStatus)
+            return false
+        }
+
+        let updateAttributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        let updateStatus = SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
+        if updateStatus != errSecSuccess {
+            print("Spotify Keychain Update Error:", updateStatus)
+            return false
+        }
+
+        return true
+    }
+
+    func deleteToken() {
+        let status = SecItemDelete(baseQuery as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            print("Spotify Keychain Delete Error:", status)
+        }
+    }
+
+    private var baseQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
     }
 }
 
