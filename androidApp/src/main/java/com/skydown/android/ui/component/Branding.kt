@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,6 +73,8 @@ fun BrandHeroCard(
     subtitle: String,
     detail: String? = null,
     backgroundImageUrl: String? = null,
+    backgroundImageSizeFraction: Float = 1f,
+    backgroundImageAlignment: Alignment = Alignment.Center,
     accent: Color = MaterialTheme.colorScheme.primary,
     secondaryAccent: Color = MaterialTheme.colorScheme.secondary,
     marks: List<BrandArtwork> = emptyList(),
@@ -114,7 +117,9 @@ fun BrandHeroCard(
                 model = backgroundImageUrl,
                 contentDescription = null,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .align(backgroundImageAlignment)
+                    .fillMaxWidth(backgroundImageSizeFraction)
+                    .fillMaxHeight(backgroundImageSizeFraction)
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 contentScale = ContentScale.Fit,
             )
