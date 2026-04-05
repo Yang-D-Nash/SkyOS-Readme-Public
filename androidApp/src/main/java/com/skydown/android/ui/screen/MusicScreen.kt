@@ -630,50 +630,102 @@ private fun MusicPlayerCard(
             tag = "LIVE",
         )
 
-        Row(
-            modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
         ) {
-            MusicSpotlightArtwork(
-                imageUrl = track.artworkUrl100,
-                accent = playerAccent,
-                frameSize = 88.dp,
-                modifier = Modifier.size(88.dp),
-            )
+            val stackHero = maxWidth < 360.dp
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = track.trackName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = track.artistName ?: "Zweizwei",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                )
-                track.collectionName?.takeIf { it.isNotBlank() }?.let { album ->
-                    Text(
-                        text = album,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+            if (stackHero) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    MusicSpotlightArtwork(
+                        imageUrl = track.artworkUrl100,
+                        accent = playerAccent,
+                        frameSize = 88.dp,
+                        modifier = Modifier.size(88.dp),
                     )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = track.trackName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = track.artistName ?: "Zweizwei",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                        track.collectionName?.takeIf { it.isNotBlank() }?.let { album ->
+                            Text(
+                                text = album,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            )
+                        }
+                        Text(
+                            text = when {
+                                hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
+                                hasPreview -> "Der Track hat eine direkte Preview im Deck."
+                                hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
+                                    "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
+                                else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Deck bereit."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                        )
+                    }
                 }
-                Text(
-                    text = when {
-                        hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
-                        hasPreview -> "Der Track hat eine direkte Preview im Deck."
-                        hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
-                            "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
-                        else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Deck bereit."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
-                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MusicSpotlightArtwork(
+                        imageUrl = track.artworkUrl100,
+                        accent = playerAccent,
+                        frameSize = 88.dp,
+                        modifier = Modifier.size(88.dp),
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = track.trackName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = track.artistName ?: "Zweizwei",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                        track.collectionName?.takeIf { it.isNotBlank() }?.let { album ->
+                            Text(
+                                text = album,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            )
+                        }
+                        Text(
+                            text = when {
+                                hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
+                                hasPreview -> "Der Track hat eine direkte Preview im Deck."
+                                hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
+                                    "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
+                                else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Deck bereit."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                        )
+                    }
+                }
             }
         }
 
@@ -1011,40 +1063,82 @@ private fun MusicSpotlightDeckCard(
             tag = "SPOTLIGHT",
         )
 
-        Row(
-            modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
         ) {
-            MusicSpotlightArtwork(
-                imageUrl = heroImage,
-                accent = if (uiState.isSpotifyConnected) SpotifyGreen else ArenaGold,
-                frameSize = 110.dp,
-                modifier = Modifier.size(110.dp),
-            )
+            val stackHero = maxWidth < 380.dp
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = uiState.selectedArtist,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Black,
-                )
-                Text(
-                    text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Deck",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-                )
-                Text(
-                    text = artistPage.bio ?: selectedTrack?.trackName?.let { "Aktueller Fokus: $it" }
-                        ?: "Die Stage bleibt bereit fuer Releases, Clips und Social Touchpoints.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            if (stackHero) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    MusicSpotlightArtwork(
+                        imageUrl = heroImage,
+                        accent = if (uiState.isSpotifyConnected) SpotifyGreen else ArenaGold,
+                        frameSize = 110.dp,
+                        modifier = Modifier.size(110.dp),
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = uiState.selectedArtist,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Black,
+                        )
+                        Text(
+                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Deck",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                        )
+                        Text(
+                            text = artistPage.bio ?: selectedTrack?.trackName?.let { "Aktueller Fokus: $it" }
+                                ?: "Die Stage bleibt bereit fuer Releases, Clips und Social Touchpoints.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MusicSpotlightArtwork(
+                        imageUrl = heroImage,
+                        accent = if (uiState.isSpotifyConnected) SpotifyGreen else ArenaGold,
+                        frameSize = 110.dp,
+                        modifier = Modifier.size(110.dp),
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = uiState.selectedArtist,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Black,
+                        )
+                        Text(
+                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Deck",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                        )
+                        Text(
+                            text = artistPage.bio ?: selectedTrack?.trackName?.let { "Aktueller Fokus: $it" }
+                                ?: "Die Stage bleibt bereit fuer Releases, Clips und Social Touchpoints.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
 
@@ -1457,7 +1551,8 @@ private fun ArtistPagerCard(
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(14.dp),
+                            .padding(14.dp)
+                            .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         BrandPill(text = "Artist Deck", tint = ArenaGold)
