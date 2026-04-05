@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -110,7 +111,7 @@ fun BrandHeroCard(
     val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.84f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
     val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.96f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f)
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
@@ -137,33 +138,33 @@ fun BrandHeroCard(
             ),
     ) {
         if (hasBackgroundImage) {
-            val backgroundWidth = if (usesCustomBackgroundFrame) {
-                val scaledWidth = maxWidth * backgroundImageStyle.sizeFraction
-                if (backgroundImageStyle.maxWidth != Dp.Unspecified) {
-                    minOf(scaledWidth, backgroundImageStyle.maxWidth)
-                } else {
-                    scaledWidth
+            if (usesCustomBackgroundFrame) {
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                ) {
+                    AsyncImage(
+                        model = backgroundImageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .align(backgroundImageStyle.alignment)
+                            .fillMaxWidth(backgroundImageStyle.sizeFraction)
+                            .widthIn(max = backgroundImageStyle.maxWidth)
+                            .heightIn(max = backgroundImageStyle.maxHeight),
+                        contentScale = ContentScale.Fit,
+                    )
                 }
             } else {
-                Dp.Unspecified
-            }
-
-            AsyncImage(
-                model = backgroundImageUrl,
-                contentDescription = null,
-                modifier = if (usesCustomBackgroundFrame) {
-                    Modifier
-                        .align(backgroundImageStyle.alignment)
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                        .width(backgroundWidth)
-                        .heightIn(max = backgroundImageStyle.maxHeight)
-                } else {
-                    Modifier
+                AsyncImage(
+                    model = backgroundImageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                },
-                contentScale = ContentScale.Fit,
-            )
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    contentScale = ContentScale.Fit,
+                )
+            }
 
             Box(
                 modifier = Modifier
