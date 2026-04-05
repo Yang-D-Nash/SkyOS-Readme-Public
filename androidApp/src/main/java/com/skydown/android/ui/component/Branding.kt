@@ -120,51 +120,55 @@ fun BrandHeroCard(
             ) {
                 val imageFrameHeight = minOf(maxHeight, maxWidth / imageAspectRatio)
 
-                AsyncImage(
-                    model = backgroundImageUrl,
-                    contentDescription = null,
+                Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .width(maxWidth)
+                        .fillMaxWidth()
                         .height(imageFrameHeight)
                         .clip(imageShape),
-                    contentScale = ContentScale.Fit,
-                )
+                ) {
+                    AsyncImage(
+                        model = backgroundImageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.38f)),
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.18f),
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.48f),
+                                    ),
+                                ),
+                            ),
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        accent.copy(alpha = 0.10f),
+                                        Color.Transparent,
+                                        secondaryAccent.copy(alpha = 0.10f),
+                                    ),
+                                ),
+                            ),
+                    )
+                }
             }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.38f)),
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.18f),
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.48f),
-                            ),
-                        ),
-                    ),
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                accent.copy(alpha = 0.10f),
-                                Color.Transparent,
-                                secondaryAccent.copy(alpha = 0.10f),
-                            ),
-                        ),
-                    ),
-            )
         }
 
         Column(
