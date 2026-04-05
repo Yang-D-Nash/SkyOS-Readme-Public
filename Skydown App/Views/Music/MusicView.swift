@@ -454,40 +454,13 @@ struct MusicView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                HStack(spacing: 10) {
-                    if selectedTrack.previewUrl != nil {
-                        Button {
-                            audioManager.playPreview(for: selectedTrack)
-                        } label: {
-                            Label(
-                                audioManager.currentlyPlayingId == selectedTrack.trackId ? "Preview stoppen" : "Preview starten",
-                                systemImage: audioManager.currentlyPlayingId == selectedTrack.trackId ? "pause.fill" : "play.fill"
-                            )
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(AppColors.accent(for: colorScheme))
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                        }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        spotlightPrimaryActions
                     }
 
-                    if brand.showsArtistPages {
-                        Button {
-                            presentSheet(.artistPage)
-                        } label: {
-                            Label("Artist Page", systemImage: "person.crop.square.fill")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(AppColors.secondaryBackground(for: colorScheme))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                        }
+                    VStack(spacing: 10) {
+                        spotlightPrimaryActions
                     }
                 }
 
@@ -496,6 +469,46 @@ struct MusicView: View {
             .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.spotify(for: colorScheme))
+        }
+    }
+
+    @ViewBuilder
+    private var spotlightPrimaryActions: some View {
+        if let selectedTrack {
+            if selectedTrack.previewUrl != nil {
+                Button {
+                    audioManager.playPreview(for: selectedTrack)
+                } label: {
+                    Label(
+                        audioManager.currentlyPlayingId == selectedTrack.trackId ? "Preview stoppen" : "Preview starten",
+                        systemImage: audioManager.currentlyPlayingId == selectedTrack.trackId ? "pause.fill" : "play.fill"
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(AppColors.accent(for: colorScheme))
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+            }
+
+            if brand.showsArtistPages {
+                Button {
+                    presentSheet(.artistPage)
+                } label: {
+                    Label("Artist Page", systemImage: "person.crop.square.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(AppColors.secondaryBackground(for: colorScheme))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+            }
         }
     }
 

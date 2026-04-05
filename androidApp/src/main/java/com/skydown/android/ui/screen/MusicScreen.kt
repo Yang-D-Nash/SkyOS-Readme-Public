@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -689,40 +690,80 @@ private fun MusicPlayerCard(
             )
         }
 
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            if (hasPreview) {
-                BrandActionButton(
-                    text = if (isPlaying) "Stop" else "Preview",
-                    onClick = onPlayToggle,
-                    accent = playerAccent,
-                    modifier = Modifier.weight(1f),
-                    icon = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
-                    filled = isPlaying,
-                )
-            }
+            val stackButtons = maxWidth < 360.dp
 
-            if (hasDirectSpotifyTrack) {
-                BrandActionButton(
-                    text = "Spotify",
-                    onClick = onOpenSpotify,
-                    accent = SpotifyGreen,
-                    modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
-                    icon = Icons.Default.MusicNote,
-                )
-            } else if (hasSpotifyArtistLink || hasSpotifySearch) {
-                BrandActionButton(
-                    text = "Spotify",
-                    onClick = onOpenSpotify,
-                    accent = SpotifyGreen,
-                    modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
-                    icon = Icons.Default.MusicNote,
-                    filled = false,
-                )
+            if (stackButtons) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (hasPreview) {
+                        BrandActionButton(
+                            text = if (isPlaying) "Stop" else "Preview",
+                            onClick = onPlayToggle,
+                            accent = playerAccent,
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
+                            filled = isPlaying,
+                        )
+                    }
+
+                    if (hasDirectSpotifyTrack) {
+                        BrandActionButton(
+                            text = "Spotify",
+                            onClick = onOpenSpotify,
+                            accent = SpotifyGreen,
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = Icons.Default.MusicNote,
+                        )
+                    } else if (hasSpotifyArtistLink || hasSpotifySearch) {
+                        BrandActionButton(
+                            text = "Spotify",
+                            onClick = onOpenSpotify,
+                            accent = SpotifyGreen,
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = Icons.Default.MusicNote,
+                            filled = false,
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (hasPreview) {
+                        BrandActionButton(
+                            text = if (isPlaying) "Stop" else "Preview",
+                            onClick = onPlayToggle,
+                            accent = playerAccent,
+                            modifier = Modifier.weight(1f),
+                            icon = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
+                            filled = isPlaying,
+                        )
+                    }
+
+                    if (hasDirectSpotifyTrack) {
+                        BrandActionButton(
+                            text = "Spotify",
+                            onClick = onOpenSpotify,
+                            accent = SpotifyGreen,
+                            modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                            icon = Icons.Default.MusicNote,
+                        )
+                    } else if (hasSpotifyArtistLink || hasSpotifySearch) {
+                        BrandActionButton(
+                            text = "Spotify",
+                            onClick = onOpenSpotify,
+                            accent = SpotifyGreen,
+                            modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                            icon = Icons.Default.MusicNote,
+                            filled = false,
+                        )
+                    }
+                }
             }
         }
     }
@@ -1016,30 +1057,60 @@ private fun MusicSpotlightDeckCard(
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                BrandActionButton(
-                    text = if (uiState.isSpotifyConnected) "Spotify trennen" else "Spotify verbinden",
-                    onClick = if (uiState.isSpotifyConnected) onDisconnect else onConnect,
-                    accent = SpotifyGreen,
-                    modifier = Modifier.weight(1f),
-                    icon = if (uiState.isSpotifyConnected) {
-                        Icons.AutoMirrored.Filled.Logout
-                    } else {
-                        Icons.Default.MusicNote
-                    },
-                    filled = !uiState.isSpotifyConnected,
-                )
+            BoxWithConstraints {
+                val stackButtons = maxWidth < 360.dp
 
-                BrandActionButton(
-                    text = "Artist Page",
-                    onClick = onOpenArtistPage,
-                    accent = ArenaGold,
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.AutoAwesome,
-                    filled = false,
-                )
+                if (stackButtons) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        BrandActionButton(
+                            text = if (uiState.isSpotifyConnected) "Spotify trennen" else "Spotify verbinden",
+                            onClick = if (uiState.isSpotifyConnected) onDisconnect else onConnect,
+                            accent = SpotifyGreen,
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = if (uiState.isSpotifyConnected) {
+                                Icons.AutoMirrored.Filled.Logout
+                            } else {
+                                Icons.Default.MusicNote
+                            },
+                            filled = !uiState.isSpotifyConnected,
+                        )
+
+                        BrandActionButton(
+                            text = "Artist Page",
+                            onClick = onOpenArtistPage,
+                            accent = ArenaGold,
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = Icons.Default.AutoAwesome,
+                            filled = false,
+                        )
+                    }
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        BrandActionButton(
+                            text = if (uiState.isSpotifyConnected) "Spotify trennen" else "Spotify verbinden",
+                            onClick = if (uiState.isSpotifyConnected) onDisconnect else onConnect,
+                            accent = SpotifyGreen,
+                            modifier = Modifier.weight(1f),
+                            icon = if (uiState.isSpotifyConnected) {
+                                Icons.AutoMirrored.Filled.Logout
+                            } else {
+                                Icons.Default.MusicNote
+                            },
+                            filled = !uiState.isSpotifyConnected,
+                        )
+
+                        BrandActionButton(
+                            text = "Artist Page",
+                            onClick = onOpenArtistPage,
+                            accent = ArenaGold,
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.AutoAwesome,
+                            filled = false,
+                        )
+                    }
+                }
             }
         }
     }
