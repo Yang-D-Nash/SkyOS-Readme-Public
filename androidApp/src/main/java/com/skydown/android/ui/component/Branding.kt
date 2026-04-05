@@ -7,16 +7,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,11 +86,16 @@ fun BrandHeroCard(
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
+    val usesCustomBackgroundFrame =
+        backgroundImageSizeFraction != 1f ||
+            backgroundImageAlignment != Alignment.Center ||
+            backgroundImageMaxWidth != Dp.Unspecified ||
+            backgroundImageMaxHeight != Dp.Unspecified
     val titleColor = if (hasBackgroundImage) Color.White else MaterialTheme.colorScheme.onSurface
     val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.84f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
     val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.96f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f)
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
@@ -117,18 +122,31 @@ fun BrandHeroCard(
             ),
     ) {
         if (hasBackgroundImage) {
+            val backgroundWidth = if (usesCustomBackgroundFrame) {
+                val scaledWidth = maxWidth * backgroundImageSizeFraction
+                if (backgroundImageMaxWidth != Dp.Unspecified) {
+                    minOf(scaledWidth, backgroundImageMaxWidth)
+                } else {
+                    scaledWidth
+                }
+            } else {
+                Dp.Unspecified
+            }
+
             AsyncImage(
                 model = backgroundImageUrl,
                 contentDescription = null,
-                modifier = Modifier
-                    .align(backgroundImageAlignment)
-                    .fillMaxWidth(backgroundImageSizeFraction)
-                    .fillMaxHeight(backgroundImageSizeFraction)
-                    .sizeIn(
-                        maxWidth = backgroundImageMaxWidth,
-                        maxHeight = backgroundImageMaxHeight,
-                    )
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                modifier = if (usesCustomBackgroundFrame) {
+                    Modifier
+                        .align(backgroundImageAlignment)
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                        .width(backgroundWidth)
+                        .heightIn(max = backgroundImageMaxHeight)
+                } else {
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                },
                 contentScale = ContentScale.Fit,
             )
 

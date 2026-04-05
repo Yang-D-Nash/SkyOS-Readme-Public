@@ -701,10 +701,10 @@ private fun MusicOverviewCard(
             "${uiState.selectedArtist} im Fokus. $trackLabel und ${uiState.availableArtists.size} Artists live."
         },
         backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
-        backgroundImageSizeFraction = 0.58f,
+        backgroundImageSizeFraction = 0.48f,
         backgroundImageAlignment = Alignment.CenterEnd,
-        backgroundImageMaxWidth = 188.dp,
-        backgroundImageMaxHeight = 92.dp,
+        backgroundImageMaxWidth = 164.dp,
+        backgroundImageMaxHeight = 84.dp,
         accent = SpotifyGreen,
         secondaryAccent = ArenaGold,
         marks = listOf(BrandArtwork.Zweizwei),
