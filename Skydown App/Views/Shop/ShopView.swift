@@ -376,16 +376,9 @@ struct ShopView: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 } else {
-                                    MerchandiseCollabRail(
+                                    MerchandiseCollabCarousel(
                                         lanes: merchCollabLanes,
-                                        selectedLaneID: selectedCollabLaneID,
-                                        colorScheme: colorScheme
-                                    ) { lane in
-                                        selectedCollabLaneID = lane.id
-                                    }
-
-                                    MerchandiseCollabSelectionCard(
-                                        selectedLane: selectedCollabLane,
+                                        selectedLaneID: $selectedCollabLaneID,
                                         totalItemCount: viewModel.merchandiseItems.count,
                                         colorScheme: colorScheme
                                     )

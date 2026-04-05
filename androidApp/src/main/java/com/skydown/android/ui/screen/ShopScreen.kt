@@ -303,14 +303,11 @@ fun ShopScreen(
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            ShopCollabRail(
+                            ShopCollabCarousel(
                                 lanes = collabLanes,
                                 selectedLaneId = selectedCollabLaneId,
-                                onSelect = { lane -> selectedCollabLaneId = lane.id },
-                            )
-                            ShopCollabSelectionCard(
-                                lane = selectedCollabLane,
                                 totalItemCount = uiState.items.size,
+                                onSelect = { lane -> selectedCollabLaneId = lane.id },
                             )
                         }
                     }
@@ -678,6 +675,83 @@ private fun ShopCollabRail(
                 onTap = { onSelect(lane) },
                 modifier = Modifier.width(214.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun ShopCollabCarousel(
+    lanes: List<ShopCollabLane>,
+    selectedLaneId: String,
+    totalItemCount: Int,
+    onSelect: (ShopCollabLane) -> Unit,
+) {
+    val safeLanes = lanes.ifEmpty {
+        listOf(
+            ShopCollabLane(
+                id = ShopCollabLane.ALL_ID,
+                title = "All Drops",
+                subtitle = "Alle Collabs und Core Pieces.",
+                itemCount = totalItemCount,
+                isCoreLane = false,
+            ),
+        )
+    }
+    val initialPage = safeLanes.indexOfFirst { it.id == selectedLaneId }.takeIf { it >= 0 } ?: 0
+    val pagerState = rememberPagerState(initialPage = initialPage) { safeLanes.size }
+
+    LaunchedEffect(selectedLaneId, safeLanes) {
+        val targetPage = safeLanes.indexOfFirst { it.id == selectedLaneId }.takeIf { it >= 0 } ?: 0
+        if (targetPage != pagerState.currentPage) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    LaunchedEffect(pagerState.settledPage, safeLanes) {
+        safeLanes.getOrNull(pagerState.settledPage)?.let { lane ->
+            if (lane.id != selectedLaneId) {
+                onSelect(lane)
+            }
+        }
+    }
+
+    Column {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth(),
+            pageSpacing = 12.dp,
+            contentPadding = PaddingValues(horizontal = 6.dp),
+        ) { pageIndex ->
+            val lane = safeLanes[pageIndex]
+            ShopCollabSelectionCard(
+                lane = lane,
+                totalItemCount = totalItemCount,
+            )
+        }
+
+        if (safeLanes.size > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                safeLanes.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (pagerState.currentPage == index) 9.dp else 7.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (pagerState.currentPage == index) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+                                },
+                            ),
+                    )
+                }
+            }
         }
     }
 }

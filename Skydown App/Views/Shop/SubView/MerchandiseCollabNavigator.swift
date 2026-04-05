@@ -118,6 +118,37 @@ struct MerchandiseCollabRail: View {
     }
 }
 
+struct MerchandiseCollabCarousel: View {
+    let lanes: [MerchandiseCollabLane]
+    @Binding var selectedLaneID: String
+    let totalItemCount: Int
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        let indexStyle = PageTabViewStyle(
+            indexDisplayMode: lanes.count > 1 ? .automatic : .never
+        )
+
+        TabView(selection: $selectedLaneID) {
+            ForEach(lanes) { lane in
+                MerchandiseCollabSelectionCard(
+                    selectedLane: lane,
+                    totalItemCount: totalItemCount,
+                    colorScheme: colorScheme
+                )
+                .tag(lane.id)
+                .padding(.horizontal, 2)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 170)
+        .tabViewStyle(indexStyle)
+        .indexViewStyle(
+            PageIndexViewStyle(backgroundDisplayMode: .always)
+        )
+    }
+}
+
 struct MerchandiseCollabSelectionCard: View {
     let selectedLane: MerchandiseCollabLane
     let totalItemCount: Int
