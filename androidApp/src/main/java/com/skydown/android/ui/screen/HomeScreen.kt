@@ -82,8 +82,12 @@ import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.openTrackInSpotify
 import coil3.compose.AsyncImage
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandHeroMetricCard
+import com.skydown.android.ui.component.BrandSectionBanner
+import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -278,19 +282,19 @@ fun HomeScreen(
                 item {
                     HomeAnimatedItem(order = 0) {
                         BrandHeroCard(
-                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Trainer Deck" },
-                            title = screenHeaderSettings.homeTitle.ifBlank { "Sky²² Expedition" },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Releases, Beats und Videos im Arena-inspirierten Home-Hub." },
-                            detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount von $homeSignalTotal Signalen live im Radar." },
+                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY²²" },
+                            title = screenHeaderSettings.homeTitle.ifBlank { "Home" },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren Street-Flow." },
+                            detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount von $homeSignalTotal Bereichen sind gerade live." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                             accent = ArenaGold,
                             secondaryAccent = ArenaRed,
                             marks = listOf(BrandArtwork.Combined),
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                BrandPill(text = "Trainer Hub", tint = ArenaGold)
+                                BrandPill(text = "Sky²² Core", tint = ArenaGold)
                                 BrandPill(text = "$activeSignalCount/$homeSignalTotal Live", tint = FieldMint)
-                                BrandPill(text = "Radar aktiv", tint = ArenaRed)
+                                BrandPill(text = "Street ready", tint = ArenaRed)
                             }
                             HomeHeroStatusRow(
                                 uiState = uiState,
@@ -452,7 +456,7 @@ private fun HomeHeroStatusRow(
     ) {
         HomeHeroStatusCard(
             label = "Music",
-            value = uiState.featuredTrack?.trackName ?: "Suche aktiv",
+            value = uiState.featuredTrack?.trackName ?: "Neuer Release",
             icon = Icons.Default.MusicNote,
             accent = SpotifyGreen,
             isActive = uiState.featuredTrack != null,
@@ -460,7 +464,7 @@ private fun HomeHeroStatusRow(
         )
         HomeHeroStatusCard(
             label = "Beats",
-            value = uiState.featuredBeat?.title ?: "Scan laeuft",
+            value = uiState.featuredBeat?.title ?: "Neue Auswahl",
             icon = Icons.Default.GraphicEq,
             accent = ArenaGold,
             isActive = uiState.featuredBeat != null,
@@ -468,7 +472,7 @@ private fun HomeHeroStatusRow(
         )
         HomeHeroStatusCard(
             label = "Video",
-            value = uiState.featuredVideo?.title ?: "Wird gesucht",
+            value = uiState.featuredVideo?.title ?: "Neuer Clip",
             icon = Icons.Default.Movie,
             accent = ArenaRed,
             isActive = uiState.featuredVideo != null,
@@ -486,59 +490,14 @@ private fun HomeHeroStatusCard(
     isActive: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        DexBlueDeep.copy(alpha = 0.74f),
-                        accent.copy(alpha = if (isActive) 0.24f else 0.12f),
-                        ArenaGold.copy(alpha = 0.08f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = if (isActive) 0.42f else 0.18f),
-                shape = RoundedCornerShape(20.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(26.dp)
-                    .clip(CircleShape)
-                    .background(accent.copy(alpha = if (isActive) 0.20f else 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isActive) accent else Color.White.copy(alpha = 0.82f),
-                    modifier = Modifier.size(14.dp),
-                )
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.92f),
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = if (isActive) 0.96f else 0.68f),
-            maxLines = 2,
-        )
-    }
+    BrandHeroMetricCard(
+        label = label,
+        value = value,
+        accent = accent,
+        modifier = modifier,
+        icon = icon,
+        isActive = isActive,
+    )
 }
 
 @Composable
@@ -636,47 +595,47 @@ private fun HomeFieldGuideCard(
     val signals = listOf(
         HomeRadarSignal(
             title = "Musik",
-            subtitle = uiState.featuredTrack?.trackName ?: "Naechster Release wird gesucht",
+            subtitle = uiState.featuredTrack?.trackName ?: "Naechster Release folgt",
             icon = Icons.Default.MusicNote,
             accent = SpotifyGreen,
             isActive = uiState.featuredTrack != null,
         ),
         HomeRadarSignal(
             title = "Beats",
-            subtitle = uiState.featuredBeat?.title ?: "Beat Hub wird gescannt",
+            subtitle = uiState.featuredBeat?.title ?: "Neue Beats folgen",
             icon = Icons.Default.GraphicEq,
             accent = MaterialTheme.colorScheme.secondary,
             isActive = uiState.featuredBeat != null,
         ),
         HomeRadarSignal(
             title = "Videos",
-            subtitle = uiState.featuredVideo?.title ?: "Naechster Clip wird gesucht",
+            subtitle = uiState.featuredVideo?.title ?: "Neuer Clip folgt",
             icon = Icons.Default.Movie,
             accent = InstagramOrange,
             isActive = uiState.featuredVideo != null,
         ),
     )
     val activeSignals = signals.count { it.isActive }
-    val scanLabel = when (activeSignals) {
-        homeSignalTotal -> "Bereit"
-        0 -> "Suche"
-        else -> "Scan"
+    val statusLabel = when (activeSignals) {
+        homeSignalTotal -> "Live"
+        0 -> "Standby"
+        else -> "Update"
     }
 
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
-            title = "Field Guide",
-            subtitle = "Radar, Status und aktive Lanes auf einen Blick.",
+            title = "Live Pulse",
+            subtitle = "Releases, Status und aktive Bereiche auf einen Blick.",
             icon = Icons.Default.Radar,
             accent = ArenaGold,
-            tag = "FIELD 01",
+            tag = "LIVE",
         )
 
         Text(
             text = when (activeSignals) {
-                homeSignalTotal -> "Alle Bereiche sind im Sichtfeld. Das Home-Deck ist komplett live."
-                0 -> "Aktuell wird noch kein Signal gefunden. Das Radar bleibt aber aktiv."
-                else -> "$activeSignals von $homeSignalTotal Bereichen sind bereits im Radar erfasst."
+                homeSignalTotal -> "Alle Bereiche sind live. Home bleibt komplett im Fokus."
+                0 -> "Gerade ist noch kein Bereich live. Der Hub bleibt bereit."
+                else -> "$activeSignals von $homeSignalTotal Bereichen sind gerade live."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
@@ -685,7 +644,7 @@ private fun HomeFieldGuideCard(
 
         HomeDexStatusRow(
             activeSignals = activeSignals,
-            scanLabel = scanLabel,
+            scanLabel = statusLabel,
             modifier = Modifier.padding(top = 16.dp),
         )
 
@@ -729,84 +688,13 @@ private fun HomeSectionBanner(
     accent: Color,
     tag: String? = null,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            accent.copy(alpha = 0.24f),
-                            accent.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
-                        ),
-                    ),
-                )
-                .border(
-                    width = 1.dp,
-                    color = accent.copy(alpha = 0.26f),
-                    shape = RoundedCornerShape(18.dp),
-                )
-                .padding(10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-            )
-        }
-
-        if (!tag.isNullOrBlank()) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                accent.copy(alpha = 0.22f),
-                                ArenaGold.copy(alpha = 0.18f),
-                            ),
-                        ),
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = accent.copy(alpha = 0.24f),
-                        shape = RoundedCornerShape(999.dp),
-                    )
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    text = tag,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accent,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-    }
+    BrandSectionBanner(
+        title = title,
+        subtitle = subtitle,
+        accent = accent,
+        icon = icon,
+        tag = tag,
+    )
 }
 
 @Composable
@@ -820,7 +708,7 @@ private fun HomeDexStatusRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         HomeDexStatusCard(
-            label = "Signals",
+            label = "Bereiche",
             value = "$activeSignals/$homeSignalTotal",
             accent = ArenaGold,
             modifier = Modifier.weight(1f),
@@ -833,7 +721,7 @@ private fun HomeDexStatusRow(
         )
         HomeDexStatusCard(
             label = "Refresh",
-            value = "Pull",
+            value = "Swipe",
             accent = DexBlue,
             modifier = Modifier.weight(1f),
         )
@@ -1305,33 +1193,21 @@ private fun HomeLatestReleaseCard(
                 HomeMediaActionButton(
                     label = if (isPlaying) "Stop" else "Play",
                     isActive = isPlaying,
+                    accent = SpotifyGreen,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onPlayToggle(track) },
                 )
             }
 
             if (hasSpotifyTarget) {
-                OutlinedButton(
+                BrandActionButton(
+                    text = homeSpotifyActionLabel(track),
                     onClick = { onOpenSpotify(track) },
+                    accent = SpotifyGreen,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = SpotifyGreen.copy(alpha = 0.14f),
-                        contentColor = SpotifyGreen,
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        SpotifyGreen.copy(alpha = 0.42f),
-                    ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = homeSpotifyActionLabel(track),
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                    icon = Icons.Default.MusicNote,
+                    filled = false,
+                )
             }
         }
     }
@@ -1435,6 +1311,7 @@ private fun HomeLatestBeatCard(
             HomeMediaActionButton(
                 label = if (isPlaying) "Stop" else "Play",
                 isActive = isPlaying,
+                accent = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
@@ -1443,14 +1320,16 @@ private fun HomeLatestBeatCard(
         }
 
         if (beat.openUrl.isNotBlank()) {
-            OutlinedButton(
+            BrandActionButton(
+                text = "Original oeffnen",
                 onClick = { openExternalLink(context, beat.openUrl) },
+                accent = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
-            ) {
-                Text("Original oeffnen")
-            }
+                icon = Icons.Default.Language,
+                filled = false,
+            )
         }
     }
 }
@@ -1552,7 +1431,7 @@ private fun HomeLatestVideoCard(
 
         Text(
             text = if (video.supportsInlinePlayback) {
-                "Der Clip liegt direkt im Deck bereit."
+                "Der Clip liegt direkt im Hub bereit."
             } else {
                 "Dieser Clip oeffnet ueber einen externen Link."
             },
@@ -1609,6 +1488,7 @@ private fun HomeLatestVideoCard(
             HomeMediaActionButton(
                 label = if (isPlaying) "Stop" else "Play",
                 isActive = isPlaying,
+                accent = InstagramOrange,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
@@ -1617,14 +1497,16 @@ private fun HomeLatestVideoCard(
         }
 
         if (video.openUrl.isNotBlank()) {
-            OutlinedButton(
+            BrandActionButton(
+                text = "Original oeffnen",
                 onClick = { openExternalLink(context, video.openUrl) },
+                accent = InstagramOrange,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
-            ) {
-                Text("Original oeffnen")
-            }
+                icon = Icons.Default.Language,
+                filled = false,
+            )
         }
     }
 }
@@ -1633,52 +1515,18 @@ private fun HomeLatestVideoCard(
 private fun HomeMediaActionButton(
     label: String,
     isActive: Boolean,
+    accent: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    if (isActive) {
-        Button(
-            onClick = onClick,
-            modifier = modifier,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = ArenaRed.copy(alpha = 0.88f),
-                contentColor = Color.White,
-            ),
-            shape = RoundedCornerShape(20.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Pause,
-                contentDescription = null,
-            )
-            Text(
-                text = label,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier,
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-            border = BorderStroke(
-                1.dp,
-                ArenaGold.copy(alpha = 0.28f),
-            ),
-            shape = RoundedCornerShape(20.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = null,
-            )
-            Text(
-                text = label,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-    }
+    BrandActionButton(
+        text = label,
+        onClick = onClick,
+        accent = accent,
+        modifier = modifier,
+        icon = if (isActive) Icons.Default.Pause else Icons.Default.PlayArrow,
+        filled = isActive,
+    )
 }
 
 @Composable
@@ -1689,15 +1537,15 @@ private fun HomeStoryCard(
     val context = LocalContext.current
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
-            title = "Route Deck",
+            title = "Quick Links",
             subtitle = "Die wichtigsten Wege zu Beats, Studio und Kontakt.",
             icon = Icons.Default.AutoAwesome,
             accent = ArenaRed,
-            tag = "ROUTE 05",
+            tag = "LINKS",
         )
 
         Text(
-            text = "Die wichtigsten Wege sind hier wie Sammelkarten gebuendelt und sofort erreichbar.",
+            text = "Die wichtigsten Wege sind hier gebuendelt und sofort erreichbar.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1716,7 +1564,7 @@ private fun HomeStoryCard(
             )
 
             HomeLaneSection(
-                title = "Music Route",
+                title = "Music Links",
                 subtitle = "Releases, Beats und Studio.",
                 accent = ArenaGold,
             ) {
@@ -1744,7 +1592,7 @@ private fun HomeStoryCard(
             }
 
             HomeLaneSection(
-                title = "Video Route",
+                title = "Video Links",
                 subtitle = "Clips & Mail.",
                 accent = InstagramOrange,
             ) {
@@ -1973,52 +1821,12 @@ private fun HomeBadge(
     isActive: Boolean,
     accent: Color,
 ) {
-    val backgroundBrush = if (isActive) {
-        Brush.linearGradient(
-            colors = listOf(
-                accent.copy(alpha = 0.18f),
-                ArenaGold.copy(alpha = 0.12f),
-            ),
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.70f),
-                DexBlue.copy(alpha = 0.06f),
-            ),
-        )
-    }
-    val contentColor = if (isActive) {
-        accent
-    } else {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    }
-
-    Row(
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.extraLarge)
-            .background(backgroundBrush)
-            .border(
-                width = 1.dp,
-                color = if (isActive) accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                shape = MaterialTheme.shapes.extraLarge,
-            )
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = text,
-            color = contentColor,
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
+    BrandStatusChip(
+        text = text,
+        accent = accent,
+        icon = icon,
+        isActive = isActive,
+    )
 }
 
 private fun homeTrackAudioKey(track: com.skydown.shared.model.Track): String = "track:${track.trackId}"

@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Sync
@@ -50,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -62,11 +64,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandHeroMetricCard
+import com.skydown.android.ui.component.BrandSectionBanner
+import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.MerchandiseCard
-import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
@@ -113,7 +118,10 @@ fun ShopScreen(
                         onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
                     ) {
-                        IconButton(onClick = viewModel::refresh) {
+                        IconButton(
+                            onClick = viewModel::refresh,
+                            enabled = !uiState.isCatalogLoading && !uiState.isSyncingCatalog,
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Shop aktualisieren",
@@ -155,7 +163,7 @@ fun ShopScreen(
                 }
 
                 val errorMessage = uiState.errorMessage
-                if (errorMessage != null && !uiState.isLoggedIn) {
+                if (errorMessage != null && !uiState.isLoggedIn && uiState.items.isEmpty()) {
                     item {
                         LoginSection(
                             errorMessage = errorMessage,
@@ -169,23 +177,37 @@ fun ShopScreen(
                         ShopMessageCard(
                             title = "Merch Store pausiert",
                             body = "Produkte bleiben sichtbar, aber neue Kaeufe sind gerade geschlossen. Sobald du den Store wieder oeffnest, kann direkt wieder bestellt werden.",
+                            icon = Icons.Default.Close,
+                            accent = MaterialTheme.colorScheme.secondary,
+                            tag = "PAUSE",
                         )
                     }
                 }
 
                 if (uiState.items.isEmpty()) {
                     item {
+                        val isSyncing = uiState.isCatalogLoading || uiState.isSyncingCatalog
                         ShopMessageCard(
-                            title = if (uiState.isSyncingCatalog) "Shopify wird geladen" else "Noch keine Shopify-Produkte",
+                            title = when {
+                                isSyncing -> "Shop wird geladen"
+                                else -> "Noch keine Shopify-Produkte"
+                            },
                             body = if (uiState.isAdmin) {
-                                if (uiState.isSyncingCatalog) {
+                                if (isSyncing) {
                                     "Der Katalog wird gerade direkt aus Shopify neu aufgebaut."
                                 } else {
                                     "Wenn Firestore leer ist, versucht die App den Shopify-Katalog jetzt automatisch neu zu laden."
                                 }
                             } else {
-                                "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
+                                if (isSyncing) {
+                                    "Produkte, Verfuegbarkeit und Bilder werden gerade synchronisiert."
+                                } else {
+                                    "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
+                                }
                             },
+                            icon = if (isSyncing) Icons.Default.Sync else Icons.Default.ShoppingBag,
+                            accent = if (isSyncing) MaterialTheme.colorScheme.primary else SpotifyGreen,
+                            tag = if (isSyncing) "SYNC" else "MERCH",
                         )
                     }
                 }
@@ -232,15 +254,22 @@ private fun ShopOverviewCard(
     uiState: ShopUiState,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+    val pieceLabel = when {
+        uiState.isCatalogLoading || uiState.isSyncingCatalog -> "Sync live"
+        uiState.items.size == 1 -> "1 Piece"
+        else -> "${uiState.items.size} Pieces"
+    }
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "Store" },
-        title = screenHeaderSettings.shopTitle.ifBlank { "Shop" },
-        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Produkte und Checkout." },
+        eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "SKY²²" },
+        title = screenHeaderSettings.shopTitle.ifBlank { "Merch" },
+        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Pieces und Checkout direkt im Sky²² Store." },
         detail = screenHeaderSettings.shopDetail.ifBlank {
-            if (uiState.isStoreOpen) {
-                "Bestellungen direkt in der App."
+            if (uiState.isCatalogLoading) {
+                "Produkte und Verfuegbarkeit werden synchronisiert."
+            } else if (uiState.isStoreOpen) {
+                "Bestellungen direkt aus dem Merch Hub."
             } else {
-                "Checkout pausiert."
+                "Checkout ist gerade pausiert."
             }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
@@ -248,20 +277,71 @@ private fun ShopOverviewCard(
         secondaryAccent = YouTubeDeepRed,
         marks = listOf(BrandArtwork.Combined),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            BrandPill(text = "${uiState.items.size} Artikel", tint = SpotifyGreen)
-            BrandPill(
-                text = if (uiState.isStoreOpen) "Live" else "Pause",
-                tint = if (uiState.isStoreOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-            )
-            BrandPill(
-                text = if (uiState.isLoggedIn) "Account" else "Gast",
-                tint = MaterialTheme.colorScheme.tertiary,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                BrandPill(text = pieceLabel, tint = SpotifyGreen)
+                BrandPill(
+                    text = if (uiState.isStoreOpen) "Checkout live" else "Checkout pausiert",
+                    tint = if (uiState.isStoreOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                )
+                BrandPill(
+                    text = if (uiState.isLoggedIn) "Account" else "Gast",
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ShopHeroStatusCard(
+                    label = "Pieces",
+                    value = if (uiState.isCatalogLoading || uiState.isSyncingCatalog) "Sync" else uiState.items.size.toString(),
+                    icon = Icons.Default.ShoppingBag,
+                    accent = SpotifyGreen,
+                    isActive = uiState.isCatalogLoading || uiState.isSyncingCatalog || uiState.items.isNotEmpty(),
+                    modifier = Modifier.weight(1f),
+                )
+                ShopHeroStatusCard(
+                    label = "Store",
+                    value = if (uiState.isStoreOpen) "Live" else "Pause",
+                    icon = Icons.Default.CheckCircle,
+                    accent = MaterialTheme.colorScheme.primary,
+                    isActive = uiState.isStoreOpen,
+                    modifier = Modifier.weight(1f),
+                )
+                ShopHeroStatusCard(
+                    label = "Access",
+                    value = if (uiState.isLoggedIn) "Account" else "Gast",
+                    icon = Icons.Default.Person,
+                    accent = YouTubeDeepRed,
+                    isActive = uiState.isLoggedIn,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun ShopHeroStatusCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    accent: Color,
+    isActive: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    BrandHeroMetricCard(
+        label = label,
+        value = value,
+        accent = accent,
+        modifier = modifier,
+        icon = icon,
+        isActive = isActive,
+    )
 }
 
 @Composable
@@ -271,16 +351,12 @@ private fun ShopAdminControlsCard(
     onSyncShopify: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(14.dp)) {
-        Text(
-            text = "Store Kontrolle",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = "Shopify liefert Produkte. Hier steuerst du Sichtbarkeit und Sync getrennt vom Header.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 6.dp),
+        BrandSectionBanner(
+            title = "Store Control",
+            subtitle = "Shopify liefert Produkte. Hier steuerst du Sichtbarkeit und Sync getrennt vom Header.",
+            accent = MaterialTheme.colorScheme.primary,
+            icon = Icons.Default.Sync,
+            tag = "ADMIN",
         )
         Row(
             modifier = Modifier
@@ -288,31 +364,30 @@ private fun ShopAdminControlsCard(
                 .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Button(
+            BrandActionButton(
+                text = if (uiState.isUpdatingStoreState) {
+                    "Store wird aktualisiert..."
+                } else if (uiState.isStoreOpen) {
+                    "Store schliessen"
+                } else {
+                    "Store oeffnen"
+                },
                 onClick = onToggleStore,
+                accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),
+                icon = Icons.Default.CheckCircle,
                 enabled = !uiState.isUpdatingStoreState,
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text(
-                    if (uiState.isUpdatingStoreState) {
-                        "Store wird aktualisiert..."
-                    } else if (uiState.isStoreOpen) {
-                        "Store schliessen"
-                    } else {
-                        "Store oeffnen"
-                    },
-                )
-            }
+            )
 
-            Button(
+            BrandActionButton(
+                text = if (uiState.isSyncingCatalog) "Katalog laedt..." else "Shopify syncen",
                 onClick = onSyncShopify,
+                accent = SpotifyGreen,
                 modifier = Modifier.weight(1f),
+                icon = Icons.Default.Sync,
                 enabled = !uiState.isSyncingCatalog,
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text(if (uiState.isSyncingCatalog) "Katalog laedt..." else "Shopify syncen")
-            }
+                isLoading = uiState.isSyncingCatalog,
+            )
         }
     }
 }
@@ -321,12 +396,16 @@ private fun ShopAdminControlsCard(
 private fun ShopMessageCard(
     title: String,
     body: String,
+    icon: ImageVector = Icons.Default.ShoppingBag,
+    accent: Color = SpotifyGreen,
+    tag: String? = null,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+        BrandSectionBanner(
+            title = title,
+            accent = accent,
+            icon = icon,
+            tag = tag,
         )
         Text(
             text = body,
@@ -343,21 +422,27 @@ private fun LoginSection(
     onOpenLogin: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Anmeldung")
+        BrandSectionBanner(
+            title = "Login",
+            subtitle = "Melde dich an, um Checkout und Account-Funktionen zu nutzen.",
+            accent = MaterialTheme.colorScheme.primary,
+            icon = Icons.Default.Person,
+            tag = "ACCESS",
+        )
         Text(
             text = errorMessage,
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
-        Button(
+        BrandActionButton(
+            text = "Anmelden",
             onClick = onOpenLogin,
+            accent = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            Text("Anmelden")
-        }
+            icon = Icons.Default.Person,
+        )
     }
 }
 
@@ -645,14 +730,14 @@ private fun MerchandiseDetailSheet(
                 ) {
                     Text("Schliessen")
                 }
-                Button(
+                BrandActionButton(
+                    text = "In den Warenkorb",
                     onClick = { onAddToCart(selectedSize, selectedColor.takeIf { it.isNotBlank() }, quantity) },
+                    accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
+                    icon = Icons.Default.ShoppingBag,
                     enabled = item.available && canCheckout && selectedSize.isNotBlank(),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Text("In den Warenkorb")
-                }
+                )
             }
 
             Box(modifier = Modifier.height(2.dp))
@@ -788,35 +873,10 @@ private fun ShopBadge(
     icon: ImageVector,
     isActive: Boolean,
 ) {
-    val backgroundColor = if (isActive) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
-    }
-    val contentColor = if (isActive) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    }
-
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            text = text,
-            color = contentColor,
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
+    BrandStatusChip(
+        text = text,
+        accent = MaterialTheme.colorScheme.primary,
+        icon = icon,
+        isActive = isActive,
+    )
 }

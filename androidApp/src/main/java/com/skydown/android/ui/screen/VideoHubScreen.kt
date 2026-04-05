@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
@@ -94,9 +95,13 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandHeroMetricCard
+import com.skydown.android.ui.component.BrandSectionBanner
+import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -606,14 +611,14 @@ private fun VideoHubHeroCard(
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "Visual Arena" },
-        title = screenHeaderSettings.videoHubTitle.ifBlank { "Video Deck" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Reels, YouTube und Featured Collabs in einer klaren Arena-Struktur." },
+        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY²²" },
+        title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Reels, YouTube und Collabs im visuellen Street-Flow." },
         detail = screenHeaderSettings.videoHubDetail.ifBlank {
             if (isAdmin) {
-                "$videoCount Clips, $youtubeCount YouTube-Links und $collabCount Featured Faces im Deck."
+                "$videoCount Clips, $youtubeCount YouTube-Links und $collabCount Collabs live."
             } else {
-                "$videoCount Clips und $youtubeCount YouTube-Stationen im Visual Hub."
+                "$videoCount Clips und $youtubeCount YouTube-Links im Visual Hub."
             }
         },
         backgroundImageUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null },
@@ -633,19 +638,25 @@ private fun VideoHubHeroCard(
             VideoHubHeroStatCard(
                 label = "Reels",
                 value = videoCount.toString(),
+                icon = Icons.Default.Movie,
                 accent = ArenaGold,
+                isActive = videoCount > 0,
                 modifier = Modifier.weight(1f),
             )
             VideoHubHeroStatCard(
                 label = "YouTube",
                 value = youtubeCount.toString(),
+                icon = Icons.Default.PlayArrow,
                 accent = YouTubeRed,
+                isActive = youtubeCount > 0,
                 modifier = Modifier.weight(1f),
             )
             VideoHubHeroStatCard(
                 label = if (isAdmin) "Mode" else "Access",
                 value = if (isAdmin) "Admin" else "Public",
+                icon = Icons.Default.Sync,
                 accent = FieldMint,
+                isActive = isAdmin || collabCount > 0 || videoCount > 0 || youtubeCount > 0,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -656,41 +667,19 @@ private fun VideoHubHeroCard(
 private fun VideoHubHeroStatCard(
     label: String,
     value: String,
+    icon: ImageVector,
     accent: Color,
+    isActive: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        DexBlueDeep.copy(alpha = 0.82f),
-                        accent.copy(alpha = 0.20f),
-                        ArenaGold.copy(alpha = 0.08f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = 0.24f),
-                shape = RoundedCornerShape(20.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.72f),
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
-    }
+    BrandHeroMetricCard(
+        label = label,
+        value = value,
+        accent = accent,
+        modifier = modifier,
+        icon = icon,
+        isActive = isActive,
+    )
 }
 
 @Composable
@@ -701,81 +690,13 @@ private fun VideoHubSectionBanner(
     accent: Color,
     tag: String,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            accent.copy(alpha = 0.24f),
-                            accent.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
-                        ),
-                    ),
-                )
-                .border(
-                    width = 1.dp,
-                    color = accent.copy(alpha = 0.24f),
-                    shape = RoundedCornerShape(18.dp),
-                )
-                .padding(10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            accent.copy(alpha = 0.20f),
-                            ArenaGold.copy(alpha = 0.14f),
-                        ),
-                    ),
-                )
-                .border(
-                    width = 1.dp,
-                    color = accent.copy(alpha = 0.24f),
-                    shape = RoundedCornerShape(999.dp),
-                )
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        ) {
-            Text(
-                text = tag,
-                style = MaterialTheme.typography.labelSmall,
-                color = accent,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-    }
+    BrandSectionBanner(
+        title = title,
+        subtitle = subtitle,
+        accent = accent,
+        icon = icon,
+        tag = tag,
+    )
 }
 
 @Composable
@@ -861,11 +782,11 @@ private fun VideoControlDeckCard(
 private fun VideoFormatCard() {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
-            title = "Deck Rules",
+            title = "Format Check",
             subtitle = "Saubere Uploads halten den Hub schnell und klar.",
             icon = Icons.Default.CheckCircle,
             accent = ArenaGold,
-            tag = "RULES",
+            tag = "FORMAT",
         )
         Text(
             text = "MP4, MOV oder M4V bleiben die stabilsten Formate fuer den Player und den Reel-Flow.",
@@ -882,7 +803,7 @@ private fun VideoFormatCard() {
             VideoPill(text = "Compressed", isActive = false)
         }
         Text(
-            text = "Komprimierte Cuts laden schneller, wirken im Feed ruhiger und halten die Arena direkt spielbar.",
+            text = "Komprimierte Cuts laden schneller, wirken im Feed ruhiger und bleiben direkt abrufbar.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 10.dp),
@@ -942,10 +863,10 @@ private fun VideoEquipmentCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
             title = "Equipment & Software",
-            subtitle = "Loadout fuer Shoot, Edit und Finish.",
+            subtitle = "Setup fuer Shoot, Edit und Finish.",
             icon = Icons.Default.CameraAlt,
             accent = DexBlue,
-            tag = "LOADOUT",
+            tag = "SETUP",
         )
         Text(
             text = "Das aktuelle Setup zeigt, womit die Visuals gebaut und veredelt werden.",
@@ -983,17 +904,17 @@ private fun VideoYouTubeCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
-            title = "YouTube Station",
-            subtitle = "Making-ofs, Clips und externe Watchpoints.",
+            title = "YouTube Highlights",
+            subtitle = "Making-ofs, Clips und externe Links.",
             icon = Icons.Default.PlayArrow,
             accent = YouTubeRed,
             tag = "YT",
         )
         Text(
             text = if (items.isEmpty()) {
-                "Sobald Links gesetzt sind, tauchen sie hier als eigene Watch-Karten auf."
+                "Sobald Links gesetzt sind, tauchen sie hier als eigene Highlights auf."
             } else {
-                "${items.size} YouTube-Karten sind aktuell im Deck aktiv."
+                "${items.size} YouTube-Links sind aktuell live."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
@@ -1089,7 +1010,7 @@ private fun VideoEquipmentRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            VideoPill(text = "Loadout", isActive = true)
+            VideoPill(text = "Setup", isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleSmall,
@@ -1133,14 +1054,14 @@ private fun VideoPublicConfigEditorCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
-            title = "Control Station",
-            subtitle = "Owner und Video-Admins steuern hier Equipment und Featured Collabs.",
+            title = "Admin Control",
+            subtitle = "Owner und Video-Admins pflegen hier Setup und Featured Collabs.",
             icon = Icons.Default.Sync,
             accent = ArenaRed,
             tag = "ADMIN",
         )
         Text(
-            text = "Bilder laufen picker-first mit Vorschau, externe Links werden sauber mit den oeffentlichen Deck-Daten verbunden.",
+            text = "Bilder laufen picker-first mit Vorschau, externe Links werden sauber mit den oeffentlichen Hub-Daten verbunden.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1162,11 +1083,11 @@ private fun VideoPublicConfigEditorCard(
         }
 
         VideoControlDeckCard(
-            title = "Equipment Deck",
-            subtitle = "Kameras, Tools und Software fuer den visuellen Loadout.",
+            title = "Equipment Setup",
+            subtitle = "Kameras, Tools und Software fuer den visuellen Workflow.",
             icon = Icons.Default.CameraAlt,
             accent = DexBlue,
-            tag = "GEAR",
+            tag = "SETUP",
             modifier = Modifier.padding(top = 18.dp),
         ) {
             Column(
@@ -1241,7 +1162,7 @@ private fun VideoPublicConfigEditorCard(
         }
 
         VideoControlDeckCard(
-            title = "Collab Deck",
+            title = "Collab Profiles",
             subtitle = "Rollen, Highlights, Vibes und Links fuer das Featured-Netzwerk.",
             icon = Icons.Default.CheckCircle,
             accent = FieldMint,
@@ -1365,7 +1286,7 @@ private fun VideoPublicConfigEditorCard(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text("Deck speichern")
+                Text("Aenderungen speichern")
             }
         }
     }
@@ -1472,7 +1393,7 @@ private fun ProducedWithArtistRow(
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
                     Text(
-                        text = "ALLY",
+                        text = "COLLAB",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.94f),
@@ -1687,7 +1608,7 @@ private fun VideoYouTubeRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            VideoPill(text = "Watch", isActive = true)
+            VideoPill(text = "Play", isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleSmall,
@@ -1708,24 +1629,14 @@ private fun VideoYouTubeRow(
             )
         }
 
-        TextButton(
+        BrandActionButton(
+            text = "YouTube",
             onClick = onPlay,
-            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                contentColor = Color.White,
-            ),
+            accent = YouTubeRed,
+            icon = Icons.Default.PlayArrow,
+            compact = true,
             modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            YouTubeRed,
-                            YouTubeDeepRed,
-                        ),
-                    ),
-                ),
-        ) {
-            Text("YouTube")
-        }
+        )
     }
 }
 
@@ -1744,7 +1655,7 @@ private fun VideoUploadCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
-            title = "Upload Station",
+            title = "Video Upload",
             subtitle = "Admin-only Bereich fuer neue Clips und externe Videoquellen.",
             icon = Icons.Default.Movie,
             accent = ArenaRed,
@@ -1800,15 +1711,16 @@ private fun VideoUploadCard(
             minLines = 3,
         )
 
-        OutlinedButton(
+        BrandActionButton(
+            text = "Videos auswaehlen",
             onClick = onPickFiles,
+            accent = DexBlue,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            Text("Videos auswaehlen")
-        }
+            icon = Icons.Default.Movie,
+            filled = false,
+        )
 
         Text(
             text = "Oder als externer Reel-Link freigeben.",
@@ -1888,39 +1800,29 @@ private fun VideoUploadCard(
             )
         }
 
-        Button(
+        BrandActionButton(
+            text = if (uiState.isUploading) "Upload laeuft ..." else "Videos hochladen",
             onClick = onUpload,
-            enabled = !uiState.isUploading,
+            accent = ArenaRed,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            if (uiState.isUploading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                Text(
-                    text = "Upload laeuft ...",
-                    modifier = Modifier.padding(start = 10.dp),
-                )
-            } else {
-                Text("Videos hochladen")
-            }
-        }
-
-        OutlinedButton(
-            onClick = onAddExternalVideo,
+            icon = Icons.Default.Movie,
             enabled = !uiState.isUploading,
+            isLoading = uiState.isUploading,
+        )
+
+        BrandActionButton(
+            text = "Externes Reel freigeben",
+            onClick = onAddExternalVideo,
+            accent = ArenaGold,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            shape = RoundedCornerShape(18.dp),
-        ) {
-            Text("Externes Reel freigeben")
-        }
+            icon = Icons.Default.Language,
+            enabled = !uiState.isUploading,
+            filled = false,
+        )
     }
 }
 
@@ -1933,15 +1835,15 @@ private fun VideoPlayerCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
-            title = "Reel Arena",
-            subtitle = "Das aktive Video bleibt gross, fokussiert und sofort spielbar.",
+            title = "Now Playing",
+            subtitle = "Das aktive Video bleibt gross, fokussiert und direkt abspielbar.",
             icon = Icons.Default.Movie,
             accent = ArenaRed,
             tag = "LIVE",
         )
 
         Text(
-            text = "Der aktive Clip sitzt jetzt wie eine Hauptkarte im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.",
+            text = "Der aktive Clip sitzt jetzt direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -2074,29 +1976,29 @@ private fun VideoPlayerCard(
 
         if (video.supportsInlinePlayback) {
             onOpenReel?.let { openReel ->
-                Button(
+                BrandActionButton(
+                    text = "Im Reel ansehen",
                     onClick = openReel,
+                    accent = ArenaRed,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    icon = Icons.Default.PlayArrow,
                 )
-                {
-                    Text("Im Reel ansehen")
-                }
             }
         }
 
         if (video.openUrl.isNotBlank()) {
-            OutlinedButton(
+            BrandActionButton(
+                text = "Original oeffnen",
                 onClick = { onOpenOriginal(video.openUrl) },
+                accent = videoHubProviderAccent(video),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text("Original oeffnen")
-            }
+                icon = Icons.Default.Language,
+                filled = false,
+            )
         }
     }
 }
@@ -2680,44 +2582,11 @@ private fun VideoPill(
     text: String,
     isActive: Boolean,
 ) {
-    val background = if (isActive) {
-        Brush.linearGradient(
-            colors = listOf(
-                ArenaGold.copy(alpha = 0.20f),
-                ArenaRed.copy(alpha = 0.14f),
-            ),
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.78f),
-                DexBlue.copy(alpha = 0.06f),
-            ),
-        )
-    }
-    val content = if (isActive) {
-        ArenaGold.copy(alpha = 0.98f)
-    } else {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    }
-
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(background)
-            .border(
-                width = 1.dp,
-                color = if (isActive) ArenaGold.copy(alpha = 0.28f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(999.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        Text(
-            text = text,
-            color = content,
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
+    BrandStatusChip(
+        text = text,
+        accent = ArenaGold,
+        isActive = isActive,
+    )
 }
 
 private fun readableFileSize(bytes: Long): String {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,7 +18,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,6 +32,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +40,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.skydown.android.R
+import com.skydown.android.ui.theme.DexBlueDeep
+import androidx.compose.foundation.BorderStroke
 
 enum class BrandArtwork(
     @param:DrawableRes val drawableRes: Int,
@@ -98,8 +107,7 @@ fun BrandHeroCard(
                     ),
                 ),
                 shape = shape,
-            )
-            .skydownSheen(accent = accent, alpha = 0.14f),
+            ),
     ) {
         if (hasBackgroundImage) {
             AsyncImage(
@@ -185,7 +193,7 @@ fun BrandHeroCard(
                         )
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
                             color = titleColor,
                             fontWeight = FontWeight.Black,
                             maxLines = 2,
@@ -232,6 +240,328 @@ fun BrandHeroCard(
         }
     }
 }
+
+@Composable
+fun BrandHeroMetricCard(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    isActive: Boolean = true,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        DexBlueDeep.copy(alpha = 0.82f),
+                        accent.copy(alpha = if (isActive) 0.22f else 0.10f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = if (isActive) 0.30f else 0.16f),
+                shape = RoundedCornerShape(20.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (icon != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = if (isActive) 0.20f else 0.10f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (isActive) accent else Color.White.copy(alpha = 0.82f),
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.92f),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        } else {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.74f),
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = if (isActive) 0.96f else 0.72f),
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+fun BrandSectionBanner(
+    title: String,
+    subtitle: String? = null,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    tag: String? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                accent.copy(alpha = 0.24f),
+                                accent.copy(alpha = 0.10f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                            ),
+                        ),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = accent.copy(alpha = 0.24f),
+                        shape = RoundedCornerShape(18.dp),
+                    )
+                    .padding(10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+            )
+            subtitle?.takeIf { it.isNotBlank() }?.let { copy ->
+                Text(
+                    text = copy,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                )
+            }
+        }
+
+        tag?.takeIf { it.isNotBlank() }?.let { label ->
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                accent.copy(alpha = 0.20f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                            ),
+                        ),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = accent.copy(alpha = 0.24f),
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accent,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BrandStatusChip(
+    text: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    isActive: Boolean = true,
+) {
+    val backgroundBrush = if (isActive) {
+        Brush.linearGradient(
+            colors = listOf(
+                accent.copy(alpha = 0.18f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
+            ),
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                DexBlueDeep.copy(alpha = 0.08f),
+            ),
+        )
+    }
+    val contentColor = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(backgroundBrush)
+            .border(
+                width = 1.dp,
+                color = if (isActive) accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(999.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Text(
+            text = text,
+            color = contentColor,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+fun BrandActionButton(
+    text: String,
+    onClick: () -> Unit,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+    filled: Boolean = true,
+    compact: Boolean = false,
+    isLoading: Boolean = false,
+) {
+    val shape = RoundedCornerShape(if (compact) 16.dp else 18.dp)
+    val contentPadding = if (compact) {
+        PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+    } else {
+        PaddingValues(horizontal = 16.dp, vertical = 14.dp)
+    }
+    val filledContentColor = if (accent.perceivedBrightness() < 0.58f) Color.White else DexBlueDeep
+    val iconTint = if (filled) filledContentColor else accent
+
+    if (filled) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled && !isLoading,
+            shape = shape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = accent,
+                contentColor = filledContentColor,
+                disabledContainerColor = accent.copy(alpha = 0.34f),
+                disabledContentColor = filledContentColor.copy(alpha = 0.72f),
+            ),
+            contentPadding = contentPadding,
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                    strokeWidth = 2.dp,
+                    color = filledContentColor,
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                )
+            }
+            Text(
+                text = text,
+                modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
+            )
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled && !isLoading,
+            shape = shape,
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (enabled) accent.copy(alpha = 0.42f) else accent.copy(alpha = 0.18f),
+            ),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = accent.copy(alpha = 0.10f),
+                contentColor = accent,
+                disabledContentColor = accent.copy(alpha = 0.42f),
+            ),
+            contentPadding = contentPadding,
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                    strokeWidth = 2.dp,
+                    color = accent,
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                )
+            }
+            Text(
+                text = text,
+                modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
+            )
+        }
+    }
+}
+
+private fun Color.perceivedBrightness(): Float = (red * 0.299f) + (green * 0.587f) + (blue * 0.114f)
 
 @Composable
 fun BrandPill(
