@@ -9,14 +9,12 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.ExternalVideoHubRequest
 import com.skydown.android.data.VideoHubService
 import com.skydown.android.data.VideoHubUploadRequest
-import com.skydown.android.data.resolveYouTubeExternalUrl
 import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.ProducedWithArtist
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoHubUiState
 import com.skydown.android.ui.model.VideoHubPublicConfig
-import com.skydown.android.ui.model.VideoYouTubeItem
 import com.skydown.shared.model.User
 import com.skydown.shared.model.canManageVideos
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -429,123 +427,6 @@ class VideoHubViewModel(
         }
     }
 
-    fun addYouTubeItem() {
-        _uiState.update { state ->
-            state.copy(
-                publicConfig = state.publicConfig.copy(
-                    youtubeItems = state.publicConfig.youtubeItems + VideoYouTubeItem(
-                        id = java.util.UUID.randomUUID().toString(),
-                        title = "",
-                        subtitle = "",
-                        highlight = "",
-                        url = "",
-                    ),
-                ),
-            )
-        }
-    }
-
-    fun updateYouTubeItem(
-        itemId: String,
-        title: String? = null,
-        subtitle: String? = null,
-        highlight: String? = null,
-        url: String? = null,
-    ) {
-        _uiState.update { state ->
-            state.copy(
-                publicConfig = state.publicConfig.copy(
-                    youtubeItems = state.publicConfig.youtubeItems.map { item ->
-                        if (item.id != itemId) {
-                            item
-                        } else {
-                            item.copy(
-                                title = title ?: item.title,
-                                subtitle = subtitle ?: item.subtitle,
-                                highlight = highlight ?: item.highlight,
-                                url = url ?: item.url,
-                            )
-                        }
-                    },
-                ),
-            )
-        }
-    }
-
-    fun removeYouTubeItem(itemId: String) {
-        _uiState.update { state ->
-            state.copy(
-                publicConfig = state.publicConfig.copy(
-                    youtubeItems = state.publicConfig.youtubeItems.filterNot { it.id == itemId },
-                ),
-            )
-        }
-    }
-
-    fun addYouTubeItemsFromText(rawInput: String) {
-        val state = _uiState.value
-        if (!state.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    feedbackMessage = "Nur Admins koennen YouTube-Links bearbeiten.",
-                    feedbackIsError = true,
-                )
-            }
-            return
-        }
-
-        val existingUrls = state.publicConfig.youtubeItems.map { it.url }.toSet()
-        val parsedItems = rawInput
-            .lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .mapNotNull { line ->
-                val (draftTitle, draftUrl) = line
-                    .split("|", limit = 2)
-                    .map { it.trim() }
-                    .let { parts ->
-                        when {
-                            parts.size == 2 && parts[1].isNotBlank() -> parts[0] to parts[1]
-                            else -> "" to line
-                        }
-                    }
-                val normalizedUrl = resolveYouTubeExternalUrl(draftUrl) ?: return@mapNotNull null
-                draftTitle to normalizedUrl
-            }
-            .distinctBy { (_, url) -> url }
-            .filterNot { (_, url) -> url in existingUrls }
-            .mapIndexed { index, (draftTitle, normalizedUrl) ->
-                VideoYouTubeItem(
-                    id = java.util.UUID.randomUUID().toString(),
-                    title = draftTitle.ifBlank { "YouTube Video ${state.publicConfig.youtubeItems.size + index + 1}" },
-                    subtitle = "",
-                    highlight = "",
-                    url = normalizedUrl,
-                )
-            }
-            .toList()
-
-        if (parsedItems.isEmpty()) {
-            _uiState.update {
-                it.copy(
-                    feedbackMessage = "Keine neuen gueltigen YouTube-Links erkannt.",
-                    feedbackIsError = true,
-                )
-            }
-            return
-        }
-
-        _uiState.update {
-            it.copy(
-                publicConfig = it.publicConfig.copy(
-                    youtubeItems = it.publicConfig.youtubeItems + parsedItems,
-                ),
-                feedbackMessage = "${parsedItems.size} YouTube-Link(s) uebernommen.",
-                feedbackIsError = false,
-            )
-        }
-    }
-
     fun addCollaborationItem() {
         _uiState.update { state ->
             state.copy(
@@ -635,22 +516,6 @@ class VideoHubViewModel(
                 )
             }
         }
-        val sanitizedYouTube = _uiState.value.publicConfig.youtubeItems.mapIndexedNotNull { index, item ->
-            val title = item.title.trim()
-            val subtitle = item.subtitle.trim()
-            val highlight = item.highlight.trim()
-            val url = resolveYouTubeExternalUrl(item.url.trim())
-            if (url.isNullOrBlank()) {
-                null
-            } else {
-                item.copy(
-                    title = title.ifBlank { "YouTube Video ${index + 1}" },
-                    subtitle = subtitle,
-                    highlight = highlight,
-                    url = url,
-                )
-            }
-        }
         val sanitizedCollaborations = _uiState.value.publicConfig.collaborationItems.mapNotNull { item ->
             val name = item.name.trim()
             val role = item.role.trim()
@@ -673,7 +538,6 @@ class VideoHubViewModel(
         }
         val config = VideoHubPublicConfig(
             equipmentItems = sanitizedEquipment.ifEmpty { VideoHubPublicConfig.default().equipmentItems },
-            youtubeItems = sanitizedYouTube,
             collaborationItems = sanitizedCollaborations.ifEmpty { VideoHubPublicConfig.default().collaborationItems },
         )
 

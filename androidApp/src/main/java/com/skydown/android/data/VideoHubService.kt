@@ -14,7 +14,6 @@ import com.skydown.android.ui.model.ProducedWithArtist
 import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoHubPublicConfig
-import com.skydown.android.ui.model.VideoYouTubeItem
 import com.skydown.shared.model.User
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
@@ -193,15 +192,6 @@ class VideoHubService(
                 "imageUrl" to item.imageUrl.orEmpty(),
             )
         }
-        val youtubeItems = config.youtubeItems.map { item ->
-            mapOf(
-                "id" to item.id,
-                "title" to item.title,
-                "subtitle" to item.subtitle,
-                "highlight" to item.highlight,
-                "url" to item.url,
-            )
-        }
         val collaborationItems = config.collaborationItems.map { item ->
             mapOf(
                 "id" to item.id,
@@ -221,7 +211,7 @@ class VideoHubService(
             .set(
                 mapOf(
                     "equipmentItems" to equipmentItems,
-                    "youtubeItems" to youtubeItems,
+                    "youtubeItems" to FieldValue.delete(),
                     "collaborationItems" to collaborationItems,
                     "updatedAt" to FieldValue.serverTimestamp(),
                     "updatedBy" to currentUser?.id.orEmpty(),
@@ -397,9 +387,6 @@ class VideoHubService(
             ?.mapNotNull { value -> mapEquipmentItem(value as? Map<*, *>) }
             ?.ifEmpty { null }
             ?: VideoHubPublicConfig.default().equipmentItems
-        val youtubeItems = (data["youtubeItems"] as? List<*>)
-            ?.mapNotNull { value -> mapYouTubeItem(value as? Map<*, *>) }
-            ?: emptyList()
         val collaborationItems = (data["collaborationItems"] as? List<*>)
             ?.mapNotNull { value -> mapCollaborationItem(value as? Map<*, *>) }
             ?.ifEmpty { null }
@@ -407,7 +394,6 @@ class VideoHubService(
 
         return VideoHubPublicConfig(
             equipmentItems = equipmentItems,
-            youtubeItems = youtubeItems,
             collaborationItems = collaborationItems,
         )
     }
@@ -425,23 +411,6 @@ class VideoHubService(
             imageUrl = ((map["imageUrl"] as? String) ?: (map["imageURLString"] as? String))
                 ?.trim()
                 .takeUnless { it.isNullOrBlank() },
-        )
-    }
-
-    private fun mapYouTubeItem(value: Map<*, *>?): VideoYouTubeItem? {
-        val map = value ?: return null
-        val title = (map["title"] as? String)?.trim().orEmpty()
-        val subtitle = (map["subtitle"] as? String)?.trim().orEmpty()
-        val highlight = (map["highlight"] as? String)?.trim().orEmpty()
-        val url = ((map["url"] as? String) ?: (map["urlString"] as? String)).orEmpty().trim()
-        if (title.isBlank() || url.isBlank()) return null
-
-        return VideoYouTubeItem(
-            id = ((map["id"] as? String)?.trim()).takeUnless { it.isNullOrBlank() } ?: UUID.randomUUID().toString(),
-            title = title,
-            subtitle = subtitle,
-            highlight = highlight,
-            url = url,
         )
     }
 

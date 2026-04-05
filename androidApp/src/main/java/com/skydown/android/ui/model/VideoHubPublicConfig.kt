@@ -29,7 +29,6 @@ data class ProducedWithArtist(
 
 data class VideoHubPublicConfig(
     val equipmentItems: List<VideoEquipmentItem>,
-    val youtubeItems: List<VideoYouTubeItem>,
     val collaborationItems: List<ProducedWithArtist>,
 ) {
     companion object {
@@ -60,7 +59,6 @@ data class VideoHubPublicConfig(
                     imageUrl = null,
                 ),
             ),
-            youtubeItems = emptyList(),
             collaborationItems = defaultProducedWithArtists,
         )
     }
