@@ -48,13 +48,12 @@ private fun resolveExternalMediaSource(
 
     if (mediaKind == ExternalMediaKind.VIDEO) {
         val youtubeVideoId = resolveYouTubeVideoId(normalizedUrl)
-        val youtubeEmbedUrl = resolveYouTubeEmbedUrl(normalizedUrl)
-        if (youtubeVideoId != null && youtubeEmbedUrl != null) {
+        if (youtubeVideoId != null) {
             return ExternalMediaSource(
                 provider = ExternalMediaProvider.EXTERNAL_LINK,
                 normalizedUrl = normalizedUrl,
                 externalUrl = resolveYouTubeExternalUrl(normalizedUrl) ?: normalizedUrl,
-                embedUrl = youtubeEmbedUrl,
+                embedUrl = null,
                 downloadUrl = null,
                 sourceFileId = youtubeVideoId,
                 mimeType = "video/external",

@@ -1,7 +1,7 @@
 package com.skydown.android.ui.model
 
 import com.skydown.android.data.ExternalMediaProvider
-import com.skydown.android.data.resolveYouTubeEmbedUrl
+import com.skydown.android.data.resolveYouTubeVideoId
 import com.skydown.shared.model.Track
 
 data class FeaturedBeatHighlight(
@@ -42,9 +42,15 @@ data class FeaturedVideoHighlight(
     val supportsInlinePlayback: Boolean
         get() = usesEmbeddedPreview || downloadUrl.isNotBlank()
 
+    val isYouTubeSource: Boolean
+        get() = resolveYouTubeVideoId(embedUrl.ifBlank { externalUrl }) != null
+
     val inlineEmbedUrl: String
-        get() = embedUrl.takeIf { it.isNotBlank() }
-            ?: resolveYouTubeEmbedUrl(externalUrl).orEmpty()
+        get() = if (isYouTubeSource) {
+            ""
+        } else {
+            embedUrl.takeIf { it.isNotBlank() }.orEmpty()
+        }
 
     val openUrl: String
         get() = externalUrl.ifBlank { downloadUrl }
