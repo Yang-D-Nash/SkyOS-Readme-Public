@@ -1,6 +1,7 @@
 package com.skydown.android.ui.component
 
 import android.annotation.SuppressLint
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -24,6 +25,8 @@ fun ExternalVideoWebPlayer(
             WebView(playerContext).apply {
                 webViewClient = WebViewClient()
                 webChromeClient = WebChromeClient()
+                CookieManager.getInstance().setAcceptCookie(true)
+                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                 settings.javaScriptEnabled = true
                 settings.mediaPlaybackRequiresUserGesture = false
                 settings.domStorageEnabled = true
