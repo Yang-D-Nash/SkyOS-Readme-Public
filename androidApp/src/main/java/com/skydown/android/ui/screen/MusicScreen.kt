@@ -3,6 +3,7 @@ package com.skydown.android.ui.screen
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -84,8 +86,10 @@ import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.component.openTrackInSpotify
 import com.skydown.android.ui.model.MusicUiState
 import com.skydown.android.ui.model.MusicInstagramDestination
+import com.skydown.android.ui.theme.ArenaGold
+import com.skydown.android.ui.theme.DexBlueDeep
+import com.skydown.android.ui.theme.FieldMint
 import com.skydown.android.ui.theme.SpotifyGreen
-import com.skydown.android.ui.theme.SpotifyGreenContainer
 import com.skydown.android.ui.viewmodel.MusicViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -701,24 +705,114 @@ private fun MusicOverviewCard(
     uiState: MusicUiState,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+    val socialProfile = uiState.selectedArtistSocialProfile
+    val trackLabel = when {
+        uiState.isLoading -> "Katalog wird geladen"
+        uiState.tracks.isEmpty() -> "Noch keine Tracks"
+        uiState.tracks.size == 1 -> "1 Track"
+        else -> "${uiState.tracks.size} Tracks"
+    }
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
-        title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Tracks, Beats." },
-        detail = screenHeaderSettings.musicHubDetail.ifBlank { "${uiState.selectedArtist} und alle Artists direkt im Katalog." },
+        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Artist Deck" },
+        title = screenHeaderSettings.musicHubTitle.ifBlank { "Music Hub" },
+        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Artists, Releases und Spotify-Signale in einem klaren Live-Deck." },
+        detail = screenHeaderSettings.musicHubDetail.ifBlank {
+            "${uiState.selectedArtist} im Fokus. $trackLabel und ${uiState.availableArtists.size} Artists im Hub."
+        },
         backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
         accent = SpotifyGreen,
-        secondaryAccent = MaterialTheme.colorScheme.secondary,
+        secondaryAccent = ArenaGold,
         marks = listOf(BrandArtwork.Zweizwei),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
-            BrandPill(text = "Songs", tint = MaterialTheme.colorScheme.primary)
-            BrandPill(
-                text = if (uiState.currentPreviewUrl != null) "Preview" else "${uiState.tracks.size} Tracks",
-                tint = MaterialTheme.colorScheme.secondary,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
+                BrandPill(text = "${uiState.availableArtists.size} Artists", tint = ArenaGold)
+                BrandPill(
+                    text = if (uiState.isSpotifyConnected) "Spotify linked" else "Spotify standby",
+                    tint = if (uiState.isSpotifyConnected) FieldMint else MaterialTheme.colorScheme.secondary,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                MusicHeroStatusCard(
+                    label = "Artist",
+                    value = socialProfile?.handle ?: uiState.selectedArtist,
+                    accent = SpotifyGreen,
+                    modifier = Modifier.weight(1f),
+                )
+                MusicHeroStatusCard(
+                    label = "Tracks",
+                    value = trackLabel,
+                    accent = ArenaGold,
+                    modifier = Modifier.weight(1f),
+                )
+                MusicHeroStatusCard(
+                    label = "Status",
+                    value = musicHeroStatusValue(uiState),
+                    accent = FieldMint,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun MusicHeroStatusCard(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        DexBlueDeep.copy(alpha = 0.78f),
+                        accent.copy(alpha = 0.18f),
+                        ArenaGold.copy(alpha = 0.08f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.24f),
+                shape = RoundedCornerShape(20.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.74f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun musicHeroStatusValue(uiState: MusicUiState): String {
+    return when {
+        uiState.currentPreviewUrl != null -> "Preview live"
+        !uiState.errorMessage.isNullOrBlank() -> "Check feed"
+        uiState.isSpotifyConnected -> "Connected"
+        uiState.isLoading -> "Loading"
+        else -> "Ready"
     }
 }
 
