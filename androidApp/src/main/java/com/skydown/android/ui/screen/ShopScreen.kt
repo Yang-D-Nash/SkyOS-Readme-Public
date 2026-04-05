@@ -67,7 +67,6 @@ import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
-import com.skydown.android.ui.component.BrandHeroImageStyles
 import com.skydown.android.ui.component.BrandHeroMetricCard
 import com.skydown.android.ui.component.BrandSectionBanner
 import com.skydown.android.ui.component.BrandStatusChip
@@ -274,7 +273,6 @@ private fun ShopOverviewCard(
             }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
-        backgroundImageStyle = BrandHeroImageStyles.MerchCompact,
         accent = SpotifyGreen,
         secondaryAccent = YouTubeDeepRed,
         marks = listOf(BrandArtwork.Combined),

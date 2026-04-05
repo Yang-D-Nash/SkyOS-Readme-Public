@@ -7,18 +7,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -40,7 +37,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.skydown.android.R
@@ -69,27 +65,6 @@ enum class BrandArtwork(
     ),
 }
 
-data class BrandHeroImageStyle(
-    val sizeFraction: Float = 1f,
-    val alignment: Alignment = Alignment.Center,
-    val maxWidth: Dp = Dp.Unspecified,
-    val maxHeight: Dp = Dp.Unspecified,
-)
-
-object BrandHeroImageStyles {
-    val Default = BrandHeroImageStyle()
-    val MusicCompact = BrandHeroImageStyle(
-        sizeFraction = 0.48f,
-        maxWidth = 164.dp,
-        maxHeight = 84.dp,
-    )
-    val MerchCompact = BrandHeroImageStyle(
-        sizeFraction = 0.54f,
-        maxWidth = 184.dp,
-        maxHeight = 90.dp,
-    )
-}
-
 @Composable
 fun BrandHeroCard(
     eyebrow: String,
@@ -97,16 +72,14 @@ fun BrandHeroCard(
     subtitle: String,
     detail: String? = null,
     backgroundImageUrl: String? = null,
-    backgroundImageStyle: BrandHeroImageStyle = BrandHeroImageStyles.Default,
     accent: Color = MaterialTheme.colorScheme.primary,
     secondaryAccent: Color = MaterialTheme.colorScheme.secondary,
     marks: List<BrandArtwork> = emptyList(),
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
+    val imageShape = RoundedCornerShape(22.dp)
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
-    val usesCustomBackgroundFrame =
-        backgroundImageStyle != BrandHeroImageStyles.Default
     val titleColor = if (hasBackgroundImage) Color.White else MaterialTheme.colorScheme.onSurface
     val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.84f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
     val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.96f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f)
@@ -138,33 +111,15 @@ fun BrandHeroCard(
             ),
     ) {
         if (hasBackgroundImage) {
-            if (usesCustomBackgroundFrame) {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                ) {
-                    AsyncImage(
-                        model = backgroundImageUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .align(backgroundImageStyle.alignment)
-                            .fillMaxWidth(backgroundImageStyle.sizeFraction)
-                            .widthIn(max = backgroundImageStyle.maxWidth)
-                            .heightIn(max = backgroundImageStyle.maxHeight),
-                        contentScale = ContentScale.Fit,
-                    )
-                }
-            } else {
-                AsyncImage(
-                    model = backgroundImageUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    contentScale = ContentScale.Fit,
-                )
-            }
+            AsyncImage(
+                model = backgroundImageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                    .clip(imageShape),
+                contentScale = ContentScale.Fit,
+            )
 
             Box(
                 modifier = Modifier
