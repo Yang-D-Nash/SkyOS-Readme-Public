@@ -2,6 +2,7 @@ package com.skydown.android.ui.model
 
 import android.net.Uri
 import com.skydown.android.data.ExternalMediaProvider
+import com.skydown.android.data.resolveYouTubeEmbedUrl
 
 data class SelectedVideoFile(
     val uri: Uri,
@@ -39,9 +40,13 @@ data class VideoHubItem(
     val openUrl: String
         get() = externalUrl.takeIf { it.isNotBlank() } ?: nativePlaybackUrl
 
+    val inlineEmbedUrl: String
+        get() = embedUrl.takeIf { it.isNotBlank() }
+            ?: resolveYouTubeEmbedUrl(externalUrl).orEmpty()
+
     val usesEmbeddedPreview: Boolean
         get() = provider != ExternalMediaProvider.FIREBASE_STORAGE &&
-            embedUrl.isNotBlank() &&
+            inlineEmbedUrl.isNotBlank() &&
             nativePlaybackUrl.isBlank()
 
     val supportsInlinePlayback: Boolean

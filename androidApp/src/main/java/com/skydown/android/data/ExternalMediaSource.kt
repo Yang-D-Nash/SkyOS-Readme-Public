@@ -46,6 +46,22 @@ private fun resolveExternalMediaSource(
     val uri = Uri.parse(normalizedUrl)
     val host = uri.host?.lowercase(Locale.ROOT).orEmpty()
 
+    if (mediaKind == ExternalMediaKind.VIDEO) {
+        val youtubeVideoId = resolveYouTubeVideoId(normalizedUrl)
+        val youtubeEmbedUrl = resolveYouTubeEmbedUrl(normalizedUrl)
+        if (youtubeVideoId != null && youtubeEmbedUrl != null) {
+            return ExternalMediaSource(
+                provider = ExternalMediaProvider.EXTERNAL_LINK,
+                normalizedUrl = normalizedUrl,
+                externalUrl = resolveYouTubeExternalUrl(normalizedUrl) ?: normalizedUrl,
+                embedUrl = youtubeEmbedUrl,
+                downloadUrl = null,
+                sourceFileId = youtubeVideoId,
+                mimeType = "video/external",
+            )
+        }
+    }
+
     if (host.contains("drive.google.com") || host.contains("docs.google.com")) {
         val fileId = resolveGoogleDriveFileId(uri, rawUrl) ?: return null
         return ExternalMediaSource(

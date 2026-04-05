@@ -1,7 +1,6 @@
 package com.skydown.android.ui.component
 
 import android.annotation.SuppressLint
-import android.net.Uri
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -28,8 +27,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.dp
+import com.skydown.android.data.resolveYouTubeEmbedUrl
+import com.skydown.android.data.resolveYouTubeExternalUrl
+import com.skydown.android.data.resolveYouTubeVideoId
 import com.skydown.android.ui.model.VideoYouTubeItem
-import java.util.Locale
 
 @SuppressLint("SetJavaScriptEnabled")
 @androidx.compose.runtime.Composable
@@ -164,9 +165,8 @@ private data class YouTubePlayerSource(
 )
 
 private fun youtubePlayerSource(rawUrl: String): YouTubePlayerSource? {
-    val normalizedUrl = normalizedYouTubeUrl(rawUrl) ?: return null
-    val videoId = resolvedYouTubeVideoId(rawUrl, normalizedUrl) ?: return null
-    val embedUrl = "https://www.youtube-nocookie.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1&controls=1"
+    val videoId = resolveYouTubeVideoId(rawUrl) ?: return null
+    val embedUrl = resolveYouTubeEmbedUrl(rawUrl) ?: return null
     val html = """
         <!doctype html>
         <html>
@@ -208,44 +208,7 @@ private fun youtubePlayerSource(rawUrl: String): YouTubePlayerSource? {
     return YouTubePlayerSource(
         html = html,
         baseUrl = "https://www.youtube.com",
-        externalUrl = "https://www.youtube.com/watch?v=$videoId",
+        externalUrl = resolveYouTubeExternalUrl(rawUrl) ?: "https://www.youtube.com/watch?v=$videoId",
         embedKey = videoId,
     )
-}
-
-private fun normalizedYouTubeUrl(rawUrl: String): String? {
-    val trimmed = rawUrl.trim()
-    if (trimmed.isBlank()) return null
-    return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-        trimmed
-    } else {
-        "https://$trimmed"
-    }
-}
-
-private fun resolvedYouTubeVideoId(rawUrl: String, normalizedUrl: String): String? {
-    val uri = Uri.parse(normalizedUrl)
-    val host = uri.host?.lowercase(Locale.ROOT).orEmpty()
-
-    when {
-        "youtu.be" in host -> {
-            uri.pathSegments.firstOrNull()?.takeIfYouTubeId()?.let { return it }
-        }
-        uri.path?.contains("/embed/") == true ||
-            uri.path?.contains("/shorts/") == true ||
-            uri.path?.contains("/live/") == true -> {
-            uri.lastPathSegment?.takeIfYouTubeId()?.let { return it }
-        }
-    }
-
-    uri.getQueryParameter("v")?.takeIfYouTubeId()?.let { return it }
-    uri.getQueryParameter("vi")?.takeIfYouTubeId()?.let { return it }
-
-    val pattern = Regex("""(?:(?<=v=)|(?<=vi=)|(?<=/embed/)|(?<=/shorts/)|(?<=youtu\.be/)|(?<=/live/))([A-Za-z0-9_-]{11})""")
-    return pattern.find(rawUrl.trim())?.groupValues?.getOrNull(1)?.takeIfYouTubeId()
-}
-
-private fun String.takeIfYouTubeId(): String? {
-    val trimmed = trim()
-    return trimmed.takeIf { it.length == 11 }
 }

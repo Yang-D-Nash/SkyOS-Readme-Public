@@ -10,6 +10,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.imePadding
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -86,6 +88,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.mediaAttributionContext
+import com.skydown.android.data.resolveYouTubeEmbedUrl
+import com.skydown.android.data.resolveYouTubeThumbnailUrl
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -94,7 +98,6 @@ import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
-import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
@@ -104,13 +107,17 @@ import com.skydown.android.ui.component.dismissKeyboardOnTap
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
-import com.skydown.android.ui.component.skydownSheen
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.ProducedWithArtist
 import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
 import com.skydown.android.ui.model.VideoYouTubeItem
+import com.skydown.android.ui.theme.ArenaGold
+import com.skydown.android.ui.theme.ArenaRed
+import com.skydown.android.ui.theme.DexBlue
+import com.skydown.android.ui.theme.DexBlueDeep
+import com.skydown.android.ui.theme.FieldMint
 import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.InstagramPink
 import com.skydown.android.ui.theme.InstagramPurple
@@ -352,9 +359,10 @@ fun VideoHubScreen(
                 .dismissKeyboardOnTap(onDismissKeyboard = dismissKeyboard)
                 .background(
                     skydownScreenBrush(
-                        secondaryColor = MaterialTheme.colorScheme.tertiary,
-                        primaryAlpha = 0.07f,
-                        secondaryAlpha = 0.05f,
+                        primaryColor = DexBlue,
+                        secondaryColor = YouTubeRed,
+                        primaryAlpha = 0.16f,
+                        secondaryAlpha = 0.10f,
                     ),
                 ),
         ) {
@@ -365,7 +373,12 @@ fun VideoHubScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    VideoHubHeroCard(isAdmin = uiState.isAdmin)
+                    VideoHubHeroCard(
+                        isAdmin = uiState.isAdmin,
+                        videoCount = uiState.videos.size,
+                        youtubeCount = uiState.publicConfig.youtubeItems.size,
+                        collabCount = uiState.publicConfig.collaborationItems.size,
+                    )
                 }
 
                 item {
@@ -587,38 +600,289 @@ fun VideoHubScreen(
 @Composable
 private fun VideoHubHeroCard(
     isAdmin: Boolean,
+    videoCount: Int,
+    youtubeCount: Int,
+    collabCount: Int,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "Video" },
-        title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Reels, Visuals und starke Kollaborationen." },
-        detail = screenHeaderSettings.videoHubDetail.ifBlank { "Clips, Looks und Leute hinter dem Vibe." },
+        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "Visual Arena" },
+        title = screenHeaderSettings.videoHubTitle.ifBlank { "Video Deck" },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Reels, YouTube und Featured Collabs in einer klaren Arena-Struktur." },
+        detail = screenHeaderSettings.videoHubDetail.ifBlank {
+            if (isAdmin) {
+                "$videoCount Clips, $youtubeCount YouTube-Links und $collabCount Featured Faces im Deck."
+            } else {
+                "$videoCount Clips und $youtubeCount YouTube-Stationen im Visual Hub."
+            }
+        },
         backgroundImageUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null },
-        accent = MaterialTheme.colorScheme.secondary,
-        secondaryAccent = MaterialTheme.colorScheme.tertiary,
+        accent = ArenaGold,
+        secondaryAccent = ArenaRed,
         marks = listOf(BrandArtwork.Skydown),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BrandPill(text = "Videos", tint = MaterialTheme.colorScheme.secondary)
-            BrandPill(text = "Equipment", tint = MaterialTheme.colorScheme.primary)
-            BrandPill(text = "Collabs", tint = MaterialTheme.colorScheme.primary)
+            BrandPill(text = "$videoCount Clips", tint = ArenaGold)
+            BrandPill(text = "$youtubeCount YouTube", tint = YouTubeRed)
+            BrandPill(text = "$collabCount Collabs", tint = FieldMint)
+        }
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            VideoHubHeroStatCard(
+                label = "Reels",
+                value = videoCount.toString(),
+                accent = ArenaGold,
+                modifier = Modifier.weight(1f),
+            )
+            VideoHubHeroStatCard(
+                label = "YouTube",
+                value = youtubeCount.toString(),
+                accent = YouTubeRed,
+                modifier = Modifier.weight(1f),
+            )
+            VideoHubHeroStatCard(
+                label = if (isAdmin) "Mode" else "Access",
+                value = if (isAdmin) "Admin" else "Public",
+                accent = FieldMint,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
 
 @Composable
+private fun VideoHubHeroStatCard(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        DexBlueDeep.copy(alpha = 0.82f),
+                        accent.copy(alpha = 0.20f),
+                        ArenaGold.copy(alpha = 0.08f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.24f),
+                shape = RoundedCornerShape(20.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.72f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
+    }
+}
+
+@Composable
+private fun VideoHubSectionBanner(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accent: Color,
+    tag: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.24f),
+                            accent.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = accent.copy(alpha = 0.24f),
+                    shape = RoundedCornerShape(18.dp),
+                )
+                .padding(10.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.20f),
+                            ArenaGold.copy(alpha = 0.14f),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = accent.copy(alpha = 0.24f),
+                    shape = RoundedCornerShape(999.dp),
+                )
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            Text(
+                text = tag,
+                style = MaterialTheme.typography.labelSmall,
+                color = accent,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun VideoHubPreviewFrame(
+    accent: Color,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        accent.copy(alpha = 0.18f),
+                        ArenaGold.copy(alpha = 0.12f),
+                        DexBlue.copy(alpha = 0.10f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.24f),
+                shape = RoundedCornerShape(22.dp),
+            )
+            .padding(4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f)),
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun VideoControlDeckCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accent: Color,
+    tag: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                        accent.copy(alpha = 0.10f),
+                        DexBlue.copy(alpha = 0.06f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(20.dp),
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        content = {
+            VideoHubSectionBanner(
+                title = title,
+                subtitle = subtitle,
+                icon = icon,
+                accent = accent,
+                tag = tag,
+            )
+            content()
+        },
+    )
+}
+
+@Composable
 private fun VideoFormatCard() {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Format")
+        VideoHubSectionBanner(
+            title = "Deck Rules",
+            subtitle = "Saubere Uploads halten den Hub schnell und klar.",
+            icon = Icons.Default.CheckCircle,
+            accent = ArenaGold,
+            tag = "RULES",
+        )
         Text(
-            text = "MP4, MOV oder M4V.",
+            text = "MP4, MOV oder M4V bleiben die stabilsten Formate fuer den Player und den Reel-Flow.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
         )
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            VideoPill(text = "MP4", isActive = true)
+            VideoPill(text = "9:16 ready", isActive = false)
+            VideoPill(text = "Compressed", isActive = false)
+        }
         Text(
-            text = "Komprimierte Cuts laden schneller.",
+            text = "Komprimierte Cuts laden schneller, wirken im Feed ruhiger und halten die Arena direkt spielbar.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 10.dp),
@@ -633,9 +897,15 @@ private fun VideoCollaborationsCard(
     onOpenYouTube: (VideoYouTubeItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Featured Collabs")
+        VideoHubSectionBanner(
+            title = "Featured Collabs",
+            subtitle = "Artists und Creatives hinter dem visuellen Vibe.",
+            icon = Icons.Default.Sync,
+            accent = FieldMint,
+            tag = "CREW",
+        )
         Text(
-            text = "Artists und Creatives, mit denen die Visuals entstehen.",
+            text = "Diese Collabs bilden das aktuelle Netzwerk rund um Reels, Looks und gemeinsame Releases.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -670,9 +940,15 @@ private fun VideoEquipmentCard(
     items: List<VideoEquipmentItem>,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Equipment & Software")
+        VideoHubSectionBanner(
+            title = "Equipment & Software",
+            subtitle = "Loadout fuer Shoot, Edit und Finish.",
+            icon = Icons.Default.CameraAlt,
+            accent = DexBlue,
+            tag = "LOADOUT",
+        )
         Text(
-            text = "Setup.",
+            text = "Das aktuelle Setup zeigt, womit die Visuals gebaut und veredelt werden.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -706,9 +982,19 @@ private fun VideoYouTubeCard(
     onPlayItem: (VideoYouTubeItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("YouTube")
+        VideoHubSectionBanner(
+            title = "YouTube Station",
+            subtitle = "Making-ofs, Clips und externe Watchpoints.",
+            icon = Icons.Default.PlayArrow,
+            accent = YouTubeRed,
+            tag = "YT",
+        )
         Text(
-            text = "Videos & Making-ofs.",
+            text = if (items.isEmpty()) {
+                "Sobald Links gesetzt sind, tauchen sie hier als eigene Watch-Karten auf."
+            } else {
+                "${items.size} YouTube-Karten sind aktuell im Deck aktiv."
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -745,39 +1031,57 @@ private fun VideoEquipmentRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        DexBlue.copy(alpha = 0.10f),
+                        ArenaGold.copy(alpha = 0.08f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = DexBlue.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(18.dp),
+            )
             .padding(horizontal = 14.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Box(
+        VideoHubPreviewFrame(
+            accent = DexBlue,
             modifier = Modifier
-                .size(72.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.90f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.72f),
+                .size(76.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.90f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.72f),
+                            ),
                         ),
                     ),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (!item.imageUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = item.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.92f),
-                    modifier = Modifier.size(24.dp),
-                )
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!item.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.92f),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         }
 
@@ -785,10 +1089,12 @@ private fun VideoEquipmentRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            VideoPill(text = "Loadout", isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 4.dp),
             )
             Text(
                 text = item.detail,
@@ -826,9 +1132,15 @@ private fun VideoPublicConfigEditorCard(
     onSave: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Videography Editor")
+        VideoHubSectionBanner(
+            title = "Control Station",
+            subtitle = "Owner und Video-Admins steuern hier Equipment und Featured Collabs.",
+            icon = Icons.Default.Sync,
+            accent = ArenaRed,
+            tag = "ADMIN",
+        )
         Text(
-            text = "Owner und Video-Admins steuern hier Equipment und Featured Collabs. Bilder laufen jetzt picker-first mit Vorschau statt ueber rohe URLs.",
+            text = "Bilder laufen picker-first mit Vorschau, externe Links werden sauber mit den oeffentlichen Deck-Daten verbunden.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -840,154 +1152,203 @@ private fun VideoPublicConfigEditorCard(
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        Text(
-            text = "Equipment",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-        Column(
-            modifier = Modifier.padding(top = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            uiState.publicConfig.equipmentItems.forEach { item ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = item.title,
-                        onValueChange = { onUpdateEquipmentTitle(item.id, it) },
-                        label = { Text("Titel") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = item.detail,
-                        onValueChange = { onUpdateEquipmentDetail(item.id, it) },
-                        label = { Text("Detail") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                    )
-                    EditableImageFieldCard(
-                        title = "Equipment-Bild",
-                        imageUrl = item.imageUrl.orEmpty(),
-                        isUploading = activeImageUploadTarget == VideoConfigImageTarget.Equipment(item.id),
-                        uploadStatusText = "Equipment-Bild wird uebernommen.",
-                        onPickImage = { onPickEquipmentImage(item.id) },
-                        onImageUrlChange = { onUpdateEquipmentImageUrl(item.id, it) },
-                        onRemoveImage = { onRemoveEquipmentImage(item.id) },
-                    )
-                    OutlinedButton(
-                        onClick = { onRemoveEquipment(item.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Eintrag entfernen")
-                    }
-                }
-            }
+            VideoPill(text = "Picker-first", isActive = true)
+            VideoPill(text = "Public save", isActive = false)
+            VideoPill(text = "Admin only", isActive = false)
         }
 
-        OutlinedButton(
-            onClick = onAddEquipment,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text("Equipment hinzufuegen")
-        }
-
-        Text(
-            text = "Featured Collabs",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
+        VideoControlDeckCard(
+            title = "Equipment Deck",
+            subtitle = "Kameras, Tools und Software fuer den visuellen Loadout.",
+            icon = Icons.Default.CameraAlt,
+            accent = DexBlue,
+            tag = "GEAR",
             modifier = Modifier.padding(top = 18.dp),
-        )
-        Column(
-            modifier = Modifier.padding(top = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            uiState.publicConfig.collaborationItems.forEach { item ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = item.name,
-                        onValueChange = { onUpdateCollaborationName(item.id, it) },
-                        label = { Text("Name") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = item.role,
-                        onValueChange = { onUpdateCollaborationRole(item.id, it) },
-                        label = { Text("Rolle") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = item.highlight,
-                        onValueChange = { onUpdateCollaborationHighlight(item.id, it) },
-                        label = { Text("Highlight") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                    )
-                    OutlinedTextField(
-                        value = item.vibe,
-                        onValueChange = { onUpdateCollaborationVibe(item.id, it) },
-                        label = { Text("Vibe") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    EditableImageFieldCard(
-                        title = "Collab-Bild",
-                        imageUrl = item.imageUrl.orEmpty(),
-                        isUploading = activeImageUploadTarget == VideoConfigImageTarget.Collaboration(item.id),
-                        uploadStatusText = "Collab-Bild wird uebernommen.",
-                        onPickImage = { onPickCollaborationImage(item.id) },
-                        onImageUrlChange = { onUpdateCollaborationImageUrl(item.id, it) },
-                        onRemoveImage = { onRemoveCollaborationImage(item.id) },
-                    )
-                    OutlinedTextField(
-                        value = item.spotifyArtistId.orEmpty(),
-                        onValueChange = { onUpdateCollaborationSpotifyArtistId(item.id, it) },
-                        label = { Text("Spotify Artist ID") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = item.instagramUrl.orEmpty(),
-                        onValueChange = { onUpdateCollaborationInstagramUrl(item.id, it) },
-                        label = { Text("Instagram URL") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = item.youtubeUrl.orEmpty(),
-                        onValueChange = { onUpdateCollaborationYouTubeUrl(item.id, it) },
-                        label = { Text("YouTube URL") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedButton(
-                        onClick = { onRemoveCollaboration(item.id) },
-                        modifier = Modifier.fillMaxWidth(),
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                uiState.publicConfig.equipmentItems.forEach { item ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                        DexBlue.copy(alpha = 0.10f),
+                                        ArenaGold.copy(alpha = 0.06f),
+                                    ),
+                                ),
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = DexBlue.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("Collab entfernen")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            VideoPill(text = "Gear", isActive = true)
+                            VideoPill(text = if (item.imageUrl.isNullOrBlank()) "No image" else "Image ready", isActive = false)
+                        }
+                        OutlinedTextField(
+                            value = item.title,
+                            onValueChange = { onUpdateEquipmentTitle(item.id, it) },
+                            label = { Text("Titel") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = item.detail,
+                            onValueChange = { onUpdateEquipmentDetail(item.id, it) },
+                            label = { Text("Detail") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                        )
+                        EditableImageFieldCard(
+                            title = "Equipment-Bild",
+                            imageUrl = item.imageUrl.orEmpty(),
+                            isUploading = activeImageUploadTarget == VideoConfigImageTarget.Equipment(item.id),
+                            uploadStatusText = "Equipment-Bild wird uebernommen.",
+                            onPickImage = { onPickEquipmentImage(item.id) },
+                            onImageUrlChange = { onUpdateEquipmentImageUrl(item.id, it) },
+                            onRemoveImage = { onRemoveEquipmentImage(item.id) },
+                        )
+                        OutlinedButton(
+                            onClick = { onRemoveEquipment(item.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Eintrag entfernen")
+                        }
                     }
                 }
             }
+
+            OutlinedButton(
+                onClick = onAddEquipment,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+            ) {
+                Text("Equipment hinzufuegen")
+            }
         }
 
-        OutlinedButton(
-            onClick = onAddCollaboration,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
+        VideoControlDeckCard(
+            title = "Collab Deck",
+            subtitle = "Rollen, Highlights, Vibes und Links fuer das Featured-Netzwerk.",
+            icon = Icons.Default.CheckCircle,
+            accent = FieldMint,
+            tag = "CREW",
+            modifier = Modifier.padding(top = 18.dp),
         ) {
-            Text("Collab hinzufuegen")
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                uiState.publicConfig.collaborationItems.forEach { item ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                        FieldMint.copy(alpha = 0.10f),
+                                        ArenaGold.copy(alpha = 0.06f),
+                                    ),
+                                ),
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = FieldMint.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(18.dp),
+                            )
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            VideoPill(text = item.role.ifBlank { "Collab" }, isActive = true)
+                            if (item.vibe.isNotBlank()) {
+                                VideoPill(text = item.vibe, isActive = false)
+                            }
+                        }
+                        OutlinedTextField(
+                            value = item.name,
+                            onValueChange = { onUpdateCollaborationName(item.id, it) },
+                            label = { Text("Name") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = item.role,
+                            onValueChange = { onUpdateCollaborationRole(item.id, it) },
+                            label = { Text("Rolle") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = item.highlight,
+                            onValueChange = { onUpdateCollaborationHighlight(item.id, it) },
+                            label = { Text("Highlight") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                        )
+                        OutlinedTextField(
+                            value = item.vibe,
+                            onValueChange = { onUpdateCollaborationVibe(item.id, it) },
+                            label = { Text("Vibe") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        EditableImageFieldCard(
+                            title = "Collab-Bild",
+                            imageUrl = item.imageUrl.orEmpty(),
+                            isUploading = activeImageUploadTarget == VideoConfigImageTarget.Collaboration(item.id),
+                            uploadStatusText = "Collab-Bild wird uebernommen.",
+                            onPickImage = { onPickCollaborationImage(item.id) },
+                            onImageUrlChange = { onUpdateCollaborationImageUrl(item.id, it) },
+                            onRemoveImage = { onRemoveCollaborationImage(item.id) },
+                        )
+                        OutlinedTextField(
+                            value = item.spotifyArtistId.orEmpty(),
+                            onValueChange = { onUpdateCollaborationSpotifyArtistId(item.id, it) },
+                            label = { Text("Spotify Artist ID") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = item.instagramUrl.orEmpty(),
+                            onValueChange = { onUpdateCollaborationInstagramUrl(item.id, it) },
+                            label = { Text("Instagram URL") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = item.youtubeUrl.orEmpty(),
+                            onValueChange = { onUpdateCollaborationYouTubeUrl(item.id, it) },
+                            label = { Text("YouTube URL") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedButton(
+                            onClick = { onRemoveCollaboration(item.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Collab entfernen")
+                        }
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = onAddCollaboration,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+            ) {
+                Text("Collab hinzufuegen")
+            }
         }
 
         Button(
@@ -1004,7 +1365,7 @@ private fun VideoPublicConfigEditorCard(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text("Oeffentliche Daten speichern")
+                Text("Deck speichern")
             }
         }
     }
@@ -1019,15 +1380,21 @@ private fun ProducedWithArtistRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(156.dp)
+            .height(164.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
+                        DexBlueDeep.copy(alpha = 0.92f),
+                        FieldMint.copy(alpha = 0.16f),
+                        ArenaGold.copy(alpha = 0.10f),
                     ),
                 ),
+            )
+            .border(
+                width = 1.dp,
+                color = FieldMint.copy(alpha = 0.22f),
+                shape = RoundedCornerShape(18.dp),
             ),
     ) {
         if (!artist.imageUrl.isNullOrBlank()) {
@@ -1044,8 +1411,8 @@ private fun ProducedWithArtistRow(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.tertiary,
-                                MaterialTheme.colorScheme.primary,
+                                FieldMint,
+                                DexBlue,
                             ),
                         ),
                     ),
@@ -1098,20 +1465,34 @@ private fun ProducedWithArtistRow(
                     )
                 }
 
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(ArenaGold.copy(alpha = 0.28f))
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                ) {
+                    Text(
+                        text = "ALLY",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.94f),
+                    )
+                }
+
                 Spacer(modifier = Modifier.weight(1f))
 
                 if (artist.vibe.isNotBlank()) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.78f))
+                            .background(FieldMint.copy(alpha = 0.82f))
                             .padding(horizontal = 8.dp, vertical = 5.dp),
                     ) {
                         Text(
                             text = artist.vibe,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = DexBlueDeep,
                         )
                     }
                 }
@@ -1133,6 +1514,13 @@ private fun ProducedWithArtistRow(
                     color = Color.White.copy(alpha = 0.90f),
                     maxLines = 1,
                 )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                VideoPill(text = artist.role.ifBlank { "Collab" }, isActive = true)
+                if (artist.vibe.isNotBlank()) {
+                    VideoPill(text = artist.vibe, isActive = false)
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1204,7 +1592,6 @@ private fun SocialActionChip(
             .size(34.dp)
             .clip(CircleShape)
             .background(gradient)
-            .skydownSheen(alpha = 0.14f)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -1228,23 +1615,84 @@ private fun VideoYouTubeRow(
     item: VideoYouTubeItem,
     onPlay: () -> Unit,
 ) {
+    val thumbnailUrl = remember(item.url) { resolveYouTubeThumbnailUrl(item.url) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                        YouTubeRed.copy(alpha = 0.12f),
+                        ArenaGold.copy(alpha = 0.08f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = YouTubeRed.copy(alpha = 0.20f),
+                shape = RoundedCornerShape(18.dp),
+            )
             .padding(horizontal = 14.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
+        VideoHubPreviewFrame(
+            accent = YouTubeRed,
+            modifier = Modifier.size(88.dp),
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (thumbnailUrl != null) {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = item.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        YouTubeRed,
+                                        YouTubeDeepRed,
+                                    ),
+                                ),
+                            ),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.52f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            VideoPill(text = "Watch", isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 4.dp),
             )
             if (item.subtitle.isNotBlank()) {
                 Text(
@@ -1253,6 +1701,11 @@ private fun VideoYouTubeRow(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
+            Text(
+                text = "Direkt im Dialog oder extern in YouTube.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+            )
         }
 
         TextButton(
@@ -1269,8 +1722,7 @@ private fun VideoYouTubeRow(
                             YouTubeDeepRed,
                         ),
                     ),
-                )
-                .skydownSheen(accent = Color.White, alpha = 0.12f),
+                ),
         ) {
             Text("YouTube")
         }
@@ -1291,13 +1743,28 @@ private fun VideoUploadCard(
     onAddExternalVideo: () -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Video Upload")
+        VideoHubSectionBanner(
+            title = "Upload Station",
+            subtitle = "Admin-only Bereich fuer neue Clips und externe Videoquellen.",
+            icon = Icons.Default.Movie,
+            accent = ArenaRed,
+            tag = "UPLOAD",
+        )
         Text(
-            text = "Nur Admins sehen diesen Bereich. Die Videos landen direkt in Firebase Storage und erscheinen danach in der Library.",
+            text = "Hier steuerst du direkte Uploads nach Firebase Storage oder externe Quellen wie YouTube, Drive und MEGA.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
         )
+
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            VideoPill(text = "Storage", isActive = true)
+            VideoPill(text = "YouTube", isActive = false)
+            VideoPill(text = "External", isActive = false)
+        }
 
         OutlinedTextField(
             value = uiState.videoTitle,
@@ -1353,7 +1820,7 @@ private fun VideoUploadCard(
         OutlinedTextField(
             value = uiState.externalVideoUrl,
             onValueChange = onUpdateExternalVideoUrl,
-            label = { Text("Google Drive / MEGA / anderer Video-Link") },
+            label = { Text("YouTube / Google Drive / MEGA / anderer Video-Link") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
@@ -1370,7 +1837,20 @@ private fun VideoUploadCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                                        DexBlue.copy(alpha = 0.10f),
+                                        ArenaGold.copy(alpha = 0.08f),
+                                    ),
+                                ),
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = DexBlue.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(16.dp),
+                            )
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1452,10 +1932,16 @@ private fun VideoPlayerCard(
     onOpenReel: (() -> Unit)?,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Reel Player")
+        VideoHubSectionBanner(
+            title = "Reel Arena",
+            subtitle = "Das aktive Video bleibt gross, fokussiert und sofort spielbar.",
+            icon = Icons.Default.Movie,
+            accent = ArenaRed,
+            tag = "LIVE",
+        )
 
         Text(
-            text = "Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.",
+            text = "Der aktive Clip sitzt jetzt wie eine Hauptkarte im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1471,90 +1957,118 @@ private fun VideoPlayerCard(
             return@SkydownCard
         }
 
-        Box(
+        VideoHubPreviewFrame(
+            accent = videoHubProviderAccent(video),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(560.dp)
-                .padding(top = 14.dp)
-                .clip(RoundedCornerShape(24.dp)),
+                .padding(top = 14.dp),
         ) {
-            when {
-                video.usesEmbeddedPreview -> {
-                    ExternalVideoWebPlayer(
-                        url = video.embedUrl,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    video.usesEmbeddedPreview -> {
+                        ExternalVideoWebPlayer(
+                            url = video.inlineEmbedUrl,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    video.nativePlaybackUrl.isNotBlank() -> {
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize(),
+                            factory = { playerContext ->
+                                PlayerView(playerContext).apply {
+                                    useController = true
+                                    this.player = player
+                                }
+                            },
+                            update = { view ->
+                                view.player = player
+                            },
+                        )
+                    }
+
+                    else -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Dieser Clip wird ueber einen externen Link ausgeliefert.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                        }
+                    }
                 }
 
-                video.nativePlaybackUrl.isNotBlank() -> {
-                    AndroidView(
-                        modifier = Modifier.fillMaxSize(),
-                        factory = { playerContext ->
-                            PlayerView(playerContext).apply {
-                                useController = true
-                                this.player = player
-                            }
-                        },
-                        update = { view ->
-                            view.player = player
-                        },
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f),
+                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.76f),
+                                ),
+                            ),
+                        ),
+                )
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    VideoPill(
+                        text = if (video.usesEmbeddedPreview) "Embed" else if (video.nativePlaybackUrl.isNotBlank()) "Native" else "Link",
+                        isActive = true,
                     )
+                    if (video.isHomeFeatured) {
+                        VideoPill(text = "Home", isActive = true)
+                    }
                 }
 
-                else -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        VideoPill(text = "Reel", isActive = true)
+                        VideoPill(text = video.projectName, isActive = false)
+                        VideoPill(text = video.providerBadge, isActive = false)
+                    }
+                    Text(
+                        text = video.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    if (video.notes.isNotBlank()) {
                         Text(
-                            text = "Dieser Clip wird ueber einen externen Link ausgeliefert.",
+                            text = video.notes,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
                         )
                     }
                 }
             }
+        }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f),
-                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.76f),
-                            ),
-                        ),
-                    ),
-            )
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VideoPill(text = "Reel", isActive = true)
-                    VideoPill(text = video.projectName, isActive = false)
-                    VideoPill(text = video.providerBadge, isActive = false)
-                }
-                Text(
-                    text = video.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                if (video.notes.isNotBlank()) {
-                    Text(
-                        text = video.notes,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
-                    )
-                }
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            VideoPill(text = formatVideoDate(video.createdAtMillis), isActive = true)
+            VideoPill(text = video.projectName, isActive = false)
+            if (video.isHomeFeatured) {
+                VideoPill(text = "Home active", isActive = true)
             }
         }
 
@@ -1566,7 +2080,8 @@ private fun VideoPlayerCard(
                         .fillMaxWidth()
                         .padding(top = 14.dp),
                     shape = RoundedCornerShape(18.dp),
-                ) {
+                )
+                {
                     Text("Im Reel ansehen")
                 }
             }
@@ -1583,15 +2098,6 @@ private fun VideoPlayerCard(
                 Text("Original oeffnen")
             }
         }
-
-        if (video.notes.isNotBlank()) {
-            Text(
-                text = video.notes,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                modifier = Modifier.padding(top = 12.dp),
-            )
-        }
     }
 }
 
@@ -1606,7 +2112,13 @@ private fun VideoLibraryCard(
     onDeleteVideo: (VideoHubItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        SectionHeader("Video Library")
+        VideoHubSectionBanner(
+            title = "Video Library",
+            subtitle = "Alle Clips im Hub, klar getrennt nach Fokus und Status.",
+            icon = Icons.Default.Movie,
+            accent = DexBlue,
+            tag = "LIBRARY",
+        )
         Text(
             text = if (uiState.isAdmin) {
                 "${uiState.videos.size} Videos im Hub."
@@ -1681,11 +2193,25 @@ private fun VideoLibraryRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(
-                if (isSelected) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f)
-                },
+                Brush.linearGradient(
+                    colors = if (isSelected) {
+                        listOf(
+                            DexBlue.copy(alpha = 0.18f),
+                            ArenaGold.copy(alpha = 0.12f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        )
+                    } else {
+                        listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
+                        )
+                    },
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = if (isSelected) ArenaGold.copy(alpha = 0.28f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(20.dp),
             )
             .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -1694,18 +2220,31 @@ private fun VideoLibraryRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Box(
+            VideoHubPreviewFrame(
+                accent = videoHubProviderAccent(video),
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
+                    .size(64.dp),
             ) {
-                Icon(
-                    imageVector = if (isSelected) Icons.Default.PlayArrow else Icons.Default.Movie,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    videoHubProviderAccent(video).copy(alpha = 0.88f),
+                                    DexBlueDeep.copy(alpha = 0.76f),
+                                ),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (isSelected) Icons.Default.PlayArrow else Icons.Default.Movie,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
 
             Column(
@@ -1749,7 +2288,7 @@ private fun VideoLibraryRow(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text(if (isSelected) "Im Player" else "Im Player laden")
+                Text(if (isSelected) "Aktiv im Player" else "Im Player laden")
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1870,7 +2409,7 @@ private fun VideoReelViewerDialog(
                 ) {
                     if (video != null && page == pagerState.currentPage && video.usesEmbeddedPreview) {
                         ExternalVideoWebPlayer(
-                            url = video.embedUrl,
+                            url = video.inlineEmbedUrl,
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else if (video != null && page == pagerState.currentPage && video.nativePlaybackUrl.isNotBlank()) {
@@ -2012,6 +2551,8 @@ fun ExternalVideoWebPlayer(
     url: String,
     modifier: Modifier = Modifier,
 ) {
+    val playerSource = remember(url) { externalVideoWebPlayerSource(url) }
+
     AndroidView(
         modifier = modifier,
         factory = { playerContext ->
@@ -2021,16 +2562,117 @@ fun ExternalVideoWebPlayer(
                 settings.javaScriptEnabled = true
                 settings.mediaPlaybackRequiresUserGesture = false
                 settings.domStorageEnabled = true
+                settings.javaScriptCanOpenWindowsAutomatically = true
                 settings.loadsImagesAutomatically = true
+                settings.useWideViewPort = true
+                settings.loadWithOverviewMode = true
                 setBackgroundColor(android.graphics.Color.BLACK)
+
+                if (playerSource.html != null) {
+                    loadDataWithBaseURL(
+                        playerSource.baseUrl,
+                        playerSource.html,
+                        "text/html",
+                        "utf-8",
+                        null,
+                    )
+                    tag = playerSource.renderKey
+                } else if (playerSource.url != null) {
+                    loadUrl(playerSource.url)
+                    tag = playerSource.renderKey
+                }
             }
         },
         update = { webView ->
-            if (webView.url != url) {
-                webView.loadUrl(url)
+            if (webView.tag != playerSource.renderKey) {
+                webView.tag = playerSource.renderKey
+                if (playerSource.html != null) {
+                    webView.loadDataWithBaseURL(
+                        playerSource.baseUrl,
+                        playerSource.html,
+                        "text/html",
+                        "utf-8",
+                        null,
+                    )
+                } else if (playerSource.url != null && webView.url != playerSource.url) {
+                    webView.loadUrl(playerSource.url)
+                }
             }
         },
     )
+}
+
+private data class ExternalVideoWebPlayerSource(
+    val url: String?,
+    val html: String?,
+    val baseUrl: String?,
+    val renderKey: String,
+)
+
+private fun externalVideoWebPlayerSource(rawUrl: String): ExternalVideoWebPlayerSource {
+    val youtubeEmbedUrl = resolveYouTubeEmbedUrl(rawUrl)
+    if (youtubeEmbedUrl != null) {
+        val html = """
+            <!doctype html>
+            <html>
+              <head>
+                <meta charset="utf-8" />
+                <meta
+                  name="viewport"
+                  content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+                />
+                <style>
+                  html, body {
+                    margin: 0;
+                    padding: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: #000;
+                    overflow: hidden;
+                  }
+                  iframe {
+                    width: 100%;
+                    height: 100%;
+                    border: 0;
+                    background: #000;
+                  }
+                </style>
+              </head>
+              <body>
+                <iframe
+                  src="$youtubeEmbedUrl"
+                  title="YouTube video player"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="origin"
+                  allowfullscreen>
+                </iframe>
+              </body>
+            </html>
+        """.trimIndent()
+
+        return ExternalVideoWebPlayerSource(
+            url = null,
+            html = html,
+            baseUrl = "https://www.youtube.com",
+            renderKey = youtubeEmbedUrl,
+        )
+    }
+
+    return ExternalVideoWebPlayerSource(
+        url = rawUrl,
+        html = null,
+        baseUrl = null,
+        renderKey = rawUrl,
+    )
+}
+
+private fun videoHubProviderAccent(video: VideoHubItem): Color {
+    return when {
+        video.usesEmbeddedPreview -> YouTubeRed
+        video.providerBadge.equals("Drive", ignoreCase = true) -> FieldMint
+        video.providerBadge.equals("MEGA", ignoreCase = true) -> ArenaRed
+        else -> DexBlue
+    }
 }
 
 @Composable
@@ -2039,12 +2681,22 @@ private fun VideoPill(
     isActive: Boolean,
 ) {
     val background = if (isActive) {
-        MaterialTheme.colorScheme.primaryContainer
+        Brush.linearGradient(
+            colors = listOf(
+                ArenaGold.copy(alpha = 0.20f),
+                ArenaRed.copy(alpha = 0.14f),
+            ),
+        )
     } else {
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.78f)
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.78f),
+                DexBlue.copy(alpha = 0.06f),
+            ),
+        )
     }
     val content = if (isActive) {
-        MaterialTheme.colorScheme.onPrimaryContainer
+        ArenaGold.copy(alpha = 0.98f)
     } else {
         MaterialTheme.colorScheme.onSecondaryContainer
     }
@@ -2053,6 +2705,11 @@ private fun VideoPill(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(background)
+            .border(
+                width = 1.dp,
+                color = if (isActive) ArenaGold.copy(alpha = 0.28f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(999.dp),
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Text(
