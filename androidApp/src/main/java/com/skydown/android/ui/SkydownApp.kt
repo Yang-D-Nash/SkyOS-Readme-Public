@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -842,6 +844,7 @@ private fun ZweizweiMusicLaneScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .widthIn(max = contentMaxWidth)
+                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = 18.dp, vertical = 22.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
@@ -953,7 +956,7 @@ private fun ZweizweiMusicLaneScreen(
                                 onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                             )
                         }
-                        Spacer(modifier = Modifier.height(1.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
             }
