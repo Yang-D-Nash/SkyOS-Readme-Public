@@ -343,12 +343,6 @@ fun HomeScreen(
 
                 item {
                     HomeAnimatedItem(order = 2) {
-                        HomeFieldGuideCard(uiState = uiState)
-                    }
-                }
-
-                item {
-                    HomeAnimatedItem(order = 3) {
                         HomeLatestBeatCard(
                             uiState = uiState,
                             isPlaying = currentAudioKey == uiState.featuredBeat?.let(::homeBeatAudioKey),
@@ -374,7 +368,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 4) {
+                    HomeAnimatedItem(order = 3) {
                         HomeLatestVideoCard(
                             uiState = uiState,
                             player = videoPlayer,
@@ -399,7 +393,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 5) {
+                    HomeAnimatedItem(order = 4) {
                         HomeStoryCard(
                             onOpenBeatHub = {
                                 audioPlayer.stop()
