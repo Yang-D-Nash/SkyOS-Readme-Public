@@ -273,7 +273,10 @@ private fun ShopOverviewCard(
             }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
-        backgroundImageSizeFraction = 0.70f,
+        backgroundImageSizeFraction = 0.62f,
+        backgroundImageAlignment = Alignment.CenterEnd,
+        backgroundImageMaxWidth = 204.dp,
+        backgroundImageMaxHeight = 98.dp,
         accent = SpotifyGreen,
         secondaryAccent = YouTubeDeepRed,
         marks = listOf(BrandArtwork.Combined),

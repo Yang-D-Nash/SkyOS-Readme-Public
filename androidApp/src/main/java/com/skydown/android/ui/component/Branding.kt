@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.skydown.android.R
@@ -75,6 +77,8 @@ fun BrandHeroCard(
     backgroundImageUrl: String? = null,
     backgroundImageSizeFraction: Float = 1f,
     backgroundImageAlignment: Alignment = Alignment.Center,
+    backgroundImageMaxWidth: Dp = Dp.Unspecified,
+    backgroundImageMaxHeight: Dp = Dp.Unspecified,
     accent: Color = MaterialTheme.colorScheme.primary,
     secondaryAccent: Color = MaterialTheme.colorScheme.secondary,
     marks: List<BrandArtwork> = emptyList(),
@@ -120,6 +124,10 @@ fun BrandHeroCard(
                     .align(backgroundImageAlignment)
                     .fillMaxWidth(backgroundImageSizeFraction)
                     .fillMaxHeight(backgroundImageSizeFraction)
+                    .sizeIn(
+                        maxWidth = backgroundImageMaxWidth,
+                        maxHeight = backgroundImageMaxHeight,
+                    )
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 contentScale = ContentScale.Fit,
             )
