@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -789,7 +791,10 @@ private fun MusicOverviewCard(
         marks = listOf(BrandArtwork.Zweizwei),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
                 BrandPill(text = "${uiState.availableArtists.size} Artists", tint = ArenaGold)
                 BrandPill(
@@ -798,34 +803,69 @@ private fun MusicOverviewCard(
                 )
             }
 
-            Row(
+            BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                MusicHeroStatusCard(
-                    label = "Artist",
-                    value = socialProfile?.handle ?: uiState.selectedArtist,
-                    icon = Icons.Default.MusicNote,
-                    accent = SpotifyGreen,
-                    isActive = socialProfile != null || uiState.selectedArtist.isNotBlank(),
-                    modifier = Modifier.weight(1f),
-                )
-                MusicHeroStatusCard(
-                    label = "Tracks",
-                    value = trackLabel,
-                    icon = Icons.Default.GraphicEq,
-                    accent = ArenaGold,
-                    isActive = uiState.isLoading || uiState.tracks.isNotEmpty(),
-                    modifier = Modifier.weight(1f),
-                )
-                MusicHeroStatusCard(
-                    label = "Status",
-                    value = musicHeroStatusValue(uiState),
-                    icon = Icons.Default.Sync,
-                    accent = FieldMint,
-                    isActive = uiState.currentPreviewUrl != null || uiState.isSpotifyConnected || uiState.isLoading,
-                    modifier = Modifier.weight(1f),
-                )
+                val stackMetrics = maxWidth < 420.dp
+
+                if (stackMetrics) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        MusicHeroStatusCard(
+                            label = "Artist",
+                            value = socialProfile?.handle ?: uiState.selectedArtist,
+                            icon = Icons.Default.MusicNote,
+                            accent = SpotifyGreen,
+                            isActive = socialProfile != null || uiState.selectedArtist.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        MusicHeroStatusCard(
+                            label = "Tracks",
+                            value = trackLabel,
+                            icon = Icons.Default.GraphicEq,
+                            accent = ArenaGold,
+                            isActive = uiState.isLoading || uiState.tracks.isNotEmpty(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        MusicHeroStatusCard(
+                            label = "Status",
+                            value = musicHeroStatusValue(uiState),
+                            icon = Icons.Default.Sync,
+                            accent = FieldMint,
+                            isActive = uiState.currentPreviewUrl != null || uiState.isSpotifyConnected || uiState.isLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        MusicHeroStatusCard(
+                            label = "Artist",
+                            value = socialProfile?.handle ?: uiState.selectedArtist,
+                            icon = Icons.Default.MusicNote,
+                            accent = SpotifyGreen,
+                            isActive = socialProfile != null || uiState.selectedArtist.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                        )
+                        MusicHeroStatusCard(
+                            label = "Tracks",
+                            value = trackLabel,
+                            icon = Icons.Default.GraphicEq,
+                            accent = ArenaGold,
+                            isActive = uiState.isLoading || uiState.tracks.isNotEmpty(),
+                            modifier = Modifier.weight(1f),
+                        )
+                        MusicHeroStatusCard(
+                            label = "Status",
+                            value = musicHeroStatusValue(uiState),
+                            icon = Icons.Default.Sync,
+                            accent = FieldMint,
+                            isActive = uiState.currentPreviewUrl != null || uiState.isSpotifyConnected || uiState.isLoading,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
         }
     }
@@ -1001,7 +1041,9 @@ private fun MusicSpotlightDeckCard(
         }
 
         Row(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier
+                .padding(top = 14.dp)
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
@@ -1012,34 +1054,67 @@ private fun MusicSpotlightDeckCard(
             )
         }
 
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            MusicDeckMetricCard(
-                label = "Lead Track",
-                value = selectedTrack?.trackName ?: "Kein Track",
-                accent = SpotifyGreen,
-                modifier = Modifier.weight(1f),
-            )
-            MusicDeckMetricCard(
-                label = "Links",
-                value = buildString {
-                    append(if (socialProfile != null) "IG" else "Feed")
-                    append(" / ")
-                    append(if (!artistPage.spotifyURL.isNullOrBlank()) "Spotify" else "Page")
-                },
-                accent = ArenaGold,
-                modifier = Modifier.weight(1f),
-            )
-            MusicDeckMetricCard(
-                label = "Status",
-                value = musicHeroStatusValue(uiState),
-                accent = FieldMint,
-                modifier = Modifier.weight(1f),
-            )
+            val stackMetrics = maxWidth < 420.dp
+
+            if (stackMetrics) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MusicDeckMetricCard(
+                        label = "Lead Track",
+                        value = selectedTrack?.trackName ?: "Kein Track",
+                        accent = SpotifyGreen,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    MusicDeckMetricCard(
+                        label = "Links",
+                        value = buildString {
+                            append(if (socialProfile != null) "IG" else "Feed")
+                            append(" / ")
+                            append(if (!artistPage.spotifyURL.isNullOrBlank()) "Spotify" else "Page")
+                        },
+                        accent = ArenaGold,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    MusicDeckMetricCard(
+                        label = "Status",
+                        value = musicHeroStatusValue(uiState),
+                        accent = FieldMint,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    MusicDeckMetricCard(
+                        label = "Lead Track",
+                        value = selectedTrack?.trackName ?: "Kein Track",
+                        accent = SpotifyGreen,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MusicDeckMetricCard(
+                        label = "Links",
+                        value = buildString {
+                            append(if (socialProfile != null) "IG" else "Feed")
+                            append(" / ")
+                            append(if (!artistPage.spotifyURL.isNullOrBlank()) "Spotify" else "Page")
+                        },
+                        accent = ArenaGold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MusicDeckMetricCard(
+                        label = "Status",
+                        value = musicHeroStatusValue(uiState),
+                        accent = FieldMint,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
 
         Column(
@@ -1393,28 +1468,56 @@ private fun ArtistPagerCard(
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    MusicDeckMetricCard(
-                        label = "Tag",
-                        value = page.tagline ?: "Artist ready",
-                        accent = ArenaGold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MusicDeckMetricCard(
-                        label = "Reach",
-                        value = buildString {
-                            append(if (!page.instagramURL.isNullOrBlank()) "IG" else "Feed")
-                            append(" / ")
-                            append(if (!page.youtubeURL.isNullOrBlank()) "YT" else "Page")
-                        },
-                        accent = SpotifyGreen,
-                        modifier = Modifier.weight(1f),
-                    )
+                BoxWithConstraints {
+                    val stackMetrics = maxWidth < 360.dp
+
+                    if (stackMetrics) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            MusicDeckMetricCard(
+                                label = "Tag",
+                                value = page.tagline ?: "Artist ready",
+                                accent = ArenaGold,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            MusicDeckMetricCard(
+                                label = "Reach",
+                                value = buildString {
+                                    append(if (!page.instagramURL.isNullOrBlank()) "IG" else "Feed")
+                                    append(" / ")
+                                    append(if (!page.youtubeURL.isNullOrBlank()) "YT" else "Page")
+                                },
+                                accent = SpotifyGreen,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    } else {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            MusicDeckMetricCard(
+                                label = "Tag",
+                                value = page.tagline ?: "Artist ready",
+                                accent = ArenaGold,
+                                modifier = Modifier.weight(1f),
+                            )
+                            MusicDeckMetricCard(
+                                label = "Reach",
+                                value = buildString {
+                                    append(if (!page.instagramURL.isNullOrBlank()) "IG" else "Feed")
+                                    append(" / ")
+                                    append(if (!page.youtubeURL.isNullOrBlank()) "YT" else "Page")
+                                },
+                                accent = SpotifyGreen,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     if (!page.spotifyURL.isNullOrBlank()) {
                         SmallMusicBadge(text = "Spotify", isAccent = true)
                     } else {
