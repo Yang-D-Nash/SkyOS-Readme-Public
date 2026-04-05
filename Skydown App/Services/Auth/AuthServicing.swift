@@ -665,16 +665,63 @@ final class FirebaseAuthService: AuthServicing {
     private func topViewController() -> UIViewController? {
         let scenes = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
-        let keyWindow = scenes
-            .flatMap(\.windows)
-            .first { $0.isKeyWindow }
+            .sorted { lhs, rhs in
+                rank(for: lhs.activationState) < rank(for: rhs.activationState)
+            }
 
-        var topController = keyWindow?.rootViewController
-        while let presentedViewController = topController?.presentedViewController {
-            topController = presentedViewController
+        let candidateWindows = scenes.flatMap { scene in
+            scene.windows.sorted { lhs, rhs in
+                score(for: lhs) > score(for: rhs)
+            }
         }
 
-        return topController
+        for window in candidateWindows {
+            if let topController = resolvedTopViewController(from: window.rootViewController) {
+                return topController
+            }
+        }
+
+        return nil
+    }
+
+    private func resolvedTopViewController(from root: UIViewController?) -> UIViewController? {
+        guard let root else { return nil }
+
+        if let presented = root.presentedViewController {
+            return resolvedTopViewController(from: presented)
+        }
+
+        if let navigationController = root as? UINavigationController {
+            return resolvedTopViewController(from: navigationController.visibleViewController)
+        }
+
+        if let tabBarController = root as? UITabBarController {
+            return resolvedTopViewController(from: tabBarController.selectedViewController)
+        }
+
+        if let splitViewController = root as? UISplitViewController {
+            return resolvedTopViewController(from: splitViewController.viewControllers.last)
+        }
+
+        return root
+    }
+
+    private func rank(for state: UIScene.ActivationState) -> Int {
+        switch state {
+        case .foregroundActive: return 0
+        case .foregroundInactive: return 1
+        case .background: return 2
+        case .unattached: return 3
+        @unknown default: return 4
+        }
+    }
+
+    private func score(for window: UIWindow) -> Int {
+        var value = 0
+        if window.isKeyWindow { value += 100 }
+        if !window.isHidden { value += 10 }
+        if window.alpha > 0 { value += 1 }
+        return value
     }
 }
 

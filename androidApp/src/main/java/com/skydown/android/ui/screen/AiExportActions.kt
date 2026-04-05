@@ -18,8 +18,10 @@ fun shareAiText(context: Context, title: String, text: String) {
         putExtra(Intent.EXTRA_TEXT, text)
     }
 
-    context.startActivity(
-        Intent.createChooser(shareIntent, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+    openExternalIntent(
+        context = context,
+        intent = Intent.createChooser(shareIntent, title),
+        missingMessage = "Teilen konnte nicht gestartet werden.",
     )
 }
 

@@ -1,7 +1,20 @@
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
-struct SingleImagePicker: UIViewControllerRepresentable {
+struct SingleImagePicker: View {
+    let onSelection: @MainActor (URL?) -> Void
+
+    var body: some View {
+        if SkydownPlatform.isDesktop {
+            DesktopSingleImagePicker(onSelection: onSelection)
+        } else {
+            LegacySingleImagePicker(onSelection: onSelection)
+        }
+    }
+}
+
+private struct LegacySingleImagePicker: UIViewControllerRepresentable {
     let onSelection: @MainActor (URL?) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -47,5 +60,29 @@ struct SingleImagePicker: UIViewControllerRepresentable {
                 }
             }
         }
+    }
+}
+
+private struct DesktopSingleImagePicker: View {
+    let onSelection: @MainActor (URL?) -> Void
+    @State private var isImporterPresented = false
+
+    var body: some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .onAppear {
+                guard !isImporterPresented else { return }
+                isImporterPresented = true
+            }
+            .fileImporter(
+                isPresented: $isImporterPresented,
+                allowedContentTypes: [.image],
+                allowsMultipleSelection: false
+            ) { result in
+                let selectedURL = try? result.get().first
+                Task { @MainActor in
+                    onSelection(selectedURL)
+                }
+            }
     }
 }

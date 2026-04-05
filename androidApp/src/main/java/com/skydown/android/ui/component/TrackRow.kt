@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
+import com.skydown.android.ui.screen.openExternalLink
 import com.skydown.shared.model.Track
 import com.skydown.android.ui.theme.SpotifyGreen
 
@@ -363,12 +364,18 @@ fun openTrackInSpotify(
             return
         } catch (_: ActivityNotFoundException) {
             // Fall through to the public web URL when the Spotify app is not installed.
+        } catch (_: SecurityException) {
+            // Fall through to the public web URL when launching the external app is blocked.
+        } catch (_: RuntimeException) {
+            // Fall through to the public web URL when the Spotify app is not installed.
         }
     }
 
     val externalUrl = externalUrl ?: return
-    context.startActivity(
-        Intent(Intent.ACTION_VIEW, Uri.parse(externalUrl)),
+    openExternalLink(
+        context = context,
+        url = externalUrl,
+        browserMissingMessage = "Spotify-Link konnte nicht geoeffnet werden.",
     )
 }
 

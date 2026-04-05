@@ -374,8 +374,10 @@ fun MusicScreen(
                             },
                             onConnect = {
                                 viewModel.clearSpotifyError()
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
+                                openExternalIntent(
+                                    context = context,
+                                    intent = Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
+                                    missingMessage = "Spotify konnte nicht gestartet werden.",
                                 )
                             },
                             onDisconnect = {

@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseFunctions
 
 protocol AdminUserManagementServicing {
     func observeUsers(_ onChange: @escaping @MainActor (Result<[User], Error>) -> Void) -> () -> Void
@@ -8,10 +9,15 @@ protocol AdminUserManagementServicing {
 
 final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
     private let firestore: Firestore
+    private let functions: Functions
     private let collectionName = "users"
 
-    init(firestore: Firestore = Firestore.firestore()) {
+    init(
+        firestore: Firestore = Firestore.firestore(),
+        functions: Functions = Functions.functions(region: "us-central1")
+    ) {
         self.firestore = firestore
+        self.functions = functions
     }
 
     func observeUsers(_ onChange: @escaping @MainActor (Result<[User], Error>) -> Void) -> () -> Void {
@@ -45,6 +51,14 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
 
         let resolvedRole = user.resolvedRole
         let resolvedQuotaPlan = user.resolvedQuotaPlan
+
+        _ = try await functions
+            .httpsCallable("setUserRole")
+            .call([
+                "uid": userID,
+                "role": resolvedRole.rawValue
+            ])
+
         let payload: [String: Any] = [
             "email": user.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             "registrationDateEpochMillis": user.registrationDateEpochMillis,

@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.functions.FirebaseFunctions
 import com.skydown.android.data.repository.toSharedUser
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
@@ -17,6 +18,7 @@ import kotlinx.coroutines.tasks.await
 
 class AdminUserManagementRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) {
     private val collectionName = "users"
 
@@ -42,6 +44,16 @@ class AdminUserManagementRepository(
                 ?: error("Dieses Konto hat keine gueltige Benutzer-ID.")
             val resolvedRole = user.resolvedRole
             val resolvedQuotaPlan = user.resolvedQuotaPlan
+
+            functions
+                .getHttpsCallable("setUserRole")
+                .call(
+                    mapOf(
+                        "uid" to userId,
+                        "role" to resolvedRole.rawValue,
+                    ),
+                )
+                .await()
 
             firestore.collection(collectionName).document(userId).set(
                 mapOf(

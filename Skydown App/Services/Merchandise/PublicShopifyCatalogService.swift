@@ -19,27 +19,25 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
 
     func fetchCatalog() async throws -> [MerchandiseItem] {
         let config = try await loadConfig()
-        let requestedHandle = config.collectionHandle?.lowercased()
+        let requestedHandles = config.collectionHandles.map { $0.lowercased() }
 
-        var products = try await fetchProducts(
+        let items = try await fetchItems(
             storeDomain: config.storeDomain,
             storefrontAccessToken: config.storefrontAccessToken,
-            collectionHandle: requestedHandle
+            collectionHandles: requestedHandles
         )
 
-        if products.isEmpty, requestedHandle != nil {
-            products = try await fetchProducts(
+        if items.isEmpty, requestedHandles.isEmpty == false {
+            return try await fetchItems(
                 storeDomain: config.storeDomain,
                 storefrontAccessToken: config.storefrontAccessToken,
-                collectionHandle: nil
+                collectionHandles: []
             )
         }
 
-        return products
-            .compactMap(mapToMerchandiseItem)
-            .sorted {
-                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-            }
+        return items.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
     }
 
     private func loadConfig() async throws -> ShopifyStorefrontCatalogConfig {
@@ -49,16 +47,50 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
         let storeDomain = normalizeStoreDomain(data["storeDomain"] as? String)
             ?? normalizeStoreDomain(storefrontURL)
             ?? "k5t1sc-ps.myshopify.com"
-        let collectionHandle = normalizeCollectionHandle(
-            data["collectionHandle"] as? String,
+        let collectionHandles = normalizeCollectionHandles(
+            rawValue: data["collectionHandles"],
+            legacyValue: data["collectionHandle"] as? String,
             fallbackURL: storefrontURL
         )
 
         return ShopifyStorefrontCatalogConfig(
             storeDomain: storeDomain,
             storefrontAccessToken: ((data["storefrontAccessToken"] as? String) ?? "").trimmed,
-            collectionHandle: collectionHandle
+            collectionHandles: collectionHandles
         )
+    }
+
+    private func fetchItems(
+        storeDomain: String,
+        storefrontAccessToken: String,
+        collectionHandles: [String]
+    ) async throws -> [MerchandiseItem] {
+        if collectionHandles.isEmpty {
+            return try await fetchProducts(
+                storeDomain: storeDomain,
+                storefrontAccessToken: storefrontAccessToken,
+                collectionHandle: nil
+            ).compactMap { mapToMerchandiseItem($0, fallbackCollectionHandle: nil) }
+        }
+
+        var mergedItems: [MerchandiseItem] = []
+        var seenProductIDs = Set<String>()
+
+        for handle in collectionHandles {
+            let products = try await fetchProducts(
+                storeDomain: storeDomain,
+                storefrontAccessToken: storefrontAccessToken,
+                collectionHandle: handle
+            )
+
+            for product in products where seenProductIDs.insert(product.id).inserted {
+                if let item = mapToMerchandiseItem(product, fallbackCollectionHandle: handle) {
+                    mergedItems.append(item)
+                }
+            }
+        }
+
+        return mergedItems
     }
 
     private func fetchProducts(
@@ -155,7 +187,10 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
         )
     }
 
-    private func mapToMerchandiseItem(_ product: ShopifyStorefrontProduct) -> MerchandiseItem? {
+    private func mapToMerchandiseItem(
+        _ product: ShopifyStorefrontProduct,
+        fallbackCollectionHandle: String?
+    ) -> MerchandiseItem? {
         let variants = product.variants.nodes.map { variant in
             MerchandiseVariant(
                 id: variant.id,
@@ -184,7 +219,11 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
         let firstVariant = variants.first
         let isAvailable = variants.contains { $0.availableForSale }
         let collabPartner = resolvedShopifyCollabPartner(for: product)
-        let category = resolvedShopifyCategory(for: product, collabPartner: collabPartner)
+        let category = resolvedShopifyCategory(
+            for: product,
+            collabPartner: collabPartner,
+            fallbackCollectionHandle: fallbackCollectionHandle
+        )
 
         return MerchandiseItem(
             id: "shopify_\(extractNumericId(from: product.id) ?? product.id)",
@@ -229,14 +268,28 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
 
     private func resolvedShopifyCategory(
         for product: ShopifyStorefrontProduct,
-        collabPartner: String?
+        collabPartner: String?,
+        fallbackCollectionHandle: String?
     ) -> String {
         taggedMetadataValue(
             in: product.tags,
             prefixes: ["category:", "collection:", "lane:"]
         ) ?? collabPartner
+        ?? prettifiedCollectionHandle(fallbackCollectionHandle)
         ?? curatedProductType(product.productType)
         ?? "Sky22 Essentials"
+    }
+
+    private func prettifiedCollectionHandle(_ handle: String?) -> String? {
+        guard let handle = handle?.trimmedNonEmpty else { return nil }
+        return handle
+            .split(separator: "-")
+            .map { segment in
+                let value = String(segment)
+                return value.prefix(1).uppercased() + value.dropFirst()
+            }
+            .joined(separator: " ")
+            .trimmedNonEmpty
     }
 
     private func taggedMetadataValue(
@@ -305,7 +358,7 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
         return "https://\(trimmed)"
     }
 
-    private func normalizeCollectionHandle(_ value: String?, fallbackURL: String?) -> String? {
+    private func normalizeCollectionHandle(_ value: String?) -> String? {
         if let direct = value?.trimmedNonEmpty {
             return direct
                 .replacingOccurrences(of: "/collections/", with: "")
@@ -315,11 +368,42 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
                 .trimmedNonEmpty
         }
 
+        return nil
+    }
+
+    private func normalizeCollectionHandles(
+        rawValue: Any?,
+        legacyValue: String?,
+        fallbackURL: String?
+    ) -> [String] {
+        let candidates: [String]
+
+        if let values = rawValue as? [String], values.isEmpty == false {
+            candidates = values
+        } else if let rawString = rawValue as? String, rawString.trimmedNonEmpty != nil {
+            candidates = rawString
+                .split(whereSeparator: \.isNewline)
+                .flatMap { $0.split(separator: ",") }
+                .map(String.init)
+        } else if let legacyValue, legacyValue.trimmedNonEmpty != nil {
+            candidates = legacyValue
+                .split(whereSeparator: \.isNewline)
+                .flatMap { $0.split(separator: ",") }
+                .map(String.init)
+        } else {
+            candidates = []
+        }
+
+        let normalized = candidates.compactMap(normalizeCollectionHandle)
+        if normalized.isEmpty == false {
+            return Array(NSOrderedSet(array: normalized)) as? [String] ?? normalized
+        }
+
         guard
             let fallbackURL,
             let url = URL(string: fallbackURL)
         else {
-            return nil
+            return []
         }
 
         let components = url.path
@@ -329,10 +413,10 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             let index = components.firstIndex(of: "collections"),
             components.indices.contains(index + 1)
         else {
-            return nil
+            return []
         }
 
-        return components[index + 1].trimmedNonEmpty
+        return [components[index + 1]].compactMap(normalizeCollectionHandle)
     }
 
     private func extractNumericId(from gid: String) -> String? {
@@ -407,7 +491,7 @@ query AppCollectionProducts($handle: String!, $cursor: String) {
 private struct ShopifyStorefrontCatalogConfig {
     let storeDomain: String
     let storefrontAccessToken: String
-    let collectionHandle: String?
+    let collectionHandles: [String]
 }
 
 private struct ShopifyStorefrontEnvelope: Decodable {

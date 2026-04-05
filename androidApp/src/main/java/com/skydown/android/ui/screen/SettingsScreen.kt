@@ -155,7 +155,8 @@ fun SettingsScreen(
     var invoiceSupportEmailDraft by rememberSaveable { mutableStateOf("") }
     var shopifyStoreDomainDraft by rememberSaveable { mutableStateOf("") }
     var shopifyStorefrontAccessTokenDraft by rememberSaveable { mutableStateOf("") }
-    var shopifyCollectionHandleDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyCollectionHandlesDraft by rememberSaveable { mutableStateOf("") }
+    var shopifyCollectionSearchDraft by rememberSaveable { mutableStateOf("") }
     var homeHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
     var homeHeaderEyebrowDraft by rememberSaveable { mutableStateOf("") }
     var homeHeaderTitleDraft by rememberSaveable { mutableStateOf("") }
@@ -247,7 +248,7 @@ fun SettingsScreen(
     LaunchedEffect(uiState.shopifyAdminSettings) {
         shopifyStoreDomainDraft = uiState.shopifyAdminSettings.storeDomain
         shopifyStorefrontAccessTokenDraft = uiState.shopifyAdminSettings.storefrontAccessToken
-        shopifyCollectionHandleDraft = uiState.shopifyAdminSettings.collectionHandle
+        shopifyCollectionHandlesDraft = uiState.shopifyAdminSettings.collectionHandlesDraft
     }
 
     LaunchedEffect(screenHeaderSettings) {
@@ -847,7 +848,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Shopify -> {
                 Text(
-                    text = "Fuer den Merch-Katalog pflegt der Owner hier die Store-Domain, den Storefront Access Token und optional einen Collection-Handle. Danach laedt der Shop direkt aus Shopify.",
+                    text = "Fuer den Merch-Katalog pflegt der Owner hier die Store-Domain, optional den Storefront Access Token und die aktivierten Collections. Danach laedt der Shop direkt aus Shopify.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -880,18 +881,157 @@ fun SettingsScreen(
                     singleLine = true,
                 )
                 OutlinedTextField(
-                    value = shopifyCollectionHandleDraft,
-                    onValueChange = { shopifyCollectionHandleDraft = it },
+                    value = shopifyCollectionHandlesDraft,
+                    onValueChange = { shopifyCollectionHandlesDraft = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Collection-Handle") },
-                    placeholder = { Text("z. B. spring-drop-2026") },
-                    singleLine = true,
+                    label = { Text("Collection-Handles") },
+                    placeholder = { Text("z. B. spring-drop-2026, hoodies, accessories") },
+                    singleLine = false,
                 )
 
+                OutlinedButton(
+                    onClick = { viewModel.refreshShopifyCollections(force = true) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    enabled = !uiState.isLoadingShopifyCollections,
+                ) {
+                    Text(
+                        if (uiState.isLoadingShopifyCollections) {
+                            "Collections werden geladen..."
+                        } else {
+                            "Collections aus Shopify laden"
+                        },
+                    )
+                }
+
+                if (uiState.availableShopifyCollections.isNotEmpty()) {
+                    Text(
+                        text = "Verfuegbare Collections",
+                        modifier = Modifier.padding(top = 12.dp),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+
+                    OutlinedTextField(
+                        value = shopifyCollectionSearchDraft,
+                        onValueChange = { shopifyCollectionSearchDraft = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        label = { Text("Collections suchen") },
+                        placeholder = { Text("Nach Titel oder Handle filtern") },
+                        singleLine = true,
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) {
+                        val selectedHandles = shopifyCollectionHandlesDraft
+                            .split('\n', ',')
+                            .map { it.trim() }
+                            .filter { it.isNotBlank() }
+                            .distinct()
+                        val collectionQuery = shopifyCollectionSearchDraft.trim().lowercase()
+                        val filteredCollections = if (collectionQuery.isBlank()) {
+                            uiState.availableShopifyCollections
+                        } else {
+                            uiState.availableShopifyCollections.filter { collection ->
+                                collection.handle.lowercase().contains(collectionQuery) ||
+                                    collection.displayTitle.lowercase().contains(collectionQuery)
+                            }
+                        }
+
+                        if (selectedHandles.isNotEmpty()) {
+                            Text(
+                                text = "${selectedHandles.size} ausgewaehlt",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                            )
+                        }
+
+                        filteredCollections.forEach { collection ->
+                            val isSelected = selectedHandles.contains(collection.handle)
+                            OutlinedButton(
+                                onClick = {
+                                    val updatedHandles = selectedHandles.toMutableList().apply {
+                                        if (contains(collection.handle)) {
+                                            remove(collection.handle)
+                                        } else {
+                                            add(collection.handle)
+                                        }
+                                    }
+                                    shopifyCollectionHandlesDraft = updatedHandles.joinToString(", ")
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surface
+                                    },
+                                ),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
+                                        Text(
+                                            text = collection.displayTitle,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        Text(
+                                            text = collection.handle,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                                        )
+                                    }
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        collection.productCount?.let { count ->
+                                            Text(
+                                                text = "$count",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                                            )
+                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = if (isSelected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (uiState.shopifyCollectionsErrorMessage != null) {
+                    Text(
+                        text = "Collections konnten nicht geladen werden: ${uiState.shopifyCollectionsErrorMessage}",
+                        modifier = Modifier.padding(top = 10.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                }
+
                 Text(
-                    text = "Den Collection-Handle kannst du leer lassen, dann nimmt die App den ganzen veroeffentlichten Store.",
+                    text = "Mehrere Collections kannst du oben antippen oder hier manuell per Komma oder Zeilenumbruch pflegen. Leer bedeutet: gesamter veroeffentlichter Store.",
                     modifier = Modifier.padding(top = 10.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -912,7 +1052,10 @@ fun SettingsScreen(
                             uiState.shopifyAdminSettings.copy(
                                 storeDomain = shopifyStoreDomainDraft.trim(),
                                 storefrontAccessToken = shopifyStorefrontAccessTokenDraft.trim(),
-                                collectionHandle = shopifyCollectionHandleDraft.trim(),
+                                collectionHandles = shopifyCollectionHandlesDraft
+                                    .split('\n', ',')
+                                    .map { it.trim() }
+                                    .filter { it.isNotBlank() },
                             ),
                         )
                     },

@@ -15,6 +15,7 @@ struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
+    @Environment(\.openURL) private var openURL
 
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @ObservedObject private var adminUserManagementStore = AdminUserManagementStore.shared
@@ -64,7 +65,8 @@ struct SettingsView: View {
     @State private var invoiceSupportEmailDraft = ""
     @State private var shopifyStoreDomainDraft = ""
     @State private var shopifyStorefrontAccessTokenDraft = ""
-    @State private var shopifyCollectionHandleDraft = ""
+    @State private var shopifyCollectionHandlesDraft = ""
+    @State private var shopifyCollectionSearchDraft = ""
     @State private var homeHeaderImageURLDraft = ""
     @State private var homeHeaderEyebrowDraft = ""
     @State private var homeHeaderTitleDraft = ""
@@ -117,6 +119,10 @@ struct SettingsView: View {
         return "\(version) (\(build))"
     }
 
+    private var canPresentInAppMailComposer: Bool {
+        SkydownPlatform.supportsInAppMailComposer && MFMailComposeViewController.canSendMail()
+    }
+
     private var shopifyCatalogURL: URL? {
         let normalizedDomain = shopifyAdminSettingsStore.settings.storeDomain
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -125,8 +131,8 @@ struct SettingsView: View {
             .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard !normalizedDomain.isEmpty else { return nil }
 
-        let handle = shopifyAdminSettingsStore.settings.collectionHandle
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let handle = shopifyAdminSettingsStore.settings.primaryCollectionHandle?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let path = handle.isEmpty ? "" : "/collections/\(handle)"
         return URL(string: "https://\(normalizedDomain)\(path)")
     }
@@ -320,13 +326,17 @@ struct SettingsView: View {
 
                             Button {
                                 #if targetEnvironment(simulator)
-                                if MFMailComposeViewController.canSendMail() {
+                                if canPresentInAppMailComposer {
                                     presentSheet(.mailComposer)
                                 } else {
                                     showToastMessage("Mail kann im Simulator nicht gesendet werden", style: .error)
                                 }
                                 #else
-                                showingMailOptions = true
+                                if SkydownPlatform.isDesktop {
+                                    openMailAppFallback()
+                                } else {
+                                    showingMailOptions = true
+                                }
                                 #endif
                             } label: {
                                 Label("Support-Anfrage senden", systemImage: "envelope.fill")
@@ -377,7 +387,7 @@ struct SettingsView: View {
             titleVisibility: .visible
         ) {
             Button("In-App senden") {
-                if MFMailComposeViewController.canSendMail() {
+                if canPresentInAppMailComposer {
                     presentSheet(.mailComposer)
                 } else {
                     showToastMessage("Mail kann auf diesem Geraet nicht gesendet werden", style: .error)
@@ -428,6 +438,10 @@ struct SettingsView: View {
             syncScreenHeaderDrafts(with: screenHeaderSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
+        }
+        .task(id: authManager.userSession?.isPlatformOwner == true) {
+            guard authManager.userSession?.isPlatformOwner == true else { return }
+            await shopifyAdminSettingsStore.refreshAvailableCollections()
         }
         .onChange(of: isOwnerUser) { _, isOwner in
             guard !isOwner else {
@@ -881,7 +895,7 @@ struct SettingsView: View {
 
             case .shopify:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Fuer den Merch-Katalog braucht die App nur die Store-Domain, deinen Storefront Access Token und optional einen Collection-Handle. Danach laedt der Shop direkt aus Shopify.")
+                    Text("Fuer den Merch-Katalog braucht die App die Store-Domain, optional einen Storefront Access Token und deine aktivierten Collections. Danach laedt der Shop direkt aus Shopify.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -901,13 +915,79 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
-                        title: "Collection-Handle",
-                        text: $shopifyCollectionHandleDraft,
+                        title: "Collection-Handles",
+                        text: $shopifyCollectionHandlesDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. spring-drop-2026"
+                        placeholder: "z. B. spring-drop-2026, hoodies, accessories"
                     )
 
-                    Text("Den Collection-Handle kannst du leer lassen, dann nimmt die App den ganzen veroeffentlichten Store.")
+                    HStack(spacing: 10) {
+                        Button {
+                            Task {
+                                await shopifyAdminSettingsStore.refreshAvailableCollections(force: true)
+                                if let message = shopifyAdminSettingsStore.collectionsErrorMessage {
+                                    showToastMessage("Shopify-Collections konnten nicht geladen werden: \(message)", style: .error)
+                                }
+                            }
+                        } label: {
+                            Label(
+                                shopifyAdminSettingsStore.isLoadingCollections ? "Collections laden..." : "Collections abrufen",
+                                systemImage: "arrow.clockwise"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(shopifyAdminSettingsStore.isLoadingCollections)
+
+                        if shopifyAdminSettingsStore.availableCollections.isEmpty == false {
+                            SettingsBadge(
+                                text: "\(shopifyAdminSettingsStore.availableCollections.count) gefunden",
+                                colorScheme: effectiveColorScheme
+                            )
+                        }
+                    }
+
+                    if shopifyAdminSettingsStore.availableCollections.isEmpty == false {
+                        Text("Verfuegbare Collections")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                        SettingsInputField(
+                            title: "Collections suchen",
+                            text: $shopifyCollectionSearchDraft,
+                            colorScheme: effectiveColorScheme,
+                            placeholder: "Nach Titel oder Handle filtern"
+                        )
+
+                        if selectedShopifyCollectionHandles.isEmpty == false {
+                            SettingsBadge(
+                                text: "\(selectedShopifyCollectionHandles.count) ausgewaehlt",
+                                colorScheme: effectiveColorScheme
+                            )
+                        }
+
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 190), spacing: 10)],
+                            alignment: .leading,
+                            spacing: 10
+                        ) {
+                            ForEach(filteredShopifyCollectionOptions) { collection in
+                                ShopifyCollectionToggleCard(
+                                    collection: collection,
+                                    isSelected: selectedShopifyCollectionHandles.contains(collection.handle),
+                                    colorScheme: effectiveColorScheme
+                                ) {
+                                    toggleShopifyCollectionHandle(collection.handle)
+                                }
+                            }
+                        }
+                    } else if let message = shopifyAdminSettingsStore.collectionsErrorMessage {
+                        Text("Collections konnten nicht geladen werden: \(message)")
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    }
+
+                    Text("Mehrere Collections kannst du oben antippen oder hier manuell per Komma oder Zeilenumbruch pflegen. Leer bedeutet: gesamter veroeffentlichter Store.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -928,7 +1008,7 @@ struct SettingsView: View {
 
                         if let url = shopifyCatalogURL {
                             Button {
-                                UIApplication.shared.open(url)
+                                openURL(url)
                             } label: {
                                 Label("Link oeffnen", systemImage: "arrow.up.right.square")
                                     .frame(maxWidth: .infinity)
@@ -1372,12 +1452,16 @@ struct SettingsView: View {
         let encodedSubject = supportMailSubject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = supportMailBody.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
 
-        if let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)"),
-           UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
-            showToastMessage("Mail-App geoeffnet", style: .success)
-        } else {
+        guard let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)") else {
             showToastMessage("Mail-App konnte nicht geoeffnet werden", style: .error)
+            return
+        }
+
+        openURL(url) { accepted in
+            showToastMessage(
+                accepted ? "Mail-App geoeffnet" : "Mail-App konnte nicht geoeffnet werden",
+                style: accepted ? .success : .error
+            )
         }
     }
 
@@ -1498,7 +1582,7 @@ struct SettingsView: View {
     private func syncShopifyDrafts(with settings: ShopifyAdminSettings) {
         shopifyStoreDomainDraft = settings.storeDomain
         shopifyStorefrontAccessTokenDraft = settings.storefrontAccessToken
-        shopifyCollectionHandleDraft = settings.collectionHandle
+        shopifyCollectionHandlesDraft = settings.collectionHandlesDraft
     }
 
     private func syncScreenHeaderDrafts(with settings: ScreenHeaderSettings) {
@@ -1667,18 +1751,53 @@ struct SettingsView: View {
             var updated = shopifyAdminSettingsStore.settings
             updated.storeDomain = shopifyStoreDomainDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.storefrontAccessToken = shopifyStorefrontAccessTokenDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.collectionHandle = shopifyCollectionHandleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.collectionHandles = normalizedShopifyCollectionHandles(from: shopifyCollectionHandlesDraft)
 
             do {
                 try await shopifyAdminSettingsStore.save(updated)
+                await shopifyAdminSettingsStore.refreshAvailableCollections(force: true)
                 showToastMessage(
-                    "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, deinen Storefront Token und optional die Collection.",
+                    "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, deinen Storefront Token und die ausgewaehlten Collections.",
                     style: .success
                 )
             } catch {
                 showToastMessage("Shopify-Einstellungen konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
+    }
+
+    private var selectedShopifyCollectionHandles: [String] {
+        normalizedShopifyCollectionHandles(from: shopifyCollectionHandlesDraft)
+    }
+
+    private var filteredShopifyCollectionOptions: [ShopifyCollectionOption] {
+        let query = shopifyCollectionSearchDraft.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard query.isEmpty == false else {
+            return shopifyAdminSettingsStore.availableCollections
+        }
+
+        return shopifyAdminSettingsStore.availableCollections.filter { collection in
+            collection.handle.lowercased().contains(query) ||
+                collection.displayTitle.lowercased().contains(query)
+        }
+    }
+
+    private func normalizedShopifyCollectionHandles(from rawValue: String) -> [String] {
+        Array(NSOrderedSet(array: rawValue
+            .split(whereSeparator: \.isNewline)
+            .flatMap { $0.split(separator: ",") }
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty })) as? [String] ?? []
+    }
+
+    private func toggleShopifyCollectionHandle(_ handle: String) {
+        var handles = selectedShopifyCollectionHandles
+        if let index = handles.firstIndex(of: handle) {
+            handles.remove(at: index)
+        } else {
+            handles.append(handle)
+        }
+        shopifyCollectionHandlesDraft = handles.joined(separator: ", ")
     }
 
     private func saveScreenHeaderSettings() {
@@ -2611,6 +2730,56 @@ private struct SettingsBadge: View {
             .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
             .foregroundColor(AppColors.accentMystic(for: colorScheme))
             .clipShape(Capsule())
+    }
+}
+
+private struct ShopifyCollectionToggleCard: View {
+    let collection: ShopifyCollectionOption
+    let isSelected: Bool
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme))
+
+                    Spacer(minLength: 8)
+
+                    if let productCount = collection.productCount {
+                        Text("\(productCount)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
+
+                Text(collection.displayTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+
+                Text(collection.handle)
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? AppColors.accent(for: colorScheme).opacity(0.18) : AppColors.secondaryBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        isSelected ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme).opacity(0.18),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

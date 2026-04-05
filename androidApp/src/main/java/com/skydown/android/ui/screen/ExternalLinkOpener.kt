@@ -39,6 +39,32 @@ fun openExternalLink(
     }
 }
 
+fun openExternalUri(
+    context: Context,
+    uri: Uri,
+    missingMessage: String = "Kein passender Handler gefunden.",
+) {
+    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+        addCategory(Intent.CATEGORY_BROWSABLE)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    if (!tryStartActivity(context, intent)) {
+        Toast.makeText(context, missingMessage, Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun openExternalIntent(
+    context: Context,
+    intent: Intent,
+    missingMessage: String = "Aktion konnte nicht geoeffnet werden.",
+) {
+    val safeIntent = intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    if (!tryStartActivity(context, safeIntent)) {
+        Toast.makeText(context, missingMessage, Toast.LENGTH_SHORT).show()
+    }
+}
+
 fun openEmailDraft(
     context: Context,
     recipients: List<String>,
@@ -95,6 +121,10 @@ private fun tryStartActivity(
         context.startActivity(intent)
         true
     } catch (_: ActivityNotFoundException) {
+        false
+    } catch (_: SecurityException) {
+        false
+    } catch (_: RuntimeException) {
         false
     }
 }

@@ -636,6 +636,28 @@ function normalizeCollectionHandle(value, fallbackURL = null) {
   }
 }
 
+function normalizeCollectionHandles(rawValue, fallbackURL = null) {
+  let candidates = [];
+
+  if (Array.isArray(rawValue)) {
+    candidates = rawValue.filter((value) => typeof value === "string");
+  } else if (typeof rawValue === "string") {
+    candidates = rawValue.split(/[\n,]/g);
+  }
+
+  const normalized = [...new Set(
+      candidates
+          .map((value) => normalizeCollectionHandle(value))
+          .filter(Boolean),
+  )];
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  const fallbackHandle = normalizeCollectionHandle(null, fallbackURL);
+  return fallbackHandle ? [fallbackHandle] : [];
+}
+
 function normalizeAutomationWebhookPath(value) {
   const trimmed = nonEmptyString(value);
   if (!trimmed) {
@@ -1028,15 +1050,16 @@ async function loadShopifyAdminConfig() {
   const data = snapshot.data() || {};
   const configuredStorefrontURL = normalizeUrlString(data.storefrontURL);
   const storeDomain = getShopifyDomain(data.storeDomain || configuredStorefrontURL);
-  const collectionHandle = normalizeCollectionHandle(
-      data.collectionHandle,
+  const collectionHandles = normalizeCollectionHandles(
+      data.collectionHandles ?? data.collectionHandle,
       configuredStorefrontURL,
-  ) || "";
+  );
 
   return {
     storeDomain,
     storefrontAccessToken: nonEmptyString(data.storefrontAccessToken) || "",
-    collectionHandle,
+    collectionHandles,
+    collectionHandle: collectionHandles[0] || "",
   };
 }
 
@@ -1294,6 +1317,36 @@ async function shopifyPublicProductsRequest({storeDomain, collectionHandle = nul
   return Array.isArray(payload?.products) ? payload.products : [];
 }
 
+async function shopifyPublicCollectionsRequest({storeDomain, page = 1}) {
+  const url = new URL(`https://${getShopifyDomain(storeDomain)}/collections.json`);
+  url.searchParams.set("limit", "250");
+  url.searchParams.set("page", `${Math.max(1, Number(page) || 1)}`);
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    logger.error("Shopify public collections request failed.", {
+      url: url.toString(),
+      status: response.status,
+      statusText: response.statusText,
+      body: payload,
+    });
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Der Shopify-Store ist nicht oeffentlich lesbar. Hinterlege einen Storefront Access Token in den Shopify-Einstellungen der App oder oeffne den Collection-Feed.");
+    }
+    throw new Error(`Shopify Collections Fehler (${response.status} ${response.statusText}).`);
+  }
+
+  return Array.isArray(payload?.collections) ? payload.collections : [];
+}
+
 function extractNumericId(gid) {
   if (typeof gid !== "string") {
     return "";
@@ -1348,6 +1401,186 @@ function uniqueStrings(values) {
   });
 }
 
+function uniqueCollectionsByHandle(collections) {
+  const seenHandles = new Set();
+  const normalizedCollections = [];
+
+  for (const collection of Array.isArray(collections) ? collections : []) {
+    const handle = nonEmptyString(collection?.handle);
+    if (!handle) {
+      continue;
+    }
+
+    const normalizedHandle = handle.toLowerCase();
+    if (seenHandles.has(normalizedHandle)) {
+      continue;
+    }
+
+    seenHandles.add(normalizedHandle);
+    normalizedCollections.push({
+      handle,
+      title: nonEmptyString(collection?.title) || handle,
+      productCount: Number.isFinite(Number(collection?.productCount)) ? Number(collection.productCount) : null,
+    });
+  }
+
+  return normalizedCollections.sort((left, right) =>
+    `${left.title || left.handle}`.localeCompare(`${right.title || right.handle}`, "de", {sensitivity: "base"}),
+  );
+}
+
+async function fetchShopifyCollectionsViaAdminApi(token, config) {
+  const query = `
+    query FetchCollections($cursor: String) {
+      collections(first: 100, after: $cursor, sortKey: TITLE) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          handle
+          title
+          productsCount {
+            count
+          }
+        }
+      }
+    }
+  `;
+
+  const collections = [];
+  let hasNextPage = true;
+  let cursor = null;
+
+  while (hasNextPage) {
+    const data = await shopifyGraphqlRequest({
+      query,
+      variables: {cursor},
+      token,
+      storeDomain: config?.storeDomain,
+    });
+
+    const connection = data?.collections;
+    collections.push(
+        ...((connection?.nodes || []).map((collection) => ({
+          handle: nonEmptyString(collection?.handle) || "",
+          title: nonEmptyString(collection?.title) || nonEmptyString(collection?.handle) || "",
+          productCount: Number(collection?.productsCount?.count),
+        }))),
+    );
+    hasNextPage = Boolean(connection?.pageInfo?.hasNextPage);
+    cursor = connection?.pageInfo?.endCursor || null;
+  }
+
+  return uniqueCollectionsByHandle(collections);
+}
+
+const SHOPIFY_STOREFRONT_COLLECTIONS_QUERY = `
+  query FetchCollections($cursor: String) {
+    collections(first: 100, after: $cursor, sortKey: UPDATED_AT) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        handle
+        title
+      }
+    }
+  }
+`;
+
+async function fetchShopifyCollectionsViaStorefrontApi(config) {
+  const collections = [];
+  let hasNextPage = true;
+  let cursor = null;
+
+  while (hasNextPage) {
+    const data = await shopifyStorefrontGraphqlRequest({
+      query: SHOPIFY_STOREFRONT_COLLECTIONS_QUERY,
+      variables: {cursor},
+      token: nonEmptyString(config?.storefrontAccessToken) || "",
+      storeDomain: config?.storeDomain,
+    });
+
+    const connection = data?.collections;
+    collections.push(
+        ...((connection?.nodes || []).map((collection) => ({
+          handle: nonEmptyString(collection?.handle) || "",
+          title: nonEmptyString(collection?.title) || nonEmptyString(collection?.handle) || "",
+          productCount: null,
+        }))),
+    );
+    hasNextPage = Boolean(connection?.pageInfo?.hasNextPage);
+    cursor = connection?.pageInfo?.endCursor || null;
+  }
+
+  return uniqueCollectionsByHandle(collections);
+}
+
+async function fetchShopifyCollectionsViaPublicStorefront(config) {
+  const collections = [];
+  let page = 1;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const pageCollections = await shopifyPublicCollectionsRequest({
+      storeDomain: config?.storeDomain,
+      page,
+    });
+
+    collections.push(
+        ...pageCollections.map((collection) => ({
+          handle: nonEmptyString(collection?.handle) || "",
+          title: nonEmptyString(collection?.title) || nonEmptyString(collection?.handle) || "",
+          productCount: Number.isFinite(Number(collection?.products_count)) ? Number(collection.products_count) : null,
+        })),
+    );
+
+    if (pageCollections.length < 250) {
+      hasNextPage = false;
+    } else {
+      page += 1;
+    }
+  }
+
+  return uniqueCollectionsByHandle(collections);
+}
+
+async function fetchAvailableShopifyCollections(config) {
+  const adminToken = await loadShopifyAdminToken();
+  if (adminToken) {
+    try {
+      const collections = await fetchShopifyCollectionsViaAdminApi(adminToken, config);
+      if (collections.length > 0) {
+        return collections;
+      }
+    } catch (error) {
+      logger.warn("Shopify Admin API collection lookup failed.", {
+        storeDomain: config?.storeDomain,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  const storefrontToken = nonEmptyString(config?.storefrontAccessToken) || "";
+  if (storefrontToken) {
+    try {
+      const collections = await fetchShopifyCollectionsViaStorefrontApi(config);
+      if (collections.length > 0) {
+        return collections;
+      }
+    } catch (error) {
+      logger.warn("Shopify Storefront API collection lookup failed.", {
+        storeDomain: config?.storeDomain,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return fetchShopifyCollectionsViaPublicStorefront(config);
+}
+
 function buildSelectedOptionsFromPublicVariant(variant, productOptions) {
   const optionValues = [variant?.option1, variant?.option2, variant?.option3];
   return (Array.isArray(productOptions) ? productOptions : [])
@@ -1387,7 +1620,66 @@ function normalizeShopifyVariant(variant, currencyCode) {
   };
 }
 
-function normalizeShopifyProduct(product, currencyCode, existingData = {}) {
+function taggedMetadataValue(tags, prefixes) {
+  const normalizedTags = Array.isArray(tags) ? tags : [];
+  for (const tag of normalizedTags) {
+    const trimmedTag = `${tag || ""}`.trim();
+    const loweredTag = trimmedTag.toLowerCase();
+    for (const prefix of prefixes) {
+      const normalizedPrefix = prefix.toLowerCase();
+      if (!loweredTag.startsWith(normalizedPrefix)) {
+        continue;
+      }
+      const value = trimmedTag.slice(prefix.length).trim();
+      if (value) {
+        return value;
+      }
+    }
+  }
+  return null;
+}
+
+function curatedProductType(productType) {
+  const trimmedType = nonEmptyString(productType);
+  if (!trimmedType) {
+    return null;
+  }
+
+  const genericTypes = new Set(["apparel", "clothing", "merch", "merchandise", "accessories", "accessory"]);
+  return genericTypes.has(trimmedType.toLowerCase()) ? null : trimmedType;
+}
+
+function resolveConfiguredCollectionLabel(product, configuredCollectionHandles = []) {
+  const normalizedConfigured = configuredCollectionHandles
+      .map((handle) => `${handle || ""}`.trim().toLowerCase())
+      .filter(Boolean);
+  const productCollections = (product?.collections?.nodes || [])
+      .map((collection) => nonEmptyString(collection?.handle))
+      .filter(Boolean);
+
+  const matchedHandle = productCollections.find((handle) => normalizedConfigured.includes(handle.toLowerCase()))
+      || productCollections[0]
+      || nonEmptyString(configuredCollectionHandles[0]);
+
+  return matchedHandle ?
+    matchedHandle
+        .split("-")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ") :
+    null;
+}
+
+function resolveShopifyProductCategory(product, configuredCollectionHandles = [], existingData = {}) {
+  const existingCategory = nonEmptyString(existingData.category);
+  return taggedMetadataValue(product?.tags, ["category:", "collection:", "lane:"]) ||
+    resolveConfiguredCollectionLabel(product, configuredCollectionHandles) ||
+    (existingCategory && existingCategory !== "Sky22 Essentials" ? existingCategory : null) ||
+    curatedProductType(product?.productType) ||
+    "Sky22 Essentials";
+}
+
+function normalizeShopifyProduct(product, currencyCode, existingData = {}, configuredCollectionHandles = []) {
   const images = uniqueStrings([
     product?.featuredImage?.url,
     ...(product?.images?.nodes || []).map((image) => image?.url),
@@ -1395,6 +1687,7 @@ function normalizeShopifyProduct(product, currencyCode, existingData = {}) {
   const variants = (product?.variants?.nodes || []).map((variant) => normalizeShopifyVariant(variant, currencyCode));
   const firstVariant = variants[0];
   const availableForSale = variants.some((variant) => variant.availableForSale);
+  const category = resolveShopifyProductCategory(product, configuredCollectionHandles, existingData);
 
   return {
     name: product.title || "Unbenanntes Produkt",
@@ -1416,6 +1709,7 @@ function normalizeShopifyProduct(product, currencyCode, existingData = {}) {
     sortOrder: Number.isFinite(existingData.sortOrder) ? existingData.sortOrder : 0,
     customBadge: typeof existingData.customBadge === "string" ? existingData.customBadge : "",
     customImageOverride: typeof existingData.customImageOverride === "string" ? existingData.customImageOverride : "",
+    category,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 }
@@ -1533,19 +1827,22 @@ async function fetchAllShopifyProductsViaAdminApi(token, config) {
     cursor = connection?.pageInfo?.endCursor || null;
   }
 
-  if (config?.collectionHandle) {
-    const normalizedCollectionHandle = config.collectionHandle.toLowerCase();
+  const requestedCollectionHandles = Array.isArray(config?.collectionHandles) ?
+    config.collectionHandles.map((handle) => `${handle}`.trim().toLowerCase()).filter(Boolean) :
+    [];
+
+  if (requestedCollectionHandles.length > 0) {
     const filteredProducts = products.filter((product) => {
       const collections = product?.collections?.nodes || [];
       return collections.some((collection) =>
-        `${collection?.handle || ""}`.trim().toLowerCase() === normalizedCollectionHandle,
+        requestedCollectionHandles.includes(`${collection?.handle || ""}`.trim().toLowerCase()),
       );
     });
 
     if (filteredProducts.length === 0 && products.length > 0) {
       logger.warn("Shopify Admin API collection filter returned no products. Falling back to all products.", {
         storeDomain: config?.storeDomain,
-        collectionHandle: normalizedCollectionHandle,
+        collectionHandles: requestedCollectionHandles,
       });
       return {
         products,
@@ -1598,14 +1895,33 @@ async function fetchAllShopifyProductsViaStorefrontApi(config) {
     return products;
   };
 
-  const requestedCollectionHandle = nonEmptyString(config?.collectionHandle);
-  let products = await fetchConnection(requestedCollectionHandle);
-  let syncSource = requestedCollectionHandle ? "storefront_collection" : "storefront_api";
+  const requestedCollectionHandles = Array.isArray(config?.collectionHandles) ?
+    config.collectionHandles.map((handle) => nonEmptyString(handle)).filter(Boolean) :
+    [];
+  let products = [];
+  let syncSource = requestedCollectionHandles.length > 0 ? "storefront_collection" : "storefront_api";
 
-  if (requestedCollectionHandle && products.length === 0) {
+  if (requestedCollectionHandles.length > 0) {
+    const mergedProducts = [];
+    const seenProductIds = new Set();
+    for (const handle of requestedCollectionHandles) {
+      const collectionProducts = await fetchConnection(handle);
+      for (const product of collectionProducts) {
+        if (!seenProductIds.has(product.id)) {
+          seenProductIds.add(product.id);
+          mergedProducts.push(product);
+        }
+      }
+    }
+    products = mergedProducts;
+  } else {
+    products = await fetchConnection(null);
+  }
+
+  if (requestedCollectionHandles.length > 0 && products.length === 0) {
     logger.warn("Shopify Storefront collection returned no products. Falling back to all storefront products.", {
       storeDomain: config?.storeDomain,
-      collectionHandle: requestedCollectionHandle,
+      collectionHandles: requestedCollectionHandles,
     });
     products = await fetchConnection(null);
     syncSource = "storefront_api_fallback";
@@ -1647,34 +1963,51 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
     return products;
   };
 
-  const requestedCollectionHandle = nonEmptyString(config?.collectionHandle);
+  const requestedCollectionHandles = Array.isArray(config?.collectionHandles) ?
+    config.collectionHandles.map((handle) => nonEmptyString(handle)).filter(Boolean) :
+    [];
   let rawProducts = [];
   let syncSource = "public_storefront";
   let usedCollectionFallback = false;
 
   try {
-    rawProducts = await fetchAllPages(requestedCollectionHandle);
-    if (requestedCollectionHandle) {
+    if (requestedCollectionHandles.length > 0) {
+      const mergedProducts = [];
+      const seenProductIds = new Set();
+      for (const handle of requestedCollectionHandles) {
+        const collectionProducts = await fetchAllPages(handle);
+        for (const product of collectionProducts) {
+          const productId = `${product?.id || ""}`.trim();
+          if (!productId || seenProductIds.has(productId)) {
+            continue;
+          }
+          seenProductIds.add(productId);
+          mergedProducts.push(product);
+        }
+      }
+      rawProducts = mergedProducts;
       syncSource = "public_collection";
+    } else {
+      rawProducts = await fetchAllPages(null);
     }
   } catch (error) {
-    if (!requestedCollectionHandle) {
+    if (requestedCollectionHandles.length === 0) {
       throw error;
     }
 
     logger.warn("Shopify public collection sync failed. Falling back to all public products.", {
       storeDomain: config?.storeDomain,
-      collectionHandle: requestedCollectionHandle,
+      collectionHandles: requestedCollectionHandles,
       error: error instanceof Error ? error.message : "unknown_error",
     });
     rawProducts = await fetchAllPages(null);
     usedCollectionFallback = true;
   }
 
-  if (requestedCollectionHandle && rawProducts.length === 0) {
+  if (requestedCollectionHandles.length > 0 && rawProducts.length === 0) {
     logger.warn("Shopify public collection sync returned no products. Falling back to all public products.", {
       storeDomain: config?.storeDomain,
-      collectionHandle: requestedCollectionHandle,
+      collectionHandles: requestedCollectionHandles,
     });
     rawProducts = await fetchAllPages(null);
     usedCollectionFallback = true;
@@ -1697,7 +2030,7 @@ async function fetchAllShopifyProducts(token, config) {
   } catch (error) {
     logger.warn("Shopify Storefront API sync failed.", {
       storeDomain: config?.storeDomain,
-      collectionHandle: config?.collectionHandle || null,
+      collectionHandles: config?.collectionHandles || [],
       hasStorefrontToken: Boolean(nonEmptyString(config?.storefrontAccessToken)),
       error: error instanceof Error ? error.message : "unknown_error",
     });
@@ -1713,7 +2046,7 @@ async function fetchAllShopifyProducts(token, config) {
     } catch (error) {
       logger.warn("Shopify Admin API sync failed. Falling back to public storefront sync.", {
         storeDomain: config?.storeDomain,
-        collectionHandle: config?.collectionHandle || null,
+        collectionHandles: config?.collectionHandles || [],
         error: error instanceof Error ? error.message : "unknown_error",
       });
     }
@@ -1728,7 +2061,7 @@ async function runShopifyMerchSync() {
 
   logger.info("Shopify merch sync started.", {
     storeDomain: config.storeDomain,
-    collectionHandle: config.collectionHandle || null,
+    collectionHandles: config.collectionHandles || [],
     hasStorefrontToken: Boolean(config.storefrontAccessToken),
   });
 
@@ -1760,7 +2093,12 @@ async function runShopifyMerchSync() {
     const documentRef = existingDocument
       ? existingDocument.ref
       : merchandiseCollection.doc(buildShopifyMerchDocumentId(product.id));
-    const payload = normalizeShopifyProduct(product, currencyCode, existingDocument?.data() || {});
+    const payload = normalizeShopifyProduct(
+        product,
+        currencyCode,
+        existingDocument?.data() || {},
+        config.collectionHandles || [],
+    );
 
     batch.set(documentRef, payload, {merge: true});
     if (existingDocument) {
@@ -1795,7 +2133,7 @@ async function runShopifyMerchSync() {
     deactivatedCount,
     syncSource,
     storeDomain: config.storeDomain,
-    collectionHandle: config.collectionHandle || null,
+    collectionHandles: config.collectionHandles || [],
   });
 
   return {
@@ -1805,6 +2143,7 @@ async function runShopifyMerchSync() {
     deactivatedCount,
     currencyCode,
     storeDomain: config.storeDomain,
+    collectionHandles: config.collectionHandles || [],
     collectionHandle: config.collectionHandle,
     syncSource,
   };
@@ -2896,6 +3235,23 @@ exports.syncShopifyMerch = onCall({
   await assertCallableSecurity(request, "syncShopifyMerch");
   await assertOwner(request.auth);
   return runShopifyMerchSync();
+});
+
+exports.listShopifyCollections = onCall({
+  region: "us-central1",
+  timeoutSeconds: 120,
+}, async (request) => {
+  await assertCallableSecurity(request, "listShopifyCollections");
+  await assertOwner(request.auth);
+
+  const config = await loadShopifyAdminConfig();
+  const collections = await fetchAvailableShopifyCollections(config);
+
+  return {
+    storeDomain: config.storeDomain,
+    selectedCollectionHandles: config.collectionHandles || [],
+    collections,
+  };
 });
 
 exports.syncCurrentUserClaims = onCall({

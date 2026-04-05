@@ -76,6 +76,9 @@ fun LoginScreen(
         } catch (exception: ApiException) {
             googleClient.signOut()
             viewModel.onGoogleSignInCancelled(exception.toReadableGoogleMessage())
+        } catch (_: Exception) {
+            googleClient.signOut()
+            viewModel.onGoogleSignInCancelled("Google-Anmeldung konnte nicht abgeschlossen werden.")
         }
     }
 

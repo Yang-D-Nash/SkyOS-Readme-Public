@@ -82,6 +82,45 @@ struct MainTabView: View {
     }
 
     var body: some View {
+        Group {
+            if SkydownPlatform.isDesktop {
+                rootTabView
+                    .inspector(isPresented: desktopAccessoryPresented) {
+                        if let activeModal {
+                            modalContent(for: activeModal)
+                                .inspectorColumnWidth(min: 320, ideal: 420, max: 520)
+                        }
+                    }
+            } else {
+                rootTabView
+                    .sheet(item: $activeModal) { modal in
+                        modalContent(for: modal)
+                    }
+            }
+        }
+        .accentColor(AppColors.accent(for: currentScheme))
+        .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
+        .preferredColorScheme(preferredScheme)
+        .onChange(of: hasAIAccess) { _, allowed in
+            if !allowed {
+                showsWorkflowWorkspace = false
+            }
+        }
+        .onChange(of: selectedTab) { _, newTab in
+            if newTab != .tools {
+                showsWorkflowWorkspace = false
+            }
+        }
+        .onChange(of: activeModal) { _, modal in
+            guard modal == nil, let queuedModal else { return }
+            self.queuedModal = nil
+            DispatchQueue.main.async {
+                activeModal = queuedModal
+            }
+        }
+    }
+
+    private var rootTabView: some View {
         TabView(selection: $selectedTab) {
             Group {
                 DeferredView {
@@ -148,40 +187,33 @@ struct MainTabView: View {
             }
             .skydownTabBarChrome(colorScheme: currentScheme)
         }
-        .accentColor(AppColors.accent(for: currentScheme))
-        .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
-        .preferredColorScheme(preferredScheme)
-        .sheet(item: $activeModal) { modal in
-            switch modal {
-            case .settings:
-                DeferredSettingsPresentation(colorScheme: $colorScheme)
-            case .profile:
-                ProfileView(authManager: services.authManager)
-            case .cart:
-                CartView(
-                    onOpenProfile: { presentModal(.profile) },
-                    onOpenSettings: { presentModal(.settings) }
-                )
-            case .login:
-                LoginView()
+    }
+
+    private var desktopAccessoryPresented: Binding<Bool> {
+        Binding(
+            get: { activeModal != nil },
+            set: { isPresented in
+                if !isPresented {
+                    activeModal = nil
+                }
             }
-        }
-        .onChange(of: hasAIAccess) { _, allowed in
-            if !allowed {
-                showsWorkflowWorkspace = false
-            }
-        }
-        .onChange(of: selectedTab) { _, newTab in
-            if newTab != .tools {
-                showsWorkflowWorkspace = false
-            }
-        }
-        .onChange(of: activeModal) { _, modal in
-            guard modal == nil, let queuedModal else { return }
-            self.queuedModal = nil
-            DispatchQueue.main.async {
-                activeModal = queuedModal
-            }
+        )
+    }
+
+    @ViewBuilder
+    private func modalContent(for modal: MainTabModal) -> some View {
+        switch modal {
+        case .settings:
+            DeferredSettingsPresentation(colorScheme: $colorScheme)
+        case .profile:
+            ProfileView(authManager: services.authManager)
+        case .cart:
+            CartView(
+                onOpenProfile: { presentModal(.profile) },
+                onOpenSettings: { presentModal(.settings) }
+            )
+        case .login:
+            LoginView()
         }
     }
 

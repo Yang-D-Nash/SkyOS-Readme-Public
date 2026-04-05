@@ -73,6 +73,9 @@ fun RegistrationScreen(
         } catch (exception: ApiException) {
             googleClient.signOut()
             viewModel.onGoogleSignInCancelled(exception.toReadableGoogleMessage())
+        } catch (_: Exception) {
+            googleClient.signOut()
+            viewModel.onGoogleSignInCancelled("Google-Registrierung konnte nicht abgeschlossen werden.")
         }
     }
 

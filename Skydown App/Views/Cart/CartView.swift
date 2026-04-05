@@ -77,6 +77,10 @@ struct CartView: View {
         ["Stripe", "Klarna"].contains(selectedPaymentMethod)
     }
 
+    private var canPresentInAppMailComposer: Bool {
+        SkydownPlatform.supportsInAppMailComposer && MFMailComposeViewController.canSendMail()
+    }
+
     private var totalPrice: Double {
         cartVM.items.reduce(0.0) { partialResult, cartItem in
             partialResult + cartItem.effectiveUnitPrice * Double(cartItem.quantity)
@@ -581,16 +585,22 @@ struct CartView: View {
     }
 
     private func presentOrderMailDraft(_ draft: OrderMailDraft) {
-        if MFMailComposeViewController.canSendMail() {
+        if canPresentInAppMailComposer {
             presentSheet(.mail(draft))
             return
         }
 
         let encodedSubject = draft.subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = draft.body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)"),
-           UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
+        guard let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)") else {
+            cartVM.showUserToast("Mail-App konnte nicht vorbereitet werden.", style: .error)
+            return
+        }
+
+        openURL(url) { accepted in
+            if !accepted {
+                cartVM.showUserToast("Mail-App konnte nicht geoeffnet werden.", style: .error)
+            }
         }
     }
 

@@ -1,34 +1,68 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseFunctions
 
 struct ShopifyAdminSettings: Equatable {
     var storeDomain: String = "k5t1sc-ps.myshopify.com"
     var storefrontAccessToken: String = ""
-    var collectionHandle: String = ""
+    var collectionHandles: [String] = []
 
     static let `default` = ShopifyAdminSettings()
 
     var activeCollectionLabel: String {
-        collectionHandle.trimmedNonEmpty ?? "Alle Produkte"
+        switch collectionHandles.count {
+        case 0:
+            return "Alle Produkte"
+        case 1:
+            return collectionHandles[0]
+        default:
+            return "\(collectionHandles.count) Collections"
+        }
     }
 
     var hasCollectionFilter: Bool {
-        collectionHandle.trimmedNonEmpty != nil
+        collectionHandles.isEmpty == false
+    }
+
+    var primaryCollectionHandle: String? {
+        collectionHandles.first
+    }
+
+    var collectionHandlesDraft: String {
+        collectionHandles.joined(separator: ", ")
+    }
+}
+
+struct ShopifyCollectionOption: Equatable, Identifiable {
+    let handle: String
+    let title: String
+    let productCount: Int?
+
+    var id: String { handle }
+
+    var displayTitle: String {
+        title.trimmedNonEmpty ?? handle
     }
 }
 
 protocol ShopifyAdminSettingsServicing {
     func observeSettings(_ onChange: @escaping @MainActor (Result<ShopifyAdminSettings, Error>) -> Void) -> () -> Void
     func updateSettings(_ settings: ShopifyAdminSettings) async throws
+    func fetchAvailableCollections() async throws -> [ShopifyCollectionOption]
 }
 
 final class FirestoreShopifyAdminSettingsService: ShopifyAdminSettingsServicing {
     private let firestore: Firestore
+    private let functions: Functions
     private let collectionName = "appConfig"
     private let documentName = "shopifyMerch"
 
-    init(firestore: Firestore = Firestore.firestore()) {
+    init(
+        firestore: Firestore = Firestore.firestore(),
+        functions: Functions = Functions.functions(region: "us-central1")
+    ) {
         self.firestore = firestore
+        self.functions = functions
     }
 
     func observeSettings(_ onChange: @escaping @MainActor (Result<ShopifyAdminSettings, Error>) -> Void) -> () -> Void {
@@ -52,35 +86,54 @@ final class FirestoreShopifyAdminSettingsService: ShopifyAdminSettingsServicing 
         try await firestore.collection(collectionName).document(documentName).setData(Self.encode(settings), merge: true)
     }
 
+    func fetchAvailableCollections() async throws -> [ShopifyCollectionOption] {
+        let result = try await functions.httpsCallable("listShopifyCollections").call([:])
+        let data = result.data as? [String: Any]
+        let rawCollections = data?["collections"] as? [[String: Any]] ?? []
+
+        return rawCollections.compactMap { entry in
+            guard let handle = (entry["handle"] as? String)?.trimmedNonEmpty else {
+                return nil
+            }
+
+            let title = (entry["title"] as? String)?.trimmedNonEmpty ?? handle
+            let productCount = (entry["productCount"] as? NSNumber)?.intValue
+            return ShopifyCollectionOption(handle: handle, title: title, productCount: productCount)
+        }
+    }
+
     private static func decode(_ data: [String: Any]) -> ShopifyAdminSettings {
         let configuredStorefrontURL = normalizeURLString(data["storefrontURL"] as? String)
         let normalizedDomain = normalizeStoreDomain(data["storeDomain"] as? String)
             ?? normalizeStoreDomain(configuredStorefrontURL)
             ?? ShopifyAdminSettings.default.storeDomain
-        let normalizedCollectionHandle = normalizeCollectionHandle(
-            data["collectionHandle"] as? String,
+        let normalizedCollectionHandles = normalizeCollectionHandles(
+            rawValue: data["collectionHandles"],
+            legacyValue: data["collectionHandle"] as? String,
             fallbackURL: configuredStorefrontURL
-        ) ?? ""
+        )
 
         return ShopifyAdminSettings(
             storeDomain: normalizedDomain,
             storefrontAccessToken: (data["storefrontAccessToken"] as? String)?.trimmed ?? "",
-            collectionHandle: normalizedCollectionHandle
+            collectionHandles: normalizedCollectionHandles
         )
     }
 
     private static func encode(_ settings: ShopifyAdminSettings) -> [String: Any] {
         let normalizedDomain = normalizeStoreDomain(settings.storeDomain)
             ?? ShopifyAdminSettings.default.storeDomain
-        let normalizedCollectionHandle = normalizeCollectionHandle(
-            settings.collectionHandle,
+        let normalizedCollectionHandles = normalizeCollectionHandles(
+            rawValue: settings.collectionHandles,
+            legacyValue: nil,
             fallbackURL: nil
-        ) ?? ""
+        )
 
         return [
             "storeDomain": normalizedDomain,
             "storefrontAccessToken": settings.storefrontAccessToken.trimmed,
-            "collectionHandle": normalizedCollectionHandle,
+            "collectionHandles": normalizedCollectionHandles,
+            "collectionHandle": FieldValue.delete(),
             "storefrontURL": FieldValue.delete(),
             "collectionTitle": FieldValue.delete(),
             "updatedAt": FieldValue.serverTimestamp()
@@ -94,6 +147,9 @@ final class ShopifyAdminSettingsStore: ObservableObject {
 
     @Published private(set) var settings: ShopifyAdminSettings = .default
     @Published private(set) var lastErrorMessage: String?
+    @Published private(set) var availableCollections: [ShopifyCollectionOption] = []
+    @Published private(set) var isLoadingCollections = false
+    @Published private(set) var collectionsErrorMessage: String?
 
     private let service: ShopifyAdminSettingsServicing
     private var stopObserving: (() -> Void)?
@@ -105,6 +161,21 @@ final class ShopifyAdminSettingsStore: ObservableObject {
 
     func save(_ settings: ShopifyAdminSettings) async throws {
         try await service.updateSettings(settings)
+    }
+
+    func refreshAvailableCollections(force: Bool = false) async {
+        if isLoadingCollections { return }
+        if force == false && availableCollections.isEmpty == false { return }
+
+        isLoadingCollections = true
+        defer { isLoadingCollections = false }
+
+        do {
+            availableCollections = try await service.fetchAvailableCollections()
+            collectionsErrorMessage = nil
+        } catch {
+            collectionsErrorMessage = error.localizedDescription
+        }
     }
 
     private func startObserving() {
@@ -161,14 +232,43 @@ private func normalizeURLString(_ value: String?) -> String? {
     return nil
 }
 
-private func normalizeCollectionHandle(_ value: String?, fallbackURL: String?) -> String? {
-    if let direct = value?.trimmedNonEmpty {
-        return direct
-            .replacingOccurrences(of: "/collections/", with: "")
-            .split(separator: "/")
-            .first
-            .map(String.init)?
-            .trimmed
+private func normalizeCollectionHandle(_ value: String?) -> String? {
+    guard let direct = value?.trimmedNonEmpty else { return nil }
+
+    return direct
+        .replacingOccurrences(of: "/collections/", with: "")
+        .split(separator: "/")
+        .first
+        .map(String.init)?
+        .trimmedNonEmpty
+}
+
+private func normalizeCollectionHandles(
+    rawValue: Any?,
+    legacyValue: String?,
+    fallbackURL: String?
+) -> [String] {
+    let candidates: [String]
+
+    if let values = rawValue as? [String], values.isEmpty == false {
+        candidates = values
+    } else if let rawString = rawValue as? String, rawString.trimmedNonEmpty != nil {
+        candidates = rawString
+            .split(whereSeparator: \.isNewline)
+            .flatMap { $0.split(separator: ",") }
+            .map(String.init)
+    } else if let legacyValue, legacyValue.trimmedNonEmpty != nil {
+        candidates = legacyValue
+            .split(whereSeparator: \.isNewline)
+            .flatMap { $0.split(separator: ",") }
+            .map(String.init)
+    } else {
+        candidates = []
+    }
+
+    let normalized = candidates.compactMap(normalizeCollectionHandle)
+    if normalized.isEmpty == false {
+        return Array(NSOrderedSet(array: normalized)) as? [String] ?? normalized
     }
 
     guard
@@ -176,7 +276,7 @@ private func normalizeCollectionHandle(_ value: String?, fallbackURL: String?) -
         let url = URL(string: fallbackURL),
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
     else {
-        return nil
+        return []
     }
 
     let pathComponents = components.path
@@ -187,10 +287,10 @@ private func normalizeCollectionHandle(_ value: String?, fallbackURL: String?) -
         let collectionsIndex = pathComponents.firstIndex(of: "collections"),
         pathComponents.indices.contains(collectionsIndex + 1)
     else {
-        return nil
+        return []
     }
 
-    return pathComponents[collectionsIndex + 1].trimmed
+    return [pathComponents[collectionsIndex + 1].trimmed].compactMap(normalizeCollectionHandle)
 }
 
 private extension String {

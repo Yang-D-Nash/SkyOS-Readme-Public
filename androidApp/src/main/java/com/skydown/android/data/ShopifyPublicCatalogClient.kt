@@ -16,22 +16,21 @@ class ShopifyPublicCatalogClient(
 ) {
     suspend fun fetchCatalog(): Result<List<MerchandiseItem>> = runCatching {
         val config = loadConfig()
-        var products = fetchProducts(
+        var items = fetchItems(
             storeDomain = config.storeDomain,
             storefrontAccessToken = config.storefrontAccessToken,
-            collectionHandle = config.collectionHandle,
+            collectionHandles = config.collectionHandles,
         )
 
-        if (products.isEmpty() && !config.collectionHandle.isNullOrBlank()) {
-            products = fetchProducts(
+        if (items.isEmpty() && config.collectionHandles.isNotEmpty()) {
+            items = fetchItems(
                 storeDomain = config.storeDomain,
                 storefrontAccessToken = config.storefrontAccessToken,
-                collectionHandle = null,
+                collectionHandles = emptyList(),
             )
         }
 
-        products
-            .mapNotNull { product -> product.toMerchandiseItem() }
+        items
             .sortedBy { it.name.lowercase() }
     }
 
@@ -41,16 +40,48 @@ class ShopifyPublicCatalogClient(
         val storeDomain = normalizeStoreDomain(snapshot.getString("storeDomain"))
             ?: normalizeStoreDomain(storefrontUrl)
             ?: "k5t1sc-ps.myshopify.com"
-        val collectionHandle = normalizeCollectionHandle(
-            value = snapshot.getString("collectionHandle"),
+        val collectionHandles = normalizeCollectionHandles(
+            rawValue = snapshot.get("collectionHandles"),
+            legacyValue = snapshot.getString("collectionHandle"),
             fallbackUrl = storefrontUrl,
         )
 
         return ShopifyPublicCatalogConfig(
             storeDomain = storeDomain,
             storefrontAccessToken = snapshot.getString("storefrontAccessToken").orEmpty().trim(),
-            collectionHandle = collectionHandle,
+            collectionHandles = collectionHandles,
         )
+    }
+
+    private suspend fun fetchItems(
+        storeDomain: String,
+        storefrontAccessToken: String,
+        collectionHandles: List<String>,
+    ): List<MerchandiseItem> {
+        if (collectionHandles.isEmpty()) {
+            return fetchProducts(
+                storeDomain = storeDomain,
+                storefrontAccessToken = storefrontAccessToken,
+                collectionHandle = null,
+            ).mapNotNull { product -> product.toMerchandiseItem(fallbackCollectionHandle = null) }
+        }
+
+        val items = mutableListOf<MerchandiseItem>()
+        val seenProductIds = mutableSetOf<String>()
+
+        collectionHandles.forEach { handle ->
+            fetchProducts(
+                storeDomain = storeDomain,
+                storefrontAccessToken = storefrontAccessToken,
+                collectionHandle = handle,
+            ).forEach { product ->
+                if (seenProductIds.add(product.id)) {
+                    product.toMerchandiseItem(fallbackCollectionHandle = handle)?.let(items::add)
+                }
+            }
+        }
+
+        return items
     }
 
     private suspend fun fetchProducts(
@@ -226,7 +257,7 @@ query AppCollectionProducts(${ '$' }handle: String!, ${ '$' }cursor: String) {
 private data class ShopifyPublicCatalogConfig(
     val storeDomain: String,
     val storefrontAccessToken: String,
-    val collectionHandle: String?,
+    val collectionHandles: List<String>,
 )
 
 private data class ShopifyStorefrontProductPage(
@@ -254,7 +285,7 @@ private data class ShopifyStorefrontProduct(
     val imageUrls: List<String>,
     val variants: List<ShopifyStorefrontVariant>,
 ) {
-    fun toMerchandiseItem(): MerchandiseItem? {
+    fun toMerchandiseItem(fallbackCollectionHandle: String?): MerchandiseItem? {
         if (variants.isEmpty()) return null
 
         val mappedVariants = variants.map { variant ->
@@ -275,6 +306,7 @@ private data class ShopifyStorefrontProduct(
             tags = tags,
             collabPartner = collabPartner,
             productType = productType,
+            fallbackCollectionHandle = fallbackCollectionHandle,
         )
 
         return MerchandiseItem(
@@ -441,13 +473,25 @@ private fun resolveShopifyCategory(
     tags: List<String>,
     collabPartner: String?,
     productType: String?,
+    fallbackCollectionHandle: String?,
 ): String {
     return taggedMetadataValue(
         tags = tags,
         prefixes = listOf("category:", "collection:", "lane:"),
     ) ?: collabPartner
+        ?: fallbackCollectionHandle?.prettifiedCollectionHandle()
         ?: curatedProductType(productType)
         ?: "Sky22 Essentials"
+}
+
+private fun String.prettifiedCollectionHandle(): String {
+    return split("-")
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { part ->
+            part.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase() else char.toString()
+            }
+        }
 }
 
 private fun taggedMetadataValue(tags: List<String>, prefixes: List<String>): String? {
@@ -517,24 +561,42 @@ private fun normalizeUrlString(value: String?): String? {
     }
 }
 
-private fun normalizeCollectionHandle(value: String?, fallbackUrl: String?): String? {
+private fun normalizeCollectionHandle(value: String?): String? {
     val direct = value?.trim().orEmpty()
-    if (direct.isNotBlank()) {
-        return direct
-            .removePrefix("/collections/")
-            .substringBefore("/")
-            .trim()
-            .ifBlank { null }
+    if (direct.isBlank()) return null
+
+    return direct
+        .removePrefix("/collections/")
+        .substringBefore("/")
+        .trim()
+        .ifBlank { null }
+}
+
+private fun normalizeCollectionHandles(
+    rawValue: Any?,
+    legacyValue: String?,
+    fallbackUrl: String?,
+): List<String> {
+    val candidates = when (rawValue) {
+        is List<*> -> rawValue.mapNotNull { it as? String }
+        is String -> rawValue.split('\n', ',')
+        else -> legacyValue?.split('\n', ',').orEmpty()
+    }.map { it.trim() }
+        .filter { it.isNotBlank() }
+
+    val normalized = candidates.mapNotNull(::normalizeCollectionHandle).distinct()
+    if (normalized.isNotEmpty()) {
+        return normalized
     }
 
-    val url = normalizeUrlString(fallbackUrl) ?: return null
+    val url = normalizeUrlString(fallbackUrl) ?: return emptyList()
     val path = url.substringAfter("://", "")
         .substringAfter("/", "")
     val parts = path.split("/").filter { it.isNotBlank() }
     val collectionsIndex = parts.indexOf("collections")
     if (collectionsIndex == -1 || collectionsIndex + 1 >= parts.size) {
-        return null
+        return emptyList()
     }
 
-    return parts[collectionsIndex + 1].trim().ifBlank { null }
+    return listOfNotNull(normalizeCollectionHandle(parts[collectionsIndex + 1]))
 }

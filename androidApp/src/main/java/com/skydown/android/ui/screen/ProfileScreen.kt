@@ -1,6 +1,5 @@
 package com.skydown.android.ui.screen
 
-import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -166,12 +165,20 @@ fun ProfileScreen(
                     uiState = uiState,
                     onOpenInstagram = {
                         normalizedInstagramUri(uiState.instagramHandle)?.let {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, it))
+                            openExternalUri(
+                                context = context,
+                                uri = it,
+                                missingMessage = "Instagram konnte nicht geoeffnet werden.",
+                            )
                         }
                     },
                     onOpenWhatsApp = {
                         normalizedWhatsAppUri(uiState.whatsApp)?.let {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, it))
+                            openExternalUri(
+                                context = context,
+                                uri = it,
+                                missingMessage = "WhatsApp konnte nicht geoeffnet werden.",
+                            )
                         }
                     },
                     onEditToggle = { viewModel.setEditing(!uiState.isEditing) },
@@ -216,8 +223,10 @@ fun ProfileScreen(
                         )
                     },
                     onOpenItem = { item ->
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(item.mediaUrl)),
+                        openExternalLink(
+                            context = context,
+                            url = item.mediaUrl,
+                            browserMissingMessage = "Medieninhalt konnte nicht geoeffnet werden.",
                         )
                     },
                     onDeleteItem = if (uiState.canEditCurrentProfile) {

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +24,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.skydown.android.data.mediaAttributionContext
-import kotlinx.coroutines.delay
 
 @androidx.media3.common.util.UnstableApi
 @Composable
@@ -83,12 +81,6 @@ fun IntroScreen(
             player.release()
         }
     }
-
-    LaunchedEffect(Unit) {
-        delay(7_000)
-        finishOnce()
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()

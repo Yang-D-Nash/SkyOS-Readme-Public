@@ -1,8 +1,6 @@
 package com.skydown.android.ui.screen
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -942,8 +940,9 @@ private fun openExternalUrl(
     context: Context,
     url: String,
 ) {
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    context.startActivity(intent)
+    openExternalLink(
+        context = context,
+        url = url,
+        browserMissingMessage = "Checkout-Link konnte nicht geoeffnet werden.",
+    )
 }

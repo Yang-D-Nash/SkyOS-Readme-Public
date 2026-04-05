@@ -69,6 +69,18 @@ class SettingsViewModel : ViewModel() {
                     )
                 }
 
+                if (isOwner) {
+                    refreshShopifyCollections()
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            availableShopifyCollections = emptyList(),
+                            isLoadingShopifyCollections = false,
+                            shopifyCollectionsErrorMessage = null,
+                        )
+                    }
+                }
+
                 configureStripeBackendSecretsObservation(isEnabled = isOwner)
                 configureManagedUsersObservation(isEnabled = isOwner)
             }
@@ -252,8 +264,9 @@ class SettingsViewModel : ViewModel() {
             val result = shopifyAdminSettingsRepository.updateSettings(settings)
             if (result.isSuccess) {
                 _uiState.update { it.copy(shopifyAdminSettings = settings) }
+                refreshShopifyCollections(force = true)
                 showPaymentFeedback(
-                    message = "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, deinen Storefront Token und optional die Collection.",
+                    message = "Shopify-Einstellungen gespeichert. Der naechste Sync nutzt jetzt diesen Store, deinen Storefront Token und die ausgewaehlten Collections.",
                     isError = false,
                 )
             } else {
@@ -261,6 +274,45 @@ class SettingsViewModel : ViewModel() {
                     message = result.exceptionOrNull()?.message ?: "Shopify-Einstellungen konnten nicht gespeichert werden.",
                     isError = true,
                 )
+            }
+        }
+    }
+
+    fun refreshShopifyCollections(force: Boolean = false) {
+        viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                return@launch
+            }
+            if (_uiState.value.isLoadingShopifyCollections) {
+                return@launch
+            }
+            if (!force && _uiState.value.availableShopifyCollections.isNotEmpty()) {
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(
+                    isLoadingShopifyCollections = true,
+                    shopifyCollectionsErrorMessage = null,
+                )
+            }
+
+            val result = shopifyAdminSettingsRepository.fetchAvailableCollections()
+            result.onSuccess { collections ->
+                _uiState.update {
+                    it.copy(
+                        availableShopifyCollections = collections,
+                        isLoadingShopifyCollections = false,
+                        shopifyCollectionsErrorMessage = null,
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isLoadingShopifyCollections = false,
+                        shopifyCollectionsErrorMessage = error.message ?: "Shopify-Collections konnten nicht geladen werden.",
+                    )
+                }
             }
         }
     }
