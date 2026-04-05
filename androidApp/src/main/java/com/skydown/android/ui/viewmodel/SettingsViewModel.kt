@@ -42,7 +42,6 @@ class SettingsViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collect { user ->
                 val isOwner = user?.isPlatformOwner == true
                 WorkflowAutomationPreferences.setAdminMode(

@@ -33,12 +33,12 @@ val Typography = Typography(
         lineHeight = 28.sp,
     ),
     titleLarge = TextStyle(
-        fontFamily = AwergyFontFamily,
+        fontFamily = DefaultAppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
     ),
     titleMedium = TextStyle(
-        fontFamily = AwergyFontFamily,
+        fontFamily = DefaultAppFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp,
     ),

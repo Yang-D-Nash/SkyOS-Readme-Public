@@ -34,7 +34,6 @@ class NicmaProducerViewModel(
 
     init {
         viewModelScope.launch {
-            AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collectLatest { user ->
                 currentUser = user
                 val nextIsAdmin = user?.canManageMusic == true

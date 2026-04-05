@@ -387,6 +387,13 @@ fun VideoHubScreen(
                 }
 
                 item {
+                    VideoYouTubeCard(
+                        items = uiState.publicConfig.youtubeItems,
+                        onPlayItem = { item -> selectedYouTubeItem = item },
+                    )
+                }
+
+                item {
                     VideoEquipmentCard(items = uiState.publicConfig.equipmentItems)
                 }
 
@@ -419,13 +426,6 @@ fun VideoHubScreen(
                         onOpenOriginal = { url -> openExternalLink(context, url) },
                         onToggleHomeFeatured = viewModel::toggleHomeFeatured,
                         onDeleteVideo = viewModel::deleteVideo,
-                    )
-                }
-
-                item {
-                    VideoYouTubeCard(
-                        items = uiState.publicConfig.youtubeItems,
-                        onPlayItem = { item -> selectedYouTubeItem = item },
                     )
                 }
 
@@ -475,6 +475,18 @@ fun VideoHubScreen(
                                 }
                             },
                             onRemoveEquipment = viewModel::removeEquipmentItem,
+                            onAddYouTube = viewModel::addYouTubeItem,
+                            onAddYouTubeBatch = viewModel::addYouTubeItemsFromText,
+                            onUpdateYouTubeTitle = { itemId, value ->
+                                viewModel.updateYouTubeItem(itemId, title = value)
+                            },
+                            onUpdateYouTubeSubtitle = { itemId, value ->
+                                viewModel.updateYouTubeItem(itemId, subtitle = value)
+                            },
+                            onUpdateYouTubeUrl = { itemId, value ->
+                                viewModel.updateYouTubeItem(itemId, url = value)
+                            },
+                            onRemoveYouTube = viewModel::removeYouTubeItem,
                             onAddCollaboration = viewModel::addCollaborationItem,
                             onUpdateCollaborationName = { itemId, value ->
                                 viewModel.updateCollaborationItem(itemId, name = value)
@@ -902,10 +914,12 @@ private fun VideoYouTubeCard(
     items: List<VideoYouTubeItem>,
     onPlayItem: (VideoYouTubeItem) -> Unit,
 ) {
+    val featuredItem = items.firstOrNull()
+
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
             title = "YouTube Highlights",
-            subtitle = "Making-ofs, Clips und externe Links.",
+            subtitle = "Mehrere YouTube-Videos direkt im Hub sammeln und anschauen.",
             icon = Icons.Default.PlayArrow,
             accent = YouTubeRed,
             tag = "YT",
@@ -921,9 +935,18 @@ private fun VideoYouTubeCard(
             modifier = Modifier.padding(top = 8.dp),
         )
 
+        featuredItem?.let { item ->
+            VideoYouTubeSpotlightCard(
+                item = item,
+                itemCount = items.size,
+                modifier = Modifier.padding(top = 14.dp),
+                onPlay = { onPlayItem(item) },
+            )
+        }
+
         if (items.isEmpty()) {
             Text(
-                text = "Noch nichts hinterlegt.",
+                text = "Noch nichts hinterlegt. Neue Links kannst du unten im Admin Control direkt als YouTube Library einfuegen.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),
@@ -933,7 +956,7 @@ private fun VideoYouTubeCard(
                 modifier = Modifier.padding(top = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items.forEach { item ->
+                items.drop(1).forEach { item ->
                     VideoYouTubeRow(
                         item = item,
                         onPlay = { onPlayItem(item) },
@@ -941,6 +964,137 @@ private fun VideoYouTubeCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun VideoYouTubeSpotlightCard(
+    item: VideoYouTubeItem,
+    itemCount: Int,
+    modifier: Modifier = Modifier,
+    onPlay: () -> Unit,
+) {
+    val thumbnailUrl = remember(item.url) { resolveYouTubeThumbnailUrl(item.url) }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        DexBlueDeep.copy(alpha = 0.96f),
+                        YouTubeRed.copy(alpha = 0.26f),
+                        ArenaGold.copy(alpha = 0.14f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = YouTubeRed.copy(alpha = 0.22f),
+                shape = RoundedCornerShape(24.dp),
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(188.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            YouTubeDeepRed,
+                            DexBlueDeep,
+                        ),
+                    ),
+                ),
+        ) {
+            if (thumbnailUrl != null) {
+                AsyncImage(
+                    model = thumbnailUrl,
+                    contentDescription = item.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.28f)),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.14f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.58f),
+                            ),
+                        ),
+                    ),
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                BrandPill(text = "Featured YouTube", tint = YouTubeRed)
+                BrandPill(text = "$itemCount live", tint = ArenaGold)
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.54f))
+                    .border(1.dp, Color.White.copy(alpha = 0.16f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp),
+                )
+            }
+        }
+
+        Text(
+            text = item.title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = Color.White,
+            fontWeight = FontWeight.Black,
+        )
+
+        if (item.subtitle.isNotBlank()) {
+            Text(
+                text = item.subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.78f),
+            )
+        }
+
+        Text(
+            text = "Mehrere YouTube-Videos sind jetzt direkt als eigene Watch-Zone im Hub sichtbar.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.70f),
+        )
+
+        BrandActionButton(
+            text = "Jetzt ansehen",
+            onClick = onPlay,
+            accent = YouTubeRed,
+            modifier = Modifier.fillMaxWidth(),
+            icon = Icons.Default.PlayArrow,
+        )
     }
 }
 
@@ -1038,6 +1192,12 @@ private fun VideoPublicConfigEditorCard(
     onPickEquipmentImage: (String) -> Unit,
     onRemoveEquipmentImage: (String) -> Unit,
     onRemoveEquipment: (String) -> Unit,
+    onAddYouTube: () -> Unit,
+    onAddYouTubeBatch: (String) -> Unit,
+    onUpdateYouTubeTitle: (String, String) -> Unit,
+    onUpdateYouTubeSubtitle: (String, String) -> Unit,
+    onUpdateYouTubeUrl: (String, String) -> Unit,
+    onRemoveYouTube: (String) -> Unit,
     onAddCollaboration: () -> Unit,
     onUpdateCollaborationName: (String, String) -> Unit,
     onUpdateCollaborationRole: (String, String) -> Unit,
@@ -1052,6 +1212,8 @@ private fun VideoPublicConfigEditorCard(
     onRemoveCollaboration: (String) -> Unit,
     onSave: () -> Unit,
 ) {
+    var youtubeBatchInput by rememberSaveable { mutableStateOf("") }
+
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
             title = "Admin Control",
@@ -1158,6 +1320,132 @@ private fun VideoPublicConfigEditorCard(
                     .padding(top = 4.dp),
             ) {
                 Text("Equipment hinzufuegen")
+            }
+        }
+
+        VideoControlDeckCard(
+            title = "YouTube Library",
+            subtitle = "Mehrere YouTube-Videos sammeln, direkt pruefen und als Highlights live schalten.",
+            icon = Icons.Default.PlayArrow,
+            accent = YouTubeRed,
+            tag = "YT",
+            modifier = Modifier.padding(top = 18.dp),
+        ) {
+            Text(
+                text = "Du kannst einzelne Eintraege pflegen oder mehrere Links auf einmal einfuegen. Ein Link pro Zeile, optional mit `Titel | URL`.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+
+            OutlinedTextField(
+                value = youtubeBatchInput,
+                onValueChange = { youtubeBatchInput = it },
+                label = { Text("Mehrere YouTube-Links") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                minLines = 4,
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val value = youtubeBatchInput.trim()
+                        if (value.isNotBlank()) {
+                            onAddYouTubeBatch(value)
+                            youtubeBatchInput = ""
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Links uebernehmen")
+                }
+
+                OutlinedButton(
+                    onClick = onAddYouTube,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Eintrag hinzufuegen")
+                }
+            }
+
+            Column(
+                modifier = Modifier.padding(top = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (uiState.publicConfig.youtubeItems.isEmpty()) {
+                    Text(
+                        text = "Noch keine YouTube-Videos angelegt.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                } else {
+                    uiState.publicConfig.youtubeItems.forEachIndexed { index, item ->
+                        val isPlayable = resolveYouTubeEmbedUrl(item.url)?.isNotBlank() == true
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                            YouTubeRed.copy(alpha = 0.10f),
+                                            ArenaGold.copy(alpha = 0.06f),
+                                        ),
+                                    ),
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = YouTubeRed.copy(alpha = 0.18f),
+                                    shape = RoundedCornerShape(18.dp),
+                                )
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                VideoPill(
+                                    text = item.title.ifBlank { "YouTube Video ${index + 1}" },
+                                    isActive = true,
+                                )
+                                VideoPill(
+                                    text = if (isPlayable) "Abspielbar" else "URL pruefen",
+                                    isActive = false,
+                                )
+                            }
+                            OutlinedTextField(
+                                value = item.title,
+                                onValueChange = { onUpdateYouTubeTitle(item.id, it) },
+                                label = { Text("Titel (optional)") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = item.subtitle,
+                                onValueChange = { onUpdateYouTubeSubtitle(item.id, it) },
+                                label = { Text("Untertitel (optional)") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = item.url,
+                                onValueChange = { onUpdateYouTubeUrl(item.id, it) },
+                                label = { Text("YouTube URL") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2,
+                            )
+                            OutlinedButton(
+                                onClick = { onRemoveYouTube(item.id) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("YouTube-Video entfernen")
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1662,7 +1950,7 @@ private fun VideoUploadCard(
             tag = "UPLOAD",
         )
         Text(
-            text = "Hier steuerst du direkte Uploads nach Firebase Storage oder externe Quellen wie YouTube, Drive und MEGA.",
+            text = "Hier steuerst du direkte Uploads nach Firebase Storage oder externe Reel-Links. Mehrere YouTube-Videos pflegst du im Admin Control als eigene Library.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),

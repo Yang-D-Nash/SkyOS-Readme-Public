@@ -39,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -69,7 +70,6 @@ import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
-import com.skydown.android.ui.component.skydownSheen
 import com.skydown.android.ui.model.ProfileGalleryItem
 import com.skydown.android.ui.model.ProfileMediaType
 import com.skydown.android.ui.theme.InstagramOrange
@@ -185,6 +185,7 @@ fun ProfileScreen(
                     } else {
                         null
                     },
+                    canToggleEditing = !uiState.isSavingProfile && !uiState.isUploadingAvatar && !uiState.isUploadingMedia,
                     onPickGalleryImage = {
                         imagePicker.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -267,14 +268,23 @@ fun ProfileScreen(
                                 minLines = 4,
                             )
 
-                            Button(
-                                onClick = viewModel::saveProfile,
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !uiState.isSavingProfile,
-                            ) {
-                                Icon(Icons.Default.Save, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(if (uiState.isSavingProfile) "Speichert..." else "Speichern")
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                OutlinedButton(
+                                    onClick = { viewModel.setEditing(false) },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !uiState.isSavingProfile,
+                                ) {
+                                    Text("Abbrechen")
+                                }
+                                Button(
+                                    onClick = viewModel::saveProfile,
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !uiState.isSavingProfile,
+                                ) {
+                                    Icon(Icons.Default.Save, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(if (uiState.isSavingProfile) "Speichert..." else "Speichern")
+                                }
                             }
                         }
                     }
@@ -300,6 +310,7 @@ private fun ProfileHeroCard(
     onEditToggle: () -> Unit,
     onPickAvatar: () -> Unit,
     onDeleteAvatar: (() -> Unit)?,
+    canToggleEditing: Boolean,
     onPickGalleryImage: () -> Unit,
 ) {
     val isUploadingImageFlow = uiState.isUploadingAvatar || uiState.isUploadingMedia
@@ -458,6 +469,7 @@ private fun ProfileHeroCard(
                         icon = Icons.Default.Edit,
                         contentDescription = if (uiState.isEditing) "Bearbeitung beenden" else "Profil bearbeiten",
                         onClick = onEditToggle,
+                        enabled = canToggleEditing,
                     )
                     ProfileHeroFab(
                         icon = Icons.Default.CameraAlt,
@@ -631,8 +643,7 @@ private fun ProfileSocialButton(
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(Brush.linearGradient(colors))
-            .skydownSheen(accent = androidx.compose.ui.graphics.Color.White, alpha = 0.12f),
+            .background(Brush.linearGradient(colors)),
     ) {
         Icon(icon, contentDescription = null)
         Spacer(modifier = Modifier.width(6.dp))

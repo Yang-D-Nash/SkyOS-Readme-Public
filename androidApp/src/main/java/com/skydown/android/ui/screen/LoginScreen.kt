@@ -21,6 +21,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -45,9 +47,11 @@ import com.google.android.gms.common.api.ApiException
 fun LoginScreen(
     onClose: () -> Unit,
     onOpenRegistration: () -> Unit,
+    onBusyStateChanged: (Boolean) -> Unit = {},
     viewModel: LoginViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isAuthBusy = uiState.isLoading || uiState.isGoogleLoading
     val context = LocalContext.current
     val googleClient = remember(context) { GoogleSignInManager.client(context) }
     val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -72,6 +76,16 @@ fun LoginScreen(
         } catch (exception: ApiException) {
             googleClient.signOut()
             viewModel.onGoogleSignInCancelled(exception.toReadableGoogleMessage())
+        }
+    }
+
+    LaunchedEffect(isAuthBusy) {
+        onBusyStateChanged(isAuthBusy)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onBusyStateChanged(false)
         }
     }
 
@@ -107,7 +121,10 @@ fun LoginScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
-                TextButton(onClick = onClose) {
+                TextButton(
+                    onClick = onClose,
+                    enabled = !isAuthBusy,
+                ) {
                     Text("Schliessen")
                 }
             }
@@ -170,7 +187,7 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                    enabled = !uiState.isLoading && !uiState.isGoogleLoading,
+                    enabled = !isAuthBusy,
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(if (uiState.isLoading) "Anmelden..." else "Anmelden")
@@ -185,7 +202,7 @@ fun LoginScreen(
                         }
                     },
                     modifier = Modifier.padding(top = 12.dp),
-                    enabled = !uiState.isLoading && !uiState.isGoogleLoading,
+                    enabled = !isAuthBusy,
                 )
                 Text(
                     text = "Google oeffnet direkt den nativen Android-Kontodialog fuer einen schnelleren Einstieg.",
@@ -198,6 +215,7 @@ fun LoginScreen(
                 TextButton(
                     onClick = onOpenRegistration,
                     modifier = Modifier.padding(top = 10.dp),
+                    enabled = !isAuthBusy,
                 ) {
                     Text("Noch kein Konto? Registrieren")
                 }

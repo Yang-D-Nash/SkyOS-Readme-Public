@@ -37,12 +37,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.skydown.android.data.AppContainer
 import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
+import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -55,7 +54,7 @@ import com.skydown.android.ui.component.skydownTopBarColors
 fun NicmaProducerScreen(
     onBack: () -> Unit,
 ) {
-    val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val currentUser = LocalSessionUser.current
     val page = ArtistPagesStore.pageFor(brand = ArtistPageBrand.Nicma, artistName = "NICMA MUSIC")
     val canEdit = ArtistPagesStore.canEdit(page, currentUser)
     var showingEditor by rememberSaveable { mutableStateOf(false) }

@@ -36,9 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AiAccessMode
-import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
@@ -62,7 +62,7 @@ fun AiHubScreen(
     onOpenSettings: () -> Unit,
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
-    val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val currentUser = LocalSessionUser.current
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
         user = currentUser,

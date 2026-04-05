@@ -37,6 +37,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.media3.common.util.UnstableApi
@@ -44,10 +45,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -71,11 +76,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AppSessionStore
 import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.AppTopBarSessionActions
+import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownPressable
@@ -96,6 +103,8 @@ import com.skydown.android.ui.screen.SettingsScreen
 import com.skydown.android.ui.screen.ShopScreen
 import com.skydown.android.ui.screen.VideoHubScreen
 import com.skydown.android.ui.theme.BackgroundDark
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @UnstableApi
@@ -105,12 +114,23 @@ fun SkydownApp() {
     val isCompactLayout = rememberIsCompactAppLayout()
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
-    var showIntro by remember { mutableStateOf(true) }
+    var showIntro by rememberSaveable { mutableStateOf(true) }
     var selectedEntryRoute by rememberSaveable { mutableStateOf<String?>(null) }
     var showsWorkflowWorkspace by rememberSaveable { mutableStateOf(false) }
-    var authSheet by remember { mutableStateOf<AuthSheet?>(null) }
-    var showOrders by remember { mutableStateOf(false) }
-    val authSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var authSheet by rememberSaveable { mutableStateOf<AuthSheet?>(null) }
+    var authSheetLocked by rememberSaveable { mutableStateOf(false) }
+    var showOrders by rememberSaveable { mutableStateOf(false) }
+    var observedAuthUid by rememberSaveable { mutableStateOf<String?>(null) }
+    val auth = remember { FirebaseAuth.getInstance() }
+    val coroutineScope = rememberCoroutineScope()
+    val currentAuthSheetLocked by rememberUpdatedState(authSheetLocked)
+    val currentSessionUserId = rememberUpdatedState(currentUser?.id)
+    val authSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { targetValue ->
+            !currentAuthSheetLocked || targetValue != SheetValue.Hidden
+        },
+    )
     val ordersSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val openSettings = remember(navController) {
         {
@@ -137,120 +157,151 @@ fun SkydownApp() {
         user = currentUser,
         accessMode = aiAccessMode,
     )
-    val destinations = buildList {
-        add(BottomDestination("shop", "Merch") { _ ->
-            Icon(Icons.Default.ShoppingBag, contentDescription = null)
-        })
-        add(BottomDestination("music", "Music") { _ ->
-            Icon(Icons.Default.GraphicEq, contentDescription = null)
-        })
-        add(BottomDestination("home", "Home") { _ ->
-            Icon(Icons.Default.Home, contentDescription = null)
-        })
-        add(BottomDestination("video", "Videos") { _ ->
-            Icon(Icons.Default.PlayCircleFilled, contentDescription = null)
-        })
-        add(BottomDestination("ai", "Tools") { _ ->
-            Icon(Icons.Default.AutoAwesome, contentDescription = null)
-        })
+
+    LaunchedEffect(currentUser?.id) {
+        if (currentUser != null && authSheet != null) {
+            authSheetLocked = false
+            authSheet = null
+        }
     }
 
-    if (showIntro) {
-        IntroScreen(
-            onFinished = { showIntro = false },
-        )
-    } else if (selectedEntryRoute == null) {
-        LaunchLandingScreen(
-            onOpenMusic = { selectedEntryRoute = "music" },
-            onOpenVideography = { selectedEntryRoute = "video" },
-            onOpenShop = { selectedEntryRoute = "shop" },
-        )
-    } else {
-        val startRoute = selectedEntryRoute ?: "home"
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentDestination = navBackStackEntry?.destination
+    LaunchedEffect(authSheet) {
+        if (authSheet == null && authSheetLocked) {
+            authSheetLocked = false
+        }
+    }
 
-        LaunchedEffect(hasAiAccess, currentDestination?.route) {
-            if (!hasAiAccess) {
-                showsWorkflowWorkspace = false
+    DisposableAuthSync(
+        auth = auth,
+        observedAuthUid = observedAuthUid,
+        currentSessionUserId = currentSessionUserId.value,
+        onObservedAuthUidChanged = { observedAuthUid = it },
+        onSignedOut = {
+            AppSessionStore.update(null)
+            authSheetLocked = false
+        },
+        onRefreshCurrentUser = {
+            coroutineScope.launch {
+                AppContainer.refreshCurrentUser()
             }
-            if (currentDestination?.route != "ai") {
-                showsWorkflowWorkspace = false
-            }
+        },
+    )
+
+    CompositionLocalProvider(LocalSessionUser provides currentUser) {
+        val destinations = buildList {
+            add(BottomDestination("shop", "Merch") { _ ->
+                Icon(Icons.Default.ShoppingBag, contentDescription = null)
+            })
+            add(BottomDestination("music", "Music") { _ ->
+                Icon(Icons.Default.GraphicEq, contentDescription = null)
+            })
+            add(BottomDestination("home", "Home") { _ ->
+                Icon(Icons.Default.Home, contentDescription = null)
+            })
+            add(BottomDestination("video", "Videos") { _ ->
+                Icon(Icons.Default.PlayCircleFilled, contentDescription = null)
+            })
+            add(BottomDestination("ai", "Tools") { _ ->
+                Icon(Icons.Default.AutoAwesome, contentDescription = null)
+            })
         }
 
-        Scaffold(
-            bottomBar = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(
-                            horizontal = if (isCompactLayout) 10.dp else 16.dp,
-                            vertical = if (isCompactLayout) 6.dp else 10.dp,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Surface(
-                        tonalElevation = if (isCompactLayout) 8.dp else 10.dp,
-                        shadowElevation = if (isCompactLayout) 10.dp else 14.dp,
-                        shape = RoundedCornerShape(if (isCompactLayout) 24.dp else 30.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                        ),
-                    ) {
-                        NavigationBar(
-                            modifier = Modifier.padding(
-                                horizontal = if (isCompactLayout) 4.dp else 6.dp,
-                                vertical = if (isCompactLayout) 2.dp else 4.dp,
-                            ),
-                            containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                            tonalElevation = 0.dp,
-                        ) {
-                            destinations.forEach { destination ->
-                                val isSelected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
+        if (showIntro) {
+            IntroScreen(
+                onFinished = { showIntro = false },
+            )
+        } else if (selectedEntryRoute == null) {
+            LaunchLandingScreen(
+                onOpenMusic = { selectedEntryRoute = "music" },
+                onOpenVideography = { selectedEntryRoute = "video" },
+                onOpenShop = { selectedEntryRoute = "shop" },
+            )
+        } else {
+            val startRoute = selectedEntryRoute ?: "home"
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentDestination = navBackStackEntry?.destination
 
-                                NavigationBarItem(
-                                    selected = isSelected,
-                                    onClick = {
-                                        navController.navigate(destination.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
+            LaunchedEffect(hasAiAccess, currentDestination?.route) {
+                if (!hasAiAccess) {
+                    showsWorkflowWorkspace = false
+                }
+                if (currentDestination?.route != "ai") {
+                    showsWorkflowWorkspace = false
+                }
+            }
+
+            Scaffold(
+                bottomBar = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(
+                                horizontal = if (isCompactLayout) 10.dp else 16.dp,
+                                vertical = if (isCompactLayout) 6.dp else 10.dp,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Surface(
+                            tonalElevation = if (isCompactLayout) 8.dp else 10.dp,
+                            shadowElevation = if (isCompactLayout) 10.dp else 14.dp,
+                            shape = RoundedCornerShape(if (isCompactLayout) 24.dp else 30.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                            ),
+                        ) {
+                            NavigationBar(
+                                modifier = Modifier.padding(
+                                    horizontal = if (isCompactLayout) 4.dp else 6.dp,
+                                    vertical = if (isCompactLayout) 2.dp else 4.dp,
+                                ),
+                                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                tonalElevation = 0.dp,
+                            ) {
+                                destinations.forEach { destination ->
+                                    val isSelected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
+
+                                    NavigationBarItem(
+                                        selected = isSelected,
+                                        onClick = {
+                                            navController.navigate(destination.route) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { destination.icon(isSelected) },
-                                    label = {
-                                        Text(
-                                            text = destination.label,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    },
-                                    alwaysShowLabel = !isCompactLayout,
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                    ),
-                                )
+                                        },
+                                        icon = { destination.icon(isSelected) },
+                                        label = {
+                                            Text(
+                                                text = destination.label,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        },
+                                        alwaysShowLabel = !isCompactLayout,
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                        ),
+                                    )
+                                }
                             }
                         }
                     }
-                }
-            },
-        ) { innerPadding ->
-            NavHost(
-                navController = navController,
-                startDestination = startRoute,
-                modifier = Modifier.padding(innerPadding),
-            ) {
+                },
+            ) { innerPadding ->
+                NavHost(
+                    navController = navController,
+                    startDestination = startRoute,
+                    modifier = Modifier.padding(innerPadding),
+                ) {
                 composable("home") {
                     HomeScreen(
                         onOpenCart = openCart,
@@ -325,35 +376,77 @@ fun SkydownApp() {
                 }
             }
         }
-    }
+        }
 
-    authSheet?.let { sheet ->
-        ModalBottomSheet(
-            onDismissRequest = { authSheet = null },
-            sheetState = authSheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            when (sheet) {
-                AuthSheet.Login -> LoginScreen(
-                    onClose = { authSheet = null },
-                    onOpenRegistration = { authSheet = AuthSheet.Registration },
-                )
-                AuthSheet.Registration -> RegistrationScreen(
-                    onClose = { authSheet = null },
+        authSheet?.let { sheet ->
+            ModalBottomSheet(
+                onDismissRequest = {
+                    if (!authSheetLocked) {
+                        authSheet = null
+                    }
+                },
+                sheetState = authSheetState,
+                containerColor = MaterialTheme.colorScheme.surface,
+            ) {
+                when (sheet) {
+                    AuthSheet.Login -> LoginScreen(
+                        onClose = { authSheet = null },
+                        onOpenRegistration = { authSheet = AuthSheet.Registration },
+                        onBusyStateChanged = { authSheetLocked = it },
+                    )
+                    AuthSheet.Registration -> RegistrationScreen(
+                        onClose = { authSheet = null },
+                        onBusyStateChanged = { authSheetLocked = it },
+                    )
+                }
+            }
+        }
+
+        if (showOrders) {
+            ModalBottomSheet(
+                onDismissRequest = { showOrders = false },
+                sheetState = ordersSheetState,
+                containerColor = MaterialTheme.colorScheme.surface,
+            ) {
+                OrderScreen(
+                    onClose = { showOrders = false },
                 )
             }
         }
     }
+}
 
-    if (showOrders) {
-        ModalBottomSheet(
-            onDismissRequest = { showOrders = false },
-            sheetState = ordersSheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            OrderScreen(
-                onClose = { showOrders = false },
-            )
+@Composable
+private fun DisposableAuthSync(
+    auth: FirebaseAuth,
+    observedAuthUid: String?,
+    currentSessionUserId: String?,
+    onObservedAuthUidChanged: (String?) -> Unit,
+    onSignedOut: () -> Unit,
+    onRefreshCurrentUser: () -> Unit,
+) {
+    DisposableEffect(auth, observedAuthUid, currentSessionUserId) {
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            val authUid = firebaseAuth.currentUser?.uid
+            when {
+                authUid == null -> {
+                    if (observedAuthUid != null || currentSessionUserId != null) {
+                        onObservedAuthUidChanged(null)
+                        onSignedOut()
+                    }
+                }
+
+                authUid != observedAuthUid || currentSessionUserId != authUid -> {
+                    onObservedAuthUidChanged(authUid)
+                    onRefreshCurrentUser()
+                }
+            }
+        }
+
+        auth.addAuthStateListener(listener)
+
+        onDispose {
+            auth.removeAuthStateListener(listener)
         }
     }
 }

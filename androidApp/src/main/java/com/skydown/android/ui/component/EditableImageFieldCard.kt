@@ -35,6 +35,7 @@ fun EditableImageFieldCard(
     modifier: Modifier = Modifier,
     buttonLabel: String = "Vom Handy waehlen",
     isUploading: Boolean = false,
+    enabled: Boolean = true,
     uploadStatusText: String = "Bild wird vorbereitet und hochgeladen.",
 ) {
     Column(
@@ -143,7 +144,7 @@ fun EditableImageFieldCard(
         OutlinedButton(
             onClick = onPickImage,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isUploading,
+            enabled = enabled && !isUploading,
         ) {
             Text(buttonLabel)
         }
@@ -158,7 +159,7 @@ fun EditableImageFieldCard(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isUploading,
+                enabled = enabled && !isUploading,
             ) {
                 Text("Bild entfernen")
             }

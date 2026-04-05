@@ -624,8 +624,8 @@ private fun HomeFieldGuideCard(
 
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
-            title = "Live Pulse",
-            subtitle = "Releases, Status und aktive Bereiche auf einen Blick.",
+            title = "League Map",
+            subtitle = "Aktive Zonen, Begegnungen und der schnellste Weg durch den Hub.",
             icon = Icons.Default.Radar,
             accent = ArenaGold,
             tag = "LIVE",
@@ -633,9 +633,9 @@ private fun HomeFieldGuideCard(
 
         Text(
             text = when (activeSignals) {
-                homeSignalTotal -> "Alle Bereiche sind live. Home bleibt komplett im Fokus."
-                0 -> "Gerade ist noch kein Bereich live. Der Hub bleibt bereit."
-                else -> "$activeSignals von $homeSignalTotal Bereichen sind gerade live."
+                homeSignalTotal -> "Alle Bereiche sind live. Die Region spielt gerade komplett offen."
+                0 -> "Gerade ist noch kein Bereich live. Der Hub bleibt im Standby und scannt weiter."
+                else -> "$activeSignals von $homeSignalTotal Bereichen senden gerade ein starkes Signal."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
@@ -645,6 +645,11 @@ private fun HomeFieldGuideCard(
         HomeDexStatusRow(
             activeSignals = activeSignals,
             scanLabel = statusLabel,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+
+        HomeRouteDeck(
+            signals = signals,
             modifier = Modifier.padding(top = 16.dp),
         )
 
@@ -672,7 +677,7 @@ private fun HomeFieldGuideCard(
         }
 
         Text(
-            text = "Zieh nach unten, um den Status neu zu laden.",
+            text = "Zieh nach unten, um die Karte neu zu scannen und alle Bereiche zu aktualisieren.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 14.dp),
@@ -765,6 +770,155 @@ private fun HomeDexStatusCard(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+@Composable
+private fun HomeRouteDeck(
+    signals: List<HomeRadarSignal>,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            signals.getOrNull(0)?.let { signal ->
+                HomeRouteCard(
+                    routeLabel = "Route 01",
+                    signal = signal,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            signals.getOrNull(1)?.let { signal ->
+                HomeRouteCard(
+                    routeLabel = "Route 02",
+                    signal = signal,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        signals.getOrNull(2)?.let { signal ->
+            HomeRouteCard(
+                routeLabel = "Route 03",
+                signal = signal,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeRouteCard(
+    routeLabel: String,
+    signal: HomeRadarSignal,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        DexBlueDeep.copy(alpha = 0.94f),
+                        signal.accent.copy(alpha = if (signal.isActive) 0.24f else 0.12f),
+                        ArenaGold.copy(alpha = if (signal.isActive) 0.14f else 0.08f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = signal.accent.copy(alpha = if (signal.isActive) 0.30f else 0.14f),
+                shape = RoundedCornerShape(22.dp),
+            )
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = routeLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.74f),
+                fontWeight = FontWeight.SemiBold,
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (signal.isActive) {
+                            signal.accent
+                        } else {
+                            Color.White.copy(alpha = 0.24f)
+                        },
+                    ),
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                signal.accent.copy(alpha = if (signal.isActive) 0.92f else 0.20f),
+                                signal.accent.copy(alpha = if (signal.isActive) 0.28f else 0.08f),
+                                Color.Transparent,
+                            ),
+                        ),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = signal.accent.copy(alpha = if (signal.isActive) 0.46f else 0.14f),
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = signal.icon,
+                    contentDescription = null,
+                    tint = if (signal.isActive) Color.White else signal.accent,
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = signal.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = signal.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.72f),
+                )
+            }
+        }
+
+        HomeBadge(
+            text = if (signal.isActive) "ENCOUNTER" else "SCAN",
+            icon = if (signal.isActive) Icons.Default.CheckCircle else Icons.Default.Refresh,
+            isActive = signal.isActive,
+            accent = signal.accent,
         )
     }
 }

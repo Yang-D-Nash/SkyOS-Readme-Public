@@ -51,19 +51,17 @@ class ProfileViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            runCatching { AppContainer.refreshCurrentUser() }
-        }
-
-        viewModelScope.launch {
             AppContainer.currentUser.collectLatest { user ->
-                _uiState.update {
-                    it.copy(
+                _uiState.update { state ->
+                    val shouldRefreshDrafts = !state.isEditing || state.currentUser?.id != user?.id
+                    state.copy(
                         currentUser = user,
-                        username = user?.username.orEmpty(),
-                        whatsApp = user?.whatsApp.orEmpty(),
-                        profileTagline = user?.profileTagline.orEmpty(),
-                        profileBio = user?.profileBio.orEmpty(),
-                        instagramHandle = user?.instagramHandle.orEmpty(),
+                        username = if (shouldRefreshDrafts) user?.username.orEmpty() else state.username,
+                        whatsApp = if (shouldRefreshDrafts) user?.whatsApp.orEmpty() else state.whatsApp,
+                        profileTagline = if (shouldRefreshDrafts) user?.profileTagline.orEmpty() else state.profileTagline,
+                        profileBio = if (shouldRefreshDrafts) user?.profileBio.orEmpty() else state.profileBio,
+                        instagramHandle = if (shouldRefreshDrafts) user?.instagramHandle.orEmpty() else state.instagramHandle,
+                        isEditing = state.isEditing && user != null,
                         errorMessage = null,
                     )
                 }
@@ -73,7 +71,24 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun setEditing(enabled: Boolean) {
-        _uiState.update { it.copy(isEditing = enabled, errorMessage = null) }
+        _uiState.update { state ->
+            if (enabled && state.canEditCurrentProfile) {
+                state.copy(
+                    isEditing = true,
+                    errorMessage = null,
+                )
+            } else {
+                state.copy(
+                    isEditing = false,
+                    username = state.currentUser?.username.orEmpty(),
+                    whatsApp = state.currentUser?.whatsApp.orEmpty(),
+                    profileTagline = state.currentUser?.profileTagline.orEmpty(),
+                    profileBio = state.currentUser?.profileBio.orEmpty(),
+                    instagramHandle = state.currentUser?.instagramHandle.orEmpty(),
+                    errorMessage = null,
+                )
+            }
+        }
     }
 
     fun updateUsername(value: String) {

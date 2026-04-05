@@ -30,9 +30,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.skydown.android.data.AppContainer
 
 @Composable
 fun RowScope.AppTopBarSessionActions(
@@ -41,7 +39,7 @@ fun RowScope.AppTopBarSessionActions(
     onOpenSettings: () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
-    val currentUser = AppContainer.currentUser.collectAsStateWithLifecycle().value
+    val currentUser = LocalSessionUser.current
     val compactLayout = rememberIsCompactAppLayout()
     val displayName = currentUser?.username?.trim().takeUnless { it.isNullOrBlank() } ?: "Gast"
     val initials = displayName.firstOrNull()?.uppercase() ?: "G"

@@ -183,6 +183,12 @@ class ShopViewModel : ViewModel() {
     }
 
     private suspend fun refreshState() {
+        _uiState.update {
+            it.copy(
+                isCatalogLoading = true,
+                errorMessage = null,
+            )
+        }
         val itemsResult = merchandiseService.loadItems()
         val user = AppContainer.currentUser.value
         val isAdmin = user?.isPlatformOwner == true
@@ -191,18 +197,29 @@ class ShopViewModel : ViewModel() {
         if (resolvedItems.isNotEmpty()) {
             hasAttemptedAutomaticShopifySync = false
         }
-        val fallbackItems = if (resolvedItems.isEmpty() || (!isAdmin && !hasVisibleShopifyItems(resolvedItems, isAdmin = false))) {
-            shopifyPublicCatalogClient.fetchCatalog().getOrDefault(emptyList())
+        val fallbackResult = if (resolvedItems.isEmpty() || (!isAdmin && !hasVisibleShopifyItems(resolvedItems, isAdmin = false))) {
+            shopifyPublicCatalogClient.fetchCatalog()
         } else {
-            emptyList()
+            Result.success(emptyList())
         }
+        val fallbackItems = fallbackResult.getOrDefault(emptyList())
         val visibleItems = if (fallbackItems.isNotEmpty()) fallbackItems else resolvedItems
+        val filteredItems = filterVisibleItems(visibleItems, isAdmin = isAdmin)
         _uiState.update {
             it.copy(
-                items = filterVisibleItems(visibleItems, isAdmin = isAdmin),
+                items = filteredItems,
+                isCatalogLoading = false,
                 isLoggedIn = user != null,
                 isAdmin = isAdmin,
-                errorMessage = itemsResult.exceptionOrNull()?.message,
+                selectedItem = it.selectedItem?.let { selected ->
+                    filteredItems.firstOrNull { item -> item.id == selected.id }
+                },
+                errorMessage = when {
+                    filteredItems.isNotEmpty() -> null
+                    fallbackResult.isFailure -> fallbackResult.exceptionOrNull()?.message
+                    itemsResult.isFailure -> itemsResult.exceptionOrNull()?.message
+                    else -> null
+                },
             )
         }
 
@@ -286,6 +303,7 @@ class ShopViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 isSyncingCatalog = true,
+                isCatalogLoading = true,
                 toastMessage = "Shopify-Katalog wird geladen...",
                 isErrorToast = false,
             )
@@ -300,9 +318,10 @@ class ShopViewModel : ViewModel() {
             _uiState.update {
                 it.copy(
                     items = filterVisibleItems(resolvedItems, isAdmin = user?.isPlatformOwner == true),
+                    isCatalogLoading = false,
                     isLoggedIn = user != null,
                     isAdmin = user?.isPlatformOwner == true,
-                    errorMessage = itemsResult.exceptionOrNull()?.message,
+                    errorMessage = if (resolvedItems.isNotEmpty()) null else itemsResult.exceptionOrNull()?.message,
                     isSyncingCatalog = false,
                     toastMessage = "Shopify-Katalog wurde neu geladen.",
                     isErrorToast = false,
@@ -312,6 +331,7 @@ class ShopViewModel : ViewModel() {
             val fallbackItems = shopifyPublicCatalogClient.fetchCatalog().getOrDefault(emptyList())
             _uiState.update {
                 it.copy(
+                    isCatalogLoading = false,
                     isSyncingCatalog = false,
                     items = if (fallbackItems.isNotEmpty()) {
                         allItems = fallbackItems
@@ -319,6 +339,7 @@ class ShopViewModel : ViewModel() {
                     } else {
                         it.items
                     },
+                    errorMessage = if (fallbackItems.isNotEmpty()) null else it.errorMessage,
                     toastMessage = if (fallbackItems.isNotEmpty()) {
                         "Shopify-Katalog direkt aus dem Store geladen."
                     } else {

@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -41,6 +42,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,7 +58,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.ArtistPageBrand
@@ -65,6 +66,7 @@ import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.data.mediaAttributionContext
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.EditableImageFieldCard
+import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
@@ -89,7 +91,7 @@ fun ArtistPageScreen(
     brand: ArtistPageBrand,
     onBack: () -> Unit,
 ) {
-    val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val currentUser = LocalSessionUser.current
     val pages by ArtistPagesStore.pages.collectAsState()
     val context = LocalContext.current
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
@@ -125,6 +127,9 @@ fun ArtistPageScreen(
     var activeImageUploadTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
     var feedbackMessage by remember(page.slug) { mutableStateOf<String?>(null) }
     var feedbackType by remember(page.slug) { mutableStateOf(ToastType.Info) }
+    var editingBaseProfileImageUrl by rememberSaveable(page.slug) { mutableStateOf(page.profileImageURL.orEmpty()) }
+    var editingBaseHeroImageUrl by rememberSaveable(page.slug) { mutableStateOf(page.heroImageURL.orEmpty()) }
+    val temporaryUploadedImageUrls = remember(page.slug) { mutableStateListOf<String>() }
 
     val spotlightTrack = remember(tracks, selectedTrackId) {
         tracks.firstOrNull { it.trackId == selectedTrackId } ?: tracks.firstOrNull()
@@ -148,6 +153,44 @@ fun ArtistPageScreen(
         }
     }
 
+    fun resetDraftsFromPage() {
+        taglineDraft = page.tagline.orEmpty()
+        bioDraft = page.bio.orEmpty()
+        profileImageDraft = page.profileImageURL.orEmpty()
+        heroImageDraft = page.heroImageURL.orEmpty()
+        instagramDraft = page.instagramURL.orEmpty()
+        spotifyDraft = page.spotifyURL.orEmpty()
+        youtubeDraft = page.youtubeURL.orEmpty()
+    }
+
+    fun beginEditing() {
+        editingBaseProfileImageUrl = page.profileImageURL.orEmpty()
+        editingBaseHeroImageUrl = page.heroImageURL.orEmpty()
+        temporaryUploadedImageUrls.clear()
+        resetDraftsFromPage()
+        pendingImageTarget = null
+        activeImageUploadTarget = null
+        isEditing = true
+    }
+
+    fun discardEditing() {
+        val cleanupUrls = temporaryUploadedImageUrls.toList()
+        temporaryUploadedImageUrls.clear()
+        resetDraftsFromPage()
+        pendingImageTarget = null
+        activeImageUploadTarget = null
+        isEditing = false
+        if (cleanupUrls.isNotEmpty()) {
+            coroutineScope.launch {
+                cleanupUrls.forEach { imageUrl ->
+                    runCatching { editableImageAssetRepository.deleteImageAsset(imageUrl) }
+                }
+            }
+        }
+        feedbackMessage = "Aenderungen verworfen."
+        feedbackType = ToastType.Info
+    }
+
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
@@ -163,9 +206,15 @@ fun ArtistPageScreen(
                 if (result.isSuccess) {
                     val uploadedImage = result.getOrNull()
                     if (uploadedImage != null) {
-                        applyEditableImageUrl(target, uploadedImage.downloadUrl)
                         if (previousImageUrl.isNotBlank() && previousImageUrl != uploadedImage.downloadUrl) {
-                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                            val removedTemporaryImage = temporaryUploadedImageUrls.remove(previousImageUrl)
+                            if (removedTemporaryImage) {
+                                editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                            }
+                        }
+                        applyEditableImageUrl(target, uploadedImage.downloadUrl)
+                        if (!temporaryUploadedImageUrls.contains(uploadedImage.downloadUrl)) {
+                            temporaryUploadedImageUrls.add(uploadedImage.downloadUrl)
                         }
                     }
                     feedbackMessage = "Bild hochgeladen und uebernommen."
@@ -202,13 +251,7 @@ fun ArtistPageScreen(
 
     LaunchedEffect(page.slug, page.updatedAtEpochMillis, isEditing) {
         if (!isEditing) {
-            taglineDraft = page.tagline.orEmpty()
-            bioDraft = page.bio.orEmpty()
-            profileImageDraft = page.profileImageURL.orEmpty()
-            heroImageDraft = page.heroImageURL.orEmpty()
-            instagramDraft = page.instagramURL.orEmpty()
-            spotifyDraft = page.spotifyURL.orEmpty()
-            youtubeDraft = page.youtubeURL.orEmpty()
+            resetDraftsFromPage()
         }
     }
 
@@ -262,9 +305,15 @@ fun ArtistPageScreen(
                 },
                 actions = {
                     if (canEdit) {
-                        Button(
-                            onClick = {
-                                if (isEditing) {
+                        if (isEditing) {
+                            TextButton(
+                                onClick = ::discardEditing,
+                                enabled = !isSaving && activeImageUploadTarget == null,
+                            ) {
+                                Text("Abbrechen")
+                            }
+                            Button(
+                                onClick = {
                                     coroutineScope.launch {
                                         isSaving = true
                                         val updatedPage = page.copy(
@@ -278,9 +327,32 @@ fun ArtistPageScreen(
                                             updatedAtEpochMillis = System.currentTimeMillis(),
                                             isPlaceholder = false,
                                         )
+                                        val savedImageUrls = setOfNotNull(
+                                            updatedPage.profileImageURL?.trimmedOrNull(),
+                                            updatedPage.heroImageURL?.trimmedOrNull(),
+                                        )
+                                        val cleanupUrls = buildSet {
+                                            editingBaseProfileImageUrl.trimmedOrNull()
+                                                ?.takeIf { it !in savedImageUrls }
+                                                ?.let(::add)
+                                            editingBaseHeroImageUrl.trimmedOrNull()
+                                                ?.takeIf { it !in savedImageUrls }
+                                                ?.let(::add)
+                                            temporaryUploadedImageUrls
+                                                .filter { it !in savedImageUrls }
+                                                .forEach(::add)
+                                        }
                                         val result = ArtistPagesStore.save(updatedPage)
                                         isSaving = false
                                         if (result.isSuccess) {
+                                            cleanupUrls.forEach { imageUrl ->
+                                                runCatching { editableImageAssetRepository.deleteImageAsset(imageUrl) }
+                                            }
+                                            temporaryUploadedImageUrls.clear()
+                                            editingBaseProfileImageUrl = updatedPage.profileImageURL.orEmpty()
+                                            editingBaseHeroImageUrl = updatedPage.heroImageURL.orEmpty()
+                                            pendingImageTarget = null
+                                            activeImageUploadTarget = null
                                             isEditing = false
                                             feedbackMessage = "Artist-Seite gespeichert."
                                             feedbackType = ToastType.Success
@@ -290,18 +362,28 @@ fun ArtistPageScreen(
                                             feedbackType = ToastType.Error
                                         }
                                     }
-                                } else {
-                                    isEditing = true
-                                }
-                            },
-                            enabled = !isSaving,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                        ) {
-                            Text(if (isEditing) "Speichern" else "Bearbeiten")
+                                },
+                                enabled = !isSaving && activeImageUploadTarget == null,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            ) {
+                                Text(if (isSaving) "Speichert..." else "Speichern")
+                            }
+                        } else {
+                            Button(
+                                onClick = ::beginEditing,
+                                enabled = !isSaving,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            ) {
+                                Text("Bearbeiten")
+                            }
                         }
                     }
                 },
@@ -380,6 +462,7 @@ fun ArtistPageScreen(
                                 title = "Profilbild",
                                 imageUrl = profileImageDraft,
                                 isUploading = activeImageUploadTarget == ArtistPageImageTarget.Profile,
+                                enabled = !isSaving && activeImageUploadTarget == null,
                                 uploadStatusText = "Profilbild wird fuer die Artist-Seite uebernommen.",
                                 onPickImage = {
                                     pendingImageTarget = ArtistPageImageTarget.Profile
@@ -391,17 +474,20 @@ fun ArtistPageScreen(
                                 onRemoveImage = {
                                     val previousImageUrl = profileImageDraft
                                     profileImageDraft = ""
-                                    coroutineScope.launch {
-                                        editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                        feedbackMessage = "Bild entfernt."
-                                        feedbackType = ToastType.Success
+                                    if (temporaryUploadedImageUrls.remove(previousImageUrl)) {
+                                        coroutineScope.launch {
+                                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                        }
                                     }
+                                    feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                    feedbackType = ToastType.Info
                                 },
                             )
                             EditableImageFieldCard(
                                 title = "Hero-Bild",
                                 imageUrl = heroImageDraft,
                                 isUploading = activeImageUploadTarget == ArtistPageImageTarget.Hero,
+                                enabled = !isSaving && activeImageUploadTarget == null,
                                 uploadStatusText = "Hero-Bild wird fuer die Artist-Seite uebernommen.",
                                 onPickImage = {
                                     pendingImageTarget = ArtistPageImageTarget.Hero
@@ -413,11 +499,13 @@ fun ArtistPageScreen(
                                 onRemoveImage = {
                                     val previousImageUrl = heroImageDraft
                                     heroImageDraft = ""
-                                    coroutineScope.launch {
-                                        editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                        feedbackMessage = "Bild entfernt."
-                                        feedbackType = ToastType.Success
+                                    if (temporaryUploadedImageUrls.remove(previousImageUrl)) {
+                                        coroutineScope.launch {
+                                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                        }
                                     }
+                                    feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                    feedbackType = ToastType.Info
                                 },
                             )
                             ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })

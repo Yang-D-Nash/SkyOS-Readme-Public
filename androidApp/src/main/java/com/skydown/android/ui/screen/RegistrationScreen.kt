@@ -20,6 +20,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -42,9 +44,11 @@ import com.skydown.android.ui.viewmodel.RegistrationViewModel
 @Composable
 fun RegistrationScreen(
     onClose: () -> Unit,
+    onBusyStateChanged: (Boolean) -> Unit = {},
     viewModel: RegistrationViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isAuthBusy = uiState.isLoading || uiState.isGoogleLoading
     val context = LocalContext.current
     val googleClient = remember(context) { GoogleSignInManager.client(context) }
     val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -69,6 +73,16 @@ fun RegistrationScreen(
         } catch (exception: ApiException) {
             googleClient.signOut()
             viewModel.onGoogleSignInCancelled(exception.toReadableGoogleMessage())
+        }
+    }
+
+    LaunchedEffect(isAuthBusy) {
+        onBusyStateChanged(isAuthBusy)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onBusyStateChanged(false)
         }
     }
 
@@ -106,7 +120,7 @@ fun RegistrationScreen(
                 )
                 TextButton(
                     onClick = onClose,
-                    enabled = !uiState.isLoading && !uiState.isGoogleLoading,
+                    enabled = !isAuthBusy,
                 ) {
                     Text("Schliessen")
                 }
@@ -186,7 +200,7 @@ fun RegistrationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                    enabled = !uiState.isLoading && !uiState.isGoogleLoading,
+                    enabled = !isAuthBusy,
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(if (uiState.isLoading) "Registrieren..." else "Registrieren")
@@ -205,7 +219,7 @@ fun RegistrationScreen(
                         }
                     },
                     modifier = Modifier.padding(top = 12.dp),
-                    enabled = !uiState.isLoading && !uiState.isGoogleLoading,
+                    enabled = !isAuthBusy,
                 )
                 Text(
                     text = "Beim ersten Google-Login wird dein Konto automatisch angelegt. Ein eingetragener Benutzername wird direkt uebernommen.",

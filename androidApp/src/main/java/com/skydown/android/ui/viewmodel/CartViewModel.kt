@@ -8,6 +8,7 @@ import com.skydown.android.data.HostedCheckoutSession
 import com.skydown.android.data.ShippingService
 import com.skydown.android.ui.model.CartUiState
 import com.google.firebase.firestore.ListenerRegistration
+import com.skydown.shared.model.CartItem
 import com.skydown.shared.model.ContactRequest
 import com.skydown.shared.model.OrderSubmission
 import com.skydown.shared.model.ShippingAddressData
@@ -29,6 +30,7 @@ class CartViewModel : ViewModel() {
     private var commerceSettingsListener: ListenerRegistration? = null
     private var merchStoreStatusListener: ListenerRegistration? = null
     private var paymentMethodsListener: ListenerRegistration? = null
+    private var pendingHostedCheckoutItems: List<CartItem>? = null
     private val _uiState = MutableStateFlow(
         CartUiState(
             isLoggedIn = false,
@@ -38,7 +40,6 @@ class CartViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            AppContainer.refreshCurrentUser()
             AppContainer.currentUser.collect { user ->
                 _uiState.update {
                     it.copy(
@@ -221,6 +222,7 @@ class CartViewModel : ViewModel() {
         )
         val result = orderService.submitOrder(submission)
         if (result.isSuccess) {
+            pendingHostedCheckoutItems = null
             AppCartStore.clear()
         }
         _uiState.update {
@@ -307,6 +309,7 @@ class CartViewModel : ViewModel() {
             platform = "android",
         )
         if (result.isSuccess) {
+            pendingHostedCheckoutItems = state.items
             AppCartStore.clear()
         }
         _uiState.update {
@@ -326,10 +329,23 @@ class CartViewModel : ViewModel() {
     }
 
     fun handleCheckoutRedirect(status: com.skydown.android.data.CheckoutRedirectStatus) {
+        val restoredItems = if (status == com.skydown.android.data.CheckoutRedirectStatus.Cancel) {
+            pendingHostedCheckoutItems
+        } else {
+            null
+        }
+        if (restoredItems != null && _uiState.value.items.isEmpty()) {
+            AppCartStore.setItems(restoredItems)
+        }
         _uiState.update {
             it.copy(
+                items = if (restoredItems != null && it.items.isEmpty()) restoredItems else it.items,
                 errorMessage = when (status) {
-                    com.skydown.android.data.CheckoutRedirectStatus.Cancel -> "Checkout abgebrochen. Die Bestellung bleibt unbezahlt."
+                    com.skydown.android.data.CheckoutRedirectStatus.Cancel -> if (restoredItems != null) {
+                        "Checkout abgebrochen. Dein Warenkorb wurde wiederhergestellt."
+                    } else {
+                        "Checkout abgebrochen. Die Bestellung bleibt unbezahlt."
+                    }
                     com.skydown.android.data.CheckoutRedirectStatus.Success -> null
                 },
                 successMessage = when (status) {
@@ -338,6 +354,7 @@ class CartViewModel : ViewModel() {
                 },
             )
         }
+        pendingHostedCheckoutItems = null
     }
 
     fun clearMessages() {

@@ -4,6 +4,7 @@ import com.skydown.shared.model.MerchandiseItem
 
 data class ShopUiState(
     val items: List<MerchandiseItem> = emptyList(),
+    val isCatalogLoading: Boolean = true,
     val isStoreOpen: Boolean = true,
     val isLoggedIn: Boolean = false,
     val isAdmin: Boolean = false,

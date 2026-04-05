@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -92,10 +93,12 @@ import com.skydown.android.ui.component.openTrackInSpotify
 import com.skydown.android.ui.model.MusicUiState
 import com.skydown.android.ui.model.MusicInstagramDestination
 import com.skydown.android.ui.theme.ArenaGold
+import com.skydown.android.ui.theme.DexBlueDeep
 import com.skydown.android.ui.theme.FieldMint
 import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.viewmodel.MusicViewModel
+import coil3.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -131,6 +134,10 @@ fun MusicScreen(
         artistPages
             .filter { it.brand == ArtistPageBrand.Zweizwei }
             .associateBy { it.artistName }
+    }
+    val selectedArtistPage = remember(artistPagesByName, uiState.selectedArtist) {
+        artistPagesByName[uiState.selectedArtist]
+            ?: ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, uiState.selectedArtist)
     }
 
     DisposableEffect(player) {
@@ -325,6 +332,9 @@ fun MusicScreen(
                     ),
                 ),
         ) {
+            MusicStageBackdrop(
+                modifier = Modifier.fillMaxSize(),
+            )
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = skydownContentPadding(innerPadding),
@@ -337,8 +347,10 @@ fun MusicScreen(
                 }
 
                 item {
-                    MusicConnectionCard(
+                    MusicSpotlightDeckCard(
                         uiState = uiState,
+                        selectedTrack = selectedTrack,
+                        artistPage = selectedArtistPage,
                         onOpenInstagram = {
                             uiState.selectedArtistSocialProfile?.let { socialProfile ->
                                 openExternalLink(context, socialProfile.instagramUrl)
@@ -354,6 +366,9 @@ fun MusicScreen(
                             player.stop()
                             player.clearMediaItems()
                             viewModel.disconnectSpotify()
+                        },
+                        onOpenArtistPage = {
+                            onOpenArtistPage?.invoke(uiState.selectedArtist)
                         },
                     )
                 }
@@ -585,6 +600,7 @@ private fun MusicPlayerCard(
     val hasDirectSpotifyTrack = musicScreenResolvedSpotifyTrackId(track.spotifyTrackId, track.externalUrl) != null
     val hasSpotifyArtistLink = musicScreenResolvedSpotifyArtistId(track.spotifyArtistId, track.externalUrl) != null && !hasDirectSpotifyTrack
     val hasSpotifySearch = !track.externalUrl.isNullOrBlank() && !hasDirectSpotifyTrack && !hasSpotifyArtistLink
+    val hasPreview = !track.previewUrl.isNullOrBlank()
 
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         val playerAccent = if (!track.spotifyTrackId.isNullOrBlank()) SpotifyGreen else MaterialTheme.colorScheme.primary
@@ -600,8 +616,15 @@ private fun MusicPlayerCard(
         Row(
             modifier = Modifier.padding(top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            MusicSpotlightArtwork(
+                imageUrl = track.artworkUrl100,
+                accent = playerAccent,
+                frameSize = 88.dp,
+                modifier = Modifier.size(88.dp),
+            )
+
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -623,23 +646,39 @@ private fun MusicPlayerCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                     )
                 }
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(
-                        playerAccent.copy(alpha = 0.16f),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = playerAccent,
+                Text(
+                    text = when {
+                        hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
+                        hasPreview -> "Der Track hat eine direkte Preview im Deck."
+                        hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
+                            "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
+                        else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Deck bereit."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                 )
             }
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MusicBadge(
+                text = if (hasPreview) "Preview" else "No Preview",
+                imageVector = if (hasPreview) Icons.Default.PlayArrow else Icons.Default.Refresh,
+                isActive = hasPreview,
+            )
+            MusicBadge(
+                text = if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) "Spotify" else "Deck only",
+                imageVector = Icons.Default.MusicNote,
+                isActive = hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch,
+            )
+            MusicBadge(
+                text = if (isPlaying) "Live" else "Ready",
+                imageVector = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.Sync,
+                isActive = isPlaying,
+            )
         }
 
         Row(
@@ -648,7 +687,7 @@ private fun MusicPlayerCard(
                 .padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            if (!track.previewUrl.isNullOrBlank()) {
+            if (hasPreview) {
                 BrandActionButton(
                     text = if (isPlaying) "Stop" else "Preview",
                     onClick = onPlayToggle,
@@ -664,7 +703,7 @@ private fun MusicPlayerCard(
                     text = "Spotify",
                     onClick = onOpenSpotify,
                     accent = SpotifyGreen,
-                    modifier = if (!track.previewUrl.isNullOrBlank()) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                    modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
                     icon = Icons.Default.MusicNote,
                 )
             } else if (hasSpotifyArtistLink || hasSpotifySearch) {
@@ -672,7 +711,7 @@ private fun MusicPlayerCard(
                     text = "Spotify",
                     onClick = onOpenSpotify,
                     accent = SpotifyGreen,
-                    modifier = if (!track.previewUrl.isNullOrBlank()) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                    modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
                     icon = Icons.Default.MusicNote,
                     filled = false,
                 )
@@ -687,12 +726,7 @@ private fun MusicOverviewCard(
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     val socialProfile = uiState.selectedArtistSocialProfile
-    val trackLabel = when {
-        uiState.isLoading -> "Katalog wird geladen"
-        uiState.tracks.isEmpty() -> "Noch keine Tracks"
-        uiState.tracks.size == 1 -> "1 Track"
-        else -> "${uiState.tracks.size} Tracks"
-    }
+    val trackLabel = musicTrackLabel(uiState)
     BrandHeroCard(
         eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SKY²²" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
@@ -777,63 +811,336 @@ private fun musicHeroStatusValue(uiState: MusicUiState): String {
     }
 }
 
+private fun musicTrackLabel(uiState: MusicUiState): String {
+    return when {
+        uiState.isLoading -> "Katalog wird geladen"
+        uiState.tracks.isEmpty() -> "Noch keine Tracks"
+        uiState.tracks.size == 1 -> "1 Track"
+        else -> "${uiState.tracks.size} Tracks"
+    }
+}
+
 @Composable
-private fun MusicConnectionCard(
+private fun MusicStageBackdrop(
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        MusicBackdropHalo(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 26.dp, end = 8.dp),
+            size = 220.dp,
+            tint = SpotifyGreen.copy(alpha = 0.10f),
+        )
+        MusicBackdropHalo(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 0.dp, bottom = 64.dp),
+            size = 210.dp,
+            tint = ArenaGold.copy(alpha = 0.08f),
+        )
+        MusicBackdropHalo(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 10.dp, bottom = 110.dp),
+            size = 240.dp,
+            tint = FieldMint.copy(alpha = 0.07f),
+        )
+    }
+}
+
+@Composable
+private fun MusicBackdropHalo(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp,
+    tint: Color,
+) {
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center,
+    ) {
+        listOf(1f, 0.72f, 0.46f).forEachIndexed { index, scale ->
+            Box(
+                modifier = Modifier
+                    .size(size * scale)
+                    .border(
+                        width = 1.dp,
+                        color = tint.copy(alpha = 0.20f - (index * 0.04f)),
+                        shape = CircleShape,
+                    ),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(size * 0.16f)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            tint.copy(alpha = 0.28f),
+                            tint.copy(alpha = 0.08f),
+                            Color.Transparent,
+                        ),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+    }
+}
+
+@Composable
+private fun MusicSpotlightDeckCard(
     uiState: MusicUiState,
+    selectedTrack: com.skydown.shared.model.Track?,
+    artistPage: com.skydown.android.data.ArtistPageUi,
     onOpenInstagram: () -> Unit,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
+    onOpenArtistPage: () -> Unit,
 ) {
     val socialProfile = uiState.selectedArtistSocialProfile
-    val connectionSubtitle = if (socialProfile != null) {
-        "${uiState.selectedArtist} auf Instagram und Spotify direkt steuern."
+    val trackLabel = musicTrackLabel(uiState)
+    val heroImage = artistPage.heroImageURL ?: selectedTrack?.artworkUrl100
+    val spotlightSubtitle = if (socialProfile != null) {
+        "${uiState.selectedArtist} ist im Fokus. Socials, Artist-Page und Spotify liegen direkt in Reichweite."
     } else {
-        "Spotify Verbindung direkt unter dem Header verwalten."
+        "${uiState.selectedArtist} ist im Fokus. Die Stage bleibt offen fuer Artist-Page und Spotify."
     }
-    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
         BrandSectionBanner(
-            title = "Connections",
-            subtitle = connectionSubtitle,
-            accent = FieldMint,
-            icon = Icons.Default.Sync,
-            tag = "SYNC",
+            title = "Artist Deck",
+            subtitle = spotlightSubtitle,
+            accent = SpotifyGreen,
+            icon = Icons.Default.AutoAwesome,
+            tag = "SPOTLIGHT",
         )
 
-        socialProfile?.let {
-            BrandActionButton(
-                text = it.handle,
-                onClick = onOpenInstagram,
-                accent = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                icon = Icons.Default.CameraAlt,
-                filled = false,
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MusicSpotlightArtwork(
+                imageUrl = heroImage,
+                accent = if (uiState.isSpotifyConnected) SpotifyGreen else ArenaGold,
+                frameSize = 110.dp,
+                modifier = Modifier.size(110.dp),
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = uiState.selectedArtist,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                )
+                Text(
+                    text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Deck",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                )
+                Text(
+                    text = artistPage.bio ?: selectedTrack?.trackName?.let { "Aktueller Fokus: $it" }
+                        ?: "Die Stage bleibt bereit fuer Releases, Clips und Social Touchpoints.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
+            BrandPill(text = trackLabel, tint = ArenaGold)
+            BrandPill(
+                text = if (uiState.isSpotifyConnected) "Deck live" else "Deck standby",
+                tint = if (uiState.isSpotifyConnected) FieldMint else MaterialTheme.colorScheme.secondary,
             )
         }
 
-        if (uiState.isSpotifyConnected) {
-            BrandActionButton(
-                text = "Spotify trennen",
-                onClick = onDisconnect,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            MusicDeckMetricCard(
+                label = "Lead Track",
+                value = selectedTrack?.trackName ?: "Kein Track",
                 accent = SpotifyGreen,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                icon = Icons.AutoMirrored.Filled.Logout,
-                filled = false,
+                modifier = Modifier.weight(1f),
             )
-        } else {
-            BrandActionButton(
-                text = "Spotify",
-                onClick = onConnect,
-                accent = SpotifyGreen,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                icon = Icons.Default.MusicNote,
+            MusicDeckMetricCard(
+                label = "Links",
+                value = buildString {
+                    append(if (socialProfile != null) "IG" else "Feed")
+                    append(" / ")
+                    append(if (!artistPage.spotifyURL.isNullOrBlank()) "Spotify" else "Page")
+                },
+                accent = ArenaGold,
+                modifier = Modifier.weight(1f),
+            )
+            MusicDeckMetricCard(
+                label = "Status",
+                value = musicHeroStatusValue(uiState),
+                accent = FieldMint,
+                modifier = Modifier.weight(1f),
             )
         }
+
+        Column(
+            modifier = Modifier.padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            socialProfile?.let {
+                BrandActionButton(
+                    text = it.handle,
+                    onClick = onOpenInstagram,
+                    accent = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Default.CameraAlt,
+                    filled = false,
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                BrandActionButton(
+                    text = if (uiState.isSpotifyConnected) "Spotify trennen" else "Spotify verbinden",
+                    onClick = if (uiState.isSpotifyConnected) onDisconnect else onConnect,
+                    accent = SpotifyGreen,
+                    modifier = Modifier.weight(1f),
+                    icon = if (uiState.isSpotifyConnected) {
+                        Icons.AutoMirrored.Filled.Logout
+                    } else {
+                        Icons.Default.MusicNote
+                    },
+                    filled = !uiState.isSpotifyConnected,
+                )
+
+                BrandActionButton(
+                    text = "Artist Page",
+                    onClick = onOpenArtistPage,
+                    accent = ArenaGold,
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Default.AutoAwesome,
+                    filled = false,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MusicSpotlightArtwork(
+    imageUrl: String?,
+    accent: Color,
+    frameSize: androidx.compose.ui.unit.Dp = 110.dp,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        listOf(1f, 0.80f, 0.58f).forEachIndexed { index, scale ->
+            Box(
+                modifier = Modifier
+                    .size(frameSize * scale)
+                    .border(
+                        width = 1.dp,
+                        color = accent.copy(alpha = 0.28f - (index * 0.05f)),
+                        shape = CircleShape,
+                    ),
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .size(frameSize * 0.78f)
+                .clip(RoundedCornerShape(26.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            DexBlueDeep.copy(alpha = 0.96f),
+                            accent.copy(alpha = 0.26f),
+                            ArenaGold.copy(alpha = 0.18f),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = accent.copy(alpha = 0.28f),
+                    shape = RoundedCornerShape(26.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (!imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(25.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(34.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MusicDeckMetricCard(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        DexBlueDeep.copy(alpha = 0.90f),
+                        accent.copy(alpha = 0.18f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.22f),
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.66f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -889,45 +1196,113 @@ private fun ArtistPagerCard(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                                DexBlueDeep.copy(alpha = 0.96f),
+                                ArenaGold.copy(alpha = 0.14f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
                             ),
                         ),
                     )
-                    .padding(18.dp),
+                    .border(
+                        width = 1.dp,
+                        color = ArenaGold.copy(alpha = 0.20f),
+                        shape = RoundedCornerShape(24.dp),
+                    )
+                    .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(168.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    DexBlueDeep.copy(alpha = 0.98f),
+                                    ArenaGold.copy(alpha = 0.20f),
+                                    SpotifyGreen.copy(alpha = 0.16f),
+                                ),
+                            ),
+                        ),
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    if (!page.heroImageURL.isNullOrBlank()) {
+                        AsyncImage(
+                            model = page.heroImageURL,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.30f)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.18f),
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.54f),
+                                    ),
+                                ),
+                            ),
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
                         Text(
                             text = artist,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.White,
                             fontWeight = FontWeight.Black,
                         )
                         Text(
                             text = page.tagline ?: "ZweiZwei Artist",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            color = Color.White.copy(alpha = 0.78f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
 
                     if (page.hasCustomPresentation) {
                         Box(
                             modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(14.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
+                                .background(ArenaGold)
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text(
                                 text = "Live",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = DexBlueDeep,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        BrandPill(text = "Artist Deck", tint = ArenaGold)
+                        BrandPill(
+                            text = if (!page.spotifyURL.isNullOrBlank()) "Spotify" else "Direct",
+                            tint = SpotifyGreen,
+                        )
                     }
                 }
 
@@ -936,7 +1311,29 @@ private fun ArtistPagerCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    MusicDeckMetricCard(
+                        label = "Tag",
+                        value = page.tagline ?: "Artist ready",
+                        accent = ArenaGold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MusicDeckMetricCard(
+                        label = "Reach",
+                        value = buildString {
+                            append(if (!page.instagramURL.isNullOrBlank()) "IG" else "Feed")
+                            append(" / ")
+                            append(if (!page.youtubeURL.isNullOrBlank()) "YT" else "Page")
+                        },
+                        accent = SpotifyGreen,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (!page.spotifyURL.isNullOrBlank()) {
@@ -1107,8 +1504,8 @@ private fun MusicStatusCard(
                 icon = if (loading) Icons.Default.Sync else Icons.Default.Refresh,
                 filled = false,
             )
+        }
     }
-}
 }
 
 
