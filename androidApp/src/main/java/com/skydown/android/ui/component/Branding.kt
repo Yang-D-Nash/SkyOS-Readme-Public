@@ -115,14 +115,13 @@ fun BrandHeroCard(
         if (hasBackgroundImage) {
             BoxWithConstraints(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(horizontal = 10.dp, vertical = 8.dp),
             ) {
-                val imageFrameHeight = minOf(maxHeight, maxWidth / imageAspectRatio)
+                val imageFrameHeight = maxWidth / imageAspectRatio
 
                 Box(
                     modifier = Modifier
-                        .align(Alignment.Center)
                         .fillMaxWidth()
                         .height(imageFrameHeight)
                         .clip(imageShape),
