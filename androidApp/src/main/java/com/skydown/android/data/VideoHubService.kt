@@ -198,6 +198,7 @@ class VideoHubService(
                 "id" to item.id,
                 "title" to item.title,
                 "subtitle" to item.subtitle,
+                "highlight" to item.highlight,
                 "url" to item.url,
             )
         }
@@ -431,6 +432,7 @@ class VideoHubService(
         val map = value ?: return null
         val title = (map["title"] as? String)?.trim().orEmpty()
         val subtitle = (map["subtitle"] as? String)?.trim().orEmpty()
+        val highlight = (map["highlight"] as? String)?.trim().orEmpty()
         val url = ((map["url"] as? String) ?: (map["urlString"] as? String)).orEmpty().trim()
         if (title.isBlank() || url.isBlank()) return null
 
@@ -438,6 +440,7 @@ class VideoHubService(
             id = ((map["id"] as? String)?.trim()).takeUnless { it.isNullOrBlank() } ?: UUID.randomUUID().toString(),
             title = title,
             subtitle = subtitle,
+            highlight = highlight,
             url = url,
         )
     }

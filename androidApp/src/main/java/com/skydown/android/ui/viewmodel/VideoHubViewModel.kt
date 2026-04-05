@@ -437,6 +437,7 @@ class VideoHubViewModel(
                         id = java.util.UUID.randomUUID().toString(),
                         title = "",
                         subtitle = "",
+                        highlight = "",
                         url = "",
                     ),
                 ),
@@ -448,6 +449,7 @@ class VideoHubViewModel(
         itemId: String,
         title: String? = null,
         subtitle: String? = null,
+        highlight: String? = null,
         url: String? = null,
     ) {
         _uiState.update { state ->
@@ -460,6 +462,7 @@ class VideoHubViewModel(
                             item.copy(
                                 title = title ?: item.title,
                                 subtitle = subtitle ?: item.subtitle,
+                                highlight = highlight ?: item.highlight,
                                 url = url ?: item.url,
                             )
                         }
@@ -516,6 +519,7 @@ class VideoHubViewModel(
                     id = java.util.UUID.randomUUID().toString(),
                     title = draftTitle.ifBlank { "YouTube Video ${state.publicConfig.youtubeItems.size + index + 1}" },
                     subtitle = "",
+                    highlight = "",
                     url = normalizedUrl,
                 )
             }
@@ -634,6 +638,7 @@ class VideoHubViewModel(
         val sanitizedYouTube = _uiState.value.publicConfig.youtubeItems.mapIndexedNotNull { index, item ->
             val title = item.title.trim()
             val subtitle = item.subtitle.trim()
+            val highlight = item.highlight.trim()
             val url = resolveYouTubeExternalUrl(item.url.trim())
             if (url.isNullOrBlank()) {
                 null
@@ -641,6 +646,7 @@ class VideoHubViewModel(
                 item.copy(
                     title = title.ifBlank { "YouTube Video ${index + 1}" },
                     subtitle = subtitle,
+                    highlight = highlight,
                     url = url,
                 )
             }

@@ -86,9 +86,11 @@ import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandHeroMetricCard
+import com.skydown.android.ui.component.BrandPreviewFrame
 import com.skydown.android.ui.component.BrandSectionBanner
 import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.BrandPill
+import com.skydown.android.ui.component.ExternalVideoWebPlayer
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
@@ -1192,41 +1194,6 @@ private data class HomeRadarSignal(
 )
 
 @Composable
-private fun HomePreviewFrame(
-    accent: Color,
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        accent.copy(alpha = 0.20f),
-                        ArenaGold.copy(alpha = 0.12f),
-                        DexBlue.copy(alpha = 0.10f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = 0.24f),
-                shape = RoundedCornerShape(24.dp),
-            )
-            .padding(4.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f)),
-            content = content,
-        )
-    }
-}
-
-@Composable
 private fun HomeLatestReleaseCard(
     uiState: HomeUiState,
     isPlaying: Boolean,
@@ -1258,7 +1225,7 @@ private fun HomeLatestReleaseCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            HomePreviewFrame(
+            BrandPreviewFrame(
                 accent = SpotifyGreen,
                 modifier = Modifier
                     .size(86.dp),
@@ -1399,7 +1366,7 @@ private fun HomeLatestBeatCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            HomePreviewFrame(
+            BrandPreviewFrame(
                 accent = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier
                     .size(86.dp),
@@ -1521,7 +1488,7 @@ private fun HomeLatestVideoCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            HomePreviewFrame(
+            BrandPreviewFrame(
                 accent = InstagramOrange,
                 modifier = Modifier
                     .size(86.dp),

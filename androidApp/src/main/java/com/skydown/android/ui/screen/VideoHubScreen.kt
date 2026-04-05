@@ -1,10 +1,6 @@
 package com.skydown.android.ui.screen
 
-import android.annotation.SuppressLint
 import android.content.Intent
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -100,9 +96,11 @@ import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandHeroMetricCard
+import com.skydown.android.ui.component.BrandPreviewFrame
 import com.skydown.android.ui.component.BrandSectionBanner
 import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.BrandPill
+import com.skydown.android.ui.component.ExternalVideoWebPlayer
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
@@ -483,6 +481,9 @@ fun VideoHubScreen(
                             onUpdateYouTubeSubtitle = { itemId, value ->
                                 viewModel.updateYouTubeItem(itemId, subtitle = value)
                             },
+                            onUpdateYouTubeHighlight = { itemId, value ->
+                                viewModel.updateYouTubeItem(itemId, highlight = value)
+                            },
                             onUpdateYouTubeUrl = { itemId, value ->
                                 viewModel.updateYouTubeItem(itemId, url = value)
                             },
@@ -709,42 +710,6 @@ private fun VideoHubSectionBanner(
         icon = icon,
         tag = tag,
     )
-}
-
-@Composable
-private fun VideoHubPreviewFrame(
-    accent: Color,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        accent.copy(alpha = 0.18f),
-                        ArenaGold.copy(alpha = 0.12f),
-                        DexBlue.copy(alpha = 0.10f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = 0.24f),
-                shape = RoundedCornerShape(22.dp),
-            )
-            .padding(4.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(18.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f)),
-        ) {
-            content()
-        }
-    }
 }
 
 @Composable
@@ -1074,16 +1039,28 @@ private fun VideoYouTubeSpotlightCard(
             fontWeight = FontWeight.Black,
         )
 
-        if (item.subtitle.isNotBlank()) {
+        if (item.highlight.isNotBlank()) {
             Text(
-                text = item.subtitle,
+                text = item.highlight,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.78f),
             )
         }
 
+        if (item.subtitle.isNotBlank()) {
+            Text(
+                text = item.subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.72f),
+            )
+        }
+
         Text(
-            text = "Mehrere YouTube-Videos sind jetzt direkt als eigene Watch-Zone im Hub sichtbar.",
+            text = if (item.highlight.isNotBlank()) {
+                "Das Highlight ist direkt im Hub hinterlegt und sofort abspielbar."
+            } else {
+                "Mehrere YouTube-Videos sind jetzt direkt als eigene Watch-Zone im Hub sichtbar."
+            },
             style = MaterialTheme.typography.bodySmall,
             color = Color.White.copy(alpha = 0.70f),
         )
@@ -1124,7 +1101,7 @@ private fun VideoEquipmentRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        VideoHubPreviewFrame(
+        BrandPreviewFrame(
             accent = DexBlue,
             modifier = Modifier
                 .size(76.dp),
@@ -1196,6 +1173,7 @@ private fun VideoPublicConfigEditorCard(
     onAddYouTubeBatch: (String) -> Unit,
     onUpdateYouTubeTitle: (String, String) -> Unit,
     onUpdateYouTubeSubtitle: (String, String) -> Unit,
+    onUpdateYouTubeHighlight: (String, String) -> Unit,
     onUpdateYouTubeUrl: (String, String) -> Unit,
     onRemoveYouTube: (String) -> Unit,
     onAddCollaboration: () -> Unit,
@@ -1429,6 +1407,13 @@ private fun VideoPublicConfigEditorCard(
                                 onValueChange = { onUpdateYouTubeSubtitle(item.id, it) },
                                 label = { Text("Untertitel (optional)") },
                                 modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedTextField(
+                                value = item.highlight,
+                                onValueChange = { onUpdateYouTubeHighlight(item.id, it) },
+                                label = { Text("Highlight (optional)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2,
                             )
                             OutlinedTextField(
                                 value = item.url,
@@ -1776,6 +1761,7 @@ private fun ProducedWithArtistRow(
                                     id = "collab-${artist.id}",
                                     title = artist.name,
                                     subtitle = artist.highlight.ifBlank { artist.role },
+                                    highlight = artist.highlight,
                                     url = youtubeUrl,
                                 ),
                             )
@@ -1847,7 +1833,7 @@ private fun VideoYouTubeRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        VideoHubPreviewFrame(
+        BrandPreviewFrame(
             accent = YouTubeRed,
             modifier = Modifier.size(88.dp),
         ) {
@@ -1910,8 +1896,19 @@ private fun VideoYouTubeRow(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
+            if (item.highlight.isNotBlank()) {
+                Text(
+                    text = item.highlight,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                )
+            }
             Text(
-                text = "Direkt im Dialog oder extern in YouTube.",
+                text = if (item.highlight.isNotBlank()) {
+                    "Direkt im Dialog, extern in YouTube und mit eigenem Highlight im Feed."
+                } else {
+                    "Direkt im Dialog oder extern in YouTube."
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
             )
@@ -2147,7 +2144,7 @@ private fun VideoPlayerCard(
             return@SkydownCard
         }
 
-        VideoHubPreviewFrame(
+        BrandPreviewFrame(
             accent = videoHubProviderAccent(video),
             modifier = Modifier
                 .fillMaxWidth()
@@ -2410,7 +2407,7 @@ private fun VideoLibraryRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            VideoHubPreviewFrame(
+            BrandPreviewFrame(
                 accent = videoHubProviderAccent(video),
                 modifier = Modifier
                     .size(64.dp),
@@ -2733,127 +2730,6 @@ private fun VideoReelViewerDialog(
             }
         }
     }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-fun ExternalVideoWebPlayer(
-    url: String,
-    modifier: Modifier = Modifier,
-) {
-    val playerSource = remember(url) { externalVideoWebPlayerSource(url) }
-
-    AndroidView(
-        modifier = modifier,
-        factory = { playerContext ->
-            WebView(playerContext).apply {
-                webViewClient = WebViewClient()
-                webChromeClient = WebChromeClient()
-                settings.javaScriptEnabled = true
-                settings.mediaPlaybackRequiresUserGesture = false
-                settings.domStorageEnabled = true
-                settings.javaScriptCanOpenWindowsAutomatically = true
-                settings.loadsImagesAutomatically = true
-                settings.useWideViewPort = true
-                settings.loadWithOverviewMode = true
-                setBackgroundColor(android.graphics.Color.BLACK)
-
-                if (playerSource.html != null) {
-                    loadDataWithBaseURL(
-                        playerSource.baseUrl,
-                        playerSource.html,
-                        "text/html",
-                        "utf-8",
-                        null,
-                    )
-                    tag = playerSource.renderKey
-                } else if (playerSource.url != null) {
-                    loadUrl(playerSource.url)
-                    tag = playerSource.renderKey
-                }
-            }
-        },
-        update = { webView ->
-            if (webView.tag != playerSource.renderKey) {
-                webView.tag = playerSource.renderKey
-                if (playerSource.html != null) {
-                    webView.loadDataWithBaseURL(
-                        playerSource.baseUrl,
-                        playerSource.html,
-                        "text/html",
-                        "utf-8",
-                        null,
-                    )
-                } else if (playerSource.url != null && webView.url != playerSource.url) {
-                    webView.loadUrl(playerSource.url)
-                }
-            }
-        },
-    )
-}
-
-private data class ExternalVideoWebPlayerSource(
-    val url: String?,
-    val html: String?,
-    val baseUrl: String?,
-    val renderKey: String,
-)
-
-private fun externalVideoWebPlayerSource(rawUrl: String): ExternalVideoWebPlayerSource {
-    val youtubeEmbedUrl = resolveYouTubeEmbedUrl(rawUrl)
-    if (youtubeEmbedUrl != null) {
-        val html = """
-            <!doctype html>
-            <html>
-              <head>
-                <meta charset="utf-8" />
-                <meta
-                  name="viewport"
-                  content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
-                />
-                <style>
-                  html, body {
-                    margin: 0;
-                    padding: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: #000;
-                    overflow: hidden;
-                  }
-                  iframe {
-                    width: 100%;
-                    height: 100%;
-                    border: 0;
-                    background: #000;
-                  }
-                </style>
-              </head>
-              <body>
-                <iframe
-                  src="$youtubeEmbedUrl"
-                  title="YouTube video player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerpolicy="origin"
-                  allowfullscreen>
-                </iframe>
-              </body>
-            </html>
-        """.trimIndent()
-
-        return ExternalVideoWebPlayerSource(
-            url = null,
-            html = html,
-            baseUrl = "https://www.youtube.com",
-            renderKey = youtubeEmbedUrl,
-        )
-    }
-
-    return ExternalVideoWebPlayerSource(
-        url = rawUrl,
-        html = null,
-        baseUrl = null,
-        renderKey = rawUrl,
-    )
 }
 
 private fun videoHubProviderAccent(video: VideoHubItem): Color {
