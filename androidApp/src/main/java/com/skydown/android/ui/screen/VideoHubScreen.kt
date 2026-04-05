@@ -121,7 +121,6 @@ import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.InstagramPink
 import com.skydown.android.ui.theme.InstagramPurple
 import com.skydown.android.ui.theme.SpotifyGreen
-import com.skydown.android.ui.theme.YouTubeDeepRed
 import com.skydown.android.ui.theme.YouTubeRed
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
 import coil3.compose.AsyncImage
@@ -498,9 +497,6 @@ fun VideoHubScreen(
                             },
                             onUpdateCollaborationInstagramUrl = { itemId, value ->
                                 viewModel.updateCollaborationItem(itemId, instagramUrl = value)
-                            },
-                            onUpdateCollaborationYouTubeUrl = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, youtubeUrl = value)
                             },
                             onRemoveCollaboration = viewModel::removeCollaborationItem,
                             onSave = viewModel::savePublicConfig,
@@ -937,7 +933,6 @@ private fun VideoPublicConfigEditorCard(
     onRemoveCollaborationImage: (String) -> Unit,
     onUpdateCollaborationSpotifyArtistId: (String, String) -> Unit,
     onUpdateCollaborationInstagramUrl: (String, String) -> Unit,
-    onUpdateCollaborationYouTubeUrl: (String, String) -> Unit,
     onRemoveCollaboration: (String) -> Unit,
     onSave: () -> Unit,
 ) {
@@ -1133,12 +1128,6 @@ private fun VideoPublicConfigEditorCard(
                             value = item.instagramUrl.orEmpty(),
                             onValueChange = { onUpdateCollaborationInstagramUrl(item.id, it) },
                             label = { Text("Instagram URL") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = item.youtubeUrl.orEmpty(),
-                            onValueChange = { onUpdateCollaborationYouTubeUrl(item.id, it) },
-                            label = { Text("YouTube URL") },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedButton(
@@ -1360,19 +1349,6 @@ private fun ProducedWithArtistRow(
                         onClick = { onOpenLink(instagramUrl) },
                     )
                 }
-                artist.youtubeUrl?.takeIf { it.isNotBlank() }?.let { youtubeUrl ->
-                    SocialActionChip(
-                        title = "YouTube",
-                        icon = Icons.Default.PlayArrow,
-                        gradient = Brush.linearGradient(
-                            colors = listOf(
-                                YouTubeRed,
-                                YouTubeDeepRed,
-                            ),
-                        ),
-                        onClick = { onOpenLink(youtubeUrl) },
-                    )
-                }
             }
         }
     }
@@ -1502,7 +1478,7 @@ private fun VideoUploadCard(
         OutlinedTextField(
             value = uiState.externalVideoUrl,
             onValueChange = onUpdateExternalVideoUrl,
-            label = { Text("YouTube / Google Drive / MEGA / anderer Video-Link") },
+            label = { Text("Google Drive / MEGA / anderer Video-Link") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),

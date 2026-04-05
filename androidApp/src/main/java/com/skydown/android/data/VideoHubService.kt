@@ -202,7 +202,6 @@ class VideoHubService(
                 "imageUrl" to item.imageUrl.orEmpty(),
                 "spotifyArtistId" to item.spotifyArtistId.orEmpty(),
                 "instagramUrl" to item.instagramUrl.orEmpty(),
-                "youtubeUrl" to item.youtubeUrl.orEmpty(),
             )
         }
 
@@ -431,9 +430,6 @@ class VideoHubService(
             imageUrl = (map["imageUrl"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
             spotifyArtistId = (map["spotifyArtistId"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
             instagramUrl = (map["instagramUrl"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
-            youtubeUrl = ((map["youtubeUrl"] as? String) ?: (map["youtubeURLString"] as? String))
-                ?.trim()
-                .takeUnless { it.isNullOrBlank() },
         )
     }
 }

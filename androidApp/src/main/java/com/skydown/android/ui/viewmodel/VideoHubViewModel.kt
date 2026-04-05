@@ -440,7 +440,6 @@ class VideoHubViewModel(
                         imageUrl = null,
                         spotifyArtistId = null,
                         instagramUrl = null,
-                        youtubeUrl = null,
                     ),
                 ),
             )
@@ -456,7 +455,6 @@ class VideoHubViewModel(
         imageUrl: String? = null,
         spotifyArtistId: String? = null,
         instagramUrl: String? = null,
-        youtubeUrl: String? = null,
     ) {
         _uiState.update { state ->
             state.copy(
@@ -473,7 +471,6 @@ class VideoHubViewModel(
                                 imageUrl = imageUrl ?: item.imageUrl,
                                 spotifyArtistId = spotifyArtistId ?: item.spotifyArtistId,
                                 instagramUrl = instagramUrl ?: item.instagramUrl,
-                                youtubeUrl = youtubeUrl ?: item.youtubeUrl,
                             )
                         }
                     },
@@ -532,7 +529,6 @@ class VideoHubViewModel(
                     imageUrl = item.imageUrl?.trim()?.ifBlank { null },
                     spotifyArtistId = item.spotifyArtistId?.trim()?.ifBlank { null },
                     instagramUrl = item.instagramUrl?.trim()?.ifBlank { null },
-                    youtubeUrl = item.youtubeUrl?.trim()?.ifBlank { null },
                 )
             }
         }
