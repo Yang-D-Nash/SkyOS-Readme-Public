@@ -84,6 +84,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.ExternalMediaProvider
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
@@ -1589,7 +1590,7 @@ private fun VideoPlayerCard(
         )
 
         Text(
-            text = "Der aktive Clip sitzt jetzt direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.",
+            text = "Der aktive Clip sitzt jetzt direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Vollbild-Modus springen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1723,7 +1724,7 @@ private fun VideoPlayerCard(
         if (video.supportsInlinePlayback) {
             onOpenReel?.let { openReel ->
                 BrandActionButton(
-                    text = "Im Reel ansehen",
+                    text = videoHubInlineActionLabel(video),
                     onClick = openReel,
                     accent = ArenaRed,
                     modifier = Modifier
@@ -1736,7 +1737,7 @@ private fun VideoPlayerCard(
 
         if (video.openUrl.isNotBlank()) {
             BrandActionButton(
-                text = "Original oeffnen",
+                text = videoHubOpenActionLabel(video),
                 onClick = { onOpenOriginal(video.openUrl) },
                 accent = videoHubProviderAccent(video),
                 modifier = Modifier
@@ -1977,7 +1978,7 @@ private fun VideoLibraryRow(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("Direkt im Reel")
+                    Text(videoHubInlineCompactActionLabel(video))
                 }
             }
 
@@ -1987,7 +1988,7 @@ private fun VideoLibraryRow(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("Original oeffnen")
+                    Text(videoHubOpenActionLabel(video))
                 }
             }
         }
@@ -2164,7 +2165,12 @@ private fun VideoReelViewerDialog(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Skydown Reel",
+                        text = videos
+                            .getOrNull(pagerState.currentPage)
+                            ?.let { video ->
+                                if (video.usesEmbeddedPreview) "Skydown Preview" else "Skydown Reel"
+                            }
+                            ?: "Skydown Video",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -2199,6 +2205,31 @@ private fun videoHubProviderAccent(video: VideoHubItem): Color {
         video.providerBadge.equals("Drive", ignoreCase = true) -> FieldMint
         video.providerBadge.equals("MEGA", ignoreCase = true) -> ArenaRed
         else -> DexBlue
+    }
+}
+
+private fun videoHubInlineActionLabel(video: VideoHubItem): String {
+    return if (video.usesEmbeddedPreview) {
+        "In Preview ansehen"
+    } else {
+        "Im Reel ansehen"
+    }
+}
+
+private fun videoHubInlineCompactActionLabel(video: VideoHubItem): String {
+    return if (video.usesEmbeddedPreview) {
+        "In Preview"
+    } else {
+        "Direkt im Reel"
+    }
+}
+
+private fun videoHubOpenActionLabel(video: VideoHubItem): String {
+    return when (video.provider) {
+        ExternalMediaProvider.GOOGLE_DRIVE -> "In Drive oeffnen"
+        ExternalMediaProvider.MEGA -> "In MEGA oeffnen"
+        ExternalMediaProvider.EXTERNAL_LINK -> "Extern oeffnen"
+        ExternalMediaProvider.FIREBASE_STORAGE -> "Original oeffnen"
     }
 }
 

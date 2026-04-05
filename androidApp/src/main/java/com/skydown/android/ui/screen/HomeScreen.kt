@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.ExternalMediaProvider
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -1537,7 +1538,7 @@ private fun HomeLatestVideoCard(
                 accent = InstagramOrange,
             )
             HomeBadge(
-                text = if (video.supportsInlinePlayback) "Direkt" else "Extern",
+                text = homeVideoModeLabel(video),
                 icon = if (video.supportsInlinePlayback) Icons.Default.PlayArrow else Icons.Default.Language,
                 isActive = video.supportsInlinePlayback,
                 accent = InstagramOrange,
@@ -1545,11 +1546,7 @@ private fun HomeLatestVideoCard(
         }
 
         Text(
-            text = if (video.supportsInlinePlayback) {
-                "Der Clip liegt direkt im Hub bereit."
-            } else {
-                "Dieser Clip oeffnet ueber einen externen Link."
-            },
+            text = homeVideoModeDescription(video),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 14.dp),
@@ -1601,7 +1598,7 @@ private fun HomeLatestVideoCard(
 
         if (video.downloadUrl.isNotBlank()) {
             HomeMediaActionButton(
-                label = if (isPlaying) "Stop" else "Play",
+                label = if (isPlaying) "Reel stoppen" else "Reel starten",
                 isActive = isPlaying,
                 accent = InstagramOrange,
                 modifier = Modifier
@@ -1613,7 +1610,7 @@ private fun HomeLatestVideoCard(
 
         if (video.openUrl.isNotBlank()) {
             BrandActionButton(
-                text = "Original oeffnen",
+                text = homeVideoOpenActionLabel(video),
                 onClick = { openExternalLink(context, video.openUrl) },
                 accent = InstagramOrange,
                 modifier = Modifier
@@ -1942,6 +1939,31 @@ private fun HomeBadge(
         icon = icon,
         isActive = isActive,
     )
+}
+
+private fun homeVideoModeLabel(video: FeaturedVideoHighlight): String {
+    return when {
+        video.usesEmbeddedPreview -> "Preview"
+        video.supportsInlinePlayback -> "Reel"
+        else -> "Extern"
+    }
+}
+
+private fun homeVideoModeDescription(video: FeaturedVideoHighlight): String {
+    return when {
+        video.usesEmbeddedPreview -> "Der Clip laeuft direkt in einer Preview."
+        video.supportsInlinePlayback -> "Der Clip laeuft direkt als Reel in der App."
+        else -> "Dieser Clip oeffnet ueber einen externen Link."
+    }
+}
+
+private fun homeVideoOpenActionLabel(video: FeaturedVideoHighlight): String {
+    return when (video.provider) {
+        ExternalMediaProvider.GOOGLE_DRIVE -> "In Drive oeffnen"
+        ExternalMediaProvider.MEGA -> "In MEGA oeffnen"
+        ExternalMediaProvider.EXTERNAL_LINK -> "Extern oeffnen"
+        ExternalMediaProvider.FIREBASE_STORAGE -> "Original oeffnen"
+    }
 }
 
 private fun homeTrackAudioKey(track: com.skydown.shared.model.Track): String = "track:${track.trackId}"
