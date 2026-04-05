@@ -134,6 +134,7 @@ fun MusicScreen(
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
+    val extraBottomPadding = if (onOpenBeatHub != null || onOpenStudio != null) 112.dp else 0.dp
     val artistPagesByName = remember(artistPages) {
         artistPages
             .filter { it.brand == ArtistPageBrand.Zweizwei }
@@ -347,7 +348,12 @@ fun MusicScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .widthIn(max = 1080.dp),
-                    contentPadding = skydownContentPadding(innerPadding),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = innerPadding.calculateTopPadding() + 10.dp,
+                        end = 16.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 22.dp + extraBottomPadding,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item {
@@ -672,7 +678,9 @@ private fun MusicPlayerCard(
         }
 
         Row(
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier
+                .padding(top = 14.dp)
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             MusicBadge(
