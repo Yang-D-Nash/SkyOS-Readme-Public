@@ -162,6 +162,7 @@ fun VideoHubScreen(
     var selectedVideoId by rememberSaveable { mutableStateOf(initialSelectedVideoId) }
     var showReelViewer by rememberSaveable { mutableStateOf(false) }
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
+    var showAdminSheet by rememberSaveable { mutableStateOf(false) }
     var pendingConfigImageTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
     var activeConfigImageUploadTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
@@ -424,84 +425,8 @@ fun VideoHubScreen(
 
                 if (uiState.isAdmin) {
                     item {
-                        VideoFormatCard()
-                    }
-
-                    item {
-                        VideoPublicConfigEditorCard(
-                            uiState = uiState,
-                            activeImageUploadTarget = activeConfigImageUploadTarget,
-                            onAddEquipment = viewModel::addEquipmentItem,
-                            onUpdateEquipmentTitle = { itemId, value ->
-                                viewModel.updateEquipmentItem(itemId, title = value)
-                            },
-                            onUpdateEquipmentDetail = { itemId, value ->
-                                viewModel.updateEquipmentItem(itemId, detail = value)
-                            },
-                            onUpdateEquipmentImageUrl = { itemId, value ->
-                                viewModel.updateEquipmentItem(itemId, imageUrl = value)
-                            },
-                            onPickEquipmentImage = { itemId ->
-                                pendingConfigImageTarget = VideoConfigImageTarget.Equipment(itemId)
-                                configImagePickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                )
-                            },
-                            onRemoveEquipmentImage = { itemId ->
-                                val previousImageUrl = uiState.publicConfig.equipmentItems
-                                    .firstOrNull { it.id == itemId }
-                                    ?.imageUrl
-                                    .orEmpty()
-                                viewModel.updateEquipmentItem(itemId, imageUrl = "")
-                                coroutineScope.launch {
-                                    editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                    localFeedbackMessage = "Bild entfernt."
-                                    localFeedbackIsError = false
-                                }
-                            },
-                            onRemoveEquipment = viewModel::removeEquipmentItem,
-                            onAddCollaboration = viewModel::addCollaborationItem,
-                            onUpdateCollaborationName = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, name = value)
-                            },
-                            onUpdateCollaborationRole = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, role = value)
-                            },
-                            onUpdateCollaborationHighlight = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, highlight = value)
-                            },
-                            onUpdateCollaborationVibe = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, vibe = value)
-                            },
-                            onUpdateCollaborationImageUrl = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, imageUrl = value)
-                            },
-                            onPickCollaborationImage = { itemId ->
-                                pendingConfigImageTarget = VideoConfigImageTarget.Collaboration(itemId)
-                                configImagePickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                )
-                            },
-                            onRemoveCollaborationImage = { itemId ->
-                                val previousImageUrl = uiState.publicConfig.collaborationItems
-                                    .firstOrNull { it.id == itemId }
-                                    ?.imageUrl
-                                    .orEmpty()
-                                viewModel.updateCollaborationItem(itemId, imageUrl = "")
-                                coroutineScope.launch {
-                                    editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                    localFeedbackMessage = "Bild entfernt."
-                                    localFeedbackIsError = false
-                                }
-                            },
-                            onUpdateCollaborationSpotifyArtistId = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, spotifyArtistId = value)
-                            },
-                            onUpdateCollaborationInstagramUrl = { itemId, value ->
-                                viewModel.updateCollaborationItem(itemId, instagramUrl = value)
-                            },
-                            onRemoveCollaboration = viewModel::removeCollaborationItem,
-                            onSave = viewModel::savePublicConfig,
+                        VideoAdminToolsCard(
+                            onOpenEditor = { showAdminSheet = true },
                         )
                     }
                 }
@@ -572,6 +497,100 @@ fun VideoHubScreen(
                     }
                 }
             }
+
+            if (showAdminSheet && uiState.isAdmin) {
+                ModalBottomSheet(
+                    onDismissRequest = { showAdminSheet = false },
+                    containerColor = MaterialTheme.colorScheme.background,
+                ) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 36.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        item {
+                            VideoFormatCard()
+                        }
+
+                        item {
+                            VideoPublicConfigEditorCard(
+                                uiState = uiState,
+                                activeImageUploadTarget = activeConfigImageUploadTarget,
+                                onAddEquipment = viewModel::addEquipmentItem,
+                                onUpdateEquipmentTitle = { itemId, value ->
+                                    viewModel.updateEquipmentItem(itemId, title = value)
+                                },
+                                onUpdateEquipmentDetail = { itemId, value ->
+                                    viewModel.updateEquipmentItem(itemId, detail = value)
+                                },
+                                onUpdateEquipmentImageUrl = { itemId, value ->
+                                    viewModel.updateEquipmentItem(itemId, imageUrl = value)
+                                },
+                                onPickEquipmentImage = { itemId ->
+                                    pendingConfigImageTarget = VideoConfigImageTarget.Equipment(itemId)
+                                    configImagePickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                    )
+                                },
+                                onRemoveEquipmentImage = { itemId ->
+                                    val previousImageUrl = uiState.publicConfig.equipmentItems
+                                        .firstOrNull { it.id == itemId }
+                                        ?.imageUrl
+                                        .orEmpty()
+                                    viewModel.updateEquipmentItem(itemId, imageUrl = "")
+                                    coroutineScope.launch {
+                                        editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                        localFeedbackMessage = "Bild entfernt."
+                                        localFeedbackIsError = false
+                                    }
+                                },
+                                onRemoveEquipment = viewModel::removeEquipmentItem,
+                                onAddCollaboration = viewModel::addCollaborationItem,
+                                onUpdateCollaborationName = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, name = value)
+                                },
+                                onUpdateCollaborationRole = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, role = value)
+                                },
+                                onUpdateCollaborationHighlight = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, highlight = value)
+                                },
+                                onUpdateCollaborationVibe = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, vibe = value)
+                                },
+                                onUpdateCollaborationImageUrl = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, imageUrl = value)
+                                },
+                                onPickCollaborationImage = { itemId ->
+                                    pendingConfigImageTarget = VideoConfigImageTarget.Collaboration(itemId)
+                                    configImagePickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                    )
+                                },
+                                onRemoveCollaborationImage = { itemId ->
+                                    val previousImageUrl = uiState.publicConfig.collaborationItems
+                                        .firstOrNull { it.id == itemId }
+                                        ?.imageUrl
+                                        .orEmpty()
+                                    viewModel.updateCollaborationItem(itemId, imageUrl = "")
+                                    coroutineScope.launch {
+                                        editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                        localFeedbackMessage = "Bild entfernt."
+                                        localFeedbackIsError = false
+                                    }
+                                },
+                                onUpdateCollaborationSpotifyArtistId = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, spotifyArtistId = value)
+                                },
+                                onUpdateCollaborationInstagramUrl = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, instagramUrl = value)
+                                },
+                                onRemoveCollaboration = viewModel::removeCollaborationItem,
+                                onSave = viewModel::savePublicConfig,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -632,6 +651,31 @@ private fun VideoHubHeroCard(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+@Composable
+private fun VideoAdminToolsCard(
+    onOpenEditor: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        BrandSectionBanner(
+            title = "Video Admin",
+            subtitle = "Equipment, Featured Collabs und Format-Hinweise in einem Editor.",
+            accent = MaterialTheme.colorScheme.primary,
+            icon = Icons.Default.Home,
+            tag = "ADMIN",
+        )
+
+        BrandActionButton(
+            text = "Editor oeffnen",
+            onClick = onOpenEditor,
+            accent = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            icon = Icons.Default.Movie,
+        )
     }
 }
 

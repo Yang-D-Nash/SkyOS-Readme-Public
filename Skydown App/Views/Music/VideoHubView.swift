@@ -25,6 +25,7 @@ struct VideoHubView: View {
     @State private var queuedPresentedSheet: VideoHubPresentedSheet?
     @State private var showingReelViewer = false
     @State private var hasHandledInitialSelection = false
+    @State private var showingAdminEditor = false
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
     private let autoplayInitialSelection: Bool
@@ -71,11 +72,7 @@ struct VideoHubView: View {
                 collaborationsCard
 
                 if viewModel.isAdmin {
-                    formatCard
-                    VideoPublicConfigEditorCard(
-                        colorScheme: colorScheme,
-                        viewModel: viewModel
-                    )
+                    adminToolsCard
                 }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -166,6 +163,27 @@ struct VideoHubView: View {
             case .youTube(let item):
                 YouTubeEmbedPlayerView(item: item)
             }
+        }
+        .sheet(isPresented: $showingAdminEditor) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                    formatCard
+                    VideoPublicConfigEditorCard(
+                        colorScheme: colorScheme,
+                        viewModel: viewModel
+                    )
+                }
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding)
+            }
+            .background(
+                AppColors.screenGradient(
+                    for: colorScheme,
+                    secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                )
+                .ignoresSafeArea()
+            )
         }
         .fullScreenCover(isPresented: $showingReelViewer) {
             if !viewModel.videos.isEmpty {
@@ -301,6 +319,38 @@ struct VideoHubView: View {
         .skydownPanelSurface(
             colorScheme: colorScheme,
             accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 12,
+            shadowYOffset: 6
+        )
+    }
+
+    private var adminToolsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Video Admin")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Equipment, Featured Collabs und Format-Hinweise kompakt im Editor.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Button {
+                showingAdminEditor = true
+            } label: {
+                Label("Editor oeffnen", systemImage: "slider.horizontal.3")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accentMystic(for: colorScheme))
+        }
+        .padding(SkydownLayout.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentMystic(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
             shadowRadius: 12,
             shadowYOffset: 6
