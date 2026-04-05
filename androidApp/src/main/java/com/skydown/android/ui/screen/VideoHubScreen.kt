@@ -171,7 +171,8 @@ fun VideoHubScreen(
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
     }
     val listState = rememberLazyListState()
-    val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: uiState.videos.firstOrNull()
+    val fallbackSelectedVideo = uiState.videos.firstOrNull { it.supportsInlinePlayback } ?: uiState.videos.firstOrNull()
+    val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: fallbackSelectedVideo
     val videoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
@@ -256,7 +257,7 @@ fun VideoHubScreen(
             selectedVideoId = initialSelectedVideoId
             hasHandledInitialSelection = true
         } else if (selectedVideoId == null || uiState.videos.none { it.id == selectedVideoId }) {
-            selectedVideoId = uiState.videos.firstOrNull()?.id
+            selectedVideoId = fallbackSelectedVideo?.id
         }
     }
 
@@ -1932,12 +1933,29 @@ private fun VideoLibraryRow(
         }
 
         if (isAdmin) {
-            Button(
-                onClick = onSelect,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text(if (isSelected) "Aktiv im Player" else "Im Player laden")
+            if (video.supportsInlinePlayback) {
+                Button(
+                    onClick = onSelect,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text(
+                        when {
+                            isSelected && video.usesEmbeddedPreview -> "Aktiv in Preview"
+                            isSelected -> "Aktiv im Player"
+                            video.usesEmbeddedPreview -> "In Preview laden"
+                            else -> "Im Player laden"
+                        },
+                    )
+                }
+            } else if (video.openUrl.isNotBlank()) {
+                OutlinedButton(
+                    onClick = onOpenOriginal,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text(videoHubOpenActionLabel(video))
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
