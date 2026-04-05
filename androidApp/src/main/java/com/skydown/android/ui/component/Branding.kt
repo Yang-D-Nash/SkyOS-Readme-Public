@@ -529,12 +529,13 @@ fun BrandActionButton(
             enabled = enabled && !isLoading,
             shape = shape,
             border = BorderStroke(
-                width = 1.dp,
-                color = if (enabled) accent.copy(alpha = 0.42f) else accent.copy(alpha = 0.18f),
+                width = 1.2.dp,
+                color = if (enabled) accent.copy(alpha = 0.58f) else accent.copy(alpha = 0.26f),
             ),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = accent.copy(alpha = 0.10f),
+                containerColor = accent.copy(alpha = 0.16f),
                 contentColor = accent,
+                disabledContainerColor = accent.copy(alpha = 0.08f),
                 disabledContentColor = accent.copy(alpha = 0.42f),
             ),
             contentPadding = contentPadding,

@@ -643,7 +643,9 @@ private fun MusicPlayerCard(
         }
 
         Row(
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (!track.previewUrl.isNullOrBlank()) {
