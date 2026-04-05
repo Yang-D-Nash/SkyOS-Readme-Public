@@ -80,7 +80,7 @@ private fun externalVideoWebPlayerSource(rawUrl: String): ExternalVideoWebPlayer
         return ExternalVideoWebPlayerSource(
             url = null,
             html = embeddedVideoHtml(youtubeEmbedUrl),
-            baseUrl = "https://www.youtube-nocookie.com",
+            baseUrl = "https://www.youtube.com",
             renderKey = youtubeEmbedUrl,
         )
     }
@@ -122,7 +122,7 @@ private fun embeddedVideoHtml(embedUrl: String): String = """
       <body>
         <iframe
           src="$embedUrl"
-          title="Embedded video player"
+          title="YouTube video player"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerpolicy="origin"
           allowfullscreen>

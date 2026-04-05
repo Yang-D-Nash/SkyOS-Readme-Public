@@ -85,7 +85,7 @@ fun YouTubePlayerDialog(
 
             if (embedUrl != null) {
                 ExternalVideoWebPlayer(
-                    url = embedUrl,
+                    url = item.url,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(420.dp)
