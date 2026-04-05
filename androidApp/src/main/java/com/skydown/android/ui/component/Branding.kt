@@ -68,6 +68,27 @@ enum class BrandArtwork(
     ),
 }
 
+data class BrandHeroImageStyle(
+    val sizeFraction: Float = 1f,
+    val alignment: Alignment = Alignment.Center,
+    val maxWidth: Dp = Dp.Unspecified,
+    val maxHeight: Dp = Dp.Unspecified,
+)
+
+object BrandHeroImageStyles {
+    val Default = BrandHeroImageStyle()
+    val MusicCompact = BrandHeroImageStyle(
+        sizeFraction = 0.48f,
+        maxWidth = 164.dp,
+        maxHeight = 84.dp,
+    )
+    val MerchCompact = BrandHeroImageStyle(
+        sizeFraction = 0.54f,
+        maxWidth = 184.dp,
+        maxHeight = 90.dp,
+    )
+}
+
 @Composable
 fun BrandHeroCard(
     eyebrow: String,
@@ -75,10 +96,7 @@ fun BrandHeroCard(
     subtitle: String,
     detail: String? = null,
     backgroundImageUrl: String? = null,
-    backgroundImageSizeFraction: Float = 1f,
-    backgroundImageAlignment: Alignment = Alignment.Center,
-    backgroundImageMaxWidth: Dp = Dp.Unspecified,
-    backgroundImageMaxHeight: Dp = Dp.Unspecified,
+    backgroundImageStyle: BrandHeroImageStyle = BrandHeroImageStyles.Default,
     accent: Color = MaterialTheme.colorScheme.primary,
     secondaryAccent: Color = MaterialTheme.colorScheme.secondary,
     marks: List<BrandArtwork> = emptyList(),
@@ -87,10 +105,7 @@ fun BrandHeroCard(
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
     val usesCustomBackgroundFrame =
-        backgroundImageSizeFraction != 1f ||
-            backgroundImageAlignment != Alignment.Center ||
-            backgroundImageMaxWidth != Dp.Unspecified ||
-            backgroundImageMaxHeight != Dp.Unspecified
+        backgroundImageStyle != BrandHeroImageStyles.Default
     val titleColor = if (hasBackgroundImage) Color.White else MaterialTheme.colorScheme.onSurface
     val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.84f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
     val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.96f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f)
@@ -123,9 +138,9 @@ fun BrandHeroCard(
     ) {
         if (hasBackgroundImage) {
             val backgroundWidth = if (usesCustomBackgroundFrame) {
-                val scaledWidth = maxWidth * backgroundImageSizeFraction
-                if (backgroundImageMaxWidth != Dp.Unspecified) {
-                    minOf(scaledWidth, backgroundImageMaxWidth)
+                val scaledWidth = maxWidth * backgroundImageStyle.sizeFraction
+                if (backgroundImageStyle.maxWidth != Dp.Unspecified) {
+                    minOf(scaledWidth, backgroundImageStyle.maxWidth)
                 } else {
                     scaledWidth
                 }
@@ -138,10 +153,10 @@ fun BrandHeroCard(
                 contentDescription = null,
                 modifier = if (usesCustomBackgroundFrame) {
                     Modifier
-                        .align(backgroundImageAlignment)
+                        .align(backgroundImageStyle.alignment)
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                         .width(backgroundWidth)
-                        .heightIn(max = backgroundImageMaxHeight)
+                        .heightIn(max = backgroundImageStyle.maxHeight)
                 } else {
                     Modifier
                         .fillMaxSize()

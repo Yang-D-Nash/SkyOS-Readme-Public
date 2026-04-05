@@ -78,6 +78,7 @@ import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandHeroImageStyles
 import com.skydown.android.ui.component.BrandHeroMetricCard
 import com.skydown.android.ui.component.BrandSectionBanner
 import com.skydown.android.ui.component.BrandStatusChip
@@ -701,10 +702,7 @@ private fun MusicOverviewCard(
             "${uiState.selectedArtist} im Fokus. $trackLabel und ${uiState.availableArtists.size} Artists live."
         },
         backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
-        backgroundImageSizeFraction = 0.48f,
-        backgroundImageAlignment = Alignment.CenterEnd,
-        backgroundImageMaxWidth = 164.dp,
-        backgroundImageMaxHeight = 84.dp,
+        backgroundImageStyle = BrandHeroImageStyles.MusicCompact,
         accent = SpotifyGreen,
         secondaryAccent = ArenaGold,
         marks = listOf(BrandArtwork.Zweizwei),
