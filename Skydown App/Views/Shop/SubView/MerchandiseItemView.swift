@@ -62,25 +62,34 @@ struct MerchandiseItemView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 24))
 
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        MerchInfoBadge(
-                            text: item.available ? "Drop live" : "Sold out",
-                            colorScheme: colorScheme,
-                            isAccent: item.available
-                        )
-                        if displayImageURLs.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
                             MerchInfoBadge(
-                                text: "\(displayImageURLs.count) Bilder",
+                                text: item.available ? "Drop live" : "Sold out",
                                 colorScheme: colorScheme,
-                                isAccent: false
+                                isAccent: item.available
                             )
-                        }
-                        if let customBadge = item.customBadge.takeIfNotBlank() {
-                            MerchInfoBadge(
-                                text: customBadge,
-                                colorScheme: colorScheme,
-                                isAccent: false
-                            )
+                            if item.hasCuratedMerchCategory {
+                                MerchInfoBadge(
+                                    text: item.merchCategoryTitle,
+                                    colorScheme: colorScheme,
+                                    isAccent: false
+                                )
+                            }
+                            if displayImageURLs.count > 1 {
+                                MerchInfoBadge(
+                                    text: "\(displayImageURLs.count) Bilder",
+                                    colorScheme: colorScheme,
+                                    isAccent: false
+                                )
+                            }
+                            if let customBadge = item.customBadge.takeIfNotBlank() {
+                                MerchInfoBadge(
+                                    text: customBadge,
+                                    colorScheme: colorScheme,
+                                    isAccent: false
+                                )
+                            }
                         }
                     }
 

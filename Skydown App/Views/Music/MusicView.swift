@@ -167,103 +167,137 @@ struct MusicView: View {
         viewModel.tracks.first { $0.trackId == selectedTrackID } ?? viewModel.tracks.first
     }
 
+    private var selectedArtistPage: ArtistPage {
+        artistPagesStore.page(for: brand.artistPageBrand, artistName: selectedArtist)
+    }
+
     private var trackIDs: [Int] {
         viewModel.tracks.map(\.trackId)
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                    heroCard
-                    workflowCard
-                    artistsCard
-                    instagramCard
-                    spotifyCard
-                    musicPlayerCard
-                    tracksCard
-                }
-                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                .padding(.top, SkydownLayout.screenTopPadding)
-                .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 88 : 0))
-            }
-            .scrollIndicators(.hidden)
-            .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle(brand.navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .skydownNavigationChrome(colorScheme: colorScheme)
-            .overlay(alignment: .bottomTrailing) {
-                if brand.showsBeatHubShortcut {
-                    NavigationLink {
-                        BeatHubView()
-                    } label: {
-                        MusicShortcutFab(
-                            title: "Beat Hub",
-                            systemImage: "waveform.circle.fill",
-                            tint: AppColors.accent(for: colorScheme),
-                            textColor: .white
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.trailing, SkydownLayout.screenHorizontalPadding)
-                    .padding(.bottom, 20)
-                }
-            }
-            .toolbar {
-                if let onBack {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(action: onBack) {
-                            Image(systemName: "chevron.left")
-                                .font(.headline.weight(.bold))
+        GeometryReader { proxy in
+            let layout = SkydownResponsiveLayout(availableWidth: proxy.size.width)
+            let contentWidth = min(
+                layout.contentMaxWidth,
+                max(proxy.size.width - (layout.horizontalPadding * 2), 0)
+            )
+
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                        heroCard
+                        spotlightCard
+
+                        if layout.prefersTwoColumn {
+                            HStack(alignment: .top, spacing: layout.sectionSpacing) {
+                                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                    shortcutDeckCard
+                                    artistsCard
+                                    instagramCard
+                                }
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+
+                                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                    spotifyCard
+                                    musicPlayerCard
+                                    tracksCard
+                                }
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                            }
+                        } else {
+                            shortcutDeckCard
+                            artistsCard
+                            instagramCard
+                            spotifyCard
+                            musicPlayerCard
+                            tracksCard
                         }
                     }
+                    .frame(maxWidth: contentWidth, alignment: .leading)
+                    .padding(.horizontal, layout.horizontalPadding)
+                    .padding(.top, SkydownLayout.screenTopPadding)
+                    .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 88 : 0))
+                    .frame(maxWidth: .infinity)
                 }
-
-                if let onOpenSettings {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        AppSessionToolbarActions(
-                            onOpenCart: onOpenCart,
-                            onOpenProfile: onOpenProfile,
-                            onOpenSettings: onOpenSettings
-                        )
-                    }
-                } else if viewModel.isSpotifyConnected {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(role: .destructive) {
-                            audioManager.stop()
-                            viewModel.disconnectSpotify()
+                .scrollIndicators(.hidden)
+                .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+                .navigationTitle(brand.navigationTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: colorScheme)
+                .overlay(alignment: .bottomTrailing) {
+                    if brand.showsBeatHubShortcut {
+                        NavigationLink {
+                            BeatHubView()
                         } label: {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .font(.subheadline.weight(.bold))
+                            MusicShortcutFab(
+                                title: "Beat Hub",
+                                systemImage: "waveform.circle.fill",
+                                tint: AppColors.accent(for: colorScheme),
+                                textColor: .white
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.trailing, layout.horizontalPadding)
+                        .padding(.bottom, 20)
+                    }
+                }
+                .toolbar {
+                    if let onBack {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(action: onBack) {
+                                Image(systemName: "chevron.left")
+                                    .font(.headline.weight(.bold))
+                            }
+                        }
+                    }
+
+                    if let onOpenSettings {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            AppSessionToolbarActions(
+                                onOpenCart: onOpenCart,
+                                onOpenProfile: onOpenProfile,
+                                onOpenSettings: onOpenSettings
+                            )
+                        }
+                    } else if viewModel.isSpotifyConnected {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(role: .destructive) {
+                                audioManager.stop()
+                                viewModel.disconnectSpotify()
+                            } label: {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.subheadline.weight(.bold))
+                            }
                         }
                     }
                 }
-            }
-            .task(id: selectedArtist) {
-                await reloadTracksIfNeeded()
-            }
-            .onChange(of: trackIDs) {
-                guard !viewModel.tracks.isEmpty else {
-                    selectedTrackID = nil
-                    return
+                .task(id: selectedArtist) {
+                    await reloadTracksIfNeeded()
                 }
+                .onChange(of: trackIDs) {
+                    guard !viewModel.tracks.isEmpty else {
+                        selectedTrackID = nil
+                        return
+                    }
 
-                if selectedTrackID == nil || !viewModel.tracks.contains(where: { $0.trackId == selectedTrackID }) {
-                    selectedTrackID = viewModel.tracks.first?.trackId
-                }
+                    if selectedTrackID == nil || !viewModel.tracks.contains(where: { $0.trackId == selectedTrackID }) {
+                        selectedTrackID = viewModel.tracks.first?.trackId
+                    }
 
-                activateInitialSelectionIfNeeded()
-            }
-            .onChange(of: audioManager.currentlyPlayingId) { _, playingID in
-                if let playingID {
-                    selectedTrackID = playingID
+                    activateInitialSelectionIfNeeded()
                 }
-            }
-            .onAppear {
-                activateInitialSelectionIfNeeded()
-                if autoPresentArtistPageOnAppear && brand.showsArtistPages && !hasAutoPresentedArtistPage {
-                    presentSheet(.artistPage)
-                    hasAutoPresentedArtistPage = true
+                .onChange(of: audioManager.currentlyPlayingId) { _, playingID in
+                    if let playingID {
+                        selectedTrackID = playingID
+                    }
+                }
+                .onAppear {
+                    activateInitialSelectionIfNeeded()
+                    if autoPresentArtistPageOnAppear && brand.showsArtistPages && !hasAutoPresentedArtistPage {
+                        presentSheet(.artistPage)
+                        hasAutoPresentedArtistPage = true
+                    }
                 }
             }
         }
@@ -318,60 +352,330 @@ struct MusicView: View {
             secondaryAccent: AppColors.accent(for: colorScheme),
             marks: brand == .zweizwei ? [.zweizwei] : [.skydown]
         ) {
-            HStack(spacing: 8) {
-                MusicBadge(text: selectedArtist, isAccent: true)
-                MusicBadge(text: "Songs", isAccent: false)
-                if brand.showsArtistPages {
-                    MusicBadge(text: "Pages", isAccent: false)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    MusicBadge(text: selectedArtist, isAccent: true)
+                    MusicBadge(text: tracksStatusText, isAccent: false)
+                    if brand.showsArtistPages {
+                        MusicBadge(text: "Artist Pages", isAccent: false)
+                    }
+                    MusicBadge(
+                        text: viewModel.isSpotifyConnected ? "Spotify live" : "Preview ready",
+                        isAccent: false
+                    )
                 }
             }
         }
     }
 
     @ViewBuilder
-    private var workflowCard: some View {
-        if let workflowTitle = brand.workflowTitle,
-           let workflowSubtitle = brand.workflowSubtitle {
+    private var spotlightCard: some View {
+        if let selectedTrack {
             VStack(alignment: .leading, spacing: 14) {
-                Text(workflowTitle)
-                    .font(.headline)
+                HStack(alignment: .top, spacing: 16) {
+                    AsyncImage(url: URL(string: selectedTrack.artworkUrl100 ?? "")) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                    }
+                    .frame(width: 108, height: 108)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(AppColors.spotify(for: colorScheme).opacity(0.22), lineWidth: 1)
+                    )
 
-                Text(workflowSubtitle)
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center, spacing: 8) {
+                            Text("ARTIST DECK")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(AppColors.spotify(for: colorScheme))
 
-                NavigationLink {
-                    NicmaProducerView()
-                } label: {
-                    workflowButtonLabel(
-                        title: "Zum Studio",
-                        accent: AppColors.spotifySurface(for: colorScheme),
-                        textColor: AppColors.text(for: colorScheme)
+                            if viewModel.isSpotifyConnected {
+                                Text("Live")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(AppColors.accent(for: colorScheme))
+                                    .clipShape(Capsule())
+                            }
+                        }
+
+                        Text(selectedTrack.trackName)
+                            .font(AppTypography.cardTitle)
+                            .fontWeight(.black)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .lineLimit(2)
+
+                        Text(selectedArtistPage.tagline ?? (selectedTrack.artistName ?? brand.fallbackArtistName))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+
+                        Text(
+                            selectedArtistPage.bio
+                            ?? "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Deck."
+                        )
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(4)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    spotlightMetricCard(
+                        title: "Track",
+                        value: tracksStatusText,
+                        accent: AppColors.spotify(for: colorScheme)
+                    )
+
+                    spotlightMetricCard(
+                        title: "Artist",
+                        value: selectedArtist,
+                        accent: AppColors.accent(for: colorScheme)
+                    )
+
+                    spotlightMetricCard(
+                        title: "Status",
+                        value: viewModel.isSpotifyConnected ? "Spotify live" : "Preview ready",
+                        accent: AppColors.accentMystic(for: colorScheme)
                     )
                 }
-                .buttonStyle(.plain)
+
+                Text(
+                    selectedTrack.collectionName?.isEmpty == false
+                    ? "Aktuell aus \(selectedTrack.collectionName ?? ""). Preview, Spotify und Artist-Page bleiben direkt in Reichweite."
+                    : "Preview, Spotify und Artist-Page bleiben direkt in Reichweite, ohne aus dem Music-Flow zu springen."
+                )
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                HStack(spacing: 10) {
+                    if selectedTrack.previewUrl != nil {
+                        Button {
+                            audioManager.playPreview(for: selectedTrack)
+                        } label: {
+                            Label(
+                                audioManager.currentlyPlayingId == selectedTrack.trackId ? "Preview stoppen" : "Preview starten",
+                                systemImage: audioManager.currentlyPlayingId == selectedTrack.trackId ? "pause.fill" : "play.fill"
+                            )
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(AppColors.accent(for: colorScheme))
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+
+                    if brand.showsArtistPages {
+                        Button {
+                            presentSheet(.artistPage)
+                        } label: {
+                            Label("Artist Page", systemImage: "person.crop.square.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(AppColors.secondaryBackground(for: colorScheme))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+                }
+
+                spotlightSpotifyAction(for: selectedTrack)
             }
             .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                    .fill(AppColors.cardBackground(for: colorScheme))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                    .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-            )
+            .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.spotify(for: colorScheme))
         }
     }
 
-    private func workflowButtonLabel(title: String, accent: Color, textColor: Color) -> some View {
-        Text(title)
-            .font(.subheadline.weight(.semibold))
-            .foregroundColor(textColor)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(accent)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+    @ViewBuilder
+    private var shortcutDeckCard: some View {
+        if brand.showsBeatHubShortcut || brand.workflowTitle != nil {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Quick Access")
+                    .font(.headline)
+
+                Text("Die wichtigsten Wege bleiben direkt auf der Music-Seite sichtbar.")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                if brand.showsBeatHubShortcut, brand.workflowTitle != nil {
+                    HStack(spacing: 12) {
+                        NavigationLink {
+                            BeatHubView()
+                        } label: {
+                            quickAccessTile(
+                                title: "Beat Hub",
+                                subtitle: "Playback, Auswahl, Vibe",
+                                accent: AppColors.accent(for: colorScheme),
+                                systemImage: "waveform.circle.fill"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink {
+                            NicmaProducerView()
+                        } label: {
+                            quickAccessTile(
+                                title: "Studio",
+                                subtitle: "Record, Mix, Master",
+                                accent: AppColors.accentMystic(for: colorScheme),
+                                systemImage: "sparkles"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else if brand.showsBeatHubShortcut {
+                    NavigationLink {
+                        BeatHubView()
+                    } label: {
+                        quickAccessTile(
+                            title: "Beat Hub",
+                            subtitle: "Playback, Auswahl, Vibe",
+                            accent: AppColors.accent(for: colorScheme),
+                            systemImage: "waveform.circle.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else if let workflowTitle = brand.workflowTitle,
+                          let workflowSubtitle = brand.workflowSubtitle {
+                    NavigationLink {
+                        NicmaProducerView()
+                    } label: {
+                        quickAccessTile(
+                            title: workflowTitle,
+                            subtitle: workflowSubtitle,
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            systemImage: "sparkles"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(SkydownLayout.cardPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
+        }
+    }
+
+    private func spotlightMetricCard(title: String, value: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.caption.weight(.bold))
+                .foregroundColor(accent)
+
+            Text(value)
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(accent.opacity(0.18), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func spotlightSpotifyAction(for track: Track) -> some View {
+        if resolvedMusicViewSpotifyTrackID(track) != nil {
+            Button {
+                presentSheet(.spotifyPlayer)
+            } label: {
+                Label("Spotify Player", systemImage: "music.note.tv")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(AppColors.spotifySurface(for: colorScheme))
+                    .foregroundColor(AppColors.spotify(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        } else if let externalURL = track.externalURL,
+                  let url = URL(string: externalURL) {
+            Link(destination: url) {
+                Label(
+                    resolvedMusicViewSpotifyArtistID(track) != nil ? "Spotify Artist" : "Spotify Suche",
+                    systemImage: "arrow.up.forward.square"
+                )
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(AppColors.spotifySurface(for: colorScheme))
+                .foregroundColor(AppColors.spotify(for: colorScheme))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func quickAccessTile(
+        title: String,
+        subtitle: String,
+        accent: Color,
+        systemImage: String
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(accent.opacity(0.16))
+
+                Image(systemName: systemImage)
+                    .font(.headline.weight(.bold))
+                    .foregroundColor(accent)
+            }
+            .frame(width: 42, height: 42)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(subtitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "arrow.up.right")
+                .font(.caption.weight(.bold))
+                .foregroundColor(accent)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(accent.opacity(0.18), lineWidth: 1)
+        )
     }
 
     private var artistsCard: some View {

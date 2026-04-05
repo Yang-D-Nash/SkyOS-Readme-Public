@@ -66,5 +66,12 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSharedMerchandiseIt
         sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
         customBadge = data["customBadge"] as? String ?: "",
         customImageOverride = data["customImageOverride"] as? String ?: "",
+        category = data["category"] as? String
+            ?: data["collabCategory"] as? String
+            ?: data["collection"] as? String
+            ?: "",
+        collabPartner = data["collabPartner"] as? String
+            ?: data["collab"] as? String
+            ?: "",
     )
 }

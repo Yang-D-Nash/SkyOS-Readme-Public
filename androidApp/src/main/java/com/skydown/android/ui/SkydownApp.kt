@@ -5,12 +5,14 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Home
@@ -470,7 +473,7 @@ private fun LaunchLandingScreen(
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -486,13 +489,21 @@ private fun LaunchLandingScreen(
                 ),
             ),
     ) {
+        val isWideLayout = maxWidth >= 900.dp
+        val isThreeColumnLayout = maxWidth >= 1180.dp
+        val contentMaxWidth = when {
+            isThreeColumnLayout -> 1120.dp
+            isWideLayout -> 920.dp
+            else -> maxWidth
+        }
+
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 48.dp)
                 .offset(x = 28.dp)
-                .width(220.dp)
-                .height(220.dp)
+                .width(if (isThreeColumnLayout) 320.dp else 220.dp)
+                .height(if (isThreeColumnLayout) 320.dp else 220.dp)
                 .background(
                     androidx.compose.ui.graphics.Color(0xFF4B83CF).copy(alpha = 0.18f),
                     RoundedCornerShape(999.dp),
@@ -504,8 +515,8 @@ private fun LaunchLandingScreen(
                 .align(Alignment.BottomStart)
                 .padding(bottom = 56.dp)
                 .offset(x = (-36).dp)
-                .width(200.dp)
-                .height(200.dp)
+                .width(if (isWideLayout) 260.dp else 200.dp)
+                .height(if (isWideLayout) 260.dp else 200.dp)
                 .background(
                     androidx.compose.ui.graphics.Color(0xFF9CBDE8).copy(alpha = 0.10f),
                     RoundedCornerShape(999.dp),
@@ -521,56 +532,199 @@ private fun LaunchLandingScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                BrandHeroCard(
-                    eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
-                    title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
-                    subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Waehle deinen Start." },
-                    detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch und Tools direkt im Einstieg." },
-                    backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
-                    accent = MaterialTheme.colorScheme.primary,
-                    secondaryAccent = MaterialTheme.colorScheme.secondary,
-                    marks = listOf(BrandArtwork.Combined),
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.TopCenter,
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)
-                        BrandPill(text = "Music", tint = MaterialTheme.colorScheme.secondary)
-                        BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = contentMaxWidth),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        BrandHeroCard(
+                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
+                            title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Waehle deinen Start." },
+                            detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch und Tools direkt im Einstieg." },
+                            backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
+                            accent = MaterialTheme.colorScheme.primary,
+                            secondaryAccent = MaterialTheme.colorScheme.secondary,
+                            marks = listOf(BrandArtwork.Combined),
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                BrandPill(text = "Home", tint = MaterialTheme.colorScheme.primary)
+                                BrandPill(text = "Music", tint = MaterialTheme.colorScheme.secondary)
+                                BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
+                            }
+                        }
+
+                        if (isThreeColumnLayout) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                HubSignalCard(
+                                    title = "3 Lanes",
+                                    value = "Music, Video, Shop",
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                HubSignalCard(
+                                    title = "Direkter Start",
+                                    value = "Kein Umweg nach dem Intro",
+                                    accentColor = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                HubSignalCard(
+                                    title = "Sync",
+                                    value = "iOS und Android gleich",
+                                    accentColor = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                HubSignalCard(
+                                    title = "3 Lanes",
+                                    value = "Music, Video, Shop",
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                HubSignalCard(
+                                    title = "Direkter Start",
+                                    value = "Kein Umweg nach dem Intro",
+                                    accentColor = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             item {
-                LaunchLandingChoiceCard(
-                    eyebrow = "Music",
-                    title = "Music",
-                    subtitle = "Songs, Artists und Beats.",
-                    accentColor = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.GraphicEq,
-                    artwork = BrandArtwork.Zweizwei,
-                    onClick = onOpenMusic,
-                )
-            }
-            item {
-                LaunchLandingChoiceCard(
-                    eyebrow = "Video",
-                    title = "Videos",
-                    subtitle = "Reels, Clips und Collabs.",
-                    accentColor = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.PlayCircleFilled,
-                    artwork = BrandArtwork.Skydown,
-                    onClick = onOpenVideography,
-                )
-            }
-            item {
-                LaunchLandingChoiceCard(
-                    eyebrow = "Store",
-                    title = "Merch",
-                    subtitle = "Drops und Checkout.",
-                    accentColor = MaterialTheme.colorScheme.secondary,
-                    icon = Icons.Default.ShoppingBag,
-                    artwork = BrandArtwork.Combined,
-                    onClick = onOpenShop,
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = contentMaxWidth),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        if (isThreeColumnLayout) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                LaunchLandingChoiceCard(
+                                    eyebrow = "Music",
+                                    title = "Music",
+                                    subtitle = "Songs, Artists und Beats.",
+                                    detail = "Catalog, Beat Hub und Studio direkt in einem Flow.",
+                                    chips = listOf("Catalog", "Beats", "Studio"),
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    icon = Icons.Default.GraphicEq,
+                                    artwork = BrandArtwork.Zweizwei,
+                                    onClick = onOpenMusic,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                LaunchLandingChoiceCard(
+                                    eyebrow = "Video",
+                                    title = "Videos",
+                                    subtitle = "Reels, Clips und Collabs.",
+                                    detail = "Playback, Creator-Flows und Clips ohne Reibung.",
+                                    chips = listOf("Playback", "Reels", "Collabs"),
+                                    accentColor = MaterialTheme.colorScheme.tertiary,
+                                    icon = Icons.Default.PlayCircleFilled,
+                                    artwork = BrandArtwork.Skydown,
+                                    onClick = onOpenVideography,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                LaunchLandingChoiceCard(
+                                    eyebrow = "Store",
+                                    title = "Merch",
+                                    subtitle = "Drops und Checkout.",
+                                    detail = "Direkt zu Fits, neuen Pieces und sauberem Checkout.",
+                                    chips = listOf("Drops", "Fits", "Checkout"),
+                                    accentColor = MaterialTheme.colorScheme.secondary,
+                                    icon = Icons.Default.ShoppingBag,
+                                    artwork = BrandArtwork.Combined,
+                                    onClick = onOpenShop,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        } else if (isWideLayout) {
+                            LaunchLandingChoiceCard(
+                                eyebrow = "Music",
+                                title = "Music",
+                                subtitle = "Songs, Artists und Beats.",
+                                detail = "Catalog, Beat Hub und Studio direkt in einem Flow.",
+                                chips = listOf("Catalog", "Beats", "Studio"),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                icon = Icons.Default.GraphicEq,
+                                artwork = BrandArtwork.Zweizwei,
+                                onClick = onOpenMusic,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                LaunchLandingChoiceCard(
+                                    eyebrow = "Video",
+                                    title = "Videos",
+                                    subtitle = "Reels, Clips und Collabs.",
+                                    detail = "Playback, Creator-Flows und Clips ohne Reibung.",
+                                    chips = listOf("Playback", "Reels", "Collabs"),
+                                    accentColor = MaterialTheme.colorScheme.tertiary,
+                                    icon = Icons.Default.PlayCircleFilled,
+                                    artwork = BrandArtwork.Skydown,
+                                    onClick = onOpenVideography,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                LaunchLandingChoiceCard(
+                                    eyebrow = "Store",
+                                    title = "Merch",
+                                    subtitle = "Drops und Checkout.",
+                                    detail = "Direkt zu Fits, neuen Pieces und sauberem Checkout.",
+                                    chips = listOf("Drops", "Fits", "Checkout"),
+                                    accentColor = MaterialTheme.colorScheme.secondary,
+                                    icon = Icons.Default.ShoppingBag,
+                                    artwork = BrandArtwork.Combined,
+                                    onClick = onOpenShop,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        } else {
+                            LaunchLandingChoiceCard(
+                                eyebrow = "Music",
+                                title = "Music",
+                                subtitle = "Songs, Artists und Beats.",
+                                detail = "Catalog, Beat Hub und Studio direkt in einem Flow.",
+                                chips = listOf("Catalog", "Beats", "Studio"),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                icon = Icons.Default.GraphicEq,
+                                artwork = BrandArtwork.Zweizwei,
+                                onClick = onOpenMusic,
+                            )
+                            LaunchLandingChoiceCard(
+                                eyebrow = "Video",
+                                title = "Videos",
+                                subtitle = "Reels, Clips und Collabs.",
+                                detail = "Playback, Creator-Flows und Clips ohne Reibung.",
+                                chips = listOf("Playback", "Reels", "Collabs"),
+                                accentColor = MaterialTheme.colorScheme.tertiary,
+                                icon = Icons.Default.PlayCircleFilled,
+                                artwork = BrandArtwork.Skydown,
+                                onClick = onOpenVideography,
+                            )
+                            LaunchLandingChoiceCard(
+                                eyebrow = "Store",
+                                title = "Merch",
+                                subtitle = "Drops und Checkout.",
+                                detail = "Direkt zu Fits, neuen Pieces und sauberem Checkout.",
+                                chips = listOf("Drops", "Fits", "Checkout"),
+                                accentColor = MaterialTheme.colorScheme.secondary,
+                                icon = Icons.Default.ShoppingBag,
+                                artwork = BrandArtwork.Combined,
+                                onClick = onOpenShop,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -581,19 +735,25 @@ private fun LaunchLandingChoiceCard(
     eyebrow: String,
     title: String,
     subtitle: String,
+    detail: String,
+    chips: List<String>,
     accentColor: androidx.compose.ui.graphics.Color,
     icon: ImageVector,
     artwork: BrandArtwork,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     HubEntryCard(
         eyebrow = eyebrow,
         title = title,
         subtitle = subtitle,
+        detail = detail,
+        chips = chips,
         accentColor = accentColor,
         icon = icon,
         artwork = artwork,
         onClick = onClick,
+        modifier = modifier,
     )
 }
 
@@ -655,7 +815,7 @@ private fun ZweizweiMusicLaneScreen(
                 )
             },
         ) { innerPadding ->
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
@@ -671,54 +831,130 @@ private fun ZweizweiMusicLaneScreen(
                         ),
                     ),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 18.dp, vertical = 22.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                val isWideLayout = maxWidth >= 900.dp
+                val contentMaxWidth = if (maxWidth >= 1180.dp) 1120.dp else if (isWideLayout) 920.dp else maxWidth
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter,
                 ) {
-                    val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
-                    BrandHeroCard(
-                        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
-                        title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-                        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Artists, Beats." },
-                        detail = screenHeaderSettings.musicHubDetail.ifBlank { "Direkt zu Songs, Beats und Studio." },
-                        backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
-                        accent = MaterialTheme.colorScheme.primary,
-                        secondaryAccent = MaterialTheme.colorScheme.secondary,
-                        marks = listOf(BrandArtwork.Zweizwei),
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = contentMaxWidth)
+                            .padding(horizontal = 18.dp, vertical = 22.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BrandPill(text = "Catalog", tint = MaterialTheme.colorScheme.primary)
-                            BrandPill(text = "Beats", tint = MaterialTheme.colorScheme.secondary)
-                            BrandPill(text = "Studio", tint = MaterialTheme.colorScheme.tertiary)
+                        val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+                        BrandHeroCard(
+                            eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
+                            title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
+                            subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Artists, Beats." },
+                            detail = screenHeaderSettings.musicHubDetail.ifBlank { "Direkt zu Songs, Beats und Studio." },
+                            backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
+                            accent = MaterialTheme.colorScheme.primary,
+                            secondaryAccent = MaterialTheme.colorScheme.secondary,
+                            marks = listOf(BrandArtwork.Zweizwei),
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                BrandPill(text = "Catalog", tint = MaterialTheme.colorScheme.primary)
+                                BrandPill(text = "Beats", tint = MaterialTheme.colorScheme.secondary)
+                                BrandPill(text = "Studio", tint = MaterialTheme.colorScheme.tertiary)
+                            }
                         }
+
+                        if (isWideLayout) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                HubSignalCard(
+                                    title = "Catalog",
+                                    value = "Artists, Tracks, Pages",
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                HubSignalCard(
+                                    title = "Beat Hub",
+                                    value = "Direkt in den Vibe",
+                                    accentColor = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                HubSignalCard(
+                                    title = "Studio",
+                                    value = "Record, Mix, Master",
+                                    accentColor = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+
+                        if (isWideLayout) {
+                            LaunchLandingButton(
+                                title = "Songs",
+                                subtitle = "Mit JANNO starten und im Katalog direkt alle Artists finden.",
+                                detail = "Preview, Spotify und Artist-Pages liegen direkt auf derselben Stage.",
+                                chips = listOf("Tracks", "Spotify", "Pages"),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                icon = Icons.Default.GraphicEq,
+                                onClick = {
+                                    catalogInitialArtist = "JANNO"
+                                    destination = ZweizweiMusicDestination.Catalog
+                                },
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                LaunchLandingButton(
+                                    title = "Beat Hub",
+                                    subtitle = "Beats direkt.",
+                                    detail = "Schnell in neue Sounds springen und den richtigen Vibe greifen.",
+                                    chips = listOf("Playback", "Selection", "Flow"),
+                                    accentColor = MaterialTheme.colorScheme.secondary,
+                                    icon = Icons.Default.GraphicEq,
+                                    onClick = { destination = ZweizweiMusicDestination.BeatHub },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                LaunchLandingButton(
+                                    title = "Studio",
+                                    subtitle = "Recording, Mix, Master.",
+                                    detail = "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar.",
+                                    chips = listOf("Record", "Mix", "Master"),
+                                    accentColor = MaterialTheme.colorScheme.tertiary,
+                                    icon = Icons.Default.AutoAwesome,
+                                    onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        } else {
+                            LaunchLandingButton(
+                                title = "Songs",
+                                subtitle = "Mit JANNO starten und im Katalog direkt alle Artists finden.",
+                                detail = "Preview, Spotify und Artist-Pages liegen direkt auf derselben Stage.",
+                                chips = listOf("Tracks", "Spotify", "Pages"),
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                icon = Icons.Default.GraphicEq,
+                                onClick = {
+                                    catalogInitialArtist = "JANNO"
+                                    destination = ZweizweiMusicDestination.Catalog
+                                },
+                            )
+                            LaunchLandingButton(
+                                title = "Beat Hub",
+                                subtitle = "Beats direkt.",
+                                detail = "Schnell in neue Sounds springen und den richtigen Vibe greifen.",
+                                chips = listOf("Playback", "Selection", "Flow"),
+                                accentColor = MaterialTheme.colorScheme.secondary,
+                                icon = Icons.Default.GraphicEq,
+                                onClick = { destination = ZweizweiMusicDestination.BeatHub },
+                            )
+                            LaunchLandingButton(
+                                title = "Studio",
+                                subtitle = "Recording, Mix, Master.",
+                                detail = "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar.",
+                                chips = listOf("Record", "Mix", "Master"),
+                                accentColor = MaterialTheme.colorScheme.tertiary,
+                                icon = Icons.Default.AutoAwesome,
+                                onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(1.dp))
                     }
-                    LaunchLandingButton(
-                        title = "Songs",
-                        subtitle = "Mit JANNO starten und im Katalog direkt alle Artists finden.",
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        icon = Icons.Default.GraphicEq,
-                        onClick = {
-                            catalogInitialArtist = "JANNO"
-                            destination = ZweizweiMusicDestination.Catalog
-                        },
-                    )
-                    LaunchLandingButton(
-                        title = "Beat Hub",
-                        subtitle = "Beats direkt.",
-                        accentColor = MaterialTheme.colorScheme.secondary,
-                        icon = Icons.Default.GraphicEq,
-                        onClick = { destination = ZweizweiMusicDestination.BeatHub },
-                    )
-                    LaunchLandingButton(
-                        title = "Studio",
-                        subtitle = "Recording, Mix, Master.",
-                        accentColor = MaterialTheme.colorScheme.tertiary,
-                        icon = Icons.Default.AutoAwesome,
-                        onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
-                    )
-                    Spacer(modifier = Modifier.height(1.dp))
                 }
             }
         }
@@ -761,16 +997,22 @@ private fun ZweizweiMusicLaneScreen(
 private fun LaunchLandingButton(
     title: String,
     subtitle: String,
+    detail: String,
+    chips: List<String>,
     accentColor: androidx.compose.ui.graphics.Color,
     icon: ImageVector,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     HubEntryCard(
         title = title,
         subtitle = subtitle,
+        detail = detail,
+        chips = chips,
         accentColor = accentColor,
         icon = icon,
         onClick = onClick,
+        modifier = modifier,
     )
 }
 
@@ -778,106 +1020,198 @@ private fun LaunchLandingButton(
 private fun HubEntryCard(
     title: String,
     subtitle: String,
+    detail: String? = null,
+    chips: List<String> = emptyList(),
     accentColor: androidx.compose.ui.graphics.Color,
     icon: ImageVector,
     onClick: () -> Unit,
     eyebrow: String? = null,
     artwork: BrandArtwork? = null,
+    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        tonalElevation = 8.dp,
-        shadowElevation = 10.dp,
+        tonalElevation = 10.dp,
+        shadowElevation = 14.dp,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.24f)),
         onClick = onClick,
         interactionSource = interactionSource,
-        modifier = Modifier.skydownPressable(interactionSource),
+        modifier = modifier.skydownPressable(interactionSource),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Box(
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .align(Alignment.TopEnd)
+                    .size(120.dp)
+                    .offset(x = 18.dp, y = (-18).dp)
                     .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                accentColor.copy(alpha = 0.22f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                            ),
-                        ),
-                        RoundedCornerShape(14.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (artwork != null) {
-                    Image(
-                        painter = painterResource(id = artwork.drawableRes),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .padding(3.dp),
-                        contentScale = ContentScale.Fit,
-                    )
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(14.dp),
-                    )
-                } else {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                if (!eyebrow.isNullOrBlank()) {
-                    Text(
-                        text = eyebrow.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Black,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        accentColor.copy(alpha = 0.92f),
+                        accentColor.copy(alpha = 0.10f),
                         RoundedCornerShape(999.dp),
                     ),
+            )
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 10.dp)
+                    .width(4.dp)
+                    .height(72.dp)
+                    .background(accentColor, RoundedCornerShape(999.dp)),
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        accentColor.copy(alpha = 0.22f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                                    ),
+                                ),
+                                RoundedCornerShape(18.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (artwork != null) {
+                            Image(
+                                painter = painterResource(id = artwork.drawableRes),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .padding(4.dp),
+                                contentScale = ContentScale.Fit,
+                            )
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(15.dp),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = accentColor,
+                            )
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (!eyebrow.isNullOrBlank()) {
+                            Text(
+                                text = eyebrow.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = accentColor,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                accentColor.copy(alpha = 0.12f),
+                                RoundedCornerShape(999.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier
+                                .alpha(0.92f)
+                                .size(18.dp),
+                        )
+                    }
+                }
+
+                if (!detail.isNullOrBlank()) {
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                    )
+                }
+
+                if (chips.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        chips.take(3).forEach { chip ->
+                            BrandPill(text = chip, tint = accentColor)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HubSignalCard(
+    title: String,
+    value: String,
+    accentColor: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
+        tonalElevation = 6.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = accentColor,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.84f),
             )
         }
     }

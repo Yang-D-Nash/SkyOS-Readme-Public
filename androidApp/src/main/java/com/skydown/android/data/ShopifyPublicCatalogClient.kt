@@ -164,6 +164,9 @@ id
 title
 description
 handle
+vendor
+productType
+tags
 featuredImage {
   url
 }
@@ -245,6 +248,9 @@ private data class ShopifyStorefrontProduct(
     val title: String,
     val description: String,
     val handle: String,
+    val vendor: String?,
+    val productType: String?,
+    val tags: List<String>,
     val imageUrls: List<String>,
     val variants: List<ShopifyStorefrontVariant>,
 ) {
@@ -264,6 +270,12 @@ private data class ShopifyStorefrontProduct(
                 availableForSale = variant.availableForSale,
             )
         }
+        val collabPartner = resolveShopifyCollabPartner(tags = tags, vendor = vendor)
+        val category = resolveShopifyCategory(
+            tags = tags,
+            collabPartner = collabPartner,
+            productType = productType,
+        )
 
         return MerchandiseItem(
             id = "shopify_${id.substringAfterLast("/")}",
@@ -285,6 +297,8 @@ private data class ShopifyStorefrontProduct(
             sortOrder = 0,
             customBadge = "",
             customImageOverride = "",
+            category = category,
+            collabPartner = collabPartner.orEmpty(),
         )
     }
 
@@ -317,6 +331,9 @@ private data class ShopifyStorefrontProduct(
                 title = json.optString("title"),
                 description = json.optString("description"),
                 handle = json.optString("handle"),
+                vendor = json.optString("vendor").takeIf { it.isNotBlank() },
+                productType = json.optString("productType").takeIf { it.isNotBlank() },
+                tags = json.optJSONArray("tags").toStringList(),
                 imageUrls = imageUrls,
                 variants = variants,
             )
@@ -402,6 +419,80 @@ private fun graphQlErrorMessage(errors: JSONArray?, fallback: String): String {
     }
 
     return messages.joinToString(" | ").ifBlank { fallback }
+}
+
+private fun JSONArray?.toStringList(): List<String> {
+    if (this == null) return emptyList()
+    return buildList {
+        for (index in 0 until length()) {
+            optString(index).trim().takeIf { it.isNotEmpty() }?.let(::add)
+        }
+    }
+}
+
+private fun resolveShopifyCollabPartner(tags: List<String>, vendor: String?): String? {
+    return taggedMetadataValue(
+        tags = tags,
+        prefixes = listOf("collab:", "partner:", "artist:", "creator:"),
+    ) ?: externalVendorName(vendor)
+}
+
+private fun resolveShopifyCategory(
+    tags: List<String>,
+    collabPartner: String?,
+    productType: String?,
+): String {
+    return taggedMetadataValue(
+        tags = tags,
+        prefixes = listOf("category:", "collection:", "lane:"),
+    ) ?: collabPartner
+        ?: curatedProductType(productType)
+        ?: "Sky22 Essentials"
+}
+
+private fun taggedMetadataValue(tags: List<String>, prefixes: List<String>): String? {
+    for (tag in tags) {
+        val trimmedTag = tag.trim()
+        val loweredTag = trimmedTag.lowercase()
+        for (prefix in prefixes) {
+            val loweredPrefix = prefix.lowercase()
+            if (!loweredTag.startsWith(loweredPrefix)) continue
+            val value = trimmedTag.drop(prefix.length).trim()
+            if (value.isNotEmpty()) {
+                return value
+            }
+        }
+    }
+
+    return null
+}
+
+private fun externalVendorName(vendor: String?): String? {
+    val trimmedVendor = vendor?.trim().orEmpty()
+    if (trimmedVendor.isBlank()) return null
+
+    val normalizedVendor = trimmedVendor.lowercase()
+    val internalVendors = listOf(
+        "skydown",
+        "skydown x 22",
+        "skydownx22",
+        "sky22",
+        "sky 22",
+        "sky²²",
+    )
+    if (internalVendors.any { normalizedVendor.contains(it) }) {
+        return null
+    }
+
+    return trimmedVendor
+}
+
+private fun curatedProductType(productType: String?): String? {
+    val trimmedType = productType?.trim().orEmpty()
+    if (trimmedType.isBlank()) return null
+
+    val genericTypes = setOf("apparel", "clothing", "merch", "merchandise", "accessories", "accessory")
+    return trimmedType.takeUnless { genericTypes.contains(it.lowercase()) }
 }
 
 private fun normalizeStoreDomain(value: String?): String? {

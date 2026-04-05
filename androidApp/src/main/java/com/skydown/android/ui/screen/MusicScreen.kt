@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -335,142 +336,149 @@ fun MusicScreen(
             MusicStageBackdrop(
                 modifier = Modifier.fillMaxSize(),
             )
-            LazyColumn(
+            Box(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = skydownContentPadding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                item {
-                    MusicOverviewCard(
-                        uiState = uiState,
-                    )
-                }
-
-                item {
-                    MusicSpotlightDeckCard(
-                        uiState = uiState,
-                        selectedTrack = selectedTrack,
-                        artistPage = selectedArtistPage,
-                        onOpenInstagram = {
-                            uiState.selectedArtistSocialProfile?.let { socialProfile ->
-                                openExternalLink(context, socialProfile.instagramUrl)
-                            }
-                        },
-                        onConnect = {
-                            viewModel.clearSpotifyError()
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
-                            )
-                        },
-                        onDisconnect = {
-                            player.stop()
-                            player.clearMediaItems()
-                            viewModel.disconnectSpotify()
-                        },
-                        onOpenArtistPage = {
-                            onOpenArtistPage?.invoke(uiState.selectedArtist)
-                        },
-                    )
-                }
-
-                if (onOpenBeatHub != null || onOpenStudio != null) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 1080.dp),
+                    contentPadding = skydownContentPadding(innerPadding),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
                     item {
-                        MusicShortcutHubCard(
-                            onOpenStudio = onOpenStudio,
-                            onOpenBeatHub = onOpenBeatHub,
+                        MusicOverviewCard(
+                            uiState = uiState,
                         )
                     }
-                }
 
-                item {
-                    ArtistPagerCard(
-                        artists = uiState.availableArtists,
-                        selectedArtist = uiState.selectedArtist,
-                        artistPagesByName = artistPagesByName,
-                        onArtistSelected = viewModel::selectArtist,
-                        onOpenArtistPage = onOpenArtistPage,
-                    )
-                }
+                    item {
+                        MusicSpotlightDeckCard(
+                            uiState = uiState,
+                            selectedTrack = selectedTrack,
+                            artistPage = selectedArtistPage,
+                            onOpenInstagram = {
+                                uiState.selectedArtistSocialProfile?.let { socialProfile ->
+                                    openExternalLink(context, socialProfile.instagramUrl)
+                                }
+                            },
+                            onConnect = {
+                                viewModel.clearSpotifyError()
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
+                                )
+                            },
+                            onDisconnect = {
+                                player.stop()
+                                player.clearMediaItems()
+                                viewModel.disconnectSpotify()
+                            },
+                            onOpenArtistPage = {
+                                onOpenArtistPage?.invoke(uiState.selectedArtist)
+                            },
+                        )
+                    }
 
-                item {
-                    MusicInstagramHubCard(
-                        destinations = uiState.instagramHubDestinations,
-                        onOpenLink = { url ->
-                            openExternalLink(context, url)
-                        },
-                    )
-                }
-
-                item {
-                    when {
-                        uiState.isLoading -> {
-                            MusicStatusCard(
-                                title = "Tracks laden",
-                                body = uiState.selectedArtist,
-                                loading = true,
+                    if (onOpenBeatHub != null || onOpenStudio != null) {
+                        item {
+                            MusicShortcutHubCard(
+                                onOpenStudio = onOpenStudio,
+                                onOpenBeatHub = onOpenBeatHub,
                             )
                         }
+                    }
 
-                        !uiState.errorMessage.isNullOrBlank() -> {
-                            MusicStatusCard(
-                                title = "Tracks fehlen",
-                                body = uiState.errorMessage.orEmpty(),
-                                actionLabel = "Erneut laden",
-                                onAction = {
-                                    viewModel.clearSpotifyError()
-                                    viewModel.selectArtist(uiState.selectedArtist)
+                    item {
+                        ArtistPagerCard(
+                            artists = uiState.availableArtists,
+                            selectedArtist = uiState.selectedArtist,
+                            artistPagesByName = artistPagesByName,
+                            onArtistSelected = viewModel::selectArtist,
+                            onOpenArtistPage = onOpenArtistPage,
+                        )
+                    }
+
+                    item {
+                        MusicInstagramHubCard(
+                            destinations = uiState.instagramHubDestinations,
+                            onOpenLink = { url ->
+                                openExternalLink(context, url)
+                            },
+                        )
+                    }
+
+                    item {
+                        when {
+                            uiState.isLoading -> {
+                                MusicStatusCard(
+                                    title = "Tracks laden",
+                                    body = uiState.selectedArtist,
+                                    loading = true,
+                                )
+                            }
+
+                            !uiState.errorMessage.isNullOrBlank() -> {
+                                MusicStatusCard(
+                                    title = "Tracks fehlen",
+                                    body = uiState.errorMessage.orEmpty(),
+                                    actionLabel = "Erneut laden",
+                                    onAction = {
+                                        viewModel.clearSpotifyError()
+                                        viewModel.selectArtist(uiState.selectedArtist)
+                                    },
+                                )
+                            }
+
+                            uiState.tracks.isEmpty() -> {
+                                MusicStatusCard(
+                                    title = "Keine Tracks",
+                                    body = uiState.selectedArtist,
+                                )
+                            }
+                        }
+                    }
+
+                    if (uiState.tracks.isNotEmpty()) {
+                        item {
+                            MusicPlayerCard(
+                                track = selectedTrack,
+                                isPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
+                                onPlayToggle = {
+                                    selectedTrack?.let { viewModel.togglePreview(it) }
+                                },
+                                onOpenSpotify = {
+                                    openTrackInSpotify(
+                                        context = context,
+                                        spotifyTrackId = selectedTrack?.spotifyTrackId,
+                                        externalUrl = selectedTrack?.externalUrl,
+                                    )
                                 },
                             )
                         }
 
-                        uiState.tracks.isEmpty() -> {
-                            MusicStatusCard(
-                                title = "Keine Tracks",
-                                body = uiState.selectedArtist,
+                        item {
+                            BrandSectionBanner(
+                                title = "Tracks",
+                                subtitle = "${uiState.tracks.size} Tracks im aktuellen Artist-Set.",
+                                accent = SpotifyGreen,
+                                icon = Icons.Default.MusicNote,
+                                tag = "LIST",
+                            )
+                        }
+
+                        items(uiState.tracks, key = { it.trackId }) { track ->
+                            TrackRow(
+                                track = track,
+                                isPlaying = uiState.currentlyPlayingId == track.trackId,
+                                isSelected = selectedTrackId == track.trackId,
+                                onSelectTrack = { selectedTrackId = track.trackId },
+                                onPlayToggle = { viewModel.togglePreview(track) },
                             )
                         }
                     }
+
                 }
-
-                if (uiState.tracks.isNotEmpty()) {
-                    item {
-                        MusicPlayerCard(
-                            track = selectedTrack,
-                            isPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
-                            onPlayToggle = {
-                                selectedTrack?.let { viewModel.togglePreview(it) }
-                            },
-                            onOpenSpotify = {
-                                openTrackInSpotify(
-                                    context = context,
-                                    spotifyTrackId = selectedTrack?.spotifyTrackId,
-                                    externalUrl = selectedTrack?.externalUrl,
-                                )
-                            },
-                        )
-                    }
-
-                    item {
-                        BrandSectionBanner(
-                            title = "Tracks",
-                            subtitle = "${uiState.tracks.size} Tracks im aktuellen Artist-Set.",
-                            accent = SpotifyGreen,
-                            icon = Icons.Default.MusicNote,
-                            tag = "LIST",
-                        )
-                    }
-
-                    items(uiState.tracks, key = { it.trackId }) { track ->
-                        TrackRow(
-                            track = track,
-                            isPlaying = uiState.currentlyPlayingId == track.trackId,
-                            isSelected = selectedTrackId == track.trackId,
-                            onSelectTrack = { selectedTrackId = track.trackId },
-                            onPlayToggle = { viewModel.togglePreview(track) },
-                        )
-                    }
-                }
-
             }
         }
     }

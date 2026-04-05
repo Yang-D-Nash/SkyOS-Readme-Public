@@ -36,4 +36,39 @@ data class MerchandiseItem(
     val sortOrder: Int = 0,
     val customBadge: String = "",
     val customImageOverride: String = "",
+    val category: String = "",
+    val collabPartner: String = "",
 )
+
+val MerchandiseItem.hasCuratedMerchCategory: Boolean
+    get() = category.trim().isNotEmpty() || collabPartner.trim().isNotEmpty()
+
+val MerchandiseItem.merchCategoryTitle: String
+    get() = collabPartner.trim().takeIf { it.isNotEmpty() }
+        ?: category.trim().takeIf { it.isNotEmpty() }
+        ?: "Sky22 Essentials"
+
+val MerchandiseItem.merchCategorySubtitle: String
+    get() {
+        val normalizedCollab = collabPartner.trim().takeIf { it.isNotEmpty() }
+        val normalizedCategory = category.trim().takeIf { it.isNotEmpty() }
+
+        return when {
+            normalizedCollab != null &&
+                normalizedCategory != null &&
+                !normalizedCollab.equals(normalizedCategory, ignoreCase = true) -> normalizedCategory
+            normalizedCollab != null -> "Collab lane"
+            !shopifyProductId.isNullOrBlank() -> "Shopify drop"
+            else -> "House line"
+        }
+    }
+
+val MerchandiseItem.merchCategoryKey: String
+    get() = merchCategoryTitle.slugifiedMerchCategory()
+
+private fun String.slugifiedMerchCategory(): String {
+    val normalized = lowercase()
+        .replace(Regex("[^\\p{L}\\p{Nd}]+"), "-")
+        .trim('-')
+    return if (normalized.isBlank()) "all-drops" else normalized
+}

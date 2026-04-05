@@ -3,8 +3,10 @@ package com.skydown.android.ui.screen
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -84,6 +86,10 @@ import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.theme.YouTubeDeepRed
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
+import com.skydown.shared.model.hasCuratedMerchCategory
+import com.skydown.shared.model.merchCategoryKey
+import com.skydown.shared.model.merchCategorySubtitle
+import com.skydown.shared.model.merchCategoryTitle
 import com.skydown.shared.usecase.MerchandiseVariantResolver
 import kotlinx.coroutines.delay
 
@@ -98,11 +104,45 @@ fun ShopScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val collabLanes = remember(uiState.items) { buildShopCollabLanes(uiState.items) }
+    var selectedCollabLaneId by rememberSaveable { mutableStateOf(ShopCollabLane.ALL_ID) }
+    val filteredItems = remember(uiState.items, selectedCollabLaneId) {
+        if (selectedCollabLaneId == ShopCollabLane.ALL_ID) {
+            uiState.items
+        } else {
+            uiState.items.filter { item -> item.merchCategoryKey == selectedCollabLaneId }
+        }
+    }
+    val selectedCollabLane = remember(collabLanes, selectedCollabLaneId, uiState.items) {
+        collabLanes.firstOrNull { lane -> lane.id == selectedCollabLaneId }
+            ?: collabLanes.firstOrNull()
+            ?: ShopCollabLane(
+                id = ShopCollabLane.ALL_ID,
+                title = "All Drops",
+                subtitle = "Alle Collabs und Core Pieces.",
+                itemCount = uiState.items.size,
+                isCoreLane = false,
+            )
+    }
+    val laneCount = remember(collabLanes, uiState.items) {
+        val resolvedCount = collabLanes.count { it.id != ShopCollabLane.ALL_ID }
+        if (resolvedCount == 0) {
+            if (uiState.items.isEmpty()) 0 else 1
+        } else {
+            resolvedCount
+        }
+    }
 
     LaunchedEffect(uiState.toastMessage) {
         if (!uiState.toastMessage.isNullOrBlank()) {
             delay(3000)
             viewModel.clearToast()
+        }
+    }
+
+    LaunchedEffect(collabLanes.joinToString(separator = "|") { it.id }) {
+        if (collabLanes.none { it.id == selectedCollabLaneId }) {
+            selectedCollabLaneId = ShopCollabLane.ALL_ID
         }
     }
 
@@ -134,13 +174,14 @@ fun ShopScreen(
             )
         },
     ) { innerPadding ->
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     skydownScreenBrush(),
                 ),
         ) {
+            val isWideLayout = maxWidth >= 920.dp
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = skydownContentPadding(innerPadding),
@@ -149,6 +190,7 @@ fun ShopScreen(
                 item {
                     ShopOverviewCard(
                         uiState = uiState,
+                        laneCount = laneCount,
                     )
                 }
 
@@ -210,13 +252,87 @@ fun ShopScreen(
                             tag = if (isSyncing) "SYNC" else "MERCH",
                         )
                     }
-                }
+                } else if (isWideLayout) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            ShopCollabSidebar(
+                                lanes = collabLanes,
+                                selectedLaneId = selectedCollabLaneId,
+                                onSelect = { lane -> selectedCollabLaneId = lane.id },
+                                modifier = Modifier.width(248.dp),
+                            )
 
-                items(uiState.items, key = { it.id.orEmpty() }) { item ->
-                    MerchandiseCard(
-                        item = item,
-                        onTap = viewModel::selectItem,
-                    )
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                ShopCollabSelectionCard(
+                                    lane = selectedCollabLane,
+                                    totalItemCount = uiState.items.size,
+                                )
+
+                                if (filteredItems.isEmpty()) {
+                                    ShopMessageCard(
+                                        title = "Noch keine Pieces",
+                                        body = "In ${selectedCollabLane.title} ist gerade noch kein sichtbarer Merch.",
+                                        icon = Icons.Default.Person,
+                                        accent = MaterialTheme.colorScheme.primary,
+                                        tag = "FILTER",
+                                    )
+                                } else {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    ) {
+                                        filteredItems.forEach { item ->
+                                            MerchandiseCard(
+                                                item = item,
+                                                onTap = viewModel::selectItem,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    item {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            ShopCollabRail(
+                                lanes = collabLanes,
+                                selectedLaneId = selectedCollabLaneId,
+                                onSelect = { lane -> selectedCollabLaneId = lane.id },
+                            )
+                            ShopCollabSelectionCard(
+                                lane = selectedCollabLane,
+                                totalItemCount = uiState.items.size,
+                            )
+                        }
+                    }
+
+                    if (filteredItems.isEmpty()) {
+                        item {
+                            ShopMessageCard(
+                                title = "Noch keine Pieces",
+                                body = "In ${selectedCollabLane.title} ist gerade noch kein sichtbarer Merch.",
+                                icon = Icons.Default.Person,
+                                accent = MaterialTheme.colorScheme.primary,
+                                tag = "FILTER",
+                            )
+                        }
+                    } else {
+                        items(filteredItems, key = { it.id.orEmpty() }) { item ->
+                            MerchandiseCard(
+                                item = item,
+                                onTap = viewModel::selectItem,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -252,6 +368,7 @@ fun ShopScreen(
 @Composable
 private fun ShopOverviewCard(
     uiState: ShopUiState,
+    laneCount: Int,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     val pieceLabel = when {
@@ -279,6 +396,7 @@ private fun ShopOverviewCard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 BrandPill(text = pieceLabel, tint = SpotifyGreen)
@@ -286,6 +404,12 @@ private fun ShopOverviewCard(
                     text = if (uiState.isStoreOpen) "Checkout live" else "Checkout pausiert",
                     tint = if (uiState.isStoreOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                 )
+                if (laneCount > 0) {
+                    BrandPill(
+                        text = if (laneCount == 1) "1 Lane" else "$laneCount Lanes",
+                        tint = MaterialTheme.colorScheme.secondary,
+                    )
+                }
                 BrandPill(
                     text = if (uiState.isLoggedIn) "Account" else "Gast",
                     tint = MaterialTheme.colorScheme.tertiary,
@@ -446,6 +570,228 @@ private fun LoginSection(
     }
 }
 
+private data class ShopCollabLane(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val itemCount: Int,
+    val isCoreLane: Boolean,
+) {
+    companion object {
+        const val ALL_ID = "all-drops"
+    }
+}
+
+private fun buildShopCollabLanes(items: List<MerchandiseItem>): List<ShopCollabLane> {
+    if (items.isEmpty()) {
+        return listOf(
+            ShopCollabLane(
+                id = ShopCollabLane.ALL_ID,
+                title = "All Drops",
+                subtitle = "Alle Collabs und Core Pieces.",
+                itemCount = 0,
+                isCoreLane = false,
+            ),
+        )
+    }
+
+    val grouped = items.groupBy { it.merchCategoryKey }
+    val lanes = grouped.values.mapNotNull { groupedItems ->
+        val sample = groupedItems.firstOrNull() ?: return@mapNotNull null
+        val curatedLane = groupedItems.any { it.hasCuratedMerchCategory }
+        ShopCollabLane(
+            id = sample.merchCategoryKey,
+            title = sample.merchCategoryTitle,
+            subtitle = if (curatedLane) sample.merchCategorySubtitle else "House line",
+            itemCount = groupedItems.size,
+            isCoreLane = !curatedLane,
+        )
+    }.sortedWith(
+        compareBy<ShopCollabLane> { it.isCoreLane }
+            .thenByDescending { it.itemCount }
+            .thenBy { it.title.lowercase() },
+    )
+
+    return listOf(
+        ShopCollabLane(
+            id = ShopCollabLane.ALL_ID,
+            title = "All Drops",
+            subtitle = "Alle Collabs und Core Pieces.",
+            itemCount = items.size,
+            isCoreLane = false,
+        ),
+    ) + lanes
+}
+
+@Composable
+private fun ShopCollabSidebar(
+    lanes: List<ShopCollabLane>,
+    selectedLaneId: String,
+    onSelect: (ShopCollabLane) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SkydownCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            BrandSectionBanner(
+                title = "Collab Sidebar",
+                subtitle = "Jede Kollabo bekommt ihre eigene Lane im Merch Hub.",
+                accent = MaterialTheme.colorScheme.primary,
+                icon = Icons.Default.Person,
+                tag = "LANES",
+            )
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                lanes.forEach { lane ->
+                    ShopCollabSidebarButton(
+                        lane = lane,
+                        isSelected = lane.id == selectedLaneId,
+                        onTap = { onSelect(lane) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopCollabRail(
+    lanes: List<ShopCollabLane>,
+    selectedLaneId: String,
+    onSelect: (ShopCollabLane) -> Unit,
+) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        lanes.forEach { lane ->
+            ShopCollabSidebarButton(
+                lane = lane,
+                isSelected = lane.id == selectedLaneId,
+                compact = true,
+                onTap = { onSelect(lane) },
+                modifier = Modifier.width(214.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShopCollabSelectionCard(
+    lane: ShopCollabLane,
+    totalItemCount: Int,
+) {
+    SkydownCard(contentPadding = PaddingValues(16.dp)) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            BrandSectionBanner(
+                title = lane.title,
+                subtitle = lane.subtitle,
+                accent = MaterialTheme.colorScheme.primary,
+                icon = if (lane.id == ShopCollabLane.ALL_ID) Icons.Default.ShoppingBag else Icons.Default.Person,
+                tag = if (lane.itemCount == 1) "1 PIECE" else "${lane.itemCount} PIECES",
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                BrandStatusChip(
+                    text = when {
+                        lane.id == ShopCollabLane.ALL_ID -> "Hub lane"
+                        lane.isCoreLane -> "Core lane"
+                        else -> "Collab lane"
+                    },
+                    accent = MaterialTheme.colorScheme.secondary,
+                )
+                BrandStatusChip(
+                    text = if (lane.itemCount == totalItemCount) "Gesamter Hub" else "Gefilterter Hub",
+                    accent = SpotifyGreen,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopCollabSidebarButton(
+    lane: ShopCollabLane,
+    isSelected: Boolean,
+    onTap: () -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.52f)
+    }
+    val contentColor = if (isSelected) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onTap)
+            .padding(horizontal = if (compact) 14.dp else 16.dp, vertical = if (compact) 14.dp else 15.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f)
+                        } else {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        },
+                    ),
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = lane.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
+                )
+                Text(
+                    text = lane.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = if (isSelected) 0.84f else 0.74f),
+                )
+            }
+        }
+
+        BrandStatusChip(
+            text = if (lane.itemCount == 1) "1 Piece" else "${lane.itemCount} Pieces",
+            accent = if (isSelected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun MerchandiseDetailSheet(
@@ -530,7 +876,8 @@ private fun MerchandiseDetailSheet(
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ShopBadge(
@@ -538,6 +885,13 @@ private fun MerchandiseDetailSheet(
                         icon = if (item.available) Icons.Default.CheckCircle else Icons.Default.Sync,
                         isActive = item.available,
                     )
+                    if (item.hasCuratedMerchCategory) {
+                        ShopBadge(
+                            text = item.merchCategoryTitle,
+                            icon = Icons.Default.Person,
+                            isActive = false,
+                        )
+                    }
                     ShopBadge(
                         text = if (isStoreOpen) "Store offen" else "Store pausiert",
                         icon = if (isStoreOpen) Icons.Default.CheckCircle else Icons.Default.Sync,
@@ -633,8 +987,16 @@ private fun MerchandiseDetailSheet(
                 )
 
                 Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (item.hasCuratedMerchCategory) {
+                        ShopBadge(
+                            text = item.merchCategoryTitle,
+                            icon = Icons.Default.Person,
+                            isActive = false,
+                        )
+                    }
                     item.customBadge.takeIf { it.isNotBlank() }?.let { badge ->
                         ShopBadge(
                             text = badge,

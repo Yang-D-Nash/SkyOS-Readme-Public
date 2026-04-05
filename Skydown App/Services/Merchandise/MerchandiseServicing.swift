@@ -87,7 +87,14 @@ private extension DocumentSnapshot {
             featured: data["featured"] as? Bool ?? false,
             sortOrder: (data["sortOrder"] as? NSNumber)?.intValue ?? 0,
             customBadge: data["customBadge"] as? String ?? "",
-            customImageOverride: data["customImageOverride"] as? String ?? ""
+            customImageOverride: data["customImageOverride"] as? String ?? "",
+            category: data["category"] as? String
+                ?? data["collabCategory"] as? String
+                ?? data["collection"] as? String
+                ?? "",
+            collabPartner: data["collabPartner"] as? String
+                ?? data["collab"] as? String
+                ?? ""
         )
     }
 }

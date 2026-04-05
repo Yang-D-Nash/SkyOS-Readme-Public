@@ -355,69 +355,157 @@ private struct ZweizweiTabView: View {
         switch destination {
         case .hub:
             NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                        BrandHeroSurface(
-                            colorScheme: colorScheme,
-                            eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
-                            title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
-                            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Releases, Artists und Studio an einem Ort.",
-                            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Hoer rein, entdecke Artists und spring direkt zu Beats oder Recording.",
-                            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
-                            accent: AppColors.spotify(for: colorScheme),
-                            secondaryAccent: AppColors.accent(for: colorScheme),
-                            marks: [.zweizwei]
-                        ) {
-                            HStack(spacing: 10) {
-                                BrandHeroPill(
-                                    text: "Catalog",
-                                    colorScheme: colorScheme,
-                                    tint: AppColors.spotify(for: colorScheme)
-                                )
-                                BrandHeroPill(
-                                    text: "Beats",
-                                    colorScheme: colorScheme,
-                                    tint: AppColors.accent(for: colorScheme)
-                                )
-                                BrandHeroPill(
-                                    text: "Studio",
-                                    colorScheme: colorScheme,
-                                    tint: AppColors.accentMystic(for: colorScheme)
-                                )
+                GeometryReader { proxy in
+                    let layout = SkydownResponsiveLayout(availableWidth: proxy.size.width)
+                    let contentWidth = min(
+                        layout.contentMaxWidth,
+                        max(proxy.size.width - (layout.horizontalPadding * 2), 0)
+                    )
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                            BrandHeroSurface(
+                                colorScheme: colorScheme,
+                                eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
+                                title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
+                                subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Releases, Artists und Studio an einem Ort.",
+                                detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Hoer rein, entdecke Artists und spring direkt zu Beats oder Recording.",
+                                backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
+                                accent: AppColors.spotify(for: colorScheme),
+                                secondaryAccent: AppColors.accent(for: colorScheme),
+                                marks: [.zweizwei]
+                            ) {
+                                HStack(spacing: 10) {
+                                    BrandHeroPill(
+                                        text: "Catalog",
+                                        colorScheme: colorScheme,
+                                        tint: AppColors.spotify(for: colorScheme)
+                                    )
+                                    BrandHeroPill(
+                                        text: "Beats",
+                                        colorScheme: colorScheme,
+                                        tint: AppColors.accent(for: colorScheme)
+                                    )
+                                    BrandHeroPill(
+                                        text: "Studio",
+                                        colorScheme: colorScheme,
+                                        tint: AppColors.accentMystic(for: colorScheme)
+                                    )
+                                }
+                            }
+
+                            if layout.prefersThreeColumn {
+                                HStack(spacing: 12) {
+                                    MusicHubStatusCard(
+                                        title: "Catalog",
+                                        value: "Artists, Tracks, Pages",
+                                        accent: AppColors.spotify(for: colorScheme)
+                                    )
+                                    MusicHubStatusCard(
+                                        title: "Beat Hub",
+                                        value: "Schnell den Vibe finden",
+                                        accent: AppColors.accent(for: colorScheme)
+                                    )
+                                    MusicHubStatusCard(
+                                        title: "Studio",
+                                        value: "Recording, Mix, Master",
+                                        accent: AppColors.accentMystic(for: colorScheme)
+                                    )
+                                }
+                            }
+
+                            if layout.prefersTwoColumn {
+                                VStack(spacing: 12) {
+                                    ShellActionCard(
+                                        eyebrow: "Catalog",
+                                        title: "Songs & Artists",
+                                        subtitle: "Starte mit JANNO und finde direkt alle Artists, Songs und Pages.",
+                                        detail: "Das ist der schnellste Weg in den Music-Katalog mit Preview, Spotify und Artist-Pages.",
+                                        accent: AppColors.spotify(for: colorScheme),
+                                        systemImage: "waveform.circle.fill",
+                                        badges: ["Tracks", "Spotify", "Pages"]
+                                    ) {
+                                        catalogInitialArtist = "JANNO"
+                                        catalogAutoPresentArtistPage = false
+                                        destination = .catalog
+                                    }
+
+                                    HStack(alignment: .top, spacing: 12) {
+                                        ShellActionCard(
+                                            eyebrow: "Beat Hub",
+                                            title: "Beat Library",
+                                            subtitle: "Beats anhoeren und schnell den richtigen Vibe finden.",
+                                            detail: "Direkt in Beat-Playback, Auswahl und Upload-nahe Workflows springen.",
+                                            accent: AppColors.accent(for: colorScheme),
+                                            systemImage: "speaker.wave.3.fill",
+                                            badges: ["Playback", "Selection", "Flow"]
+                                        ) {
+                                            destination = .beatHub
+                                        }
+
+                                        ShellActionCard(
+                                            eyebrow: "Studio",
+                                            title: "Studio Services",
+                                            subtitle: "Recording, Mixing und Mastering direkt anfragen.",
+                                            detail: "Die Services bleiben auf einen Blick erreichbar, ohne den Music-Flow zu verlassen.",
+                                            accent: AppColors.accentMystic(for: colorScheme),
+                                            systemImage: "sparkles",
+                                            badges: ["Record", "Mix", "Master"]
+                                        ) {
+                                            destination = .nicma
+                                        }
+                                    }
+                                }
+                            } else {
+                                VStack(spacing: 12) {
+                                    ShellActionCard(
+                                        eyebrow: "Catalog",
+                                        title: "Songs & Artists",
+                                        subtitle: "Starte mit JANNO und finde direkt alle Artists, Songs und Pages.",
+                                        detail: "Das ist der schnellste Weg in den Music-Katalog mit Preview, Spotify und Artist-Pages.",
+                                        accent: AppColors.spotify(for: colorScheme),
+                                        systemImage: "waveform.circle.fill",
+                                        badges: ["Tracks", "Spotify", "Pages"]
+                                    ) {
+                                        catalogInitialArtist = "JANNO"
+                                        catalogAutoPresentArtistPage = false
+                                        destination = .catalog
+                                    }
+
+                                    ShellActionCard(
+                                        eyebrow: "Beat Hub",
+                                        title: "Beat Library",
+                                        subtitle: "Beats anhoeren und schnell den richtigen Vibe finden.",
+                                        detail: "Direkt in Beat-Playback, Auswahl und Upload-nahe Workflows springen.",
+                                        accent: AppColors.accent(for: colorScheme),
+                                        systemImage: "speaker.wave.3.fill",
+                                        badges: ["Playback", "Selection", "Flow"]
+                                    ) {
+                                        destination = .beatHub
+                                    }
+
+                                    ShellActionCard(
+                                        eyebrow: "Studio",
+                                        title: "Studio Services",
+                                        subtitle: "Recording, Mixing und Mastering direkt anfragen.",
+                                        detail: "Die Services bleiben auf einen Blick erreichbar, ohne den Music-Flow zu verlassen.",
+                                        accent: AppColors.accentMystic(for: colorScheme),
+                                        systemImage: "sparkles",
+                                        badges: ["Record", "Mix", "Master"]
+                                    ) {
+                                        destination = .nicma
+                                    }
+                                }
                             }
                         }
-
-                        ShellActionCard(
-                            title: "Songs & Artists",
-                            subtitle: "Starte mit JANNO und finde im Katalog direkt alle Artists, Songs und Pages.",
-                            accent: AppColors.spotify(for: colorScheme)
-                        ) {
-                            catalogInitialArtist = "JANNO"
-                            catalogAutoPresentArtistPage = false
-                            destination = .catalog
-                        }
-
-                        ShellActionCard(
-                            title: "Beat Library",
-                            subtitle: "Beats anhoeren und schnell den richtigen Vibe finden.",
-                            accent: AppColors.accent(for: colorScheme)
-                        ) {
-                            destination = .beatHub
-                        }
-
-                        ShellActionCard(
-                            title: "Studio Services",
-                            subtitle: "Recording, Mixing und Mastering direkt anfragen.",
-                            accent: AppColors.accentMystic(for: colorScheme)
-                        ) {
-                            destination = .nicma
-                        }
+                        .frame(maxWidth: contentWidth, alignment: .leading)
+                        .padding(.horizontal, layout.horizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, SkydownLayout.screenTopPadding)
-                    .padding(.bottom, SkydownLayout.screenBottomPadding)
+                    .scrollIndicators(.hidden)
                 }
-                .scrollIndicators(.hidden)
                 .background(
                     AppColors.screenGradient(
                         for: colorScheme,
@@ -470,25 +558,84 @@ private struct ZweizweiTabView: View {
 
 private struct ShellActionCard: View {
     @Environment(\.colorScheme) private var colorScheme
+    let eyebrow: String
     let title: String
     let subtitle: String
+    let detail: String
     let accent: Color
+    let systemImage: String
+    let badges: [String]
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.system(size: 20, weight: .black, design: .rounded))
-                    .foregroundColor(AppColors.text(for: colorScheme))
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        accent.opacity(colorScheme == .dark ? 0.24 : 0.18),
+                                        AppColors.cardBackground(for: colorScheme)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
 
-                Text(subtitle)
+                        Image(systemName: systemImage)
+                            .font(.title3.weight(.bold))
+                            .foregroundColor(accent)
+                    }
+                    .frame(width: 54, height: 54)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(eyebrow.uppercased())
+                            .font(AppTypography.heroEyebrow)
+                            .tracking(1.1)
+                            .foregroundColor(accent)
+
+                        Text(title)
+                            .font(.system(size: 20, weight: .black, design: .rounded))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+
+                        Text(subtitle)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .multilineTextAlignment(.leading)
+                    }
+
+                    Spacer(minLength: 10)
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .padding(10)
+                        .background(
+                            Circle()
+                                .fill(accent.opacity(colorScheme == .dark ? 0.14 : 0.10))
+                        )
+                }
+
+                Text(detail)
                     .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .multilineTextAlignment(.leading)
+
+                HStack(spacing: 8) {
+                    ForEach(badges, id: \.self) { badge in
+                        Text(badge)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(accent)
+                            .padding(.horizontal, 11)
+                            .padding(.vertical, 7)
+                            .skydownCapsuleSurface(colorScheme: colorScheme, accent: accent)
+                    }
+                }
             }
             .padding(SkydownLayout.heroPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 210, alignment: .leading)
             .skydownPanelSurface(
                 colorScheme: colorScheme,
                 accent: accent,
@@ -498,6 +645,36 @@ private struct ShellActionCard: View {
             )
         }
         .buttonStyle(SkydownTactileButtonStyle())
+    }
+}
+
+private struct MusicHubStatusCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let title: String
+    let value: String
+    let accent: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(AppTypography.heroEyebrow)
+                .tracking(1.1)
+                .foregroundColor(accent)
+
+            Text(value)
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .multilineTextAlignment(.leading)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: accent,
+            cornerRadius: 20,
+            shadowRadius: 10,
+            shadowYOffset: 6
+        )
     }
 }
 

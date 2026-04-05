@@ -40,6 +40,8 @@ struct MerchandiseItem: Codable, Identifiable {
     var sortOrder: Int = 0
     var customBadge: String = ""
     var customImageOverride: String = ""
+    var category: String = ""
+    var collabPartner: String = ""
 
     enum CodingKeys: String, CodingKey {
         case name
@@ -61,6 +63,11 @@ struct MerchandiseItem: Codable, Identifiable {
         case sortOrder
         case customBadge
         case customImageOverride
+        case category
+        case collabCategory
+        case collabPartner
+        case collab
+        case collection
     }
 
     init(
@@ -82,7 +89,9 @@ struct MerchandiseItem: Codable, Identifiable {
         featured: Bool = false,
         sortOrder: Int = 0,
         customBadge: String = "",
-        customImageOverride: String = ""
+        customImageOverride: String = "",
+        category: String = "",
+        collabPartner: String = ""
     ) {
         self.id = id
         self.name = name
@@ -103,6 +112,8 @@ struct MerchandiseItem: Codable, Identifiable {
         self.sortOrder = sortOrder
         self.customBadge = customBadge
         self.customImageOverride = customImageOverride
+        self.category = category
+        self.collabPartner = collabPartner
     }
 
     init(from decoder: Decoder) throws {
@@ -127,6 +138,14 @@ struct MerchandiseItem: Codable, Identifiable {
         sortOrder = try container.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
         customBadge = try container.decodeIfPresent(String.self, forKey: .customBadge) ?? ""
         customImageOverride = try container.decodeIfPresent(String.self, forKey: .customImageOverride) ?? ""
+        let decodedCategory = try container.decodeIfPresent(String.self, forKey: .category)
+        let decodedCollabCategory = try container.decodeIfPresent(String.self, forKey: .collabCategory)
+        let decodedCollection = try container.decodeIfPresent(String.self, forKey: .collection)
+        let decodedCollabPartner = try container.decodeIfPresent(String.self, forKey: .collabPartner)
+        let decodedCollab = try container.decodeIfPresent(String.self, forKey: .collab)
+
+        category = decodedCategory ?? decodedCollabCategory ?? decodedCollection ?? ""
+        collabPartner = decodedCollabPartner ?? decodedCollab ?? ""
     }
 
     func encode(to encoder: Encoder) throws {
@@ -150,5 +169,60 @@ struct MerchandiseItem: Codable, Identifiable {
         try container.encode(sortOrder, forKey: .sortOrder)
         try container.encode(customBadge, forKey: .customBadge)
         try container.encode(customImageOverride, forKey: .customImageOverride)
+        try container.encode(category, forKey: .category)
+        try container.encode(collabPartner, forKey: .collabPartner)
+    }
+
+    var hasCuratedMerchCategory: Bool {
+        category.trimmedNonEmpty != nil || collabPartner.trimmedNonEmpty != nil
+    }
+
+    var merchCategoryTitle: String {
+        collabPartner.trimmedNonEmpty
+            ?? category.trimmedNonEmpty
+            ?? "Sky22 Essentials"
+    }
+
+    var merchCategorySubtitle: String {
+        if let collabPartner = collabPartner.trimmedNonEmpty,
+           let category = category.trimmedNonEmpty,
+           collabPartner.caseInsensitiveCompare(category) != .orderedSame {
+            return category
+        }
+
+        if collabPartner.trimmedNonEmpty != nil {
+            return "Collab lane"
+        }
+
+        if !shopifyProductId.orEmpty.isEmpty {
+            return "Shopify drop"
+        }
+
+        return "House line"
+    }
+
+    var merchCategoryKey: String {
+        merchCategoryTitle.slugifiedMerchCategory
+    }
+}
+
+private extension Optional where Wrapped == String {
+    var orEmpty: String {
+        self ?? ""
+    }
+}
+
+private extension String {
+    var trimmedNonEmpty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    var slugifiedMerchCategory: String {
+        let ascii = folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+        let parts = ascii.components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? "all-drops" : parts.joined(separator: "-")
     }
 }

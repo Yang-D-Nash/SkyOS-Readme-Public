@@ -183,6 +183,8 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             .removingDuplicates()
         let firstVariant = variants.first
         let isAvailable = variants.contains { $0.availableForSale }
+        let collabPartner = resolvedShopifyCollabPartner(for: product)
+        let category = resolvedShopifyCategory(for: product, collabPartner: collabPartner)
 
         return MerchandiseItem(
             id: "shopify_\(extractNumericId(from: product.id) ?? product.id)",
@@ -203,7 +205,9 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             featured: false,
             sortOrder: 0,
             customBadge: "",
-            customImageOverride: ""
+            customImageOverride: "",
+            category: category,
+            collabPartner: collabPartner ?? ""
         )
     }
 
@@ -214,6 +218,71 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
         selectedOptions.first { option in
             optionNameCandidates.contains(option.name.lowercased())
         }?.value.trimmedNonEmpty
+    }
+
+    private func resolvedShopifyCollabPartner(for product: ShopifyStorefrontProduct) -> String? {
+        taggedMetadataValue(
+            in: product.tags,
+            prefixes: ["collab:", "partner:", "artist:", "creator:"]
+        ) ?? externalVendorName(product.vendor)
+    }
+
+    private func resolvedShopifyCategory(
+        for product: ShopifyStorefrontProduct,
+        collabPartner: String?
+    ) -> String {
+        taggedMetadataValue(
+            in: product.tags,
+            prefixes: ["category:", "collection:", "lane:"]
+        ) ?? collabPartner
+        ?? curatedProductType(product.productType)
+        ?? "Sky22 Essentials"
+    }
+
+    private func taggedMetadataValue(
+        in tags: [String],
+        prefixes: [String]
+    ) -> String? {
+        for tag in tags {
+            let trimmedTag = tag.trimmed
+            let loweredTag = trimmedTag.lowercased()
+            for prefix in prefixes {
+                let normalizedPrefix = prefix.lowercased()
+                guard loweredTag.hasPrefix(normalizedPrefix) else { continue }
+                let value = String(trimmedTag.dropFirst(prefix.count)).trimmed
+                if !value.isEmpty {
+                    return value
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private func externalVendorName(_ vendor: String?) -> String? {
+        guard let vendor = vendor?.trimmedNonEmpty else { return nil }
+        let normalizedVendor = vendor.lowercased()
+        let internalVendors = [
+            "skydown",
+            "skydown x 22",
+            "skydownx22",
+            "sky22",
+            "sky 22",
+            "sky²²"
+        ]
+
+        guard !internalVendors.contains(where: { normalizedVendor.contains($0) }) else {
+            return nil
+        }
+
+        return vendor
+    }
+
+    private func curatedProductType(_ productType: String?) -> String? {
+        guard let productType = productType?.trimmedNonEmpty else { return nil }
+        let genericTypes = ["apparel", "clothing", "merch", "merchandise", "accessories", "accessory"]
+        guard !genericTypes.contains(productType.lowercased()) else { return nil }
+        return productType
     }
 
     private func normalizeStoreDomain(_ value: String?) -> String? {
@@ -276,6 +345,9 @@ id
 title
 description
 handle
+vendor
+productType
+tags
 featuredImage {
   url
 }
@@ -367,6 +439,9 @@ private struct ShopifyStorefrontProduct: Decodable {
     let title: String
     let description: String
     let handle: String
+    let vendor: String?
+    let productType: String?
+    let tags: [String]
     let featuredImage: ShopifyStorefrontImage?
     let images: ShopifyStorefrontImageConnection
     let variants: ShopifyStorefrontVariantConnection

@@ -202,6 +202,7 @@ struct ShopView: View {
     private let onOpenProfile: () -> Void
     private let onOpenSettings: () -> Void
     @State private var selectedItem: MerchandiseItem?
+    @State private var selectedCollabLaneID = MerchandiseCollabLane.allID
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -229,112 +230,233 @@ struct ShopView: View {
         authManager.userSession?.isPlatformOwner == true
     }
 
+    private var merchCollabLanes: [MerchandiseCollabLane] {
+        MerchandiseCollabLane.build(from: viewModel.merchandiseItems)
+    }
+
+    private var selectedCollabLane: MerchandiseCollabLane {
+        merchCollabLanes.first { $0.id == selectedCollabLaneID }
+            ?? merchCollabLanes.first
+            ?? MerchandiseCollabLane(
+                id: MerchandiseCollabLane.allID,
+                title: "All Drops",
+                subtitle: "Alle Collabs und Core Pieces.",
+                itemCount: viewModel.merchandiseItems.count,
+                isCoreLane: false
+            )
+    }
+
+    private var filteredMerchandiseItems: [MerchandiseItem] {
+        guard selectedCollabLaneID != MerchandiseCollabLane.allID else {
+            return viewModel.merchandiseItems
+        }
+
+        return viewModel.merchandiseItems.filter { item in
+            item.merchCategoryKey == selectedCollabLaneID
+        }
+    }
+
+    private var merchLaneCount: Int {
+        let resolvedCount = merchCollabLanes.filter { $0.id != MerchandiseCollabLane.allID }.count
+        if resolvedCount == 0 {
+            return viewModel.merchandiseItems.isEmpty ? 0 : 1
+        }
+        return resolvedCount
+    }
+
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoading {
-                    ProgressView("Shop wird geladen...")
-                        .tint(AppColors.accent(for: colorScheme))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                            ShopHeroCard(
-                                colorScheme: colorScheme,
-                                itemCount: viewModel.merchandiseItems.count,
-                                isStoreOpen: viewModel.isStoreOpen,
-                                isLoggedIn: authManager.userSession != nil,
-                                isAdmin: isAdmin,
-                                isUpdatingStoreState: viewModel.isUpdatingStoreState,
-                                isSyncingCatalog: viewModel.isSyncingCatalog,
-                                onToggleStore: isAdmin ? {
-                                    Task {
-                                        await viewModel.toggleStoreOpen()
+            GeometryReader { proxy in
+                let layout = SkydownResponsiveLayout(availableWidth: proxy.size.width)
+                let contentWidth = min(
+                    layout.contentMaxWidth,
+                    max(proxy.size.width - (layout.horizontalPadding * 2), 0)
+                )
+                let sidebarWidth = layout.prefersDesktopChrome
+                    ? min(max(contentWidth * 0.26, 260), 320)
+                    : min(max(contentWidth * 0.27, 220), 272)
+                let laneSignature = merchCollabLanes.map(\.id).joined(separator: "|")
+
+                Group {
+                    if viewModel.isLoading {
+                        ProgressView("Shop wird geladen...")
+                            .tint(AppColors.accent(for: colorScheme))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                ShopHeroCard(
+                                    colorScheme: colorScheme,
+                                    itemCount: viewModel.merchandiseItems.count,
+                                    laneCount: merchLaneCount,
+                                    isStoreOpen: viewModel.isStoreOpen,
+                                    isLoggedIn: authManager.userSession != nil,
+                                    isAdmin: isAdmin,
+                                    isUpdatingStoreState: viewModel.isUpdatingStoreState,
+                                    isSyncingCatalog: viewModel.isSyncingCatalog,
+                                    onToggleStore: isAdmin ? {
+                                        Task {
+                                            await viewModel.toggleStoreOpen()
+                                        }
+                                    } : nil,
+                                    onSyncShopify: isAdmin ? {
+                                        Task {
+                                            await viewModel.syncShopifyCatalog()
+                                        }
+                                    } : nil
+                                )
+
+                                if let errorMessage = viewModel.errorMessage, !isAdmin {
+                                    ShopInfoCard(
+                                        colorScheme: colorScheme,
+                                        title: "Login",
+                                        message: errorMessage,
+                                        actionTitle: "Anmelden",
+                                        action: onOpenLogin
+                                    )
+                                }
+
+                                if !viewModel.isStoreOpen && !isAdmin {
+                                    ShopInfoCard(
+                                        colorScheme: colorScheme,
+                                        title: "Store pausiert",
+                                        message: "Produkte sichtbar. Checkout pausiert."
+                                    )
+                                }
+
+                                if viewModel.merchandiseItems.isEmpty {
+                                    ShopInfoCard(
+                                        colorScheme: colorScheme,
+                                        title: viewModel.isSyncingCatalog ? "Shopify laedt" : "Noch kein Merch",
+                                        message: isAdmin
+                                            ? (viewModel.isSyncingCatalog
+                                               ? "Der Katalog wird neu aufgebaut."
+                                               : "Die App zieht den Shopify-Katalog automatisch nach.")
+                                            : "Neuer Merch taucht hier direkt auf."
+                                    )
+                                } else if layout.prefersTwoColumn {
+                                    HStack(alignment: .top, spacing: layout.sectionSpacing) {
+                                        MerchandiseCollabSidebar(
+                                            lanes: merchCollabLanes,
+                                            selectedLaneID: selectedCollabLaneID,
+                                            colorScheme: colorScheme
+                                        ) { lane in
+                                            selectedCollabLaneID = lane.id
+                                        }
+                                        .frame(width: sidebarWidth)
+
+                                        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                            MerchandiseCollabSelectionCard(
+                                                selectedLane: selectedCollabLane,
+                                                totalItemCount: viewModel.merchandiseItems.count,
+                                                colorScheme: colorScheme
+                                            )
+
+                                            if filteredMerchandiseItems.isEmpty {
+                                                ShopInfoCard(
+                                                    colorScheme: colorScheme,
+                                                    title: "Noch keine Pieces",
+                                                    message: "In \(selectedCollabLane.title) ist gerade noch kein sichtbarer Merch.",
+                                                    actionTitle: selectedCollabLaneID == MerchandiseCollabLane.allID ? nil : "All Drops",
+                                                    action: selectedCollabLaneID == MerchandiseCollabLane.allID ? nil : {
+                                                        selectedCollabLaneID = MerchandiseCollabLane.allID
+                                                    }
+                                                )
+                                            } else {
+                                                ForEach(filteredMerchandiseItems) { item in
+                                                    MerchandiseRowView(
+                                                        item: item,
+                                                        environmentColorScheme: colorScheme
+                                                    ) {
+                                                        selectedItem = $0
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                } : nil,
-                                onSyncShopify: isAdmin ? {
-                                    Task {
-                                        await viewModel.syncShopifyCatalog()
+                                } else {
+                                    MerchandiseCollabRail(
+                                        lanes: merchCollabLanes,
+                                        selectedLaneID: selectedCollabLaneID,
+                                        colorScheme: colorScheme
+                                    ) { lane in
+                                        selectedCollabLaneID = lane.id
                                     }
-                                } : nil
-                            )
 
-                            if let errorMessage = viewModel.errorMessage, !isAdmin {
-                                ShopInfoCard(
-                                    colorScheme: colorScheme,
-                                    title: "Login",
-                                    message: errorMessage,
-                                    actionTitle: "Anmelden",
-                                    action: onOpenLogin
-                                )
-                            }
+                                    MerchandiseCollabSelectionCard(
+                                        selectedLane: selectedCollabLane,
+                                        totalItemCount: viewModel.merchandiseItems.count,
+                                        colorScheme: colorScheme
+                                    )
 
-                            if !viewModel.isStoreOpen && !isAdmin {
-                                ShopInfoCard(
-                                    colorScheme: colorScheme,
-                                    title: "Store pausiert",
-                                    message: "Produkte sichtbar. Checkout pausiert."
-                                )
-                            }
-
-                            if viewModel.merchandiseItems.isEmpty {
-                                ShopInfoCard(
-                                    colorScheme: colorScheme,
-                                    title: viewModel.isSyncingCatalog ? "Shopify laedt" : "Noch kein Merch",
-                                    message: isAdmin
-                                        ? (viewModel.isSyncingCatalog
-                                           ? "Der Katalog wird neu aufgebaut."
-                                           : "Die App zieht den Shopify-Katalog automatisch nach.")
-                                        : "Neuer Merch taucht hier direkt auf."
-                                )
-                            }
-
-                            ForEach(viewModel.merchandiseItems) { item in
-                                MerchandiseRowView(
-                                    item: item,
-                                    environmentColorScheme: colorScheme
-                                ) {
-                                    selectedItem = $0
+                                    if filteredMerchandiseItems.isEmpty {
+                                        ShopInfoCard(
+                                            colorScheme: colorScheme,
+                                            title: "Noch keine Pieces",
+                                            message: "In \(selectedCollabLane.title) ist gerade noch kein sichtbarer Merch.",
+                                            actionTitle: selectedCollabLaneID == MerchandiseCollabLane.allID ? nil : "All Drops",
+                                            action: selectedCollabLaneID == MerchandiseCollabLane.allID ? nil : {
+                                                selectedCollabLaneID = MerchandiseCollabLane.allID
+                                            }
+                                        )
+                                    } else {
+                                        ForEach(filteredMerchandiseItems) { item in
+                                            MerchandiseRowView(
+                                                item: item,
+                                                environmentColorScheme: colorScheme
+                                            ) {
+                                                selectedItem = $0
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                            .frame(maxWidth: contentWidth, alignment: .leading)
+                            .padding(.horizontal, layout.horizontalPadding)
+                            .padding(.top, SkydownLayout.screenTopPadding)
+                            .padding(.bottom, SkydownLayout.screenBottomPadding)
+                            .frame(maxWidth: .infinity, alignment: .top)
                         }
-                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                        .padding(.top, SkydownLayout.screenTopPadding)
-                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                        .scrollIndicators(.hidden)
+                        .refreshable {
+                            viewModel.fetchData()
+                        }
                     }
-                    .scrollIndicators(.hidden)
-                    .refreshable {
+                }
+                .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+                .navigationTitle("Shop")
+                .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: colorScheme)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        HStack(spacing: 10) {
+                            AppSessionToolbarActions(
+                                onOpenCart: onOpenCart,
+                                onOpenProfile: onOpenProfile,
+                                onOpenSettings: onOpenSettings
+                            )
+                        }
+                    }
+                }
+                .task {
+                    if viewModel.merchandiseItems.isEmpty {
                         viewModel.fetchData()
                     }
                 }
-            }
-            .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Shop")
-            .navigationBarTitleDisplayMode(.inline)
-            .skydownNavigationChrome(colorScheme: colorScheme)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 10) {
-                        AppSessionToolbarActions(
-                            onOpenCart: onOpenCart,
-                            onOpenProfile: onOpenProfile,
-                            onOpenSettings: onOpenSettings
-                        )
+                .onChange(of: laneSignature) { _, _ in
+                    if !merchCollabLanes.contains(where: { $0.id == selectedCollabLaneID }) {
+                        selectedCollabLaneID = MerchandiseCollabLane.allID
                     }
                 }
-            }
-            .task {
-                if viewModel.merchandiseItems.isEmpty {
-                    viewModel.fetchData()
-                }
-            }
-            .sheet(item: $selectedItem) { item in
-                NavigationStack {
-                    ContactFormView(
-                        item: item,
-                        storeIsOpen: viewModel.isStoreOpen || isAdmin
-                    )
-                        .background(AppColors.primaryBackground(for: colorScheme))
+                .sheet(item: $selectedItem) { item in
+                    NavigationStack {
+                        ContactFormView(
+                            item: item,
+                            storeIsOpen: viewModel.isStoreOpen || isAdmin
+                        )
+                            .background(AppColors.primaryBackground(for: colorScheme))
+                    }
                 }
             }
         }
@@ -1809,6 +1931,7 @@ private struct ShopHeroCard: View {
     let colorScheme: ColorScheme
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     let itemCount: Int
+    let laneCount: Int
     let isStoreOpen: Bool
     let isLoggedIn: Bool
     let isAdmin: Bool
@@ -1830,10 +1953,18 @@ private struct ShopHeroCard: View {
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skydownX22]
         ) {
-            HStack(spacing: 10) {
-                ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)
-                ShopBadge(text: isStoreOpen ? "Store offen" : "Store pausiert", colorScheme: colorScheme)
-                ShopBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ShopBadge(text: "\(itemCount) Produkte", colorScheme: colorScheme)
+                    ShopBadge(text: isStoreOpen ? "Store offen" : "Store pausiert", colorScheme: colorScheme)
+                    if laneCount > 0 {
+                        ShopBadge(
+                            text: laneCount == 1 ? "1 Lane" : "\(laneCount) Lanes",
+                            colorScheme: colorScheme
+                        )
+                    }
+                    ShopBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
+                }
             }
 
             if onToggleStore != nil || onSyncShopify != nil {

@@ -21,9 +21,15 @@ struct MerchandiseRowView: View {
                 }
 
             HStack {
-                Text("Details")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppColors.accent(for: environmentColorScheme))
+                if item.hasCuratedMerchCategory {
+                    Text(item.merchCategoryTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.accentHighlight(for: environmentColorScheme))
+                } else {
+                    Text("Details")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.accent(for: environmentColorScheme))
+                }
 
                 Spacer()
 

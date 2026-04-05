@@ -19,6 +19,82 @@ enum SkydownLayout {
     static let buttonCornerRadius: CGFloat = 18
 }
 
+struct SkydownResponsiveLayout {
+    let availableWidth: CGFloat
+
+    private var isDesktop: Bool {
+        #if targetEnvironment(macCatalyst)
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    var contentMaxWidth: CGFloat {
+        if isDesktop {
+            switch availableWidth {
+            case ..<900:
+                return .infinity
+            case ..<1200:
+                return 1040
+            case ..<1600:
+                return 1280
+            default:
+                return 1440
+            }
+        } else {
+            switch availableWidth {
+            case ..<720:
+                return .infinity
+            case ..<960:
+                return 880
+            case ..<1320:
+                return 1040
+            default:
+                return 1220
+            }
+        }
+    }
+
+    var horizontalPadding: CGFloat {
+        if isDesktop {
+            switch availableWidth {
+            case ..<900:
+                return SkydownLayout.screenHorizontalPadding
+            case ..<1400:
+                return 32
+            default:
+                return 40
+            }
+        } else {
+            switch availableWidth {
+            case ..<720:
+                return SkydownLayout.screenHorizontalPadding
+            case ..<1320:
+                return 24
+            default:
+                return 32
+            }
+        }
+    }
+
+    var sectionSpacing: CGFloat {
+        prefersTwoColumn ? 18 : SkydownLayout.sectionSpacing
+    }
+
+    var prefersTwoColumn: Bool {
+        availableWidth >= 920
+    }
+
+    var prefersThreeColumn: Bool {
+        availableWidth >= 1120
+    }
+
+    var prefersDesktopChrome: Bool {
+        availableWidth >= 1320
+    }
+}
+
 struct SkydownTactileButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
