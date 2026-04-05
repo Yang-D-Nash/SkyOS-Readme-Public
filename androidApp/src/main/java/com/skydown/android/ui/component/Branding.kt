@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -79,6 +80,7 @@ fun BrandHeroCard(
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
     val imageShape = RoundedCornerShape(22.dp)
+    val imageAspectRatio = 2.08f
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
     val titleColor = if (hasBackgroundImage) Color.White else MaterialTheme.colorScheme.onSurface
     val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.84f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
@@ -111,15 +113,24 @@ fun BrandHeroCard(
             ),
     ) {
         if (hasBackgroundImage) {
-            AsyncImage(
-                model = backgroundImageUrl,
-                contentDescription = null,
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
-                    .clip(imageShape),
-                contentScale = ContentScale.Fit,
-            )
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+            ) {
+                val imageFrameHeight = minOf(maxHeight, maxWidth / imageAspectRatio)
+
+                AsyncImage(
+                    model = backgroundImageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .width(maxWidth)
+                        .height(imageFrameHeight)
+                        .clip(imageShape),
+                    contentScale = ContentScale.Fit,
+                )
+            }
 
             Box(
                 modifier = Modifier
