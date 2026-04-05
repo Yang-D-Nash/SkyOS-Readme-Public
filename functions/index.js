@@ -78,6 +78,12 @@ const SHOPIFY_STOREFRONT_PRODUCT_FIELDS = `
   title
   description
   handle
+  collections(first: 20) {
+    nodes {
+      handle
+      title
+    }
+  }
   featuredImage {
     url
   }
@@ -1649,15 +1655,45 @@ function curatedProductType(productType) {
   return genericTypes.has(trimmedType.toLowerCase()) ? null : trimmedType;
 }
 
+function resolveShopifyCollabPartner(product) {
+  return taggedMetadataValue(product?.tags, ["collab:", "partner:", "artist:", "creator:"]) ||
+    externalVendorName(product?.vendor);
+}
+
+function externalVendorName(vendor) {
+  const trimmedVendor = nonEmptyString(vendor);
+  if (!trimmedVendor) {
+    return null;
+  }
+
+  const normalizedVendor = trimmedVendor.toLowerCase();
+  const genericVendors = [
+    "skydown",
+    "skydown x 22",
+    "skydownx22",
+    "sky22",
+    "sky 22",
+    "sky²²",
+    "podpartner",
+    "printful",
+    "printify",
+    "gelato",
+  ];
+
+  return genericVendors.some((value) => normalizedVendor.includes(value)) ? null : trimmedVendor;
+}
+
 function resolveConfiguredCollectionLabel(product, configuredCollectionHandles = []) {
   const normalizedConfigured = configuredCollectionHandles
       .map((handle) => `${handle || ""}`.trim().toLowerCase())
       .filter(Boolean);
+  const hintedCollectionHandle = nonEmptyString(product?._skydownCollectionHandle);
   const productCollections = (product?.collections?.nodes || [])
       .map((collection) => nonEmptyString(collection?.handle))
       .filter(Boolean);
 
   const matchedHandle = productCollections.find((handle) => normalizedConfigured.includes(handle.toLowerCase()))
+      || hintedCollectionHandle
       || productCollections[0]
       || nonEmptyString(configuredCollectionHandles[0]);
 
@@ -1687,7 +1723,9 @@ function normalizeShopifyProduct(product, currencyCode, existingData = {}, confi
   const variants = (product?.variants?.nodes || []).map((variant) => normalizeShopifyVariant(variant, currencyCode));
   const firstVariant = variants[0];
   const availableForSale = variants.some((variant) => variant.availableForSale);
+  const collabPartner = resolveShopifyCollabPartner(product);
   const category = resolveShopifyProductCategory(product, configuredCollectionHandles, existingData);
+  const shopifyCollectionHandles = resolveShopifyCollectionHandles(product);
 
   return {
     name: product.title || "Unbenanntes Produkt",
@@ -1710,8 +1748,21 @@ function normalizeShopifyProduct(product, currencyCode, existingData = {}, confi
     customBadge: typeof existingData.customBadge === "string" ? existingData.customBadge : "",
     customImageOverride: typeof existingData.customImageOverride === "string" ? existingData.customImageOverride : "",
     category,
+    collabPartner: collabPartner || "",
+    shopifyCollectionHandles,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+}
+
+function resolveShopifyCollectionHandles(product) {
+  const handles = uniqueStrings([
+    ...(product?.collections?.nodes || []).map((collection) => nonEmptyString(collection?.handle)),
+    nonEmptyString(product?._skydownCollectionHandle),
+  ]);
+
+  return handles
+      .map((handle) => `${handle}`.trim().toLowerCase())
+      .filter(Boolean);
 }
 
 function normalizePublicShopifyProduct(product) {
@@ -1749,6 +1800,7 @@ function normalizePublicShopifyProduct(product) {
     collections: {
       nodes: [],
     },
+    _skydownCollectionHandle: nonEmptyString(product?._skydownCollectionHandle),
     variants: {
       nodes: variants,
     },
@@ -1907,6 +1959,7 @@ async function fetchAllShopifyProductsViaStorefrontApi(config) {
     for (const handle of requestedCollectionHandles) {
       const collectionProducts = await fetchConnection(handle);
       for (const product of collectionProducts) {
+        product._skydownCollectionHandle = handle;
         if (!seenProductIds.has(product.id)) {
           seenProductIds.add(product.id);
           mergedProducts.push(product);
@@ -1977,6 +2030,7 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
       for (const handle of requestedCollectionHandles) {
         const collectionProducts = await fetchAllPages(handle);
         for (const product of collectionProducts) {
+          product._skydownCollectionHandle = handle;
           const productId = `${product?.id || ""}`.trim();
           if (!productId || seenProductIds.has(productId)) {
             continue;

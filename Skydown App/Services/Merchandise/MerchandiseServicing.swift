@@ -94,7 +94,8 @@ private extension DocumentSnapshot {
                 ?? "",
             collabPartner: data["collabPartner"] as? String
                 ?? data["collab"] as? String
-                ?? ""
+                ?? "",
+            shopifyCollectionHandles: (data["shopifyCollectionHandles"] as? [String]) ?? []
         )
     }
 }

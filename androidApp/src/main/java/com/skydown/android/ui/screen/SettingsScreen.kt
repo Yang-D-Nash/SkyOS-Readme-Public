@@ -562,7 +562,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     label = { Text("Home Eyebrow") },
-                    placeholder = { Text("z. B. Willkommen bei Sky²²") },
+                    placeholder = { Text("z. B. Willkommen bei Skydown") },
                     singleLine = true,
                 )
 
@@ -573,7 +573,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Home Titel") },
-                    placeholder = { Text("z. B. Sky²²") },
+                    placeholder = { Text("z. B. Dein Space fuer Musik, Store und Visuals") },
                     singleLine = true,
                 )
 
@@ -584,7 +584,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Home Untertitel") },
-                    placeholder = { Text("Kurze Begruessung oder Positionierung") },
+                    placeholder = { Text("Kurze, klare Positionierung fuer neue und bestehende User.") },
                     minLines = 2,
                 )
 
@@ -595,7 +595,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Home Detail / Willkommenstext") },
-                    placeholder = { Text("Laengerer Willkommenstext oder kurze Bio fuer die Home-Seite") },
+                    placeholder = { Text("Laengerer Einstiegstext mit Mehrwert, Orientierung und naechstem Schritt.") },
                     minLines = 3,
                 )
                 EditableImageFieldCard(
@@ -659,7 +659,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Music Hub Detail") },
-                    placeholder = { Text("Kurzer Einstieg fuer Songs, Beats und Studio.") },
+                    placeholder = { Text("Klarer Einstieg in Songs, Beats, Artists und Studio.") },
                     minLines = 3,
                 )
                 EditableImageFieldCard(
@@ -723,7 +723,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Shop Detail") },
-                    placeholder = { Text("Eigener Willkommenstext fuer den Merch-Bereich.") },
+                    placeholder = { Text("Kurz erklaeren, was User im Shop finden und warum es sich lohnt.") },
                     minLines = 3,
                 )
                 EditableImageFieldCard(
@@ -787,7 +787,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Video Detail") },
-                    placeholder = { Text("Kurzer Einstieg fuer Clips, Looks und Kollabos.") },
+                    placeholder = { Text("Einordnung fuer Clips, Visuals und aktuelle Kollaborationen.") },
                     minLines = 3,
                 )
 

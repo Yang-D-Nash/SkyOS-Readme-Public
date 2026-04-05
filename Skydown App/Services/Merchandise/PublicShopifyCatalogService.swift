@@ -224,6 +224,10 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             collabPartner: collabPartner,
             fallbackCollectionHandle: fallbackCollectionHandle
         )
+        let shopifyCollectionHandles = resolvedCollectionHandles(
+            for: product,
+            fallbackCollectionHandle: fallbackCollectionHandle
+        )
 
         return MerchandiseItem(
             id: "shopify_\(extractNumericId(from: product.id) ?? product.id)",
@@ -246,8 +250,20 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             customBadge: "",
             customImageOverride: "",
             category: category,
-            collabPartner: collabPartner ?? ""
+            collabPartner: collabPartner ?? "",
+            shopifyCollectionHandles: shopifyCollectionHandles
         )
+    }
+
+    private func resolvedCollectionHandles(
+        for product: ShopifyStorefrontProduct,
+        fallbackCollectionHandle: String?
+    ) -> [String] {
+        let productHandles = product.collections.nodes
+            .compactMap { $0.handle?.trimmedNonEmpty?.lowercased() }
+        let fallback = fallbackCollectionHandle?.trimmedNonEmpty?.lowercased()
+        let combined = productHandles + [fallback].compactMap { $0 }
+        return Array(NSOrderedSet(array: combined)) as? [String] ?? combined
     }
 
     private func selectedOptionValue(
@@ -321,7 +337,11 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
             "skydownx22",
             "sky22",
             "sky 22",
-            "sky²²"
+            "sky²²",
+            "podpartner",
+            "printful",
+            "printify",
+            "gelato"
         ]
 
         guard !internalVendors.contains(where: { normalizedVendor.contains($0) }) else {
@@ -432,6 +452,12 @@ handle
 vendor
 productType
 tags
+collections(first: 20) {
+  nodes {
+    handle
+    title
+  }
+}
 featuredImage {
   url
 }
@@ -526,9 +552,19 @@ private struct ShopifyStorefrontProduct: Decodable {
     let vendor: String?
     let productType: String?
     let tags: [String]
+    let collections: ShopifyStorefrontCollectionConnection
     let featuredImage: ShopifyStorefrontImage?
     let images: ShopifyStorefrontImageConnection
     let variants: ShopifyStorefrontVariantConnection
+}
+
+private struct ShopifyStorefrontCollectionConnection: Decodable {
+    let nodes: [ShopifyStorefrontCollectionNode]
+}
+
+private struct ShopifyStorefrontCollectionNode: Decodable {
+    let handle: String?
+    let title: String?
 }
 
 private struct ShopifyStorefrontImageConnection: Decodable {

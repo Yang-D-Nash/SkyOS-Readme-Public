@@ -73,5 +73,6 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSharedMerchandiseIt
         collabPartner = data["collabPartner"] as? String
             ?: data["collab"] as? String
             ?: "",
+        shopifyCollectionHandles = (data["shopifyCollectionHandles"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
     )
 }

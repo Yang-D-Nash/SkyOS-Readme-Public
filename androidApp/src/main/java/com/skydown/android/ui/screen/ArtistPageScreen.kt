@@ -656,7 +656,7 @@ private fun ArtistPageHeroCard(
                         )
                         latestReleaseText?.let {
                             Text(
-                                text = "Latest $it",
+                                text = "Neuester Release: $it",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White.copy(alpha = 0.76f),
@@ -691,7 +691,7 @@ private fun ArtistPageHeroCard(
                 }
                 latestReleaseText?.let {
                     ArtistMetricCard(
-                        title = "Latest",
+                        title = "Neuester Release",
                         value = it,
                         modifier = Modifier.weight(1f),
                     )
@@ -877,7 +877,7 @@ private fun ArtistPageSpotlightCard(
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Jetzt antesten",
+                            text = "Jetzt entdecken",
                             style = MaterialTheme.typography.labelLarge,
                             color = SpotifyGreen,
                             fontWeight = FontWeight.Bold,
@@ -893,7 +893,7 @@ private fun ArtistPageSpotlightCard(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         Text(
-                            text = "Direkt unten mit Preview oder Spotify Player weiter.",
+                            text = "Direkt unten mit Vorschau oder Spotify weiterhoeren.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                         )

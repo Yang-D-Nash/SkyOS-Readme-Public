@@ -312,7 +312,7 @@ struct ArtistPageView: View {
                                 .lineLimit(2)
 
                             if let latestReleaseText {
-                                Text("Latest \(latestReleaseText)")
+                                Text("Neuester Release: \(latestReleaseText)")
                                     .font(.caption.weight(.bold))
                                     .foregroundColor(.white.opacity(0.76))
                             }
@@ -432,7 +432,7 @@ struct ArtistPageView: View {
 
             if let latestReleaseText {
                 ArtistInfoMetric(
-                    title: "Latest",
+                    title: "Neuester Release",
                     value: latestReleaseText,
                     colorScheme: colorScheme
                 )
@@ -491,7 +491,7 @@ struct ArtistPageView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Jetzt antesten")
+                        Text("Jetzt entdecken")
                             .font(.caption.weight(.bold))
                             .foregroundColor(AppColors.spotify(for: colorScheme))
 
@@ -503,7 +503,7 @@ struct ArtistPageView: View {
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                        Text("Direkt unten mit Preview oder Spotify Player weiter.")
+                        Text("Direkt unten mit Vorschau oder Spotify weiterhoeren.")
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }

@@ -319,7 +319,7 @@ private extension String {
             name: "Skydown Shirt",
             price: 29.99,
             description: "Exklusives T-Shirt in limitierter Auflage",
-            imageURLs: ["https://via.placeholder.com/150"],
+            imageURLs: [],
             available: true
         )
         ContactFormView(item: sampleItem, storeIsOpen: true)

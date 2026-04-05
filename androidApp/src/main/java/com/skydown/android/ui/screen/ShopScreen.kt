@@ -111,7 +111,7 @@ fun ShopScreen(
         if (selectedCollabLaneId == ShopCollabLane.ALL_ID) {
             uiState.items
         } else {
-            uiState.items.filter { item -> item.merchCategoryKey == selectedCollabLaneId }
+            uiState.items.filter { item -> item.belongsToLane(selectedCollabLaneId) }
         }
     }
     val selectedCollabLane = remember(collabLanes, selectedCollabLaneId, uiState.items) {
@@ -593,16 +593,32 @@ private fun buildShopCollabLanes(items: List<MerchandiseItem>): List<ShopCollabL
         )
     }
 
-    val grouped = items.groupBy { it.merchCategoryKey }
-    val lanes = grouped.values.mapNotNull { groupedItems ->
-        val sample = groupedItems.firstOrNull() ?: return@mapNotNull null
-        val curatedLane = groupedItems.any { it.hasCuratedMerchCategory }
+    val laneRows = mutableMapOf<String, Triple<String, String, Boolean>>()
+    val laneItemIds = mutableMapOf<String, MutableSet<String>>()
+
+    items.forEach { item ->
+        val memberships = item.laneMemberships().distinctBy { it.first }
+        memberships.forEach { (laneId, laneType) ->
+            laneRows.putIfAbsent(
+                laneId,
+                Triple(
+                    item.titleForLane(laneId, laneType),
+                    item.subtitleForLane(laneId, laneType),
+                    item.isCoreLane(laneType),
+                ),
+            )
+            laneItemIds.getOrPut(laneId) { mutableSetOf() }
+                .add(item.id ?: item.shopifyProductId ?: item.name)
+        }
+    }
+
+    val lanes = laneRows.map { (laneId, laneMeta) ->
         ShopCollabLane(
-            id = sample.merchCategoryKey,
-            title = sample.merchCategoryTitle,
-            subtitle = if (curatedLane) sample.merchCategorySubtitle else "House line",
-            itemCount = groupedItems.size,
-            isCoreLane = !curatedLane,
+            id = laneId,
+            title = laneMeta.first,
+            subtitle = laneMeta.second,
+            itemCount = laneItemIds[laneId]?.size ?: 0,
+            isCoreLane = laneMeta.third,
         )
     }.sortedWith(
         compareBy<ShopCollabLane> { it.isCoreLane }
@@ -621,6 +637,50 @@ private fun buildShopCollabLanes(items: List<MerchandiseItem>): List<ShopCollabL
     ) + lanes
 }
 
+private fun MerchandiseItem.laneMemberships(): List<Pair<String, String>> {
+    val normalizedHandles = shopifyCollectionHandles
+        .mapNotNull { value ->
+            value.trim().lowercase().takeIf { it.isNotEmpty() }
+        }
+        .distinct()
+    if (!shopifyProductId.isNullOrBlank() && normalizedHandles.isNotEmpty()) {
+        return normalizedHandles.map { handle -> "collection:$handle" to "collection" }
+    }
+    return listOf(merchCategoryKey to "category")
+}
+
+private fun MerchandiseItem.belongsToLane(laneId: String): Boolean {
+    return laneMemberships().any { it.first == laneId }
+}
+
+private fun MerchandiseItem.titleForLane(laneId: String, laneType: String): String {
+    if (laneType == "collection") {
+        return laneId.removePrefix("collection:").prettifiedCollectionHandle()
+    }
+    return merchCategoryTitle
+}
+
+private fun MerchandiseItem.subtitleForLane(laneId: String, laneType: String): String {
+    if (laneType == "collection") {
+        return "Shopify Collection"
+    }
+    return merchCategorySubtitle
+}
+
+private fun MerchandiseItem.isCoreLane(laneType: String): Boolean {
+    return laneType != "collection" && !hasCuratedMerchCategory
+}
+
+private fun String.prettifiedCollectionHandle(): String {
+    return split("-")
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { part ->
+            part.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase() else char.toString()
+            }
+        }
+}
+
 @Composable
 private fun ShopCollabSidebar(
     lanes: List<ShopCollabLane>,
@@ -636,8 +696,8 @@ private fun ShopCollabSidebar(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             BrandSectionBanner(
-                title = "Collab Sidebar",
-                subtitle = "Jede Kollabo bekommt ihre eigene Lane im Merch Hub.",
+                title = "Collection Sidebar",
+                subtitle = "Collections",
                 accent = MaterialTheme.colorScheme.primary,
                 icon = Icons.Default.Person,
                 tag = "LANES",
@@ -780,14 +840,14 @@ private fun ShopCollabSelectionCard(
             ) {
                 BrandStatusChip(
                     text = when {
-                        lane.id == ShopCollabLane.ALL_ID -> "Hub lane"
-                        lane.isCoreLane -> "Core lane"
-                        else -> "Collab lane"
+                        lane.id == ShopCollabLane.ALL_ID -> "Alle"
+                        lane.isCoreLane -> "Core"
+                        else -> "Collection"
                     },
                     accent = MaterialTheme.colorScheme.secondary,
                 )
                 BrandStatusChip(
-                    text = if (lane.itemCount == totalItemCount) "Gesamter Hub" else "Gefilterter Hub",
+                    text = if (lane.itemCount == totalItemCount) "Gesamt" else "Auswahl",
                     accent = SpotifyGreen,
                 )
             }

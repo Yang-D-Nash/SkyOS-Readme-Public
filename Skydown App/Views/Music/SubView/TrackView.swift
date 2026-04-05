@@ -266,7 +266,7 @@ private struct TrackTag: View {
         artistName: "Skydown",
         trackName: "Beispiel Song",
         collectionName: "Beispiel Album",
-        artworkUrl100: "https://via.placeholder.com/100",
+        artworkUrl100: "",
         previewUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
         externalURL: "https://open.spotify.com/track/sample-track-id",
         wrapperType: "track",

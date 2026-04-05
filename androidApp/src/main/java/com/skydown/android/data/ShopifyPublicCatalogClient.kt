@@ -198,6 +198,12 @@ handle
 vendor
 productType
 tags
+collections(first: 20) {
+  nodes {
+    handle
+    title
+  }
+}
 featuredImage {
   url
 }
@@ -282,6 +288,7 @@ private data class ShopifyStorefrontProduct(
     val vendor: String?,
     val productType: String?,
     val tags: List<String>,
+    val collections: List<ShopifyStorefrontCollectionNode>,
     val imageUrls: List<String>,
     val variants: List<ShopifyStorefrontVariant>,
 ) {
@@ -308,6 +315,10 @@ private data class ShopifyStorefrontProduct(
             productType = productType,
             fallbackCollectionHandle = fallbackCollectionHandle,
         )
+        val shopifyCollectionHandles = (collections.mapNotNull { node ->
+            node.handle?.trim()?.takeIf { it.isNotEmpty() }?.lowercase()
+        } + listOfNotNull(fallbackCollectionHandle?.trim()?.takeIf { it.isNotEmpty() }?.lowercase()))
+            .distinct()
 
         return MerchandiseItem(
             id = "shopify_${id.substringAfterLast("/")}",
@@ -331,6 +342,7 @@ private data class ShopifyStorefrontProduct(
             customImageOverride = "",
             category = category,
             collabPartner = collabPartner.orEmpty(),
+            shopifyCollectionHandles = shopifyCollectionHandles,
         )
     }
 
@@ -357,6 +369,14 @@ private data class ShopifyStorefrontProduct(
                     }
                 }
             }
+            val collectionsNodes = json.optJSONObject("collections")?.optJSONArray("nodes")
+            val collections = buildList {
+                if (collectionsNodes != null) {
+                    for (index in 0 until collectionsNodes.length()) {
+                        collectionsNodes.optJSONObject(index)?.let { add(ShopifyStorefrontCollectionNode.fromJson(it)) }
+                    }
+                }
+            }
 
             return ShopifyStorefrontProduct(
                 id = json.optString("id"),
@@ -366,8 +386,23 @@ private data class ShopifyStorefrontProduct(
                 vendor = json.optString("vendor").takeIf { it.isNotBlank() },
                 productType = json.optString("productType").takeIf { it.isNotBlank() },
                 tags = json.optJSONArray("tags").toStringList(),
+                collections = collections,
                 imageUrls = imageUrls,
                 variants = variants,
+            )
+        }
+    }
+}
+
+private data class ShopifyStorefrontCollectionNode(
+    val handle: String?,
+    val title: String?,
+) {
+    companion object {
+        fun fromJson(json: JSONObject): ShopifyStorefrontCollectionNode {
+            return ShopifyStorefrontCollectionNode(
+                handle = json.optString("handle").takeIf { it.isNotBlank() },
+                title = json.optString("title").takeIf { it.isNotBlank() },
             )
         }
     }
@@ -523,6 +558,10 @@ private fun externalVendorName(vendor: String?): String? {
         "sky22",
         "sky 22",
         "sky²²",
+        "podpartner",
+        "printful",
+        "printify",
+        "gelato",
     )
     if (internalVendors.any { normalizedVendor.contains(it) }) {
         return null

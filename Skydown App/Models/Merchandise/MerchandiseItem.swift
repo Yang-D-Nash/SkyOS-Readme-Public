@@ -42,6 +42,7 @@ struct MerchandiseItem: Codable, Identifiable {
     var customImageOverride: String = ""
     var category: String = ""
     var collabPartner: String = ""
+    var shopifyCollectionHandles: [String] = []
 
     enum CodingKeys: String, CodingKey {
         case name
@@ -68,6 +69,7 @@ struct MerchandiseItem: Codable, Identifiable {
         case collabPartner
         case collab
         case collection
+        case shopifyCollectionHandles
     }
 
     init(
@@ -91,7 +93,8 @@ struct MerchandiseItem: Codable, Identifiable {
         customBadge: String = "",
         customImageOverride: String = "",
         category: String = "",
-        collabPartner: String = ""
+        collabPartner: String = "",
+        shopifyCollectionHandles: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -114,6 +117,7 @@ struct MerchandiseItem: Codable, Identifiable {
         self.customImageOverride = customImageOverride
         self.category = category
         self.collabPartner = collabPartner
+        self.shopifyCollectionHandles = shopifyCollectionHandles
     }
 
     init(from decoder: Decoder) throws {
@@ -143,6 +147,7 @@ struct MerchandiseItem: Codable, Identifiable {
         let decodedCollection = try container.decodeIfPresent(String.self, forKey: .collection)
         let decodedCollabPartner = try container.decodeIfPresent(String.self, forKey: .collabPartner)
         let decodedCollab = try container.decodeIfPresent(String.self, forKey: .collab)
+        shopifyCollectionHandles = try container.decodeIfPresent([String].self, forKey: .shopifyCollectionHandles) ?? []
 
         category = decodedCategory ?? decodedCollabCategory ?? decodedCollection ?? ""
         collabPartner = decodedCollabPartner ?? decodedCollab ?? ""
@@ -171,6 +176,7 @@ struct MerchandiseItem: Codable, Identifiable {
         try container.encode(customImageOverride, forKey: .customImageOverride)
         try container.encode(category, forKey: .category)
         try container.encode(collabPartner, forKey: .collabPartner)
+        try container.encode(shopifyCollectionHandles, forKey: .shopifyCollectionHandles)
     }
 
     var hasCuratedMerchCategory: Bool {
@@ -178,7 +184,13 @@ struct MerchandiseItem: Codable, Identifiable {
     }
 
     var merchCategoryTitle: String {
-        collabPartner.trimmedNonEmpty
+        if shopifyProductId.orEmpty.isEmpty == false {
+            return category.trimmedNonEmpty
+                ?? collabPartner.trimmedNonEmpty
+                ?? "Sky22 Essentials"
+        }
+
+        return collabPartner.trimmedNonEmpty
             ?? category.trimmedNonEmpty
             ?? "Sky22 Essentials"
     }

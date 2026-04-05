@@ -252,7 +252,7 @@ struct ShopView: View {
         }
 
         return viewModel.merchandiseItems.filter { item in
-            item.merchCategoryKey == selectedCollabLaneID
+            item.belongsToLane(id: selectedCollabLaneID)
         }
     }
 
@@ -564,8 +564,8 @@ private struct HomeHeroIntroCard: View {
 
                 Text(
                     availableSignals > 0
-                        ? "\(availableSignals) Signale in Reichweite. Pull to refresh haelt den Radar scharf."
-                        : "Der Radar sucht gerade nach neuen Drops, Visuals und Hubs."
+                        ? "\(availableSignals) Signale live."
+                        : "Radar aktiv. Neue Signale folgen."
                 )
                 .font(.footnote.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.82))
@@ -614,7 +614,7 @@ private struct HomeFieldGuideCard: View {
                 accent: AppColors.accentMystic(for: colorScheme)
             )
 
-            Text("Der Hub fuehlt sich jetzt wie eine Karte an: Alles Wichtige taucht direkt im Scan-Bereich auf.")
+            Text("Live Feed fuer Musik, Beats und Visuals.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -633,7 +633,7 @@ private struct HomeFieldGuideCard: View {
                 }
             }
 
-            Text("Pull to refresh fuer einen neuen Scan.")
+            Text("Live aktualisiert.")
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -1002,7 +1002,7 @@ private struct HomeLatestReleaseCard: View {
                     }
                 }
 
-                Text(hasPreview ? "Preview hier." : (hasSpotifyTarget ? "Spotify." : "Neuester Track."))
+                Text(hasPreview ? "Vorschau direkt hier in der App." : (hasSpotifyTarget ? "Direkt bei Spotify weiterhoeren." : "Der neueste Track ist hier fuer dich hinterlegt."))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1113,7 +1113,7 @@ private struct HomeLatestBeatCard: View {
                             isActive: true
                         )
                         HomeSignalBadge(
-                            text: beat.isPlayable ? "Playable" : "Extern",
+                            text: beat.isPlayable ? "Abspielbar" : "Extern",
                             icon: beat.isPlayable ? "play.fill" : "globe",
                             colorScheme: colorScheme,
                             accent: AppColors.accentMystic(for: colorScheme),
@@ -1986,11 +1986,7 @@ private struct ShopHeroCard: View {
                 }
             }
 
-            if isAdmin {
-                Text("Shopify-first.")
-                    .font(.footnote.weight(.medium))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
+            EmptyView()
         }
     }
 }

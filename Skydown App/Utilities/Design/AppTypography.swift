@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 enum AppTypography {
-    private static let postScriptName = "Awergy-Regular"
+    private static let postScriptName = "TheBraveFREE"
     private static let fontFileName = "Awergy-Regular"
     private static let fontFileExtension = "otf"
 

@@ -735,21 +735,21 @@ struct SettingsView: View {
                         title: "Home Eyebrow",
                         text: $homeHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Willkommen bei Sky²²"
+                        placeholder: "z. B. Willkommen bei Skydown"
                     )
 
                     SettingsInputField(
                         title: "Home Titel",
                         text: $homeHeaderTitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Sky²²"
+                        placeholder: "z. B. Dein Space fuer Musik, Store und Visuals"
                     )
 
                     SettingsMultilineInputField(
                         title: "Home Untertitel",
                         text: $homeHeaderSubtitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Kurze Begruessung oder Positionierung fuer neue User.",
+                        placeholder: "Kurze, klare Positionierung fuer neue und bestehende User.",
                         minHeight: 88
                     )
 
@@ -757,7 +757,7 @@ struct SettingsView: View {
                         title: "Home Detail / Willkommenstext",
                         text: $homeHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Hier kannst du einen etwas laengeren Willkommenstext oder eine kurze Bio fuer die Home-Seite hinterlegen.",
+                        placeholder: "Laengerer Einstiegstext mit Mehrwert, Orientierung und naechstem Schritt.",
                         minHeight: 104
                     )
 
@@ -797,7 +797,7 @@ struct SettingsView: View {
                         title: "Music Hub Detail",
                         text: $musicHubHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Kurzer Einstieg fuer Songs, Beats und Studio.",
+                        placeholder: "Klarer Einstieg in Songs, Beats, Artists und Studio.",
                         minHeight: 96
                     )
 
@@ -837,7 +837,7 @@ struct SettingsView: View {
                         title: "Shop Detail",
                         text: $shopHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Eigener Willkommenstext fuer den Merch-Bereich.",
+                        placeholder: "Kurz erklaeren, was User im Shop finden und warum es sich lohnt.",
                         minHeight: 96
                     )
 
@@ -877,7 +877,7 @@ struct SettingsView: View {
                         title: "Video Detail",
                         text: $videoHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Kurzer Einstieg fuer Clips, Looks und Kollabos.",
+                        placeholder: "Einordnung fuer Clips, Visuals und aktuelle Kollaborationen.",
                         minHeight: 96
                     )
 

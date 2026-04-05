@@ -38,15 +38,22 @@ data class MerchandiseItem(
     val customImageOverride: String = "",
     val category: String = "",
     val collabPartner: String = "",
+    val shopifyCollectionHandles: List<String> = emptyList(),
 )
 
 val MerchandiseItem.hasCuratedMerchCategory: Boolean
     get() = category.trim().isNotEmpty() || collabPartner.trim().isNotEmpty()
 
 val MerchandiseItem.merchCategoryTitle: String
-    get() = collabPartner.trim().takeIf { it.isNotEmpty() }
-        ?: category.trim().takeIf { it.isNotEmpty() }
-        ?: "Sky22 Essentials"
+    get() = if (!shopifyProductId.isNullOrBlank()) {
+        category.trim().takeIf { it.isNotEmpty() }
+            ?: collabPartner.trim().takeIf { it.isNotEmpty() }
+            ?: "Sky22 Essentials"
+    } else {
+        collabPartner.trim().takeIf { it.isNotEmpty() }
+            ?: category.trim().takeIf { it.isNotEmpty() }
+            ?: "Sky22 Essentials"
+    }
 
 val MerchandiseItem.merchCategorySubtitle: String
     get() {

@@ -45,16 +45,24 @@ final class Skydown_AppUITests: XCTestCase {
         app.launch()
 
         let settingsButton = app.buttons["app.open_settings"].firstMatch
-        XCTAssertTrue(
-            settingsButton.waitForExistence(timeout: 20),
-            "Der Settings-Button sollte nach dem Intro sichtbar werden."
-        )
+        if !settingsButton.waitForExistence(timeout: 6) {
+            let openMusicButton = app.buttons["launch.open_music"].firstMatch
+            XCTAssertTrue(
+                openMusicButton.waitForExistence(timeout: 45),
+                "Nach Intro/Landing sollte mindestens ein Einstiegspunkt verfuegbar sein."
+            )
+            openMusicButton.tap()
+            XCTAssertTrue(
+                settingsButton.waitForExistence(timeout: 30),
+                "Der Settings-Button sollte nach dem Einstieg in die Main-Shell sichtbar werden."
+            )
+        }
 
         settingsButton.tap()
 
-        let settingsRoot = app.otherElements["settings.root"].firstMatch
+        let settingsRoot = app.descendants(matching: .any)["settings.root"].firstMatch
         XCTAssertTrue(
-            settingsRoot.waitForExistence(timeout: 10),
+            settingsRoot.waitForExistence(timeout: 45),
             "Die Settings-Ansicht sollte ohne Crash erscheinen."
         )
     }

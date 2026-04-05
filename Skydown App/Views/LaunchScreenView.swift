@@ -271,6 +271,7 @@ private struct LaunchLandingView: View {
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
+                                        accessibilityID: "launch.open_music",
                                         action: onOpenMusic
                                     )
                                     LaunchLandingButton(
@@ -281,6 +282,7 @@ private struct LaunchLandingView: View {
                                         accent: AppColors.accentMystic(for: hubColorScheme),
                                         brandMark: .skydown,
                                         badges: ["Playback", "Reels", "YouTube"],
+                                        accessibilityID: "launch.open_video",
                                         action: onOpenVideography
                                     )
                                     LaunchLandingButton(
@@ -291,6 +293,7 @@ private struct LaunchLandingView: View {
                                         accent: AppColors.accentHighlight(for: hubColorScheme),
                                         brandMark: .skydownX22,
                                         badges: ["Drops", "Fits", "Checkout"],
+                                        accessibilityID: "launch.open_shop",
                                         action: onOpenShop
                                     )
                                 }
@@ -304,6 +307,7 @@ private struct LaunchLandingView: View {
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
+                                        accessibilityID: "launch.open_music",
                                         action: onOpenMusic
                                     )
 
@@ -316,6 +320,7 @@ private struct LaunchLandingView: View {
                                             accent: AppColors.accentMystic(for: hubColorScheme),
                                             brandMark: .skydown,
                                             badges: ["Playback", "Reels", "YouTube"],
+                                            accessibilityID: "launch.open_video",
                                             action: onOpenVideography
                                         )
                                         LaunchLandingButton(
@@ -326,6 +331,7 @@ private struct LaunchLandingView: View {
                                             accent: AppColors.accentHighlight(for: hubColorScheme),
                                             brandMark: .skydownX22,
                                             badges: ["Drops", "Fits", "Checkout"],
+                                            accessibilityID: "launch.open_shop",
                                             action: onOpenShop
                                         )
                                     }
@@ -340,6 +346,7 @@ private struct LaunchLandingView: View {
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
+                                        accessibilityID: "launch.open_music",
                                         action: onOpenMusic
                                     )
 
@@ -351,6 +358,7 @@ private struct LaunchLandingView: View {
                                         accent: AppColors.accentMystic(for: hubColorScheme),
                                         brandMark: .skydown,
                                         badges: ["Playback", "Reels", "YouTube"],
+                                        accessibilityID: "launch.open_video",
                                         action: onOpenVideography
                                     )
 
@@ -362,6 +370,7 @@ private struct LaunchLandingView: View {
                                         accent: AppColors.accentHighlight(for: hubColorScheme),
                                         brandMark: .skydownX22,
                                         badges: ["Drops", "Fits", "Checkout"],
+                                        accessibilityID: "launch.open_shop",
                                         action: onOpenShop
                                     )
                                 }
@@ -391,9 +400,32 @@ private struct LaunchLandingButton: View {
     let accent: Color
     let brandMark: BrandMark
     let badges: [String]
+    let accessibilityID: String?
     let action: () -> Void
 
     private var hubColorScheme: ColorScheme { .dark }
+
+    init(
+        eyebrow: String,
+        title: String,
+        subtitle: String,
+        detail: String,
+        accent: Color,
+        brandMark: BrandMark,
+        badges: [String],
+        accessibilityID: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.subtitle = subtitle
+        self.detail = detail
+        self.accent = accent
+        self.brandMark = brandMark
+        self.badges = badges
+        self.accessibilityID = accessibilityID
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
@@ -507,6 +539,7 @@ private struct LaunchLandingButton: View {
             }
             .shadow(color: .black.opacity(0.22), radius: 14, y: 8)
         }
+        .accessibilityIdentifier(accessibilityID ?? "")
         .buttonStyle(.plain)
         .skydownTactileAction()
     }
