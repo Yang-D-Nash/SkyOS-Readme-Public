@@ -51,13 +51,24 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
 
         let resolvedRole = user.resolvedRole
         let resolvedQuotaPlan = user.resolvedQuotaPlan
+        let existingSnapshot = try await firestore.collection(collectionName).document(userID).getDocument()
+        let existingRole = (existingSnapshot.data()?["role"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let shouldSyncRoleClaims = existingRole == nil || existingRole != resolvedRole.rawValue
 
-        _ = try await functions
-            .httpsCallable("setUserRole")
-            .call([
-                "uid": userID,
-                "role": resolvedRole.rawValue
-            ])
+        if shouldSyncRoleClaims {
+            do {
+                _ = try await functions
+                    .httpsCallable("setUserRole")
+                    .call([
+                        "uid": userID,
+                        "role": resolvedRole.rawValue
+                    ])
+            } catch {
+                throw readableManagedUserUpdateError(error)
+            }
+        }
 
         let payload: [String: Any] = [
             "email": user.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
@@ -78,6 +89,32 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
 
         try await firestore.collection(collectionName).document(userID).setData(payload, merge: true)
     }
+}
+
+private func readableManagedUserUpdateError(_ error: Error) -> Error {
+    let nsError = error as NSError
+    if nsError.domain == FunctionsErrorDomain,
+       let code = FunctionsErrorCode(rawValue: nsError.code) {
+        let message: String
+        switch code {
+        case .notFound:
+            message = "Konto nicht gefunden. Dieses Profil hat keinen aktiven Login mehr. Bitte neu registrieren oder das alte Profil entfernen."
+        case .permissionDenied:
+            message = "Rollen duerfen nur vom festen Owner-Konto geaendert werden. Bitte als Owner erneut anmelden."
+        case .unauthenticated:
+            message = "Bitte neu anmelden und das Konto danach erneut speichern."
+        default:
+            return error
+        }
+
+        return NSError(
+            domain: "AdminUserManagementStore",
+            code: code.rawValue,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
+    }
+
+    return error
 }
 
 private func mapManagedUser(document: QueryDocumentSnapshot) -> User? {

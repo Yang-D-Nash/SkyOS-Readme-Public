@@ -5,6 +5,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.skydown.android.data.repository.toSharedUser
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
@@ -44,16 +45,28 @@ class AdminUserManagementRepository(
                 ?: error("Dieses Konto hat keine gueltige Benutzer-ID.")
             val resolvedRole = user.resolvedRole
             val resolvedQuotaPlan = user.resolvedQuotaPlan
+            val existingSnapshot = firestore.collection(collectionName).document(userId).get().await()
+            val existingRole = existingSnapshot.getString("role")
+                ?.trim()
+                ?.lowercase()
+                ?.takeIf { it.isNotBlank() }
+            val shouldSyncRoleClaims = existingRole == null || existingRole != resolvedRole.rawValue
 
-            functions
-                .getHttpsCallable("setUserRole")
-                .call(
-                    mapOf(
-                        "uid" to userId,
-                        "role" to resolvedRole.rawValue,
-                    ),
-                )
-                .await()
+            if (shouldSyncRoleClaims) {
+                try {
+                    functions
+                        .getHttpsCallable("setUserRole")
+                        .call(
+                            mapOf(
+                                "uid" to userId,
+                                "role" to resolvedRole.rawValue,
+                            ),
+                        )
+                        .await()
+                } catch (error: FirebaseFunctionsException) {
+                    throw error.toReadableManagedUserError()
+                }
+            }
 
             firestore.collection(collectionName).document(userId).set(
                 mapOf(
@@ -75,6 +88,23 @@ class AdminUserManagementRepository(
             ).await()
         }
     }
+}
+
+private fun FirebaseFunctionsException.toReadableManagedUserError(): Throwable {
+    val message = when (code) {
+        FirebaseFunctionsException.Code.NOT_FOUND ->
+            "Konto nicht gefunden. Dieses Profil hat keinen aktiven Login mehr. Bitte neu registrieren oder das alte Profil entfernen."
+        FirebaseFunctionsException.Code.PERMISSION_DENIED ->
+            "Rollen duerfen nur vom festen Owner-Konto geaendert werden. Bitte als Owner erneut anmelden."
+        FirebaseFunctionsException.Code.UNAUTHENTICATED ->
+            "Bitte neu anmelden und das Konto danach erneut speichern."
+        else -> localizedMessage
+    }
+
+    return IllegalStateException(
+        message?.takeIf { it.isNotBlank() } ?: "Konto konnte nicht gespeichert werden.",
+        this,
+    )
 }
 
 private fun compareUsers(left: User, right: User): Int {
