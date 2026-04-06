@@ -3199,6 +3199,28 @@ private struct SettingsAdminUserCard: View {
         _canModerateProfiles = State(initialValue: user.canModerateUserProfiles)
     }
 
+    private var canAssignOwnerRoleToUser: Bool {
+        user.email
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() == UserRole.ownerEmail
+    }
+
+    private func isRoleSelectionDisabled(_ role: UserRole) -> Bool {
+        if user.isPlatformOwner {
+            return true
+        }
+
+        if isCurrentUser && role != user.resolvedRole {
+            return true
+        }
+
+        if role == .owner && !canAssignOwnerRoleToUser {
+            return true
+        }
+
+        return false
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 10) {
@@ -3232,7 +3254,7 @@ private struct SettingsAdminUserCard: View {
                         Button(role.displayTitle) {
                             draftRole = role
                         }
-                        .disabled(user.isPlatformOwner || (isCurrentUser && role != user.resolvedRole))
+                        .disabled(isRoleSelectionDisabled(role))
                     }
                 } label: {
                     HStack {
@@ -3258,6 +3280,10 @@ private struct SettingsAdminUserCard: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else if isCurrentUser {
                     Text("Dein eigenes Konto bleibt vor versehentlichen Rollenwechseln geschuetzt. Limits kannst du hier trotzdem anpassen.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                } else if !canAssignOwnerRoleToUser {
+                    Text("Owner ist nur fuer das feste Hauptkonto moeglich. Fuer KI-Zugang nutze bitte Admin und aktiviere die KI-Freigabe.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }

@@ -3064,6 +3064,7 @@ private fun AdminManagedUserCard(
     }
     val resolvedRole = UserRole.resolve(selectedRole, user.isAdmin, user.email)
     val resolvedQuotaPlan = UserQuotaPlan.resolve(selectedQuotaPlan, resolvedRole)
+    val canAssignOwnerRoleToUser = user.email.trim().lowercase() == UserRole.OWNER_EMAIL
 
     SkydownCard(
         modifier = modifier,
@@ -3122,6 +3123,9 @@ private fun AdminManagedUserCard(
         ) {
             items(UserRole.entries.toList()) { role ->
                 val selected = resolvedRole == role
+                val roleSelectionEnabled = !isCurrentUser &&
+                    !user.isPlatformOwner &&
+                    (role != UserRole.Owner || canAssignOwnerRoleToUser)
                 if (selected) {
                     Button(
                         onClick = { selectedRole = role.rawValue },
@@ -3133,7 +3137,7 @@ private fun AdminManagedUserCard(
                 } else {
                     OutlinedButton(
                         onClick = { selectedRole = role.rawValue },
-                        enabled = !isCurrentUser && !user.isPlatformOwner,
+                        enabled = roleSelectionEnabled,
                         shape = RoundedCornerShape(999.dp),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                     ) {
@@ -3153,6 +3157,13 @@ private fun AdminManagedUserCard(
         } else if (isCurrentUser) {
             Text(
                 text = "Dein eigenes Konto bleibt vor versehentlichen Rollenwechseln geschuetzt. Limits kannst du hier trotzdem anpassen.",
+                modifier = Modifier.padding(top = 10.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        } else if (!canAssignOwnerRoleToUser) {
+            Text(
+                text = "Owner ist nur fuer das feste Hauptkonto moeglich. Fuer KI-Zugang nutze bitte Admin und aktiviere die KI-Freigabe.",
                 modifier = Modifier.padding(top = 10.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),

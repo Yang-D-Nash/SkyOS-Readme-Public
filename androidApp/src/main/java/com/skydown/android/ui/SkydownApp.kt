@@ -227,6 +227,10 @@ fun SkydownApp() {
             val currentDestination = navBackStackEntry?.destination
 
             LaunchedEffect(hasAiAccess, currentDestination?.route) {
+                if (currentDestination?.route == "ai") {
+                    AppFeatureFlagsStore.refresh()
+                    AppContainer.refreshCurrentUser()
+                }
                 if (!hasAiAccess) {
                     showsWorkflowWorkspace = false
                 }

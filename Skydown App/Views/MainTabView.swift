@@ -107,7 +107,12 @@ struct MainTabView: View {
             }
         }
         .onChange(of: selectedTab) { _, newTab in
-            if newTab != .tools {
+            if newTab == .tools {
+                Task {
+                    await featureFlags.refresh()
+                    await authManager.refreshCurrentUser()
+                }
+            } else {
                 showsWorkflowWorkspace = false
             }
         }
