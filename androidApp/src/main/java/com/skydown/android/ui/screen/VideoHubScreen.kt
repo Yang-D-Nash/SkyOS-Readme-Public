@@ -283,7 +283,7 @@ fun VideoHubScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Video",
-                        subtitle = "Reels, Clips, Kollabos.",
+                        subtitle = "Clips, Videos, Kollabos.",
                     )
                 },
                 actions = {
@@ -605,7 +605,7 @@ private fun VideoHubHeroCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY²²" },
         title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Reels, eigene Videos und Collabs im visuellen Street-Flow." },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Clips, eigene Videos und Collabs im visuellen Skydown-Flow." },
         detail = screenHeaderSettings.videoHubDetail.ifBlank {
             if (isAdmin) {
                 "$videoCount Clips und $collabCount Collabs live."
@@ -769,7 +769,7 @@ private fun VideoFormatCard() {
             tag = "FORMAT",
         )
         Text(
-            text = "MP4, MOV oder M4V bleiben die stabilsten Formate fuer den Player und den Reel-Flow.",
+            text = "MP4, MOV oder M4V bleiben die stabilsten Formate fuer den Player und den Video-Flow.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1454,7 +1454,7 @@ private fun VideoUploadCard(
             tag = "UPLOAD",
         )
         Text(
-            text = "Hier steuerst du direkte Uploads nach Firebase Storage oder externe Reel-Links fuer den Hub.",
+            text = "Hier steuerst du direkte Uploads nach Firebase Storage oder externe Video-Links fuer den Hub.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1465,7 +1465,7 @@ private fun VideoUploadCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             VideoPill(text = "Storage", isActive = true)
-            VideoPill(text = "Reel-Link", isActive = false)
+            VideoPill(text = "Video-Link", isActive = false)
             VideoPill(text = "External", isActive = false)
         }
 
@@ -1515,7 +1515,7 @@ private fun VideoUploadCard(
         )
 
         Text(
-            text = "Oder als externer Reel-Link freigeben.",
+            text = "Oder als externer Video-Link freigeben.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 14.dp),
@@ -1605,7 +1605,7 @@ private fun VideoUploadCard(
         )
 
         BrandActionButton(
-            text = "Externes Reel freigeben",
+            text = "Externes Video freigeben",
             onClick = onAddExternalVideo,
             accent = ArenaGold,
             modifier = Modifier
@@ -1734,7 +1734,7 @@ private fun VideoPlayerCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        VideoPill(text = "Reel", isActive = true)
+                        VideoPill(text = "Video", isActive = true)
                         VideoPill(text = video.projectName, isActive = false)
                         VideoPill(text = video.providerBadge, isActive = false)
                     }
@@ -2274,7 +2274,7 @@ private fun videoHubInlineActionLabel(video: VideoHubItem): String {
     return if (video.usesEmbeddedPreview) {
         "In Preview ansehen"
     } else {
-        "Im Reel ansehen"
+        "Im Video ansehen"
     }
 }
 
@@ -2282,7 +2282,7 @@ private fun videoHubInlineCompactActionLabel(video: VideoHubItem): String {
     return if (video.usesEmbeddedPreview) {
         "In Preview"
     } else {
-        "Direkt im Reel"
+        "Direkt im Video"
     }
 }
 

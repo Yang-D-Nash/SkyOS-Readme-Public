@@ -481,7 +481,7 @@ private struct HomeMapBackdrop: View {
             .offset(x: -172, y: 210)
 
             HomeBackdropHalo(
-                tint: AppColors.instagramEnd(for: colorScheme),
+                tint: AppColors.accentHighlight(for: colorScheme),
                 size: 320,
                 opacity: colorScheme == .dark ? 0.08 : 0.06
             )
@@ -546,26 +546,26 @@ private struct HomeHeroIntroCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     BrandHeroPill(
-                        text: viewModel.featuredTrack == nil ? "Track scannt" : "Track live",
+                        text: viewModel.featuredTrack == nil ? "Track laedt" : "Track live",
                         colorScheme: colorScheme,
                         tint: AppColors.spotify(for: colorScheme)
                     )
                     BrandHeroPill(
-                        text: viewModel.featuredBeat == nil ? "Beat scannt" : "Beat live",
+                        text: viewModel.featuredBeat == nil ? "Beat laedt" : "Beat live",
                         colorScheme: colorScheme,
                         tint: AppColors.accentMystic(for: colorScheme)
                     )
                     BrandHeroPill(
-                        text: viewModel.featuredVideo == nil ? "Video scannt" : "Video live",
+                        text: viewModel.featuredVideo == nil ? "Video laedt" : "Video live",
                         colorScheme: colorScheme,
-                        tint: AppColors.instagramEnd(for: colorScheme)
+                        tint: AppColors.accentHighlight(for: colorScheme)
                     )
                 }
 
                 Text(
                     availableSignals > 0
-                        ? "\(availableSignals) Signale live."
-                        : "Radar aktiv. Neue Signale folgen."
+                        ? "\(availableSignals) Updates live."
+                        : "Live-Feed aktiv. Neue Updates folgen."
                 )
                 .font(.footnote.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.82))
@@ -582,23 +582,23 @@ private struct HomeFieldGuideCard: View {
         [
             HomeRadarSignal(
                 title: "Music",
-                subtitle: viewModel.featuredTrack?.trackName ?? "Naechster Release wird gesucht",
+                subtitle: viewModel.featuredTrack?.trackName ?? "Naechster Release wird geladen",
                 icon: "music.note",
                 accent: AppColors.spotify(for: colorScheme),
                 isActive: viewModel.featuredTrack != nil
             ),
             HomeRadarSignal(
                 title: "Beat",
-                subtitle: viewModel.featuredBeat?.title ?? "Beat Hub wird gescannt",
+                subtitle: viewModel.featuredBeat?.title ?? "Beat Hub wird aktualisiert",
                 icon: "waveform",
                 accent: AppColors.accentMystic(for: colorScheme),
                 isActive: viewModel.featuredBeat != nil
             ),
             HomeRadarSignal(
                 title: "Visual",
-                subtitle: viewModel.featuredVideo?.title ?? "Naechster Clip wird gesucht",
+                subtitle: viewModel.featuredVideo?.title ?? "Naechster Clip wird geladen",
                 icon: "video.fill",
-                accent: AppColors.instagramEnd(for: colorScheme),
+                accent: AppColors.accentHighlight(for: colorScheme),
                 isActive: viewModel.featuredVideo != nil
             )
         ]
@@ -607,14 +607,14 @@ private struct HomeFieldGuideCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HomeSectionBanner(
-                title: "Expedition Radar",
-                subtitle: "Nearby feed fuer Musik, Beats und Visuals.",
+                title: "Live Uebersicht",
+                subtitle: "Live-Board fuer Musik, Beats und Visuals.",
                 icon: "scope",
                 colorScheme: colorScheme,
                 accent: AppColors.accentMystic(for: colorScheme)
             )
 
-            Text("Live Feed fuer Musik, Beats und Visuals.")
+            Text("Alle Bereiche auf einen Blick.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -633,7 +633,7 @@ private struct HomeFieldGuideCard: View {
                 }
             }
 
-            Text("Live aktualisiert.")
+            Text("Wird laufend aktualisiert.")
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -895,7 +895,7 @@ private struct HomeRadarSignalRow: View {
             Spacer()
 
             HomeSignalBadge(
-                text: signal.isActive ? "LIVE" : "SCAN",
+                text: signal.isActive ? "LIVE" : "SYNC",
                 icon: signal.isActive ? "checkmark.circle.fill" : "arrow.clockwise",
                 colorScheme: colorScheme,
                 accent: signal.accent,
@@ -934,8 +934,8 @@ private struct HomeLatestReleaseCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HomeSectionBanner(
-                title: "Music Radar",
-                subtitle: "Frischer Release direkt im Hub.",
+                title: "Music Update",
+                subtitle: "Neuester Release direkt im Hub.",
                 icon: "music.note",
                 colorScheme: colorScheme,
                 accent: AppColors.spotify(for: colorScheme)
@@ -1065,8 +1065,8 @@ private struct HomeLatestBeatCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HomeSectionBanner(
-                title: "Beat Radar",
-                subtitle: "Studio-Energie fuer den naechsten Drop.",
+                title: "Beat Update",
+                subtitle: "Studio-Update fuer den naechsten Drop.",
                 icon: "waveform",
                 colorScheme: colorScheme,
                 accent: AppColors.accentMystic(for: colorScheme)
@@ -1170,11 +1170,11 @@ private struct HomeLatestVideoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HomeSectionBanner(
-                title: "Visual Radar",
-                subtitle: "Dein naechster Clip im direkten Sichtfeld.",
+                title: "Visual Update",
+                subtitle: "Naechster Clip direkt im Fokus.",
                 icon: "video.fill",
                 colorScheme: colorScheme,
-                accent: AppColors.instagramEnd(for: colorScheme)
+                accent: AppColors.accentHighlight(for: colorScheme)
             )
 
             if let video = viewModel.featuredVideo {
@@ -1214,14 +1214,14 @@ private struct HomeLatestVideoCard: View {
                             text: video.projectName,
                             icon: "video.fill",
                             colorScheme: colorScheme,
-                            accent: AppColors.instagramEnd(for: colorScheme),
+                            accent: AppColors.accentHighlight(for: colorScheme),
                             isActive: true
                         )
                         HomeSignalBadge(
                             text: video.supportsInlinePlayback ? "Inline" : "Extern",
                             icon: video.supportsInlinePlayback ? "play.fill" : "globe",
                             colorScheme: colorScheme,
-                            accent: AppColors.instagramEnd(for: colorScheme),
+                            accent: AppColors.accentHighlight(for: colorScheme),
                             isActive: video.supportsInlinePlayback
                         )
                     }
@@ -1328,14 +1328,14 @@ private struct HomeStoryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HomeSectionBanner(
-                title: "Routen & Hubs",
-                subtitle: "Naechste Stationen fuer Musik, Studio und Kontakt.",
+                title: "Direktzugriff",
+                subtitle: "Schnelle Wege zu Musik, Studio und Kontakt.",
                 icon: "sparkles",
                 colorScheme: colorScheme,
                 accent: AppColors.accent(for: colorScheme)
             )
 
-            Text("Starte direkt in deine naechste Route und spring von der Karte in den passenden Hub.")
+            Text("Starte direkt im passenden Bereich und wechsle ohne Umwege weiter.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

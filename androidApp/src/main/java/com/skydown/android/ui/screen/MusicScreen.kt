@@ -671,10 +671,10 @@ private fun MusicPlayerCard(
                         Text(
                             text = when {
                                 hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
-                                hasPreview -> "Der Track hat eine direkte Preview im Deck."
+                                hasPreview -> "Der Track hat eine direkte Preview in der App."
                                 hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
                                     "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
-                                else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Deck bereit."
+                                else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Hub bereit."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
@@ -718,10 +718,10 @@ private fun MusicPlayerCard(
                         Text(
                             text = when {
                                 hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
-                                hasPreview -> "Der Track hat eine direkte Preview im Deck."
+                                hasPreview -> "Der Track hat eine direkte Preview in der App."
                                 hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
                                     "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
-                                else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Deck bereit."
+                                else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Hub bereit."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
@@ -743,7 +743,7 @@ private fun MusicPlayerCard(
                 isActive = hasPreview,
             )
             MusicBadge(
-                text = if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) "Spotify" else "Deck only",
+                text = if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) "Spotify" else "Nur App",
                 imageVector = Icons.Default.MusicNote,
                 isActive = hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch,
             )
@@ -1058,7 +1058,7 @@ private fun MusicSpotlightDeckCard(
     }
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         BrandSectionBanner(
-            title = "Artist Deck",
+            title = "Artist Hub",
             subtitle = spotlightSubtitle,
             accent = SpotifyGreen,
             icon = Icons.Default.AutoAwesome,
@@ -1090,7 +1090,7 @@ private fun MusicSpotlightDeckCard(
                             fontWeight = FontWeight.Black,
                         )
                         Text(
-                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Deck",
+                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Hub",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                         )
@@ -1127,7 +1127,7 @@ private fun MusicSpotlightDeckCard(
                             fontWeight = FontWeight.Black,
                         )
                         Text(
-                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Deck",
+                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Hub",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                         )
@@ -1153,7 +1153,7 @@ private fun MusicSpotlightDeckCard(
             BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
             BrandPill(text = trackLabel, tint = ArenaGold)
             BrandPill(
-                text = if (uiState.isSpotifyConnected) "Deck live" else "Deck standby",
+                text = if (uiState.isSpotifyConnected) "Hub live" else "Hub standby",
                 tint = if (uiState.isSpotifyConnected) FieldMint else MaterialTheme.colorScheme.secondary,
             )
         }
@@ -1557,7 +1557,7 @@ private fun ArtistPagerCard(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        BrandPill(text = "Artist Deck", tint = ArenaGold)
+                        BrandPill(text = "Artist Hub", tint = ArenaGold)
                         BrandPill(
                             text = if (!page.spotifyURL.isNullOrBlank()) "Spotify" else "Direct",
                             tint = SpotifyGreen,

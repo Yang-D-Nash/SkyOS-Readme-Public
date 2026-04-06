@@ -287,7 +287,7 @@ fun HomeScreen(
                         BrandHeroCard(
                             eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY²²" },
                             title = screenHeaderSettings.homeTitle.ifBlank { "Home" },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren Street-Flow." },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren Skydown-Flow." },
                             detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount von $homeSignalTotal Bereichen sind gerade live." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                             accent = ArenaGold,
@@ -295,9 +295,9 @@ fun HomeScreen(
                             marks = listOf(BrandArtwork.Combined),
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                BrandPill(text = "Sky²² Core", tint = ArenaGold)
+                                BrandPill(text = "Skydown x 22", tint = ArenaGold)
                                 BrandPill(text = "$activeSignalCount/$homeSignalTotal Live", tint = FieldMint)
-                                BrandPill(text = "Street ready", tint = ArenaRed)
+                                BrandPill(text = "Live Focus", tint = ArenaRed)
                             }
                             HomeHeroStatusRow(
                                 uiState = uiState,
@@ -621,8 +621,8 @@ private fun HomeFieldGuideCard(
 
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
-            title = "League Map",
-            subtitle = "Aktive Zonen, Begegnungen und der schnellste Weg durch den Hub.",
+            title = "Live Uebersicht",
+            subtitle = "Aktive Bereiche, aktuelle Updates und der schnellste Weg durch den Hub.",
             icon = Icons.Default.Radar,
             accent = ArenaGold,
             tag = "LIVE",
@@ -630,9 +630,9 @@ private fun HomeFieldGuideCard(
 
         Text(
             text = when (activeSignals) {
-                homeSignalTotal -> "Alle Bereiche sind live. Die Region spielt gerade komplett offen."
-                0 -> "Gerade ist noch kein Bereich live. Der Hub bleibt im Standby und scannt weiter."
-                else -> "$activeSignals von $homeSignalTotal Bereichen senden gerade ein starkes Signal."
+                homeSignalTotal -> "Alle Bereiche sind live. Der Hub laeuft gerade komplett aktiv."
+                0 -> "Noch kein Bereich ist live. Der Hub bleibt im Standby und aktualisiert weiter."
+                else -> "$activeSignals von $homeSignalTotal Bereichen senden gerade ein Live-Update."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
@@ -674,7 +674,7 @@ private fun HomeFieldGuideCard(
         }
 
         Text(
-            text = "Zieh nach unten, um die Karte neu zu scannen und alle Bereiche zu aktualisieren.",
+            text = "Zieh nach unten, um die Uebersicht und alle Bereiche zu aktualisieren.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 14.dp),
@@ -723,7 +723,7 @@ private fun HomeDexStatusRow(
         )
         HomeDexStatusCard(
             label = "Refresh",
-            value = "Swipe",
+            value = "Pull",
             accent = DexBlue,
             modifier = Modifier.weight(1f),
         )
@@ -786,14 +786,14 @@ private fun HomeRouteDeck(
         ) {
             signals.getOrNull(0)?.let { signal ->
                 HomeRouteCard(
-                    routeLabel = "Route 01",
+                    routeLabel = "Lane 01",
                     signal = signal,
                     modifier = Modifier.weight(1f),
                 )
             }
             signals.getOrNull(1)?.let { signal ->
                 HomeRouteCard(
-                    routeLabel = "Route 02",
+                    routeLabel = "Lane 02",
                     signal = signal,
                     modifier = Modifier.weight(1f),
                 )
@@ -802,7 +802,7 @@ private fun HomeRouteDeck(
 
         signals.getOrNull(2)?.let { signal ->
             HomeRouteCard(
-                routeLabel = "Route 03",
+                routeLabel = "Lane 03",
                 signal = signal,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -1670,7 +1670,7 @@ private fun HomeStoryCard(
             HomeStoryLinkButton(
                 title = "Yang D. Nash",
                 icon = Icons.Default.Person,
-                brand = HomeStoryBrand.League,
+                brand = HomeStoryBrand.Core,
                 subtitle = homePrimaryContactLink.subtitle,
                 onClick = { openExternalLink(context, homePrimaryContactLink.url) },
             )
@@ -1738,7 +1738,7 @@ private fun HomeStoryCard(
 
 private enum class HomeStoryBrand {
     Neutral,
-    League,
+    Core,
     Instagram,
 }
 
@@ -1759,7 +1759,7 @@ private fun HomeStoryLinkButton(
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
             ),
         )
-        HomeStoryBrand.League -> Brush.linearGradient(
+        HomeStoryBrand.Core -> Brush.linearGradient(
             colors = listOf(
                 DexBlueDeep.copy(alpha = 0.96f),
                 ArenaRed.copy(alpha = 0.72f),
@@ -1777,7 +1777,7 @@ private fun HomeStoryLinkButton(
     }
     val iconTint = when (brand) {
         HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.primary
-        HomeStoryBrand.League -> Color.White
+        HomeStoryBrand.Core -> Color.White
         HomeStoryBrand.Instagram -> Color.White
     }
     val iconBackground = when (brand) {
@@ -1787,7 +1787,7 @@ private fun HomeStoryLinkButton(
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
             ),
         )
-        HomeStoryBrand.League -> Brush.linearGradient(
+        HomeStoryBrand.Core -> Brush.linearGradient(
             colors = listOf(
                 ArenaRed,
                 ArenaGold,
@@ -1803,17 +1803,17 @@ private fun HomeStoryLinkButton(
     }
     val borderColor = when (brand) {
         HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-        HomeStoryBrand.League -> ArenaGold.copy(alpha = 0.32f)
+        HomeStoryBrand.Core -> ArenaGold.copy(alpha = 0.32f)
         HomeStoryBrand.Instagram -> InstagramPink.copy(alpha = 0.22f)
     }
     val titleColor = when (brand) {
         HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.onSurface
-        HomeStoryBrand.League -> Color.White
+        HomeStoryBrand.Core -> Color.White
         HomeStoryBrand.Instagram -> MaterialTheme.colorScheme.onSurface
     }
     val subtitleColor = when (brand) {
         HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-        HomeStoryBrand.League -> Color.White.copy(alpha = 0.76f)
+        HomeStoryBrand.Core -> Color.White.copy(alpha = 0.76f)
         HomeStoryBrand.Instagram -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
     }
     val content: @Composable () -> Unit = {

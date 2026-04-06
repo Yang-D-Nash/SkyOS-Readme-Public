@@ -285,7 +285,7 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedVideoHubEyebrow ?? "Video",
             title: screenHeaderSettingsStore.settings.resolvedVideoHubTitle ?? "Video",
-            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Reels, Visuals und starke Kollaborationen.",
+            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Clips, Visuals und starke Kollaborationen.",
             detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Clips, Looks und Leute hinter dem Vibe.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
@@ -412,7 +412,7 @@ struct VideoHubView: View {
                     .padding(.vertical, 14)
             }
 
-            Text("Oder als externer Reel-Link freigeben.")
+            Text("Oder als externer Video-Link freigeben.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -473,7 +473,7 @@ struct VideoHubView: View {
                     await viewModel.addExternalVideo()
                 }
             } label: {
-                Label("Externes Reel freigeben", systemImage: "link.badge.plus")
+                Label("Externes Video freigeben", systemImage: "link.badge.plus")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -496,11 +496,11 @@ struct VideoHubView: View {
 
     private var playerCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Reel Player")
+            Text("Video Player")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Reel-Modus springen.")
+            Text("Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Video-Modus springen.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -577,7 +577,7 @@ struct VideoHubView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
-                            MusicBadge(text: "Reel", isAccent: true)
+                            MusicBadge(text: "Video", isAccent: true)
                             MusicBadge(text: selectedVideo.projectName, isAccent: false)
                             MusicBadge(text: selectedVideo.provider.badgeLabel, isAccent: false)
                         }
@@ -613,7 +613,7 @@ struct VideoHubView: View {
                         activePresentedSheet = nil
                         showingReelViewer = true
                     } label: {
-                        Label("Im Reel ansehen", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label("Im Video ansehen", systemImage: "rectangle.portrait.and.arrow.right")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -805,7 +805,7 @@ struct VideoHubLibraryRow: View {
                 VStack(spacing: 10) {
                     if video.supportsInlinePlayback {
                         Button(action: onOpenReel) {
-                            Label("Direkt im Reel", systemImage: "play.rectangle.fill")
+                            Label("Direkt im Video", systemImage: "play.rectangle.fill")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -940,7 +940,7 @@ private struct VideoReelViewer: View {
 
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Skydown Reel")
+                        Text("Skydown Video")
                             .font(.headline.weight(.bold))
                             .foregroundColor(.white)
 

@@ -869,7 +869,7 @@ struct SettingsView: View {
                         title: "Video Untertitel",
                         text: $videoHeaderSubtitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Reels, Visuals und starke Kollaborationen.",
+                        placeholder: "Clips, Visuals und starke Kollaborationen.",
                         minHeight: 88
                     )
 

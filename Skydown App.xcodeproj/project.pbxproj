@@ -129,7 +129,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				9002FB622E4B5C7600495723 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				907EC6A32E31628C00BF5234 /* Skydown App */,
@@ -231,7 +230,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				9002FB602E4B5C7000495723 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				90C0B6B32E7C0E6C00112233 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -295,10 +293,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		9002FB622E4B5C7600495723 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			productRef = 9002FB612E4B5C7600495723 /* SwiftLintBuildToolPlugin */;
-		};
 		907EC6B02E31628D00BF5234 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 907EC6A02E31628C00BF5234 /* Skydown App */;
@@ -611,14 +605,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		9002FB602E4B5C7000495723 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.59.1;
-			};
-		};
 		905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
@@ -638,11 +624,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		9002FB612E4B5C7600495723 /* SwiftLintBuildToolPlugin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 9002FB602E4B5C7000495723 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
-			productName = "plugin:SwiftLintBuildToolPlugin";
-		};
 		905588F62E31911F002FD576 /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

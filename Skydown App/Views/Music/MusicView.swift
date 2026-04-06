@@ -192,7 +192,7 @@ struct MusicView: View {
                         if layout.prefersTwoColumn {
                             HStack(alignment: .top, spacing: layout.sectionSpacing) {
                                 VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                                    shortcutDeckCard
+                                    shortcutHubCard
                                     artistsCard
                                     instagramCard
                                 }
@@ -206,7 +206,7 @@ struct MusicView: View {
                                 .frame(maxWidth: .infinity, alignment: .topLeading)
                             }
                         } else {
-                            shortcutDeckCard
+                            shortcutHubCard
                             artistsCard
                             instagramCard
                             spotifyCard
@@ -418,7 +418,7 @@ struct MusicView: View {
 
                         Text(
                             selectedArtistPage.bio
-                            ?? "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Deck."
+                            ?? "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Hub."
                         )
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -513,7 +513,7 @@ struct MusicView: View {
     }
 
     @ViewBuilder
-    private var shortcutDeckCard: some View {
+    private var shortcutHubCard: some View {
         if brand.showsBeatHubShortcut || brand.workflowTitle != nil {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Quick Access")

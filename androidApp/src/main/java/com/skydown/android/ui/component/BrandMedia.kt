@@ -14,8 +14,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.skydown.android.ui.theme.ArenaGold
-import com.skydown.android.ui.theme.DexBlue
 
 @Composable
 fun BrandPreviewFrame(
@@ -30,8 +28,8 @@ fun BrandPreviewFrame(
                 Brush.linearGradient(
                     colors = listOf(
                         accent.copy(alpha = 0.20f),
-                        ArenaGold.copy(alpha = 0.12f),
-                        DexBlue.copy(alpha = 0.10f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
                     ),
                 ),
             )
