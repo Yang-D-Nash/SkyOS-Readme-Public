@@ -15,7 +15,7 @@ enum class AiAccessMode(val rawValue: String) {
     SignedIn("signed_in");
 
     companion object {
-        fun from(rawValue: String): AiAccessMode = entries.firstOrNull { it.rawValue == rawValue } ?: AdminOnly
+        fun from(rawValue: String): AiAccessMode = entries.firstOrNull { it.rawValue == rawValue } ?: SignedIn
     }
 }
 
@@ -25,7 +25,7 @@ object AppFeatureFlagsStore {
 
     private val remoteConfig by lazy { FirebaseRemoteConfig.getInstance() }
     private val _isAiEnabled = MutableStateFlow(true)
-    private val _aiAccessMode = MutableStateFlow(AiAccessMode.AdminOnly)
+    private val _aiAccessMode = MutableStateFlow(AiAccessMode.SignedIn)
     val isAiEnabled: StateFlow<Boolean> = _isAiEnabled.asStateFlow()
     val aiAccessMode: StateFlow<AiAccessMode> = _aiAccessMode.asStateFlow()
 
@@ -38,11 +38,11 @@ object AppFeatureFlagsStore {
         remoteConfig.setDefaultsAsync(
             mapOf(
                 aiEnabledKey to true,
-                aiAccessModeKey to AiAccessMode.AdminOnly.rawValue,
+                aiAccessModeKey to AiAccessMode.SignedIn.rawValue,
             ),
         )
         _isAiEnabled.value = true
-        _aiAccessMode.value = AiAccessMode.AdminOnly
+        _aiAccessMode.value = AiAccessMode.SignedIn
     }
 
     suspend fun refresh() {

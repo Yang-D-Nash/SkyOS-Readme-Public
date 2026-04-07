@@ -327,7 +327,7 @@ function resolveAiAccessMode(value) {
   const normalized = nonEmptyString(value)?.toLowerCase();
   return Object.values(AI_ACCESS_MODES).includes(normalized) ?
     normalized :
-    AI_ACCESS_MODES.adminOnly;
+    AI_ACCESS_MODES.signedIn;
 }
 
 function resolveRemoteConfigBoolean(value, fallbackValue) {
@@ -351,7 +351,7 @@ async function loadAiFeatureConfig() {
 
   let values = {
     isEnabled: true,
-    accessMode: AI_ACCESS_MODES.adminOnly,
+    accessMode: AI_ACCESS_MODES.signedIn,
   };
 
   try {

@@ -15,7 +15,7 @@ final class FeatureFlagsService: ObservableObject {
     }
 
     @Published private(set) var isAIEnabled = true
-    @Published private(set) var aiAccessMode: AIAccessMode = .adminOnly
+    @Published private(set) var aiAccessMode: AIAccessMode = .signedIn
 
     private let remoteConfig: RemoteConfig
 
@@ -27,7 +27,7 @@ final class FeatureFlagsService: ObservableObject {
         remoteConfig.configSettings = settings
         remoteConfig.setDefaults([
             Keys.aiEnabled: true as NSObject,
-            Keys.aiAccessMode: AIAccessMode.adminOnly.rawValue as NSObject
+            Keys.aiAccessMode: AIAccessMode.signedIn.rawValue as NSObject
         ])
         applyRemoteConfig()
 
@@ -95,6 +95,6 @@ final class FeatureFlagsService: ObservableObject {
         isAIEnabled = remoteConfig.configValue(forKey: Keys.aiEnabled).boolValue
         aiAccessMode = AIAccessMode(
             rawValue: remoteConfig.configValue(forKey: Keys.aiAccessMode).stringValue
-        ) ?? .adminOnly
+        ) ?? .signedIn
     }
 }
