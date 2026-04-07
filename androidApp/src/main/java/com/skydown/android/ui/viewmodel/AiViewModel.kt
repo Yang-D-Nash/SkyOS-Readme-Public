@@ -281,7 +281,7 @@ class AiViewModel : ViewModel() {
         }
     }
 
-    // Keep the assistant grounded in the brand and force directly usable outputs.
+    // Format hints stay on-device; core brand/system instructions are server-managed.
     private fun buildPrompt(userPrompt: String, history: String): String {
         val formatHint = when {
             userPrompt.containsAnyKeyword("caption", "captions", "instagram", "post", "story", "claim", "headline") ->
@@ -297,27 +297,14 @@ class AiViewModel : ViewModel() {
         }
 
         return """
-            Du bist der Skydown x 22 Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
-            Markenkontext:
-            - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
-            - Die App verbindet Musik, Videos, Merch und Creator-Tools.
-            - Yang D. Nash ist Kern der Marke und Entwickler der App.
+            Bisheriger Verlauf:
+            $history
 
-            Antworte auf Deutsch.
-        Sei direkt nutzbar, markentauglich, modern und nicht generisch.
-        Keine langen Vorreden, keine Erklaerungen ueber deinen Prozess.
-        Schreibe lieber Ergebnisse als Theorie.
-        Wenn die Anfrage nach Caption, Hook, Claim, Reel oder Post klingt, liefere echte copy-pastebare Optionen.
-        Wenn die Anfrage eher nach Planung, Freigaben, Briefing oder To-dos klingt, antworte kurz hilfreich, verweise aber auf den Agent fuer die tiefe Struktur.
+            Ausgabeformat:
+            $formatHint
 
-        Bisheriger Verlauf:
-        $history
-
-        Ausgabeformat:
-        $formatHint
-
-        Nutzeranfrage:
-        $userPrompt
+            Nutzeranfrage:
+            $userPrompt
         """.trimIndent()
     }
 
@@ -363,18 +350,6 @@ class AiViewModel : ViewModel() {
     private fun buildVisualPrompt(userPrompt: String): String {
         val referenceContext = AiVisualReferenceLibraryPreferences.promptContext()
         return """
-            Du bist der Skydown x 22 Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
-            Markenkontext:
-            - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
-            - Die Marke lebt von Musik, Videos, Street-Culture und Premium-Underground-Aesthetik.
-            - Yang D. Nash ist Kern der Marke und Entwickler der App.
-
-            Erzeuge ein modernes, hochwertiges Visual mit klarer Stimmung.
-            Stil: cinematic, urban, moody, premium, nicht kitschig, nicht generisch.
-            Nutze nur sehr wenig Text im Bild. Wenn Text im Motiv vorkommt, dann maximal eine kurze Headline.
-            Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.
-            Antworte auf Deutsch.
-
             ${referenceContext ?: ""}
 
             Nutzeranfrage:

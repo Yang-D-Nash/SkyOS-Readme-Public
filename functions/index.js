@@ -67,6 +67,8 @@ const SHOPIFY_PRIVATE_CONFIG_COLLECTION = "adminConfig";
 const SHOPIFY_PRIVATE_CONFIG_DOCUMENT = "shopifyMerchPrivate";
 const AUTOMATION_CONFIG_COLLECTION = "adminConfig";
 const AUTOMATION_CONFIG_DOCUMENT = "automationN8n";
+const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
+const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
 const STRIPE_SECRET_STATUS_COLLECTION = "adminConfig";
 const STRIPE_SECRET_STATUS_DOCUMENT = "stripeCheckoutSecrets";
 const SHOPIFY_VARIANT_OPTION_KEYS = {
@@ -163,6 +165,10 @@ const agentRequestSchema = z.object({
   history: z.array(agentTurnSchema).max(24).default([]),
 });
 
+const agentFlowRequestSchema = agentRequestSchema.extend({
+  systemInstruction: z.string().trim().min(1).max(12000),
+});
+
 const aiTextRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(12000),
 });
@@ -171,7 +177,36 @@ const aiVisualRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(12000),
 });
 
-const systemPrompt = `
+const DEFAULT_AI_TEXT_INSTRUCTION = `
+Du bist der Skydown x 22 Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
+Markenkontext:
+- Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
+- Die App verbindet Musik, Videos, Merch und Creator-Tools.
+- Yang D. Nash ist Kern der Marke und Entwickler der App.
+
+Antworte auf Deutsch.
+Sei direkt nutzbar, markentauglich, modern und nicht generisch.
+Keine langen Vorreden, keine Erklaerungen ueber deinen Prozess.
+Schreibe lieber Ergebnisse als Theorie.
+Wenn die Anfrage nach Caption, Hook, Claim, Reel oder Post klingt, liefere echte copy-pastebare Optionen.
+Wenn die Anfrage eher nach Planung, Freigaben, Briefing oder To-dos klingt, antworte kurz hilfreich, verweise aber auf den Agent fuer die tiefe Struktur.
+`.trim();
+
+const DEFAULT_AI_VISUAL_INSTRUCTION = `
+Du bist der Skydown x 22 Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
+Markenkontext:
+- Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
+- Die Marke lebt von Musik, Videos, Street-Culture und Premium-Underground-Aesthetik.
+- Yang D. Nash ist Kern der Marke und Entwickler der App.
+
+Erzeuge ein modernes, hochwertiges Visual mit klarer Stimmung.
+Stil: cinematic, urban, moody, premium, nicht kitschig, nicht generisch.
+Nutze nur sehr wenig Text im Bild. Wenn Text im Motiv vorkommt, dann maximal eine kurze Headline.
+Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.
+Antworte auf Deutsch.
+`.trim();
+
+const DEFAULT_AGENT_SYSTEM_PROMPT = `
 Du bist Skydown Agent, der umsetzungsorientierte Assistent fuer Skydown Entertainment und 22.
 Markenkontext:
 - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
@@ -187,6 +222,12 @@ Wenn du ein Briefing schreiben sollst, liefere ein copy-pastebares Briefing.
 Wenn Infos fehlen, triff sinnvolle Annahmen und kennzeichne sie kurz. Frage nur dann gezielt nach, wenn ohne die Info ein schlechter Plan entstehen wuerde.
 Bevorzuge kurze klare Abschnitte wie Ziel, Deliverables, Schritte, Timing, Assets, Risiken, Naechste Schritte.
 `.trim();
+
+const DEFAULT_AI_PROMPT_SETTINGS = Object.freeze({
+  textInstruction: DEFAULT_AI_TEXT_INSTRUCTION,
+  visualInstruction: DEFAULT_AI_VISUAL_INSTRUCTION,
+  agentSystemInstruction: DEFAULT_AGENT_SYSTEM_PROMPT,
+});
 
 const USER_ROLES = {
   owner: "owner",
@@ -216,9 +257,15 @@ const AI_ACCESS_MODES = {
 };
 
 const AI_REMOTE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+const AI_PROMPT_SETTINGS_CACHE_TTL_MS = 60 * 1000;
 const ACCOUNT_DELETE_RECENT_AUTH_MAX_AGE_SECONDS = 5 * 60;
 
 let aiFeatureConfigCache = {
+  expiresAt: 0,
+  values: null,
+};
+
+let aiPromptSettingsCache = {
   expiresAt: 0,
   values: null,
 };
@@ -370,6 +417,59 @@ async function loadAiFeatureConfig() {
 
   aiFeatureConfigCache = {
     expiresAt: now + AI_REMOTE_CONFIG_CACHE_TTL_MS,
+    values,
+  };
+
+  return values;
+}
+
+function normalizeAiPromptSetting(value, fallback) {
+  const normalized = nonEmptyString(value);
+  if (!normalized) {
+    return fallback;
+  }
+
+  return normalized.slice(0, 12000);
+}
+
+function resolveAiPromptSettings(data = {}) {
+  return {
+    textInstruction: normalizeAiPromptSetting(
+        data.textInstruction,
+        DEFAULT_AI_PROMPT_SETTINGS.textInstruction,
+    ),
+    visualInstruction: normalizeAiPromptSetting(
+        data.visualInstruction,
+        DEFAULT_AI_PROMPT_SETTINGS.visualInstruction,
+    ),
+    agentSystemInstruction: normalizeAiPromptSetting(
+        data.agentSystemInstruction,
+        DEFAULT_AI_PROMPT_SETTINGS.agentSystemInstruction,
+    ),
+  };
+}
+
+async function loadAiPromptSettings() {
+  const now = Date.now();
+  if (aiPromptSettingsCache.values && aiPromptSettingsCache.expiresAt > now) {
+    return aiPromptSettingsCache.values;
+  }
+
+  let values = DEFAULT_AI_PROMPT_SETTINGS;
+  try {
+    const snapshot = await admin.firestore()
+        .collection(AI_PROMPT_SETTINGS_COLLECTION)
+        .doc(AI_PROMPT_SETTINGS_DOCUMENT)
+        .get();
+    values = resolveAiPromptSettings(snapshot.data() || {});
+  } catch (error) {
+    logger.warn("AI prompt settings could not be loaded. Falling back to defaults.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+
+  aiPromptSettingsCache = {
+    expiresAt: now + AI_PROMPT_SETTINGS_CACHE_TTL_MS,
     values,
   };
 
@@ -959,6 +1059,24 @@ async function authorizeAiUsage({auth, kind}) {
   return usageSummary;
 }
 
+function composeTextGenerationPrompt(inputPrompt, textInstruction) {
+  return `
+${textInstruction}
+
+Nutzeranfrage:
+${inputPrompt}
+  `.trim();
+}
+
+function composeVisualGenerationPrompt(inputPrompt, visualInstruction) {
+  return `
+${visualInstruction}
+
+Nutzeranfrage:
+${inputPrompt}
+  `.trim();
+}
+
 function parseCallableInput(schema, data, message) {
   const parsed = schema.safeParse(data || {});
   if (!parsed.success) {
@@ -996,8 +1114,9 @@ function extractInlineBase64Media(dataUrl, contentType = null) {
 }
 
 async function generateAiTextReply(prompt) {
+  const promptSettings = await loadAiPromptSettings();
   const response = await ai.generate({
-    prompt,
+    prompt: composeTextGenerationPrompt(prompt, promptSettings.textInstruction),
     config: {
       temperature: 0.7,
       maxOutputTokens: 768,
@@ -1013,9 +1132,10 @@ async function generateAiTextReply(prompt) {
 }
 
 async function generateAiVisualResult(prompt) {
+  const promptSettings = await loadAiPromptSettings();
   const response = await ai.generate({
     model: vertexAI.model("gemini-2.5-flash-image"),
-    prompt,
+    prompt: composeVisualGenerationPrompt(prompt, promptSettings.visualInstruction),
     config: {
       responseModalities: ["TEXT", "IMAGE"],
     },
@@ -3220,7 +3340,7 @@ function formatHistory(history) {
 
 const skydownAgentFlow = ai.defineFlow({
   name: "skydownAgentFlow",
-  inputSchema: agentRequestSchema,
+  inputSchema: agentFlowRequestSchema,
   outputSchema: z.string(),
   streamSchema: z.string(),
 }, async (input, sendChunk) => {
@@ -3235,7 +3355,7 @@ ${responseFrameworkHint(input.prompt)}
   `.trim();
 
   const {stream, response} = ai.generateStream({
-    system: systemPrompt,
+    system: input.systemInstruction,
     prompt,
     config: {
       temperature: 0.7,
@@ -3274,7 +3394,11 @@ exports.skydownAgent = onCall({
     auth: request.auth,
     kind: AI_USAGE_KINDS.agent,
   });
-  const reply = await skydownAgentFlow(input);
+  const promptSettings = await loadAiPromptSettings();
+  const reply = await skydownAgentFlow({
+    ...input,
+    systemInstruction: promptSettings.agentSystemInstruction,
+  });
 
   return {
     reply,

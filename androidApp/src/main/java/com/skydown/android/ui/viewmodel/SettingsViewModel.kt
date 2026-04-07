@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel : ViewModel() {
     private val authService = AppContainer.authService
+    private val aiPromptSettingsRepository = AppContainer.aiPromptSettingsRepository
     private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
     private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
     private val stripeBackendSecretsRepository = AppContainer.stripeBackendSecretsRepository
@@ -33,6 +34,7 @@ class SettingsViewModel : ViewModel() {
     private var commerceSettingsListener: ListenerRegistration? = null
     private var paymentMethodsListener: ListenerRegistration? = null
     private var stripeBackendSecretsListener: ListenerRegistration? = null
+    private var aiPromptSettingsListener: ListenerRegistration? = null
     private var shopifyAdminSettingsListener: ListenerRegistration? = null
     private var adminUsersListener: ListenerRegistration? = null
     private val _uiState = MutableStateFlow(
@@ -82,6 +84,7 @@ class SettingsViewModel : ViewModel() {
                 }
 
                 configureStripeBackendSecretsObservation(isEnabled = isOwner)
+                configureAiPromptSettingsObservation(isEnabled = isOwner)
                 configureManagedUsersObservation(isEnabled = isOwner)
             }
         }
@@ -187,6 +190,32 @@ class SettingsViewModel : ViewModel() {
             } else {
                 showPaymentFeedback(
                     message = result.exceptionOrNull()?.message ?: "n8n konnte nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun saveAiPromptSettings(settings: com.skydown.android.data.AiPromptSettings) {
+        viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf KI-Anweisungen verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val result = aiPromptSettingsRepository.updateSettings(settings)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(aiPromptSettings = settings) }
+                showPaymentFeedback(
+                    message = "KI-Anweisungen gespeichert. Neue Prompts gelten ohne Release sofort serverseitig.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "KI-Anweisungen konnten nicht gespeichert werden.",
                     isError = true,
                 )
             }
@@ -685,6 +714,8 @@ class SettingsViewModel : ViewModel() {
         paymentMethodsListener = null
         stripeBackendSecretsListener?.remove()
         stripeBackendSecretsListener = null
+        aiPromptSettingsListener?.remove()
+        aiPromptSettingsListener = null
         shopifyAdminSettingsListener?.remove()
         shopifyAdminSettingsListener = null
         adminUsersListener?.remove()
@@ -723,6 +754,30 @@ class SettingsViewModel : ViewModel() {
                         managedUsersErrorMessage = error.message ?: "Konten konnten nicht geladen werden.",
                     )
                 }
+            }
+        }
+    }
+
+    private fun configureAiPromptSettingsObservation(isEnabled: Boolean) {
+        if (!isEnabled) {
+            aiPromptSettingsListener?.remove()
+            aiPromptSettingsListener = null
+            _uiState.update { it.copy(aiPromptSettings = com.skydown.android.data.AiPromptSettings()) }
+            return
+        }
+
+        if (aiPromptSettingsListener != null) {
+            return
+        }
+
+        aiPromptSettingsListener = aiPromptSettingsRepository.observeSettings { result ->
+            result.onSuccess { settings ->
+                _uiState.update { it.copy(aiPromptSettings = settings) }
+            }.onFailure { error ->
+                showPaymentFeedback(
+                    message = error.message ?: "KI-Anweisungen konnten nicht geladen werden.",
+                    isError = true,
+                )
             }
         }
     }

@@ -184,6 +184,9 @@ fun SettingsScreen(
     var automationWebhookPathDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
+    var aiTextInstructionDraft by rememberSaveable { mutableStateOf("") }
+    var aiVisualInstructionDraft by rememberSaveable { mutableStateOf("") }
+    var aiAgentSystemInstructionDraft by rememberSaveable { mutableStateOf("") }
     val managedShowcasePages = remember(artistPages) {
         (
             ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei) +
@@ -282,6 +285,12 @@ fun SettingsScreen(
         automationWebhookPathDraft = uiState.workflowAutomationSettings.webhookPath
         automationAuthHeaderNameDraft = uiState.workflowAutomationSettings.authHeaderName
         automationAuthHeaderValueDraft = uiState.workflowAutomationSettings.authHeaderValue
+    }
+
+    LaunchedEffect(uiState.aiPromptSettings) {
+        aiTextInstructionDraft = uiState.aiPromptSettings.textInstruction
+        aiVisualInstructionDraft = uiState.aiPromptSettings.visualInstruction
+        aiAgentSystemInstructionDraft = uiState.aiPromptSettings.agentSystemInstruction
     }
 
     LaunchedEffect(
@@ -1524,6 +1533,99 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            AdminWorkspaceSection.AiPrompts -> {
+                Text(
+                    text = "Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore (`adminConfig/aiPromptSettings`) und gelten serverseitig sofort.",
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        SettingsBadge(
+                            text = "Text ${aiTextInstructionDraft.trim().length}",
+                            icon = Icons.Default.Settings,
+                            isActive = aiTextInstructionDraft.isNotBlank(),
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "Visual ${aiVisualInstructionDraft.trim().length}",
+                            icon = Icons.Default.Palette,
+                            isActive = aiVisualInstructionDraft.isNotBlank(),
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "Agent ${aiAgentSystemInstructionDraft.trim().length}",
+                            icon = Icons.Default.Bolt,
+                            isActive = aiAgentSystemInstructionDraft.isNotBlank(),
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = aiTextInstructionDraft,
+                    onValueChange = { aiTextInstructionDraft = it.take(12000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    label = { Text("Bot Text-Anweisung") },
+                    minLines = 6,
+                    maxLines = 14,
+                )
+
+                OutlinedTextField(
+                    value = aiVisualInstructionDraft,
+                    onValueChange = { aiVisualInstructionDraft = it.take(12000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Visual-Anweisung") },
+                    minLines = 6,
+                    maxLines = 14,
+                )
+
+                OutlinedTextField(
+                    value = aiAgentSystemInstructionDraft,
+                    onValueChange = { aiAgentSystemInstructionDraft = it.take(12000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Agent System-Anweisung") },
+                    minLines = 6,
+                    maxLines = 16,
+                )
+
+                Text(
+                    text = "Leer lassen stellt den jeweiligen Standard wieder her.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+
+                Button(
+                    onClick = {
+                        viewModel.saveAiPromptSettings(
+                            uiState.aiPromptSettings.copy(
+                                textInstruction = aiTextInstructionDraft,
+                                visualInstruction = aiVisualInstructionDraft,
+                                agentSystemInstruction = aiAgentSystemInstructionDraft,
+                            ),
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("KI-Anweisungen speichern")
+                }
+            }
         }
     }
 
@@ -2637,6 +2739,11 @@ private enum class AdminWorkspaceSection(
         subtitle = "Owner-seitig n8n anbinden, User-Kontext steuern und den Webhook testen.",
         icon = Icons.Default.Bolt,
     ),
+    AiPrompts(
+        label = "KI Prompts",
+        subtitle = "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen.",
+        icon = Icons.Default.Settings,
+    ),
 
     ;
 
@@ -2666,6 +2773,7 @@ private fun adminWorkspaceStatusText(
         AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
         AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"
         AdminWorkspaceSection.Automation -> if (uiState.workflowAutomationSettings.isPrepared) "n8n bereit" else "Noch offen"
+        AdminWorkspaceSection.AiPrompts -> "Text ${uiState.aiPromptSettings.textInstruction.length}"
     }
 }
 

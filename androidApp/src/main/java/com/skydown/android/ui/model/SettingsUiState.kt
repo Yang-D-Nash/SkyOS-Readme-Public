@@ -1,6 +1,7 @@
 package com.skydown.android.ui.model
 
 import com.skydown.android.ui.theme.AppearanceMode
+import com.skydown.android.data.AiPromptSettings
 import com.skydown.android.data.AiVisualReferenceLibrarySettings
 import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
@@ -29,6 +30,7 @@ data class SettingsUiState(
     val isDeletingAccount: Boolean = false,
     val accountErrorMessage: String? = null,
     val aiVisualReferenceLibrary: AiVisualReferenceLibrarySettings = AiVisualReferenceLibrarySettings(),
+    val aiPromptSettings: AiPromptSettings = AiPromptSettings(),
     val workflowAutomationSettings: WorkflowAutomationSettings = WorkflowAutomationSettings(),
     val commerceSettings: CommerceSettings = CommerceSettings(),
     val shopifyAdminSettings: ShopifyAdminSettings = ShopifyAdminSettings(),
