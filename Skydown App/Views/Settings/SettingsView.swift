@@ -18,6 +18,7 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
 
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
+    @ObservedObject private var aiPromptSettingsStore = AIPromptSettingsStore.shared
     @ObservedObject private var adminUserManagementStore = AdminUserManagementStore.shared
     @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
@@ -94,6 +95,9 @@ struct SettingsView: View {
     @State private var automationWebhookPathDraft = ""
     @State private var automationAuthHeaderNameDraft = ""
     @State private var automationAuthHeaderValueDraft = ""
+    @State private var aiTextInstructionDraft = ""
+    @State private var aiVisualInstructionDraft = ""
+    @State private var aiAgentSystemInstructionDraft = ""
     @State private var profileUsernameDraft = ""
     @State private var profileWhatsAppDraft = ""
     @State private var profileTaglineDraft = ""
@@ -437,6 +441,7 @@ struct SettingsView: View {
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
             syncScreenHeaderDrafts(with: screenHeaderSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
+            syncAIPromptDrafts(with: aiPromptSettingsStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
         }
         .task(id: authManager.userSession?.isPlatformOwner == true) {
@@ -452,6 +457,7 @@ struct SettingsView: View {
             adminUserManagementStore.configureObservation(isAdmin: false)
             stripeBackendSecretsStore.setObservationEnabled(false)
             workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
+            aiPromptSettingsStore.setObservationEnabled(false)
         }
         .onChange(of: authManager.userSession?.id) { _, userID in
             syncProfileDrafts(with: authManager.userSession)
@@ -475,6 +481,9 @@ struct SettingsView: View {
         .onReceive(workflowAutomationSettings.$settings) { settings in
             syncAutomationDrafts(with: settings)
         }
+        .onReceive(aiPromptSettingsStore.$settings) { settings in
+            syncAIPromptDrafts(with: settings)
+        }
         .onChange(of: activePresentedSheet) { _, sheet in
             switch sheet {
             case .adminWorkspace(let section):
@@ -493,6 +502,7 @@ struct SettingsView: View {
             adminUserManagementStore.configureObservation(isAdmin: false)
             stripeBackendSecretsStore.setObservationEnabled(false)
             workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
+            aiPromptSettingsStore.setObservationEnabled(false)
         }
     }
 
@@ -1389,6 +1399,63 @@ struct SettingsView: View {
                         .disabled(automationDraftResolvedWebhookURL == nil || !automationEnabledDraft)
                     }
                 }
+
+            case .aiPrompts:
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore unter `adminConfig/aiPromptSettings` und gelten serverseitig ohne App-Release.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(
+                            text: "Text \(aiTextInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                            colorScheme: effectiveColorScheme
+                        )
+                        SettingsBadge(
+                            text: "Visual \(aiVisualInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                            colorScheme: effectiveColorScheme
+                        )
+                        SettingsBadge(
+                            text: "Agent \(aiAgentSystemInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                            colorScheme: effectiveColorScheme
+                        )
+                    }
+
+                    SettingsMultilineInputField(
+                        title: "Bot Text-Anweisung",
+                        text: $aiTextInstructionDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Globale Anweisung fuer Text-Antworten.",
+                        minHeight: 120
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Visual-Anweisung",
+                        text: $aiVisualInstructionDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Globale Anweisung fuer Bild-Generierung.",
+                        minHeight: 120
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Agent System-Anweisung",
+                        text: $aiAgentSystemInstructionDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Globale Systemrolle fuer den Agent.",
+                        minHeight: 140
+                    )
+
+                    Text("Leere Felder fallen automatisch auf den Standard zurueck.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    Button(action: saveAIPromptSettings) {
+                        Label("KI-Anweisungen speichern", systemImage: "sparkles")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                }
             }
         }
     }
@@ -1411,6 +1478,8 @@ struct SettingsView: View {
             return aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus"
         case .automation:
             return workflowAutomationSettings.settings.isPrepared ? "n8n bereit" : "Noch offen"
+        case .aiPrompts:
+            return "Text \(aiPromptSettingsStore.settings.textInstruction.count)"
         }
     }
 
@@ -1618,6 +1687,12 @@ struct SettingsView: View {
         automationAuthHeaderValueDraft = settings.authHeaderValue
     }
 
+    private func syncAIPromptDrafts(with settings: AIPromptSettings) {
+        aiTextInstructionDraft = settings.textInstruction
+        aiVisualInstructionDraft = settings.visualInstruction
+        aiAgentSystemInstructionDraft = settings.agentSystemInstruction
+    }
+
     private func refreshOwnerWorkspaceObservation(
         for section: SettingsAdminWorkspaceSection?,
         userID: String? = nil
@@ -1626,6 +1701,7 @@ struct SettingsView: View {
         let shouldObserveUsers = isOwnerUser && (section == .users || section == .artists)
         let shouldObserveStripeSecrets = isOwnerUser && section == .payments
         let shouldObserveAutomation = isOwnerUser && section == .automation
+        let shouldObserveAIPrompts = isOwnerUser && section == .aiPrompts
 
         adminUserManagementStore.configureObservation(isAdmin: shouldObserveUsers)
         stripeBackendSecretsStore.setObservationEnabled(shouldObserveStripeSecrets)
@@ -1633,6 +1709,7 @@ struct SettingsView: View {
             isAdmin: shouldObserveAutomation,
             userID: shouldObserveAutomation ? resolvedUserID : nil
         )
+        aiPromptSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
     }
 
     private func presentSheet(_ sheet: SettingsPresentedSheet) {
@@ -1875,6 +1952,25 @@ struct SettingsView: View {
                 )
             } catch {
                 showToastMessage("n8n konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveAIPromptSettings() {
+        Task {
+            var updated = aiPromptSettingsStore.settings
+            updated.textInstruction = aiTextInstructionDraft
+            updated.visualInstruction = aiVisualInstructionDraft
+            updated.agentSystemInstruction = aiAgentSystemInstructionDraft
+
+            do {
+                try await aiPromptSettingsStore.save(updated)
+                showToastMessage(
+                    "KI-Anweisungen gespeichert. Neue Prompts gelten serverseitig sofort.",
+                    style: .success
+                )
+            } catch {
+                showToastMessage("KI-Anweisungen konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -2792,6 +2888,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
     case commerce = "Versand"
     case visuals = "Visuals"
     case automation = "Automation"
+    case aiPrompts = "KI Prompts"
 
     var id: String { rawValue }
 
@@ -2813,6 +2910,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
             return "photo.stack.fill"
         case .automation:
             return "bolt.fill"
+        case .aiPrompts:
+            return "sparkles"
         }
     }
 
@@ -2834,6 +2933,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
             return "Drive-Link, Namensschema und Referenzhinweise fuer Visual-Prompts pflegen."
         case .automation:
             return "Owner-seitig n8n anbinden, User-Kontext mitschicken und den Webhook testen."
+        case .aiPrompts:
+            return "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen."
         }
     }
 }
