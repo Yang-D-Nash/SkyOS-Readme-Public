@@ -83,6 +83,30 @@ function buildRoleClaims(role) {
   };
 }
 
+async function resolveRequestedRoleForSync(auth) {
+  const fallbackRole = resolveRoleFromClaims(auth);
+  if (!auth?.uid) {
+    return fallbackRole;
+  }
+
+  const snapshot = await admin.firestore().doc(`users/${auth.uid}`).get();
+  if (!snapshot.exists) {
+    return fallbackRole;
+  }
+
+  const data = snapshot.data() || {};
+  const roleFromDoc = nonEmptyString(data.role)?.toLowerCase();
+  if (VALID_ROLES.includes(roleFromDoc)) {
+    return roleFromDoc;
+  }
+
+  if (data.isAdmin === true) {
+    return USER_ROLES.admin;
+  }
+
+  return fallbackRole;
+}
+
 async function setUserRoleClaims({
   uid,
   requestedRole,
@@ -166,7 +190,7 @@ async function syncClaimsForCurrentUser(auth) {
     throw new HttpsError("unauthenticated", "Bitte melde dich an.");
   }
 
-  const role = resolveRoleFromClaims(auth);
+  const role = await resolveRequestedRoleForSync(auth);
   const synced = await setUserRoleClaims({
     uid: auth.uid,
     requestedRole: role,
