@@ -178,17 +178,43 @@ struct AppColors {
         secondaryAccent: Color? = nil
     ) -> LinearGradient {
         let secondary = secondaryAccent ?? accentMystic(for: colorScheme)
+
+        let topSky: Color
+        let midSky: Color
+        let horizonGlow: Color
+        let depthShadow: Color
+
+        switch colorScheme {
+        case .light:
+            topSky = Color(red: 220/255, green: 228/255, blue: 236/255)
+            midSky = Color(red: 205/255, green: 215/255, blue: 226/255)
+            horizonGlow = Color(red: 184/255, green: 197/255, blue: 211/255)
+            depthShadow = Color.black.opacity(0.08)
+        case .dark:
+            topSky = Color(red: 4/255, green: 8/255, blue: 14/255)
+            midSky = Color(red: 8/255, green: 15/255, blue: 24/255)
+            horizonGlow = Color(red: 14/255, green: 28/255, blue: 40/255)
+            depthShadow = Color.black.opacity(0.42)
+        @unknown default:
+            topSky = Color(red: 220/255, green: 228/255, blue: 236/255)
+            midSky = Color(red: 205/255, green: 215/255, blue: 226/255)
+            horizonGlow = Color(red: 184/255, green: 197/255, blue: 211/255)
+            depthShadow = Color.black.opacity(0.08)
+        }
+
         return LinearGradient(
             colors: [
-                primaryBackground(for: colorScheme),
-                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.10),
-                secondary.opacity(colorScheme == .dark ? 0.14 : 0.09),
-                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.07),
-                Color.black.opacity(colorScheme == .dark ? 0.20 : 0.03),
+                topSky,
+                midSky,
+                horizonGlow,
+                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.05 : 0.022),
+                secondary.opacity(colorScheme == .dark ? 0.04 : 0.018),
+                depthShadow,
+                Color.black.opacity(colorScheme == .dark ? 0.30 : 0.10),
                 primaryBackground(for: colorScheme)
             ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            startPoint: .top,
+            endPoint: .bottom
         )
     }
 }

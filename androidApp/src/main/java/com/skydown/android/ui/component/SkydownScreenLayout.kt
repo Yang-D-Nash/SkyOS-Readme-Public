@@ -10,6 +10,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,18 +38,32 @@ fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingV
 fun skydownScreenBrush(
     primaryColor: Color = MaterialTheme.colorScheme.primary,
     secondaryColor: Color = MaterialTheme.colorScheme.secondary,
-    primaryAlpha: Float = 0.10f,
-    secondaryAlpha: Float = 0.08f,
-): Brush = Brush.linearGradient(
-    colors = listOf(
-        MaterialTheme.colorScheme.background,
-        primaryColor.copy(alpha = primaryAlpha),
-        secondaryColor.copy(alpha = secondaryAlpha),
-        MaterialTheme.colorScheme.tertiary.copy(alpha = secondaryAlpha * 0.8f),
-        Color.Black.copy(alpha = 0.18f),
-        MaterialTheme.colorScheme.background,
-    ),
-)
+    primaryAlpha: Float = 0.045f,
+    secondaryAlpha: Float = 0.032f,
+): Brush {
+    val background = MaterialTheme.colorScheme.background
+    val isDarkPalette = background.luminance() < 0.36f
+
+    val topSky = if (isDarkPalette) Color(0xFF050B13) else Color(0xFFDCE4EC)
+    val upperSky = if (isDarkPalette) Color(0xFF09121D) else Color(0xFFCED8E2)
+    val horizonBase = if (isDarkPalette) Color(0xFF102131) else Color(0xFFBBC8D6)
+    val groundDepth = if (isDarkPalette) Color(0xFF03070D) else Color(0xFF9EACBB)
+    val primaryMist = lerp(primaryColor, horizonBase, if (isDarkPalette) 0.90f else 0.86f)
+    val secondaryMist = lerp(secondaryColor, horizonBase, if (isDarkPalette) 0.92f else 0.88f)
+
+    return Brush.verticalGradient(
+        colors = listOf(
+            topSky,
+            upperSky,
+            horizonBase,
+            primaryMist.copy(alpha = primaryAlpha),
+            secondaryMist.copy(alpha = secondaryAlpha),
+            groundDepth.copy(alpha = if (isDarkPalette) 0.34f else 0.15f),
+            Color.Black.copy(alpha = if (isDarkPalette) 0.36f else 0.12f),
+            background,
+        ),
+    )
+}
 
 @Composable
 fun skydownTopBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
