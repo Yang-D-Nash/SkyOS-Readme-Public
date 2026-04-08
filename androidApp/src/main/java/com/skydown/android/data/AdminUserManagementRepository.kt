@@ -32,6 +32,15 @@ class AdminUserManagementRepository(
 
             val users = snapshot?.documents
                 .orEmpty()
+                .filterNot { document ->
+                    val accountStatus = document.getString("accountStatus")
+                        ?.trim()
+                        ?.lowercase()
+                    val mergedIntoUid = document.getString("mergedIntoUid")
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                    accountStatus == "migrated" || mergedIntoUid != null
+                }
                 .mapNotNull { document -> document.toSharedUser() }
                 .sortedWith(::compareUsers)
 
@@ -43,32 +52,29 @@ class AdminUserManagementRepository(
         return runCatching {
             val userId = user.id?.takeIf { it.isNotBlank() }
                 ?: error("Dieses Konto hat keine gueltige Benutzer-ID.")
-            val resolvedRole = user.resolvedRole
-            val resolvedQuotaPlan = user.resolvedQuotaPlan
-            val existingSnapshot = firestore.collection(collectionName).document(userId).get().await()
-            val existingRole = existingSnapshot.getString("role")
-                ?.trim()
-                ?.lowercase()
-                ?.takeIf { it.isNotBlank() }
-            val shouldSyncRoleClaims = existingRole == null || existingRole != resolvedRole.rawValue
-
-            if (shouldSyncRoleClaims) {
-                try {
-                    functions
-                        .getHttpsCallable("setUserRole")
-                        .call(
-                            mapOf(
-                                "uid" to userId,
-                                "role" to resolvedRole.rawValue,
-                            ),
-                        )
-                        .await()
-                } catch (error: FirebaseFunctionsException) {
-                    throw error.toReadableManagedUserError()
-                }
+            val requestedRole = user.resolvedRole
+            val canonicalTarget = try {
+                val response = functions
+                    .getHttpsCallable("setUserRole")
+                    .call(
+                        mapOf(
+                            "uid" to userId,
+                            "role" to requestedRole.rawValue,
+                        ),
+                    )
+                    .await()
+                ManagedUserRoleSyncResult.from(response.data, fallbackUid = userId, fallbackRole = requestedRole)
+            } catch (error: FirebaseFunctionsException) {
+                throw error.toReadableManagedUserError()
+            }
+            val resolvedRole = canonicalTarget.role
+            val resolvedQuotaPlan = if (resolvedRole == requestedRole) {
+                user.resolvedQuotaPlan
+            } else {
+                com.skydown.shared.model.UserQuotaPlan.defaultPlanFor(resolvedRole)
             }
 
-            firestore.collection(collectionName).document(userId).set(
+            firestore.collection(collectionName).document(canonicalTarget.uid).set(
                 mapOf(
                     "email" to user.email.trim().lowercase(),
                     "role" to resolvedRole.rawValue,
@@ -86,6 +92,29 @@ class AdminUserManagementRepository(
                 ),
                 SetOptions.merge(),
             ).await()
+        }
+    }
+}
+
+private data class ManagedUserRoleSyncResult(
+    val uid: String,
+    val role: UserRole,
+) {
+    companion object {
+        fun from(rawData: Any?, fallbackUid: String, fallbackRole: UserRole): ManagedUserRoleSyncResult {
+            val data = rawData as? Map<*, *>
+            val returnedUid = (data?.get("uid") as? String)
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+            val returnedRole = (data?.get("role") as? String)
+                ?.trim()
+                ?.lowercase()
+                ?.let { rawRole -> UserRole.entries.firstOrNull { it.rawValue == rawRole } }
+
+            return ManagedUserRoleSyncResult(
+                uid = returnedUid ?: fallbackUid,
+                role = returnedRole ?: fallbackRole,
+            )
         }
     }
 }

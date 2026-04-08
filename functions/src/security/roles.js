@@ -17,6 +17,10 @@ function normalizeEmail(email) {
   return nonEmptyString(email)?.toLowerCase() || null;
 }
 
+function isAuthUserNotFound(error) {
+  return error?.code === "auth/user-not-found";
+}
+
 function resolveRoleFromClaims(authOrToken) {
   const token = authOrToken?.token || authOrToken || {};
   const email = normalizeEmail(token.email);
@@ -123,7 +127,9 @@ async function setUserRoleClaims({
     throw new HttpsError("invalid-argument", "Ungueltige Rolle.");
   }
 
-  const userRecord = await admin.auth().getUser(normalizedUid);
+  const resolvedTarget = await resolveManagedAuthTarget(normalizedUid);
+  const userRecord = resolvedTarget.userRecord;
+  const targetUid = resolvedTarget.uid;
   const email = normalizeEmail(userRecord.email);
   const finalRole = email === OWNER_EMAIL ? USER_ROLES.owner : normalizedRole;
 
@@ -131,11 +137,15 @@ async function setUserRoleClaims({
     throw new HttpsError("permission-denied", "Nur das feste Owner-Konto darf die Owner-Rolle tragen.");
   }
 
-  await admin.auth().setCustomUserClaims(normalizedUid, buildRoleClaims(finalRole));
+  await admin.auth().setCustomUserClaims(targetUid, buildRoleClaims(finalRole));
 
-  const userDocRef = admin.firestore().doc(`users/${normalizedUid}`);
+  const userDocRef = admin.firestore().doc(`users/${targetUid}`);
   const existingSnapshot = await userDocRef.get();
-  const existingData = existingSnapshot.exists ? (existingSnapshot.data() || {}) : {};
+  const canonicalData = existingSnapshot.exists ? (existingSnapshot.data() || {}) : {};
+  const existingData = resolvedTarget.staleData ?
+    {...resolvedTarget.staleData, ...canonicalData} :
+    canonicalData;
+  const migrationCarryover = buildMigrationCarryover(resolvedTarget.staleData, canonicalData);
   const existingQuotaPlan = nonEmptyString(existingData.quotaPlan)?.toLowerCase();
   const quotaPlan = finalRole === USER_ROLES.owner ?
     USER_QUOTA_PLANS.ownerUnlimited :
@@ -152,6 +162,7 @@ async function setUserRoleClaims({
   const historyRetentionDays = Number(existingData.aiHistoryRetentionDays);
 
   await userDocRef.set({
+    ...migrationCarryover,
     email: email || admin.firestore.FieldValue.delete(),
     role: finalRole,
     isAdmin: roleHasAdminAccess(finalRole),
@@ -177,12 +188,96 @@ async function setUserRoleClaims({
     claimsUpdatedByEmail: updatedByEmail || admin.firestore.FieldValue.delete(),
   }, {merge: true});
 
+  if (resolvedTarget.migratedFromUid) {
+    await admin.firestore().doc(`users/${resolvedTarget.migratedFromUid}`).set({
+      accountStatus: "migrated",
+      mergedIntoUid: targetUid,
+      migratedAt: admin.firestore.FieldValue.serverTimestamp(),
+      migratedByUid: updatedByUid || admin.firestore.FieldValue.delete(),
+      migratedByEmail: updatedByEmail || admin.firestore.FieldValue.delete(),
+    }, {merge: true});
+  }
+
   return {
-    uid: normalizedUid,
+    uid: targetUid,
+    requestedUid: normalizedUid,
+    migratedFromUid: resolvedTarget.migratedFromUid,
     email,
     role: finalRole,
     claims: buildRoleClaims(finalRole),
   };
+}
+
+async function resolveManagedAuthTarget(uid) {
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    return {
+      uid,
+      userRecord,
+      migratedFromUid: null,
+      staleData: null,
+    };
+  } catch (error) {
+    if (!isAuthUserNotFound(error)) {
+      throw error;
+    }
+  }
+
+  const staleUserRef = admin.firestore().doc(`users/${uid}`);
+  const staleSnapshot = await staleUserRef.get();
+  if (!staleSnapshot.exists) {
+    throw new HttpsError("not-found", "Konto nicht gefunden.");
+  }
+
+  const staleData = staleSnapshot.data() || {};
+  const staleEmail = normalizeEmail(staleData.email);
+  if (!staleEmail) {
+    throw new HttpsError("not-found", "Konto nicht gefunden.");
+  }
+
+  let userRecord;
+  try {
+    userRecord = await admin.auth().getUserByEmail(staleEmail);
+  } catch (error) {
+    if (isAuthUserNotFound(error)) {
+      throw new HttpsError("not-found", "Konto nicht gefunden.");
+    }
+    throw error;
+  }
+
+  return {
+    uid: userRecord.uid,
+    userRecord,
+    migratedFromUid: userRecord.uid !== uid ? uid : null,
+    staleData,
+  };
+}
+
+function buildMigrationCarryover(staleData, canonicalData) {
+  if (!staleData) {
+    return {};
+  }
+
+  const carryover = {};
+  const carryoverFields = [
+    "username",
+    "whatsApp",
+    "profileImageURL",
+    "profileImagePath",
+    "profileTagline",
+    "profileBio",
+    "instagramHandle",
+    "registrationDate",
+    "registrationDateEpochMillis",
+  ];
+
+  for (const field of carryoverFields) {
+    if (canonicalData[field] === undefined && staleData[field] !== undefined) {
+      carryover[field] = staleData[field];
+    }
+  }
+
+  return carryover;
 }
 
 async function syncClaimsForCurrentUser(auth) {

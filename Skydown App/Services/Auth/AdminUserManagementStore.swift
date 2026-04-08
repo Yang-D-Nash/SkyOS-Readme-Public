@@ -49,26 +49,24 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
             )
         }
 
-        let resolvedRole = user.resolvedRole
-        let resolvedQuotaPlan = user.resolvedQuotaPlan
-        let existingSnapshot = try await firestore.collection(collectionName).document(userID).getDocument()
-        let existingRole = (existingSnapshot.data()?["role"] as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        let shouldSyncRoleClaims = existingRole == nil || existingRole != resolvedRole.rawValue
-
-        if shouldSyncRoleClaims {
-            do {
-                _ = try await functions
-                    .httpsCallable("setUserRole")
-                    .call([
-                        "uid": userID,
-                        "role": resolvedRole.rawValue
-                    ])
-            } catch {
-                throw readableManagedUserUpdateError(error)
-            }
+        let requestedRole = user.resolvedRole
+        let canonicalTarget: ManagedUserRoleSyncResult
+        do {
+            let response = try await functions
+                .httpsCallable("setUserRole")
+                .call([
+                    "uid": userID,
+                    "role": requestedRole.rawValue
+                ])
+            canonicalTarget = ManagedUserRoleSyncResult(response.data, fallbackUID: userID, fallbackRole: requestedRole)
+        } catch {
+            throw readableManagedUserUpdateError(error)
         }
+
+        let resolvedRole = canonicalTarget.role
+        let resolvedQuotaPlan = resolvedRole == requestedRole
+            ? user.resolvedQuotaPlan
+            : UserQuotaPlan.defaultPlan(for: resolvedRole)
 
         let payload: [String: Any] = [
             "email": user.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
@@ -87,7 +85,25 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
             "updatedAt": FieldValue.serverTimestamp()
         ]
 
-        try await firestore.collection(collectionName).document(userID).setData(payload, merge: true)
+        try await firestore.collection(collectionName).document(canonicalTarget.uid).setData(payload, merge: true)
+    }
+}
+
+private struct ManagedUserRoleSyncResult {
+    let uid: String
+    let role: UserRole
+
+    init(_ rawData: Any, fallbackUID: String, fallbackRole: UserRole) {
+        let data = rawData as? [String: Any]
+        let returnedUID = (data?["uid"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let returnedRoleRaw = (data?["role"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let returnedRole = returnedRoleRaw.flatMap { UserRole(rawValue: $0) }
+
+        uid = (returnedUID?.isEmpty == false ? returnedUID! : fallbackUID)
+        role = returnedRole ?? fallbackRole
     }
 }
 
@@ -121,6 +137,16 @@ private func readableManagedUserUpdateError(_ error: Error) -> Error {
 
 private func mapManagedUser(document: QueryDocumentSnapshot) -> User? {
     let data = document.data()
+    let accountStatus = (data["accountStatus"] as? String)?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+    let mergedIntoUID = (data["mergedIntoUid"] as? String)?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+    if accountStatus == "migrated" || (mergedIntoUID?.isEmpty == false) {
+        return nil
+    }
+
     let email = normalizedManagedString(data["email"] as? String) ?? ""
     guard !email.isEmpty else { return nil }
 

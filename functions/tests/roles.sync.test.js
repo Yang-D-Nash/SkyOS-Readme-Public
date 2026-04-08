@@ -26,6 +26,7 @@ function loadRolesWithMockedAdmin(mockAdmin) {
 
 function createAdminMock({
   userByUid,
+  uidByEmail,
   initialDocs,
 }) {
   const documents = new Map(Object.entries(initialDocs || {}));
@@ -63,12 +64,27 @@ function createAdminMock({
       return {
         async getUser(uid) {
           if (!Object.prototype.hasOwnProperty.call(userByUid, uid)) {
-            throw new Error(`missing mocked auth user for ${uid}`);
+            const error = new Error(`missing mocked auth user for ${uid}`);
+            error.code = "auth/user-not-found";
+            throw error;
           }
 
           return {
             uid,
             email: userByUid[uid],
+          };
+        },
+        async getUserByEmail(email) {
+          if (!Object.prototype.hasOwnProperty.call(uidByEmail || {}, email)) {
+            const error = new Error(`missing mocked auth user for ${email}`);
+            error.code = "auth/user-not-found";
+            throw error;
+          }
+
+          const uid = uidByEmail[email];
+          return {
+            uid,
+            email,
           };
         },
         async setCustomUserClaims(uid, claims) {
@@ -86,10 +102,11 @@ function createAdminMock({
 
 async function syncWithMock({
   userByUid,
+  uidByEmail,
   initialDocs,
   auth,
 }) {
-  const adminMock = createAdminMock({userByUid, initialDocs});
+  const adminMock = createAdminMock({userByUid, uidByEmail, initialDocs});
   const roles = loadRolesWithMockedAdmin(adminMock);
 
   const result = await roles.syncClaimsForCurrentUser(auth);
@@ -208,4 +225,60 @@ test("syncCurrentUserClaims kann das feste Owner-Konto nicht downgraden", async 
   assert.equal(outcome.claimsWrites.length, 1);
   assert.equal(outcome.claimsWrites[0].claims.role, "owner");
   assert.equal(outcome.documents.get("users/owner-uid").role, "owner");
+});
+
+test("setUserRoleClaims migriert veraltete UIDs auf aktiven Auth-User per E-Mail", async () => {
+  const adminMock = createAdminMock({
+    userByUid: {
+      "active-uid": "fresh@example.com",
+    },
+    uidByEmail: {
+      "fresh@example.com": "active-uid",
+    },
+    initialDocs: {
+      "users/stale-uid": {
+        email: "fresh@example.com",
+        username: "Fresh",
+        role: "user",
+        isAdmin: false,
+        quotaPlan: "free",
+        aiAccessEnabled: true,
+        aiTextRequestsPerDay: 30,
+        aiVisualRequestsPerDay: 4,
+        aiAgentRequestsPerDay: 18,
+        aiHistoryRetentionDays: 3,
+      },
+    },
+  });
+  const roles = loadRolesWithMockedAdmin(adminMock);
+
+  const outcome = await roles.setUserRoleClaims({
+    uid: "stale-uid",
+    requestedRole: "admin",
+    updatedByUid: "owner-uid",
+    updatedByEmail: "nash.lioncorna@gmail.com",
+  });
+
+  assert.equal(outcome.uid, "active-uid");
+  assert.equal(outcome.requestedUid, "stale-uid");
+  assert.equal(outcome.migratedFromUid, "stale-uid");
+  assert.equal(outcome.role, "admin");
+  assert.deepEqual(adminMock._state.claimsWrites[0], {
+    uid: "active-uid",
+    claims: {
+      role: "admin",
+      isAdmin: true,
+      isStaff: true,
+      isOwner: false,
+    },
+  });
+
+  const activeUser = adminMock._state.documents.get("users/active-uid");
+  assert.equal(activeUser.email, "fresh@example.com");
+  assert.equal(activeUser.role, "admin");
+  assert.equal(activeUser.username, "Fresh");
+
+  const staleUser = adminMock._state.documents.get("users/stale-uid");
+  assert.equal(staleUser.accountStatus, "migrated");
+  assert.equal(staleUser.mergedIntoUid, "active-uid");
 });
