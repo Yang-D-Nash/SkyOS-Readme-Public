@@ -346,28 +346,31 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
-    fun saveManagedUser(user: User) {
-        viewModelScope.launch {
-            if (!_uiState.value.isOwner) {
-                showPaymentFeedback(
-                    message = "Nur der Owner darf Konten verwalten.",
-                    isError = true,
-                )
-                return@launch
-            }
+    suspend fun saveManagedUser(user: User): Result<String> {
+        if (!_uiState.value.isOwner) {
+            val message = "Nur der Owner darf Konten verwalten."
+            showPaymentFeedback(
+                message = message,
+                isError = true,
+            )
+            return Result.failure(IllegalStateException(message))
+        }
 
-            val result = adminUserManagementRepository.updateUser(user)
-            if (result.isSuccess) {
-                showPaymentFeedback(
-                    message = "Konto gespeichert. Rolle und KI-Limits wurden aktualisiert.",
-                    isError = false,
-                )
-            } else {
-                showPaymentFeedback(
-                    message = result.exceptionOrNull()?.message ?: "Konto konnte nicht gespeichert werden.",
-                    isError = true,
-                )
-            }
+        val result = adminUserManagementRepository.updateUser(user)
+        return if (result.isSuccess) {
+            val message = "Konto gespeichert. Rolle und KI-Limits wurden aktualisiert."
+            showPaymentFeedback(
+                message = message,
+                isError = false,
+            )
+            Result.success(message)
+        } else {
+            val message = result.exceptionOrNull()?.message ?: "Konto konnte nicht gespeichert werden."
+            showPaymentFeedback(
+                message = message,
+                isError = true,
+            )
+            Result.failure(result.exceptionOrNull() ?: IllegalStateException(message))
         }
     }
 

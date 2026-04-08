@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
@@ -27,10 +28,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -497,6 +500,7 @@ fun BrandActionButton(
     isLoading: Boolean = false,
 ) {
     val shape = RoundedCornerShape(if (compact) 16.dp else 18.dp)
+    val interactionSource = remember { MutableInteractionSource() }
     val contentPadding = if (compact) {
         PaddingValues(horizontal = 14.dp, vertical = 10.dp)
     } else {
@@ -508,9 +512,17 @@ fun BrandActionButton(
     if (filled) {
         Button(
             onClick = onClick,
-            modifier = modifier,
+            modifier = modifier
+                .shadow(
+                    elevation = if (enabled) 10.dp else 0.dp,
+                    shape = shape,
+                    ambientColor = accent.copy(alpha = 0.18f),
+                    spotColor = accent.copy(alpha = 0.22f),
+                )
+                .skydownPressable(interactionSource, pressedScale = if (compact) 0.984f else 0.98f),
             enabled = enabled && !isLoading,
             shape = shape,
+            interactionSource = interactionSource,
             colors = ButtonDefaults.buttonColors(
                 containerColor = accent,
                 contentColor = filledContentColor,
@@ -535,15 +547,19 @@ fun BrandActionButton(
             }
             Text(
                 text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
             )
         }
     } else {
         OutlinedButton(
             onClick = onClick,
-            modifier = modifier,
+            modifier = modifier
+                .skydownPressable(interactionSource, pressedScale = if (compact) 0.986f else 0.982f),
             enabled = enabled && !isLoading,
             shape = shape,
+            interactionSource = interactionSource,
             border = BorderStroke(
                 width = 1.2.dp,
                 color = if (enabled) accent.copy(alpha = 0.58f) else accent.copy(alpha = 0.26f),
@@ -572,6 +588,8 @@ fun BrandActionButton(
             }
             Text(
                 text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
             )
         }

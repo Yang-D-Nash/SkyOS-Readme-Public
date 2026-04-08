@@ -395,6 +395,7 @@ private struct MerchandiseCollabSidebarButton: View {
             )
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 

@@ -115,6 +115,7 @@ struct MerchandiseItemView: View {
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .skydownTactileAction()
                 .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
@@ -194,6 +195,7 @@ private struct MerchandiseFullscreenGalleryView: View {
                             .clipShape(Circle())
                     })
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)

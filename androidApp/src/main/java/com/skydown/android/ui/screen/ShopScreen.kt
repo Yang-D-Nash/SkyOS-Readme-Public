@@ -1,8 +1,10 @@
 package com.skydown.android.ui.screen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,6 +82,7 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.ShopUiState
@@ -863,6 +866,7 @@ private fun ShopCollabSidebarButton(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     val backgroundColor = if (isSelected) {
         MaterialTheme.colorScheme.primary
     } else {
@@ -876,9 +880,14 @@ private fun ShopCollabSidebarButton(
 
     Column(
         modifier = modifier
+            .skydownPressable(interactionSource, pressedScale = 0.984f)
             .clip(RoundedCornerShape(20.dp))
             .background(backgroundColor)
-            .clickable(onClick = onTap)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onTap,
+            )
             .padding(horizontal = if (compact) 14.dp else 16.dp, vertical = if (compact) 14.dp else 15.dp),
         verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
     ) {
@@ -1258,6 +1267,7 @@ private fun FilterPill(
     selected: Boolean,
     onTap: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     val background = if (selected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
@@ -1271,9 +1281,14 @@ private fun FilterPill(
 
     Box(
         modifier = Modifier
+            .skydownPressable(interactionSource, pressedScale = 0.988f)
             .clip(RoundedCornerShape(999.dp))
             .background(background)
-            .clickable(onClick = onTap)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onTap,
+            )
             .padding(horizontal = 14.dp, vertical = 9.dp),
     ) {
         Text(

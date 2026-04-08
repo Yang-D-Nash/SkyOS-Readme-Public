@@ -410,6 +410,7 @@ struct ArtistPageView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .skydownTactileAction()
             }
         }
     }
@@ -606,6 +607,7 @@ struct ArtistPageView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .padding(14)
                     .background(link.backgroundColor.opacity(colorScheme == .dark ? 0.18 : 0.12))
                     .overlay(

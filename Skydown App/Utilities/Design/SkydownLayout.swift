@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 16
@@ -97,12 +100,36 @@ struct SkydownResponsiveLayout {
 
 struct SkydownTactileButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
+        SkydownTactileButtonBody(configuration: configuration)
+    }
+}
+
+private struct SkydownTactileButtonBody: View {
+    let configuration: ButtonStyle.Configuration
+    @State private var emittedPressHaptic = false
+
+    var body: some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.976 : 1)
+            .scaleEffect(configuration.isPressed ? 0.972 : 1)
             .saturation(configuration.isPressed ? 1.05 : 1)
-            .brightness(configuration.isPressed ? -0.015 : 0)
-            .offset(y: configuration.isPressed ? 1.5 : 0)
+            .brightness(configuration.isPressed ? -0.018 : 0)
+            .offset(y: configuration.isPressed ? 1.8 : 0)
+            .shadow(
+                color: Color.black.opacity(configuration.isPressed ? 0.12 : 0.06),
+                radius: configuration.isPressed ? 5 : 10,
+                y: configuration.isPressed ? 2 : 6
+            )
             .animation(.spring(response: 0.24, dampingFraction: 0.72), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed && !emittedPressHaptic {
+                    emittedPressHaptic = true
+                    #if canImport(UIKit)
+                    SkydownHaptics.impact(.light)
+                    #endif
+                } else if !isPressed {
+                    emittedPressHaptic = false
+                }
+            }
     }
 }
 

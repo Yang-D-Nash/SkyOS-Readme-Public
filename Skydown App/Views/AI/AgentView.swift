@@ -289,6 +289,7 @@ private struct AgentQuickPromptCard: View {
                                 )
                         })
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                     }
                 }
             }
@@ -447,6 +448,7 @@ private struct AgentComposerBar: View {
                             )
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .disabled(isSending)
 
                     Button(action: {
@@ -472,6 +474,7 @@ private struct AgentComposerBar: View {
                             )
                     })
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .disabled(trimmedDraft.isEmpty || isSending)
                     .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
                 }

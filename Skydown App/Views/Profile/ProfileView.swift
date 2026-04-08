@@ -316,6 +316,7 @@ struct ProfileView: View {
                         viewModel.setEditing(!viewModel.isEditing)
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .modifier(
                         ProfileActionCapsuleModifier(
                             tint: AppColors.accentMystic(for: colorScheme),
@@ -332,6 +333,7 @@ struct ProfileView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .modifier(
                         ProfileActionCapsuleModifier(
                             tint: AppColors.accent(for: colorScheme),
@@ -353,6 +355,7 @@ struct ProfileView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                         .modifier(
                             ProfileActionCapsuleModifier(
                                 tint: Color.red.opacity(0.84),
@@ -371,6 +374,7 @@ struct ProfileView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .modifier(
                         ProfileActionCapsuleModifier(
                             tint: AppColors.cardBackground(for: colorScheme).opacity(0.92),
@@ -519,6 +523,7 @@ struct ProfileView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
             .buttonStyle(.plain)
+            .skydownTactileAction()
             .disabled(viewModel.isSavingProfile)
         }
         .padding(SkydownLayout.cardPadding)
@@ -818,6 +823,7 @@ private struct ProfileMediaGridTile: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .skydownTactileAction()
                 .padding(10)
             }
         }

@@ -28,6 +28,7 @@ struct SkydownApp: App {
     var body: some Scene {
         WindowGroup {
             LaunchScreenView()
+                .skydownTactileAction()
                 .environmentObject(services)
                 .environmentObject(services.featureFlags)
                 .environmentObject(services.authManager)

@@ -6,6 +6,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,6 +68,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.ProfileGalleryItem
@@ -781,11 +783,18 @@ private fun GalleryTile(
     onDelete: (() -> Unit)? = null,
     onOpen: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Box(
         modifier = modifier
+            .skydownPressable(interactionSource, pressedScale = 0.986f)
             .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.84f))
-            .clickable(onClick = onOpen),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onOpen,
+            ),
         contentAlignment = Alignment.BottomStart,
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {

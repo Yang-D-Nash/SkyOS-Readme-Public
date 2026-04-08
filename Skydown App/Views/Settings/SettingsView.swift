@@ -660,17 +660,21 @@ struct SettingsView: View {
                                     isCurrentUser: managedUser.id == authManager.userSession?.id,
                                     colorScheme: effectiveColorScheme
                                 ) { updatedUser in
-                                    saveManagedUser(updatedUser)
+                                    await saveManagedUser(updatedUser)
                                 }
                                 .id(
                                     [
                                         managedUser.id ?? "unknown",
                                         managedUser.role,
+                                        managedUser.quotaPlan,
                                         String(managedUser.aiAccessEnabled),
                                         String(managedUser.aiTextRequestsPerDay),
                                         String(managedUser.aiVisualRequestsPerDay),
                                         String(managedUser.aiAgentRequestsPerDay),
-                                        String(managedUser.aiHistoryRetentionDays)
+                                        String(managedUser.aiHistoryRetentionDays),
+                                        String(managedUser.canManageMusicCatalog),
+                                        String(managedUser.canManageVideoCatalog),
+                                        String(managedUser.canModerateProfiles)
                                     ].joined(separator: "-")
                                 )
                             }
@@ -1911,14 +1915,16 @@ struct SettingsView: View {
         }
     }
 
-    private func saveManagedUser(_ user: User) {
-        Task {
-            do {
-                try await adminUserManagementStore.save(user)
-                showToastMessage("Konto gespeichert. Rolle und KI-Limits wurden aktualisiert.", style: .success)
-            } catch {
-                showToastMessage("Konto konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
-            }
+    @MainActor
+    private func saveManagedUser(_ user: User) async -> Result<String, Error> {
+        do {
+            try await adminUserManagementStore.save(user)
+            let message = "Konto gespeichert. Rolle und KI-Limits wurden aktualisiert."
+            showToastMessage(message, style: .success)
+            return .success(message)
+        } catch {
+            showToastMessage("Konto konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            return .failure(error)
         }
     }
 
@@ -2811,6 +2817,7 @@ private struct AppearanceChoiceCard: View {
             )
             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
         }
+        .skydownTactileAction()
     }
 }
 
@@ -2876,6 +2883,7 @@ private struct ShopifyCollectionToggleCard: View {
             )
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 
@@ -2973,6 +2981,7 @@ private struct SettingsAdminWorkspaceChip: View {
             )
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 
@@ -3029,6 +3038,7 @@ private struct SettingsAdminWorkspaceListRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 
@@ -3072,6 +3082,7 @@ private struct SettingsAdminWorkspaceSidebarButton: View {
             )
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 
@@ -3224,6 +3235,7 @@ private struct SettingsArtistPageCard: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                     }
                 }
             }
@@ -3264,7 +3276,7 @@ private struct SettingsAdminUserCard: View {
     let user: User
     let isCurrentUser: Bool
     let colorScheme: ColorScheme
-    let onSave: (User) -> Void
+    let onSave: (User) async -> Result<String, Error>
 
     @State private var draftRole: UserRole
     @State private var draftQuotaPlan: UserQuotaPlan
@@ -3276,12 +3288,15 @@ private struct SettingsAdminUserCard: View {
     @State private var canManageMusicCatalog: Bool
     @State private var canManageVideoCatalog: Bool
     @State private var canModerateProfiles: Bool
+    @State private var isSaving = false
+    @State private var saveErrorMessage: String?
+    @State private var saveSuccessCount = 0
 
     init(
         user: User,
         isCurrentUser: Bool,
         colorScheme: ColorScheme,
-        onSave: @escaping (User) -> Void
+        onSave: @escaping (User) async -> Result<String, Error>
     ) {
         self.user = user
         self.isCurrentUser = isCurrentUser
@@ -3322,6 +3337,14 @@ private struct SettingsAdminUserCard: View {
         return false
     }
 
+    private var draftUser: User {
+        buildUpdatedUser()
+    }
+
+    private var hasPendingChanges: Bool {
+        managedUserSettingsSignature(for: draftUser) != managedUserSettingsSignature(for: user)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 10) {
@@ -3341,6 +3364,13 @@ private struct SettingsAdminUserCard: View {
                     SettingsBadge(text: draftRole.displayTitle, colorScheme: colorScheme)
                     if isCurrentUser {
                         SettingsBadge(text: "Du", colorScheme: colorScheme)
+                    }
+                    if isSaving {
+                        SettingsBadge(text: "Speichert...", colorScheme: colorScheme)
+                    } else if hasPendingChanges {
+                        SettingsBadge(text: "Entwurf", colorScheme: colorScheme)
+                    } else if saveSuccessCount > 0 {
+                        SettingsBadge(text: "Gespeichert", colorScheme: colorScheme)
                     }
                 }
             }
@@ -3374,6 +3404,7 @@ private struct SettingsAdminUserCard: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .skydownTactileAction()
 
                 if user.isPlatformOwner {
                     Text("Das Owner-Konto ist fest an nash.lioncorna@gmail.com gebunden und bleibt immer Owner.")
@@ -3450,17 +3481,71 @@ private struct SettingsAdminUserCard: View {
             }
 
             Button {
-                onSave(buildUpdatedUser())
+                guard !isSaving, hasPendingChanges else { return }
+
+                isSaving = true
+                saveErrorMessage = nil
+                let pendingUser = draftUser
+
+                Task {
+                    let result = await onSave(pendingUser)
+                    await MainActor.run {
+                        isSaving = false
+                        switch result {
+                        case .success:
+                            saveSuccessCount += 1
+                            saveErrorMessage = nil
+                        case .failure(let error):
+                            saveErrorMessage = error.localizedDescription
+                        }
+                    }
+                }
             } label: {
-                Label("Konto speichern", systemImage: "checkmark.circle.fill")
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 10) {
+                    if isSaving {
+                        ProgressView()
+                            .tint(Color.white)
+                    }
+
+                    Label(
+                        isSaving ? "Speichert..." : "Konto speichern",
+                        systemImage: isSaving ? "hourglass" : "checkmark.circle.fill"
+                    )
+                }
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColors.accent(for: colorScheme))
+            .disabled(isSaving || !hasPendingChanges)
+
+            if let saveErrorMessage {
+                Text(saveErrorMessage)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.red)
+            } else if isSaving {
+                Text("Rolle, Rechte und KI-Limits werden gerade serverseitig synchronisiert.")
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            } else if hasPendingChanges {
+                Text("Ungespeicherte Aenderungen. Erst nach dem Speichern werden Claims und Limits live uebernommen.")
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            } else if saveSuccessCount > 0 {
+                Text("Gespeichert. Die letzte Aenderung wurde serverseitig bestaetigt.")
+                    .font(.footnote)
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+            }
         }
         .padding(16)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(alignment: .topTrailing) {
+            if isSaving {
+                ProgressView()
+                    .tint(AppColors.accent(for: colorScheme))
+                    .padding(14)
+            }
+        }
         .onChange(of: draftRole) { _, newRole in
             let recommendedPlan = UserQuotaPlan.defaultPlan(for: newRole)
             switch newRole {
@@ -3498,6 +3583,11 @@ private struct SettingsAdminUserCard: View {
             visualLimitDraft = String(newPlan.aiVisualRequestsPerDay)
             agentLimitDraft = String(newPlan.aiAgentRequestsPerDay)
             historyRetentionDays = newPlan.aiHistoryRetentionDays
+        }
+        .onChange(of: managedUserSettingsSignature(for: draftUser)) { _, newSignature in
+            if newSignature != managedUserSettingsSignature(for: user) {
+                saveErrorMessage = nil
+            }
         }
     }
 
@@ -3544,6 +3634,21 @@ private struct SettingsAdminUserCard: View {
         }
 
         return value
+    }
+
+    private func managedUserSettingsSignature(for user: User) -> String {
+        [
+            user.resolvedRole.rawValue,
+            user.resolvedQuotaPlan.rawValue,
+            String(user.aiAccessEnabled),
+            String(max(1, user.aiTextRequestsPerDay)),
+            String(max(1, user.aiVisualRequestsPerDay)),
+            String(max(1, user.aiAgentRequestsPerDay)),
+            String(user.resolvedAIHistoryRetentionDays),
+            String(user.canManageMusicCatalog),
+            String(user.canManageVideoCatalog),
+            String(user.canModerateProfiles),
+        ].joined(separator: "|")
     }
 
     private var ownerControlNote: some View {
@@ -3624,6 +3729,7 @@ private struct SettingsAdminUserCard: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .skydownTactileAction()
 
                 Text(draftQuotaPlan.planSummary)
                     .font(.footnote)

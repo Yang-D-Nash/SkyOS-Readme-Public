@@ -296,6 +296,7 @@ private struct AIQuickPromptCard: View {
                                 )
                         })
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                     }
                 }
             }
@@ -342,6 +343,7 @@ private struct AIVisualPromptCard: View {
                                 )
                         })
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                     }
                 }
             }
@@ -515,6 +517,7 @@ private struct AIComposerBar: View {
                             )
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .disabled(isSending)
                 }
 
@@ -560,6 +563,7 @@ private struct AIComposerBar: View {
                                 )
                         })
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                         .disabled(trimmedDraft.isEmpty || isSending)
                         .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
                     }

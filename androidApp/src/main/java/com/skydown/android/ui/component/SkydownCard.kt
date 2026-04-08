@@ -19,8 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -32,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.composed
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -81,6 +86,8 @@ fun Modifier.skydownPressable(
     pressedScale: Float = 0.985f,
 ): Modifier = composed {
     val isPressed by interactionSource.collectIsPressedAsState()
+    val view = LocalView.current
+    var emittedPressHaptic by remember(interactionSource) { mutableStateOf(false) }
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = spring(dampingRatio = 0.72f, stiffness = 560f),
@@ -96,6 +103,15 @@ fun Modifier.skydownPressable(
         animationSpec = spring(dampingRatio = 0.82f, stiffness = 620f),
         label = "skydownPressTranslationY",
     )
+
+    LaunchedEffect(isPressed) {
+        if (isPressed && !emittedPressHaptic) {
+            emittedPressHaptic = true
+            view.performSkydownHaptic(SkydownHapticKind.Press)
+        } else if (!isPressed) {
+            emittedPressHaptic = false
+        }
+    }
 
     graphicsLayer {
         scaleX = animatedScale

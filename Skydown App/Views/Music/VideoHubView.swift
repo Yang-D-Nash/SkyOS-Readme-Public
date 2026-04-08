@@ -960,6 +960,7 @@ private struct VideoReelViewer: View {
                             .clipShape(Circle())
                     })
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
@@ -1124,6 +1125,7 @@ private struct VideoHubQuickActionButton: View {
             .shadow(color: tint.opacity(0.22), radius: 14, y: 8)
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 
@@ -1532,6 +1534,7 @@ struct VideoYouTubeRow: View {
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)
+            .skydownTactileAction()
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)

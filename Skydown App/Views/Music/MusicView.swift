@@ -238,6 +238,7 @@ struct MusicView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                         .padding(.trailing, layout.horizontalPadding)
                         .padding(.bottom, 20)
                     }
@@ -536,6 +537,7 @@ struct MusicView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
 
                         NavigationLink {
                             NicmaProducerView()
@@ -548,6 +550,7 @@ struct MusicView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                     }
                 } else if brand.showsBeatHubShortcut {
                     NavigationLink {
@@ -561,6 +564,7 @@ struct MusicView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                 } else if let workflowTitle = brand.workflowTitle,
                           let workflowSubtitle = brand.workflowSubtitle {
                     NavigationLink {
@@ -574,6 +578,7 @@ struct MusicView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                 }
             }
             .padding(SkydownLayout.cardPadding)
@@ -776,6 +781,7 @@ struct MusicView: View {
             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 
     private func artistPagerCard(for artist: String) -> some View {

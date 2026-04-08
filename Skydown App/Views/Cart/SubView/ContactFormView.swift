@@ -99,6 +99,7 @@ struct ContactFormView: View {
                                     .padding(.vertical, 12)
                             }
                             .buttonStyle(.plain)
+                            .skydownTactileAction()
                             .background(
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(
@@ -134,6 +135,7 @@ struct ContactFormView: View {
                                         .padding(.vertical, 12)
                                 }
                                 .buttonStyle(.plain)
+                                .skydownTactileAction()
                                 .background(
                                     RoundedRectangle(cornerRadius: 16)
                                         .fill(
@@ -167,6 +169,7 @@ struct ContactFormView: View {
                                 .frame(width: 44, height: 44)
                         }
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                         .background(AppColors.secondaryBackground(for: colorScheme))
                         .clipShape(Circle())
 
@@ -189,6 +192,7 @@ struct ContactFormView: View {
                                 .frame(width: 44, height: 44)
                         }
                         .buttonStyle(.plain)
+                        .skydownTactileAction()
                         .background(AppColors.secondaryBackground(for: colorScheme))
                         .clipShape(Circle())
                     }

@@ -96,6 +96,8 @@ private fun FirebaseFunctionsException.toReadableManagedUserError(): Throwable {
             "Konto nicht gefunden. Dieses Profil hat keinen aktiven Login mehr. Bitte neu registrieren oder das alte Profil entfernen."
         FirebaseFunctionsException.Code.PERMISSION_DENIED ->
             "Rollen duerfen nur vom festen Owner-Konto geaendert werden. Bitte als Owner erneut anmelden."
+        FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
+            "Sicherheitscheck fehlgeschlagen. Bitte die App neu oeffnen und die Aktion auf einem echten Geraet erneut probieren. Bei Debug-Builds muss das App-Check-Debug-Token in Firebase hinterlegt sein."
         FirebaseFunctionsException.Code.UNAUTHENTICATED ->
             "Bitte neu anmelden und das Konto danach erneut speichern."
         else -> localizedMessage

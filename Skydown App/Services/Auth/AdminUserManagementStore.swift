@@ -101,6 +101,8 @@ private func readableManagedUserUpdateError(_ error: Error) -> Error {
             message = "Konto nicht gefunden. Dieses Profil hat keinen aktiven Login mehr. Bitte neu registrieren oder das alte Profil entfernen."
         case .permissionDenied:
             message = "Rollen duerfen nur vom festen Owner-Konto geaendert werden. Bitte als Owner erneut anmelden."
+        case .failedPrecondition:
+            message = "Sicherheitscheck fehlgeschlagen. Bitte die App neu oeffnen und die Aktion auf einem echten Geraet erneut probieren. Bei Debug- oder Simulator-Builds muss das App-Check-Debug-Token in Firebase hinterlegt sein."
         case .unauthenticated:
             message = "Bitte neu anmelden und das Konto danach erneut speichern."
         default:

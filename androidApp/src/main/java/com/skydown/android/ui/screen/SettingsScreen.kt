@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,6 +87,7 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.skydownContentPadding
+import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.SettingsLegalDocumentType
@@ -311,7 +313,7 @@ fun SettingsScreen(
     LaunchedEffect(uiState.paymentFeedbackMessage) {
         val message = uiState.paymentFeedbackMessage ?: return@LaunchedEffect
         feedbackMessage = message
-        feedbackType = ToastType.Success
+        feedbackType = if (uiState.isPaymentFeedbackError) ToastType.Error else ToastType.Success
         viewModel.clearPaymentFeedback()
     }
 
@@ -2897,10 +2899,15 @@ private fun AdminWorkspaceRailButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Button(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .skydownPressable(interactionSource, pressedScale = 0.982f),
         shape = RoundedCornerShape(18.dp),
+        interactionSource = interactionSource,
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (selected) {
@@ -3136,10 +3143,11 @@ private fun ArtistPageAdminCard(
 private fun AdminManagedUserCard(
     user: User,
     currentUserId: String?,
-    onSave: (User) -> Unit,
+    onSave: suspend (User) -> Result<String>,
     modifier: Modifier = Modifier,
 ) {
     val isCurrentUser = user.id == currentUserId
+    val coroutineScope = rememberCoroutineScope()
     var selectedRole by rememberSaveable(user.id, user.role) {
         mutableStateOf(user.resolvedRole.rawValue)
     }
@@ -3170,9 +3178,75 @@ private fun AdminManagedUserCard(
     var canModerateProfiles by rememberSaveable(user.id, user.canModerateProfiles) {
         mutableStateOf(user.canModerateUserProfiles)
     }
+    var isSaving by rememberSaveable(user.id) {
+        mutableStateOf(false)
+    }
+    var saveErrorMessage by remember(user.id) {
+        mutableStateOf<String?>(null)
+    }
+    var successfulSaveCount by rememberSaveable(user.id) {
+        mutableIntStateOf(0)
+    }
     val resolvedRole = UserRole.resolve(selectedRole, user.isAdmin, user.email)
     val resolvedQuotaPlan = UserQuotaPlan.resolve(selectedQuotaPlan, resolvedRole)
     val canAssignOwnerRoleToUser = user.email.trim().lowercase() == UserRole.OWNER_EMAIL
+    val draftUser = remember(
+        user,
+        resolvedRole,
+        resolvedQuotaPlan,
+        aiAccessEnabled,
+        textLimitDraft,
+        visualLimitDraft,
+        agentLimitDraft,
+        historyRetentionDays,
+        canManageMusicCatalog,
+        canManageVideoCatalog,
+        canModerateProfiles,
+    ) {
+        val finalQuotaPlan = when (resolvedRole) {
+            UserRole.Owner -> UserQuotaPlan.OwnerUnlimited
+            UserRole.Admin -> UserQuotaPlan.InternalTeam
+            UserRole.Subadmin -> if (resolvedQuotaPlan == UserQuotaPlan.Studio) {
+                UserQuotaPlan.Studio
+            } else {
+                UserQuotaPlan.Creator
+            }
+            UserRole.User -> UserQuotaPlan.Free
+        }
+
+        user.copy(
+            isAdmin = resolvedRole.hasStaffAccess,
+            role = resolvedRole.rawValue,
+            quotaPlan = finalQuotaPlan.rawValue,
+            aiAccessEnabled = aiAccessEnabled,
+            aiTextRequestsPerDay = textLimitDraft.parsePositiveIntOrDefault(
+                finalQuotaPlan.aiTextRequestsPerDay,
+            ),
+            aiVisualRequestsPerDay = visualLimitDraft.parsePositiveIntOrDefault(
+                finalQuotaPlan.aiVisualRequestsPerDay,
+            ),
+            aiAgentRequestsPerDay = agentLimitDraft.parsePositiveIntOrDefault(
+                finalQuotaPlan.aiAgentRequestsPerDay,
+            ),
+            aiHistoryRetentionDays = historyRetentionDays,
+            canManageMusicCatalog = when (resolvedRole) {
+                UserRole.Owner -> true
+                UserRole.Admin -> canManageMusicCatalog
+                else -> false
+            },
+            canManageVideoCatalog = when (resolvedRole) {
+                UserRole.Owner -> true
+                UserRole.Admin -> canManageVideoCatalog
+                else -> false
+            },
+            canModerateProfiles = when (resolvedRole) {
+                UserRole.Owner -> true
+                UserRole.Admin -> canModerateProfiles
+                else -> false
+            },
+        )
+    }
+    val hasPendingChanges = draftUser != user
 
     SkydownCard(
         modifier = modifier,
@@ -3211,6 +3285,34 @@ private fun AdminManagedUserCard(
                 if (isCurrentUser) {
                     SettingsBadge(
                         text = "Du",
+                        icon = Icons.Default.CheckCircle,
+                        isActive = true,
+                    )
+                }
+                if (isSaving) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Text(
+                            text = "Speichert...",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                    }
+                } else if (hasPendingChanges) {
+                    SettingsBadge(
+                        text = "Entwurf",
+                        icon = Icons.Default.Bolt,
+                        isActive = false,
+                    )
+                } else if (successfulSaveCount > 0) {
+                    SettingsBadge(
+                        text = "Gespeichert",
                         icon = Icons.Default.CheckCircle,
                         isActive = true,
                     )
@@ -3449,56 +3551,85 @@ private fun AdminManagedUserCard(
 
         Button(
             onClick = {
-                val finalQuotaPlan = when (resolvedRole) {
-                    UserRole.Owner -> UserQuotaPlan.OwnerUnlimited
-                    UserRole.Admin -> UserQuotaPlan.InternalTeam
-                    UserRole.Subadmin -> if (resolvedQuotaPlan == UserQuotaPlan.Studio) {
-                        UserQuotaPlan.Studio
+                if (isSaving || !hasPendingChanges) return@Button
+
+                isSaving = true
+                saveErrorMessage = null
+                coroutineScope.launch {
+                    val result = onSave(draftUser)
+                    isSaving = false
+                    if (result.isSuccess) {
+                        successfulSaveCount += 1
+                        saveErrorMessage = null
                     } else {
-                        UserQuotaPlan.Creator
+                        saveErrorMessage = result.exceptionOrNull()?.message
+                            ?: "Konto konnte nicht gespeichert werden."
                     }
-                    UserRole.User -> UserQuotaPlan.Free
                 }
-                onSave(
-                    user.copy(
-                        isAdmin = resolvedRole.hasStaffAccess,
-                        role = resolvedRole.rawValue,
-                        quotaPlan = finalQuotaPlan.rawValue,
-                        aiAccessEnabled = aiAccessEnabled,
-                        aiTextRequestsPerDay = textLimitDraft.parsePositiveIntOrDefault(
-                            finalQuotaPlan.aiTextRequestsPerDay,
-                        ),
-                        aiVisualRequestsPerDay = visualLimitDraft.parsePositiveIntOrDefault(
-                            finalQuotaPlan.aiVisualRequestsPerDay,
-                        ),
-                        aiAgentRequestsPerDay = agentLimitDraft.parsePositiveIntOrDefault(
-                            finalQuotaPlan.aiAgentRequestsPerDay,
-                        ),
-                        aiHistoryRetentionDays = historyRetentionDays,
-                        canManageMusicCatalog = when (resolvedRole) {
-                            UserRole.Owner -> true
-                            UserRole.Admin -> canManageMusicCatalog
-                            else -> false
-                        },
-                        canManageVideoCatalog = when (resolvedRole) {
-                            UserRole.Owner -> true
-                            UserRole.Admin -> canManageVideoCatalog
-                            else -> false
-                        },
-                        canModerateProfiles = when (resolvedRole) {
-                            UserRole.Owner -> true
-                            UserRole.Admin -> canModerateProfiles
-                            else -> false
-                        },
-                    ),
-                )
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
             shape = RoundedCornerShape(18.dp),
+            enabled = !isSaving && hasPendingChanges,
         ) {
-            Text("Konto speichern")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isSaving) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                Text(if (isSaving) "Speichert..." else "Konto speichern")
+            }
+        }
+
+        when {
+            saveErrorMessage != null -> {
+                Text(
+                    text = saveErrorMessage.orEmpty(),
+                    modifier = Modifier.padding(top = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            isSaving -> {
+                Text(
+                    text = "Rolle, Rechte und KI-Limits werden gerade serverseitig synchronisiert.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            hasPendingChanges -> {
+                Text(
+                    text = "Ungespeicherte Aenderungen. Erst nach dem Speichern werden Claims und Limits live uebernommen.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+
+            successfulSaveCount > 0 -> {
+                Text(
+                    text = "Gespeichert. Die letzte Aenderung wurde serverseitig bestaetigt.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(draftUser) {
+        if (draftUser != user) {
+            saveErrorMessage = null
         }
     }
 

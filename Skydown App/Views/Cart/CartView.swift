@@ -769,6 +769,7 @@ private struct PaymentMethodSelectionCard: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .skydownTactileAction()
                 }
             }
 
