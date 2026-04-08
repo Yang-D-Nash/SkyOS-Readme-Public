@@ -14,7 +14,9 @@ import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
+import com.skydown.android.ui.model.AiTextMode
 import com.skydown.android.ui.model.AiUiState
+import com.skydown.android.ui.model.aiQuickPromptsFor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +58,15 @@ class AiViewModel : ViewModel() {
 
     fun updateComposerMode(mode: AiComposerMode) {
         _uiState.update { it.copy(composerMode = mode) }
+    }
+
+    fun updateTextMode(mode: AiTextMode) {
+        _uiState.update {
+            it.copy(
+                textMode = mode,
+                quickPrompts = aiQuickPromptsFor(mode),
+            )
+        }
     }
 
     fun sendDraft() {
@@ -109,10 +120,11 @@ class AiViewModel : ViewModel() {
                 }
 
                 aiChatClient.generateText(
-                    buildPrompt(
+                    prompt = buildPrompt(
                         userPrompt = trimmedPrompt,
                         history = history,
                     ),
+                    mode = _uiState.value.textMode.rawValue,
                 )
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
@@ -242,6 +254,8 @@ class AiViewModel : ViewModel() {
                 draft = currentState.draft,
                 isAiEnabled = currentState.isAiEnabled,
                 composerMode = currentState.composerMode,
+                textMode = currentState.textMode,
+                quickPrompts = currentState.quickPrompts,
             )
         }
     }
@@ -281,27 +295,10 @@ class AiViewModel : ViewModel() {
         }
     }
 
-    // Format hints stay on-device; core brand/system instructions are server-managed.
     private fun buildPrompt(userPrompt: String, history: String): String {
-        val formatHint = when {
-            userPrompt.containsAnyKeyword("caption", "captions", "instagram", "post", "story", "claim", "headline") ->
-                "Liefere zuerst die beste Version, danach 3 weitere Varianten und am Ende optional 5 passende Hashtags."
-            userPrompt.containsAnyKeyword("hook", "hooks", "teaser", "intro") ->
-                "Liefere 5 kurze Hook-Optionen mit maximal 10 Woertern pro Option."
-            userPrompt.containsAnyKeyword("reel", "tiktok", "skript", "script", "video") ->
-                "Liefere die Antwort als Hook, Ablauf in 3 bis 5 Beats, On-Screen-Text und Caption."
-            userPrompt.containsAnyKeyword("merch", "drop") ->
-                "Liefere die Antwort als Headline, Hauptcaption, Story-CTA und 3 kurze Zusatzvarianten."
-            else ->
-                "Liefere eine direkt nutzbare Hauptantwort und wenn passend 3 starke Varianten."
-        }
-
         return """
             Bisheriger Verlauf:
             $history
-
-            Ausgabeformat:
-            $formatHint
 
             Nutzeranfrage:
             $userPrompt
@@ -355,11 +352,6 @@ class AiViewModel : ViewModel() {
             Nutzeranfrage:
             $userPrompt
         """.trimIndent()
-    }
-
-    private fun String.containsAnyKeyword(vararg keywords: String): Boolean {
-        val lower = lowercase()
-        return keywords.any { keyword -> lower.contains(keyword) }
     }
 
     private fun userFacingErrorMessage(error: Throwable): String = when (error) {

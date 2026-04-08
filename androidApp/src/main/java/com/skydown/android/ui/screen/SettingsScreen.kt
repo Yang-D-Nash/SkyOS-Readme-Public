@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -189,6 +190,8 @@ fun SettingsScreen(
     var aiTextInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiVisualInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiAgentSystemInstructionDraft by rememberSaveable { mutableStateOf("") }
+    var aiAssetLibraryLinkDraft by rememberSaveable { mutableStateOf("") }
+    var aiAssetReferenceNotesDraft by rememberSaveable { mutableStateOf("") }
     val managedShowcasePages = remember(artistPages) {
         (
             ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei) +
@@ -293,6 +296,8 @@ fun SettingsScreen(
         aiTextInstructionDraft = uiState.aiPromptSettings.textInstruction
         aiVisualInstructionDraft = uiState.aiPromptSettings.visualInstruction
         aiAgentSystemInstructionDraft = uiState.aiPromptSettings.agentSystemInstruction
+        aiAssetLibraryLinkDraft = uiState.aiPromptSettings.assetLibraryLink
+        aiAssetReferenceNotesDraft = uiState.aiPromptSettings.assetReferenceNotes
     }
 
     LaunchedEffect(
@@ -1538,7 +1543,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.AiPrompts -> {
                 Text(
-                    text = "Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore (`adminConfig/aiPromptSettings`) und gelten serverseitig sofort.",
+                    text = "Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore (`adminConfig/aiPromptSettings`) und gelten serverseitig sofort. Ueber die Asset-Bibliothek kannst du z. B. einen MEGA-, Drive- oder Moodboard-Link global mitgeben.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -1566,6 +1571,13 @@ fun SettingsScreen(
                             text = "Agent ${aiAgentSystemInstructionDraft.trim().length}",
                             icon = Icons.Default.Bolt,
                             isActive = aiAgentSystemInstructionDraft.isNotBlank(),
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = if (aiAssetLibraryLinkDraft.isBlank()) "Assets aus" else "Assets aktiv",
+                            icon = Icons.Default.Link,
+                            isActive = aiAssetLibraryLinkDraft.isNotBlank(),
                         )
                     }
                 }
@@ -1603,6 +1615,28 @@ fun SettingsScreen(
                     maxLines = 16,
                 )
 
+                OutlinedTextField(
+                    value = aiAssetLibraryLinkDraft,
+                    onValueChange = { aiAssetLibraryLinkDraft = it.take(2000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Asset- / Referenzbibliothek") },
+                    placeholder = { Text("z. B. https://mega.nz/folder/...") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiAssetReferenceNotesDraft,
+                    onValueChange = { aiAssetReferenceNotesDraft = it.take(12000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Asset-Hinweise fuer Bot, Visuals und Agent") },
+                    minLines = 4,
+                    maxLines = 10,
+                )
+
                 Text(
                     text = "Leer lassen stellt den jeweiligen Standard wieder her.",
                     modifier = Modifier.padding(top = 10.dp),
@@ -1617,6 +1651,8 @@ fun SettingsScreen(
                                 textInstruction = aiTextInstructionDraft,
                                 visualInstruction = aiVisualInstructionDraft,
                                 agentSystemInstruction = aiAgentSystemInstructionDraft,
+                                assetLibraryLink = aiAssetLibraryLinkDraft,
+                                assetReferenceNotes = aiAssetReferenceNotesDraft,
                             ),
                         )
                     },
@@ -2775,7 +2811,11 @@ private fun adminWorkspaceStatusText(
         AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
         AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"
         AdminWorkspaceSection.Automation -> if (uiState.workflowAutomationSettings.isPrepared) "n8n bereit" else "Noch offen"
-        AdminWorkspaceSection.AiPrompts -> "Text ${uiState.aiPromptSettings.textInstruction.length}"
+        AdminWorkspaceSection.AiPrompts -> if (uiState.aiPromptSettings.assetLibraryLink.isBlank()) {
+            "Text ${uiState.aiPromptSettings.textInstruction.length}"
+        } else {
+            "Assets + Prompts"
+        }
     }
 }
 

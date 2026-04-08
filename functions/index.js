@@ -163,14 +163,18 @@ const agentTurnSchema = z.object({
 const agentRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(4000),
   history: z.array(agentTurnSchema).max(24).default([]),
+  mode: z.enum(["release", "briefing", "content", "merch", "automation"]).default("release"),
+  executeAutomation: z.boolean().default(false),
 });
 
 const agentFlowRequestSchema = agentRequestSchema.extend({
   systemInstruction: z.string().trim().min(1).max(12000),
+  workspaceContext: z.string().trim().max(12000).default(""),
 });
 
 const aiTextRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(12000),
+  mode: z.enum(["general", "caption", "release_plan", "briefing", "merch_copy", "video_concept"]).default("general"),
 });
 
 const aiVisualRequestSchema = z.object({
@@ -227,6 +231,8 @@ const DEFAULT_AI_PROMPT_SETTINGS = Object.freeze({
   textInstruction: DEFAULT_AI_TEXT_INSTRUCTION,
   visualInstruction: DEFAULT_AI_VISUAL_INSTRUCTION,
   agentSystemInstruction: DEFAULT_AGENT_SYSTEM_PROMPT,
+  assetLibraryLink: "",
+  assetReferenceNotes: "",
 });
 
 const USER_ROLES = {
@@ -254,6 +260,23 @@ const AI_ACCESS_MODES = {
   off: "off",
   adminOnly: "admin_only",
   signedIn: "signed_in",
+};
+
+const AI_TEXT_MODES = {
+  general: "general",
+  caption: "caption",
+  releasePlan: "release_plan",
+  briefing: "briefing",
+  merchCopy: "merch_copy",
+  videoConcept: "video_concept",
+};
+
+const AGENT_MODES = {
+  release: "release",
+  briefing: "briefing",
+  content: "content",
+  merch: "merch",
+  automation: "automation",
 };
 
 const AI_REMOTE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -445,6 +468,11 @@ function resolveAiPromptSettings(data = {}) {
     agentSystemInstruction: normalizeAiPromptSetting(
         data.agentSystemInstruction,
         DEFAULT_AI_PROMPT_SETTINGS.agentSystemInstruction,
+    ),
+    assetLibraryLink: normalizeUrlString(data.assetLibraryLink) || "",
+    assetReferenceNotes: normalizeAiPromptSetting(
+        data.assetReferenceNotes,
+        DEFAULT_AI_PROMPT_SETTINGS.assetReferenceNotes,
     ),
   };
 }
@@ -1059,18 +1087,53 @@ async function authorizeAiUsage({auth, kind}) {
   return usageSummary;
 }
 
-function composeTextGenerationPrompt(inputPrompt, textInstruction) {
+function composeAssetLibraryPromptContext(promptSettings) {
+  const lines = [];
+  if (promptSettings.assetLibraryLink) {
+    lines.push(`Asset- / Referenzbibliothek: ${promptSettings.assetLibraryLink}`);
+  }
+  if (promptSettings.assetReferenceNotes) {
+    lines.push(`Zusatzhinweise zu Assets und Referenzen:\n${promptSettings.assetReferenceNotes}`);
+  }
+  return lines.length ? lines.join("\n\n") : "";
+}
+
+function aiTextModeHint(mode) {
+  switch (mode) {
+    case AI_TEXT_MODES.caption:
+      return "Modus Caption: Liefere eine starke Hauptversion, danach 3 Varianten, 1 CTA-Zeile und bis zu 5 passende Hashtags.";
+    case AI_TEXT_MODES.releasePlan:
+      return "Modus Release-Plan: Liefere Ziel, Phasen, To-dos, benoetigte Assets, Timing, Risiken und die naechsten 3 Schritte.";
+    case AI_TEXT_MODES.briefing:
+      return "Modus Briefing: Liefere ein copy-pastebares Briefing mit Ziel, Format, Tonalitaet, Deliverables, Do's, Don'ts und Deadline.";
+    case AI_TEXT_MODES.merchCopy:
+      return "Modus Merch-Copy: Liefere Headline, Hauptcaption, Story-CTA, Produkt-/Drop-Angle und 3 kurze Varianten.";
+    case AI_TEXT_MODES.videoConcept:
+      return "Modus Video-Konzept: Liefere Hook, Konzept, Shotlist, On-Screen-Text, Assets und Abschluss-CTA.";
+    case AI_TEXT_MODES.general:
+    default:
+      return "Modus Allgemein: Liefere eine direkt nutzbare Hauptantwort und bei Bedarf 2 bis 3 starke Varianten.";
+  }
+}
+
+function composeTextGenerationPrompt(inputPrompt, textInstruction, mode, assetContext) {
   return `
 ${textInstruction}
+
+${aiTextModeHint(mode)}
+
+${assetContext ? `Verfuegbare Referenzen:\n${assetContext}\n` : ""}
 
 Nutzeranfrage:
 ${inputPrompt}
   `.trim();
 }
 
-function composeVisualGenerationPrompt(inputPrompt, visualInstruction) {
+function composeVisualGenerationPrompt(inputPrompt, visualInstruction, assetContext) {
   return `
 ${visualInstruction}
+
+${assetContext ? `Verfuegbare Referenzen:\n${assetContext}\n` : ""}
 
 Nutzeranfrage:
 ${inputPrompt}
@@ -1113,10 +1176,16 @@ function extractInlineBase64Media(dataUrl, contentType = null) {
   };
 }
 
-async function generateAiTextReply(prompt) {
+async function generateAiTextReply({prompt, mode}) {
   const promptSettings = await loadAiPromptSettings();
+  const assetContext = composeAssetLibraryPromptContext(promptSettings);
   const response = await ai.generate({
-    prompt: composeTextGenerationPrompt(prompt, promptSettings.textInstruction),
+    prompt: composeTextGenerationPrompt(
+        prompt,
+        promptSettings.textInstruction,
+        mode,
+        assetContext,
+    ),
     config: {
       temperature: 0.7,
       maxOutputTokens: 768,
@@ -1133,9 +1202,14 @@ async function generateAiTextReply(prompt) {
 
 async function generateAiVisualResult(prompt) {
   const promptSettings = await loadAiPromptSettings();
+  const assetContext = composeAssetLibraryPromptContext(promptSettings);
   const response = await ai.generate({
     model: vertexAI.model("gemini-2.5-flash-image"),
-    prompt: composeVisualGenerationPrompt(prompt, promptSettings.visualInstruction),
+    prompt: composeVisualGenerationPrompt(
+        prompt,
+        promptSettings.visualInstruction,
+        assetContext,
+    ),
     config: {
       responseModalities: ["TEXT", "IMAGE"],
     },
@@ -3280,10 +3354,14 @@ exports.generateAiText = onCall({
     auth: request.auth,
     kind: AI_USAGE_KINDS.text,
   });
-  const reply = await generateAiTextReply(input.prompt);
+  const reply = await generateAiTextReply({
+    prompt: input.prompt,
+    mode: input.mode,
+  });
 
   return {
     reply,
+    mode: input.mode,
     historyRetentionDays: usage.historyRetentionDays,
   };
 });
@@ -3310,7 +3388,27 @@ exports.generateAiVisual = onCall({
   };
 });
 
-function responseFrameworkHint(prompt) {
+function responseFrameworkHint(mode, prompt) {
+  if (mode === AGENT_MODES.release) {
+    return "Antwortformat: Ziel, Release-Phasen, konkrete Schritte mit Reihenfolge, Timing, benoetigte Assets, Risiken, Naechste 3 Schritte.";
+  }
+
+  if (mode === AGENT_MODES.briefing) {
+    return "Antwortformat: Ziel, Kontext, Tonalitaet, Deliverables, Shotlist oder Content-Bausteine, Assets, Risiken, Naechste Schritte.";
+  }
+
+  if (mode === AGENT_MODES.content) {
+    return "Antwortformat: Ziel, Content-Saulen, Channel-Plan, Hook-Ideen, Asset-Bedarf, CTA, Naechste 3 Schritte.";
+  }
+
+  if (mode === AGENT_MODES.merch) {
+    return "Antwortformat: Ziel, Produkt-/Drop-Angle, Launch-Abfolge, Store-/Content-Bedarf, Checkliste, Risiken, Naechste 3 Schritte.";
+  }
+
+  if (mode === AGENT_MODES.automation) {
+    return "Antwortformat: Workflow-Ziel, Trigger, benoetigte Inputs, erwartete Outputs, Fehlerfaelle, kurze Uebergabe an n8n, Naechste Schritte.";
+  }
+
   const lower = prompt.toLowerCase();
 
   if (["briefing", "brief", "shooting", "video", "videography", "shotlist"].some((word) => lower.includes(word))) {
@@ -3338,6 +3436,82 @@ function formatHistory(history) {
       .join("\n\n");
 }
 
+async function loadAgentWorkspaceContext(auth, promptSettings) {
+  const lines = [];
+
+  if (auth?.uid) {
+    const userData = await loadUserData(auth.uid).catch(() => null);
+    if (userData) {
+      const profile = buildUserProfile(userData);
+      lines.push(`Konto-Rolle: ${profile.role}`);
+      lines.push(`KI-Zugang aktiv: ${profile.aiAccessEnabled ? "ja" : "nein"}`);
+    }
+
+    const workflowSettings = await loadWorkflowAutomationSettingsForUser(auth.uid).catch(() => null);
+    if (workflowSettings) {
+      const workflowStatus = workflowSettings.isEnabled && buildAutomationWebhookUrl(workflowSettings.baseURL, workflowSettings.webhookPath) ?
+        `bereit (${workflowSettings.workflowName})` :
+        "noch nicht bereit";
+      lines.push(`n8n-Status: ${workflowStatus}`);
+    }
+  }
+
+  const shopifyConfig = await loadShopifyAdminConfig().catch(() => null);
+  if (shopifyConfig) {
+    lines.push(`Shopify-Store: ${shopifyConfig.storeDomain}`);
+    if (shopifyConfig.collectionHandles.length) {
+      lines.push(`Aktive Shopify-Collections: ${shopifyConfig.collectionHandles.join(", ")}`);
+    }
+  }
+
+  const assetContext = composeAssetLibraryPromptContext(promptSettings);
+  if (assetContext) {
+    lines.push(assetContext);
+  }
+
+  const context = lines.length ?
+    `Arbeitskontext:\n- ${lines.join("\n- ")}` :
+    "Arbeitskontext: kein zusaetzlicher Workspace-Kontext verfuegbar.";
+  return context.slice(0, 12000);
+}
+
+async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history}) {
+  if (!auth?.uid) {
+    return {attempted: false, triggered: false};
+  }
+
+  if (!(await isOwnerAuth(auth))) {
+    return {attempted: false, triggered: false};
+  }
+
+  try {
+    const automationResult = await triggerWorkflowAutomationWebhook({
+      trigger: `agent_${mode}`,
+      source: "agent",
+      auth,
+      data: {
+        mode,
+        prompt,
+        reply,
+        history: history.slice(-8),
+      },
+    });
+
+    return {
+      attempted: true,
+      triggered: true,
+      message: nonEmptyString(automationResult.message) || "An n8n gesendet.",
+      workflowName: nonEmptyString(automationResult.workflowName) || "",
+    };
+  } catch (error) {
+    return {
+      attempted: true,
+      triggered: false,
+      message: error instanceof Error ? error.message : `${error}`,
+    };
+  }
+}
+
 const skydownAgentFlow = ai.defineFlow({
   name: "skydownAgentFlow",
   inputSchema: agentFlowRequestSchema,
@@ -3345,13 +3519,15 @@ const skydownAgentFlow = ai.defineFlow({
   streamSchema: z.string(),
 }, async (input, sendChunk) => {
   const prompt = `
+${input.workspaceContext}
+
 Bisherige Unterhaltung:
 ${formatHistory(input.history)}
 
 Aktuelle Nutzeranfrage:
 ${input.prompt}
 
-${responseFrameworkHint(input.prompt)}
+${responseFrameworkHint(input.mode, input.prompt)}
   `.trim();
 
   const {stream, response} = ai.generateStream({
@@ -3395,13 +3571,29 @@ exports.skydownAgent = onCall({
     kind: AI_USAGE_KINDS.agent,
   });
   const promptSettings = await loadAiPromptSettings();
+  const workspaceContext = await loadAgentWorkspaceContext(request.auth, promptSettings);
   const reply = await skydownAgentFlow({
     ...input,
     systemInstruction: promptSettings.agentSystemInstruction,
+    workspaceContext,
   });
+  const automation = input.executeAutomation ?
+    await maybeTriggerAgentAutomation({
+      auth: request.auth,
+      mode: input.mode,
+      prompt: input.prompt,
+      reply,
+      history: input.history,
+    }) :
+    {attempted: false, triggered: false};
 
   return {
     reply,
+    mode: input.mode,
+    automationTriggered: automation.triggered === true,
+    automationAttempted: automation.attempted === true,
+    automationMessage: nonEmptyString(automation.message) || "",
+    workflowName: nonEmptyString(automation.workflowName) || "",
     historyRetentionDays: usage.historyRetentionDays,
   };
 });

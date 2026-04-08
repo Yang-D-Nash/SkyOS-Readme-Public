@@ -5,6 +5,8 @@ struct AIPromptSettings: Equatable {
     var textInstruction: String = defaultTextInstruction
     var visualInstruction: String = defaultVisualInstruction
     var agentSystemInstruction: String = defaultAgentSystemInstruction
+    var assetLibraryLink: String = ""
+    var assetReferenceNotes: String = ""
 
     static let `default` = AIPromptSettings()
 }
@@ -61,6 +63,11 @@ final class FirestoreAIPromptSettingsService: AIPromptSettingsServicing {
             agentSystemInstruction: normalizeInstruction(
                 data["agentSystemInstruction"] as? String,
                 fallback: defaultAgentSystemInstruction
+            ),
+            assetLibraryLink: normalizePromptLink(data["assetLibraryLink"] as? String) ?? "",
+            assetReferenceNotes: normalizeInstruction(
+                data["assetReferenceNotes"] as? String,
+                fallback: ""
             )
         )
     }
@@ -78,6 +85,11 @@ final class FirestoreAIPromptSettingsService: AIPromptSettingsServicing {
             "agentSystemInstruction": normalizeInstruction(
                 settings.agentSystemInstruction,
                 fallback: defaultAgentSystemInstruction
+            ),
+            "assetLibraryLink": normalizePromptLink(settings.assetLibraryLink) ?? "",
+            "assetReferenceNotes": normalizeInstruction(
+                settings.assetReferenceNotes,
+                fallback: ""
             ),
             "updatedAt": FieldValue.serverTimestamp()
         ]
@@ -143,6 +155,18 @@ private func normalizeInstruction(_ value: String?, fallback: String) -> String 
         return fallback
     }
     return String(normalized.prefix(12000))
+}
+
+private func normalizePromptLink(_ value: String?) -> String? {
+    let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    guard !trimmed.isEmpty else { return nil }
+    let prefixed: String
+    if trimmed.hasPrefix("https://") || trimmed.hasPrefix("http://") {
+        prefixed = trimmed
+    } else {
+        prefixed = "https://\(trimmed)"
+    }
+    return String(prefixed.prefix(2000)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
 }
 
 private let defaultTextInstruction = """

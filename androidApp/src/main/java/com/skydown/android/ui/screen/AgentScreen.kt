@@ -73,6 +73,7 @@ import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.model.AgentExecutionMode
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.viewmodel.AgentViewModel
@@ -149,9 +150,14 @@ fun AgentScreen(
             if (uiState.isAgentEnabled) {
                 AgentComposerBar(
                     draft = uiState.draft,
+                    selectedMode = uiState.selectedMode,
+                    canTriggerAutomation = uiState.canTriggerAutomation,
+                    shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
                     onDraftChanged = viewModel::updateDraft,
+                    onModeChanged = viewModel::updateMode,
+                    onToggleAutomation = viewModel::toggleAutomation,
                     onSend = {
                         viewModel.sendDraft()
                         dismissKeyboard()
@@ -512,9 +518,14 @@ private fun AgentMessageBubble(
 @Composable
 private fun AgentComposerBar(
     draft: String,
+    selectedMode: AgentExecutionMode,
+    canTriggerAutomation: Boolean,
+    shouldTriggerAutomation: Boolean,
     isSending: Boolean,
     compactLayout: Boolean,
     onDraftChanged: (String) -> Unit,
+    onModeChanged: (AgentExecutionMode) -> Unit,
+    onToggleAutomation: () -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
 ) {
@@ -535,12 +546,63 @@ private fun AgentComposerBar(
                 vertical = if (compactLayout) 8.dp else 10.dp,
             ),
         ) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(end = 4.dp),
+            ) {
+                items(AgentExecutionMode.entries, key = { it.rawValue }) { mode ->
+                    val isSelected = mode == selectedMode
+                    if (isSelected) {
+                        Button(
+                            onClick = { onModeChanged(mode) },
+                            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text(mode.title)
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { onModeChanged(mode) },
+                            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text(mode.title)
+                        }
+                    }
+                }
+            }
+
+            if (canTriggerAutomation) {
+                if (shouldTriggerAutomation) {
+                    Button(
+                        onClick = onToggleAutomation,
+                        modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text("n8n aktiv")
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = onToggleAutomation,
+                        modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text("An n8n senden")
+                    }
+                }
+            }
+
             OutlinedTextField(
                 value = draft,
                 onValueChange = onDraftChanged,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = if (compactLayout) 8.dp else 10.dp),
                 placeholder = {
-                    Text("Zum Beispiel: Release-Briefing fuer Freitag.")
+                    Text(selectedMode.placeholder)
                 },
                 minLines = 1,
                 maxLines = if (compactLayout) 3 else 4,

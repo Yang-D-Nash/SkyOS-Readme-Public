@@ -14,7 +14,7 @@ struct AIGeneratedVisual {
 }
 
 protocol AIChatServicing {
-    func generateText(prompt: String) async throws -> AITextResponse
+    func generateText(prompt: String, mode: String) async throws -> AITextResponse
     func generateVisual(prompt: String) async throws -> AIGeneratedVisual
 }
 
@@ -39,10 +39,13 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
         self.functions = functions
     }
 
-    func generateText(prompt: String) async throws -> AITextResponse {
+    func generateText(prompt: String, mode: String) async throws -> AITextResponse {
         let result = try await functions
             .httpsCallable("generateAiText")
-            .call(["prompt": prompt])
+            .call([
+                "prompt": prompt,
+                "mode": mode
+            ])
 
         guard
             let payload = result.data as? [String: Any],

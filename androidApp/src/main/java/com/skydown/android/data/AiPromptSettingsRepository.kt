@@ -10,6 +10,8 @@ data class AiPromptSettings(
     val textInstruction: String = DEFAULT_TEXT_INSTRUCTION,
     val visualInstruction: String = DEFAULT_VISUAL_INSTRUCTION,
     val agentSystemInstruction: String = DEFAULT_AGENT_SYSTEM_INSTRUCTION,
+    val assetLibraryLink: String = "",
+    val assetReferenceNotes: String = "",
 )
 
 class AiPromptSettingsRepository(
@@ -53,6 +55,11 @@ private fun Map<String, Any>.toAiPromptSettings(): AiPromptSettings {
             value = this["agentSystemInstruction"] as? String,
             fallback = DEFAULT_AGENT_SYSTEM_INSTRUCTION,
         ),
+        assetLibraryLink = normalizePromptLink(this["assetLibraryLink"] as? String).orEmpty(),
+        assetReferenceNotes = normalizeAiPromptInstruction(
+            value = this["assetReferenceNotes"] as? String,
+            fallback = "",
+        ),
     )
 }
 
@@ -70,6 +77,11 @@ private fun AiPromptSettings.toMap(): Map<String, Any> {
             value = agentSystemInstruction,
             fallback = DEFAULT_AGENT_SYSTEM_INSTRUCTION,
         ),
+        "assetLibraryLink" to normalizePromptLink(assetLibraryLink).orEmpty(),
+        "assetReferenceNotes" to normalizeAiPromptInstruction(
+            value = assetReferenceNotes,
+            fallback = "",
+        ),
         "updatedAt" to FieldValue.serverTimestamp(),
     )
 }
@@ -81,6 +93,19 @@ private fun normalizeAiPromptInstruction(value: String?, fallback: String): Stri
     } else {
         normalized.take(MAX_PROMPT_LENGTH)
     }
+}
+
+private fun normalizePromptLink(value: String?): String? {
+    val trimmed = value?.trim().orEmpty()
+    if (trimmed.isBlank()) {
+        return null
+    }
+    val prefixed = if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
+        trimmed
+    } else {
+        "https://$trimmed"
+    }
+    return prefixed.trimEnd('/').take(2000)
 }
 
 private const val MAX_PROMPT_LENGTH = 12000

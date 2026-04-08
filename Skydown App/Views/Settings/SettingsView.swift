@@ -98,6 +98,8 @@ struct SettingsView: View {
     @State private var aiTextInstructionDraft = ""
     @State private var aiVisualInstructionDraft = ""
     @State private var aiAgentSystemInstructionDraft = ""
+    @State private var aiAssetLibraryLinkDraft = ""
+    @State private var aiAssetReferenceNotesDraft = ""
     @State private var profileUsernameDraft = ""
     @State private var profileWhatsAppDraft = ""
     @State private var profileTaglineDraft = ""
@@ -1406,7 +1408,7 @@ struct SettingsView: View {
 
             case .aiPrompts:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore unter `adminConfig/aiPromptSettings` und gelten serverseitig ohne App-Release.")
+                    Text("Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore unter `adminConfig/aiPromptSettings` und gelten serverseitig ohne App-Release. Ueber die Asset-Bibliothek kannst du z. B. einen MEGA-, Drive- oder Moodboard-Link global mitgeben.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1421,6 +1423,10 @@ struct SettingsView: View {
                         )
                         SettingsBadge(
                             text: "Agent \(aiAgentSystemInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                            colorScheme: effectiveColorScheme
+                        )
+                        SettingsBadge(
+                            text: aiAssetLibraryLinkDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Assets aus" : "Assets aktiv",
                             colorScheme: effectiveColorScheme
                         )
                     }
@@ -1447,6 +1453,22 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         placeholder: "Globale Systemrolle fuer den Agent.",
                         minHeight: 140
+                    )
+
+                    SettingsInputField(
+                        title: "Asset- / Referenzbibliothek",
+                        text: $aiAssetLibraryLinkDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. https://mega.nz/folder/...",
+                        keyboardType: .URL
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Asset-Hinweise fuer Bot, Visuals und Agent",
+                        text: $aiAssetReferenceNotesDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Welche Assets, Moodboards oder Ordnerlinks sollen global beruecksichtigt werden?",
+                        minHeight: 110
                     )
 
                     Text("Leere Felder fallen automatisch auf den Standard zurueck.")
@@ -1483,7 +1505,9 @@ struct SettingsView: View {
         case .automation:
             return workflowAutomationSettings.settings.isPrepared ? "n8n bereit" : "Noch offen"
         case .aiPrompts:
-            return "Text \(aiPromptSettingsStore.settings.textInstruction.count)"
+            return aiPromptSettingsStore.settings.assetLibraryLink.isEmpty ?
+                "Text \(aiPromptSettingsStore.settings.textInstruction.count)" :
+                "Assets + Prompts"
         }
     }
 
@@ -1695,6 +1719,8 @@ struct SettingsView: View {
         aiTextInstructionDraft = settings.textInstruction
         aiVisualInstructionDraft = settings.visualInstruction
         aiAgentSystemInstructionDraft = settings.agentSystemInstruction
+        aiAssetLibraryLinkDraft = settings.assetLibraryLink
+        aiAssetReferenceNotesDraft = settings.assetReferenceNotes
     }
 
     private func refreshOwnerWorkspaceObservation(
@@ -1968,6 +1994,8 @@ struct SettingsView: View {
             updated.textInstruction = aiTextInstructionDraft
             updated.visualInstruction = aiVisualInstructionDraft
             updated.agentSystemInstruction = aiAgentSystemInstructionDraft
+            updated.assetLibraryLink = aiAssetLibraryLinkDraft
+            updated.assetReferenceNotes = aiAssetReferenceNotesDraft
 
             do {
                 try await aiPromptSettingsStore.save(updated)

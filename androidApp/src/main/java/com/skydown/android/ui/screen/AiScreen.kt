@@ -80,6 +80,7 @@ import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
+import com.skydown.android.ui.model.AiTextMode
 import com.skydown.android.ui.model.AiVisualPrompt
 import com.skydown.android.ui.viewmodel.AiViewModel
 import kotlinx.coroutines.delay
@@ -157,10 +158,12 @@ fun AiScreen(
                 AiComposerBar(
                     draft = uiState.draft,
                     composerMode = uiState.composerMode,
+                    textMode = uiState.textMode,
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
                     onDraftChanged = viewModel::updateDraft,
                     onComposerModeChange = viewModel::updateComposerMode,
+                    onTextModeChange = viewModel::updateTextMode,
                     onSend = {
                         viewModel.sendDraft()
                         dismissKeyboard()
@@ -598,10 +601,12 @@ private fun AiMessageBubble(
 private fun AiComposerBar(
     draft: String,
     composerMode: AiComposerMode,
+    textMode: AiTextMode,
     isSending: Boolean,
     compactLayout: Boolean,
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
+    onTextModeChange: (AiTextMode) -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
     onDismissKeyboard: () -> Unit,
@@ -675,6 +680,37 @@ private fun AiComposerBar(
                 }
             }
 
+            if (composerMode == AiComposerMode.Text) {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = if (compactLayout) 8.dp else 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(end = 4.dp),
+                ) {
+                    items(AiTextMode.entries, key = { it.rawValue }) { mode ->
+                        val isSelected = mode == textMode
+                        if (isSelected) {
+                            Button(
+                                onClick = { onTextModeChange(mode) },
+                                shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            ) {
+                                Text(mode.title)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { onTextModeChange(mode) },
+                                shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            ) {
+                                Text(mode.title)
+                            }
+                        }
+                    }
+                }
+            }
+
             OutlinedTextField(
                 value = draft,
                 onValueChange = onDraftChanged,
@@ -684,7 +720,7 @@ private fun AiComposerBar(
                 placeholder = {
                     Text(
                         if (composerMode == AiComposerMode.Text) {
-                            "Zum Beispiel: Teaser fuer den naechsten Drop."
+                            textMode.placeholder
                         } else {
                             "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
                         },

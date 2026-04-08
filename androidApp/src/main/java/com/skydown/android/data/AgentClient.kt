@@ -11,6 +11,10 @@ data class AgentHistoryTurn(
 data class AgentResponse(
     val reply: String,
     val historyRetentionDays: Int,
+    val automationTriggered: Boolean,
+    val automationAttempted: Boolean,
+    val automationMessage: String,
+    val workflowName: String,
 )
 
 class AgentClient {
@@ -19,6 +23,8 @@ class AgentClient {
     suspend fun sendMessage(
         prompt: String,
         history: List<AgentHistoryTurn>,
+        mode: String,
+        executeAutomation: Boolean,
     ): AgentResponse {
         val payload = mapOf(
             "prompt" to prompt,
@@ -28,6 +34,8 @@ class AgentClient {
                     "text" to turn.text,
                 )
             },
+            "mode" to mode,
+            "executeAutomation" to executeAutomation,
         )
 
         val result = functions
@@ -40,11 +48,19 @@ class AgentClient {
                 reply = data.takeIf { it.isNotBlank() }
                     ?: error("Der Skydown x 22 Agent hat keine Antwort geliefert."),
                 historyRetentionDays = 3,
+                automationTriggered = false,
+                automationAttempted = false,
+                automationMessage = "",
+                workflowName = "",
             )
             is Map<*, *> -> AgentResponse(
                 reply = (data["reply"] as? String)?.takeIf { it.isNotBlank() }
                     ?: error("Der Skydown x 22 Agent hat keine Antwort geliefert."),
                 historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
+                automationTriggered = data["automationTriggered"] as? Boolean ?: false,
+                automationAttempted = data["automationAttempted"] as? Boolean ?: false,
+                automationMessage = (data["automationMessage"] as? String).orEmpty(),
+                workflowName = (data["workflowName"] as? String).orEmpty(),
             )
             else -> error("Der Skydown x 22 Agent hat keine Antwort geliefert.")
         }

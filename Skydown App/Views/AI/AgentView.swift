@@ -123,6 +123,9 @@ struct AgentView: View {
                 AgentComposerBar(
                     colorScheme: colorScheme,
                     draft: $viewModel.draft,
+                    selectedMode: $viewModel.selectedMode,
+                    shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
+                    canTriggerAutomation: viewModel.canTriggerAutomation,
                     isFocused: $isComposerFocused,
                     isSending: viewModel.isSending,
                     onReset: viewModel.resetConversation,
@@ -409,6 +412,9 @@ private struct AgentMessageBubble: View {
 private struct AgentComposerBar: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
+    @Binding var selectedMode: AgentExecutionMode
+    @Binding var shouldTriggerAutomation: Bool
+    let canTriggerAutomation: Bool
     let isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onReset: () -> Void
@@ -420,9 +426,78 @@ private struct AgentComposerBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if !AgentExecutionMode.allCases.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(AgentExecutionMode.allCases) { mode in
+                            Button {
+                                selectedMode = mode
+                            } label: {
+                                Text(mode.title)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(
+                                        selectedMode == mode
+                                            ? .white
+                                            : AppColors.text(for: colorScheme)
+                                    )
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule()
+                                            .fill(
+                                                selectedMode == mode
+                                                    ? AppColors.accentMystic(for: colorScheme)
+                                                    : AppColors.secondaryBackground(for: colorScheme)
+                                            )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .skydownTactileAction()
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                }
+            }
+
+            if canTriggerAutomation {
+                HStack {
+                    Button {
+                        shouldTriggerAutomation.toggle()
+                    } label: {
+                        Label(
+                            shouldTriggerAutomation ? "n8n aktiv" : "An n8n senden",
+                            systemImage: shouldTriggerAutomation ? "bolt.fill" : "bolt.badge.clock"
+                        )
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(
+                            shouldTriggerAutomation
+                                ? .white
+                                : AppColors.accentMystic(for: colorScheme)
+                        )
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    shouldTriggerAutomation
+                                        ? AppColors.accentMystic(for: colorScheme)
+                                        : AppColors.accentMystic(for: colorScheme).opacity(0.12)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .skydownTactileAction()
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+            }
+
             HStack(alignment: .bottom, spacing: 10) {
                 TextField(
-                    "Zum Beispiel: Release-Briefing fuer Freitag.",
+                    selectedMode.placeholder,
                     text: $draft,
                     axis: .vertical
                 )
@@ -480,7 +555,7 @@ private struct AgentComposerBar: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 10)
+            .padding(.top, canTriggerAutomation || !AgentExecutionMode.allCases.isEmpty ? 8 : 10)
             .padding(.bottom, 10)
             .background(
                 Rectangle()

@@ -11,10 +11,15 @@ data class AiGeneratedTextResult(
 class AiChatClient(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) {
-    suspend fun generateText(prompt: String): AiGeneratedTextResult {
+    suspend fun generateText(prompt: String, mode: String): AiGeneratedTextResult {
         val result = functions
             .getHttpsCallable("generateAiText")
-            .call(mapOf("prompt" to prompt))
+            .call(
+                mapOf(
+                    "prompt" to prompt,
+                    "mode" to mode,
+                ),
+            )
             .await()
 
         val data = result.data as? Map<*, *> ?: error("Die Bot-Antwort konnte nicht gelesen werden.")

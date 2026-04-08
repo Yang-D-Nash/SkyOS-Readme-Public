@@ -10,10 +10,13 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
+import com.skydown.shared.model.isPlatformOwner
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
+import com.skydown.android.ui.model.AgentExecutionMode
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.model.AgentUiState
+import com.skydown.android.ui.model.agentQuickPromptsFor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +42,16 @@ class AgentViewModel : ViewModel() {
                 AiConversationHistoryStore.updateRetentionDays(
                     user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays,
                 )
+                _uiState.update {
+                    it.copy(
+                        canTriggerAutomation = user?.isPlatformOwner == true,
+                        shouldTriggerAutomation = if (user?.isPlatformOwner == true) {
+                            it.shouldTriggerAutomation
+                        } else {
+                            false
+                        },
+                    )
+                }
                 val userKey = normalizeUserKey(user)
                 if (userKey != currentUserKey) {
                     currentUserKey = userKey
@@ -50,6 +63,25 @@ class AgentViewModel : ViewModel() {
 
     fun updateDraft(draft: String) {
         _uiState.update { it.copy(draft = draft) }
+    }
+
+    fun updateMode(mode: AgentExecutionMode) {
+        _uiState.update {
+            it.copy(
+                selectedMode = mode,
+                quickPrompts = agentQuickPromptsFor(mode),
+            )
+        }
+    }
+
+    fun toggleAutomation() {
+        _uiState.update { currentState ->
+            if (!currentState.canTriggerAutomation) {
+                currentState
+            } else {
+                currentState.copy(shouldTriggerAutomation = !currentState.shouldTriggerAutomation)
+            }
+        }
     }
 
     fun sendDraft() {
@@ -102,21 +134,31 @@ class AgentViewModel : ViewModel() {
                 agentClient.sendMessage(
                     prompt = trimmedPrompt,
                     history = history,
+                    mode = _uiState.value.selectedMode.rawValue,
+                    executeAutomation = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation,
                 )
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                val replyText = augmentedReply(result)
                 assistantMessageId?.let { messageId ->
                     updateAssistantMessage(
                         messageId = messageId,
-                        text = result.reply,
+                        text = replyText,
                         isStreaming = false,
                     )
                     AiConversationHistoryStore.saveEntry(
                         userKey = currentUserKey,
                         source = AiConversationHistorySource.Agent,
                         prompt = trimmedPrompt,
-                        response = result.reply,
+                        response = replyText,
                     )
+                }
+                if (result.automationTriggered) {
+                    _uiState.update {
+                        it.copy(errorMessage = null)
+                    }
+                } else if (result.automationAttempted && result.automationMessage.isNotBlank()) {
+                    _uiState.update { it.copy(errorMessage = result.automationMessage) }
                 }
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
@@ -153,6 +195,10 @@ class AgentViewModel : ViewModel() {
             AgentUiState(
                 draft = currentState.draft,
                 isAgentEnabled = currentState.isAgentEnabled,
+                selectedMode = currentState.selectedMode,
+                canTriggerAutomation = currentState.canTriggerAutomation,
+                shouldTriggerAutomation = currentState.shouldTriggerAutomation,
+                quickPrompts = currentState.quickPrompts,
             )
         }
     }
@@ -222,6 +268,15 @@ class AgentViewModel : ViewModel() {
     private fun normalizeUserKey(user: User?): String? {
         return user?.id?.takeIf { it.isNotBlank() }
             ?: user?.email?.takeIf { it.isNotBlank() }
+    }
+
+    private fun augmentedReply(result: com.skydown.android.data.AgentResponse): String {
+        if (!result.automationTriggered) {
+            return result.reply
+        }
+        val workflowLabel = result.workflowName.trim().ifBlank { "n8n" }
+        val automationMessage = result.automationMessage.trim().ifBlank { "An $workflowLabel uebergeben." }
+        return "${result.reply}\n\nn8n:\n$automationMessage"
     }
 
     private fun userFacingErrorMessage(error: Throwable): String = when (error) {

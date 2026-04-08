@@ -22,6 +22,98 @@ enum AIComposerMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum AITextMode: String, CaseIterable, Identifiable {
+    case general = "general"
+    case caption = "caption"
+    case releasePlan = "release_plan"
+    case briefing = "briefing"
+    case merchCopy = "merch_copy"
+    case videoConcept = "video_concept"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general:
+            return "Allgemein"
+        case .caption:
+            return "Captions"
+        case .releasePlan:
+            return "Release"
+        case .briefing:
+            return "Briefing"
+        case .merchCopy:
+            return "Merch"
+        case .videoConcept:
+            return "Video"
+        }
+    }
+
+    var placeholder: String {
+        switch self {
+        case .general:
+            return "Zum Beispiel: Copy fuer den naechsten Drop."
+        case .caption:
+            return "Zum Beispiel: Caption fuer den neuen Track."
+        case .releasePlan:
+            return "Zum Beispiel: 7-Tage-Plan fuer den Release."
+        case .briefing:
+            return "Zum Beispiel: Briefing fuer Foto- oder Video-Team."
+        case .merchCopy:
+            return "Zum Beispiel: Copy fuer einen neuen Merch-Drop."
+        case .videoConcept:
+            return "Zum Beispiel: Konzept fuer Reel oder Musikvideo."
+        }
+    }
+
+    var quickPrompts: [String] {
+        switch self {
+        case .general:
+            return [
+                "Schreib 3 starke Copy-Ideen fuer einen neuen Skydown-Post.",
+                "Gib mir eine markentaugliche Ansage fuer einen Story-Slide.",
+                "Mach mir eine klare Promo-Line fuer einen neuen Drop.",
+                "Ueberarbeite diesen Text moderner und druckvoller."
+            ]
+        case .caption:
+            return [
+                "Schreib 3 Instagram Captions fuer einen neuen Track mit CTA und 5 Hashtags.",
+                "Mach mir 4 Story-Captions fuer einen dunklen Teaser mit kurzer Hook.",
+                "Schreib eine Caption fuer ein Studio-Snippet mit Hamburg-Vibe.",
+                "Formuliere einen Release-Post, kurz, druckvoll und nicht generisch."
+            ]
+        case .releasePlan:
+            return [
+                "Baue mir einen 7-Tage-Release-Plan fuer einen neuen Track mit Assets und Deadlines.",
+                "Strukturiere den Launch fuer Freitag von Teaser bis Post-Release.",
+                "Mach einen Mini-Plan fuer Song, Story, Reel und CTA.",
+                "Welche Assets brauche ich fuer einen sauberen Track-Release?"
+            ]
+        case .briefing:
+            return [
+                "Schreib ein Briefing fuer einen Fotografen mit Mood, Shots und Deliverables.",
+                "Mach ein Briefing fuer einen Cover-Designer, urban und cinematic.",
+                "Erstelle ein kompaktes Creator-Briefing fuer einen Collab-Post.",
+                "Formuliere ein Team-Briefing fuer einen Promo-Dreh."
+            ]
+        case .merchCopy:
+            return [
+                "Formuliere einen Merch-Drop-Post mit Headline, Caption und Story-CTA.",
+                "Schreib Copy fuer ein limitiertes Hoodie-Release.",
+                "Gib mir 3 Shop-Claims fuer einen Premium-Streetwear-Drop.",
+                "Mach eine kurze Produktbeschreibung fuer Shirt und Hoodie."
+            ]
+        case .videoConcept:
+            return [
+                "Mach mir ein 15-Sekunden Reel-Skript mit Hook, Shots und On-Screen-Text.",
+                "Gib mir 5 kurze Hook-Ideen fuer einen dunklen Song-Teaser.",
+                "Baue ein Storyboard fuer ein moody Performance-Visual.",
+                "Mach ein Konzept fuer ein vertikales Promo-Video mit 3 Szenen."
+            ]
+        }
+    }
+}
+
 struct AIVisualPrompt: Identifiable, Equatable {
     let id = UUID()
     let label: String
@@ -55,17 +147,15 @@ final class AIChatViewModel: ObservableObject {
     @Published var messages: [AIChatMessage] = []
     @Published var draft = ""
     @Published var composerMode: AIComposerMode = .text
+    @Published var textMode: AITextMode = .general
     @Published var isSending = false
     @Published var showToast = false
     @Published var toastMessage = ""
     @Published var toastStyle: ToastStyle = .info
 
-    let quickPrompts = [
-        "Schreib 3 Instagram Captions fuer einen neuen Track mit CTA und 5 Hashtags.",
-        "Gib mir 5 kurze Hook-Ideen fuer einen dunklen Song-Teaser.",
-        "Mach mir ein 15-Sekunden Reel-Skript mit Hook, Shots und On-Screen-Text.",
-        "Formuliere einen Merch-Drop-Post mit Headline, Caption und Story-CTA."
-    ]
+    var quickPrompts: [String] {
+        textMode.quickPrompts
+    }
 
     let visualPrompts = [
         AIVisualPrompt(
@@ -126,7 +216,8 @@ final class AIChatViewModel: ObservableObject {
                 draft = ""
 
                 let result = try await service.generateText(
-                    prompt: buildPrompt(for: trimmedPrompt, history: history)
+                    prompt: buildPrompt(for: trimmedPrompt, history: history),
+                    mode: textMode.rawValue
                 )
                 historyStore.updateRetentionDays(result.historyRetentionDays)
 
@@ -218,27 +309,9 @@ final class AIChatViewModel: ObservableObject {
     }
 
     private func buildPrompt(for userPrompt: String, history: String) -> String {
-        let lowerPrompt = userPrompt.lowercased()
-        let formatHint: String
-
-        if ["caption", "captions", "instagram", "post", "story", "claim", "headline"].contains(where: { lowerPrompt.contains($0) }) {
-            formatHint = "Liefere zuerst die beste Version, danach 3 weitere Varianten und am Ende optional 5 passende Hashtags."
-        } else if ["hook", "hooks", "teaser", "intro"].contains(where: { lowerPrompt.contains($0) }) {
-            formatHint = "Liefere 5 kurze Hook-Optionen mit maximal 10 Woertern pro Option."
-        } else if ["reel", "tiktok", "skript", "script", "video"].contains(where: { lowerPrompt.contains($0) }) {
-            formatHint = "Liefere die Antwort als Hook, Ablauf in 3 bis 5 Beats, On-Screen-Text und Caption."
-        } else if ["merch", "drop"].contains(where: { lowerPrompt.contains($0) }) {
-            formatHint = "Liefere die Antwort als Headline, Hauptcaption, Story-CTA und 3 kurze Zusatzvarianten."
-        } else {
-            formatHint = "Liefere eine direkt nutzbare Hauptantwort und wenn passend 3 starke Varianten."
-        }
-
         return """
         Bisheriger Verlauf:
         \(history)
-
-        Ausgabeformat:
-        \(formatHint)
 
         Nutzeranfrage:
         \(userPrompt)

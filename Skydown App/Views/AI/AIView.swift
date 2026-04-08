@@ -130,6 +130,7 @@ struct AIView: View {
                     colorScheme: colorScheme,
                     draft: $viewModel.draft,
                     composerMode: $viewModel.composerMode,
+                    textMode: $viewModel.textMode,
                     isFocused: $isComposerFocused,
                     isSending: viewModel.isSending,
                     onReset: viewModel.resetConversation,
@@ -486,6 +487,7 @@ private struct AIComposerBar: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
     @Binding var composerMode: AIComposerMode
+    @Binding var textMode: AITextMode
     let isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onReset: () -> Void
@@ -521,10 +523,42 @@ private struct AIComposerBar: View {
                     .disabled(isSending)
                 }
 
+                if composerMode == .text {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(AITextMode.allCases) { mode in
+                                Button {
+                                    textMode = mode
+                                } label: {
+                                    Text(mode.title)
+                                        .font(.caption.weight(.bold))
+                                        .foregroundColor(
+                                            textMode == mode
+                                                ? .white
+                                                : AppColors.text(for: colorScheme)
+                                        )
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            Capsule()
+                                                .fill(
+                                                    textMode == mode
+                                                        ? AppColors.accent(for: colorScheme)
+                                                        : AppColors.secondaryBackground(for: colorScheme)
+                                                )
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                .skydownTactileAction()
+                            }
+                        }
+                    }
+                }
+
                 HStack(alignment: .bottom, spacing: 10) {
                     TextField(
                         composerMode == .text
-                            ? "Zum Beispiel: Teaser fuer den naechsten Drop."
+                            ? textMode.placeholder
                             : "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release.",
                         text: $draft,
                         axis: .vertical
