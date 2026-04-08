@@ -166,6 +166,7 @@ fun AiScreen(
                     textMode = uiState.textMode,
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
+                    applyBottomSystemInset = showTopBar,
                     onDraftChanged = viewModel::updateDraft,
                     onComposerModeChange = viewModel::updateComposerMode,
                     onTextModeChange = viewModel::updateTextMode,
@@ -609,6 +610,7 @@ private fun AiComposerBar(
     textMode: AiTextMode,
     isSending: Boolean,
     compactLayout: Boolean,
+    applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
     onTextModeChange: (AiTextMode) -> Unit,
@@ -621,8 +623,11 @@ private fun AiComposerBar(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
             .windowInsetsPadding(
-                WindowInsets.navigationBars
-                    .union(WindowInsets.ime)
+                (if (applyBottomSystemInset) {
+                    WindowInsets.navigationBars.union(WindowInsets.ime)
+                } else {
+                    WindowInsets.ime
+                })
                     .only(WindowInsetsSides.Bottom),
             )
             .padding(

@@ -24,7 +24,7 @@ data class SettingsUiState(
     val language: String = "Deutsch",
     val notificationsEnabled: Boolean = true,
     val colorScheme: AppearanceMode = AppearanceMode.System,
-    val appVersion: String = "1.0 (14)",
+    val appVersion: String = "1.0 (15)",
     val isSavingProfile: Boolean = false,
     val isSigningOut: Boolean = false,
     val isDeletingAccount: Boolean = false,

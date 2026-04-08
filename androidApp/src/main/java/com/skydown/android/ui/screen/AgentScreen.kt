@@ -160,6 +160,7 @@ fun AgentScreen(
                     shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
+                    applyBottomSystemInset = showTopBar,
                     onDraftChanged = viewModel::updateDraft,
                     onModeChanged = viewModel::updateMode,
                     onToggleAutomation = viewModel::toggleAutomation,
@@ -528,6 +529,7 @@ private fun AgentComposerBar(
     shouldTriggerAutomation: Boolean,
     isSending: Boolean,
     compactLayout: Boolean,
+    applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
     onModeChanged: (AgentExecutionMode) -> Unit,
     onToggleAutomation: () -> Unit,
@@ -539,8 +541,11 @@ private fun AgentComposerBar(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
             .windowInsetsPadding(
-                WindowInsets.navigationBars
-                    .union(WindowInsets.ime)
+                (if (applyBottomSystemInset) {
+                    WindowInsets.navigationBars.union(WindowInsets.ime)
+                } else {
+                    WindowInsets.ime
+                })
                     .only(WindowInsetsSides.Bottom),
             )
             .padding(
