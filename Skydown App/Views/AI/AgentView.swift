@@ -419,6 +419,7 @@ private struct AgentComposerBar: View {
     let isSending: Bool
     let onReset: () -> Void
     let onSend: () -> Void
+    @StateObject private var keyboardObserver = SkydownKeyboardObserver()
 
     private var trimmedDraft: String {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -566,6 +567,7 @@ private struct AgentComposerBar: View {
                 Divider().opacity(0.25)
             }
         }
+        .padding(.bottom, keyboardObserver.bottomInset)
     }
 }
 

@@ -22,6 +22,67 @@ enum SkydownLayout {
     static let buttonCornerRadius: CGFloat = 18
 }
 
+#if canImport(UIKit)
+@MainActor
+final class SkydownKeyboardObserver: ObservableObject {
+    @Published private(set) var bottomInset: CGFloat = 0
+
+    private var observers: [NSObjectProtocol] = []
+
+    init(notificationCenter: NotificationCenter = .default) {
+        let handler: (Notification) -> Void = { [weak self] notification in
+            self?.handle(notification)
+        }
+
+        observers = [
+            notificationCenter.addObserver(
+                forName: UIResponder.keyboardWillChangeFrameNotification,
+                object: nil,
+                queue: .main,
+                using: handler
+            ),
+            notificationCenter.addObserver(
+                forName: UIResponder.keyboardWillHideNotification,
+                object: nil,
+                queue: .main,
+                using: handler
+            )
+        ]
+    }
+
+    deinit {
+        observers.forEach(NotificationCenter.default.removeObserver)
+    }
+
+    private func handle(_ notification: Notification) {
+        let userInfo = notification.userInfo ?? [:]
+        let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+        let targetInset: CGFloat
+
+        if notification.name == UIResponder.keyboardWillHideNotification {
+            targetInset = 0
+        } else {
+            let endFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect) ?? .zero
+            let window = Self.activeWindow
+            let screenBottom = window?.screen.bounds.maxY ?? UIScreen.main.bounds.maxY
+            let safeAreaBottom = window?.safeAreaInsets.bottom ?? 0
+            targetInset = max(0, screenBottom - endFrame.minY - safeAreaBottom)
+        }
+
+        withAnimation(.easeOut(duration: duration)) {
+            bottomInset = targetInset
+        }
+    }
+
+    private static var activeWindow: UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+    }
+}
+#endif
+
 struct SkydownResponsiveLayout {
     let availableWidth: CGFloat
 
