@@ -4,7 +4,7 @@
 
 - [ ] `owner` kann Owner-only Bereiche nutzen
 - [ ] `admin` sieht keine Owner-only Aktionen
-- [ ] `subadmin` hat nur begrenzte Moderationsrechte
+- [ ] `subadmin` ist ein Premium-Konto mit `Creator`- oder `Studio`-Kontingent, aber ohne Admin-Workspace und ohne Owner-Rechte
 - [ ] `user` sieht keine Adminbereiche
 - [ ] fremde `users/{uid}` sind fuer normale User nicht lesbar
 

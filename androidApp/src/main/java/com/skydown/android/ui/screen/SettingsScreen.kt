@@ -3557,7 +3557,7 @@ private val UserRole.displayTitle: String
     get() = when (this) {
         UserRole.Owner -> "Owner"
         UserRole.Admin -> "Admin"
-        UserRole.Subadmin -> "Subadmin"
+        UserRole.Subadmin -> "Premium"
         UserRole.User -> "User"
     }
 

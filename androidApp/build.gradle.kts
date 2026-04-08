@@ -1,3 +1,4 @@
+import org.gradle.api.GradleException
 import java.util.Properties
 
 plugins {
@@ -22,6 +23,11 @@ val releaseStoreFilePath = releaseSigningValue("SKYDOWN_UPLOAD_STORE_FILE")
 val releaseStorePassword = releaseSigningValue("SKYDOWN_UPLOAD_STORE_PASSWORD")
 val releaseKeyAlias = releaseSigningValue("SKYDOWN_UPLOAD_KEY_ALIAS")
 val releaseKeyPassword = releaseSigningValue("SKYDOWN_UPLOAD_KEY_PASSWORD")
+val allowDebugReleaseSigning =
+    providers.gradleProperty("allowDebugReleaseSigning")
+        .map { value -> value.equals("true", ignoreCase = true) }
+        .orElse(false)
+        .get()
 val hasReleaseSigning =
     listOf(
         releaseStoreFilePath,
@@ -38,7 +44,7 @@ android {
         applicationId = "com.skydown.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11
+        versionCode = 12
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -64,9 +70,12 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            if (hasReleaseSigning) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            signingConfig =
+                when {
+                    hasReleaseSigning -> signingConfigs.getByName("release")
+                    allowDebugReleaseSigning -> signingConfigs.getByName("debug")
+                    else -> null
+                }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -86,6 +95,23 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+val releaseSigningErrorMessage =
+    """
+    Android release signing is not configured.
+    Copy keystore.properties.example to keystore.properties or set SKYDOWN_UPLOAD_* env vars.
+    For local non-store smoke tests only, you can pass -PallowDebugReleaseSigning=true.
+    """.trimIndent()
+
+tasks.configureEach {
+    if (name in setOf("preReleaseBuild", "assembleRelease", "bundleRelease", "packageRelease", "validateSigningRelease")) {
+        doFirst {
+            if (!hasReleaseSigning && !allowDebugReleaseSigning) {
+                throw GradleException(releaseSigningErrorMessage)
+            }
         }
     }
 }

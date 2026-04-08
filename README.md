@@ -33,9 +33,14 @@ Fuer eine echte Android-Release-Distribution braucht das Projekt ein lokales
    - `SKYDOWN_UPLOAD_KEY_ALIAS`
    - `SKYDOWN_UPLOAD_KEY_PASSWORD`
 
-Wenn keine Release-Credentials gesetzt sind, baut Android weiter unsigned
-`release`-Artefakte. Mit gesetztem Keystore wird derselbe `release`-Build
-automatisch signiert.
+Ohne Release-Credentials bricht ein echter Android-`release`-Build jetzt
+bewusst mit einer klaren Fehlermeldung ab. Fuer lokale Smoke-Tests ohne
+Store-Upload kannst du den Fallback explizit aktivieren:
+
+`./gradlew :androidApp:assembleRelease -PallowDebugReleaseSigning=true`
+
+Mit gesetztem Keystore wird derselbe `release`-Build automatisch korrekt
+signiert.
 
 ### Was die App fuer Nutzer ist
 

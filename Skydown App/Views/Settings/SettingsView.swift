@@ -3641,7 +3641,7 @@ private extension UserRole {
         case .admin:
             return "Admin"
         case .subadmin:
-            return "Subadmin"
+            return "Premium"
         case .user:
             return "User"
         }
