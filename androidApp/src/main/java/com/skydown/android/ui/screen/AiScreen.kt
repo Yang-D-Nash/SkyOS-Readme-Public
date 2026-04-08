@@ -166,6 +166,7 @@ fun AiScreen(
                     textMode = uiState.textMode,
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
+                    embeddedInTools = !showTopBar,
                     applyBottomSystemInset = showTopBar,
                     onDraftChanged = viewModel::updateDraft,
                     onComposerModeChange = viewModel::updateComposerMode,
@@ -610,6 +611,7 @@ private fun AiComposerBar(
     textMode: AiTextMode,
     isSending: Boolean,
     compactLayout: Boolean,
+    embeddedInTools: Boolean,
     applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
@@ -618,6 +620,19 @@ private fun AiComposerBar(
     onReset: () -> Unit,
     onDismissKeyboard: () -> Unit,
 ) {
+    val outerVerticalPadding = when {
+        embeddedInTools -> 2.dp
+        compactLayout -> 6.dp
+        else -> 8.dp
+    }
+    val cardVerticalPadding = when {
+        embeddedInTools -> 6.dp
+        compactLayout -> 8.dp
+        else -> 10.dp
+    }
+    val sectionSpacing = if (embeddedInTools) 6.dp else if (compactLayout) 8.dp else 10.dp
+    val fieldMaxLines = if (embeddedInTools || compactLayout) 3 else 4
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -632,13 +647,13 @@ private fun AiComposerBar(
             )
             .padding(
                 horizontal = if (compactLayout) 8.dp else 10.dp,
-                vertical = if (compactLayout) 6.dp else 8.dp,
+                vertical = outerVerticalPadding,
             ),
     ) {
         SkydownCard(
             contentPadding = PaddingValues(
                 horizontal = if (compactLayout) 10.dp else 12.dp,
-                vertical = if (compactLayout) 8.dp else 10.dp,
+                vertical = cardVerticalPadding,
             ),
         ) {
             Row(
@@ -684,7 +699,7 @@ private fun AiComposerBar(
                 IconButton(
                     onClick = onReset,
                     enabled = !isSending,
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -697,7 +712,7 @@ private fun AiComposerBar(
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = if (compactLayout) 8.dp else 10.dp),
+                        .padding(top = sectionSpacing),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(end = 4.dp),
                 ) {
@@ -729,7 +744,7 @@ private fun AiComposerBar(
                 onValueChange = onDraftChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = if (compactLayout) 8.dp else 10.dp),
+                    .padding(top = sectionSpacing),
                 placeholder = {
                     Text(
                         if (composerMode == AiComposerMode.Text) {
@@ -740,7 +755,7 @@ private fun AiComposerBar(
                     )
                 },
                 minLines = 1,
-                maxLines = if (compactLayout) 3 else 4,
+                maxLines = fieldMaxLines,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = {
@@ -753,7 +768,7 @@ private fun AiComposerBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = if (compactLayout) 8.dp else 10.dp),
+                    .padding(top = sectionSpacing),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -160,6 +160,7 @@ fun AgentScreen(
                     shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
+                    embeddedInTools = !showTopBar,
                     applyBottomSystemInset = showTopBar,
                     onDraftChanged = viewModel::updateDraft,
                     onModeChanged = viewModel::updateMode,
@@ -529,6 +530,7 @@ private fun AgentComposerBar(
     shouldTriggerAutomation: Boolean,
     isSending: Boolean,
     compactLayout: Boolean,
+    embeddedInTools: Boolean,
     applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
     onModeChanged: (AgentExecutionMode) -> Unit,
@@ -536,6 +538,19 @@ private fun AgentComposerBar(
     onSend: () -> Unit,
     onReset: () -> Unit,
 ) {
+    val outerVerticalPadding = when {
+        embeddedInTools -> 2.dp
+        compactLayout -> 6.dp
+        else -> 8.dp
+    }
+    val cardVerticalPadding = when {
+        embeddedInTools -> 6.dp
+        compactLayout -> 8.dp
+        else -> 10.dp
+    }
+    val sectionSpacing = if (embeddedInTools) 6.dp else if (compactLayout) 8.dp else 10.dp
+    val fieldMaxLines = if (embeddedInTools || compactLayout) 3 else 4
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -550,13 +565,13 @@ private fun AgentComposerBar(
             )
             .padding(
                 horizontal = if (compactLayout) 8.dp else 10.dp,
-                vertical = if (compactLayout) 6.dp else 8.dp,
+                vertical = outerVerticalPadding,
             ),
     ) {
         SkydownCard(
             contentPadding = PaddingValues(
                 horizontal = if (compactLayout) 10.dp else 12.dp,
-                vertical = if (compactLayout) 8.dp else 10.dp,
+                vertical = cardVerticalPadding,
             ),
         ) {
             LazyRow(
@@ -590,7 +605,7 @@ private fun AgentComposerBar(
                 if (shouldTriggerAutomation) {
                     Button(
                         onClick = onToggleAutomation,
-                        modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
+                        modifier = Modifier.padding(top = sectionSpacing),
                         shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     ) {
@@ -599,7 +614,7 @@ private fun AgentComposerBar(
                 } else {
                     OutlinedButton(
                         onClick = onToggleAutomation,
-                        modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
+                        modifier = Modifier.padding(top = sectionSpacing),
                         shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     ) {
@@ -613,12 +628,12 @@ private fun AgentComposerBar(
                 onValueChange = onDraftChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = if (compactLayout) 8.dp else 10.dp),
+                    .padding(top = sectionSpacing),
                 placeholder = {
                     Text(selectedMode.placeholder)
                 },
                 minLines = 1,
-                maxLines = if (compactLayout) 3 else 4,
+                maxLines = fieldMaxLines,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = { onSend() },
@@ -628,14 +643,14 @@ private fun AgentComposerBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = if (compactLayout) 8.dp else 10.dp),
+                    .padding(top = sectionSpacing),
                 horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
                     onClick = onReset,
                     enabled = !isSending,
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,

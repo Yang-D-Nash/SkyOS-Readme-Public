@@ -8,9 +8,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -111,7 +114,7 @@ import com.skydown.android.ui.theme.BackgroundDark
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @UnstableApi
 @Composable
 fun SkydownApp() {
@@ -225,6 +228,7 @@ fun SkydownApp() {
             val startRoute = selectedEntryRoute ?: "home"
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
+            val hideBottomNavigation = currentDestination?.route == "ai" && WindowInsets.isImeVisible
 
             LaunchedEffect(hasAiAccess, currentDestination?.route) {
                 if (currentDestination?.route == "ai") {
@@ -241,65 +245,67 @@ fun SkydownApp() {
 
             Scaffold(
                 bottomBar = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(
-                                horizontal = if (isCompactLayout) 10.dp else 16.dp,
-                                vertical = if (isCompactLayout) 6.dp else 10.dp,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Surface(
-                            tonalElevation = if (isCompactLayout) 8.dp else 10.dp,
-                            shadowElevation = if (isCompactLayout) 10.dp else 14.dp,
-                            shape = RoundedCornerShape(if (isCompactLayout) 24.dp else 30.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                            ),
-                        ) {
-                            NavigationBar(
-                                modifier = Modifier.padding(
-                                    horizontal = if (isCompactLayout) 4.dp else 6.dp,
-                                    vertical = if (isCompactLayout) 2.dp else 4.dp,
+                    if (!hideBottomNavigation) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(
+                                    horizontal = if (isCompactLayout) 10.dp else 16.dp,
+                                    vertical = if (isCompactLayout) 6.dp else 10.dp,
                                 ),
-                                containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                                tonalElevation = 0.dp,
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Surface(
+                                tonalElevation = if (isCompactLayout) 8.dp else 10.dp,
+                                shadowElevation = if (isCompactLayout) 10.dp else 14.dp,
+                                shape = RoundedCornerShape(if (isCompactLayout) 24.dp else 30.dp),
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                                ),
                             ) {
-                                destinations.forEach { destination ->
-                                    val isSelected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
+                                NavigationBar(
+                                    modifier = Modifier.padding(
+                                        horizontal = if (isCompactLayout) 4.dp else 6.dp,
+                                        vertical = if (isCompactLayout) 2.dp else 4.dp,
+                                    ),
+                                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                    tonalElevation = 0.dp,
+                                ) {
+                                    destinations.forEach { destination ->
+                                        val isSelected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
 
-                                    NavigationBarItem(
-                                        selected = isSelected,
-                                        onClick = {
-                                            navController.navigate(destination.route) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
+                                        NavigationBarItem(
+                                            selected = isSelected,
+                                            onClick = {
+                                                navController.navigate(destination.route) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        },
-                                        icon = { destination.icon(isSelected) },
-                                        label = {
-                                            Text(
-                                                text = destination.label,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        },
-                                        alwaysShowLabel = !isCompactLayout,
-                                        colors = NavigationBarItemDefaults.colors(
-                                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                        ),
-                                    )
+                                            },
+                                            icon = { destination.icon(isSelected) },
+                                            label = {
+                                                Text(
+                                                    text = destination.label,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            },
+                                            alwaysShowLabel = !isCompactLayout,
+                                            colors = NavigationBarItemDefaults.colors(
+                                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                                unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                                unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                            ),
+                                        )
+                                    }
                                 }
                             }
                         }
