@@ -190,6 +190,7 @@ class VideoHubService(
                 "title" to item.title,
                 "detail" to item.detail,
                 "imageUrl" to item.imageUrl.orEmpty(),
+                "imageURLString" to item.imageUrl.orEmpty(),
             )
         }
         val collaborationItems = config.collaborationItems.map { item ->
@@ -200,8 +201,11 @@ class VideoHubService(
                 "highlight" to item.highlight,
                 "vibe" to item.vibe,
                 "imageUrl" to item.imageUrl.orEmpty(),
+                "imageURLString" to item.imageUrl.orEmpty(),
                 "spotifyArtistId" to item.spotifyArtistId.orEmpty(),
+                "spotifyArtistID" to item.spotifyArtistId.orEmpty(),
                 "instagramUrl" to item.instagramUrl.orEmpty(),
+                "instagramURLString" to item.instagramUrl.orEmpty(),
             )
         }
 
@@ -407,9 +411,17 @@ class VideoHubService(
             id = ((map["id"] as? String)?.trim()).takeUnless { it.isNullOrBlank() } ?: UUID.randomUUID().toString(),
             title = title,
             detail = detail,
-            imageUrl = ((map["imageUrl"] as? String) ?: (map["imageURLString"] as? String))
-                ?.trim()
-                .takeUnless { it.isNullOrBlank() },
+            imageUrl = mapTrimmedUrl(
+                map,
+                "imageUrl",
+                "imageURLString",
+                "imageURL",
+                "image",
+                "photoUrl",
+                "photoURL",
+                "avatarUrl",
+                "avatarURL",
+            ),
         )
     }
 
@@ -427,9 +439,76 @@ class VideoHubService(
             role = role,
             highlight = highlight,
             vibe = vibe,
-            imageUrl = (map["imageUrl"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
-            spotifyArtistId = (map["spotifyArtistId"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
-            instagramUrl = (map["instagramUrl"] as? String)?.trim().takeUnless { it.isNullOrBlank() },
+            imageUrl = mapTrimmedUrl(
+                map,
+                "imageUrl",
+                "imageURLString",
+                "imageURL",
+                "image",
+                "photoUrl",
+                "photoURL",
+                "avatarUrl",
+                "avatarURL",
+            ),
+            spotifyArtistId = mapTrimmedString(map, "spotifyArtistId", "spotifyArtistID"),
+            instagramUrl = mapTrimmedUrl(map, "instagramUrl", "instagramURLString", "instagramURL", "instagram"),
         )
+    }
+
+    private fun mapTrimmedString(
+        source: Map<*, *>,
+        vararg keys: String,
+    ): String? {
+        keys.forEach { key ->
+            when (val raw = source[key]) {
+                is String -> {
+                    val candidate = raw.trim()
+                    if (candidate.isNotBlank()) {
+                        return candidate
+                    }
+                }
+
+                is List<*> -> {
+                    val firstString = raw.firstNotNullOfOrNull { it as? String }?.trim()
+                    if (!firstString.isNullOrBlank()) {
+                        return firstString
+                    }
+                }
+
+                is Map<*, *> -> {
+                    val nested = mapTrimmedString(
+                        raw,
+                        "url",
+                        "downloadUrl",
+                        "downloadURL",
+                        "imageUrl",
+                        "imageURL",
+                        "value",
+                    )
+                    if (!nested.isNullOrBlank()) {
+                        return nested
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun mapTrimmedUrl(
+        source: Map<*, *>,
+        vararg keys: String,
+    ): String? {
+        return mapTrimmedString(source, *keys)?.let(::normalizeRemoteUrl)
+    }
+
+    private fun normalizeRemoteUrl(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.startsWith("//")) {
+            return "https:$trimmed"
+        }
+        if (trimmed.startsWith("http://", ignoreCase = true)) {
+            return "https://${trimmed.substring(7)}"
+        }
+        return trimmed
     }
 }

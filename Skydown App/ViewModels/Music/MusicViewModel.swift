@@ -1186,7 +1186,8 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                 "id": item.id,
                 "title": item.title,
                 "detail": item.detail,
-                "imageURLString": item.imageURLString ?? ""
+                "imageURLString": item.imageURLString ?? "",
+                "imageUrl": item.imageURLString ?? ""
             ]
         }
         let youtubeItems = config.youtubeItems.map { item in
@@ -1205,8 +1206,11 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
                 "highlight": item.highlight,
                 "vibe": item.vibe,
                 "imageURLString": item.imageURLString ?? "",
+                "imageUrl": item.imageURLString ?? "",
                 "spotifyArtistID": item.spotifyArtistID ?? "",
+                "spotifyArtistId": item.spotifyArtistID ?? "",
                 "instagramURLString": item.instagramURLString ?? "",
+                "instagramUrl": item.instagramURLString ?? "",
                 "youtubeURLString": item.youtubeURLString ?? ""
             ]
         }
@@ -1434,7 +1438,10 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             id: rawID.isEmpty ? UUID().uuidString : rawID,
             title: title,
             detail: detail,
-            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
+            imageURLString: (
+                (value["imageURLString"] as? String)
+                ?? (value["imageUrl"] as? String)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
         )
     }
 
@@ -1467,10 +1474,22 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
             role: role,
             highlight: highlight,
             vibe: vibe,
-            imageURLString: (value["imageURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
-            spotifyArtistID: (value["spotifyArtistID"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
-            instagramURLString: (value["instagramURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
-            youtubeURLString: (value["youtubeURLString"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
+            imageURLString: (
+                (value["imageURLString"] as? String)
+                ?? (value["imageUrl"] as? String)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+            spotifyArtistID: (
+                (value["spotifyArtistID"] as? String)
+                ?? (value["spotifyArtistId"] as? String)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+            instagramURLString: (
+                (value["instagramURLString"] as? String)
+                ?? (value["instagramUrl"] as? String)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty,
+            youtubeURLString: (
+                (value["youtubeURLString"] as? String)
+                ?? (value["youtubeUrl"] as? String)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines).musicNilIfEmpty
         )
     }
 }

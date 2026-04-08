@@ -1255,6 +1255,8 @@ struct ProducedWithArtistRow: View {
                     Text(artist.role.uppercased())
                         .font(.caption2.weight(.bold))
                         .foregroundColor(.white.opacity(0.94))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
                         .background(.black.opacity(0.34), in: Capsule())
@@ -1265,6 +1267,7 @@ struct ProducedWithArtistRow: View {
                         Text(artist.vibe)
                             .font(.caption.weight(.bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 5)
                             .background(AppColors.accent(for: colorScheme).opacity(0.72), in: Capsule())
@@ -1277,6 +1280,7 @@ struct ProducedWithArtistRow: View {
                     Text(artist.name)
                         .font(.subheadline.weight(.bold))
                         .foregroundColor(.white)
+                        .lineLimit(1)
                         .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
 
                     if !artist.highlight.isEmpty {
@@ -1346,7 +1350,7 @@ struct ProducedWithArtistRow: View {
             .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 148)
+        .frame(height: 140)
         .background(
             LinearGradient(
                 colors: [

@@ -1241,6 +1241,27 @@ private fun ProducedWithArtistRow(
                 shape = RoundedCornerShape(18.dp),
             ),
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            FieldMint,
+                            DexBlue,
+                        ),
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = artist.name.take(1).uppercase(),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Black,
+                color = Color.White,
+            )
+        }
+
         if (!artist.imageUrl.isNullOrBlank()) {
             AsyncImage(
                 model = artist.imageUrl,
@@ -1248,27 +1269,6 @@ private fun ProducedWithArtistRow(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                FieldMint,
-                                DexBlue,
-                            ),
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = artist.name.take(1).uppercase(),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White,
-                )
-            }
         }
 
         Box(
