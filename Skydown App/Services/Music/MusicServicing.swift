@@ -15,6 +15,18 @@ protocol MusicServicing {
     func fetchTracks(for artist: String) async throws -> [Track]
 }
 
+private func stablePositiveIdentifier(for value: some StringProtocol) -> Int {
+    var hash: UInt64 = 1_469_598_103_934_665_603
+
+    for byte in value.utf8 {
+        hash ^= UInt64(byte)
+        hash &*= 1_099_511_628_211
+    }
+
+    let bounded = hash % UInt64(Int.max)
+    return Int(bounded == 0 ? 1 : bounded)
+}
+
 enum SpotifyAuthError: LocalizedError {
     case invalidCallback
     case invalidState
@@ -166,8 +178,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             let matchingArtist = item.artists.first
             let artworkURL = item.album.images.first?.url
             return Track(
-                trackId: abs(item.id.hashValue),
-                artistId: abs((matchingArtist?.id ?? item.artists.first?.id ?? item.id).hashValue),
+                trackId: stablePositiveIdentifier(for: item.id),
+                artistId: stablePositiveIdentifier(for: matchingArtist?.id ?? item.artists.first?.id ?? item.id),
                 spotifyArtistID: matchingArtist?.id ?? item.artists.first?.id,
                 spotifyTrackID: item.id,
                 artistName: matchingArtist?.name ?? item.artists.first?.name,
@@ -212,8 +224,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             .sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
             .map { item in
                 Track(
-                    trackId: item.trackId ?? abs("\(item.artistName)-\(item.trackName)".hashValue),
-                    artistId: item.artistId ?? abs(item.artistName.hashValue),
+                    trackId: item.trackId ?? stablePositiveIdentifier(for: "\(item.artistName)-\(item.trackName)"),
+                    artistId: item.artistId ?? stablePositiveIdentifier(for: item.artistName),
                     spotifyArtistID: knownArtistID,
                     spotifyTrackID: nil,
                     artistName: item.artistName,
@@ -323,8 +335,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         let previewURL = (((track["previews"] as? [String: Any])?["audioPreviews"] as? [String: Any])?["items"] as? [[String: Any]])?.first?["url"] as? String
 
         return Track(
-            trackId: abs(trackID.hashValue),
-            artistId: abs(artistID.hashValue),
+            trackId: stablePositiveIdentifier(for: trackID),
+            artistId: stablePositiveIdentifier(for: artistID),
             spotifyArtistID: artistID,
             spotifyTrackID: trackID,
             artistName: publicArtistName(from: matchingArtist) ?? artist,
@@ -370,8 +382,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             let previewURL = (((track["previews"] as? [String: Any])?["audioPreviews"] as? [String: Any])?["items"] as? [[String: Any]])?.first?["url"] as? String
 
             return Track(
-                trackId: abs(trackID.hashValue),
-                artistId: abs(artistID.hashValue),
+                trackId: stablePositiveIdentifier(for: trackID),
+                artistId: stablePositiveIdentifier(for: artistID),
                 spotifyArtistID: artistID,
                 spotifyTrackID: trackID,
                 artistName: publicArtistName(from: matchingArtist) ?? artist,
@@ -410,8 +422,8 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 let matchingArtist = item.artists.first { $0.id == artistID }
                 orderedTrackIDs.append(item.id)
                 tracksByID[item.id] = Track(
-                    trackId: abs(item.id.hashValue),
-                    artistId: abs(artistID.hashValue),
+                    trackId: stablePositiveIdentifier(for: item.id),
+                    artistId: stablePositiveIdentifier(for: artistID),
                     spotifyArtistID: artistID,
                     spotifyTrackID: item.id,
                     artistName: matchingArtist?.name ?? artist,

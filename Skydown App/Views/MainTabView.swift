@@ -460,7 +460,8 @@ private struct ZweizweiTabView: View {
                                         detail: "Das ist der schnellste Weg in den Music-Katalog mit Preview, Spotify und Artist-Pages.",
                                         accent: AppColors.spotify(for: colorScheme),
                                         systemImage: "waveform.circle.fill",
-                                        badges: ["Tracks", "Spotify", "Pages"]
+                                        badges: ["Tracks", "Spotify", "Pages"],
+                                        accessibilityID: "music.hub.open_catalog"
                                     ) {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
@@ -502,7 +503,8 @@ private struct ZweizweiTabView: View {
                                         detail: "Das ist der schnellste Weg in den Music-Katalog mit Preview, Spotify und Artist-Pages.",
                                         accent: AppColors.spotify(for: colorScheme),
                                         systemImage: "waveform.circle.fill",
-                                        badges: ["Tracks", "Spotify", "Pages"]
+                                        badges: ["Tracks", "Spotify", "Pages"],
+                                        accessibilityID: "music.hub.open_catalog"
                                     ) {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
@@ -541,6 +543,7 @@ private struct ZweizweiTabView: View {
                         .padding(.bottom, SkydownLayout.screenBottomPadding)
                         .frame(maxWidth: .infinity)
                     }
+                    .accessibilityIdentifier("music.hub.root")
                     .scrollIndicators(.hidden)
                 }
                 .background(
@@ -602,7 +605,30 @@ private struct ShellActionCard: View {
     let accent: Color
     let systemImage: String
     let badges: [String]
+    let accessibilityID: String?
     let action: () -> Void
+
+    init(
+        eyebrow: String,
+        title: String,
+        subtitle: String,
+        detail: String,
+        accent: Color,
+        systemImage: String,
+        badges: [String],
+        accessibilityID: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.subtitle = subtitle
+        self.detail = detail
+        self.accent = accent
+        self.systemImage = systemImage
+        self.badges = badges
+        self.accessibilityID = accessibilityID
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
@@ -681,6 +707,7 @@ private struct ShellActionCard: View {
                 shadowYOffset: 8
             )
         }
+        .accessibilityIdentifier(accessibilityID ?? title)
         .buttonStyle(SkydownTactileButtonStyle())
     }
 }

@@ -144,7 +144,10 @@ struct MusicView: View {
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
-        _selectedArtist = State(initialValue: initialArtist ?? brand.artists.first ?? "Yang D. Nash")
+        let resolvedInitialArtist = initialArtist.flatMap { requestedArtist in
+            brand.artists.contains(requestedArtist) ? requestedArtist : nil
+        } ?? brand.artists.first ?? "Yang D. Nash"
+        _selectedArtist = State(initialValue: resolvedInitialArtist)
         _selectedTrackID = State(initialValue: initialTrackID)
     }
 
@@ -220,6 +223,7 @@ struct MusicView: View {
                     .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 88 : 0))
                     .frame(maxWidth: .infinity)
                 }
+                .accessibilityIdentifier("music.catalog.root")
                 .scrollIndicators(.hidden)
                 .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
                 .navigationTitle(brand.navigationTitle)
@@ -702,18 +706,20 @@ struct MusicView: View {
                 .font(.headline)
 
             if brand.showsArtistPages {
-                Text("Swipe durch alle Artist-Pages und oeffne direkt das Profil, das dich interessiert.")
+                Text("Scroll durch alle Artist-Pages, setz einen Artist in den Fokus und oeffne direkt das passende Profil.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                TabView(selection: $selectedArtist) {
-                    ForEach(artists, id: \.self) { artist in
-                        artistPagerCard(for: artist)
-                            .tag(artist)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 12) {
+                        ForEach(artists, id: \.self) { artist in
+                            artistPagerCard(for: artist)
+                                .frame(width: 296, height: 236)
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
-                .frame(height: 240)
-                .tabViewStyle(.page(indexDisplayMode: .always))
+                .accessibilityIdentifier("music.artists.rail")
             } else {
                 ForEach(artists, id: \.self) { artist in
                     artistButton(for: artist)
@@ -786,6 +792,7 @@ struct MusicView: View {
 
     private func artistPagerCard(for artist: String) -> some View {
         let page = artistPagesStore.page(for: brand.artistPageBrand, artistName: artist)
+        let isSelected = selectedArtist == artist
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
@@ -801,7 +808,15 @@ struct MusicView: View {
 
                 Spacer()
 
-                if page.hasCustomPresentation {
+                if isSelected {
+                    Text("Aktiv")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(AppColors.spotify(for: colorScheme))
+                        .clipShape(Capsule())
+                } else if page.hasCustomPresentation {
                     Text("Live")
                         .font(.caption.weight(.bold))
                         .foregroundColor(.white)
@@ -829,27 +844,53 @@ struct MusicView: View {
                 }
             }
 
-            Button {
-                selectedArtist = artist
-                presentSheet(.artistPage)
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "person.crop.square.fill")
-                        .font(.headline.weight(.bold))
-                    Text("\(artist) entdecken")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
+            HStack(spacing: 10) {
+                Button {
+                    selectedArtist = artist
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "music.mic")
+                            .font(.headline.weight(.bold))
+                        Text(isSelected ? "Im Fokus" : "Artist waehlen")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(AppColors.accent(for: colorScheme).opacity(0.94))
+                    )
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(AppColors.spotify(for: colorScheme).opacity(0.88))
-                )
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+
+                Button {
+                    selectedArtist = artist
+                    presentSheet(.artistPage)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.crop.square.fill")
+                            .font(.headline.weight(.bold))
+                        Text("Page")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundColor(AppColors.spotify(for: colorScheme))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(AppColors.spotifySurface(for: colorScheme))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
             }
-            .buttonStyle(.plain)
-            .skydownTactileAction()
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

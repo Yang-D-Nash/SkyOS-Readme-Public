@@ -66,4 +66,36 @@ final class Skydown_AppUITests: XCTestCase {
             "Die Settings-Ansicht sollte ohne Crash erscheinen."
         )
     }
+
+    @MainActor
+    func testMusicCatalogCanOpenFromLanding() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let openMusicButton = app.buttons["launch.open_music"].firstMatch
+        XCTAssertTrue(
+            openMusicButton.waitForExistence(timeout: 45),
+            "Der Music-Einstieg sollte nach Intro/Landing sichtbar sein."
+        )
+        openMusicButton.tap()
+
+        let musicHub = app.descendants(matching: .any)["music.hub.root"].firstMatch
+        XCTAssertTrue(
+            musicHub.waitForExistence(timeout: 30),
+            "Der Music-Hub sollte ohne Crash erscheinen."
+        )
+
+        let catalogButton = app.buttons["music.hub.open_catalog"].firstMatch
+        XCTAssertTrue(
+            catalogButton.waitForExistence(timeout: 10),
+            "Der Katalog-Einstieg sollte im Music-Hub sichtbar sein."
+        )
+        catalogButton.tap()
+
+        let catalogRoot = app.descendants(matching: .any)["music.catalog.root"].firstMatch
+        XCTAssertTrue(
+            catalogRoot.waitForExistence(timeout: 30),
+            "Der Music-Katalog sollte ohne Crash erscheinen."
+        )
+    }
 }
