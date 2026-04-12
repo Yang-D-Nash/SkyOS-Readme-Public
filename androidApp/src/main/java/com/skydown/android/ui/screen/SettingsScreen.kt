@@ -198,6 +198,12 @@ fun SettingsScreen(
     var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
     var automationKnowledgeContextDraft by rememberSaveable { mutableStateOf("") }
+    var agentProfileEnabledDraft by rememberSaveable { mutableStateOf(false) }
+    var agentRoleLabelDraft by rememberSaveable { mutableStateOf("") }
+    var agentSkillProfileDraft by rememberSaveable { mutableStateOf("") }
+    var agentOutputFormatDraft by rememberSaveable { mutableStateOf("") }
+    var agentGuardrailsDraft by rememberSaveable { mutableStateOf("") }
+    var agentKnowledgeContextDraft by rememberSaveable { mutableStateOf("") }
     var aiTextInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiVisualInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiAgentSystemInstructionDraft by rememberSaveable { mutableStateOf("") }
@@ -333,6 +339,15 @@ fun SettingsScreen(
         automationAuthHeaderNameDraft = uiState.workflowAutomationSettings.authHeaderName
         automationAuthHeaderValueDraft = uiState.workflowAutomationSettings.authHeaderValue
         automationKnowledgeContextDraft = uiState.workflowAutomationSettings.knowledgeContext
+    }
+
+    LaunchedEffect(uiState.agentProfileSettings) {
+        agentProfileEnabledDraft = uiState.agentProfileSettings.isEnabled
+        agentRoleLabelDraft = uiState.agentProfileSettings.roleLabel
+        agentSkillProfileDraft = uiState.agentProfileSettings.skillProfile
+        agentOutputFormatDraft = uiState.agentProfileSettings.outputFormat
+        agentGuardrailsDraft = uiState.agentProfileSettings.guardrails
+        agentKnowledgeContextDraft = uiState.agentProfileSettings.knowledgeContext
     }
 
     LaunchedEffect(uiState.aiPromptSettings) {
@@ -1635,6 +1650,100 @@ fun SettingsScreen(
                         Text("Test senden")
                     }
                 }
+
+                Text(
+                    text = "Mein Agent-Profil (Skills & Arbeitsweise)",
+                    modifier = Modifier.padding(top = 18.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                SettingsToggleRow(
+                    title = "Persoenliches Agent-Profil aktiv",
+                    body = "Wenn aktiv, nutzt der Agent deine Skills, Output-Vorgaben und Guardrails fuer dieses Konto.",
+                    checked = agentProfileEnabledDraft,
+                    onCheckedChange = { agentProfileEnabledDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+
+                OutlinedTextField(
+                    value = agentRoleLabelDraft,
+                    onValueChange = { agentRoleLabelDraft = it.take(240) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Rolle / Fokus") },
+                    placeholder = { Text("z. B. Artist Brand Strategist, Rap Release Lead") },
+                    minLines = 2,
+                    maxLines = 4,
+                )
+                OutlinedTextField(
+                    value = agentSkillProfileDraft,
+                    onValueChange = { agentSkillProfileDraft = it.take(12000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Skills & Spezialisierungen") },
+                    placeholder = {
+                        Text("z. B. TikTok Hooks, Storyboard, Shotlist, Reels, Scriptwriting, Content-Repurposing")
+                    },
+                    minLines = 4,
+                    maxLines = 12,
+                )
+                OutlinedTextField(
+                    value = agentOutputFormatDraft,
+                    onValueChange = { agentOutputFormatDraft = it.take(4000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Antwort- / Deliverable-Format") },
+                    placeholder = { Text("z. B. Erst Plan, dann Shotlist, dann CTA-Varianten in Tabellenform") },
+                    minLines = 3,
+                    maxLines = 8,
+                )
+                OutlinedTextField(
+                    value = agentGuardrailsDraft,
+                    onValueChange = { agentGuardrailsDraft = it.take(4000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Guardrails / No-Gos") },
+                    placeholder = { Text("z. B. keine generischen Phrasen, keine Jugend-Slang-Simulation, kein Clickbait") },
+                    minLines = 3,
+                    maxLines = 8,
+                )
+                OutlinedTextField(
+                    value = agentKnowledgeContextDraft,
+                    onValueChange = { agentKnowledgeContextDraft = it.take(4000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Persoenlicher Knowledge-Kontext") },
+                    placeholder = { Text("z. B. Zielgruppe, Projekt-DNA, Sound-Referenzen, Release-KPIs") },
+                    minLines = 3,
+                    maxLines = 8,
+                )
+
+                Button(
+                    onClick = {
+                        viewModel.saveAgentProfileSettings(
+                            uiState.agentProfileSettings.copy(
+                                isEnabled = agentProfileEnabledDraft,
+                                roleLabel = agentRoleLabelDraft,
+                                skillProfile = agentSkillProfileDraft,
+                                outputFormat = agentOutputFormatDraft,
+                                guardrails = agentGuardrailsDraft,
+                                knowledgeContext = agentKnowledgeContextDraft,
+                            ),
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("Agent-Profil speichern")
+                }
             }
 
             AdminWorkspaceSection.AiPrompts -> {
@@ -2296,7 +2405,7 @@ fun SettingsScreen(
                         SkydownCard(contentPadding = PaddingValues(18.dp)) {
                             SectionHeader("Mein Agent-Service")
                             Text(
-                                text = "Hier hinterlegst du deinen persoenlichen n8n-Workflow fuer Agent-Aktionen. Die Verbindung ist konto-basiert (adminConfig/automationN8n_<uid>) und bleibt damit pro User getrennt.",
+                                text = "Hier hinterlegst du deinen persoenlichen n8n-Workflow und dein Agent-Profil. Beides ist konto-basiert (`adminConfig/automationN8n_<uid>` + `adminConfig/agentProfile_<uid>`).",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -2308,6 +2417,11 @@ fun SettingsScreen(
                                     text = if (uiState.workflowAutomationSettings.isPrepared) "Workflow bereit" else "Workflow offen",
                                     icon = Icons.Default.Bolt,
                                     isActive = uiState.workflowAutomationSettings.isPrepared,
+                                )
+                                SettingsBadge(
+                                    text = if (uiState.agentProfileSettings.isConfigured) "Skills aktiv" else "Skills offen",
+                                    icon = Icons.Default.Settings,
+                                    isActive = uiState.agentProfileSettings.isConfigured,
                                 )
                                 uiState.workflowAutomationSettings.workflowName
                                     .takeIf { it.isNotBlank() }
@@ -3266,7 +3380,7 @@ private enum class AdminWorkspaceSection(
     ),
     Automation(
         label = "Automation",
-        subtitle = "Persoenlichen n8n-Service pro Konto anbinden und den Webhook testen.",
+        subtitle = "Persoenlichen Workflow und Agent-Skills pro Konto pflegen.",
         icon = Icons.Default.Bolt,
     ),
     AiPrompts(
@@ -3302,7 +3416,12 @@ private fun adminWorkspaceStatusText(
         AdminWorkspaceSection.Shopify -> uiState.shopifyAdminSettings.activeCollectionLabel
         AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
         AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"
-        AdminWorkspaceSection.Automation -> if (uiState.workflowAutomationSettings.isPrepared) "n8n bereit" else "Noch offen"
+        AdminWorkspaceSection.Automation -> when {
+            uiState.workflowAutomationSettings.isPrepared && uiState.agentProfileSettings.isConfigured -> "Workflow + Skills bereit"
+            uiState.workflowAutomationSettings.isPrepared -> "n8n bereit"
+            uiState.agentProfileSettings.isConfigured -> "Skills bereit"
+            else -> "Noch offen"
+        }
         AdminWorkspaceSection.AiPrompts -> if (uiState.aiPromptSettings.assetLibraryLink.isBlank()) {
             "Text ${uiState.aiPromptSettings.textInstruction.length}"
         } else {

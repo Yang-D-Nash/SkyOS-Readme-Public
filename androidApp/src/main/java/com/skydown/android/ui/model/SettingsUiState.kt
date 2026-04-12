@@ -1,6 +1,7 @@
 package com.skydown.android.ui.model
 
 import com.skydown.android.ui.theme.AppearanceMode
+import com.skydown.android.data.AgentProfileSettings
 import com.skydown.android.data.AiPromptSettings
 import com.skydown.android.data.AiRuntimeSettings
 import com.skydown.android.data.AiVisualReferenceLibrarySettings
@@ -32,6 +33,7 @@ data class SettingsUiState(
     val isDeletingAccount: Boolean = false,
     val accountErrorMessage: String? = null,
     val aiVisualReferenceLibrary: AiVisualReferenceLibrarySettings = AiVisualReferenceLibrarySettings(),
+    val agentProfileSettings: AgentProfileSettings = AgentProfileSettings(),
     val aiPromptSettings: AiPromptSettings = AiPromptSettings(),
     val aiRuntimeSettings: AiRuntimeSettings = AiRuntimeSettings(),
     val workflowAutomationSettings: WorkflowAutomationSettings = WorkflowAutomationSettings(),

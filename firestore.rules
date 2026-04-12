@@ -125,6 +125,10 @@ service cloud.firestore {
       );
     }
 
+    function optionalTimestamp(value) {
+      return value == null || value is timestamp;
+    }
+
     function optionalMapString(data, field, max) {
       return !data.keys().hasAny([field]) || optionalString(data[field], max);
     }
@@ -135,6 +139,82 @@ service cloud.firestore {
 
     function optionalMapShortUrlOrBlank(data, field) {
       return !data.keys().hasAny([field]) || optionalShortUrlOrBlank(data[field]);
+    }
+
+    function optionalMapTimestamp(data, field) {
+      return !data.keys().hasAny([field]) || optionalTimestamp(data[field]);
+    }
+
+    function ownAutomationConfigDocId() {
+      return "automationN8n_" + request.auth.uid;
+    }
+
+    function ownAgentProfileDocId() {
+      return "agentProfile_" + request.auth.uid;
+    }
+
+    function isOwnAutomationAdminConfig(documentId) {
+      return signedIn() && documentId == ownAutomationConfigDocId();
+    }
+
+    function isOwnAgentProfileAdminConfig(documentId) {
+      return signedIn() && documentId == ownAgentProfileDocId();
+    }
+
+    function validWorkflowAutomationUserPayload() {
+      return request.resource.data.keys().hasOnly([
+        "provider",
+        "isEnabled",
+        "sendsUserContext",
+        "workflowName",
+        "baseURL",
+        "webhookPath",
+        "authHeaderName",
+        "authHeaderValue",
+        "knowledgeContext",
+        "updatedAt"
+      ])
+      && (
+        !request.resource.data.keys().hasAny(["provider"])
+        || request.resource.data.provider == "n8n"
+      )
+      && (
+        !request.resource.data.keys().hasAny(["isEnabled"])
+        || request.resource.data.isEnabled is bool
+      )
+      && (
+        !request.resource.data.keys().hasAny(["sendsUserContext"])
+        || request.resource.data.sendsUserContext is bool
+      )
+      && optionalMapString(request.resource.data, "workflowName", 120)
+      && optionalMapShortUrlOrBlank(request.resource.data, "baseURL")
+      && optionalMapString(request.resource.data, "webhookPath", 512)
+      && optionalMapString(request.resource.data, "authHeaderName", 120)
+      && optionalMapString(request.resource.data, "authHeaderValue", 600)
+      && optionalMapString(request.resource.data, "knowledgeContext", 4000)
+      && optionalMapTimestamp(request.resource.data, "updatedAt");
+    }
+
+    function validPersonalAgentProfilePayload() {
+      return request.resource.data.keys().hasOnly([
+        "isEnabled",
+        "roleLabel",
+        "skillProfile",
+        "outputFormat",
+        "guardrails",
+        "knowledgeContext",
+        "updatedAt"
+      ])
+      && (
+        !request.resource.data.keys().hasAny(["isEnabled"])
+        || request.resource.data.isEnabled is bool
+      )
+      && optionalMapString(request.resource.data, "roleLabel", 240)
+      && optionalMapString(request.resource.data, "skillProfile", 12000)
+      && optionalMapString(request.resource.data, "outputFormat", 4000)
+      && optionalMapString(request.resource.data, "guardrails", 4000)
+      && optionalMapString(request.resource.data, "knowledgeContext", 4000)
+      && optionalMapTimestamp(request.resource.data, "updatedAt");
     }
 
     function validImageContentType(value) {
@@ -684,7 +764,25 @@ service cloud.firestore {
     }
 
     match /adminConfig/{documentId} {
-      allow read, create, update, delete: if isOwner();
+      allow read: if isOwner()
+        || isOwnAutomationAdminConfig(documentId)
+        || isOwnAgentProfileAdminConfig(documentId);
+
+      allow create, update: if isOwner() || (
+        regularUserWriteAllowed()
+        && (
+          (isOwnAutomationAdminConfig(documentId) && validWorkflowAutomationUserPayload())
+          || (isOwnAgentProfileAdminConfig(documentId) && validPersonalAgentProfilePayload())
+        )
+      );
+
+      allow delete: if isOwner() || (
+        regularUserWriteAllowed()
+        && (
+          isOwnAutomationAdminConfig(documentId)
+          || isOwnAgentProfileAdminConfig(documentId)
+        )
+      );
     }
 
     match /nicmaBeatHub/{beatId} {

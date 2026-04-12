@@ -68,6 +68,7 @@ const SHOPIFY_PRIVATE_CONFIG_COLLECTION = "adminConfig";
 const SHOPIFY_PRIVATE_CONFIG_DOCUMENT = "shopifyMerchPrivate";
 const AUTOMATION_CONFIG_COLLECTION = "adminConfig";
 const AUTOMATION_CONFIG_DOCUMENT = "automationN8n";
+const PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX = "agentProfile_";
 const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
 const STRIPE_SECRET_STATUS_COLLECTION = "adminConfig";
@@ -323,6 +324,15 @@ const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
   },
 });
 
+const DEFAULT_PERSONAL_AGENT_PROFILE_SETTINGS = Object.freeze({
+  isEnabled: false,
+  roleLabel: "",
+  skillProfile: "",
+  outputFormat: "",
+  guardrails: "",
+  knowledgeContext: "",
+});
+
 let aiFeatureConfigCache = {
   expiresAt: 0,
   values: null,
@@ -498,6 +508,14 @@ function normalizeAiPromptSetting(value, fallback) {
   }
 
   return normalized.slice(0, 12000);
+}
+
+function normalizePersonalAgentProfileSetting(value, maxChars = 4000) {
+  const normalized = nonEmptyString(value);
+  if (!normalized) {
+    return "";
+  }
+  return normalized.slice(0, maxChars);
 }
 
 function resolveAiPromptSettings(data = {}) {
@@ -1014,6 +1032,10 @@ function automationConfigDocumentIdFor(userId) {
   return `automationN8n_${userId}`;
 }
 
+function personalAgentProfileDocumentIdFor(userId) {
+  return `${PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX}${userId}`;
+}
+
 async function loadWorkflowAutomationSettingsForUser(userId) {
   if (nonEmptyString(userId)) {
     const personalSnapshot = await admin.firestore()
@@ -1044,6 +1066,33 @@ function decodeWorkflowAutomationSettings(data = {}) {
     authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
     knowledgeContext: nonEmptyString(data.knowledgeContext) || "",
   };
+}
+
+function decodePersonalAgentProfileSettings(data = {}) {
+  return {
+    isEnabled: data.isEnabled === true,
+    roleLabel: normalizePersonalAgentProfileSetting(data.roleLabel, 240),
+    skillProfile: normalizePersonalAgentProfileSetting(data.skillProfile, 12000),
+    outputFormat: normalizePersonalAgentProfileSetting(data.outputFormat, 4000),
+    guardrails: normalizePersonalAgentProfileSetting(data.guardrails, 4000),
+    knowledgeContext: normalizePersonalAgentProfileSetting(data.knowledgeContext, 4000),
+  };
+}
+
+async function loadPersonalAgentProfileSettingsForUser(userId) {
+  if (!nonEmptyString(userId)) {
+    return DEFAULT_PERSONAL_AGENT_PROFILE_SETTINGS;
+  }
+
+  const snapshot = await admin.firestore()
+      .collection(AUTOMATION_CONFIG_COLLECTION)
+      .doc(personalAgentProfileDocumentIdFor(userId))
+      .get();
+  if (!snapshot.exists) {
+    return DEFAULT_PERSONAL_AGENT_PROFILE_SETTINGS;
+  }
+
+  return decodePersonalAgentProfileSettings(snapshot.data() || {});
 }
 
 async function loadAutomationCaller(auth) {
@@ -3705,6 +3754,53 @@ ${responseFrameworkHint(mode, prompt)}
   `.trim();
 }
 
+function composePersonalAgentProfileInstruction(personalAgentProfile) {
+  if (!personalAgentProfile || personalAgentProfile.isEnabled !== true) {
+    return "";
+  }
+
+  const sections = [];
+  if (personalAgentProfile.roleLabel) {
+    sections.push(`Persoenlicher Fokus dieses Kontos:\n${personalAgentProfile.roleLabel}`);
+  }
+  if (personalAgentProfile.skillProfile) {
+    sections.push(`Persoenliche Skills und Spezialisierungen:\n${personalAgentProfile.skillProfile}`);
+  }
+  if (personalAgentProfile.outputFormat) {
+    sections.push(`Gewuenschtes Ausgabeformat / Deliverables:\n${personalAgentProfile.outputFormat}`);
+  }
+  if (personalAgentProfile.guardrails) {
+    sections.push(`Guardrails / No-Gos:\n${personalAgentProfile.guardrails}`);
+  }
+  if (personalAgentProfile.knowledgeContext) {
+    sections.push(`Persoenlicher Knowledge-Kontext:\n${personalAgentProfile.knowledgeContext}`);
+  }
+  if (!sections.length) {
+    return "";
+  }
+
+  return `
+Zusaetzliche persoenliche Agent-Vorgaben (nur fuer dieses Konto):
+${sections.join("\n\n")}
+  `.trim();
+}
+
+function buildEffectiveAgentSystemInstruction(globalSystemInstruction, personalAgentProfile) {
+  const globalInstruction = normalizeAiPromptSetting(
+      globalSystemInstruction,
+      DEFAULT_AI_PROMPT_SETTINGS.agentSystemInstruction,
+  );
+  const personalInstruction = composePersonalAgentProfileInstruction(personalAgentProfile);
+  if (!personalInstruction) {
+    return globalInstruction;
+  }
+
+  return normalizeAiPromptSetting(
+      `${globalInstruction}\n\n${personalInstruction}`,
+      DEFAULT_AI_PROMPT_SETTINGS.agentSystemInstruction,
+  );
+}
+
 function trimTextMax(value, maxChars) {
   const normalized = nonEmptyString(value) || "";
   if (!maxChars || maxChars < 1 || normalized.length <= maxChars) {
@@ -3798,7 +3894,7 @@ function waitForMs(durationMs) {
   return new Promise((resolve) => setTimeout(resolve, durationMs));
 }
 
-async function loadAgentWorkspaceContext(auth, promptSettings) {
+async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProfile = DEFAULT_PERSONAL_AGENT_PROFILE_SETTINGS) {
   const lines = [];
 
   if (auth?.uid) {
@@ -3818,6 +3914,16 @@ async function loadAgentWorkspaceContext(auth, promptSettings) {
       const knowledgeContext = nonEmptyString(workflowSettings.knowledgeContext);
       if (knowledgeContext) {
         lines.push(`Persoenlicher Knowledge-Kontext: ${knowledgeContext}`);
+      }
+    }
+
+    if (personalAgentProfile?.isEnabled) {
+      lines.push("Persoenliches Agent-Profil: aktiv");
+      if (personalAgentProfile.roleLabel) {
+        lines.push(`Fokus: ${trimTextMax(personalAgentProfile.roleLabel, 220)}`);
+      }
+      if (personalAgentProfile.skillProfile) {
+        lines.push(`Skills-Profil: ${trimTextMax(personalAgentProfile.skillProfile, 320)}`);
       }
     }
   }
@@ -4159,8 +4265,21 @@ exports.skydownAgent = onCall({
     kind: AI_USAGE_KINDS.agent,
   });
   const promptSettings = await loadAiPromptSettings();
+  const personalAgentProfile = await loadPersonalAgentProfileSettingsForUser(request.auth?.uid);
+  const effectiveAgentSystemInstruction = buildEffectiveAgentSystemInstruction(
+      promptSettings.agentSystemInstruction,
+      personalAgentProfile,
+  );
+  const effectivePromptSettings = {
+    ...promptSettings,
+    agentSystemInstruction: effectiveAgentSystemInstruction,
+  };
   const runtimeSettings = await loadAiRuntimeSettings();
-  const workspaceContext = await loadAgentWorkspaceContext(request.auth, promptSettings);
+  const workspaceContext = await loadAgentWorkspaceContext(
+      request.auth,
+      promptSettings,
+      personalAgentProfile,
+  );
   let reply = "";
   let agentProvider = AI_AGENT_PROVIDERS.gemini;
   let providerFallbackUsed = false;
@@ -4171,7 +4290,7 @@ exports.skydownAgent = onCall({
       const manusResult = await runManusAgent({
         input,
         runtimeSettings,
-        promptSettings,
+        promptSettings: effectivePromptSettings,
         workspaceContext,
       });
       reply = manusResult.reply;
@@ -4193,7 +4312,7 @@ exports.skydownAgent = onCall({
   if (!reply) {
     reply = await skydownAgentFlow({
       ...input,
-      systemInstruction: promptSettings.agentSystemInstruction,
+      systemInstruction: effectiveAgentSystemInstruction,
       workspaceContext,
     });
     agentProvider = AI_AGENT_PROVIDERS.gemini;

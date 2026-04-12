@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppearancePreferences
+import com.skydown.android.data.AgentProfilePreferences
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.AppLanguageSupport
 import com.skydown.android.data.BankTransferSettings
@@ -56,6 +57,7 @@ class SettingsViewModel : ViewModel() {
             AppContainer.currentUser.collect { user ->
                 val isOwner = user?.isPlatformOwner == true
                 WorkflowAutomationPreferences.setUserMode(user?.id)
+                AgentProfilePreferences.setUserMode(user?.id)
                 val displayName = user?.username
                     ?.takeIf { it.isNotBlank() }
                     ?: user?.email
@@ -112,6 +114,12 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             WorkflowAutomationPreferences.settings.collect { settings ->
                 _uiState.update { it.copy(workflowAutomationSettings = settings) }
+            }
+        }
+
+        viewModelScope.launch {
+            AgentProfilePreferences.settings.collect { settings ->
+                _uiState.update { it.copy(agentProfileSettings = settings) }
             }
         }
 
@@ -204,6 +212,32 @@ class SettingsViewModel : ViewModel() {
             } else {
                 showPaymentFeedback(
                     message = result.exceptionOrNull()?.message ?: "Agent-Service konnte nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun saveAgentProfileSettings(settings: com.skydown.android.data.AgentProfileSettings) {
+        viewModelScope.launch {
+            if (_uiState.value.currentUserId.isNullOrBlank()) {
+                showPaymentFeedback(
+                    message = "Bitte melde dich an, um dein Agent-Profil zu speichern.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val result = AgentProfilePreferences.saveSettings(settings)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(agentProfileSettings = settings) }
+                showPaymentFeedback(
+                    message = "Agent-Profil gespeichert. Dein Agent nutzt jetzt deine Skills und Vorgaben.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "Agent-Profil konnte nicht gespeichert werden.",
                     isError = true,
                 )
             }

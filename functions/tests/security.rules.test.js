@@ -248,6 +248,60 @@ test("subadmin bleibt ausserhalb von Owner- und Admin-Bereichen", async () => {
   }));
 });
 
+test("user darf eigenen Automation- und Agent-Config in adminConfig schreiben", async () => {
+  await seedUser("alice");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertSucceeds(setDoc(doc(aliceDb, "adminConfig", "automationN8n_alice"), {
+    provider: "n8n",
+    isEnabled: true,
+    sendsUserContext: true,
+    workflowName: "Alice Workflow",
+    baseURL: "https://n8n.example.com",
+    webhookPath: "webhook/skydown",
+    authHeaderName: "X-Workflow-Key",
+    authHeaderValue: "secret-value",
+    knowledgeContext: "Brand SOP",
+    updatedAt: Timestamp.now(),
+  }));
+
+  await assertSucceeds(setDoc(doc(aliceDb, "adminConfig", "agentProfile_alice"), {
+    isEnabled: true,
+    roleLabel: "Artist Release Strategist",
+    skillProfile: "Hooks, Shotlists, Captions",
+    outputFormat: "Plan + Checkliste + CTA",
+    guardrails: "kein Clickbait",
+    knowledgeContext: "Release Plan Q2",
+    updatedAt: Timestamp.now(),
+  }));
+});
+
+test("user darf keine fremden personal adminConfig Dokus schreiben", async () => {
+  await seedUser("alice");
+  await seedUser("bob");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertFails(setDoc(doc(aliceDb, "adminConfig", "automationN8n_bob"), {
+    provider: "n8n",
+    isEnabled: true,
+    updatedAt: Timestamp.now(),
+  }));
+  await assertFails(setDoc(doc(aliceDb, "adminConfig", "agentProfile_bob"), {
+    isEnabled: true,
+    updatedAt: Timestamp.now(),
+  }));
+});
+
+test("user darf keine globalen Owner-adminConfig Dokumente schreiben", async () => {
+  await seedUser("alice");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertFails(setDoc(doc(aliceDb, "adminConfig", "aiPromptSettings"), {
+    textInstruction: "Nope",
+    updatedAt: Timestamp.now(),
+  }));
+});
+
 test("lockdown blockiert User-Schreibzugriffe", async () => {
   await seedRuntimeConfig({
     lockdown: true,
