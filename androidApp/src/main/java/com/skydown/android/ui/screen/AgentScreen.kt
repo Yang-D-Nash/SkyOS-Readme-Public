@@ -31,6 +31,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -173,6 +174,7 @@ fun AgentScreen(
                         viewModel.resetConversation()
                         dismissKeyboard()
                     },
+                    onDismissKeyboard = dismissKeyboard,
                 )
             }
         },
@@ -204,7 +206,10 @@ fun AgentScreen(
                     AgentEmptyStateHeader()
                     AgentQuickPromptCard(
                         prompts = uiState.quickPrompts,
-                        onPromptSelected = viewModel::sendPrompt,
+                        onPromptSelected = { prompt ->
+                            dismissKeyboard()
+                            viewModel.sendPrompt(prompt)
+                        },
                         compactLayout = compactLayout,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -537,6 +542,7 @@ private fun AgentComposerBar(
     onToggleAutomation: () -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
+    onDismissKeyboard: () -> Unit,
 ) {
     val outerVerticalPadding = when {
         embeddedInTools -> 2.dp
@@ -636,7 +642,10 @@ private fun AgentComposerBar(
                 maxLines = fieldMaxLines,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
-                    onSend = { onSend() },
+                    onSend = {
+                        onSend()
+                        onDismissKeyboard()
+                    },
                 ),
             )
 
@@ -647,6 +656,16 @@ private fun AgentComposerBar(
                 horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                IconButton(
+                    onClick = onDismissKeyboard,
+                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Tastatur ausblenden",
+                    )
+                }
+
                 IconButton(
                     onClick = onReset,
                     enabled = !isSending,
@@ -659,7 +678,10 @@ private fun AgentComposerBar(
                 }
 
                 FilledIconButton(
-                    onClick = onSend,
+                    onClick = {
+                        onSend()
+                        onDismissKeyboard()
+                    },
                     enabled = draft.isNotBlank() && !isSending,
                     modifier = Modifier.size(40.dp),
                 ) {

@@ -33,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -211,12 +212,18 @@ fun AiScreen(
                     AiEmptyStateHeader()
                     QuickPromptCard(
                         prompts = uiState.quickPrompts,
-                        onPromptSelected = viewModel::sendPrompt,
+                        onPromptSelected = { prompt ->
+                            dismissKeyboard()
+                            viewModel.sendPrompt(prompt)
+                        },
                         compactLayout = compactLayout,
                     )
                     VisualPromptCard(
                         prompts = uiState.visualPrompts,
-                        onPromptSelected = viewModel::generateVisual,
+                        onPromptSelected = { prompt ->
+                            dismissKeyboard()
+                            viewModel.generateVisual(prompt)
+                        },
                         compactLayout = compactLayout,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -769,9 +776,19 @@ private fun AiComposerBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = sectionSpacing),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                IconButton(
+                    onClick = onDismissKeyboard,
+                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Tastatur ausblenden",
+                    )
+                }
+
                 FilledIconButton(
                     onClick = {
                         onSend()
