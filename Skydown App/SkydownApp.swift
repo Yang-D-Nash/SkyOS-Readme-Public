@@ -17,14 +17,12 @@ final class SkydownApplicationDelegate: NSObject, UIApplicationDelegate {}
 @main
 struct SkydownApp: App {
     @UIApplicationDelegateAdaptor(SkydownApplicationDelegate.self) private var appDelegate
-    @StateObject private var services = AppServices()
+    @StateObject private var services: AppServices
 
     init() {
         AppTypography.configure()
-        AppCheck.setAppCheckProviderFactory(SkydownAppCheckProviderFactory())
-        FirebaseApp.configure()
-        Self.configureFirestoreCache()
-        AppCheck.appCheck().isTokenAutoRefreshEnabled = true
+        Self.configureFirebaseIfNeeded()
+        _services = StateObject(wrappedValue: AppServices())
     }
 
     var body: some Scene {
@@ -67,6 +65,17 @@ struct SkydownApp: App {
 }
 
 private extension SkydownApp {
+    static func configureFirebaseIfNeeded() {
+        if FirebaseApp.app() == nil {
+            AppCheck.setAppCheckProviderFactory(SkydownAppCheckProviderFactory())
+            FirebaseApp.configure()
+        }
+
+        guard FirebaseApp.app() != nil else { return }
+        configureFirestoreCache()
+        AppCheck.appCheck().isTokenAutoRefreshEnabled = true
+    }
+
     static func configureFirestoreCache() {
         let firestore = Firestore.firestore()
         let settings = firestore.settings
