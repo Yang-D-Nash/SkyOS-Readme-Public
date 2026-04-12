@@ -15,6 +15,9 @@ struct AgentChatResponse {
     let automationAttempted: Bool
     let automationMessage: String
     let workflowName: String
+    let agentProvider: String
+    let providerFallbackUsed: Bool
+    let providerNotice: String
 }
 
 protocol AgentChatServicing {
@@ -78,7 +81,10 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 automationTriggered: false,
                 automationAttempted: false,
                 automationMessage: "",
-                workflowName: ""
+                workflowName: "",
+                agentProvider: "gemini",
+                providerFallbackUsed: false,
+                providerNotice: ""
             )
         }
 
@@ -92,7 +98,10 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 automationTriggered: payload["automationTriggered"] as? Bool ?? false,
                 automationAttempted: payload["automationAttempted"] as? Bool ?? false,
                 automationMessage: (payload["automationMessage"] as? String) ?? "",
-                workflowName: (payload["workflowName"] as? String) ?? ""
+                workflowName: (payload["workflowName"] as? String) ?? "",
+                agentProvider: (payload["agentProvider"] as? String) ?? "gemini",
+                providerFallbackUsed: payload["providerFallbackUsed"] as? Bool ?? false,
+                providerNotice: (payload["providerNotice"] as? String) ?? ""
             )
         }
 

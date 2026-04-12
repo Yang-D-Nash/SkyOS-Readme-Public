@@ -17,6 +17,8 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var environmentColorScheme
     @Environment(\.openURL) private var openURL
 
+    @EnvironmentObject private var hostedCheckoutRedirectStore: HostedCheckoutRedirectStore
+
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @ObservedObject private var aiPromptSettingsStore = AIPromptSettingsStore.shared
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
@@ -48,6 +50,9 @@ struct SettingsView: View {
     @State private var stripeAccountHintDraft = ""
     @State private var stripeSecretKeyDraft = ""
     @State private var stripeWebhookSecretDraft = ""
+    @State private var aiSubscriptionsEnabledDraft = false
+    @State private var aiCreatorPriceIDDraft = ""
+    @State private var aiStudioPriceIDDraft = ""
     @State private var paypalAccountHintDraft = ""
     @State private var klarnaAccountHintDraft = ""
     @State private var bankAccountHolderDraft = ""
@@ -99,6 +104,11 @@ struct SettingsView: View {
     @State private var automationAuthHeaderNameDraft = ""
     @State private var automationAuthHeaderValueDraft = ""
     @State private var automationKnowledgeContextDraft = ""
+    @State private var isSavingAutomationSettings = false
+    @State private var isRunningAutomationTest = false
+    @State private var automationInlineFeedbackMessage = ""
+    @State private var automationInlineFeedbackStyle: ToastStyle = .info
+    @State private var automationInlineFeedbackTimestamp: Date?
     @State private var manusByosEnabledDraft = false
     @State private var manusByosAPIKeyDraft = ""
     @State private var aiTextInstructionDraft = ""
@@ -142,7 +152,11 @@ struct SettingsView: View {
     @State private var profileBioDraft = ""
     @State private var profileInstagramHandleDraft = ""
     @State private var isSavingProfile = false
+    @State private var selectedAISubscriptionPlan: UserQuotaPlan = .creator
+    @State private var isStartingAISubscriptionCheckout = false
+    @State private var isAwaitingAISubscriptionReturn = false
     private let editableImageUploadService = EditableImageAssetUploadService()
+    private let aiSubscriptionCheckoutService: AISubscriptionCheckoutServicing = FirebaseAISubscriptionCheckoutService()
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -179,26 +193,198 @@ struct SettingsView: View {
         return URL(string: "https://\(normalizedDomain)\(path)")
     }
 
+    private var automationWorkflowNameTrimmed: String {
+        automationWorkflowNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var automationBaseURLTrimmed: String {
+        automationBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var automationWebhookPathTrimmed: String {
+        automationWebhookPathDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var automationAuthHeaderNameTrimmed: String {
+        automationAuthHeaderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var automationAuthHeaderValueTrimmed: String {
+        automationAuthHeaderValueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var automationKnowledgeContextTrimmed: String {
+        automationKnowledgeContextDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var automationNormalizedBaseURLDraft: String? {
+        normalizeAutomationBaseURLDraft(automationBaseURLTrimmed)
+    }
+
+    private var automationNormalizedWebhookPathDraft: String? {
+        normalizeAutomationWebhookPathDraft(automationWebhookPathTrimmed)
+    }
+
     private var automationDraftResolvedWebhookURL: String? {
-        let trimmedBaseURL = automationBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedBaseURL.isEmpty else { return nil }
-
-        let normalizedBaseURL: String
-        if trimmedBaseURL.hasPrefix("https://") || trimmedBaseURL.hasPrefix("http://") {
-            normalizedBaseURL = trimmedBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        } else {
-            normalizedBaseURL = "https://\(trimmedBaseURL)".trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        }
-
-        let trimmedPath = automationWebhookPathDraft
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-
-        guard !trimmedPath.isEmpty else {
+        guard let normalizedBaseURL = automationNormalizedBaseURLDraft else { return nil }
+        guard let normalizedPath = automationNormalizedWebhookPathDraft, !normalizedPath.isEmpty else {
             return normalizedBaseURL
         }
+        return "\(normalizedBaseURL)/\(normalizedPath)"
+    }
 
-        return "\(normalizedBaseURL)/\(trimmedPath)"
+    private var automationDraftNormalizedSettings: WorkflowAutomationSettings {
+        WorkflowAutomationSettings(
+            provider: workflowAutomationSettings.settings.provider,
+            isEnabled: automationEnabledDraft,
+            sendsUserContext: automationSendsUserContextDraft,
+            workflowName: automationWorkflowNameTrimmed.isEmpty ? WorkflowAutomationSettings.default.workflowName : automationWorkflowNameTrimmed,
+            baseURL: automationNormalizedBaseURLDraft ?? "",
+            webhookPath: automationNormalizedWebhookPathDraft ?? "",
+            authHeaderName: automationAuthHeaderNameTrimmed,
+            authHeaderValue: automationAuthHeaderValueTrimmed,
+            knowledgeContext: automationKnowledgeContextTrimmed
+        )
+    }
+
+    private var automationPersistedNormalizedSettings: WorkflowAutomationSettings {
+        normalizedAutomationSettings(workflowAutomationSettings.settings)
+    }
+
+    private var automationHasUnsavedChanges: Bool {
+        automationDraftNormalizedSettings != automationPersistedNormalizedSettings
+    }
+
+    private var automationBlockingValidationMessages: [String] {
+        var messages: [String] = []
+
+        if automationEnabledDraft {
+            if automationBaseURLTrimmed.isEmpty {
+                messages.append("n8n Base URL fehlt.")
+            } else if automationNormalizedBaseURLDraft == nil {
+                messages.append("n8n Base URL ist ungueltig.")
+            }
+        }
+
+        if !automationAuthHeaderValueTrimmed.isEmpty && automationAuthHeaderNameTrimmed.isEmpty {
+            messages.append("Auth Header Name fehlt, obwohl ein Auth Header Value gesetzt ist.")
+        }
+
+        return messages
+    }
+
+    private var automationAdvisoryMessages: [String] {
+        var messages: [String] = []
+
+        if automationEnabledDraft && automationWebhookPathTrimmed.isEmpty {
+            messages.append("Webhook Path ist leer. Es wird nur die Base URL verwendet.")
+        }
+
+        if !automationAuthHeaderNameTrimmed.isEmpty && automationAuthHeaderValueTrimmed.isEmpty {
+            messages.append("Auth Header Name ist gesetzt. Ohne Value wird trotzdem kein Auth Header gesendet.")
+        }
+
+        if !automationEnabledDraft && (!automationBaseURLTrimmed.isEmpty || !automationWebhookPathTrimmed.isEmpty) {
+            messages.append("n8n ist gerade deaktiviert. Speichern aktiviert dieses Setup erst beim naechsten Einschalten.")
+        }
+
+        return messages
+    }
+
+    private var automationSaveDisabledReasons: [String] {
+        var reasons: [String] = []
+
+        if isSavingAutomationSettings {
+            reasons.append("n8n wird gerade gespeichert.")
+        }
+        if isRunningAutomationTest {
+            reasons.append("Ein n8n-Test laeuft bereits.")
+        }
+        if !automationHasUnsavedChanges {
+            reasons.append("Keine ungespeicherten Aenderungen.")
+        }
+
+        reasons.append(contentsOf: automationBlockingValidationMessages)
+        return reasons
+    }
+
+    private var automationTestDisabledReasons: [String] {
+        var reasons: [String] = []
+
+        if isRunningAutomationTest {
+            reasons.append("Ein n8n-Test laeuft bereits.")
+        }
+        if isSavingAutomationSettings {
+            reasons.append("Bitte warten, bis Speichern abgeschlossen ist.")
+        }
+        if !automationEnabledDraft {
+            reasons.append("n8n ist deaktiviert.")
+        }
+
+        reasons.append(contentsOf: automationBlockingValidationMessages)
+        return reasons
+    }
+
+    private var automationStatusStyle: ToastStyle {
+        if !automationBlockingValidationMessages.isEmpty {
+            return .error
+        }
+        if !automationInlineFeedbackMessage.isEmpty && !automationHasUnsavedChanges {
+            return automationInlineFeedbackStyle
+        }
+        if automationHasUnsavedChanges {
+            return .warning
+        }
+        return automationEnabledDraft ? .success : .info
+    }
+
+    private var automationStatusTitle: String {
+        if !automationBlockingValidationMessages.isEmpty {
+            return "Konfiguration braucht Korrektur"
+        }
+        if automationHasUnsavedChanges {
+            return "Aenderungen noch nicht gespeichert"
+        }
+        return automationEnabledDraft ? "n8n ist einsatzbereit" : "n8n ist deaktiviert"
+    }
+
+    private var automationStatusMessage: String {
+        if !automationBlockingValidationMessages.isEmpty {
+            return "Bitte korrigiere die Punkte unten, dann kann gespeichert und getestet werden."
+        }
+        if automationHasUnsavedChanges {
+            return "Die Eingaben sind erfasst. Speichere, damit sie fuer dein Konto aktiv werden."
+        }
+        return automationEnabledDraft
+            ? "Dieses Konto nutzt aktuell den hinterlegten Workflow fuer Agent-Aktionen."
+            : "Du kannst die Werte vorbereiten und spaeter aktivieren."
+    }
+
+    private var automationInlineFeedbackSummary: String? {
+        guard !automationInlineFeedbackMessage.isEmpty else { return nil }
+        guard let timestamp = automationInlineFeedbackTimestamp else {
+            return automationInlineFeedbackMessage
+        }
+        let timeLabel = timestamp.formatted(date: .omitted, time: .shortened)
+        return "\(automationInlineFeedbackMessage) (\(timeLabel))"
+    }
+
+    private var automationStatusDetails: [String] {
+        var details: [String] = []
+
+        if let feedback = automationInlineFeedbackSummary {
+            details.append("Letztes Feedback: \(feedback)")
+        }
+
+        if let resolvedWebhookURL = automationDraftResolvedWebhookURL {
+            details.append("Webhook: \(resolvedWebhookURL)")
+        } else if automationEnabledDraft {
+            details.append("Webhook wird nach einer gueltigen Base URL erzeugt.")
+        }
+
+        details.append(contentsOf: automationBlockingValidationMessages)
+        details.append(contentsOf: automationAdvisoryMessages)
+        return details
     }
 
     var body: some View {
@@ -233,6 +419,55 @@ struct SettingsView: View {
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(AppColors.accent(for: effectiveColorScheme))
+
+                                if canUseAISelfPaySubscription {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text("Admin KI-Abo (Self-Pay)")
+                                            .font(.headline)
+                                            .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                                        Text("Creator/Studio laeuft hier direkt ueber Stripe Checkout. Nach erfolgreicher Zahlung wird dein Konto serverseitig freigeschaltet.")
+                                            .font(.footnote)
+                                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                        Picker("Plan", selection: $selectedAISubscriptionPlan) {
+                                            Text("Creator").tag(UserQuotaPlan.creator)
+                                            Text("Studio").tag(UserQuotaPlan.studio)
+                                        }
+                                        .pickerStyle(.segmented)
+
+                                        Text("Aktueller Plan im Konto: \(user.resolvedQuotaPlan.displayTitle)")
+                                            .font(.footnote)
+                                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                        if let blockedReason = aiSubscriptionCheckoutBlockedReason {
+                                            Text(blockedReason)
+                                                .font(.footnote.weight(.semibold))
+                                                .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+                                        }
+
+                                        Button {
+                                            startAISubscriptionCheckout()
+                                        } label: {
+                                            HStack(spacing: 8) {
+                                                if isStartingAISubscriptionCheckout {
+                                                    ProgressView()
+                                                }
+                                                Label(
+                                                    isStartingAISubscriptionCheckout ? "Checkout startet..." : "Abo in Stripe aktivieren",
+                                                    systemImage: "creditcard.fill"
+                                                )
+                                                .frame(maxWidth: .infinity)
+                                            }
+                                        }
+                                        .buttonStyle(.borderedProminent)
+                                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                                        .disabled(isStartingAISubscriptionCheckout || aiSubscriptionCheckoutBlockedReason != nil)
+                                    }
+                                    .padding(12)
+                                    .background(AppColors.secondaryBackground(for: effectiveColorScheme))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                }
 
                                 Text("Kontoaktionen")
                                     .font(.body)
@@ -600,6 +835,7 @@ struct SettingsView: View {
             systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
             manusByosStore.setUserMode(userID: authManager.userSession?.id)
             manusByosAPIKeyDraft = ""
+            selectedAISubscriptionPlan = authManager.userSession?.resolvedQuotaPlan == .studio ? .studio : .creator
             syncProfileDrafts(with: authManager.userSession)
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
@@ -638,8 +874,12 @@ struct SettingsView: View {
             manusByosStore.setUserMode(userID: userID)
             syncManusBYOSDrafts(with: manusByosStore.settings)
             manusByosAPIKeyDraft = ""
+            selectedAISubscriptionPlan = authManager.userSession?.resolvedQuotaPlan == .studio ? .studio : .creator
             syncProfileDrafts(with: authManager.userSession)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace, userID: userID)
+        }
+        .onChange(of: hostedCheckoutRedirectStore.latestEvent) { _, event in
+            handleHostedCheckoutRedirectEvent(event)
         }
         .onChange(of: activeAdminWorkspace) { _, section in
             refreshOwnerWorkspaceObservation(for: section)
@@ -782,6 +1022,41 @@ struct SettingsView: View {
 
     private var isOwnerUser: Bool {
         authManager.userSession?.isPlatformOwner == true
+    }
+
+    private var canUseAISelfPaySubscription: Bool {
+        authManager.userSession?.resolvedRole == .admin
+    }
+
+    private var selectedAISubscriptionPriceID: String {
+        switch selectedAISubscriptionPlan {
+        case .studio:
+            return paymentMethodSettingsStore.settings.aiSubscriptions.studioPriceID
+        default:
+            return paymentMethodSettingsStore.settings.aiSubscriptions.creatorPriceID
+        }
+    }
+
+    private var aiSubscriptionCheckoutBlockedReason: String? {
+        guard canUseAISelfPaySubscription else {
+            return "Self-Pay-Abo ist aktuell nur fuer Admin-Konten verfuegbar."
+        }
+        guard paymentMethodSettingsStore.settings.stripe.connected else {
+            return "Stripe ist noch nicht verbunden."
+        }
+        guard paymentMethodSettingsStore.settings.stripe.enabled else {
+            return "Stripe Checkout ist aktuell ausgeblendet."
+        }
+        guard paymentMethodSettingsStore.settings.aiSubscriptions.enabled else {
+            return "KI-Abo ist noch nicht freigeschaltet."
+        }
+        guard paymentMethodSettingsStore.settings.aiSubscriptions.isConfigured else {
+            return "Creator- und Studio-Price-ID fehlen noch."
+        }
+        guard !selectedAISubscriptionPriceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return "Der ausgewaehlte Plan hat noch keine Price-ID."
+        }
+        return nil
     }
 
     private var visiblePaymentMethodCount: Int {
@@ -1333,6 +1608,15 @@ struct SettingsView: View {
                         saveStripeBackendSecrets()
                     }
 
+                    AISubscriptionPricingCard(
+                        colorScheme: effectiveColorScheme,
+                        isEnabled: $aiSubscriptionsEnabledDraft,
+                        creatorPriceID: $aiCreatorPriceIDDraft,
+                        studioPriceID: $aiStudioPriceIDDraft
+                    ) {
+                        saveAISubscriptionPricing()
+                    }
+
                     PaymentProviderSettingsCard(
                         colorScheme: effectiveColorScheme,
                         title: "PayPal",
@@ -1649,32 +1933,56 @@ struct SettingsView: View {
                         minHeight: 100
                     )
 
-                    if let resolvedWebhookURL = automationDraftResolvedWebhookURL {
+                    SettingsStatusCard(
+                        style: automationStatusStyle,
+                        title: automationStatusTitle,
+                        message: automationStatusMessage,
+                        details: automationStatusDetails,
+                        colorScheme: effectiveColorScheme
+                    )
+
+                    if automationHasUnsavedChanges {
                         SettingsBadge(
-                            text: "Webhook: \(resolvedWebhookURL)",
-                            colorScheme: effectiveColorScheme
-                        )
-                    } else {
-                        SettingsBadge(
-                            text: "Webhook noch nicht vollstaendig",
+                            text: "Ungespeicherte Aenderungen",
                             colorScheme: effectiveColorScheme
                         )
                     }
 
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let saveReason = automationSaveDisabledReasons.first {
+                            Text("Speichern: \(saveReason)")
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                        }
+
+                        if let testReason = automationTestDisabledReasons.first {
+                            Text("Test: \(testReason)")
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                        }
+                    }
+
                     HStack(spacing: 10) {
                         Button(action: saveAutomationSettings) {
-                            Label("n8n speichern", systemImage: "bolt.circle.fill")
+                            Label(
+                                isSavingAutomationSettings ? "Speichert..." : "n8n speichern",
+                                systemImage: isSavingAutomationSettings ? "arrow.triangle.2.circlepath.circle.fill" : "bolt.circle.fill"
+                            )
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                        .disabled(!automationSaveDisabledReasons.isEmpty)
 
                         Button(action: runAutomationTest) {
-                            Label("Test senden", systemImage: "paperplane.fill")
+                            Label(
+                                isRunningAutomationTest ? "Test laeuft..." : "Test senden",
+                                systemImage: isRunningAutomationTest ? "hourglass.circle.fill" : "paperplane.fill"
+                            )
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
-                        .disabled(automationDraftResolvedWebhookURL == nil || !automationEnabledDraft)
+                        .disabled(!automationTestDisabledReasons.isEmpty)
                     }
 
                     Divider()
@@ -2143,6 +2451,9 @@ struct SettingsView: View {
 
     private func syncPaymentDrafts(with settings: PaymentMethodSettings) {
         stripeAccountHintDraft = settings.stripe.accountHint
+        aiSubscriptionsEnabledDraft = settings.aiSubscriptions.enabled
+        aiCreatorPriceIDDraft = settings.aiSubscriptions.creatorPriceID
+        aiStudioPriceIDDraft = settings.aiSubscriptions.studioPriceID
         paypalAccountHintDraft = settings.paypal.accountHint
         klarnaAccountHintDraft = settings.klarna.accountHint
         bankAccountHolderDraft = settings.bankTransfer.accountHolder
@@ -2205,6 +2516,56 @@ struct SettingsView: View {
         automationAuthHeaderNameDraft = settings.authHeaderName
         automationAuthHeaderValueDraft = settings.authHeaderValue
         automationKnowledgeContextDraft = settings.knowledgeContext
+    }
+
+    private func normalizedAutomationSettings(_ settings: WorkflowAutomationSettings) -> WorkflowAutomationSettings {
+        let provider = settings.provider.trimmingCharacters(in: .whitespacesAndNewlines)
+        let workflowName = settings.workflowName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return WorkflowAutomationSettings(
+            provider: provider.isEmpty ? "n8n" : provider,
+            isEnabled: settings.isEnabled,
+            sendsUserContext: settings.sendsUserContext,
+            workflowName: workflowName.isEmpty ? WorkflowAutomationSettings.default.workflowName : workflowName,
+            baseURL: normalizeAutomationBaseURLDraft(settings.baseURL) ?? "",
+            webhookPath: normalizeAutomationWebhookPathDraft(settings.webhookPath) ?? "",
+            authHeaderName: settings.authHeaderName.trimmingCharacters(in: .whitespacesAndNewlines),
+            authHeaderValue: settings.authHeaderValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            knowledgeContext: settings.knowledgeContext.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
+
+    private func normalizeAutomationBaseURLDraft(_ rawValue: String) -> String? {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let url = URL(string: trimmed), let scheme = url.scheme, !scheme.isEmpty {
+            return url.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+
+        if let url = URL(string: "https://\(trimmed)") {
+            return url.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+
+        return nil
+    }
+
+    private func normalizeAutomationWebhookPathDraft(_ rawValue: String) -> String? {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let url = URL(string: trimmed), let scheme = url.scheme, !scheme.isEmpty {
+            let withoutScheme = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            return withoutScheme.isEmpty ? nil : withoutScheme
+        }
+
+        return trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
+    private func updateAutomationInlineFeedback(_ message: String, style: ToastStyle) {
+        automationInlineFeedbackMessage = message
+        automationInlineFeedbackStyle = style
+        automationInlineFeedbackTimestamp = Date()
     }
 
     private func syncManusBYOSDrafts(with settings: ManusBYOSSettings) {
@@ -2501,25 +2862,38 @@ struct SettingsView: View {
     }
 
     private func saveAutomationSettings() {
-        Task {
-            var updated = workflowAutomationSettings.settings
-            updated.isEnabled = automationEnabledDraft
-            updated.sendsUserContext = automationSendsUserContextDraft
-            updated.workflowName = automationWorkflowNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.baseURL = automationBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.webhookPath = automationWebhookPathDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.authHeaderName = automationAuthHeaderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.authHeaderValue = automationAuthHeaderValueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.knowledgeContext = automationKnowledgeContextDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard automationSaveDisabledReasons.isEmpty else {
+            if let firstReason = automationSaveDisabledReasons.first {
+                updateAutomationInlineFeedback("n8n nicht gespeichert: \(firstReason)", style: .warning)
+                showToastMessage("n8n nicht gespeichert: \(firstReason)", style: .warning)
+            }
+            return
+        }
 
+        let updated = automationDraftNormalizedSettings
+        isSavingAutomationSettings = true
+
+        Task {
             do {
                 try await workflowAutomationSettings.save(updated)
-                showToastMessage(
-                    "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
-                    style: .success
-                )
+                await MainActor.run {
+                    isSavingAutomationSettings = false
+                    syncAutomationDrafts(with: updated)
+                    updateAutomationInlineFeedback(
+                        "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
+                        style: .success
+                    )
+                    showToastMessage(
+                        "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
+                        style: .success
+                    )
+                }
             } catch {
-                showToastMessage("n8n konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+                await MainActor.run {
+                    isSavingAutomationSettings = false
+                    updateAutomationInlineFeedback("n8n konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+                    showToastMessage("n8n konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+                }
             }
         }
     }
@@ -2662,23 +3036,33 @@ struct SettingsView: View {
     }
 
     private func runAutomationTest() {
+        guard automationTestDisabledReasons.isEmpty else {
+            if let firstReason = automationTestDisabledReasons.first {
+                updateAutomationInlineFeedback("n8n-Test nicht gestartet: \(firstReason)", style: .warning)
+                showToastMessage("n8n-Test nicht gestartet: \(firstReason)", style: .warning)
+            }
+            return
+        }
+
+        let updated = automationDraftNormalizedSettings
+        isRunningAutomationTest = true
+
         Task {
             do {
-                var updated = workflowAutomationSettings.settings
-                updated.isEnabled = automationEnabledDraft
-                updated.sendsUserContext = automationSendsUserContextDraft
-                updated.workflowName = automationWorkflowNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                updated.baseURL = automationBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                updated.webhookPath = automationWebhookPathDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                updated.authHeaderName = automationAuthHeaderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                updated.authHeaderValue = automationAuthHeaderValueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                updated.knowledgeContext = automationKnowledgeContextDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-
                 try await workflowAutomationSettings.save(updated)
                 let message = try await workflowAutomationSettings.triggerTest()
-                showToastMessage(message, style: .success)
+                await MainActor.run {
+                    isRunningAutomationTest = false
+                    syncAutomationDrafts(with: updated)
+                    updateAutomationInlineFeedback(message, style: .success)
+                    showToastMessage(message, style: .success)
+                }
             } catch {
-                showToastMessage("n8n-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
+                await MainActor.run {
+                    isRunningAutomationTest = false
+                    updateAutomationInlineFeedback("n8n-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
+                    showToastMessage("n8n-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
+                }
             }
         }
     }
@@ -2710,6 +3094,84 @@ struct SettingsView: View {
         manusByosStore.clearAPIKey()
         manusByosAPIKeyDraft = ""
         showToastMessage("Manus API Key lokal entfernt. BYOS ist fuer dieses Konto aus.", style: .success)
+    }
+
+    private func saveAISubscriptionPricing() {
+        let creatorPriceID = aiCreatorPriceIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let studioPriceID = aiStudioPriceIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if aiSubscriptionsEnabledDraft && (creatorPriceID.isEmpty || studioPriceID.isEmpty) {
+            showToastMessage("Bitte Creator- und Studio-Price-ID eintragen, bevor du KI-Abo aktivierst.", style: .error)
+            return
+        }
+
+        Task {
+            var updated = paymentMethodSettingsStore.settings
+            updated.aiSubscriptions.enabled = aiSubscriptionsEnabledDraft
+            updated.aiSubscriptions.creatorPriceID = creatorPriceID
+            updated.aiSubscriptions.studioPriceID = studioPriceID
+
+            do {
+                try await paymentMethodSettingsStore.save(updated)
+                showToastMessage("KI-Abo-Konfiguration gespeichert.", style: .success)
+            } catch {
+                showToastMessage("KI-Abo-Konfiguration konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func startAISubscriptionCheckout() {
+        guard let blockedReason = aiSubscriptionCheckoutBlockedReason else {
+            isStartingAISubscriptionCheckout = true
+            Task {
+                do {
+                    let session = try await aiSubscriptionCheckoutService.startCheckout(
+                        plan: selectedAISubscriptionPlan,
+                        platform: "ios"
+                    )
+                    await MainActor.run {
+                        isStartingAISubscriptionCheckout = false
+                        isAwaitingAISubscriptionReturn = true
+                        openURL(session.checkoutURL) { accepted in
+                            if accepted {
+                                showToastMessage("Stripe Checkout geoeffnet. Nach Abschluss kehrst du automatisch in die App zurueck.", style: .info)
+                            } else {
+                                isAwaitingAISubscriptionReturn = false
+                                showToastMessage("Stripe Checkout konnte nicht geoeffnet werden.", style: .error)
+                            }
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        isStartingAISubscriptionCheckout = false
+                        showToastMessage("KI-Abo-Checkout konnte nicht gestartet werden: \(error.localizedDescription)", style: .error)
+                    }
+                }
+            }
+            return
+        }
+
+        showToastMessage(blockedReason, style: .warning)
+    }
+
+    private func handleHostedCheckoutRedirectEvent(_ event: HostedCheckoutRedirectEvent?) {
+        guard let event else { return }
+        guard event.orderID == nil else { return }
+        guard canUseAISelfPaySubscription || isAwaitingAISubscriptionReturn else { return }
+
+        switch event.status {
+        case .success:
+            showToastMessage("Abo-Checkout abgeschlossen. Konto wird jetzt aktualisiert.", style: .success)
+            Task {
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                await authManager.refreshCurrentUser()
+            }
+        case .cancel:
+            showToastMessage("Abo-Checkout abgebrochen.", style: .info)
+        }
+
+        isAwaitingAISubscriptionReturn = false
+        hostedCheckoutRedirectStore.clear()
     }
 
     private func saveStripeConnection() {
@@ -3249,6 +3711,78 @@ private struct StripeBackendSecretsCard: View {
     }
 }
 
+private struct AISubscriptionPricingCard: View {
+    let colorScheme: ColorScheme
+    @Binding var isEnabled: Bool
+    @Binding var creatorPriceID: String
+    @Binding var studioPriceID: String
+    let onSave: () -> Void
+
+    private var isConfigured: Bool {
+        !creatorPriceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !studioPriceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("KI-Abo via Stripe")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(isEnabled ? "Self-Pay aktivierbar" : "Self-Pay deaktiviert")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(
+                            isEnabled
+                                ? AppColors.accent(for: colorScheme)
+                                : AppColors.secondaryText(for: colorScheme)
+                        )
+                }
+
+                Spacer()
+
+                SettingsBadge(
+                    text: isConfigured ? "Price IDs ok" : "Price IDs fehlen",
+                    colorScheme: colorScheme
+                )
+            }
+
+            Text("Admin-Konten starten damit ihr eigenes Creator/Studio-Abo in Stripe. Ohne gueltige Price IDs wird kein Checkout gestartet.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            SettingsToggleCard(
+                colorScheme: colorScheme,
+                title: "Self-Pay-Abo erlauben",
+                subtitle: "Nur aktivieren, wenn Creator und Studio in Stripe konfiguriert sind.",
+                isOn: $isEnabled
+            )
+
+            SettingsInputField(
+                title: "Creator Price ID",
+                text: $creatorPriceID,
+                colorScheme: colorScheme,
+                placeholder: "price_..."
+            )
+
+            SettingsInputField(
+                title: "Studio Price ID",
+                text: $studioPriceID,
+                colorScheme: colorScheme,
+                placeholder: "price_..."
+            )
+
+            Button("KI-Abo speichern", action: onSave)
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accent(for: colorScheme))
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
 private extension Double {
     var formattedCurrencyDraft: String {
         String(format: "%.2f", self)
@@ -3543,6 +4077,60 @@ private struct SettingsBadge: View {
             .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
             .foregroundColor(AppColors.accentMystic(for: colorScheme))
             .clipShape(Capsule())
+    }
+}
+
+private struct SettingsStatusCard: View {
+    let style: ToastStyle
+    let title: String
+    let message: String
+    let details: [String]
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: style.icon)
+                    .foregroundColor(style.color)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Spacer()
+            }
+
+            Text(message)
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            if !details.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(details.enumerated()), id: \.offset) { _, detail in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 5))
+                                .foregroundColor(style.color.opacity(0.9))
+                                .padding(.top, 6)
+
+                            Text(detail)
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(style.color.opacity(0.35), lineWidth: 1)
+        )
     }
 }
 
@@ -4133,9 +4721,10 @@ private struct SettingsAdminUserCard: View {
 
             if draftRole == .owner {
                 ownerControlNote
-            } else if draftRole == .admin {
-                adminCapabilitiesSection
             } else {
+                if draftRole == .admin {
+                    adminCapabilitiesSection
+                }
                 quotaPlanSection
             }
 
@@ -4265,7 +4854,9 @@ private struct SettingsAdminUserCard: View {
                 canManageVideoCatalog = true
                 canModerateProfiles = true
             case .admin:
-                draftQuotaPlan = .internalTeam
+                if draftQuotaPlan == .ownerUnlimited || draftQuotaPlan == .internalTeam || draftQuotaPlan == .free {
+                    draftQuotaPlan = .creator
+                }
                 canManageMusicCatalog = user.canManageMusic
                 canManageVideoCatalog = user.canManageVideos
                 canModerateProfiles = user.canModerateUserProfiles
@@ -4288,7 +4879,7 @@ private struct SettingsAdminUserCard: View {
             historyRetentionDays = recommendedPlan.aiHistoryRetentionDays
         }
         .onChange(of: draftQuotaPlan) { _, newPlan in
-            guard draftRole == .subadmin || draftRole == .user else { return }
+            guard draftRole == .admin || draftRole == .subadmin || draftRole == .user else { return }
             textLimitDraft = String(newPlan.aiTextRequestsPerDay)
             visualLimitDraft = String(newPlan.aiVisualRequestsPerDay)
             agentLimitDraft = String(newPlan.aiAgentRequestsPerDay)
@@ -4313,7 +4904,7 @@ private struct SettingsAdminUserCard: View {
             updatedUser.canManageVideoCatalog = true
             updatedUser.canModerateProfiles = true
         case .admin:
-            finalQuotaPlan = .internalTeam
+            finalQuotaPlan = draftQuotaPlan == .studio ? .studio : .creator
             updatedUser.canManageMusicCatalog = canManageMusicCatalog
             updatedUser.canManageVideoCatalog = canManageVideoCatalog
             updatedUser.canModerateProfiles = canModerateProfiles
@@ -4404,7 +4995,7 @@ private struct SettingsAdminUserCard: View {
 
     private var quotaPlanSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(draftRole == .subadmin ? "Kontingentmodell" : "Kontingent")
+            Text((draftRole == .admin || draftRole == .subadmin) ? "Abo-Modell" : "Kontingent")
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -4444,6 +5035,12 @@ private struct SettingsAdminUserCard: View {
                 Text(draftQuotaPlan.planSummary)
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                if draftRole == .admin {
+                    Text("Admin-KI bleibt auf Self-Pay-Basis: Nur Creator/Studio ist freigeschaltet.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
             }
         }
     }
@@ -4468,7 +5065,7 @@ private extension UserRole {
         case .owner:
             return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf alles, inklusive Shopify, Zahlungen, Rollen, KI-Defaults und Recovery."
         case .admin:
-            return "Teaminterne Leute. Der Owner weist ihnen gezielt Funktionen wie Music, Video oder Profil-Moderation zu. Kein Zugriff auf Owner-Systembereiche."
+            return "Staff-Konto mit zuweisbaren Funktionen fuer Music, Video und Profil-Moderation. KI laeuft fuer Admins nur ueber Self-Pay-Plan (Creator/Studio). Kein Zugriff auf Owner-Systembereiche."
         case .subadmin:
             return "Externe Premium-Konten mit buchbarem Kontingentmodell. Kein Admin-Workspace, keine Owner-Rechte."
         case .user:
@@ -4562,5 +5159,6 @@ private enum SettingsPresentedSheet: Identifiable, Equatable {
 #Preview {
     SettingsView(colorScheme: .constant("system"))
         .environmentObject(AuthManager())
+        .environmentObject(HostedCheckoutRedirectStore())
         .environment(\.colorScheme, .light)
 }

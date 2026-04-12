@@ -226,6 +226,91 @@ async function createHostedCheckoutSession({
   };
 }
 
+async function createAiSubscriptionCheckoutSession({
+  secretKey,
+  projectId,
+  userId,
+  customerEmail,
+  customerId = null,
+  plan,
+  priceId,
+  platform,
+}) {
+  const normalizedUserId = nonEmptyString(userId);
+  if (!normalizedUserId) {
+    throw new Error("userId fehlt fuer den Abo-Checkout.");
+  }
+
+  const normalizedPlan = nonEmptyString(plan);
+  if (!normalizedPlan) {
+    throw new Error("Abo-Plan fehlt fuer den Checkout.");
+  }
+
+  const normalizedPriceId = nonEmptyString(priceId);
+  if (!normalizedPriceId) {
+    throw new Error("Price-ID fuer den gewaehlten Abo-Plan fehlt.");
+  }
+
+  const params = new URLSearchParams();
+  params.append("mode", "subscription");
+  params.append("client_reference_id", normalizedUserId);
+  params.append("locale", "de");
+  params.append("billing_address_collection", "required");
+  params.append("allow_promotion_codes", "true");
+  params.append("success_url", buildReturnPageUrl({
+    projectId,
+    platform,
+    status: "success",
+    orderId: null,
+  }));
+  params.append("cancel_url", buildReturnPageUrl({
+    projectId,
+    platform,
+    status: "cancel",
+    orderId: null,
+  }));
+  params.append("line_items[0][price]", normalizedPriceId);
+  params.append("line_items[0][quantity]", "1");
+  params.append("payment_method_types[0]", "card");
+
+  const normalizedCustomerId = nonEmptyString(customerId);
+  if (normalizedCustomerId) {
+    params.append("customer", normalizedCustomerId);
+  } else if (nonEmptyString(customerEmail)) {
+    params.append("customer_email", customerEmail);
+  }
+
+  params.append("metadata[type]", "ai_subscription");
+  params.append("metadata[userId]", normalizedUserId);
+  params.append("metadata[plan]", normalizedPlan);
+  params.append("metadata[priceId]", normalizedPriceId);
+  params.append("subscription_data[metadata][type]", "ai_subscription");
+  params.append("subscription_data[metadata][userId]", normalizedUserId);
+  params.append("subscription_data[metadata][plan]", normalizedPlan);
+  params.append("subscription_data[metadata][priceId]", normalizedPriceId);
+
+  const session = await stripeApiRequest({
+    path: "checkout/sessions",
+    secretKey,
+    params,
+  });
+
+  const checkoutUrl = nonEmptyString(session?.url);
+  const sessionId = nonEmptyString(session?.id);
+  if (!checkoutUrl || !sessionId) {
+    throw new Error("Stripe hat keine Abo-Checkout-Session zurueckgegeben.");
+  }
+
+  return {
+    sessionId,
+    checkoutUrl,
+    stripeCheckoutStatus: nonEmptyString(session?.status) || "open",
+    expiresAtEpochSeconds: Number(session?.expires_at || 0) || null,
+    customerId: nonEmptyString(session?.customer),
+    subscriptionId: nonEmptyString(session?.subscription),
+  };
+}
+
 function parseStripeSignature(signatureHeader) {
   const parts = `${signatureHeader || ""}`.split(",").map((part) => part.trim()).filter(Boolean);
   let timestamp = null;
@@ -420,6 +505,7 @@ function renderCheckoutReturnPage({platform, status, orderId, sessionId}) {
 }
 
 module.exports = {
+  createAiSubscriptionCheckoutSession,
   createHostedCheckoutSession,
   deriveStripeCheckoutStatus,
   extractStripeCheckoutIdentifiers,

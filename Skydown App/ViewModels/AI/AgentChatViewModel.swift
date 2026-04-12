@@ -117,6 +117,9 @@ final class AgentChatViewModel: ObservableObject {
     @Published var showToast = false
     @Published var toastMessage = ""
     @Published var toastStyle: ToastStyle = .info
+    @Published private(set) var lastAgentProvider: AIRuntimeAgentProvider = .gemini
+    @Published private(set) var lastProviderNotice: String = ""
+    @Published private(set) var lastIntegrationIssue: String = ""
 
     var quickPrompts: [String] {
         selectedMode.quickPrompts
@@ -211,6 +214,7 @@ final class AgentChatViewModel: ObservableObject {
                     executeAutomation: executeAutomationAtSend,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
+                updateProviderDiagnostics(from: result)
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 let replyText = augmentedReplyText(from: result)
                 updateAssistantMessage(
@@ -225,6 +229,7 @@ final class AgentChatViewModel: ObservableObject {
                     response: replyText
                 )
                 if result.automationTriggered {
+                    lastIntegrationIssue = ""
                     showUserToast(
                         result.automationMessage.isEmpty
                             ? AppLocalized.text("agent.automation.triggered", fallback: "n8n workflow started.")
@@ -232,7 +237,10 @@ final class AgentChatViewModel: ObservableObject {
                         style: .success
                     )
                 } else if result.automationAttempted && !result.automationMessage.isEmpty {
+                    lastIntegrationIssue = result.automationMessage
                     showUserToast(result.automationMessage, style: .error)
+                } else {
+                    lastIntegrationIssue = ""
                 }
                 isSending = false
             } catch {
@@ -264,10 +272,15 @@ final class AgentChatViewModel: ObservableObject {
                         ),
                         style: .info
                     )
+                    lastIntegrationIssue = AppLocalized.text(
+                        "agent.offline.message",
+                        fallback: "You are offline. The agent will continue once your connection is back."
+                    )
                     return
                 }
 
                 let message = userFacingErrorMessage(for: error)
+                lastIntegrationIssue = message
                 if let assistantID = appendedAssistantID {
                     updateAssistantMessage(
                         id: assistantID,
@@ -396,6 +409,10 @@ final class AgentChatViewModel: ObservableObject {
             ),
             style: .info
         )
+        lastIntegrationIssue = AppLocalized.text(
+            "agent.offline.message",
+            fallback: "You are offline. The agent will continue once your connection is back."
+        )
     }
 
     private func retryPendingRequestsIfNeeded() async {
@@ -413,6 +430,7 @@ final class AgentChatViewModel: ObservableObject {
                     executeAutomation: request.executeAutomation,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
+                updateProviderDiagnostics(from: result)
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 let replyText = augmentedReplyText(from: result)
                 updateAssistantMessage(
@@ -427,13 +445,18 @@ final class AgentChatViewModel: ObservableObject {
                     response: replyText
                 )
                 if result.automationTriggered {
+                    lastIntegrationIssue = ""
                     showUserToast(
                         result.automationMessage.isEmpty
                             ? AppLocalized.text("agent.automation.triggered", fallback: "n8n workflow started.")
                             : result.automationMessage,
                         style: .success
                     )
+                } else if result.automationAttempted && !result.automationMessage.isEmpty {
+                    lastIntegrationIssue = result.automationMessage
+                    showUserToast(result.automationMessage, style: .error)
                 } else {
+                    lastIntegrationIssue = ""
                     showUserToast(
                         AppLocalized.text(
                             "agent.queue.toast.sent",
@@ -459,6 +482,7 @@ final class AgentChatViewModel: ObservableObject {
                 }
 
                 let message = userFacingErrorMessage(for: error)
+                lastIntegrationIssue = message
                 updateAssistantMessage(
                     id: request.assistantMessageID,
                     text: message,
@@ -510,6 +534,24 @@ final class AgentChatViewModel: ObservableObject {
         showToast = true
     }
 
+    private func updateProviderDiagnostics(from response: AgentChatResponse) {
+        let resolvedProvider = AIRuntimeAgentProvider(
+            rawValue: response.agentProvider
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+        ) ?? .gemini
+        lastAgentProvider = resolvedProvider
+
+        let trimmedNotice = response.providerNotice.trimmingCharacters(in: .whitespacesAndNewlines)
+        if response.providerFallbackUsed || !trimmedNotice.isEmpty {
+            lastProviderNotice = trimmedNotice.isEmpty
+                ? "Provider-Fallback aktiv."
+                : trimmedNotice
+        } else {
+            lastProviderNotice = ""
+        }
+    }
+
     private func isOfflineError(_ error: Error) -> Bool {
         let nsError = error as NSError
         return nsError.code == NSURLErrorNotConnectedToInternet || nsError.code == -1009
@@ -538,6 +580,10 @@ final class AgentChatViewModel: ObservableObject {
                 return nsError.localizedDescription.isEmpty ? "Dein heutiges Agent-Limit ist erreicht." : nsError.localizedDescription
             case .invalidArgument:
                 return "Die Anfrage konnte so nicht verarbeitet werden."
+            case .failedPrecondition:
+                return nsError.localizedDescription.isEmpty
+                    ? "Der Agent ist noch nicht vollstaendig eingerichtet."
+                    : nsError.localizedDescription
             case .permissionDenied:
                 return nsError.localizedDescription.isEmpty ? "Der Agent ist fuer dein Konto gerade nicht freigeschaltet." : nsError.localizedDescription
             case .unauthenticated:

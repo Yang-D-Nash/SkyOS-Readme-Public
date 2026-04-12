@@ -7,6 +7,12 @@ struct HostedCheckoutSession {
     let sessionID: String?
 }
 
+struct AISubscriptionCheckoutSession {
+    let checkoutURL: URL
+    let sessionID: String?
+    let plan: UserQuotaPlan
+}
+
 protocol HostedCheckoutServicing {
     func startCheckout(
         userEmail: String,
@@ -28,6 +34,13 @@ protocol HostedCheckoutServicing {
         fulfillmentProvider: String,
         platform: String
     ) async throws -> HostedCheckoutSession
+}
+
+protocol AISubscriptionCheckoutServicing {
+    func startCheckout(
+        plan: UserQuotaPlan,
+        platform: String
+    ) async throws -> AISubscriptionCheckoutSession
 }
 
 final class FirebaseHostedCheckoutService: HostedCheckoutServicing {
@@ -118,6 +131,49 @@ final class FirebaseHostedCheckoutService: HostedCheckoutServicing {
             orderID: orderID,
             checkoutURL: checkoutURL,
             sessionID: (data["sessionId"] as? String)?.trimmedNonEmpty
+        )
+    }
+}
+
+final class FirebaseAISubscriptionCheckoutService: AISubscriptionCheckoutServicing {
+    private let functions: Functions
+
+    init(functions: Functions = Functions.functions(region: "us-central1")) {
+        self.functions = functions
+    }
+
+    func startCheckout(
+        plan: UserQuotaPlan,
+        platform: String = "ios"
+    ) async throws -> AISubscriptionCheckoutSession {
+        let payload: [String: Any] = [
+            "plan": plan.rawValue,
+            "platform": platform
+        ]
+
+        let result = try await functions.invokeCallable("startAiSubscriptionCheckout", payload: payload)
+
+        guard
+            let data = result.data as? [String: Any],
+            let checkoutURLString = data["checkoutUrl"] as? String,
+            let checkoutURL = URL(string: checkoutURLString)
+        else {
+            throw NSError(
+                domain: "AISubscriptionCheckoutService",
+                code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "KI-Abo-Checkout konnte serverseitig nicht vorbereitet werden."]
+            )
+        }
+
+        let resolvedPlan = UserQuotaPlan.resolve(
+            from: data["plan"] as? String,
+            role: .admin
+        )
+
+        return AISubscriptionCheckoutSession(
+            checkoutURL: checkoutURL,
+            sessionID: (data["sessionId"] as? String)?.trimmedNonEmpty,
+            plan: resolvedPlan
         )
     }
 }

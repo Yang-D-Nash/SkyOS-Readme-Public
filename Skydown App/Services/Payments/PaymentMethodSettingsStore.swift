@@ -23,11 +23,22 @@ struct BankTransferSettings: Equatable {
     }
 }
 
+struct AISubscriptionPricingSettings: Equatable {
+    var enabled: Bool = false
+    var creatorPriceID: String = ""
+    var studioPriceID: String = ""
+
+    var isConfigured: Bool {
+        !creatorPriceID.trimmed.isEmpty && !studioPriceID.trimmed.isEmpty
+    }
+}
+
 struct PaymentMethodSettings: Equatable {
     var stripe: PaymentProviderSettings = .init()
     var paypal: PaymentProviderSettings = .init()
     var klarna: PaymentProviderSettings = .init()
     var bankTransfer: BankTransferSettings = .init()
+    var aiSubscriptions: AISubscriptionPricingSettings = .init()
 
     static let `default` = PaymentMethodSettings()
 
@@ -90,11 +101,13 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
         let paypal = decodeProvider(data["paypal"] as? [String: Any])
         let klarna = decodeProvider(data["klarna"] as? [String: Any])
         let bankTransfer = decodeBankTransfer(data["bankTransfer"] as? [String: Any])
+        let aiSubscriptions = decodeAISubscriptions(data["aiSubscriptions"] as? [String: Any])
         return PaymentMethodSettings(
             stripe: stripe,
             paypal: paypal,
             klarna: klarna,
-            bankTransfer: bankTransfer
+            bankTransfer: bankTransfer,
+            aiSubscriptions: aiSubscriptions
         )
     }
 
@@ -114,6 +127,14 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
             bic: data?["bic"] as? String ?? "",
             bankName: data?["bankName"] as? String ?? "",
             paymentInstructions: data?["paymentInstructions"] as? String ?? ""
+        )
+    }
+
+    private static func decodeAISubscriptions(_ data: [String: Any]?) -> AISubscriptionPricingSettings {
+        AISubscriptionPricingSettings(
+            enabled: data?["enabled"] as? Bool ?? false,
+            creatorPriceID: data?["creatorPriceId"] as? String ?? "",
+            studioPriceID: data?["studioPriceId"] as? String ?? ""
         )
     }
 
@@ -141,6 +162,11 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
                 "bic": settings.bankTransfer.bic.trimmed,
                 "bankName": settings.bankTransfer.bankName.trimmed,
                 "paymentInstructions": settings.bankTransfer.paymentInstructions.trimmed
+            ],
+            "aiSubscriptions": [
+                "enabled": settings.aiSubscriptions.enabled,
+                "creatorPriceId": settings.aiSubscriptions.creatorPriceID.trimmed,
+                "studioPriceId": settings.aiSubscriptions.studioPriceID.trimmed
             ],
             "updatedAt": FieldValue.serverTimestamp()
         ]

@@ -4,6 +4,9 @@ import UIKit
 struct AgentView: View {
     @StateObject private var viewModel: AgentChatViewModel
     @ObservedObject private var featureFlags: FeatureFlagsService
+    @ObservedObject private var manusByosStore = ManusBYOSStore.shared
+    @ObservedObject private var workflowAutomationSettingsStore = WorkflowAutomationSettingsStore.shared
+    @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
@@ -48,9 +51,18 @@ struct AgentView: View {
         )
         .task {
             viewModel.configureUser(user: authManager.userSession)
+            configureIntegrationObservations(for: authManager.userSession)
         }
         .onChange(of: authManager.userSession?.id) { _, _ in
             viewModel.configureUser(user: authManager.userSession)
+            configureIntegrationObservations(for: authManager.userSession)
+        }
+        .onChange(of: featureFlags.isAIEnabled) { _, isEnabled in
+            aiRuntimeSettingsStore.setObservationEnabled(isEnabled)
+            workflowAutomationSettingsStore.configureObservation(
+                isEnabled: isEnabled,
+                userID: authManager.userSession?.id
+            )
         }
         .onDisappear {
             isComposerFocused = false
@@ -65,6 +77,7 @@ struct AgentView: View {
                         Spacer(minLength: showsNavigation ? 8 : 4)
 
                         AgentEmptyStateHeader(colorScheme: colorScheme)
+                        serviceStatusCard
 
                         AgentQuickPromptCard(
                             colorScheme: colorScheme,
@@ -84,6 +97,8 @@ struct AgentView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 10) {
+                                serviceStatusCard
+
                                 ForEach(viewModel.messages) { message in
                                     AgentMessageBubble(
                                         message: message,
@@ -150,6 +165,284 @@ struct AgentView: View {
             for: colorScheme,
             secondaryAccent: AppColors.accentHighlight(for: colorScheme)
         )
+    }
+
+    private var serviceStatusCard: some View {
+        AgentServiceStatusCard(
+            colorScheme: colorScheme,
+            isOnline: NetworkStatusMonitor.shared.isOnline,
+            canTriggerAutomation: viewModel.canTriggerAutomation,
+            shouldTriggerAutomation: viewModel.shouldTriggerAutomation,
+            runtimeSettings: aiRuntimeSettingsStore.settings,
+            runtimeErrorMessage: aiRuntimeSettingsStore.lastErrorMessage,
+            workflowSettings: workflowAutomationSettingsStore.settings,
+            workflowErrorMessage: workflowAutomationSettingsStore.lastErrorMessage,
+            manusSettings: manusByosStore.settings,
+            lastAgentProvider: viewModel.lastAgentProvider,
+            providerNotice: viewModel.lastProviderNotice,
+            integrationIssue: viewModel.lastIntegrationIssue
+        )
+    }
+
+    private func configureIntegrationObservations(for user: User?) {
+        let userID = user?.id?.trimmingCharacters(in: .whitespacesAndNewlines)
+        workflowAutomationSettingsStore.configureObservation(
+            isEnabled: featureFlags.isAIEnabled,
+            userID: userID?.isEmpty == true ? nil : userID
+        )
+        aiRuntimeSettingsStore.setObservationEnabled(featureFlags.isAIEnabled)
+    }
+}
+
+private struct AgentServiceStatusCard: View {
+    let colorScheme: ColorScheme
+    let isOnline: Bool
+    let canTriggerAutomation: Bool
+    let shouldTriggerAutomation: Bool
+    let runtimeSettings: AIRuntimeSettings
+    let runtimeErrorMessage: String?
+    let workflowSettings: WorkflowAutomationSettings
+    let workflowErrorMessage: String?
+    let manusSettings: ManusBYOSSettings
+    let lastAgentProvider: AIRuntimeAgentProvider
+    let providerNotice: String
+    let integrationIssue: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "bolt.horizontal.circle")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                Text("Agent-Verbindung")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
+                AgentServicePill(
+                    title: isOnline ? "Online" : "Offline",
+                    tone: isOnline ? .ready : .blocked,
+                    colorScheme: colorScheme
+                )
+            }
+
+            HStack(spacing: 8) {
+                AgentServicePill(
+                    title: "Provider: \(providerLabel)",
+                    tone: providerTone,
+                    colorScheme: colorScheme
+                )
+                AgentServicePill(
+                    title: manusLabel,
+                    tone: manusTone,
+                    colorScheme: colorScheme
+                )
+            }
+
+            HStack(spacing: 8) {
+                AgentServicePill(
+                    title: n8nLabel,
+                    tone: n8nTone,
+                    colorScheme: colorScheme
+                )
+                if shouldTriggerAutomation {
+                    AgentServicePill(
+                        title: "Agent-Aktion AN",
+                        tone: n8nReady ? .ready : .blocked,
+                        colorScheme: colorScheme
+                    )
+                }
+            }
+
+            if let detail = statusDetailMessage {
+                Text(detail)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(
+                        detailTone == .blocked
+                            ? Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255)
+                            : AppColors.secondaryText(for: colorScheme)
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+    }
+
+    private var providerLabel: String {
+        if let runtimeErrorMessage, !runtimeErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Status unklar"
+        }
+
+        let runtimeProvider = runtimeSettings.agentProvider
+        if runtimeProvider != lastAgentProvider && !providerNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "\(runtimeProvider.displayTitle) (Fallback \(lastAgentProvider.displayTitle))"
+        }
+        return runtimeProvider.displayTitle
+    }
+
+    private var providerTone: AgentServicePill.Tone {
+        if runtimeErrorMessage != nil {
+            return .warning
+        }
+        return .ready
+    }
+
+    private var manusLabel: String {
+        if runtimeSettings.agentProvider != .manus {
+            return "Manus: aus (Gemini aktiv)"
+        }
+        if !runtimeSettings.manus.isEnabled {
+            return "Manus: runtime aus"
+        }
+        if manusSettings.isEnabled && manusSettings.hasAPIKey {
+            return "Manus: BYOS aktiv"
+        }
+        if manusSettings.hasAPIKey && !manusSettings.isEnabled {
+            return "Manus: Key da, BYOS aus"
+        }
+        return "Manus: Backend/BYOS"
+    }
+
+    private var manusTone: AgentServicePill.Tone {
+        if runtimeSettings.agentProvider != .manus {
+            return .neutral
+        }
+        if !runtimeSettings.manus.isEnabled {
+            return .blocked
+        }
+        if manusSettings.isEnabled && manusSettings.hasAPIKey {
+            return .ready
+        }
+        return .warning
+    }
+
+    private var n8nReady: Bool {
+        canTriggerAutomation && workflowSettings.isPrepared
+    }
+
+    private var n8nLabel: String {
+        if !canTriggerAutomation {
+            return "n8n: Login fehlt"
+        }
+        if let workflowErrorMessage,
+           !workflowErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "n8n: Status unklar"
+        }
+        if workflowSettings.isPrepared {
+            return "n8n: bereit"
+        }
+        if workflowSettings.isEnabled {
+            return "n8n: unvollstaendig"
+        }
+        return "n8n: aus"
+    }
+
+    private var n8nTone: AgentServicePill.Tone {
+        if !canTriggerAutomation {
+            return .blocked
+        }
+        if workflowErrorMessage != nil {
+            return .warning
+        }
+        if workflowSettings.isPrepared {
+            return .ready
+        }
+        if workflowSettings.isEnabled {
+            return .warning
+        }
+        return .neutral
+    }
+
+    private var statusDetailMessage: String? {
+        let trimmedIssue = integrationIssue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedIssue.isEmpty {
+            return trimmedIssue
+        }
+
+        let trimmedNotice = providerNotice.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedNotice.isEmpty {
+            return trimmedNotice
+        }
+
+        if runtimeSettings.agentProvider == .manus && !runtimeSettings.manus.isEnabled {
+            return "Owner-Setup fehlt: In der Runtime muss Manus aktiviert werden."
+        }
+
+        if shouldTriggerAutomation && !n8nReady {
+            return "Agent-Aktion aktiv, aber n8n ist fuer dieses Konto noch nicht vollstaendig eingerichtet."
+        }
+
+        if !isOnline {
+            return AppLocalized.text(
+                "agent.offline.message",
+                fallback: "You are offline. The agent will continue once your connection is back."
+            )
+        }
+
+        return nil
+    }
+
+    private var detailTone: AgentServicePill.Tone {
+        guard let message = statusDetailMessage else { return .neutral }
+        if message.lowercased().contains("fallback") {
+            return .warning
+        }
+        if message.lowercased().contains("offline") || message.lowercased().contains("fehlt") || message.lowercased().contains("nicht") {
+            return .blocked
+        }
+        return .warning
+    }
+}
+
+private struct AgentServicePill: View {
+    enum Tone {
+        case ready
+        case warning
+        case blocked
+        case neutral
+    }
+
+    let title: String
+    let tone: Tone
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.bold))
+            .foregroundColor(foregroundColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(backgroundColor)
+            )
+    }
+
+    private var foregroundColor: Color {
+        switch tone {
+        case .ready:
+            return Color.white
+        case .warning, .blocked, .neutral:
+            return AppColors.text(for: colorScheme)
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch tone {
+        case .ready:
+            return AppColors.accentMystic(for: colorScheme)
+        case .warning:
+            return Color(red: 1, green: 191 / 255, blue: 102 / 255).opacity(0.28)
+        case .blocked:
+            return Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255).opacity(0.2)
+        case .neutral:
+            return AppColors.secondaryBackground(for: colorScheme)
+        }
     }
 }
 

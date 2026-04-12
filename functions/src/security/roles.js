@@ -49,7 +49,7 @@ function defaultQuotaPlanForRole(role) {
     case USER_ROLES.owner:
       return USER_QUOTA_PLANS.ownerUnlimited;
     case USER_ROLES.admin:
-      return USER_QUOTA_PLANS.internalTeam;
+      return USER_QUOTA_PLANS.creator;
     case USER_ROLES.subadmin:
       return USER_QUOTA_PLANS.creator;
     case USER_ROLES.user:
@@ -147,14 +147,13 @@ async function setUserRoleClaims({
     canonicalData;
   const migrationCarryover = buildMigrationCarryover(resolvedTarget.staleData, canonicalData);
   const existingQuotaPlan = nonEmptyString(existingData.quotaPlan)?.toLowerCase();
+  const selfPaidPlans = [USER_QUOTA_PLANS.creator, USER_QUOTA_PLANS.studio];
   const quotaPlan = finalRole === USER_ROLES.owner ?
     USER_QUOTA_PLANS.ownerUnlimited :
-    finalRole === USER_ROLES.admin ?
-      USER_QUOTA_PLANS.internalTeam :
-      finalRole === USER_ROLES.subadmin &&
-      [USER_QUOTA_PLANS.creator, USER_QUOTA_PLANS.studio].includes(existingQuotaPlan) ?
-        existingQuotaPlan :
-        defaultQuotaPlanForRole(finalRole);
+    [USER_ROLES.admin, USER_ROLES.subadmin].includes(finalRole) &&
+    selfPaidPlans.includes(existingQuotaPlan) ?
+      existingQuotaPlan :
+      defaultQuotaPlanForRole(finalRole);
   const defaults = defaultAiLimitsForQuotaPlan(quotaPlan);
   const textLimit = Number(existingData.aiTextRequestsPerDay);
   const visualLimit = Number(existingData.aiVisualRequestsPerDay);

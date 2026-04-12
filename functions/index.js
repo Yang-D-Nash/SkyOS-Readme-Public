@@ -30,6 +30,7 @@ const {
 } = require("./src/security/runtime-config");
 const {requestUploadSlot} = require("./src/security/upload-slots");
 const {
+  createAiSubscriptionCheckoutSession,
   createHostedCheckoutSession,
   deriveStripeCheckoutStatus,
   extractStripeCheckoutIdentifiers,
@@ -288,6 +289,11 @@ const AI_AGENT_PROVIDERS = {
   gemini: "gemini",
   manus: "manus",
 };
+const AI_SUBSCRIPTION_PLANS = Object.freeze([
+  USER_QUOTA_PLANS.creator,
+  USER_QUOTA_PLANS.studio,
+]);
+const AI_SUBSCRIPTION_ACTIVE_STATUSES = Object.freeze(["active", "trialing"]);
 
 const AI_REMOTE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 const AI_PROMPT_SETTINGS_CACHE_TTL_MS = 60 * 1000;
@@ -402,6 +408,71 @@ function defaultAiLimitsForQuotaPlan(plan) {
     default:
       return {text: 30, visual: 4, agent: 18, historyRetentionDays: 3};
   }
+}
+
+function normalizeAiSubscriptionPlan(value) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  return normalized && AI_SUBSCRIPTION_PLANS.includes(normalized) ? normalized : null;
+}
+
+function normalizeAiSubscriptionStatus(value, fallback = "inactive") {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  return normalized || fallback;
+}
+
+function isAiSubscriptionStatusActive(value) {
+  return AI_SUBSCRIPTION_ACTIVE_STATUSES.includes(normalizeAiSubscriptionStatus(value, ""));
+}
+
+function resolveAiSubscriptionStatusFromCheckoutEvent(eventType) {
+  if (eventType === "checkout.session.completed" ||
+    eventType === "checkout.session.async_payment_succeeded") {
+    return "active";
+  }
+  if (eventType === "checkout.session.async_payment_failed") {
+    return "past_due";
+  }
+  if (eventType === "checkout.session.expired") {
+    return "expired";
+  }
+  return "checkout_pending";
+}
+
+function resolveAiSubscriptionStatusFromLifecycleEvent(eventType, subscriptionObject = {}) {
+  if (eventType === "customer.subscription.deleted") {
+    return "canceled";
+  }
+  return normalizeAiSubscriptionStatus(subscriptionObject.status, "inactive");
+}
+
+function resolveAiSubscriptionMetadata(stripeObject = {}) {
+  const metadata = stripeObject?.metadata && typeof stripeObject.metadata === "object" &&
+    !Array.isArray(stripeObject.metadata) ?
+      stripeObject.metadata :
+      {};
+
+  return {
+    type: nonEmptyString(metadata.type)?.toLowerCase() || "",
+    userId: nonEmptyString(metadata.userId) || nonEmptyString(stripeObject?.client_reference_id),
+    plan: normalizeAiSubscriptionPlan(metadata.plan),
+    priceId: nonEmptyString(metadata.priceId),
+  };
+}
+
+function resolveAiLimitsUpdateForPlan(plan) {
+  const normalizedPlan = normalizeAiSubscriptionPlan(plan) || USER_QUOTA_PLANS.creator;
+  const defaults = defaultAiLimitsForQuotaPlan(normalizedPlan);
+  return {
+    quotaPlan: normalizedPlan,
+    aiTextRequestsPerDay: defaults.text,
+    aiVisualRequestsPerDay: defaults.visual,
+    aiAgentRequestsPerDay: defaults.agent,
+    aiHistoryRetentionDays: defaults.historyRetentionDays,
+  };
+}
+
+function resolveAiLimitsUpdateForRole(role) {
+  return resolveAiLimitsUpdateForPlan(defaultQuotaPlanForRole(role));
 }
 
 function resolveAiLimits(userData = {}) {
@@ -840,6 +911,19 @@ async function assertAiAccess(auth) {
 
   if (!profile.aiAccessEnabled) {
     throw new HttpsError("permission-denied", "Die KI ist fuer dein Konto gerade pausiert.");
+  }
+
+  if (
+    profile.role === USER_ROLES.admin &&
+    (
+      !AI_SUBSCRIPTION_PLANS.includes(profile.aiLimits.quotaPlan) ||
+      !isAiSubscriptionStatusActive(userData.aiSubscriptionStatus)
+    )
+  ) {
+    throw new HttpsError(
+        "permission-denied",
+        "Admin-KI ist nur mit aktivem Creator- oder Studio-Abo freigeschaltet. Bitte aktiviere dein Abo in den Einstellungen.",
+    );
   }
 
   if (featureConfig.accessMode === AI_ACCESS_MODES.adminOnly && !profile.isStaff) {
@@ -1711,6 +1795,7 @@ async function loadPaymentMethodSettings() {
   const data = snapshot.data() || {};
   const stripe = data.stripe || {};
   const klarna = data.klarna || {};
+  const aiSubscriptions = data.aiSubscriptions || {};
 
   return {
     stripe: {
@@ -1721,7 +1806,30 @@ async function loadPaymentMethodSettings() {
       connected: klarna.connected === true,
       enabled: klarna.enabled === true,
     },
+    aiSubscriptions: {
+      enabled: aiSubscriptions.enabled === true,
+      creatorPriceId: nonEmptyString(aiSubscriptions.creatorPriceId) || "",
+      studioPriceId: nonEmptyString(aiSubscriptions.studioPriceId) || "",
+    },
   };
+}
+
+function resolveAiSubscriptionPriceId(paymentSettings, plan) {
+  const normalizedPlan = normalizeAiSubscriptionPlan(plan);
+  if (!normalizedPlan) {
+    return "";
+  }
+
+  const config = paymentSettings?.aiSubscriptions || {};
+  if (config.enabled !== true) {
+    return "";
+  }
+
+  if (normalizedPlan === USER_QUOTA_PLANS.studio) {
+    return nonEmptyString(config.studioPriceId) || "";
+  }
+
+  return nonEmptyString(config.creatorPriceId) || "";
 }
 
 async function loadCommerceSettings() {
@@ -1830,6 +1938,203 @@ function validStripeSecretKey(value) {
 
 function validStripeWebhookSecret(value) {
   return /^whsec_/.test(`${value || ""}`.trim());
+}
+
+async function resolveUserDocumentForAiSubscription({
+  userId = null,
+  stripeSubscriptionId = null,
+  stripeCustomerId = null,
+} = {}) {
+  const usersRef = admin.firestore().collection("users");
+  const normalizedUserId = nonEmptyString(userId);
+  if (normalizedUserId) {
+    const snapshot = await usersRef.doc(normalizedUserId).get();
+    if (snapshot.exists) {
+      return {
+        ref: snapshot.ref,
+        snapshot,
+      };
+    }
+  }
+
+  const normalizedSubscriptionId = nonEmptyString(stripeSubscriptionId);
+  if (normalizedSubscriptionId) {
+    const query = await usersRef
+        .where("aiSubscriptionStripeSubscriptionId", "==", normalizedSubscriptionId)
+        .limit(1)
+        .get();
+    if (!query.empty) {
+      const snapshot = query.docs[0];
+      return {
+        ref: snapshot.ref,
+        snapshot,
+      };
+    }
+  }
+
+  const normalizedCustomerId = nonEmptyString(stripeCustomerId);
+  if (normalizedCustomerId) {
+    const query = await usersRef
+        .where("aiSubscriptionStripeCustomerId", "==", normalizedCustomerId)
+        .limit(1)
+        .get();
+    if (!query.empty) {
+      const snapshot = query.docs[0];
+      return {
+        ref: snapshot.ref,
+        snapshot,
+      };
+    }
+  }
+
+  return null;
+}
+
+async function processAiSubscriptionCheckoutWebhook(eventType, stripeObject = {}) {
+  if (nonEmptyString(stripeObject?.mode)?.toLowerCase() !== "subscription") {
+    return {handled: false};
+  }
+
+  const metadata = resolveAiSubscriptionMetadata(stripeObject);
+  const isAiSubscription = metadata.type === "ai_subscription" || Boolean(metadata.userId);
+  if (!isAiSubscription) {
+    return {handled: false};
+  }
+
+  const identifiers = extractStripeCheckoutIdentifiers(stripeObject);
+  const userDocument = await resolveUserDocumentForAiSubscription({
+    userId: metadata.userId,
+    stripeSubscriptionId: nonEmptyString(stripeObject?.subscription),
+    stripeCustomerId: nonEmptyString(stripeObject?.customer),
+  });
+  if (!userDocument) {
+    logger.warn("AI subscription checkout webhook received for unknown user.", {
+      eventType,
+      userId: metadata.userId,
+      sessionId: identifiers.sessionId,
+    });
+    return {handled: true, ignored: true};
+  }
+
+  const userData = userDocument.snapshot.data() || {};
+  const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const plan = metadata.plan ||
+    normalizeAiSubscriptionPlan(userData.aiSubscriptionPlan) ||
+    normalizeAiSubscriptionPlan(userData.quotaPlan) ||
+    USER_QUOTA_PLANS.creator;
+  const status = resolveAiSubscriptionStatusFromCheckoutEvent(eventType);
+  const checkoutExpires = Number(stripeObject?.expires_at);
+  const updates = {
+    aiSubscriptionStatus: status,
+    aiSubscriptionPlan: plan,
+    aiSubscriptionPriceId: metadata.priceId || nonEmptyString(userData.aiSubscriptionPriceId) || admin.firestore.FieldValue.delete(),
+    aiSubscriptionStripeCheckoutSessionId: identifiers.sessionId ||
+      nonEmptyString(userData.aiSubscriptionStripeCheckoutSessionId) ||
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionStripeCustomerId: nonEmptyString(stripeObject?.customer) ||
+      nonEmptyString(userData.aiSubscriptionStripeCustomerId) ||
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionStripeSubscriptionId: nonEmptyString(stripeObject?.subscription) ||
+      nonEmptyString(userData.aiSubscriptionStripeSubscriptionId) ||
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionCheckoutExpiresAtEpochSeconds: Number.isFinite(checkoutExpires) && checkoutExpires > 0 ?
+      Math.floor(checkoutExpires) :
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  if (isAiSubscriptionStatusActive(status)) {
+    Object.assign(updates, resolveAiLimitsUpdateForPlan(plan));
+    updates.aiSubscriptionActivatedAt = admin.firestore.FieldValue.serverTimestamp();
+    updates.aiSubscriptionCancelAtPeriodEnd = false;
+  } else if (role !== USER_ROLES.admin) {
+    Object.assign(updates, resolveAiLimitsUpdateForRole(role));
+  }
+
+  await userDocument.ref.set(updates, {merge: true});
+
+  logger.info("AI subscription checkout webhook processed.", {
+    eventType,
+    uid: userDocument.ref.id,
+    status,
+    plan,
+    sessionId: identifiers.sessionId,
+  });
+
+  return {
+    handled: true,
+    status,
+    uid: userDocument.ref.id,
+  };
+}
+
+async function processAiSubscriptionLifecycleWebhook(eventType, stripeObject = {}) {
+  if (!eventType.startsWith("customer.subscription.")) {
+    return {handled: false};
+  }
+
+  const metadata = resolveAiSubscriptionMetadata(stripeObject);
+  const userDocument = await resolveUserDocumentForAiSubscription({
+    userId: metadata.userId,
+    stripeSubscriptionId: nonEmptyString(stripeObject?.id),
+    stripeCustomerId: nonEmptyString(stripeObject?.customer),
+  });
+  if (!userDocument) {
+    logger.warn("AI subscription lifecycle webhook received for unknown user.", {
+      eventType,
+      subscriptionId: nonEmptyString(stripeObject?.id),
+      customerId: nonEmptyString(stripeObject?.customer),
+    });
+    return {handled: true, ignored: true};
+  }
+
+  const userData = userDocument.snapshot.data() || {};
+  const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const plan = metadata.plan ||
+    normalizeAiSubscriptionPlan(userData.aiSubscriptionPlan) ||
+    normalizeAiSubscriptionPlan(userData.quotaPlan) ||
+    USER_QUOTA_PLANS.creator;
+  const status = resolveAiSubscriptionStatusFromLifecycleEvent(eventType, stripeObject);
+  const currentPeriodEnd = Number(stripeObject?.current_period_end);
+  const updates = {
+    aiSubscriptionStatus: status,
+    aiSubscriptionPlan: plan,
+    aiSubscriptionPriceId: metadata.priceId || nonEmptyString(userData.aiSubscriptionPriceId) || admin.firestore.FieldValue.delete(),
+    aiSubscriptionStripeCustomerId: nonEmptyString(stripeObject?.customer) ||
+      nonEmptyString(userData.aiSubscriptionStripeCustomerId) ||
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionStripeSubscriptionId: nonEmptyString(stripeObject?.id) ||
+      nonEmptyString(userData.aiSubscriptionStripeSubscriptionId) ||
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionCurrentPeriodEndEpochSeconds: Number.isFinite(currentPeriodEnd) && currentPeriodEnd > 0 ?
+      Math.floor(currentPeriodEnd) :
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionCancelAtPeriodEnd: stripeObject?.cancel_at_period_end === true,
+    aiSubscriptionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  if (isAiSubscriptionStatusActive(status)) {
+    Object.assign(updates, resolveAiLimitsUpdateForPlan(plan));
+    updates.aiSubscriptionActivatedAt = admin.firestore.FieldValue.serverTimestamp();
+  } else if (role !== USER_ROLES.admin) {
+    Object.assign(updates, resolveAiLimitsUpdateForRole(role));
+  }
+
+  await userDocument.ref.set(updates, {merge: true});
+
+  logger.info("AI subscription lifecycle webhook processed.", {
+    eventType,
+    uid: userDocument.ref.id,
+    status,
+    plan,
+    subscriptionId: nonEmptyString(stripeObject?.id),
+  });
+
+  return {
+    handled: true,
+    status,
+    uid: userDocument.ref.id,
+  };
 }
 
 function getShopifyGraphqlUrl(storeDomain) {
@@ -3536,6 +3841,99 @@ exports.startMerchCheckout = onCall({
   };
 });
 
+exports.startAiSubscriptionCheckout = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+  secrets: [stripeSecretKey],
+}, async (request) => {
+  await assertCallableSecurity(request, "startAiSubscriptionCheckout");
+
+  const uid = assertAuthenticatedUser(
+      request.auth,
+      "Bitte melde dich an, um ein KI-Abo zu starten.",
+  );
+  const userData = await loadUserData(uid);
+  if (!userData) {
+    throw new HttpsError("not-found", "Konto wurde nicht gefunden.");
+  }
+
+  const profile = buildUserProfile(userData);
+  if (profile.role !== USER_ROLES.admin) {
+    throw new HttpsError("permission-denied", "Self-Pay-Abo ist nur fuer Admin-Konten verfuegbar.");
+  }
+
+  if (!profile.aiAccessEnabled) {
+    throw new HttpsError("failed-precondition", "Die KI ist fuer dein Konto aktuell pausiert.");
+  }
+
+  const requestedPlan = normalizeAiSubscriptionPlan(request.data?.plan);
+  if (!requestedPlan) {
+    throw new HttpsError("invalid-argument", "Bitte waehle Creator oder Studio.");
+  }
+
+  const paymentSettings = await loadPaymentMethodSettings();
+  if (!isHostedPaymentMethodEnabled(paymentSettings, "Stripe")) {
+    throw new HttpsError("failed-precondition", "Stripe Checkout ist aktuell nicht live geschaltet.");
+  }
+
+  const priceId = resolveAiSubscriptionPriceId(paymentSettings, requestedPlan);
+  if (!priceId) {
+    throw new HttpsError("failed-precondition", "KI-Abo-Preis ist fuer den gewaehlten Plan noch nicht konfiguriert.");
+  }
+
+  const secretKey = loadStripeSecretKey();
+  if (!secretKey) {
+    throw new HttpsError("failed-precondition", "Stripe ist serverseitig noch nicht vollstaendig konfiguriert.");
+  }
+
+  const projectId = resolveProjectId();
+  if (!projectId) {
+    throw new HttpsError("internal", "Firebase-Projekt konnte fuer den Abo-Checkout nicht aufgeloest werden.");
+  }
+
+  const platform = normalizeCheckoutPlatform(request.data?.platform);
+  const checkoutSession = await createAiSubscriptionCheckoutSession({
+    secretKey,
+    projectId,
+    userId: uid,
+    customerEmail: nonEmptyString(userData.email) || nonEmptyString(request.auth?.token?.email) || "",
+    customerId: nonEmptyString(userData.aiSubscriptionStripeCustomerId),
+    plan: requestedPlan,
+    priceId,
+    platform,
+  });
+
+  const userRef = admin.firestore().doc(`users/${uid}`);
+  await userRef.set({
+    aiSubscriptionStatus: "checkout_pending",
+    aiSubscriptionPlan: requestedPlan,
+    aiSubscriptionPriceId: priceId,
+    aiSubscriptionStripeCheckoutSessionId: checkoutSession.sessionId,
+    aiSubscriptionStripeCustomerId: checkoutSession.customerId ||
+      nonEmptyString(userData.aiSubscriptionStripeCustomerId) ||
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionStripeSubscriptionId: checkoutSession.subscriptionId ||
+      nonEmptyString(userData.aiSubscriptionStripeSubscriptionId) ||
+      admin.firestore.FieldValue.delete(),
+    aiSubscriptionCheckoutExpiresAtEpochSeconds: checkoutSession.expiresAtEpochSeconds || admin.firestore.FieldValue.delete(),
+    aiSubscriptionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  logger.info("AI subscription checkout created.", {
+    uid,
+    role: profile.role,
+    plan: requestedPlan,
+    platform,
+    sessionId: checkoutSession.sessionId,
+  });
+
+  return {
+    checkoutUrl: checkoutSession.checkoutUrl,
+    sessionId: checkoutSession.sessionId,
+    plan: requestedPlan,
+  };
+});
+
 exports.confirmMerchOrderPayment = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
@@ -3636,7 +4034,21 @@ exports.stripeMerchWebhook = onRequest({
 
   const event = JSON.parse(request.rawBody.toString("utf8"));
   const eventType = nonEmptyString(event?.type) || "";
-  const session = event?.data?.object || {};
+  const stripeObject = event?.data?.object || {};
+
+  const aiCheckoutResult = await processAiSubscriptionCheckoutWebhook(eventType, stripeObject);
+  if (aiCheckoutResult.handled) {
+    response.status(200).json({received: true, aiSubscription: true, status: aiCheckoutResult.status || "ignored"});
+    return;
+  }
+
+  const aiLifecycleResult = await processAiSubscriptionLifecycleWebhook(eventType, stripeObject);
+  if (aiLifecycleResult.handled) {
+    response.status(200).json({received: true, aiSubscription: true, status: aiLifecycleResult.status || "ignored"});
+    return;
+  }
+
+  const session = stripeObject;
   const orderId = nonEmptyString(session?.metadata?.orderId) || nonEmptyString(session?.client_reference_id);
 
   if (!orderId) {
