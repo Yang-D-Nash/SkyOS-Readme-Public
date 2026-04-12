@@ -52,6 +52,9 @@ struct AIView: View {
         .onChange(of: authManager.userSession?.id) { _, _ in
             viewModel.configureUser(user: authManager.userSession)
         }
+        .onDisappear {
+            isComposerFocused = false
+        }
     }
 
     private var content: some View {
@@ -66,13 +69,19 @@ struct AIView: View {
                         AIQuickPromptCard(
                             colorScheme: colorScheme,
                             prompts: viewModel.quickPrompts,
-                            onPromptSelected: viewModel.sendPrompt
+                            onPromptSelected: { prompt in
+                                isComposerFocused = false
+                                viewModel.sendPrompt(prompt)
+                            }
                         )
 
                         AIVisualPromptCard(
                             colorScheme: colorScheme,
                             prompts: viewModel.visualPrompts,
-                            onPromptSelected: viewModel.generateVisual
+                            onPromptSelected: { prompt in
+                                isComposerFocused = false
+                                viewModel.generateVisual(prompt)
+                            }
                         )
 
                         Spacer(minLength: 12)
@@ -498,6 +507,10 @@ private struct AIComposerBar: View {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var activeKeyboardInset: CGFloat {
+        isFocused.wrappedValue ? keyboardObserver.bottomInset : 0
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 10) {
@@ -566,6 +579,10 @@ private struct AIComposerBar: View {
                     )
                     .lineLimit(1...4)
                     .focused(isFocused)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        isFocused.wrappedValue = false
+                    }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .background(
@@ -574,7 +591,25 @@ private struct AIComposerBar: View {
                     )
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                    VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        if isFocused.wrappedValue {
+                            Button {
+                                isFocused.wrappedValue = false
+                            } label: {
+                                Image(systemName: "keyboard.chevron.compact.down")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(AppColors.text(for: colorScheme))
+                                    .frame(width: 38, height: 38)
+                                    .background(
+                                        Circle()
+                                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .skydownTactileAction()
+                            .transition(.scale.combined(with: .opacity))
+                        }
+
                         Button(action: {
                             isFocused.wrappedValue = false
                             onSend()
@@ -602,6 +637,7 @@ private struct AIComposerBar: View {
                         .disabled(trimmedDraft.isEmpty || isSending)
                         .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
                     }
+                    .animation(.easeOut(duration: 0.16), value: isFocused.wrappedValue)
                 }
             }
             .padding(.horizontal, 16)
@@ -616,7 +652,7 @@ private struct AIComposerBar: View {
                 Divider().opacity(0.25)
             }
         }
-        .padding(.bottom, keyboardObserver.bottomInset)
+        .padding(.bottom, activeKeyboardInset)
     }
 }
 
