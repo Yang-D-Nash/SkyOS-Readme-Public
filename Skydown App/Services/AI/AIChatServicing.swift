@@ -41,9 +41,7 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
 
     func generateText(prompt: String, mode: String) async throws -> AITextResponse {
         try await ensureConnectivity()
-        let result = try await functions
-            .httpsCallable("generateAiText")
-            .call([
+        let result = try await functions.invokeCallable("generateAiText", payload: [
                 "prompt": prompt,
                 "mode": mode
             ])
@@ -64,9 +62,7 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
 
     func generateVisual(prompt: String) async throws -> AIGeneratedVisual {
         try await ensureConnectivity()
-        let result = try await functions
-            .httpsCallable("generateAiVisual")
-            .call(["prompt": prompt])
+        let result = try await functions.invokeCallable("generateAiVisual", payload: ["prompt": prompt])
 
         guard let payload = result.data as? [String: Any] else {
             throw AIChatServiceError.invalidResponse

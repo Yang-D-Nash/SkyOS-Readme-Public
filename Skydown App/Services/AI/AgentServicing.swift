@@ -69,9 +69,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             payload["manusApiKeyOverride"] = manusApiKeyOverride
         }
 
-        let result = try await functions
-            .httpsCallable("skydownAgent")
-            .call(payload)
+        let result = try await functions.invokeCallable("skydownAgent", payload: payload)
 
         if let reply = result.data as? String, !reply.isEmpty {
             return AgentChatResponse(

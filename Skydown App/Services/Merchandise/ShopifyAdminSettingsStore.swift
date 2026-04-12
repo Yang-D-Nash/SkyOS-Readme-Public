@@ -87,7 +87,7 @@ final class FirestoreShopifyAdminSettingsService: ShopifyAdminSettingsServicing 
     }
 
     func fetchAvailableCollections() async throws -> [ShopifyCollectionOption] {
-        let result = try await functions.httpsCallable("listShopifyCollections").call([:])
+        let result = try await functions.invokeCallable("listShopifyCollections", payload: [:])
         let data = result.data as? [String: Any]
         let rawCollections = data?["collections"] as? [[String: Any]] ?? []
 

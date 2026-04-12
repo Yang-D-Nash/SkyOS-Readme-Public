@@ -52,9 +52,7 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
         let requestedRole = user.resolvedRole
         let canonicalTarget: ManagedUserRoleSyncResult
         do {
-            let response = try await functions
-                .httpsCallable("setUserRole")
-                .call([
+            let response = try await functions.invokeCallable("setUserRole", payload: [
                     "uid": userID,
                     "role": requestedRole.rawValue
                 ])

@@ -414,9 +414,7 @@ final class FirebaseUserProfileService: UserProfileServicing {
         fileExtension: String,
         byteSize: Int
     ) async throws -> ProfileUploadSlot {
-        let result = try await functions
-            .httpsCallable("requestUploadSlot")
-            .call([
+        let result = try await functions.invokeCallable("requestUploadSlot", payload: [
                 "kind": kind,
                 "userId": userId,
                 "mimeType": mimeType,

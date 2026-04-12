@@ -83,9 +83,7 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
         fileExtension: String,
         byteSize: Int
     ) async throws -> EditableImageAssetUploadSlot {
-        let response = try await functions
-            .httpsCallable("requestUploadSlot")
-            .call([
+        let response = try await functions.invokeCallable("requestUploadSlot", payload: [
                 "userId": userId,
                 "kind": kind,
                 "mimeType": mimeType,

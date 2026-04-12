@@ -13,9 +13,7 @@ struct FirebaseFunctionsShopifyMerchSyncService: ShopifyMerchSyncServicing {
     }
 
     func triggerSync() async throws -> String {
-        let response = try await functions
-            .httpsCallable("syncShopifyMerch")
-            .call([:])
+        let response = try await functions.invokeCallable("syncShopifyMerch", payload: [:])
 
         let data = response.data as? [String: Any]
         let synced = (data?["syncedCount"] as? NSNumber)?.intValue ?? 0

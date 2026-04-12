@@ -53,7 +53,7 @@ final class FirebaseStripeBackendSecretsService: StripeBackendSecretsServicing {
             "stripeWebhookSecret": stripeWebhookSecret.trimmingCharacters(in: .whitespacesAndNewlines)
         ]
 
-        let result = try await functions.httpsCallable("configureStripeBackendSecrets").call(payload)
+        let result = try await functions.invokeCallable("configureStripeBackendSecrets", payload: payload)
         guard let data = result.data as? [String: Any] else {
             return .init()
         }

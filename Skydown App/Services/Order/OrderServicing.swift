@@ -139,9 +139,7 @@ final class FirebaseOrderService: OrderServicing {
             "message": message,
             "items": orderItems
         ]
-        let result = try await functions
-            .httpsCallable("submitMerchOrder")
-            .call(payload)
+        let result = try await functions.invokeCallable("submitMerchOrder", payload: payload)
 
         if let data = result.data as? [String: Any],
            let orderID = data["orderId"] as? String,
@@ -177,9 +175,7 @@ final class FirebaseOrderService: OrderServicing {
             payload["paymentReference"] = paymentReference
         }
 
-        _ = try await functions
-            .httpsCallable("confirmMerchOrderPayment")
-            .call(payload)
+        _ = try await functions.invokeCallable("confirmMerchOrderPayment", payload: payload)
     }
 
     func toggleCompleted(orderID: String, isCompleted: Bool) async throws {

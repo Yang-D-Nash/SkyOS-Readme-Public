@@ -99,9 +99,7 @@ final class FirebaseHostedCheckoutService: HostedCheckoutServicing {
             "platform": platform
         ]
 
-        let result = try await functions
-            .httpsCallable("startMerchCheckout")
-            .call(payload)
+        let result = try await functions.invokeCallable("startMerchCheckout", payload: payload)
 
         guard
             let data = result.data as? [String: Any],

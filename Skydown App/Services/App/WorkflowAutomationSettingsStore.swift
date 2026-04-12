@@ -97,9 +97,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
             )
         }
 
-        let result = try await functions
-            .httpsCallable("triggerWorkflowAutomation")
-            .call([
+        let result = try await functions.invokeCallable("triggerWorkflowAutomation", payload: [
                 "trigger": "admin_settings_test",
                 "source": "ios_settings",
                 "userId": userID

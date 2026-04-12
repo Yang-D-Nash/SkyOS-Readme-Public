@@ -254,9 +254,7 @@ final class FirebaseAuthService: AuthServicing {
         }
 
         do {
-            _ = try await functions
-                .httpsCallable("deleteCurrentUserAccount")
-                .call([:])
+            _ = try await callCloudFunction("deleteCurrentUserAccount")
         } catch {
             throw readableAccountDeletionError(error)
         }
@@ -505,9 +503,7 @@ final class FirebaseAuthService: AuthServicing {
 
     private func syncSessionClaims(for authUser: FirebaseAuth.User) async throws {
         do {
-            _ = try await functions
-                .httpsCallable("syncCurrentUserClaims")
-                .call([:])
+            _ = try await callCloudFunction("syncCurrentUserClaims")
             try await refreshAuthToken(for: authUser)
         } catch {
             let nsError = error as NSError
@@ -518,6 +514,13 @@ final class FirebaseAuthService: AuthServicing {
             }
             throw error
         }
+    }
+
+    private func callCloudFunction(
+        _ functionName: String,
+        payload: Any = [:]
+    ) async throws -> HTTPSCallableResult {
+        try await functions.invokeCallable(functionName, payload: payload)
     }
 
     private func syncSessionClaimsIfPossible(for authUser: FirebaseAuth.User) async {
@@ -722,6 +725,36 @@ final class FirebaseAuthService: AuthServicing {
         if !window.isHidden { value += 10 }
         if window.alpha > 0 { value += 1 }
         return value
+    }
+}
+
+extension Functions {
+    /// Uses the callback-based API to avoid runtime crashes seen with the async wrapper on some iOS builds.
+    func invokeCallable(
+        _ functionName: String,
+        payload: Any = [:]
+    ) async throws -> HTTPSCallableResult {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<HTTPSCallableResult, Error>) in
+            httpsCallable(functionName).call(payload) { result, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let result else {
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "FirebaseFunctions",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Cloud Function \(functionName) lieferte kein Ergebnis."]
+                        )
+                    )
+                    return
+                }
+
+                continuation.resume(returning: result)
+            }
+        }
     }
 }
 

@@ -37,9 +37,7 @@ struct FirebaseFunctionsAIUsageService: AIUsageAuthorizing {
     }
 
     func authorize(kind: AIUsageAuthorizationKind) async throws -> AIUsageAuthorizationResult {
-        let result = try await functions
-            .httpsCallable("authorizeAiUsage")
-            .call(["kind": kind.rawValue])
+        let result = try await functions.invokeCallable("authorizeAiUsage", payload: ["kind": kind.rawValue])
 
         guard let payload = result.data as? [String: Any] else {
             throw AIUsageAuthorizationError.invalidResponse
