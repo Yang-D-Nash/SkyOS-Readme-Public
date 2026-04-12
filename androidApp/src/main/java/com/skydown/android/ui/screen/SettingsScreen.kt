@@ -88,6 +88,7 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AiRuntimeAgentProvider
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
+import com.skydown.android.data.LegalContentSettings
 import com.skydown.android.data.NotificationPermissionCoordinator
 import com.skydown.android.data.ScreenHeaderSettings
 import com.skydown.android.ui.component.EditableImageFieldCard
@@ -230,6 +231,12 @@ fun SettingsScreen(
     var aiGlobalTextLimitDraft by rememberSaveable { mutableStateOf("") }
     var aiGlobalVisualLimitDraft by rememberSaveable { mutableStateOf("") }
     var aiGlobalAgentLimitDraft by rememberSaveable { mutableStateOf("") }
+    var legalBrandNameDraft by rememberSaveable { mutableStateOf("") }
+    var legalOperatorNameDraft by rememberSaveable { mutableStateOf("") }
+    var legalRightsHolderNameDraft by rememberSaveable { mutableStateOf("") }
+    var legalSupportEmailDraft by rememberSaveable { mutableStateOf("") }
+    var legalLastUpdatedLabelDraft by rememberSaveable { mutableStateOf("") }
+    var legalImprintReferenceDraft by rememberSaveable { mutableStateOf("") }
     val managedShowcasePages = remember(artistPages) {
         (
             ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei) +
@@ -388,6 +395,15 @@ fun SettingsScreen(
         aiGlobalTextLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.text.toString()
         aiGlobalVisualLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.visual.toString()
         aiGlobalAgentLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.agent.toString()
+    }
+
+    LaunchedEffect(uiState.legalContentSettings) {
+        legalBrandNameDraft = uiState.legalContentSettings.resolvedBrandName
+        legalOperatorNameDraft = uiState.legalContentSettings.resolvedOperatorName
+        legalRightsHolderNameDraft = uiState.legalContentSettings.resolvedRightsHolderName
+        legalSupportEmailDraft = uiState.legalContentSettings.resolvedSupportEmail
+        legalLastUpdatedLabelDraft = uiState.legalContentSettings.resolvedLastUpdatedLabel
+        legalImprintReferenceDraft = uiState.legalContentSettings.resolvedImprintReference
     }
 
     LaunchedEffect(
@@ -2663,7 +2679,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            text = "skydownent@gmail.com",
+                            text = uiState.legalContentSettings.resolvedSupportEmail,
                             modifier = Modifier.padding(top = 4.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -2673,6 +2689,7 @@ fun SettingsScreen(
                                     context = context,
                                     userEmail = uiState.email,
                                     userName = uiState.username,
+                                    supportEmail = uiState.legalContentSettings.resolvedSupportEmail,
                                 )
                             },
                             modifier = Modifier
@@ -2687,6 +2704,107 @@ fun SettingsScreen(
                             modifier = Modifier.padding(top = 10.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
+
+                        if (uiState.isOwner) {
+                            Text(
+                                text = "Rechtliches (Owner)",
+                                modifier = Modifier.padding(top = 14.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = "Diese Module steuern AGB, Datenschutz und Nutzungsbedingungen appweit und koennen ohne App-Release gepflegt werden.",
+                                modifier = Modifier.padding(top = 6.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+
+                            OutlinedTextField(
+                                value = legalBrandNameDraft,
+                                onValueChange = { legalBrandNameDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Brandname") },
+                                placeholder = { Text("z. B. Skydown x 22") },
+                                singleLine = true,
+                            )
+
+                            OutlinedTextField(
+                                value = legalOperatorNameDraft,
+                                onValueChange = { legalOperatorNameDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Betreiber / Vertragspartner") },
+                                placeholder = { Text("z. B. Yang D. Nash - Skydown") },
+                                singleLine = true,
+                            )
+
+                            OutlinedTextField(
+                                value = legalRightsHolderNameDraft,
+                                onValueChange = { legalRightsHolderNameDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Rechteinhaber") },
+                                placeholder = { Text("z. B. Yang D. Nash - Skydown") },
+                                singleLine = true,
+                            )
+
+                            OutlinedTextField(
+                                value = legalSupportEmailDraft,
+                                onValueChange = { legalSupportEmailDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Support E-Mail") },
+                                placeholder = { Text("support@example.com") },
+                                singleLine = true,
+                            )
+
+                            OutlinedTextField(
+                                value = legalLastUpdatedLabelDraft,
+                                onValueChange = { legalLastUpdatedLabelDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Zuletzt aktualisiert") },
+                                placeholder = { Text("z. B. 12. April 2026") },
+                                singleLine = true,
+                            )
+
+                            OutlinedTextField(
+                                value = legalImprintReferenceDraft,
+                                onValueChange = { legalImprintReferenceDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Impressum-Hinweis") },
+                                minLines = 3,
+                            )
+
+                            Button(
+                                onClick = {
+                                    viewModel.saveLegalContentSettings(
+                                        LegalContentSettings(
+                                            brandName = legalBrandNameDraft,
+                                            operatorName = legalOperatorNameDraft,
+                                            rightsHolderName = legalRightsHolderNameDraft,
+                                            supportEmail = legalSupportEmailDraft,
+                                            lastUpdatedLabel = legalLastUpdatedLabelDraft,
+                                            imprintReference = legalImprintReferenceDraft,
+                                        ),
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text("Rechtliches speichern")
+                            }
+                        }
                     }
                 }
             }
@@ -2726,6 +2844,7 @@ fun SettingsScreen(
     activeLegalDocument.value?.let { documentType ->
         SettingsLegalDocumentSheet(
             documentType = documentType,
+            legalContent = uiState.legalContentSettings,
             onDismiss = { activeLegalDocument.value = null },
         )
     }
@@ -3248,9 +3367,10 @@ private fun SettingsOverviewCard(
 @Composable
 private fun SettingsLegalDocumentSheet(
     documentType: SettingsLegalDocumentType,
+    legalContent: LegalContentSettings,
     onDismiss: () -> Unit,
 ) {
-    val document = documentType.resolve()
+    val document = documentType.resolve(legalContent)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -3309,7 +3429,7 @@ private fun SettingsLegalDocumentSheet(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "skydownent@gmail.com",
+                        text = document.contactEmail,
                         modifier = Modifier.padding(top = 10.dp),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                     )
@@ -4521,6 +4641,7 @@ private fun openSupportEmail(
     context: Context,
     userEmail: String,
     userName: String,
+    supportEmail: String,
 ) {
     val subject = if (userEmail.isNotBlank()) {
         "Support-Anfrage - $userEmail"
@@ -4539,7 +4660,7 @@ private fun openSupportEmail(
     """.trimIndent()
     openEmailDraft(
         context = context,
-        recipients = listOf("skydownent@gmail.com"),
+        recipients = listOf(supportEmail.ifBlank { "skydownent@gmail.com" }),
         subject = subject,
         body = body,
     )

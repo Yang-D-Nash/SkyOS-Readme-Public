@@ -684,6 +684,64 @@ test("screenHeaders lehnen ueberlange Home-Texte ab", async () => {
   }));
 });
 
+test("legalContent ist oeffentlich lesbar, aber nur Owner darf valide Inhalte speichern", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "appConfig", "legalContent"), {
+      brandName: "Skydown x 22",
+      operatorName: "Yang D. Nash - Skydown",
+      rightsHolderName: "Yang D. Nash - Skydown",
+      supportEmail: "skydownent@gmail.com",
+      lastUpdatedLabel: "12. April 2026",
+      imprintReference: "Impressum im Store-Eintrag.",
+      updatedAt: Timestamp.fromDate(new Date("2026-04-12T15:00:00.000Z")),
+    });
+  });
+
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+  const userDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertSucceeds(getDoc(doc(guestDb, "appConfig", "legalContent")));
+  await assertSucceeds(setDoc(doc(ownerDb, "appConfig", "legalContent"), {
+    brandName: "Sky22 Platform",
+    operatorName: "Yang D. Nash - Skydown",
+    rightsHolderName: "Yang D. Nash - Skydown",
+    supportEmail: "legal@skydown.com",
+    lastUpdatedLabel: "12. April 2026",
+    imprintReference: "Impressum im App-Profil abrufbar.",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-12T16:00:00.000Z")),
+  }));
+  await assertFails(updateDoc(doc(userDb, "appConfig", "legalContent"), {
+    supportEmail: "hijack@example.com",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-12T17:00:00.000Z")),
+  }));
+});
+
+test("legalContent lehnt ungueltige Felder oder ueberlange Werte ab", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertFails(setDoc(doc(ownerDb, "appConfig", "legalContent"), {
+    brandName: "Skydown x 22",
+    operatorName: "Yang D. Nash - Skydown",
+    rightsHolderName: "x".repeat(161),
+    supportEmail: "support@example.com",
+    lastUpdatedLabel: "12. April 2026",
+    imprintReference: "Impressum im App-Profil abrufbar.",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-12T18:00:00.000Z")),
+  }));
+
+  await assertFails(setDoc(doc(ownerDb, "appConfig", "legalContent"), {
+    brandName: "Skydown x 22",
+    operatorName: "Yang D. Nash - Skydown",
+    rightsHolderName: "Yang D. Nash - Skydown",
+    supportEmail: "support@example.com",
+    lastUpdatedLabel: "12. April 2026",
+    imprintReference: "Impressum im App-Profil abrufbar.",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-12T18:30:00.000Z")),
+    extraField: "not-allowed",
+  }));
+});
+
 test("galleryMeta darf nur vom Eigentuemer angelegt werden", async () => {
   await seedUser("alice");
   const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();

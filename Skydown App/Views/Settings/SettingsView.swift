@@ -30,6 +30,7 @@ struct SettingsView: View {
     @ObservedObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
     @ObservedObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
     @ObservedObject private var manusByosStore = ManusBYOSStore.shared
+    @ObservedObject private var legalContentStore = LegalContentStore.shared
     @ObservedObject private var notificationPermissionStore = NotificationPermissionStore.shared
     @Binding var colorScheme: String
 
@@ -124,6 +125,12 @@ struct SettingsView: View {
     @State private var aiGlobalTextLimitDraft = ""
     @State private var aiGlobalVisualLimitDraft = ""
     @State private var aiGlobalAgentLimitDraft = ""
+    @State private var legalBrandNameDraft = ""
+    @State private var legalOperatorNameDraft = ""
+    @State private var legalRightsHolderNameDraft = ""
+    @State private var legalSupportEmailDraft = ""
+    @State private var legalLastUpdatedLabelDraft = ""
+    @State private var legalImprintReferenceDraft = ""
     @State private var profileUsernameDraft = ""
     @State private var profileWhatsAppDraft = ""
     @State private var profileTaglineDraft = ""
@@ -368,7 +375,7 @@ struct SettingsView: View {
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                                Text("skydownent@gmail.com")
+                                Text(legalContentStore.settings.resolvedSupportEmail)
                                     .font(.subheadline)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
@@ -393,6 +400,68 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.borderedProminent)
                             .tint(AppColors.accent(for: effectiveColorScheme))
+
+                            if isOwnerUser {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Rechtliches (Owner)")
+                                        .font(.headline)
+                                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                                    Text("Diese Module steuern AGB, Datenschutz und Nutzungsbedingungen appweit. So kannst du rechtliche Texte ohne App-Release pflegen.")
+                                        .font(.footnote)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                                    SettingsInputField(
+                                        title: "Brandname",
+                                        text: $legalBrandNameDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "z. B. Skydown x 22"
+                                    )
+
+                                    SettingsInputField(
+                                        title: "Betreiber / Vertragspartner",
+                                        text: $legalOperatorNameDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "z. B. Yang D. Nash - Skydown"
+                                    )
+
+                                    SettingsInputField(
+                                        title: "Rechteinhaber",
+                                        text: $legalRightsHolderNameDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "z. B. Yang D. Nash - Skydown"
+                                    )
+
+                                    SettingsInputField(
+                                        title: "Support E-Mail",
+                                        text: $legalSupportEmailDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "support@example.com"
+                                    )
+
+                                    SettingsInputField(
+                                        title: "Zuletzt aktualisiert",
+                                        text: $legalLastUpdatedLabelDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "z. B. 12. April 2026"
+                                    )
+
+                                    SettingsMultilineInputField(
+                                        title: "Impressum-Hinweis",
+                                        text: $legalImprintReferenceDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "Hinweis zur Anbieterkennzeichnung.",
+                                        minHeight: 94
+                                    )
+
+                                    Button(action: saveLegalContentSettings) {
+                                        Label("Rechtliches speichern", systemImage: "doc.text.fill")
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                                }
+                            }
 
                             Text("Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.")
                                 .font(.footnote)
@@ -492,6 +561,7 @@ struct SettingsView: View {
             syncManusBYOSDrafts(with: manusByosStore.settings)
             syncAIPromptDrafts(with: aiPromptSettingsStore.settings)
             syncAIRuntimeDrafts(with: aiRuntimeSettingsStore.settings)
+            syncLegalContentDrafts(with: legalContentStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
         }
         .task {
@@ -549,6 +619,9 @@ struct SettingsView: View {
         }
         .onReceive(aiRuntimeSettingsStore.$settings) { settings in
             syncAIRuntimeDrafts(with: settings)
+        }
+        .onReceive(legalContentStore.$settings) { settings in
+            syncLegalContentDrafts(with: settings)
         }
         .onChange(of: activePresentedSheet) { _, sheet in
             switch sheet {
@@ -1882,7 +1955,7 @@ struct SettingsView: View {
     }
 
     private var supportMailbox: String {
-        "skydownent@gmail.com"
+        legalContentStore.settings.resolvedSupportEmail
     }
 
     private var preferredSupportSenderEmail: String? {
@@ -2120,6 +2193,15 @@ struct SettingsView: View {
         aiGlobalAgentLimitDraft = String(settings.globalDailyCaps.agent)
     }
 
+    private func syncLegalContentDrafts(with settings: LegalContentSettings) {
+        legalBrandNameDraft = settings.resolvedBrandName
+        legalOperatorNameDraft = settings.resolvedOperatorName
+        legalRightsHolderNameDraft = settings.resolvedRightsHolderName
+        legalSupportEmailDraft = settings.resolvedSupportEmail
+        legalLastUpdatedLabelDraft = settings.resolvedLastUpdatedLabel
+        legalImprintReferenceDraft = settings.resolvedImprintReference
+    }
+
     private func refreshOwnerWorkspaceObservation(
         for section: SettingsAdminWorkspaceSection?,
         userID: String? = nil
@@ -2166,11 +2248,11 @@ struct SettingsView: View {
                 startsInEditMode: true
             )
         case .termsAndConditions:
-            PolicyView(title: "AGB", text: .termsAndConditionsText)
+            PolicyView(title: "AGB", text: legalContentStore.settings.termsAndConditionsText)
         case .privacyPolicy:
-            PolicyView(title: "Datenschutzbestimmungen", text: .privacyPolicyText)
+            PolicyView(title: "Datenschutzbestimmungen", text: legalContentStore.settings.privacyPolicyText)
         case .termsOfService:
-            PolicyView(title: "Nutzungsbedingungen", text: .termsOfServiceText)
+            PolicyView(title: "Nutzungsbedingungen", text: legalContentStore.settings.termsOfServiceText)
         case .adminWorkspace(let section):
             NavigationStack {
                 ScrollView {
@@ -2404,6 +2486,25 @@ struct SettingsView: View {
                 )
             } catch {
                 showToastMessage("KI-Anweisungen konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func saveLegalContentSettings() {
+        Task {
+            var updated = legalContentStore.settings
+            updated.brandName = legalBrandNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.operatorName = legalOperatorNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.rightsHolderName = legalRightsHolderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.supportEmail = legalSupportEmailDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.lastUpdatedLabel = legalLastUpdatedLabelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.imprintReference = legalImprintReferenceDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            do {
+                try await legalContentStore.save(updated)
+                showToastMessage("Rechtliche Module gespeichert. AGB, Datenschutz und Nutzungsbedingungen wurden aktualisiert.", style: .success)
+            } catch {
+                showToastMessage("Rechtliche Module konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }

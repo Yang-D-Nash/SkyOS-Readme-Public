@@ -6,6 +6,7 @@ import com.skydown.android.data.AiPromptSettings
 import com.skydown.android.data.AiRuntimeSettings
 import com.skydown.android.data.AiVisualReferenceLibrarySettings
 import com.skydown.android.data.CommerceSettings
+import com.skydown.android.data.LegalContentSettings
 import com.skydown.android.data.ManusByosSettings
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
@@ -37,6 +38,7 @@ data class SettingsUiState(
     val agentProfileSettings: AgentProfileSettings = AgentProfileSettings(),
     val aiPromptSettings: AiPromptSettings = AiPromptSettings(),
     val aiRuntimeSettings: AiRuntimeSettings = AiRuntimeSettings(),
+    val legalContentSettings: LegalContentSettings = LegalContentSettings(),
     val workflowAutomationSettings: WorkflowAutomationSettings = WorkflowAutomationSettings(),
     val manusByosSettings: ManusByosSettings = ManusByosSettings(),
     val commerceSettings: CommerceSettings = CommerceSettings(),

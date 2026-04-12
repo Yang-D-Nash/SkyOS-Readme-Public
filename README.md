@@ -2,7 +2,7 @@
 
 | Sky²² | Skydown x 22 | Skydown |
 | --- | --- | --- |
-| ![22 Logo](<Skydown App/Assets.xcassets/ZweizweiBrandLogo.imageset/zweizwei-logo.png>) | ![Skydown x 22](<Skydown App/Assets.xcassets/SkydownX22BrandLogo.imageset/skydown-x22-logo.png>) | ![Skydown](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
+| ![22 Logo](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) | ![Skydown x 22](<Skydown App/Assets.xcassets/SkydownX22BrandLogo.imageset/skydown-x22-logo.png>) | ![Skydown](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
 
 Sky²² ist die gemeinsame Creator-Plattform fuer `Skydown`, `ZweiZwei` und `Skydown x 22`.
 Die App verbindet Brand, Content, Commerce und KI in einem einzigen Produkt fuer Artists, Teams und Community.

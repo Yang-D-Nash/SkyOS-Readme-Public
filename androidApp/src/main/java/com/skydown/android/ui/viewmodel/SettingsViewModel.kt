@@ -9,6 +9,7 @@ import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.AppLanguageSupport
 import com.skydown.android.data.BankTransferSettings
 import com.skydown.android.data.CommerceSettings
+import com.skydown.android.data.LegalContentSettings
 import com.skydown.android.data.ManusByosPreferences
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
@@ -31,6 +32,7 @@ class SettingsViewModel : ViewModel() {
     private val aiPromptSettingsRepository = AppContainer.aiPromptSettingsRepository
     private val aiRuntimeSettingsRepository = AppContainer.aiRuntimeSettingsRepository
     private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
+    private val legalContentRepository = AppContainer.legalContentRepository
     private val paymentMethodsRepository = AppContainer.paymentMethodsRepository
     private val stripeBackendSecretsRepository = AppContainer.stripeBackendSecretsRepository
     private val shopifyAdminSettingsRepository = AppContainer.shopifyAdminSettingsRepository
@@ -128,6 +130,12 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             ManusByosPreferences.settings.collect { settings ->
                 _uiState.update { it.copy(manusByosSettings = settings) }
+            }
+        }
+
+        viewModelScope.launch {
+            legalContentRepository.settings.collect { settings ->
+                _uiState.update { it.copy(legalContentSettings = settings) }
             }
         }
 
@@ -444,6 +452,32 @@ class SettingsViewModel : ViewModel() {
             } else {
                 showPaymentFeedback(
                     message = result.exceptionOrNull()?.message ?: "Commerce-Einstellungen konnten nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun saveLegalContentSettings(settings: LegalContentSettings) {
+        viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf rechtliche Module verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val result = legalContentRepository.updateSettings(settings)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(legalContentSettings = settings) }
+                showPaymentFeedback(
+                    message = "Rechtliche Module gespeichert. AGB, Datenschutz und Nutzungsbedingungen wurden aktualisiert.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "Rechtliche Module konnten nicht gespeichert werden.",
                     isError = true,
                 )
             }

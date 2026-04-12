@@ -366,6 +366,25 @@ service cloud.firestore {
       && request.resource.data.updatedAt is timestamp;
     }
 
+    function validLegalContentPayload() {
+      return request.resource.data.keys().hasOnly([
+        "brandName",
+        "operatorName",
+        "rightsHolderName",
+        "supportEmail",
+        "lastUpdatedLabel",
+        "imprintReference",
+        "updatedAt"
+      ])
+      && optionalMapString(request.resource.data, "brandName", 120)
+      && optionalMapString(request.resource.data, "operatorName", 160)
+      && optionalMapString(request.resource.data, "rightsHolderName", 160)
+      && optionalMapString(request.resource.data, "supportEmail", 160)
+      && optionalMapString(request.resource.data, "lastUpdatedLabel", 64)
+      && optionalMapString(request.resource.data, "imprintReference", 1200)
+      && request.resource.data.updatedAt is timestamp;
+    }
+
     function validUserCreatePayload() {
       return request.resource.data.keys().hasOnly([
         "email",
@@ -753,13 +772,15 @@ service cloud.firestore {
         "paymentMethods",
         "commerceSettings",
         "shopifyMerch",
-        "screenHeaders"
+        "screenHeaders",
+        "legalContent"
       ];
 
       allow create, update, delete: if isOwner()
         && (
-          documentId != "screenHeaders"
-          || validScreenHeadersPayload()
+          (documentId == "screenHeaders" && validScreenHeadersPayload())
+          || (documentId == "legalContent" && validLegalContentPayload())
+          || (documentId != "screenHeaders" && documentId != "legalContent")
         );
     }
 
