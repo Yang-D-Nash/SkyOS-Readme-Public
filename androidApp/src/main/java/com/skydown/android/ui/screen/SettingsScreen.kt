@@ -188,6 +188,7 @@ fun SettingsScreen(
     var automationWebhookPathDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
+    var automationKnowledgeContextDraft by rememberSaveable { mutableStateOf("") }
     var aiTextInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiVisualInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiAgentSystemInstructionDraft by rememberSaveable { mutableStateOf("") }
@@ -310,6 +311,7 @@ fun SettingsScreen(
         automationWebhookPathDraft = uiState.workflowAutomationSettings.webhookPath
         automationAuthHeaderNameDraft = uiState.workflowAutomationSettings.authHeaderName
         automationAuthHeaderValueDraft = uiState.workflowAutomationSettings.authHeaderValue
+        automationKnowledgeContextDraft = uiState.workflowAutomationSettings.knowledgeContext
     }
 
     LaunchedEffect(uiState.aiPromptSettings) {
@@ -1465,14 +1467,14 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Automation -> {
                 Text(
-                    text = "n8n Verbindung",
+                    text = "Mein Agent-Service (n8n)",
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 SettingsToggleRow(
                     title = "n8n aktiv",
-                    body = "Die App bleibt normal ueber Firebase eingeloggt. Der Owner hinterlegt hier die zentrale n8n-Verbindung.",
+                    body = "Die App bleibt normal ueber Firebase eingeloggt. Dieser Workflow gilt nur fuer dein aktuelles Konto.",
                     checked = automationEnabledDraft,
                     onCheckedChange = { automationEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -1534,6 +1536,18 @@ fun SettingsScreen(
                     placeholder = { Text("optional") },
                     singleLine = true,
                 )
+                OutlinedTextField(
+                    value = automationKnowledgeContextDraft,
+                    onValueChange = { automationKnowledgeContextDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Knowledge-Kontext (optional)") },
+                    placeholder = {
+                        Text("z. B. Drive-Ordner, Brand-Guidelines, SOPs oder Projektregeln")
+                    },
+                    minLines = 3,
+                )
 
                 val resolvedWebhookUrl = resolveAutomationDraftWebhookUrl(
                     baseUrl = automationBaseUrlDraft,
@@ -1560,6 +1574,7 @@ fun SettingsScreen(
                         webhookPath = automationWebhookPathDraft.trim(),
                         authHeaderName = automationAuthHeaderNameDraft.trim(),
                         authHeaderValue = automationAuthHeaderValueDraft.trim(),
+                        knowledgeContext = automationKnowledgeContextDraft.trim(),
                     )
 
                     Button(
@@ -1569,7 +1584,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text("n8n speichern")
+                        Text("Service speichern")
                     }
 
                     OutlinedButton(
@@ -2193,7 +2208,7 @@ fun SettingsScreen(
                         SectionHeader("Owner")
                         Text(
                             text = if (uiState.isOwner) {
-                                "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand, Nutzerrollen und n8n laufen damit bewusst ueber eine zentrale Hand."
+                                "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand und Nutzerrollen laufen damit bewusst ueber eine zentrale Hand."
                             } else {
                                 "Die Systembereiche sind nur fuer das feste Owner-Konto aktiv."
                             },
@@ -2232,6 +2247,50 @@ fun SettingsScreen(
                                         },
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+
+                if (uiState.isLoggedIn) {
+                    item {
+                        SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                            SectionHeader("Mein Agent-Service")
+                            Text(
+                                text = "Hier hinterlegst du deinen persoenlichen n8n-Workflow fuer Agent-Aktionen. Die Verbindung ist konto-basiert (adminConfig/automationN8n_<uid>) und bleibt damit pro User getrennt.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                            Row(
+                                modifier = Modifier.padding(top = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SettingsBadge(
+                                    text = if (uiState.workflowAutomationSettings.isPrepared) "Workflow bereit" else "Workflow offen",
+                                    icon = Icons.Default.Bolt,
+                                    isActive = uiState.workflowAutomationSettings.isPrepared,
+                                )
+                                uiState.workflowAutomationSettings.workflowName
+                                    .takeIf { it.isNotBlank() }
+                                    ?.let { workflowName ->
+                                        SettingsBadge(
+                                            text = workflowName,
+                                            icon = Icons.Default.Settings,
+                                            isActive = true,
+                                        )
+                                    }
+                            }
+                            Button(
+                                onClick = {
+                                    activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
+                                    showAdminWorkspaceSheet = true
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text("Agent-Service verwalten")
                             }
                         }
                     }
@@ -3141,7 +3200,7 @@ private enum class AdminWorkspaceSection(
     ),
     Automation(
         label = "Automation",
-        subtitle = "Owner-seitig n8n anbinden, User-Kontext steuern und den Webhook testen.",
+        subtitle = "Persoenlichen n8n-Service pro Konto anbinden und den Webhook testen.",
         icon = Icons.Default.Bolt,
     ),
     AiPrompts(
@@ -3790,7 +3849,7 @@ private fun AdminManagedUserCard(
         when (resolvedRole) {
             UserRole.Owner -> {
                 Text(
-                    text = "Owner-Kontrolle: Shopify, Zahlungen, Rollen, n8n und Recovery laufen nur ueber dieses Konto.",
+                    text = "Owner-Kontrolle: Shopify, Zahlungen, Rollen, KI-Defaults und Recovery laufen nur ueber dieses Konto.",
                     modifier = Modifier.padding(top = 10.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -4101,7 +4160,7 @@ private val UserRole.displayTitle: String
 
 private val UserRole.roleSummary: String
     get() = when (this) {
-        UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf Shopify, Zahlungen, Rollen, n8n und Recovery."
+        UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf Shopify, Zahlungen, Rollen, KI-Defaults und Recovery."
         UserRole.Admin -> "Teaminterne Leute. Der Owner weist ihnen gezielt Funktionen wie Music, Video oder Profil-Moderation zu. Kein Zugriff auf Owner-Systembereiche."
         UserRole.Subadmin -> "Externe Premium-Konten mit buchbarem Kontingentmodell. Kein Admin-Workspace, keine Owner-Rechte."
         UserRole.User -> "Normales Nutzerkonto mit Free-Kontingent. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."

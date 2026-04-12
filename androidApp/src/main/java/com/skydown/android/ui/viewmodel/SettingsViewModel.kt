@@ -48,9 +48,7 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             AppContainer.currentUser.collect { user ->
                 val isOwner = user?.isPlatformOwner == true
-                WorkflowAutomationPreferences.setAdminMode(
-                    if (isOwner) user.id else null,
-                )
+                WorkflowAutomationPreferences.setUserMode(user?.id)
                 val displayName = user?.username
                     ?.takeIf { it.isNotBlank() }
                     ?: user?.email
@@ -176,9 +174,9 @@ class SettingsViewModel : ViewModel() {
 
     fun saveWorkflowAutomationSettings(settings: com.skydown.android.data.WorkflowAutomationSettings) {
         viewModelScope.launch {
-            if (!_uiState.value.isOwner) {
+            if (_uiState.value.currentUserId.isNullOrBlank()) {
                 showPaymentFeedback(
-                    message = "Nur der Owner darf n8n verwalten.",
+                    message = "Bitte melde dich an, um deinen Agent-Service zu speichern.",
                     isError = true,
                 )
                 return@launch
@@ -187,12 +185,12 @@ class SettingsViewModel : ViewModel() {
             if (result.isSuccess) {
                 _uiState.update { it.copy(workflowAutomationSettings = settings) }
                 showPaymentFeedback(
-                    message = "n8n gespeichert. Die App bleibt normal eingeloggt und schickt nur serverseitig geprueften User-Kontext an deinen Workflow.",
+                    message = "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
                     isError = false,
                 )
             } else {
                 showPaymentFeedback(
-                    message = result.exceptionOrNull()?.message ?: "n8n konnte nicht gespeichert werden.",
+                    message = result.exceptionOrNull()?.message ?: "Agent-Service konnte nicht gespeichert werden.",
                     isError = true,
                 )
             }
@@ -253,9 +251,9 @@ class SettingsViewModel : ViewModel() {
 
     fun testWorkflowAutomationSettings(settings: com.skydown.android.data.WorkflowAutomationSettings) {
         viewModelScope.launch {
-            if (!_uiState.value.isOwner) {
+            if (_uiState.value.currentUserId.isNullOrBlank()) {
                 showPaymentFeedback(
-                    message = "Nur der Owner darf n8n testen.",
+                    message = "Bitte melde dich an, um deinen Agent-Service zu testen.",
                     isError = true,
                 )
                 return@launch
@@ -263,7 +261,7 @@ class SettingsViewModel : ViewModel() {
             val saveResult = WorkflowAutomationPreferences.saveSettings(settings)
             if (saveResult.isFailure) {
                 showPaymentFeedback(
-                    message = saveResult.exceptionOrNull()?.message ?: "n8n konnte nicht gespeichert werden.",
+                    message = saveResult.exceptionOrNull()?.message ?: "Agent-Service konnte nicht gespeichert werden.",
                     isError = true,
                 )
                 return@launch
@@ -279,7 +277,7 @@ class SettingsViewModel : ViewModel() {
                 )
             } else {
                 showPaymentFeedback(
-                    message = testResult.exceptionOrNull()?.message ?: "n8n-Test fehlgeschlagen.",
+                    message = testResult.exceptionOrNull()?.message ?: "Agent-Service-Test fehlgeschlagen.",
                     isError = true,
                 )
             }

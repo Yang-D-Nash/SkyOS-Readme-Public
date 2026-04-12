@@ -11,6 +11,7 @@ struct WorkflowAutomationSettings: Equatable {
     var webhookPath: String = ""
     var authHeaderName: String = "X-Skydown-Automation-Key"
     var authHeaderValue: String = ""
+    var knowledgeContext: String = ""
 
     static let `default` = WorkflowAutomationSettings()
 
@@ -48,7 +49,6 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
     private let firestore: Firestore
     private let functions: Functions
     private let collectionName = "adminConfig"
-    private let legacyDocumentName = "automationN8n"
 
     init(
         firestore: Firestore = Firestore.firestore(),
@@ -62,26 +62,19 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
         userID: String,
         _ onChange: @escaping @MainActor (Result<WorkflowAutomationSettings, Error>) -> Void
     ) -> () -> Void {
-        let listener = firestore.collection(collectionName).document(documentName(for: userID)).addSnapshotListener { [weak self] snapshot, error in
+        let listener = firestore.collection(collectionName).document(documentName(for: userID)).addSnapshotListener { snapshot, error in
             Task { @MainActor in
                 if let error {
                     onChange(.failure(error))
                     return
                 }
 
-                guard let self else { return }
-
                 if let snapshot, snapshot.exists {
                     onChange(.success(Self.decode(snapshot.data() ?? [:])))
                     return
                 }
 
-                do {
-                    let fallback = try await self.firestore.collection(self.collectionName).document(self.legacyDocumentName).getDocument()
-                    onChange(.success(Self.decode(fallback.data() ?? [:])))
-                } catch {
-                    onChange(.failure(error))
-                }
+                onChange(.success(.default))
             }
         }
 
@@ -129,7 +122,8 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
             baseURL: normalizeAutomationBaseURL(data["baseURL"] as? String) ?? "",
             webhookPath: normalizeAutomationWebhookPath(data["webhookPath"] as? String) ?? "",
             authHeaderName: (data["authHeaderName"] as? String)?.trimmed ?? "",
-            authHeaderValue: (data["authHeaderValue"] as? String)?.trimmed ?? ""
+            authHeaderValue: (data["authHeaderValue"] as? String)?.trimmed ?? "",
+            knowledgeContext: (data["knowledgeContext"] as? String)?.trimmed ?? ""
         )
     }
 
@@ -143,6 +137,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
             "webhookPath": normalizeAutomationWebhookPath(settings.webhookPath) ?? "",
             "authHeaderName": settings.authHeaderName.trimmed,
             "authHeaderValue": settings.authHeaderValue.trimmed,
+            "knowledgeContext": settings.knowledgeContext.trimmed,
             "updatedAt": FieldValue.serverTimestamp()
         ]
     }
@@ -164,8 +159,8 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
         self.service = service
     }
 
-    func configureObservation(isAdmin: Bool, userID: String?) {
-        guard isAdmin, let userID, !userID.isEmpty else {
+    func configureObservation(isEnabled: Bool, userID: String?) {
+        guard isEnabled, let userID, !userID.isEmpty else {
             stopObserving?()
             stopObserving = nil
             isObserving = false
@@ -182,14 +177,14 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
             currentUserID = userID
         }
 
-        if isAdmin {
+        if isEnabled {
             startObservingIfNeeded()
         }
     }
 
     func save(_ settings: WorkflowAutomationSettings) async throws {
         guard let currentUserID else {
-            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine Owner-UID fuer n8n-Konfiguration verfuegbar."])
+            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer n8n-Konfiguration verfuegbar."])
         }
 
         try await service.updateSettings(settings, userID: currentUserID)
@@ -197,7 +192,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
 
     func triggerTest() async throws -> String {
         guard let currentUserID else {
-            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine Owner-UID fuer n8n-Test verfuegbar."])
+            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer n8n-Test verfuegbar."])
         }
 
         return try await service.triggerTest(userID: currentUserID)

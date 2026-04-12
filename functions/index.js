@@ -1024,19 +1024,12 @@ async function loadWorkflowAutomationSettingsForUser(userId) {
     if (personalSnapshot.exists) {
       return decodeWorkflowAutomationSettings(personalSnapshot.data() || {});
     }
+
+    // BYOS strict mode: each authenticated account uses only its own automation doc.
+    return decodeWorkflowAutomationSettings({});
   }
 
-  const sharedSettings = await loadWorkflowAutomationSettings();
-  if (sharedSettings.isEnabled && buildAutomationWebhookUrl(sharedSettings.baseURL, sharedSettings.webhookPath)) {
-    return sharedSettings;
-  }
-
-  const firstEnabledPersonalSettings = await loadFirstEnabledPersonalWorkflowAutomationSettings();
-  if (firstEnabledPersonalSettings) {
-    return firstEnabledPersonalSettings;
-  }
-
-  return sharedSettings;
+  return loadWorkflowAutomationSettings();
 }
 
 function decodeWorkflowAutomationSettings(data = {}) {
@@ -1049,27 +1042,8 @@ function decodeWorkflowAutomationSettings(data = {}) {
     webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
     authHeaderName: nonEmptyString(data.authHeaderName) || "",
     authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
+    knowledgeContext: nonEmptyString(data.knowledgeContext) || "",
   };
-}
-
-async function loadFirstEnabledPersonalWorkflowAutomationSettings() {
-  const snapshot = await admin.firestore()
-      .collection(AUTOMATION_CONFIG_COLLECTION)
-      .get();
-
-  for (const document of snapshot.docs) {
-    if (!document.id.startsWith("automationN8n_")) {
-      continue;
-    }
-
-    const settings = decodeWorkflowAutomationSettings(document.data() || {});
-    const webhookUrl = buildAutomationWebhookUrl(settings.baseURL, settings.webhookPath);
-    if (settings.isEnabled && webhookUrl) {
-      return settings;
-    }
-  }
-
-  return null;
 }
 
 async function loadAutomationCaller(auth) {
@@ -1128,13 +1102,19 @@ async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {
     throw new HttpsError("failed-precondition", "n8n ist noch nicht vollstaendig konfiguriert.");
   }
 
+  const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const knowledgeContext = nonEmptyString(settings.knowledgeContext) || "";
   const payload = {
     provider: "n8n",
     workflowName: settings.workflowName,
     trigger,
     source,
     timestamp: new Date().toISOString(),
-    data: data && typeof data === "object" && !Array.isArray(data) ? data : {},
+    data: {
+      ...safeData,
+      knowledgeContext,
+    },
+    knowledgeContext,
   };
 
   if (settings.sendsUserContext) {
@@ -3584,7 +3564,10 @@ exports.triggerWorkflowAutomation = onCall({
   timeoutSeconds: 60,
 }, async (request) => {
   await assertCallableSecurity(request, "triggerWorkflowAutomation");
-  await assertOwner(request.auth);
+  assertAuthenticatedUser(
+      request.auth,
+      "Bitte melde dich an, um einen Workflow-Test zu starten.",
+  );
 
   const trigger = nonEmptyString(request.data?.trigger) || "admin_settings_test";
   const source = nonEmptyString(request.data?.source) || "settings";
@@ -3832,6 +3815,10 @@ async function loadAgentWorkspaceContext(auth, promptSettings) {
         `bereit (${workflowSettings.workflowName})` :
         "noch nicht bereit";
       lines.push(`n8n-Status: ${workflowStatus}`);
+      const knowledgeContext = nonEmptyString(workflowSettings.knowledgeContext);
+      if (knowledgeContext) {
+        lines.push(`Persoenlicher Knowledge-Kontext: ${knowledgeContext}`);
+      }
     }
   }
 

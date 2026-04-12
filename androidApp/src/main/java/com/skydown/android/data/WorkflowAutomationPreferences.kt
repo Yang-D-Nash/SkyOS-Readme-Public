@@ -18,6 +18,7 @@ data class WorkflowAutomationSettings(
     val webhookPath: String = "",
     val authHeaderName: String = "X-Skydown-Automation-Key",
     val authHeaderValue: String = "",
+    val knowledgeContext: String = "",
 ) {
     val resolvedWebhookUrl: String?
         get() {
@@ -32,7 +33,6 @@ data class WorkflowAutomationSettings(
 
 object WorkflowAutomationPreferences {
     private const val collectionName = "adminConfig"
-    private const val legacyDocumentName = "automationN8n"
 
     private val firestore: FirebaseFirestore
         get() = FirebaseFirestore.getInstance()
@@ -41,15 +41,15 @@ object WorkflowAutomationPreferences {
     val settings: StateFlow<WorkflowAutomationSettings> = _settings.asStateFlow()
 
     private var listenerRegistration: ListenerRegistration? = null
-    private var currentAdminId: String? = null
+    private var currentUserId: String? = null
 
-    fun setAdminMode(adminId: String?) {
-        if (adminId == currentAdminId) {
+    fun setUserMode(userId: String?) {
+        if (userId == currentUserId) {
             return
         }
 
-        currentAdminId = adminId?.takeIf { it.isNotBlank() }
-        if (currentAdminId != null) {
+        currentUserId = userId?.takeIf { it.isNotBlank() }
+        if (currentUserId != null) {
             startListening()
         } else {
             stopListening()
@@ -59,8 +59,8 @@ object WorkflowAutomationPreferences {
 
     suspend fun saveSettings(settings: WorkflowAutomationSettings): Result<Unit> {
         return runCatching {
-            val adminId = requireNotNull(currentAdminId) { "Keine Owner-UID fuer n8n-Konfiguration verfuegbar." }
-            firestore.collection(collectionName).document(documentName(adminId)).set(
+            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer n8n-Konfiguration verfuegbar." }
+            firestore.collection(collectionName).document(documentName(userId)).set(
                 settings.toMap(),
                 SetOptions.merge(),
             ).await()
@@ -70,14 +70,14 @@ object WorkflowAutomationPreferences {
 
     suspend fun triggerTest(): Result<String> {
         return runCatching {
-            val adminId = requireNotNull(currentAdminId) { "Keine Owner-UID fuer n8n-Test verfuegbar." }
+            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer n8n-Test verfuegbar." }
             val result = functions
                 .getHttpsCallable("triggerWorkflowAutomation")
                 .call(
                     mapOf(
                         "trigger" to "admin_settings_test",
                         "source" to "android_settings",
-                        "userId" to adminId,
+                        "userId" to userId,
                     ),
                 )
                 .await()
@@ -92,8 +92,8 @@ object WorkflowAutomationPreferences {
 
     private fun startListening() {
         listenerRegistration?.remove()
-        val adminId = currentAdminId ?: return
-        listenerRegistration = firestore.collection(collectionName).document(documentName(adminId))
+        val userId = currentUserId ?: return
+        listenerRegistration = firestore.collection(collectionName).document(documentName(userId))
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     return@addSnapshotListener
@@ -102,10 +102,7 @@ object WorkflowAutomationPreferences {
                 if (snapshot != null && snapshot.exists()) {
                     _settings.value = snapshot.data.orEmpty().toWorkflowAutomationSettings()
                 } else {
-                    firestore.collection(collectionName).document(legacyDocumentName).get()
-                        .addOnSuccessListener { fallback ->
-                            _settings.value = fallback.data.orEmpty().toWorkflowAutomationSettings()
-                        }
+                    _settings.value = WorkflowAutomationSettings()
                 }
             }
     }
@@ -115,7 +112,7 @@ object WorkflowAutomationPreferences {
         listenerRegistration = null
     }
 
-    private fun documentName(adminId: String): String = "automationN8n_$adminId"
+    private fun documentName(userId: String): String = "automationN8n_$userId"
 }
 
 private fun Map<String, Any>.toWorkflowAutomationSettings(): WorkflowAutomationSettings {
@@ -128,6 +125,7 @@ private fun Map<String, Any>.toWorkflowAutomationSettings(): WorkflowAutomationS
         webhookPath = normalizeAutomationWebhookPath(this["webhookPath"] as? String).orEmpty(),
         authHeaderName = (this["authHeaderName"] as? String).orEmpty().trim(),
         authHeaderValue = (this["authHeaderValue"] as? String).orEmpty().trim(),
+        knowledgeContext = (this["knowledgeContext"] as? String).orEmpty().trim(),
     )
 }
 
@@ -141,6 +139,7 @@ private fun WorkflowAutomationSettings.toMap(): Map<String, Any> {
         "webhookPath" to normalizeAutomationWebhookPath(webhookPath).orEmpty(),
         "authHeaderName" to authHeaderName.trim(),
         "authHeaderValue" to authHeaderValue.trim(),
+        "knowledgeContext" to knowledgeContext.trim(),
         "updatedAt" to FieldValue.serverTimestamp(),
     )
 }

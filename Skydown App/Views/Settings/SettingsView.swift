@@ -96,6 +96,7 @@ struct SettingsView: View {
     @State private var automationWebhookPathDraft = ""
     @State private var automationAuthHeaderNameDraft = ""
     @State private var automationAuthHeaderValueDraft = ""
+    @State private var automationKnowledgeContextDraft = ""
     @State private var aiTextInstructionDraft = ""
     @State private var aiVisualInstructionDraft = ""
     @State private var aiAgentSystemInstructionDraft = ""
@@ -281,6 +282,10 @@ struct SettingsView: View {
                     }
 
                     adminWorkspaceSectionCard
+
+                    if authManager.userSession != nil {
+                        personalAgentServiceSectionCard
+                    }
 
                     SettingsSectionCard(title: "Allgemein", colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 12) {
@@ -479,9 +484,9 @@ struct SettingsView: View {
 
             adminUserManagementStore.configureObservation(isAdmin: false)
             stripeBackendSecretsStore.setObservationEnabled(false)
-            workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
             aiPromptSettingsStore.setObservationEnabled(false)
             aiRuntimeSettingsStore.setObservationEnabled(false)
+            refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
         }
         .onChange(of: authManager.userSession?.id) { _, userID in
             syncProfileDrafts(with: authManager.userSession)
@@ -528,7 +533,7 @@ struct SettingsView: View {
         .onDisappear {
             adminUserManagementStore.configureObservation(isAdmin: false)
             stripeBackendSecretsStore.setObservationEnabled(false)
-            workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
+            workflowAutomationSettings.configureObservation(isEnabled: false, userID: nil)
             aiPromptSettingsStore.setObservationEnabled(false)
             aiRuntimeSettingsStore.setObservationEnabled(false)
         }
@@ -618,7 +623,7 @@ struct SettingsView: View {
     private var adminWorkspaceSectionCard: some View {
         SettingsSectionCard(title: "Owner", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isOwnerUser ? "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand, Nutzerrollen und n8n laufen damit bewusst ueber eine zentrale Hand." : "Die Systembereiche sind nur fuer das feste Owner-Konto aktiv.")
+                Text(isOwnerUser ? "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand und Nutzerrollen laufen damit bewusst ueber eine zentrale Hand." : "Die Systembereiche sind nur fuer das feste Owner-Konto aktiv.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -644,6 +649,39 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var personalAgentServiceSectionCard: some View {
+        SettingsSectionCard(title: "Mein Agent-Service", colorScheme: effectiveColorScheme) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Hier hinterlegst du deinen eigenen n8n-Workflow fuer Agent-Aktionen. Die Verbindung ist konto-basiert (`adminConfig/automationN8n_<uid>`), damit dein Setup getrennt von anderen Accounts bleibt.")
+                    .font(.body)
+                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                HStack(spacing: 10) {
+                    SettingsBadge(
+                        text: workflowAutomationSettings.settings.isPrepared ? "Workflow bereit" : "Workflow offen",
+                        colorScheme: effectiveColorScheme
+                    )
+                    if !workflowAutomationSettings.settings.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        SettingsBadge(
+                            text: workflowAutomationSettings.settings.workflowName,
+                            colorScheme: effectiveColorScheme
+                        )
+                    }
+                }
+
+                Button {
+                    presentSheet(.adminWorkspace(.automation))
+                } label: {
+                    Label("Agent-Service verwalten", systemImage: "bolt.horizontal.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accent(for: effectiveColorScheme))
             }
         }
     }
@@ -1357,7 +1395,7 @@ struct SettingsView: View {
 
             case .automation:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Die App bleibt normal ueber Firebase eingeloggt. Der Owner hinterlegt hier die zentrale n8n-Verbindung; nur gepruefter User-Kontext geht serverseitig an genau diesen Workflow.")
+                    Text("Die App bleibt normal ueber Firebase eingeloggt. Du hinterlegst hier deinen persoenlichen n8n-Workflow fuer Agent-Aktionen, inklusive optionalem Knowledge-Kontext.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1401,6 +1439,14 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         placeholder: "optional",
                         keyboardType: .asciiCapable
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Knowledge-Kontext (optional)",
+                        text: $automationKnowledgeContextDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. eigene Drive-Ordner, Projektregeln, Brand-Guidelines oder SOPs fuer deinen Workflow.",
+                        minHeight: 100
                     )
 
                     if let resolvedWebhookURL = automationDraftResolvedWebhookURL {
@@ -1897,6 +1943,7 @@ struct SettingsView: View {
         automationWebhookPathDraft = settings.webhookPath
         automationAuthHeaderNameDraft = settings.authHeaderName
         automationAuthHeaderValueDraft = settings.authHeaderValue
+        automationKnowledgeContextDraft = settings.knowledgeContext
     }
 
     private func syncAIPromptDrafts(with settings: AIPromptSettings) {
@@ -1936,13 +1983,13 @@ struct SettingsView: View {
         let resolvedUserID = userID ?? authManager.userSession?.id
         let shouldObserveUsers = isOwnerUser && (section == .users || section == .artists)
         let shouldObserveStripeSecrets = isOwnerUser && section == .payments
-        let shouldObserveAutomation = isOwnerUser && section == .automation
+        let shouldObserveAutomation = resolvedUserID != nil
         let shouldObserveAIPrompts = isOwnerUser && section == .aiPrompts
 
         adminUserManagementStore.configureObservation(isAdmin: shouldObserveUsers)
         stripeBackendSecretsStore.setObservationEnabled(shouldObserveStripeSecrets)
         workflowAutomationSettings.configureObservation(
-            isAdmin: shouldObserveAutomation,
+            isEnabled: shouldObserveAutomation,
             userID: shouldObserveAutomation ? resolvedUserID : nil
         )
         aiPromptSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
@@ -2182,11 +2229,12 @@ struct SettingsView: View {
             updated.webhookPath = automationWebhookPathDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.authHeaderName = automationAuthHeaderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.authHeaderValue = automationAuthHeaderValueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.knowledgeContext = automationKnowledgeContextDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
             do {
                 try await workflowAutomationSettings.save(updated)
                 showToastMessage(
-                    "n8n gespeichert. Die App nutzt weiter den normalen Login und schickt nur serverseitig geprueften Kontext an deinen Workflow.",
+                    "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
                     style: .success
                 )
             } catch {
@@ -2319,6 +2367,7 @@ struct SettingsView: View {
                 updated.webhookPath = automationWebhookPathDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                 updated.authHeaderName = automationAuthHeaderNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                 updated.authHeaderValue = automationAuthHeaderValueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                updated.knowledgeContext = automationKnowledgeContextDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 try await workflowAutomationSettings.save(updated)
                 let message = try await workflowAutomationSettings.triggerTest()
@@ -3267,7 +3316,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
         case .visuals:
             return "Drive-Link, Namensschema und Referenzhinweise fuer Visual-Prompts pflegen."
         case .automation:
-            return "Owner-seitig n8n anbinden, User-Kontext mitschicken und den Webhook testen."
+            return "Persoenlichen n8n-Service pro Konto anbinden und den Webhook testen."
         case .aiPrompts:
             return "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen."
         }
@@ -3984,7 +4033,7 @@ private struct SettingsAdminUserCard: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Dieses Konto bleibt der zentrale Root-Zugang. Shopify, Zahlungen, Rollen, n8n und Recovery laufen nur hier.")
+            Text("Dieses Konto bleibt der zentrale Root-Zugang. Shopify, Zahlungen, Rollen, KI-Defaults und Recovery laufen nur hier.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -4083,7 +4132,7 @@ private extension UserRole {
     var roleSummary: String {
         switch self {
         case .owner:
-            return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf alles, inklusive Shopify, Zahlungen, Rollen, n8n und Recovery."
+            return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf alles, inklusive Shopify, Zahlungen, Rollen, KI-Defaults und Recovery."
         case .admin:
             return "Teaminterne Leute. Der Owner weist ihnen gezielt Funktionen wie Music, Video oder Profil-Moderation zu. Kein Zugriff auf Owner-Systembereiche."
         case .subadmin:
