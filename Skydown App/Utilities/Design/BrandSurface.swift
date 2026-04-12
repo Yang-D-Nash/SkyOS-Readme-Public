@@ -141,6 +141,8 @@ struct BrandHeroSurface<Footer: View>: View {
                             image
                                 .resizable()
                                 .scaledToFill()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .clipped()
                         default:
                             Color.clear
                         }

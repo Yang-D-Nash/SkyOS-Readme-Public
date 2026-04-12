@@ -133,7 +133,7 @@ fun BrandHeroCard(
                         model = backgroundImageUrl,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.Crop,
                     )
 
                     Box(
