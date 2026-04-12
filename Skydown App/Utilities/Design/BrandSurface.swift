@@ -26,9 +26,9 @@ enum BrandMark: String, Identifiable {
         case .skydown:
             return "Skydown"
         case .zweizwei:
-            return "Zweizwei"
+            return "22"
         case .skydownX22:
-            return "Sky²²"
+            return "22xSky"
         }
     }
 }

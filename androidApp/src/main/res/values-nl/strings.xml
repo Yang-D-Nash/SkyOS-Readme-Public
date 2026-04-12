@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tabs_merch">Merch</string>
+    <string name="tabs_music">Muziek</string>
+    <string name="tabs_home">Home</string>
+    <string name="tabs_videos">Videos</string>
+    <string name="tabs_tools">Tools</string>
+
     <string name="offline_banner_title">Offline</string>
     <string name="offline_banner_message">Geen verbinding. Je ziet cache-inhoud en kunt doorgaan.</string>
+
     <string name="settings_general_section">Algemeen</string>
     <string name="settings_system_language_value">Systeemtaal: %1$s</string>
     <string name="settings_supported_languages_summary">10 talen: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
@@ -10,5 +17,42 @@
     <string name="settings_notifications_toast_enabled">Meldingen zijn ingeschakeld.</string>
     <string name="settings_notifications_toast_enable_in_settings">Schakel meldingen in via systeeminstellingen.</string>
     <string name="settings_notifications_toast_manage_in_settings">Beheer meldingen via systeeminstellingen.</string>
+
     <string name="agent_queue_placeholder">In wachtrij: dit verzoek wordt automatisch verzonden zodra je weer online bent.</string>
+
+    <string name="auth_close">Sluiten</string>
+    <string name="auth_login_title">Inloggen</string>
+    <string name="auth_login_welcome">Welkom bij 22xSky</string>
+    <string name="auth_login_subtitle">Meld je aan voor toegang tot je account en creator-tools.</string>
+    <string name="auth_login_badge_account">Account</string>
+    <string name="auth_login_badge_google">Google</string>
+    <string name="auth_login_badge_secure">Veilig</string>
+    <string name="auth_login_email_section_title">Inloggen met e-mail</string>
+    <string name="auth_login_email_section_subtitle">Je persoonlijke omgeving blijft duidelijk en prettig, ook op kleine schermen.</string>
+    <string name="auth_email">E-mail</string>
+    <string name="auth_password">Wachtwoord</string>
+    <string name="auth_sign_in">Inloggen</string>
+    <string name="auth_login_loading">Bezig met inloggen...</string>
+    <string name="auth_google_loading">Google starten...</string>
+    <string name="auth_sign_in_google">Inloggen met Google</string>
+    <string name="auth_login_google_hint">Google opent het native Android-accountvenster voor snellere aanmelding.</string>
+    <string name="auth_no_account_register">Nog geen account? Registreren</string>
+    <string name="auth_google_signin_missing_token">Google-aanmelding gaf geen geldig token terug.</string>
+    <string name="auth_google_signin_failed">Google-aanmelding kon niet worden voltooid.</string>
+
+    <string name="auth_register_title">Registreren</string>
+    <string name="auth_register_new_account">Nieuw account</string>
+    <string name="auth_register_subtitle">De onboarding-flow is afgestemd op Android en brengt je sneller in de app.</string>
+    <string name="auth_register_badge_profile">Profiel</string>
+    <string name="auth_register_badge_google">Google</string>
+    <string name="auth_register_badge_directstart">Direct starten</string>
+    <string name="auth_register_email_section_title">Registreren met e-mail</string>
+    <string name="auth_username">Gebruikersnaam</string>
+    <string name="auth_confirm_password">Bevestig wachtwoord</string>
+    <string name="auth_register">Registreren</string>
+    <string name="auth_register_loading">Registreren...</string>
+    <string name="auth_register_google">Registreren met Google</string>
+    <string name="auth_register_google_hint">Je account wordt automatisch aangemaakt bij de eerste Google-login. Een ingevulde gebruikersnaam wordt direct gebruikt.</string>
+    <string name="auth_google_register_missing_token">Google-registratie gaf geen geldig token terug.</string>
+    <string name="auth_google_register_failed">Google-registratie kon niet worden voltooid.</string>
 </resources>

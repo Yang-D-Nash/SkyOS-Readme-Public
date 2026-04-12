@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -200,19 +201,19 @@ fun SkydownApp() {
 
     CompositionLocalProvider(LocalSessionUser provides currentUser) {
         val destinations = buildList {
-            add(BottomDestination("shop", "Merch") { _ ->
+            add(BottomDestination("shop", stringResource(R.string.tabs_merch)) { _ ->
                 Icon(Icons.Default.ShoppingBag, contentDescription = null)
             })
-            add(BottomDestination("music", "Music") { _ ->
+            add(BottomDestination("music", stringResource(R.string.tabs_music)) { _ ->
                 Icon(Icons.Default.GraphicEq, contentDescription = null)
             })
-            add(BottomDestination("home", "Home") { _ ->
+            add(BottomDestination("home", stringResource(R.string.tabs_home)) { _ ->
                 Icon(Icons.Default.Home, contentDescription = null)
             })
-            add(BottomDestination("video", "Videos") { _ ->
+            add(BottomDestination("video", stringResource(R.string.tabs_videos)) { _ ->
                 Icon(Icons.Default.PlayCircleFilled, contentDescription = null)
             })
-            add(BottomDestination("ai", "Tools") { _ ->
+            add(BottomDestination("ai", stringResource(R.string.tabs_tools)) { _ ->
                 Icon(Icons.Default.AutoAwesome, contentDescription = null)
             })
         }
@@ -576,8 +577,8 @@ private fun LaunchLandingScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         BrandHeroCard(
-                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Sky²² Home" },
-                            title = screenHeaderSettings.homeTitle.ifBlank { "Sky²²" },
+                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "22xSky Home" },
+                            title = screenHeaderSettings.homeTitle.ifBlank { "22xSky" },
                             subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Waehle deinen Start." },
                             detail = screenHeaderSettings.homeDetail.ifBlank { "Musik, Video, Merch und Tools direkt im Einstieg." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },

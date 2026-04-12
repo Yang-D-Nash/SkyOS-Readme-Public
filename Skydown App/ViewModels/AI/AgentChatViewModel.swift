@@ -529,11 +529,11 @@ final class AgentChatViewModel: ObservableObject {
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
             case .notFound, .unimplemented:
-                return "Der Skydown x 22 Agent ist fuer diesen Bereich gerade noch nicht verfuegbar."
+                return "Der 22xSky Agent ist fuer diesen Bereich gerade noch nicht verfuegbar."
             case .unavailable:
-                return "Der Skydown x 22 Agent ist gerade nicht erreichbar."
+                return "Der 22xSky Agent ist gerade nicht erreichbar."
             case .deadlineExceeded:
-                return "Der Skydown x 22 Agent hat zu lange fuer die Antwort gebraucht."
+                return "Der 22xSky Agent hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
                 return nsError.localizedDescription.isEmpty ? "Dein heutiges Agent-Limit ist erreicht." : nsError.localizedDescription
             case .invalidArgument:
@@ -551,6 +551,6 @@ final class AgentChatViewModel: ObservableObject {
             return nsError.localizedDescription
         }
 
-        return "Der Skydown x 22 Agent konnte gerade nicht antworten."
+        return "Der 22xSky Agent konnte gerade nicht antworten."
     }
 }

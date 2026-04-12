@@ -8,7 +8,7 @@ enum ArtistPageBrand: String, Codable, CaseIterable {
     var displayTitle: String {
         switch self {
         case .zweizwei:
-            return "ZweiZwei"
+            return "22"
         case .skydown:
             return "Skydown"
         case .nicma:

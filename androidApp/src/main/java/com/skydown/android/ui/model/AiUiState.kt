@@ -31,15 +31,15 @@ data class AiUiState(
     val visualPrompts: List<AiVisualPrompt> = listOf(
         AiVisualPrompt(
             label = "Cover Art",
-            prompt = "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von Skydown x 22 mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift.",
+            prompt = "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von 22xSky mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift.",
         ),
         AiVisualPrompt(
             label = "Release Poster",
-            prompt = "Generiere ein vertikales Release-Poster fuer Skydown x 22, urban, premium, moody, mit Platz fuer einen kuenftigen Tracktitel.",
+            prompt = "Generiere ein vertikales Release-Poster fuer 22xSky, urban, premium, moody, mit Platz fuer einen kuenftigen Tracktitel.",
         ),
         AiVisualPrompt(
             label = "Story Visual",
-            prompt = "Generiere ein starkes 9:16 Story-Visual fuer einen neuen Skydown x 22 Drop, street, cinematic, klarer Fokus und wenig Text im Bild.",
+            prompt = "Generiere ein starkes 9:16 Story-Visual fuer einen neuen 22xSky Drop, street, cinematic, klarer Fokus und wenig Text im Bild.",
         ),
     ),
 )

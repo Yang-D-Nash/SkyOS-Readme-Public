@@ -81,6 +81,10 @@ struct MainTabView: View {
         featureFlags.allowsAIAccess(for: authManager.userSession)
     }
 
+    private func localized(_ key: String, _ fallback: String) -> String {
+        AppLocalized.text(key, fallback: fallback)
+    }
+
     var body: some View {
         Group {
             if SkydownPlatform.isDesktop {
@@ -138,7 +142,7 @@ struct MainTabView: View {
                         merchandiseService: services.merchandiseService
                     )
                 }
-                .tabItem { Label("Merch", systemImage: "bag.fill") }
+                .tabItem { Label(localized("tabs.merch", "Merch"), systemImage: "bag.fill") }
                 .tag(MainTab.merch)
 
                 DeferredView {
@@ -148,7 +152,7 @@ struct MainTabView: View {
                         onOpenSettings: { presentModal(.settings) }
                     )
                 }
-                .tabItem { Label("Music", systemImage: "waveform.circle.fill") }
+                .tabItem { Label(localized("tabs.music", "Music"), systemImage: "waveform.circle.fill") }
                 .tag(MainTab.zweizwei)
 
                 DeferredView {
@@ -162,7 +166,7 @@ struct MainTabView: View {
                         } : nil
                     )
                 }
-                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tabItem { Label(localized("tabs.home", "Home"), systemImage: "house.fill") }
                 .tag(MainTab.hub)
 
                 DeferredView {
@@ -172,7 +176,7 @@ struct MainTabView: View {
                         onOpenSettings: { presentModal(.settings) }
                     )
                 }
-                .tabItem { Label("Videos", systemImage: "play.rectangle.fill") }
+                .tabItem { Label(localized("tabs.videos", "Videos"), systemImage: "play.rectangle.fill") }
                 .tag(MainTab.skydown)
 
                 DeferredView {
@@ -187,7 +191,7 @@ struct MainTabView: View {
                         onOpenSettings: { presentModal(.settings) }
                     )
                 }
-                .tabItem { Label("Tools", systemImage: "sparkles") }
+                .tabItem { Label(localized("tabs.tools", "Tools"), systemImage: "sparkles") }
                 .tag(MainTab.tools)
             }
             .skydownTabBarChrome(colorScheme: currentScheme)
@@ -279,7 +283,7 @@ private struct DeferredSettingsPresentation: View {
                             .progressViewStyle(.circular)
                             .tint(AppColors.accent(for: effectiveColorScheme))
 
-                        Text("Einstellungen werden geladen")
+                        Text(AppLocalized.text("settings.loading", fallback: "Loading settings"))
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: effectiveColorScheme))
                     }
@@ -313,7 +317,7 @@ struct AppSessionToolbarActions: View {
 
     private var displayName: String {
         let trimmed = authManager.userSession?.username.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? "Gast" : trimmed
+        return trimmed.isEmpty ? AppLocalized.text("common.guest", fallback: "Guest") : trimmed
     }
 
     private var initials: String {

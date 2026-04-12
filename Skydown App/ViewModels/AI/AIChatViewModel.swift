@@ -160,15 +160,15 @@ final class AIChatViewModel: ObservableObject {
     let visualPrompts = [
         AIVisualPrompt(
             label: "Cover Art",
-            prompt: "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von Skydown x 22 mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift."
+            prompt: "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von 22xSky mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift."
         ),
         AIVisualPrompt(
             label: "Release Poster",
-            prompt: "Generiere ein vertikales Release-Poster fuer Skydown x 22, urban, premium, moody, mit Platz fuer einen kuenftigen Tracktitel."
+            prompt: "Generiere ein vertikales Release-Poster fuer 22xSky, urban, premium, moody, mit Platz fuer einen kuenftigen Tracktitel."
         ),
         AIVisualPrompt(
             label: "Story Visual",
-            prompt: "Generiere ein starkes 9:16 Story-Visual fuer einen neuen Skydown x 22 Drop, street, cinematic, klarer Fokus und wenig Text im Bild."
+            prompt: "Generiere ein starkes 9:16 Story-Visual fuer einen neuen 22xSky Drop, street, cinematic, klarer Fokus und wenig Text im Bild."
         )
     ]
 
@@ -371,11 +371,11 @@ final class AIChatViewModel: ObservableObject {
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
             case .notFound, .unimplemented:
-                return "Der Skydown x 22 Bot ist fuer diesen Bereich gerade noch nicht verfuegbar."
+                return "Der 22xSky Bot ist fuer diesen Bereich gerade noch nicht verfuegbar."
             case .unavailable:
-                return "Der Skydown x 22 Bot ist gerade nicht erreichbar."
+                return "Der 22xSky Bot ist gerade nicht erreichbar."
             case .deadlineExceeded:
-                return "Der Skydown x 22 Bot hat zu lange fuer die Antwort gebraucht."
+                return "Der 22xSky Bot hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
                 return nsError.localizedDescription.isEmpty ? "Dein heutiges KI-Limit ist erreicht." : nsError.localizedDescription
             case .permissionDenied:
@@ -390,7 +390,7 @@ final class AIChatViewModel: ObservableObject {
         }
 
         return error.localizedDescription.isEmpty
-            ? "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
+            ? "Der 22xSky Bot ist gerade nicht verfuegbar."
             : error.localizedDescription
     }
 }

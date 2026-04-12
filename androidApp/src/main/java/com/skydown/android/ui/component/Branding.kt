@@ -61,11 +61,11 @@ enum class BrandArtwork(
     ),
     Zweizwei(
         drawableRes = R.drawable.sky22_brand_logo,
-        label = "Zweizwei",
+        label = "22",
     ),
     Combined(
         drawableRes = R.drawable.skydown_x22_brand_logo,
-        label = "Sky²²",
+        label = "22xSky",
     ),
 }
 

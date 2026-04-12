@@ -657,7 +657,7 @@ private fun MusicPlayerCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = track.artistName ?: "Zweizwei",
+                            text = track.artistName ?: "22",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -704,7 +704,7 @@ private fun MusicPlayerCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = track.artistName ?: "Zweizwei",
+                            text = track.artistName ?: "22",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -843,7 +843,7 @@ private fun MusicOverviewCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SKY²²" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Artists, Releases und Spotify im Sky²² Sound-Flow." },
+        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Artists, Releases und Spotify im 22xSky Sound-Flow." },
         detail = screenHeaderSettings.musicHubDetail.ifBlank {
             "${uiState.selectedArtist} im Fokus. $trackLabel und ${uiState.availableArtists.size} Artists live."
         },
@@ -1090,7 +1090,7 @@ private fun MusicSpotlightDeckCard(
                             fontWeight = FontWeight.Black,
                         )
                         Text(
-                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Hub",
+                            text = artistPage.tagline ?: socialProfile?.handle ?: "22xSky Artist Hub",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                         )
@@ -1127,7 +1127,7 @@ private fun MusicSpotlightDeckCard(
                             fontWeight = FontWeight.Black,
                         )
                         Text(
-                            text = artistPage.tagline ?: socialProfile?.handle ?: "Sky²² Artist Hub",
+                            text = artistPage.tagline ?: socialProfile?.handle ?: "22xSky Artist Hub",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                         )
@@ -1524,7 +1524,7 @@ private fun ArtistPagerCard(
                             fontWeight = FontWeight.Black,
                         )
                         Text(
-                            text = page.tagline ?: "ZweiZwei Artist",
+                            text = page.tagline ?: "22 Artist",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.78f),
                             maxLines = 2,

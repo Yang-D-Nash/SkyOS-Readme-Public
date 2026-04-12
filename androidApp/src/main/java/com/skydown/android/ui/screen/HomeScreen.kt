@@ -215,7 +215,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        "Sky²²",
+                        "22xSky",
                     )
                 },
                 actions = {
@@ -295,7 +295,7 @@ fun HomeScreen(
                             marks = listOf(BrandArtwork.Combined),
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                BrandPill(text = "Skydown x 22", tint = ArenaGold)
+                                BrandPill(text = "22xSky", tint = ArenaGold)
                                 BrandPill(text = "$activeSignalCount/$homeSignalTotal Live", tint = FieldMint)
                                 BrandPill(text = "Live Focus", tint = ArenaRed)
                             }
@@ -1243,7 +1243,7 @@ private fun HomeLatestReleaseCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = track.artistName ?: "Zweizwei",
+                    text = track.artistName ?: "22",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -1269,7 +1269,7 @@ private fun HomeLatestReleaseCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             HomeBadge(
-                text = track.artistName ?: "Zweizwei",
+                text = track.artistName ?: "22",
                 icon = Icons.Default.Person,
                 isActive = true,
                 accent = MaterialTheme.colorScheme.primary,
@@ -2024,7 +2024,7 @@ private val homePrimaryContactLink = HomeSocialLink(
 
 private val homeZweizweiSocialLinks = listOf(
     HomeSocialLink(
-        title = "Zweizwei Music",
+        title = "22 Music",
         subtitle = "@zweizwei_music",
         url = "https://www.instagram.com/zweizwei_music/",
     ),

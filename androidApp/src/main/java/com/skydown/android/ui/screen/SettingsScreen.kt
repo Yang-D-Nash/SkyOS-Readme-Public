@@ -237,6 +237,11 @@ fun SettingsScreen(
     var legalSupportEmailDraft by rememberSaveable { mutableStateOf("") }
     var legalLastUpdatedLabelDraft by rememberSaveable { mutableStateOf("") }
     var legalImprintReferenceDraft by rememberSaveable { mutableStateOf("") }
+    var legalMasterNumberMeaningDraft by rememberSaveable { mutableStateOf("") }
+    var legalBrandManifestoDraft by rememberSaveable { mutableStateOf("") }
+    var legalSymbolicNumericCodeDraft by rememberSaveable { mutableStateOf("") }
+    var legalSymbolicLeetCodeDraft by rememberSaveable { mutableStateOf("") }
+    var legalSymbolicCodeExplanationDraft by rememberSaveable { mutableStateOf("") }
     val managedShowcasePages = remember(artistPages) {
         (
             ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei) +
@@ -404,6 +409,11 @@ fun SettingsScreen(
         legalSupportEmailDraft = uiState.legalContentSettings.resolvedSupportEmail
         legalLastUpdatedLabelDraft = uiState.legalContentSettings.resolvedLastUpdatedLabel
         legalImprintReferenceDraft = uiState.legalContentSettings.resolvedImprintReference
+        legalMasterNumberMeaningDraft = uiState.legalContentSettings.resolvedMasterNumberMeaning
+        legalBrandManifestoDraft = uiState.legalContentSettings.resolvedBrandManifesto
+        legalSymbolicNumericCodeDraft = uiState.legalContentSettings.resolvedSymbolicNumericCode
+        legalSymbolicLeetCodeDraft = uiState.legalContentSettings.resolvedSymbolicLeetCode
+        legalSymbolicCodeExplanationDraft = uiState.legalContentSettings.resolvedSymbolicCodeExplanation
     }
 
     LaunchedEffect(
@@ -573,7 +583,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Artists -> {
                 Text(
-                    text = "Hier bekommen ZweiZwei-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.",
+                    text = "Hier bekommen 22-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.",
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -2737,7 +2747,7 @@ fun SettingsScreen(
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
                                 label = { Text("Brandname") },
-                                placeholder = { Text("z. B. Skydown x 22") },
+                                placeholder = { Text("z. B. 22xSky") },
                                 singleLine = true,
                             )
 
@@ -2795,6 +2805,58 @@ fun SettingsScreen(
                                 minLines = 3,
                             )
 
+                            OutlinedTextField(
+                                value = legalMasterNumberMeaningDraft,
+                                onValueChange = { legalMasterNumberMeaningDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Meisterzahl 22 - Bedeutung") },
+                                minLines = 3,
+                            )
+
+                            OutlinedTextField(
+                                value = legalBrandManifestoDraft,
+                                onValueChange = { legalBrandManifestoDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Wer wir sind (Manifest)") },
+                                minLines = 6,
+                            )
+
+                            OutlinedTextField(
+                                value = legalSymbolicNumericCodeDraft,
+                                onValueChange = { legalSymbolicNumericCodeDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Symbolcode (numerisch)") },
+                                placeholder = { Text("z. B. 1337-514-731") },
+                                singleLine = true,
+                            )
+
+                            OutlinedTextField(
+                                value = legalSymbolicLeetCodeDraft,
+                                onValueChange = { legalSymbolicLeetCodeDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Leet-Code") },
+                                placeholder = { Text("z. B. 7H3_F4LL_0F_H34/3N") },
+                                singleLine = true,
+                            )
+
+                            OutlinedTextField(
+                                value = legalSymbolicCodeExplanationDraft,
+                                onValueChange = { legalSymbolicCodeExplanationDraft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                label = { Text("Code-Erklaerung") },
+                                minLines = 4,
+                            )
+
                             Button(
                                 onClick = {
                                     viewModel.saveLegalContentSettings(
@@ -2805,6 +2867,11 @@ fun SettingsScreen(
                                             supportEmail = legalSupportEmailDraft,
                                             lastUpdatedLabel = legalLastUpdatedLabelDraft,
                                             imprintReference = legalImprintReferenceDraft,
+                                            masterNumberMeaning = legalMasterNumberMeaningDraft,
+                                            brandManifesto = legalBrandManifestoDraft,
+                                            symbolicNumericCode = legalSymbolicNumericCodeDraft,
+                                            symbolicLeetCode = legalSymbolicLeetCodeDraft,
+                                            symbolicCodeExplanation = legalSymbolicCodeExplanationDraft,
                                         ),
                                     )
                                 },
@@ -4660,7 +4727,7 @@ private fun openSupportEmail(
         "Support-Anfrage"
     }
     val body = """
-        Hallo Skydown-Team,
+        Hallo 22xSky-Team,
 
         ich habe folgende Anfrage:
 

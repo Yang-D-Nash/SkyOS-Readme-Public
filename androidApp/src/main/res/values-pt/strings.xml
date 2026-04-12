@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tabs_merch">Merch</string>
+    <string name="tabs_music">Musica</string>
+    <string name="tabs_home">Inicio</string>
+    <string name="tabs_videos">Videos</string>
+    <string name="tabs_tools">Ferramentas</string>
+
     <string name="offline_banner_title">Offline</string>
     <string name="offline_banner_message">Sem conexao. Voce ve conteudo em cache e pode continuar navegando.</string>
+
     <string name="settings_general_section">Geral</string>
     <string name="settings_system_language_value">Idioma do sistema: %1$s</string>
     <string name="settings_supported_languages_summary">10 idiomas: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
@@ -10,5 +17,42 @@
     <string name="settings_notifications_toast_enabled">Notificacoes ativadas.</string>
     <string name="settings_notifications_toast_enable_in_settings">Ative as notificacoes nas configuracoes do sistema.</string>
     <string name="settings_notifications_toast_manage_in_settings">Gerencie as notificacoes nas configuracoes do sistema.</string>
+
     <string name="agent_queue_placeholder">Na fila: esta solicitacao sera enviada automaticamente quando voce voltar online.</string>
+
+    <string name="auth_close">Fechar</string>
+    <string name="auth_login_title">Entrar</string>
+    <string name="auth_login_welcome">Bem-vindo ao 22xSky</string>
+    <string name="auth_login_subtitle">Entre para acessar sua conta e ferramentas de criador.</string>
+    <string name="auth_login_badge_account">Conta</string>
+    <string name="auth_login_badge_google">Google</string>
+    <string name="auth_login_badge_secure">Seguro</string>
+    <string name="auth_login_email_section_title">Entrar com e-mail</string>
+    <string name="auth_login_email_section_subtitle">Sua area pessoal permanece clara e facil mesmo em telas pequenas.</string>
+    <string name="auth_email">E-mail</string>
+    <string name="auth_password">Senha</string>
+    <string name="auth_sign_in">Entrar</string>
+    <string name="auth_login_loading">Entrando...</string>
+    <string name="auth_google_loading">Iniciando Google...</string>
+    <string name="auth_sign_in_google">Entrar com Google</string>
+    <string name="auth_login_google_hint">Google abre o dialogo nativo de conta do Android para um acesso mais rapido.</string>
+    <string name="auth_no_account_register">Ainda nao tem conta? Cadastre-se</string>
+    <string name="auth_google_signin_missing_token">O login Google nao retornou um token valido.</string>
+    <string name="auth_google_signin_failed">Nao foi possivel concluir o login Google.</string>
+
+    <string name="auth_register_title">Cadastrar</string>
+    <string name="auth_register_new_account">Nova conta</string>
+    <string name="auth_register_subtitle">O fluxo de onboarding foi ajustado para Android e leva voce mais rapido para a app.</string>
+    <string name="auth_register_badge_profile">Perfil</string>
+    <string name="auth_register_badge_google">Google</string>
+    <string name="auth_register_badge_directstart">Inicio direto</string>
+    <string name="auth_register_email_section_title">Cadastrar com e-mail</string>
+    <string name="auth_username">Nome de usuario</string>
+    <string name="auth_confirm_password">Confirmar senha</string>
+    <string name="auth_register">Cadastrar</string>
+    <string name="auth_register_loading">Cadastrando...</string>
+    <string name="auth_register_google">Cadastrar com Google</string>
+    <string name="auth_register_google_hint">Sua conta e criada automaticamente no primeiro login Google. O nome de usuario informado e aplicado direto.</string>
+    <string name="auth_google_register_missing_token">O cadastro Google nao retornou um token valido.</string>
+    <string name="auth_google_register_failed">Nao foi possivel concluir o cadastro Google.</string>
 </resources>

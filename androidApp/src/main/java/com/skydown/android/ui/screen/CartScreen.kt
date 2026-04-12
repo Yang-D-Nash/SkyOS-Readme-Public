@@ -904,9 +904,9 @@ private fun openOrderEmail(
         state.shippingCountry.trim().ifBlank { "Deutschland" },
     ).filter { it.isNotBlank() }.joinToString("\n")
     val body = """
-        Hallo Skydown-Team,
+        Hallo 22xSky-Team,
 
-        es wurde eine neue Bestellung in der Skydown App vorbereitet.
+        es wurde eine neue Bestellung in 22xSky vorbereitet.
 
         Name: ${state.name.ifBlank { "Nicht angegeben" }}
         E-Mail: ${state.email.ifBlank { "Nicht angegeben" }}

@@ -29,12 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.R
 import com.skydown.android.data.GoogleSignInManager
 import com.skydown.android.ui.component.GoogleAuthButton
 import com.skydown.android.ui.component.SkydownCard
@@ -53,6 +55,8 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isAuthBusy = uiState.isLoading || uiState.isGoogleLoading
     val context = LocalContext.current
+    val googleMissingTokenMessage = stringResource(R.string.auth_google_signin_missing_token)
+    val googleSignInFailedMessage = stringResource(R.string.auth_google_signin_failed)
     val googleClient = remember(context) { GoogleSignInManager.client(context) }
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -69,7 +73,7 @@ fun LoginScreen(
 
             if (idToken.isNullOrBlank()) {
                 googleClient.signOut()
-                viewModel.onGoogleSignInCancelled("Google-Anmeldung hat kein gueltiges Token geliefert.")
+                viewModel.onGoogleSignInCancelled(googleMissingTokenMessage)
             } else {
                 viewModel.signInWithGoogle(idToken, onClose)
             }
@@ -78,7 +82,7 @@ fun LoginScreen(
             viewModel.onGoogleSignInCancelled(exception.toReadableGoogleMessage())
         } catch (_: Exception) {
             googleClient.signOut()
-            viewModel.onGoogleSignInCancelled("Google-Anmeldung konnte nicht abgeschlossen werden.")
+            viewModel.onGoogleSignInCancelled(googleSignInFailedMessage)
         }
     }
 
@@ -120,7 +124,7 @@ fun LoginScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Anmelden",
+                    text = stringResource(R.string.auth_login_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -128,18 +132,18 @@ fun LoginScreen(
                     onClick = onClose,
                     enabled = !isAuthBusy,
                 ) {
-                    Text("Schliessen")
+                    Text(stringResource(R.string.auth_close))
                 }
             }
 
             SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
                 Text(
-                    text = "Willkommen bei Skydown",
+                    text = stringResource(R.string.auth_login_welcome),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Songs, Merch und persoenliche Bereiche starten ueber einen ruhigeren, klareren Login-Flow statt ueber ein altes Formular.",
+                    text = stringResource(R.string.auth_login_subtitle),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -147,27 +151,27 @@ fun LoginScreen(
                     modifier = Modifier.padding(top = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    LoginInfoPill(text = "Konto")
-                    LoginInfoPill(text = "Google")
-                    LoginInfoPill(text = "Sicher")
+                    LoginInfoPill(text = stringResource(R.string.auth_login_badge_account))
+                    LoginInfoPill(text = stringResource(R.string.auth_login_badge_google))
+                    LoginInfoPill(text = stringResource(R.string.auth_login_badge_secure))
                 }
             }
 
             SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
                 Text(
-                    text = "Mit E-Mail anmelden",
+                    text = stringResource(R.string.auth_login_email_section_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Der Zugriff auf deinen persoenlichen Bereich bleibt auf kleinen Displays klar und fingerfreundlich.",
+                    text = stringResource(R.string.auth_login_email_section_subtitle),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 OutlinedTextField(
                     value = uiState.email,
                     onValueChange = viewModel::updateEmail,
-                    label = { Text("E-Mail-Adresse") },
+                    label = { Text(stringResource(R.string.auth_email)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
@@ -177,7 +181,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = uiState.password,
                     onValueChange = viewModel::updatePassword,
-                    label = { Text("Passwort") },
+                    label = { Text(stringResource(R.string.auth_password)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
@@ -193,10 +197,10 @@ fun LoginScreen(
                     enabled = !isAuthBusy,
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text(if (uiState.isLoading) "Anmelden..." else "Anmelden")
+                    Text(if (uiState.isLoading) stringResource(R.string.auth_login_loading) else stringResource(R.string.auth_sign_in))
                 }
                 GoogleAuthButton(
-                    text = if (uiState.isGoogleLoading) "Google wird gestartet..." else "Mit Google anmelden",
+                    text = if (uiState.isGoogleLoading) stringResource(R.string.auth_google_loading) else stringResource(R.string.auth_sign_in_google),
                     isLoading = uiState.isGoogleLoading,
                     onClick = {
                         viewModel.beginGoogleSignIn()
@@ -208,7 +212,7 @@ fun LoginScreen(
                     enabled = !isAuthBusy,
                 )
                 Text(
-                    text = "Google oeffnet direkt den nativen Android-Kontodialog fuer einen schnelleren Einstieg.",
+                    text = stringResource(R.string.auth_login_google_hint),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),
@@ -220,7 +224,7 @@ fun LoginScreen(
                     modifier = Modifier.padding(top = 10.dp),
                     enabled = !isAuthBusy,
                 ) {
-                    Text("Noch kein Konto? Registrieren")
+                    Text(stringResource(R.string.auth_no_account_register))
                 }
             }
 

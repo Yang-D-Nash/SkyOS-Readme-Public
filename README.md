@@ -1,10 +1,10 @@
-# Sky²² / Skydown x 22
+# 22xSky
 
-| Sky²² | Skydown x 22 | Skydown |
+| 22 | 22xSky | Skydown |
 | --- | --- | --- |
-| ![22 Logo](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) | ![Skydown x 22](<Skydown App/Assets.xcassets/SkydownX22BrandLogo.imageset/skydown-x22-logo.png>) | ![Skydown](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
+| ![22 Logo](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) | ![22xSky](<Skydown App/Assets.xcassets/SkydownX22BrandLogo.imageset/skydown-x22-logo.png>) | ![Skydown](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
 
-Sky²² ist die gemeinsame Creator-Plattform fuer `Skydown`, `ZweiZwei` und `Skydown x 22`.
+22xSky ist die offizielle Creator-Plattform von `Skydown` und `22`.
 Die App verbindet Brand, Content, Commerce und KI in einem einzigen Produkt fuer Artists, Teams und Community.
 
 Stand: `Release Candidate` fuer produktive Tests und Rollout-Vorbereitung.
@@ -18,14 +18,14 @@ Stand: `Release Candidate` fuer produktive Tests und Rollout-Vorbereitung.
 - Creative/Artist-Brand mit Fokus auf Musik, Video, Storytelling und Release-Execution.
 - Operative Heimat fuer Content-Produktion, Drops und Community-Kommunikation.
 
-### ZweiZwei (22)
+### 22
 
-- Brand-Partner im Sky²²-Universum.
+- Brand-Partner im 22xSky-Universum.
 - Zusammenarbeit mit Skydown in Content, Releases und Kampagnen.
 
-### Nicma (NICMA MUSIC)
+### NICMA (Studio-Bereich)
 
-- Producer-/Studio-Brand innerhalb des Universums.
+- Studio-/Producer-Bereich innerhalb des Universums (kein separates Unternehmen).
 - Fokus auf Beat- und Studio-Services inkl. Artist-Seiten, Kontakt und Angebotsdarstellung.
 
 ### Warum diese App
@@ -33,6 +33,27 @@ Stand: `Release Candidate` fuer produktive Tests und Rollout-Vorbereitung.
 - Ein zentraler Ort fuer Artist-Auftritt, Releases, Clips, Shop und KI-Workflows.
 - Rollenbasiertes Arbeiten mit klarer Trennung zwischen Owner, Team und Usern.
 - Nutzbar als Plattform fuer Content-Teams und als Tool fuer einzelne Creator.
+
+### Brand-DNA: ZweiZwei und Skydown
+
+- Die Meisterzahl `22` (ZweiZwei) steht als Master Builder fuer Vision plus Umsetzung in reale Strukturen.
+- Sie verbindet Spirit, Disziplin und praktische Wirkung.
+
+Wer wir sind:
+
+```
+Dort, wo der Himmel faellt, beginnt unser Denken.
+Was zerbricht, offenbart Tiefe - nicht Verlust.
+Wir hoeren auf das, was nicht laut ist: Wandel, Stille, Sinn.
+Unser Handeln wurzelt im Inneren, wo Klarheit entsteht.
+Nicht im Machen liegt unsere Kraft, sondern im Verstehen.
+Denn wir glauben: Der Himmel faellt nicht auf uns -
+er oeffnet sich in uns.
+```
+
+- Symbolcode: `1337-514-731`
+- Leet-Code: `7H3_F4LL_0F_H34/3N`
+- Deutung: `THE FALL OF HEAVEN` als Motiv fuer Wandel, Oeffnung und Erkenntnis.
 
 ---
 
@@ -98,7 +119,7 @@ Fester Owner im System:
 
 ## 5) Workflow Automation (n8n) pro User
 
-Sky²² nutzt `BYOS strict` fuer Workflows:
+22xSky nutzt `BYOS strict` fuer Workflows:
 
 - Jeder Account arbeitet nur mit seiner eigenen Konfiguration:
   - `adminConfig/automationN8n_<uid>`
@@ -327,7 +348,7 @@ Ergaenzende Dokumente:
 
 ## 12) Kontakt / Betrieb
 
-- Produkt und Betrieb: `Skydown x 22`
+- Produkt und Betrieb: `22xSky`
 - Support/E-Mail (im Projekt hinterlegt): `skydownent@gmail.com`
 
 ---

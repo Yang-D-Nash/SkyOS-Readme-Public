@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tabs_merch">Merch</string>
+    <string name="tabs_music">Muzik</string>
+    <string name="tabs_home">Ana Sayfa</string>
+    <string name="tabs_videos">Videolar</string>
+    <string name="tabs_tools">Araclar</string>
+
     <string name="offline_banner_title">Cevrim disi</string>
     <string name="offline_banner_message">Baglanti yok. Onbellekteki icerigi goruyorsun ve devam edebilirsin.</string>
+
     <string name="settings_general_section">Genel</string>
     <string name="settings_system_language_value">Sistem dili: %1$s</string>
     <string name="settings_supported_languages_summary">10 dil: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
@@ -10,5 +17,42 @@
     <string name="settings_notifications_toast_enabled">Bildirimler acik.</string>
     <string name="settings_notifications_toast_enable_in_settings">Bildirimleri sistem ayarlarindan etkinlestir.</string>
     <string name="settings_notifications_toast_manage_in_settings">Bildirimleri sistem ayarlarindan yonet.</string>
+
     <string name="agent_queue_placeholder">Kuyrukta: bu istek baglanti geldiginde otomatik gonderilecek.</string>
+
+    <string name="auth_close">Kapat</string>
+    <string name="auth_login_title">Giris yap</string>
+    <string name="auth_login_welcome">22xSky'a hos geldin</string>
+    <string name="auth_login_subtitle">Hesabina ve uretici araclarina erismek icin giris yap.</string>
+    <string name="auth_login_badge_account">Hesap</string>
+    <string name="auth_login_badge_google">Google</string>
+    <string name="auth_login_badge_secure">Guvenli</string>
+    <string name="auth_login_email_section_title">E-posta ile giris</string>
+    <string name="auth_login_email_section_subtitle">Kisisel alanin kucuk ekranlarda bile net ve rahat kalir.</string>
+    <string name="auth_email">E-posta</string>
+    <string name="auth_password">Sifre</string>
+    <string name="auth_sign_in">Giris yap</string>
+    <string name="auth_login_loading">Giris yapiliyor...</string>
+    <string name="auth_google_loading">Google baslatiliyor...</string>
+    <string name="auth_sign_in_google">Google ile giris yap</string>
+    <string name="auth_login_google_hint">Google, daha hizli giris icin Android'in yerel hesap penceresini acar.</string>
+    <string name="auth_no_account_register">Henuz hesabin yok mu? Kaydol</string>
+    <string name="auth_google_signin_missing_token">Google girisi gecerli bir token donmedi.</string>
+    <string name="auth_google_signin_failed">Google girisi tamamlanamadi.</string>
+
+    <string name="auth_register_title">Kaydol</string>
+    <string name="auth_register_new_account">Yeni hesap</string>
+    <string name="auth_register_subtitle">Onboarding akisi Android icin optimize edildi ve uygulamaya daha hizli girmeni saglar.</string>
+    <string name="auth_register_badge_profile">Profil</string>
+    <string name="auth_register_badge_google">Google</string>
+    <string name="auth_register_badge_directstart">Hizli baslangic</string>
+    <string name="auth_register_email_section_title">E-posta ile kaydol</string>
+    <string name="auth_username">Kullanici adi</string>
+    <string name="auth_confirm_password">Sifreyi onayla</string>
+    <string name="auth_register">Kaydol</string>
+    <string name="auth_register_loading">Kayit yapiliyor...</string>
+    <string name="auth_register_google">Google ile kaydol</string>
+    <string name="auth_register_google_hint">Hesabin ilk Google girisinde otomatik olusturulur. Girdigin kullanici adi dogrudan uygulanir.</string>
+    <string name="auth_google_register_missing_token">Google kaydi gecerli bir token donmedi.</string>
+    <string name="auth_google_register_failed">Google kaydi tamamlanamadi.</string>
 </resources>

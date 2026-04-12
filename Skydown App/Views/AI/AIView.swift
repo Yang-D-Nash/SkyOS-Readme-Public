@@ -188,7 +188,7 @@ private struct AIHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Skydown x 22 Bot")
+                Text("22xSky Bot")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(AppColors.text(for: colorScheme))
 

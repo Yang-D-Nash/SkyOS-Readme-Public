@@ -380,7 +380,7 @@ private fun ShopOverviewCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "SKY²²" },
         title = screenHeaderSettings.shopTitle.ifBlank { "Merch" },
-        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Pieces und Checkout direkt im Sky²² Store." },
+        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Pieces und Checkout direkt im 22xSky Store." },
         detail = screenHeaderSettings.shopDetail.ifBlank {
             if (uiState.isCatalogLoading) {
                 "Produkte und Verfuegbarkeit werden synchronisiert."

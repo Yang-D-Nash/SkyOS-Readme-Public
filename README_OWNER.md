@@ -1,4 +1,4 @@
-# Sky²² Owner Guide
+# 22xSky Owner Guide
 
 Dieses Handbuch ist fuer den Betrieb des Produkts aus Owner-Sicht.
 Es beschreibt die taegliche Steuerung von Rollen, KI, Workflows, Commerce, Sicherheit und Release-Freigaben.
@@ -89,7 +89,7 @@ Empfehlung:
 
 ## 4) Workflow Automation (n8n) Governance
 
-Sky²² nutzt pro User getrennte Workflow-Konfigurationen:
+22xSky nutzt pro User getrennte Workflow-Konfigurationen:
 
 - `adminConfig/automationN8n_<uid>`
 

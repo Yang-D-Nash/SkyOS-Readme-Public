@@ -1,13 +1,13 @@
-# Sky²² User Guide
+# 22xSky User Guide
 
 Dieses Handbuch erklaert die App aus Endnutzer-Sicht.
 Es zeigt dir, wie du schnell startest, KI/Agent sinnvoll nutzt und deinen eigenen Workflow-Service verbindest.
 
 ---
 
-## 1) Was ist Sky²²?
+## 1) Was ist 22xSky?
 
-Sky²² ist die gemeinsame Plattform von `Skydown`, `ZweiZwei` und `Skydown x 22`.
+22xSky ist die gemeinsame Plattform von `Skydown` und `22`.
 Du bekommst in einer App:
 
 - Music und Artist-Content
@@ -15,6 +15,12 @@ Du bekommst in einer App:
 - Merch
 - KI-Tools (Bot + Agent)
 - persoenliches Profil mit Galerie
+
+Brand-DNA:
+
+- Meisterzahl `22` steht fuer Vision + Umsetzung (Master Builder).
+- Symbolcode: `1337-514-731`
+- Leet-Code: `7H3_F4LL_0F_H34/3N`
 
 ---
 

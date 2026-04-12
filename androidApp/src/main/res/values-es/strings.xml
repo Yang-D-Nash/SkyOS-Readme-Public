@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tabs_merch">Merch</string>
+    <string name="tabs_music">Musica</string>
+    <string name="tabs_home">Inicio</string>
+    <string name="tabs_videos">Videos</string>
+    <string name="tabs_tools">Herramientas</string>
+
     <string name="offline_banner_title">Sin conexion</string>
     <string name="offline_banner_message">Sin conexion. Ves contenido en cache y puedes seguir navegando.</string>
+
     <string name="settings_general_section">General</string>
     <string name="settings_system_language_value">Idioma del sistema: %1$s</string>
     <string name="settings_supported_languages_summary">10 idiomas: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
@@ -10,5 +17,42 @@
     <string name="settings_notifications_toast_enabled">Notificaciones activadas.</string>
     <string name="settings_notifications_toast_enable_in_settings">Activa las notificaciones en la configuracion del sistema.</string>
     <string name="settings_notifications_toast_manage_in_settings">Gestiona las notificaciones en la configuracion del sistema.</string>
+
     <string name="agent_queue_placeholder">En cola: esta solicitud se enviara automaticamente cuando vuelva la conexion.</string>
+
+    <string name="auth_close">Cerrar</string>
+    <string name="auth_login_title">Iniciar sesion</string>
+    <string name="auth_login_welcome">Bienvenido a 22xSky</string>
+    <string name="auth_login_subtitle">Inicia sesion para acceder a tu cuenta y herramientas de creador.</string>
+    <string name="auth_login_badge_account">Cuenta</string>
+    <string name="auth_login_badge_google">Google</string>
+    <string name="auth_login_badge_secure">Seguro</string>
+    <string name="auth_login_email_section_title">Iniciar con correo</string>
+    <string name="auth_login_email_section_subtitle">Tu zona personal sigue siendo clara y facil de usar incluso en pantallas pequenas.</string>
+    <string name="auth_email">Correo</string>
+    <string name="auth_password">Contrasena</string>
+    <string name="auth_sign_in">Iniciar sesion</string>
+    <string name="auth_login_loading">Iniciando...</string>
+    <string name="auth_google_loading">Iniciando Google...</string>
+    <string name="auth_sign_in_google">Iniciar sesion con Google</string>
+    <string name="auth_login_google_hint">Google abre el dialogo nativo de cuentas de Android para entrar mas rapido.</string>
+    <string name="auth_no_account_register">Aun no tienes cuenta? Registrate</string>
+    <string name="auth_google_signin_missing_token">El inicio de sesion con Google no devolvio un token valido.</string>
+    <string name="auth_google_signin_failed">No se pudo completar el inicio de sesion con Google.</string>
+
+    <string name="auth_register_title">Registrarse</string>
+    <string name="auth_register_new_account">Nueva cuenta</string>
+    <string name="auth_register_subtitle">El flujo de onboarding esta optimizado para Android y te lleva mas rapido a la app.</string>
+    <string name="auth_register_badge_profile">Perfil</string>
+    <string name="auth_register_badge_google">Google</string>
+    <string name="auth_register_badge_directstart">Inicio directo</string>
+    <string name="auth_register_email_section_title">Registrarse con correo</string>
+    <string name="auth_username">Nombre de usuario</string>
+    <string name="auth_confirm_password">Confirmar contrasena</string>
+    <string name="auth_register">Registrarse</string>
+    <string name="auth_register_loading">Registrando...</string>
+    <string name="auth_register_google">Registrarse con Google</string>
+    <string name="auth_register_google_hint">Tu cuenta se crea automaticamente en el primer login con Google. Si escribes usuario, se aplicara al perfil.</string>
+    <string name="auth_google_register_missing_token">El registro con Google no devolvio un token valido.</string>
+    <string name="auth_google_register_failed">No se pudo completar el registro con Google.</string>
 </resources>

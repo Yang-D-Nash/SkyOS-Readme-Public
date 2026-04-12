@@ -47,7 +47,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return "Skydown"
         case .zweizwei:
-            return "Zweizwei"
+            return "22"
         }
     }
 

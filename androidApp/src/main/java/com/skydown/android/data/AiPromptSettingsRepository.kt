@@ -111,7 +111,7 @@ private fun normalizePromptLink(value: String?): String? {
 private const val MAX_PROMPT_LENGTH = 12000
 
 private val DEFAULT_TEXT_INSTRUCTION = """
-    Du bist der Skydown x 22 Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
+    Du bist der 22xSky Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
     Markenkontext:
     - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die App verbindet Musik, Videos, Merch und Creator-Tools.
@@ -126,7 +126,7 @@ private val DEFAULT_TEXT_INSTRUCTION = """
 """.trimIndent()
 
 private val DEFAULT_VISUAL_INSTRUCTION = """
-    Du bist der Skydown x 22 Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
+    Du bist der 22xSky Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
     Markenkontext:
     - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die Marke lebt von Musik, Videos, Street-Culture und Premium-Underground-Aesthetik.

@@ -31,6 +31,11 @@ fun SettingsLegalDocumentType.resolve(
     val supportEmail = legalContent.resolvedSupportEmail
     val lastUpdatedLabel = legalContent.resolvedLastUpdatedLabel
     val imprintReference = legalContent.resolvedImprintReference
+    val masterNumberMeaning = legalContent.resolvedMasterNumberMeaning
+    val brandManifesto = legalContent.resolvedBrandManifesto
+    val symbolicNumericCode = legalContent.resolvedSymbolicNumericCode
+    val symbolicLeetCode = legalContent.resolvedSymbolicLeetCode
+    val symbolicCodeExplanation = legalContent.resolvedSymbolicCodeExplanation
 
     return when (this) {
         SettingsLegalDocumentType.ReadmeGuide -> SettingsLegalDocument(
@@ -65,6 +70,10 @@ fun SettingsLegalDocumentType.resolve(
                 SettingsLegalSection(
                     title = "7. Rechtliches und Support",
                     body = "Aktuelle AGB, Datenschutz und Nutzungsbedingungen sind direkt in den Einstellungen abrufbar. Betreiber ist voruebergehend $operatorName. $imprintReference",
+                ),
+                SettingsLegalSection(
+                    title = "8. Brand-DNA und Bedeutung von 22",
+                    body = "Meisterzahl 22: $masterNumberMeaning\n\nWer wir sind:\n$brandManifesto\n\nSymbolcode: $symbolicNumericCode\nLeet-Code: $symbolicLeetCode\n\nDeutung:\n$symbolicCodeExplanation",
                 ),
             ),
             contactEmail = supportEmail,

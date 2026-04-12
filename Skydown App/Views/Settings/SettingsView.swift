@@ -131,6 +131,11 @@ struct SettingsView: View {
     @State private var legalSupportEmailDraft = ""
     @State private var legalLastUpdatedLabelDraft = ""
     @State private var legalImprintReferenceDraft = ""
+    @State private var legalMasterNumberMeaningDraft = ""
+    @State private var legalBrandManifestoDraft = ""
+    @State private var legalSymbolicNumericCodeDraft = ""
+    @State private var legalSymbolicLeetCodeDraft = ""
+    @State private var legalSymbolicCodeExplanationDraft = ""
     @State private var profileUsernameDraft = ""
     @State private var profileWhatsAppDraft = ""
     @State private var profileTaglineDraft = ""
@@ -420,7 +425,7 @@ struct SettingsView: View {
                                         title: "Brandname",
                                         text: $legalBrandNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. Skydown x 22"
+                                        placeholder: "z. B. 22xSky"
                                     )
 
                                     SettingsInputField(
@@ -457,6 +462,44 @@ struct SettingsView: View {
                                         colorScheme: effectiveColorScheme,
                                         placeholder: "Hinweis zur Anbieterkennzeichnung.",
                                         minHeight: 94
+                                    )
+
+                                    SettingsMultilineInputField(
+                                        title: "Meisterzahl 22 - Bedeutung",
+                                        text: $legalMasterNumberMeaningDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "Die Meisterzahl 22 als Master Builder...",
+                                        minHeight: 100
+                                    )
+
+                                    SettingsMultilineInputField(
+                                        title: "Wer wir sind (Manifest)",
+                                        text: $legalBrandManifestoDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "Dort, wo der Himmel faellt...",
+                                        minHeight: 160
+                                    )
+
+                                    SettingsInputField(
+                                        title: "Symbolcode (numerisch)",
+                                        text: $legalSymbolicNumericCodeDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "z. B. 1337-514-731"
+                                    )
+
+                                    SettingsInputField(
+                                        title: "Leet-Code",
+                                        text: $legalSymbolicLeetCodeDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "z. B. 7H3_F4LL_0F_H34/3N"
+                                    )
+
+                                    SettingsMultilineInputField(
+                                        title: "Code-Erklaerung",
+                                        text: $legalSymbolicCodeExplanationDraft,
+                                        colorScheme: effectiveColorScheme,
+                                        placeholder: "Bedeutung, Zerlegung und Alternativen",
+                                        minHeight: 140
                                     )
 
                                     Button(action: saveLegalContentSettings) {
@@ -907,7 +950,7 @@ struct SettingsView: View {
 
             case .artists:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Hier bekommen ZweiZwei-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.")
+                    Text("Hier bekommen 22-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1982,7 +2025,7 @@ struct SettingsView: View {
         let email = preferredSupportSenderEmail?.takeIfNotBlank() ?? "Nicht verfuegbar"
 
         return """
-        Hallo Skydown-Team,
+        Hallo 22xSky-Team,
 
         ich habe folgende Anfrage:
 
@@ -2205,6 +2248,11 @@ struct SettingsView: View {
         legalSupportEmailDraft = settings.resolvedSupportEmail
         legalLastUpdatedLabelDraft = settings.resolvedLastUpdatedLabel
         legalImprintReferenceDraft = settings.resolvedImprintReference
+        legalMasterNumberMeaningDraft = settings.resolvedMasterNumberMeaning
+        legalBrandManifestoDraft = settings.resolvedBrandManifesto
+        legalSymbolicNumericCodeDraft = settings.resolvedSymbolicNumericCode
+        legalSymbolicLeetCodeDraft = settings.resolvedSymbolicLeetCode
+        legalSymbolicCodeExplanationDraft = settings.resolvedSymbolicCodeExplanation
     }
 
     private func refreshOwnerWorkspaceObservation(
@@ -2506,6 +2554,11 @@ struct SettingsView: View {
             updated.supportEmail = legalSupportEmailDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.lastUpdatedLabel = legalLastUpdatedLabelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.imprintReference = legalImprintReferenceDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.masterNumberMeaning = legalMasterNumberMeaningDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.brandManifesto = legalBrandManifestoDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.symbolicNumericCode = legalSymbolicNumericCodeDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.symbolicLeetCode = legalSymbolicLeetCodeDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.symbolicCodeExplanation = legalSymbolicCodeExplanationDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
             do {
                 try await legalContentStore.save(updated)

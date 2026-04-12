@@ -551,9 +551,9 @@ struct CartView: View {
         }
         let subject = preferredEmail.map { "Neue Bestellung - \($0)" } ?? "Neue Bestellung"
         let body = """
-        Hallo Skydown-Team,
+        Hallo 22xSky-Team,
 
-        es wurde eine neue Bestellung in der Skydown App vorbereitet.
+        es wurde eine neue Bestellung in 22xSky vorbereitet.
 
         Name: \(name.isEmpty ? "Nicht angegeben" : name)
         E-Mail: \(email.isEmpty ? "Nicht angegeben" : email)

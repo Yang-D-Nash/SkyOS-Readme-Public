@@ -185,6 +185,11 @@ enum LegalTextTemplateFactory {
         let operatorName = settings.resolvedOperatorName
         let supportEmail = settings.resolvedSupportEmail
         let updatedAt = settings.resolvedLastUpdatedLabel
+        let masterNumberMeaning = settings.resolvedMasterNumberMeaning
+        let brandManifesto = settings.resolvedBrandManifesto
+        let symbolicNumericCode = settings.resolvedSymbolicNumericCode
+        let symbolicLeetCode = settings.resolvedSymbolicLeetCode
+        let symbolicCodeExplanation = settings.resolvedSymbolicCodeExplanation
 
         return """
         README / App Guide fuer \(brand)
@@ -225,6 +230,15 @@ enum LegalTextTemplateFactory {
         - Bei Login-, Rollen- oder Upload-Problemen App neu anmelden und Rechte pruefen
         - Fuer Hilfe: \(supportEmail)
         - Betreiber der App ist voruebergehend \(operatorName)
+
+        8. Brand-DNA und Bedeutung von 22
+        - Meisterzahl 22: \(masterNumberMeaning)
+        - Wer wir sind:
+        \(brandManifesto)
+        - Symbolcode: \(symbolicNumericCode)
+        - Leet-Code: \(symbolicLeetCode)
+        - Deutung:
+        \(symbolicCodeExplanation)
         """
     }
 }

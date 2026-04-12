@@ -28,12 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.common.api.ApiException
+import com.skydown.android.R
 import com.skydown.android.data.GoogleSignInManager
 import com.skydown.android.ui.component.GoogleAuthButton
 import com.skydown.android.ui.component.SkydownCard
@@ -50,6 +52,8 @@ fun RegistrationScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isAuthBusy = uiState.isLoading || uiState.isGoogleLoading
     val context = LocalContext.current
+    val googleMissingTokenMessage = stringResource(R.string.auth_google_register_missing_token)
+    val googleRegisterFailedMessage = stringResource(R.string.auth_google_register_failed)
     val googleClient = remember(context) { GoogleSignInManager.client(context) }
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -66,7 +70,7 @@ fun RegistrationScreen(
 
             if (idToken.isNullOrBlank()) {
                 googleClient.signOut()
-                viewModel.onGoogleSignInCancelled("Google-Registrierung hat kein gueltiges Token geliefert.")
+                viewModel.onGoogleSignInCancelled(googleMissingTokenMessage)
             } else {
                 viewModel.signInWithGoogle(idToken, onClose)
             }
@@ -75,7 +79,7 @@ fun RegistrationScreen(
             viewModel.onGoogleSignInCancelled(exception.toReadableGoogleMessage())
         } catch (_: Exception) {
             googleClient.signOut()
-            viewModel.onGoogleSignInCancelled("Google-Registrierung konnte nicht abgeschlossen werden.")
+            viewModel.onGoogleSignInCancelled(googleRegisterFailedMessage)
         }
     }
 
@@ -117,7 +121,7 @@ fun RegistrationScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Registrieren",
+                    text = stringResource(R.string.auth_register_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -125,18 +129,18 @@ fun RegistrationScreen(
                     onClick = onClose,
                     enabled = !isAuthBusy,
                 ) {
-                    Text("Schliessen")
+                    Text(stringResource(R.string.auth_close))
                 }
             }
 
             SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
                 Text(
-                    text = "Neues Konto",
+                    text = stringResource(R.string.auth_register_new_account),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Der Onboarding-Flow ist jetzt klarer auf kleine Android-Displays abgestimmt und fuehrt schneller in die App.",
+                    text = stringResource(R.string.auth_register_subtitle),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -144,22 +148,22 @@ fun RegistrationScreen(
                     modifier = Modifier.padding(top = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    LoginInfoPill(text = "Profil")
-                    LoginInfoPill(text = "Google")
-                    LoginInfoPill(text = "Direktstart")
+                    LoginInfoPill(text = stringResource(R.string.auth_register_badge_profile))
+                    LoginInfoPill(text = stringResource(R.string.auth_register_badge_google))
+                    LoginInfoPill(text = stringResource(R.string.auth_register_badge_directstart))
                 }
             }
 
             SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
                 Text(
-                    text = "Mit E-Mail registrieren",
+                    text = stringResource(R.string.auth_register_email_section_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 OutlinedTextField(
                     value = uiState.username,
                     onValueChange = viewModel::updateUsername,
-                    label = { Text("Benutzername") },
+                    label = { Text(stringResource(R.string.auth_username)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
@@ -169,7 +173,7 @@ fun RegistrationScreen(
                 OutlinedTextField(
                     value = uiState.email,
                     onValueChange = viewModel::updateEmail,
-                    label = { Text("E-Mail-Adresse") },
+                    label = { Text(stringResource(R.string.auth_email)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
@@ -179,7 +183,7 @@ fun RegistrationScreen(
                 OutlinedTextField(
                     value = uiState.password,
                     onValueChange = viewModel::updatePassword,
-                    label = { Text("Passwort") },
+                    label = { Text(stringResource(R.string.auth_password)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
@@ -190,7 +194,7 @@ fun RegistrationScreen(
                 OutlinedTextField(
                     value = uiState.confirmPassword,
                     onValueChange = viewModel::updateConfirmPassword,
-                    label = { Text("Passwort bestaetigen") },
+                    label = { Text(stringResource(R.string.auth_confirm_password)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
@@ -206,13 +210,13 @@ fun RegistrationScreen(
                     enabled = !isAuthBusy,
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text(if (uiState.isLoading) "Registrieren..." else "Registrieren")
+                    Text(if (uiState.isLoading) stringResource(R.string.auth_register_loading) else stringResource(R.string.auth_register))
                 }
                 GoogleAuthButton(
                     text = if (uiState.isGoogleLoading) {
-                        "Google wird gestartet..."
+                        stringResource(R.string.auth_google_loading)
                     } else {
-                        "Mit Google registrieren"
+                        stringResource(R.string.auth_register_google)
                     },
                     isLoading = uiState.isGoogleLoading,
                     onClick = {
@@ -225,7 +229,7 @@ fun RegistrationScreen(
                     enabled = !isAuthBusy,
                 )
                 Text(
-                    text = "Beim ersten Google-Login wird dein Konto automatisch angelegt. Ein eingetragener Benutzername wird direkt uebernommen.",
+                    text = stringResource(R.string.auth_register_google_hint),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),

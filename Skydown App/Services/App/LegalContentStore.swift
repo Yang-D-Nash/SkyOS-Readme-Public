@@ -2,12 +2,30 @@ import Foundation
 import FirebaseFirestore
 
 struct LegalContentSettings: Codable, Equatable {
-    var brandName: String = "Skydown x 22"
+    var brandName: String = "22xSky"
     var operatorName: String = "Yang D. Nash - Skydown"
     var rightsHolderName: String = "Yang D. Nash - Skydown"
     var supportEmail: String = "skydownent@gmail.com"
     var lastUpdatedLabel: String = "12. April 2026"
     var imprintReference: String = "Die vollstaendige Anbieterkennzeichnung einschliesslich ladungsfaehiger Anschrift ist im Impressum, Store-Eintrag oder Anbieterprofil bereitzuhalten."
+    var masterNumberMeaning: String = """
+    Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen.
+    """
+    var brandManifesto: String = """
+    Dort, wo der Himmel faellt, beginnt unser Denken.
+    Was zerbricht, offenbart Tiefe - nicht Verlust.
+    Wir hoeren auf das, was nicht laut ist: Wandel, Stille, Sinn.
+    Unser Handeln wurzelt im Inneren, wo Klarheit entsteht.
+    Nicht im Machen liegt unsere Kraft, sondern im Verstehen.
+    Denn wir glauben: Der Himmel faellt nicht auf uns - er oeffnet sich in uns.
+    """
+    var symbolicNumericCode: String = "1337-514-731"
+    var symbolicLeetCode: String = "7H3_F4LL_0F_H34/3N"
+    var symbolicCodeExplanation: String = """
+    7H3 steht fuer THE, F4LL fuer FALL, 0F fuer OF und H34/3N fuer HEAVEN.
+    Der Code symbolisiert den Fall des Himmels als innere Oeffnung - wie ein Schluessel zu verborgener Erkenntnis.
+    Alternative Codes: 731-4177-0V3R-H34/3N oder 1337-514-731.
+    """
 
     static let `default` = LegalContentSettings()
 
@@ -33,6 +51,26 @@ struct LegalContentSettings: Codable, Equatable {
 
     var resolvedImprintReference: String {
         imprintReference.legalTrimmed.legalNilIfEmpty ?? Self.default.imprintReference
+    }
+
+    var resolvedMasterNumberMeaning: String {
+        masterNumberMeaning.legalTrimmed.legalNilIfEmpty ?? Self.default.masterNumberMeaning
+    }
+
+    var resolvedBrandManifesto: String {
+        brandManifesto.legalTrimmed.legalNilIfEmpty ?? Self.default.brandManifesto
+    }
+
+    var resolvedSymbolicNumericCode: String {
+        symbolicNumericCode.legalTrimmed.legalNilIfEmpty ?? Self.default.symbolicNumericCode
+    }
+
+    var resolvedSymbolicLeetCode: String {
+        symbolicLeetCode.legalTrimmed.legalNilIfEmpty ?? Self.default.symbolicLeetCode
+    }
+
+    var resolvedSymbolicCodeExplanation: String {
+        symbolicCodeExplanation.legalTrimmed.legalNilIfEmpty ?? Self.default.symbolicCodeExplanation
     }
 
     var privacyPolicyText: String {
@@ -94,7 +132,12 @@ final class FirestoreLegalContentService: LegalContentServicing {
             rightsHolderName: data["rightsHolderName"] as? String ?? LegalContentSettings.default.rightsHolderName,
             supportEmail: data["supportEmail"] as? String ?? LegalContentSettings.default.supportEmail,
             lastUpdatedLabel: data["lastUpdatedLabel"] as? String ?? LegalContentSettings.default.lastUpdatedLabel,
-            imprintReference: data["imprintReference"] as? String ?? LegalContentSettings.default.imprintReference
+            imprintReference: data["imprintReference"] as? String ?? LegalContentSettings.default.imprintReference,
+            masterNumberMeaning: data["masterNumberMeaning"] as? String ?? LegalContentSettings.default.masterNumberMeaning,
+            brandManifesto: data["brandManifesto"] as? String ?? LegalContentSettings.default.brandManifesto,
+            symbolicNumericCode: data["symbolicNumericCode"] as? String ?? LegalContentSettings.default.symbolicNumericCode,
+            symbolicLeetCode: data["symbolicLeetCode"] as? String ?? LegalContentSettings.default.symbolicLeetCode,
+            symbolicCodeExplanation: data["symbolicCodeExplanation"] as? String ?? LegalContentSettings.default.symbolicCodeExplanation
         )
     }
 
@@ -106,6 +149,11 @@ final class FirestoreLegalContentService: LegalContentServicing {
             "supportEmail": settings.resolvedSupportEmail,
             "lastUpdatedLabel": settings.resolvedLastUpdatedLabel,
             "imprintReference": settings.resolvedImprintReference,
+            "masterNumberMeaning": settings.resolvedMasterNumberMeaning,
+            "brandManifesto": settings.resolvedBrandManifesto,
+            "symbolicNumericCode": settings.resolvedSymbolicNumericCode,
+            "symbolicLeetCode": settings.resolvedSymbolicLeetCode,
+            "symbolicCodeExplanation": settings.resolvedSymbolicCodeExplanation,
             "updatedAt": FieldValue.serverTimestamp()
         ]
     }

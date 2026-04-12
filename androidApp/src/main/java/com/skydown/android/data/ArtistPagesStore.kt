@@ -19,7 +19,7 @@ enum class ArtistPageBrand(val rawValue: String) {
 
     val displayTitle: String
         get() = when (this) {
-            Zweizwei -> "ZweiZwei"
+            Zweizwei -> "22"
             Skydown -> "Skydown"
             Nicma -> "Nicma"
         }

@@ -337,7 +337,7 @@ private fun AiOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "Skydown x 22 Bot",
+                    text = "22xSky Bot",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )

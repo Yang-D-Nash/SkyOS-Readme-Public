@@ -11,23 +11,27 @@ struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
     @State private var showingRegistrationSheet = false
     @Environment(\.colorScheme) private var colorScheme
+
+    private func localized(_ key: String, _ fallback: String) -> String {
+        AppLocalized.text(key, fallback: fallback)
+    }
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
                 Spacer()
                 VStack(spacing: 5) {
-                    Text("Willkommen bei Skydown")
+                    Text(localized("auth.login.welcome", "Welcome to 22xSky"))
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Melden Sie sich an, um exklusive Inhalte zu sehen.")
+                    Text(localized("auth.login.subtitle", "Sign in to access your account and creator tools."))
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
 
                 VStack(spacing: 15) {
-                    TextField("E-Mail-Adresse", text: $viewModel.email)
+                    TextField(localized("auth.email", "Email"), text: $viewModel.email)
                         .padding()
                         .background(AppColors.secondaryBackground(for: colorScheme))
                         .cornerRadius(10)
@@ -35,7 +39,7 @@ struct LoginView: View {
                         .textInputAutocapitalization(.never)
                         .foregroundColor(AppColors.text(for: colorScheme))
                     
-                    SecureField("Passwort", text: $viewModel.password)
+                    SecureField(localized("auth.password", "Password"), text: $viewModel.password)
                         .padding()
                         .background(AppColors.secondaryBackground(for: colorScheme))
                         .cornerRadius(10)
@@ -56,7 +60,7 @@ struct LoginView: View {
                     if viewModel.isLoading {
                         ProgressView().progressViewStyle(.circular).tint(.white)
                     } else {
-                        Text("Anmelden").font(.headline)
+                        Text(localized("auth.sign_in", "Sign in")).font(.headline)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -73,7 +77,7 @@ struct LoginView: View {
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "globe")
-                        Text("Mit Google anmelden")
+                        Text(localized("auth.sign_in_google", "Sign in with Google"))
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity)
@@ -88,7 +92,7 @@ struct LoginView: View {
                 Button {
                     showingRegistrationSheet = true
                 } label: {
-                    Text("Noch kein Konto? Registrieren")
+                    Text(localized("auth.no_account_register", "No account yet? Register"))
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
                 .sheet(isPresented: $showingRegistrationSheet) {
@@ -99,7 +103,7 @@ struct LoginView: View {
             }
             .padding()
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Anmelden")
+            .navigationTitle(localized("auth.login.title", "Sign in"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .onChange(of: viewModel.isAuthenticated) { _, newValue in

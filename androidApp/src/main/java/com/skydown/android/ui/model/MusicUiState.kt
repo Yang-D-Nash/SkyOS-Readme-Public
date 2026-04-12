@@ -37,7 +37,7 @@ data class MusicUiState(
         get() = buildList {
             add(
                 MusicInstagramDestination(
-                    title = "Zweizwei Music",
+                    title = "22 Music",
                     subtitle = "@zweizwei_music • Label und Releases",
                     instagramUrl = "https://www.instagram.com/zweizwei_music/",
                 ),

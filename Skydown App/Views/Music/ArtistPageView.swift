@@ -639,7 +639,7 @@ struct ArtistPageView: View {
             ArtistPageInputField(
                 title: "Kurzzeile",
                 text: $taglineDraft,
-                placeholder: "z. B. Rap, Melodic, ZweiZwei",
+                placeholder: "z. B. Rap, Melodic, 22",
                 colorScheme: colorScheme
             )
 

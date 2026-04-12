@@ -323,7 +323,7 @@ private fun AgentOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "Skydown x 22 Agent",
+                    text = "22xSky Agent",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )

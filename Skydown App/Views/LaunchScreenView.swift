@@ -199,8 +199,8 @@ private struct LaunchLandingView: View {
                     VStack(alignment: .leading, spacing: layout.sectionSpacing + 4) {
                         BrandHeroSurface(
                             colorScheme: hubColorScheme,
-                            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Sky²² Home",
-                            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "Sky²²",
+                            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "22xSky Home",
+                            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "22xSky",
                             subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Waehle deinen Start.",
                             detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch und Tools direkt im Einstieg.",
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,

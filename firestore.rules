@@ -374,6 +374,11 @@ service cloud.firestore {
         "supportEmail",
         "lastUpdatedLabel",
         "imprintReference",
+        "masterNumberMeaning",
+        "brandManifesto",
+        "symbolicNumericCode",
+        "symbolicLeetCode",
+        "symbolicCodeExplanation",
         "updatedAt"
       ])
       && optionalMapString(request.resource.data, "brandName", 120)
@@ -382,6 +387,11 @@ service cloud.firestore {
       && optionalMapString(request.resource.data, "supportEmail", 160)
       && optionalMapString(request.resource.data, "lastUpdatedLabel", 64)
       && optionalMapString(request.resource.data, "imprintReference", 1200)
+      && optionalMapString(request.resource.data, "masterNumberMeaning", 2400)
+      && optionalMapString(request.resource.data, "brandManifesto", 6000)
+      && optionalMapString(request.resource.data, "symbolicNumericCode", 160)
+      && optionalMapString(request.resource.data, "symbolicLeetCode", 160)
+      && optionalMapString(request.resource.data, "symbolicCodeExplanation", 4000)
       && request.resource.data.updatedAt is timestamp;
     }
 

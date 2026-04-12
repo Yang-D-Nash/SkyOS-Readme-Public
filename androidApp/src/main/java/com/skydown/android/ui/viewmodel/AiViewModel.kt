@@ -88,7 +88,7 @@ class AiViewModel : ViewModel() {
         }
         if (!_uiState.value.isAiEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der Skydown x 22 Bot ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der 22xSky Bot ist gerade deaktiviert.")
             }
             return
         }
@@ -175,7 +175,7 @@ class AiViewModel : ViewModel() {
         }
         if (!_uiState.value.isAiEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der Skydown x 22 Bot ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der 22xSky Bot ist gerade deaktiviert.")
             }
             return
         }
@@ -358,11 +358,11 @@ class AiViewModel : ViewModel() {
         is FirebaseFunctionsException -> when (error.code) {
             FirebaseFunctionsException.Code.NOT_FOUND,
             FirebaseFunctionsException.Code.UNIMPLEMENTED,
-            -> "Der Skydown x 22 Bot ist fuer diese Funktion gerade noch nicht verfuegbar."
+            -> "Der 22xSky Bot ist fuer diese Funktion gerade noch nicht verfuegbar."
             FirebaseFunctionsException.Code.UNAVAILABLE ->
-                "Der Skydown x 22 Bot ist gerade nicht erreichbar."
+                "Der 22xSky Bot ist gerade nicht erreichbar."
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
-                "Der Skydown x 22 Bot hat zu lange fuer die Antwort gebraucht."
+                "Der 22xSky Bot hat zu lange fuer die Antwort gebraucht."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges KI-Limit ist erreicht."
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
@@ -372,8 +372,8 @@ class AiViewModel : ViewModel() {
             FirebaseFunctionsException.Code.INVALID_ARGUMENT ->
                 "Die KI-Anfrage konnte so nicht gestartet werden."
             else ->
-                "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
+                "Der 22xSky Bot ist gerade nicht verfuegbar."
         }
-        else -> error.message?.takeIf { it.isNotBlank() } ?: "Der Skydown x 22 Bot ist gerade nicht verfuegbar."
+        else -> error.message?.takeIf { it.isNotBlank() } ?: "Der 22xSky Bot ist gerade nicht verfuegbar."
     }
 }

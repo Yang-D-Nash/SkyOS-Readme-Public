@@ -568,8 +568,8 @@ test("screenHeaders bleiben oeffentlich lesbar, aber nur der Owner darf valide H
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), "appConfig", "screenHeaders"), {
       homeImageURL: "https://example.com/home.jpg",
-      homeEyebrow: "Sky²² Home",
-      homeTitle: "Sky²²",
+      homeEyebrow: "22xSky Home",
+      homeTitle: "22xSky",
       homeSubtitle: "Alles direkt im Blick.",
       homeDetail: "Musik, Video, Merch, Tools.",
       musicHubEyebrow: "Music",
@@ -598,8 +598,8 @@ test("screenHeaders bleiben oeffentlich lesbar, aber nur der Owner darf valide H
   await assertSucceeds(getDoc(doc(guestDb, "appConfig", "screenHeaders")));
   await assertSucceeds(setDoc(doc(ownerDb, "appConfig", "screenHeaders"), {
     homeImageURL: "https://example.com/home-2.jpg",
-    homeEyebrow: "Willkommen bei Sky²²",
-    homeTitle: "Sky²²",
+    homeEyebrow: "Willkommen bei 22xSky",
+    homeTitle: "22xSky",
     homeSubtitle: "Artists, Visuals und Merch an einem Ort.",
     homeDetail: "Hier kannst du einen echten Willkommenstext fuer neue User hinterlegen.",
     musicHubEyebrow: "Music",
@@ -662,7 +662,7 @@ test("screenHeaders lehnen ueberlange Home-Texte ab", async () => {
   await assertFails(setDoc(doc(ownerDb, "appConfig", "screenHeaders"), {
     homeImageURL: "https://example.com/home.jpg",
     homeEyebrow: "x".repeat(41),
-    homeTitle: "Sky²²",
+    homeTitle: "22xSky",
     homeSubtitle: "Alles direkt im Blick.",
     homeDetail: "Musik, Video, Merch, Tools.",
     musicHubEyebrow: "Music",
@@ -687,12 +687,17 @@ test("screenHeaders lehnen ueberlange Home-Texte ab", async () => {
 test("legalContent ist oeffentlich lesbar, aber nur Owner darf valide Inhalte speichern", async () => {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), "appConfig", "legalContent"), {
-      brandName: "Skydown x 22",
+      brandName: "22xSky",
       operatorName: "Yang D. Nash - Skydown",
       rightsHolderName: "Yang D. Nash - Skydown",
       supportEmail: "skydownent@gmail.com",
       lastUpdatedLabel: "12. April 2026",
       imprintReference: "Impressum im Store-Eintrag.",
+      masterNumberMeaning: "Die Meisterzahl 22 steht fuer Vision plus Umsetzung.",
+      brandManifesto: "Dort, wo der Himmel faellt, beginnt unser Denken.",
+      symbolicNumericCode: "1337-514-731",
+      symbolicLeetCode: "7H3_F4LL_0F_H34/3N",
+      symbolicCodeExplanation: "7H3=THE, F4LL=FALL, 0F=OF, H34/3N=HEAVEN.",
       updatedAt: Timestamp.fromDate(new Date("2026-04-12T15:00:00.000Z")),
     });
   });
@@ -709,6 +714,11 @@ test("legalContent ist oeffentlich lesbar, aber nur Owner darf valide Inhalte sp
     supportEmail: "legal@skydown.com",
     lastUpdatedLabel: "12. April 2026",
     imprintReference: "Impressum im App-Profil abrufbar.",
+    masterNumberMeaning: "Die 22 baut Vision in die Realitaet.",
+    brandManifesto: "Der Himmel faellt nicht auf uns - er oeffnet sich in uns.",
+    symbolicNumericCode: "1337-514-731",
+    symbolicLeetCode: "7H3_F4LL_0F_H34/3N",
+    symbolicCodeExplanation: "Symbolischer Zugangscode fuer die Markenidee.",
     updatedAt: Timestamp.fromDate(new Date("2026-04-12T16:00:00.000Z")),
   }));
   await assertFails(updateDoc(doc(userDb, "appConfig", "legalContent"), {
@@ -721,24 +731,49 @@ test("legalContent lehnt ungueltige Felder oder ueberlange Werte ab", async () =
   const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
 
   await assertFails(setDoc(doc(ownerDb, "appConfig", "legalContent"), {
-    brandName: "Skydown x 22",
+    brandName: "22xSky",
     operatorName: "Yang D. Nash - Skydown",
     rightsHolderName: "x".repeat(161),
     supportEmail: "support@example.com",
     lastUpdatedLabel: "12. April 2026",
     imprintReference: "Impressum im App-Profil abrufbar.",
+    masterNumberMeaning: "ok",
+    brandManifesto: "ok",
+    symbolicNumericCode: "1337-514-731",
+    symbolicLeetCode: "7H3_F4LL_0F_H34/3N",
+    symbolicCodeExplanation: "ok",
     updatedAt: Timestamp.fromDate(new Date("2026-04-12T18:00:00.000Z")),
   }));
 
   await assertFails(setDoc(doc(ownerDb, "appConfig", "legalContent"), {
-    brandName: "Skydown x 22",
+    brandName: "22xSky",
     operatorName: "Yang D. Nash - Skydown",
     rightsHolderName: "Yang D. Nash - Skydown",
     supportEmail: "support@example.com",
     lastUpdatedLabel: "12. April 2026",
     imprintReference: "Impressum im App-Profil abrufbar.",
+    masterNumberMeaning: "ok",
+    brandManifesto: "ok",
+    symbolicNumericCode: "1337-514-731",
+    symbolicLeetCode: "7H3_F4LL_0F_H34/3N",
+    symbolicCodeExplanation: "ok",
     updatedAt: Timestamp.fromDate(new Date("2026-04-12T18:30:00.000Z")),
     extraField: "not-allowed",
+  }));
+
+  await assertFails(setDoc(doc(ownerDb, "appConfig", "legalContent"), {
+    brandName: "22xSky",
+    operatorName: "Yang D. Nash - Skydown",
+    rightsHolderName: "Yang D. Nash - Skydown",
+    supportEmail: "support@example.com",
+    lastUpdatedLabel: "12. April 2026",
+    imprintReference: "Impressum im App-Profil abrufbar.",
+    masterNumberMeaning: "ok",
+    brandManifesto: "x".repeat(6001),
+    symbolicNumericCode: "1337-514-731",
+    symbolicLeetCode: "7H3_F4LL_0F_H34/3N",
+    symbolicCodeExplanation: "ok",
+    updatedAt: Timestamp.fromDate(new Date("2026-04-12T18:45:00.000Z")),
   }));
 });
 
@@ -891,7 +926,7 @@ test("Owner darf ein externes Drive-Video fuer alle User freigeben", async () =>
 
   await assertSucceeds(setDoc(doc(ownerDb, "videographyHub", "drive_reel"), {
     title: "Launch Reel",
-    projectName: "Sky²²",
+    projectName: "22xSky",
     email: "owner@example.com",
     notes: "Extern ueber Drive",
     fileName: "launch-reel",
@@ -916,7 +951,7 @@ test("Owner darf keine ungueltigen Video-Provider speichern", async () => {
 
   await assertFails(setDoc(doc(ownerDb, "videographyHub", "broken_provider"), {
     title: "Broken Reel",
-    projectName: "Sky²²",
+    projectName: "22xSky",
     email: "owner@example.com",
     notes: "",
     fileName: "broken",

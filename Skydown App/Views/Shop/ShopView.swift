@@ -112,7 +112,7 @@ struct HomeView: View {
                     }
                     .ignoresSafeArea()
             }
-            .navigationTitle("Sky²²")
+            .navigationTitle("22xSky")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -534,8 +534,8 @@ private struct HomeHeroIntroCard: View {
 
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Sky²² Home",
-            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "Sky²²",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "22xSky Home",
+            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "22xSky",
             subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles direkt im Blick.",
             detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch, Tools.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
@@ -962,7 +962,7 @@ private struct HomeLatestReleaseCard: View {
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: colorScheme))
 
-                        Text(track.artistName ?? "Zweizwei")
+                        Text(track.artistName ?? "22")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -977,7 +977,7 @@ private struct HomeLatestReleaseCard: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         HomeSignalBadge(
-                            text: track.artistName ?? "Zweizwei",
+                            text: track.artistName ?? "22",
                             icon: "person.fill",
                             colorScheme: colorScheme,
                             accent: AppColors.accent(for: colorScheme),
@@ -1490,7 +1490,7 @@ private struct HomeLaneSection<Content: View>: View {
 }
 
 private let homeFeaturedArtists = [
-    "Zweizwei Music",
+    "22 Music",
     "JANNO",
     "ThaDude",
     "MAVE",
@@ -1505,28 +1505,28 @@ private let homeZweizweiInstagramDestinations: [MusicInstagramDestination] = [
         title: "JANNO",
         handle: "@janno_official_",
         urlString: "https://www.instagram.com/janno_official_/",
-        helper: "Zweizwei Artist"
+        helper: "22 Artist"
     ),
     MusicInstagramDestination(
         id: "artist_thadude_home",
         title: "ThaDude",
         handle: "@thadude_offizielle",
         urlString: "https://www.instagram.com/thadude_offizielle/",
-        helper: "Zweizwei Artist"
+        helper: "22 Artist"
     ),
     MusicInstagramDestination(
         id: "artist_mave_home",
         title: "MAVE",
         handle: "@mave__official",
         urlString: "https://www.instagram.com/mave__official/",
-        helper: "Zweizwei Artist"
+        helper: "22 Artist"
     ),
     MusicInstagramDestination(
         id: "artist_tangajoe_home",
         title: "TANGAJOE007",
         handle: "@tangajoe007",
         urlString: "https://www.instagram.com/tangajoe007/",
-        helper: "Zweizwei Artist"
+        helper: "22 Artist"
     )
 ]
 

@@ -33,7 +33,7 @@ enum AgentServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "Der Skydown x 22 Agent hat keine Antwort geliefert."
+            return "Der 22xSky Agent hat keine Antwort geliefert."
         }
     }
 }

@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tabs_merch">Merch</string>
+    <string name="tabs_music">音楽</string>
+    <string name="tabs_home">ホーム</string>
+    <string name="tabs_videos">動画</string>
+    <string name="tabs_tools">ツール</string>
+
     <string name="offline_banner_title">オフライン</string>
     <string name="offline_banner_message">接続がありません。キャッシュ表示のまま操作を続けられます。</string>
+
     <string name="settings_general_section">一般</string>
     <string name="settings_system_language_value">システム言語: %1$s</string>
     <string name="settings_supported_languages_summary">10言語: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
@@ -10,5 +17,42 @@
     <string name="settings_notifications_toast_enabled">通知は有効です。</string>
     <string name="settings_notifications_toast_enable_in_settings">システム設定で通知を有効にしてください。</string>
     <string name="settings_notifications_toast_manage_in_settings">通知はシステム設定で管理できます。</string>
+
     <string name="agent_queue_placeholder">キュー中: 接続が戻るとこのリクエストは自動送信されます。</string>
+
+    <string name="auth_close">閉じる</string>
+    <string name="auth_login_title">サインイン</string>
+    <string name="auth_login_welcome">22xSkyへようこそ</string>
+    <string name="auth_login_subtitle">アカウントとクリエイターツールにアクセスするにはサインインしてください。</string>
+    <string name="auth_login_badge_account">アカウント</string>
+    <string name="auth_login_badge_google">Google</string>
+    <string name="auth_login_badge_secure">安全</string>
+    <string name="auth_login_email_section_title">メールでサインイン</string>
+    <string name="auth_login_email_section_subtitle">小さな画面でも個人エリアを見やすく操作しやすく保ちます。</string>
+    <string name="auth_email">メール</string>
+    <string name="auth_password">パスワード</string>
+    <string name="auth_sign_in">サインイン</string>
+    <string name="auth_login_loading">サインイン中...</string>
+    <string name="auth_google_loading">Googleを起動中...</string>
+    <string name="auth_sign_in_google">Googleでサインイン</string>
+    <string name="auth_login_google_hint">GoogleはAndroidのネイティブアカウントダイアログを開き、素早くサインインできます。</string>
+    <string name="auth_no_account_register">アカウントをお持ちでないですか？登録</string>
+    <string name="auth_google_signin_missing_token">Googleサインインで有効なトークンを取得できませんでした。</string>
+    <string name="auth_google_signin_failed">Googleサインインを完了できませんでした。</string>
+
+    <string name="auth_register_title">登録</string>
+    <string name="auth_register_new_account">新規アカウント</string>
+    <string name="auth_register_subtitle">オンボーディングはAndroid向けに最適化され、より早くアプリを始められます。</string>
+    <string name="auth_register_badge_profile">プロフィール</string>
+    <string name="auth_register_badge_google">Google</string>
+    <string name="auth_register_badge_directstart">すぐ開始</string>
+    <string name="auth_register_email_section_title">メールで登録</string>
+    <string name="auth_username">ユーザー名</string>
+    <string name="auth_confirm_password">パスワード確認</string>
+    <string name="auth_register">登録</string>
+    <string name="auth_register_loading">登録中...</string>
+    <string name="auth_register_google">Googleで登録</string>
+    <string name="auth_register_google_hint">初回のGoogleログイン時にアカウントが自動作成されます。入力したユーザー名はそのまま反映されます。</string>
+    <string name="auth_google_register_missing_token">Google登録で有効なトークンを取得できませんでした。</string>
+    <string name="auth_google_register_failed">Google登録を完了できませんでした。</string>
 </resources>

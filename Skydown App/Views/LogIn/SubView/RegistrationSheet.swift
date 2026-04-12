@@ -12,26 +12,30 @@ struct RegistrationSheet: View {
     @StateObject private var viewModel = RegistrationViewModel()
     @Environment(\.colorScheme) private var colorScheme
 
+    private func localized(_ key: String, _ fallback: String) -> String {
+        AppLocalized.text(key, fallback: fallback)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Konto erstellen")) {
-                    TextField("Benutzername", text: $viewModel.username)
+                Section(header: Text(localized("auth.register.section", "Create account"))) {
+                    TextField(localized("auth.username", "Username"), text: $viewModel.username)
                         .autocapitalization(.none)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
-                    TextField("E-Mail-Adresse", text: $viewModel.email)
+                    TextField(localized("auth.email", "Email"), text: $viewModel.email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
-                    SecureField("Passwort", text: $viewModel.password)
+                    SecureField(localized("auth.password", "Password"), text: $viewModel.password)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
-                    SecureField("Passwort bestätigen", text: $viewModel.confirmPassword)
+                    SecureField(localized("auth.confirm_password", "Confirm password"), text: $viewModel.confirmPassword)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
                 }
@@ -52,7 +56,7 @@ struct RegistrationSheet: View {
                     if viewModel.isLoading {
                         ProgressView()
                     } else {
-                        Text("Registrieren")
+                        Text(localized("auth.register", "Register"))
                     }
                 }
                 .disabled(viewModel.isRegistrationButtonDisabled)
@@ -68,7 +72,7 @@ struct RegistrationSheet: View {
                     } label: {
                         HStack {
                             Spacer()
-                            Label("Mit Google registrieren", systemImage: "globe")
+                            Label(localized("auth.register_google", "Register with Google"), systemImage: "globe")
                                 .font(.headline)
                             Spacer()
                         }
@@ -76,23 +80,23 @@ struct RegistrationSheet: View {
                     .disabled(viewModel.isLoading)
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
-                    Text("Beim ersten Google-Login wird dein Konto automatisch angelegt.")
+                    Text(localized("auth.register.google_hint", "Your account is created automatically on first Google login."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .listRowBackground(AppColors.primaryBackground(for: colorScheme))
 
-                    Text("Wenn du oben einen Benutzernamen einträgst, wird er für dein Profil übernommen.")
+                    Text(localized("auth.register.username_hint", "If you enter a username above, it is used for your profile."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .listRowBackground(AppColors.primaryBackground(for: colorScheme))
                 }
             }
-            .navigationTitle("Neues Konto")
+            .navigationTitle(localized("auth.register.title", "New account"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(localized("common.cancel", "Cancel")) { dismiss() }
                 }
             }
             .scrollContentBackground(.hidden)

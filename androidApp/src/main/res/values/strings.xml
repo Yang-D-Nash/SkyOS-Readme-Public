@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Sky²²</string>
+    <string name="app_name" translatable="false">22xSky</string>
     <string name="attribution_core" translatable="false">Core app interactions</string>
     <string name="attribution_media" translatable="false">Media playback and video</string>
     <string name="attribution_auth" translatable="false">Authentication and sign-in</string>
     <string name="attribution_commerce" translatable="false">Store and checkout</string>
     <string name="attribution_ai" translatable="false">AI and automation tools</string>
+
+    <string name="tabs_merch">Merch</string>
+    <string name="tabs_music">Music</string>
+    <string name="tabs_home">Home</string>
+    <string name="tabs_videos">Videos</string>
+    <string name="tabs_tools">Tools</string>
+
     <string name="offline_banner_title">Offline</string>
     <string name="offline_banner_message">No connection. You are seeing cached content and can continue navigating.</string>
+
     <string name="settings_general_section">General</string>
     <string name="settings_system_language_value">System language: %1$s</string>
     <string name="settings_supported_languages_summary">10 languages: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
@@ -16,5 +24,42 @@
     <string name="settings_notifications_toast_enabled">Notifications are enabled.</string>
     <string name="settings_notifications_toast_enable_in_settings">Please enable notifications in system settings.</string>
     <string name="settings_notifications_toast_manage_in_settings">Manage notifications directly in system settings.</string>
+
     <string name="agent_queue_placeholder">Queued: this request will send automatically when your connection is back.</string>
+
+    <string name="auth_close">Close</string>
+    <string name="auth_login_title">Sign in</string>
+    <string name="auth_login_welcome">Welcome to 22xSky</string>
+    <string name="auth_login_subtitle">Sign in to access your account and creator tools.</string>
+    <string name="auth_login_badge_account">Account</string>
+    <string name="auth_login_badge_google">Google</string>
+    <string name="auth_login_badge_secure">Secure</string>
+    <string name="auth_login_email_section_title">Sign in with email</string>
+    <string name="auth_login_email_section_subtitle">Your personal area stays clear and thumb-friendly even on small displays.</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_login_loading">Signing in...</string>
+    <string name="auth_google_loading">Starting Google...</string>
+    <string name="auth_sign_in_google">Sign in with Google</string>
+    <string name="auth_login_google_hint">Google opens the native Android account dialog for a faster sign-in.</string>
+    <string name="auth_no_account_register">No account yet? Register</string>
+    <string name="auth_google_signin_missing_token">Google sign-in did not return a valid token.</string>
+    <string name="auth_google_signin_failed">Google sign-in could not be completed.</string>
+
+    <string name="auth_register_title">Register</string>
+    <string name="auth_register_new_account">New account</string>
+    <string name="auth_register_subtitle">The onboarding flow is tuned for Android displays and gets people into the app faster.</string>
+    <string name="auth_register_badge_profile">Profile</string>
+    <string name="auth_register_badge_google">Google</string>
+    <string name="auth_register_badge_directstart">Direct start</string>
+    <string name="auth_register_email_section_title">Register with email</string>
+    <string name="auth_username">Username</string>
+    <string name="auth_confirm_password">Confirm password</string>
+    <string name="auth_register">Register</string>
+    <string name="auth_register_loading">Registering...</string>
+    <string name="auth_register_google">Register with Google</string>
+    <string name="auth_register_google_hint">Your account is created automatically on first Google login. Entered username is used directly.</string>
+    <string name="auth_google_register_missing_token">Google registration did not return a valid token.</string>
+    <string name="auth_google_register_failed">Google registration could not be completed.</string>
 </resources>

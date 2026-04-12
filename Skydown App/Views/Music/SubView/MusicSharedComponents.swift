@@ -177,7 +177,7 @@ struct VideoHubSpotlightCard: View {
                         .font(.title2.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Eigener Bereich fuer Skydown x 22 Videos mit Playback, Admin-Uploads und klaren Format-Hinweisen.")
+                    Text("Eigener Bereich fuer 22xSky Videos mit Playback, Admin-Uploads und klaren Format-Hinweisen.")
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -526,7 +526,7 @@ let zweizweiInstagramDestination = MusicInstagramDestination(
     title: "22 Music",
     handle: "@zweizwei_music",
     urlString: "https://www.instagram.com/zweizwei_music/",
-    helper: "Skydown x 22 Universe"
+    helper: "22xSky Universe"
 )
 
 let skydownMusicInstagramDestination = MusicInstagramDestination(
