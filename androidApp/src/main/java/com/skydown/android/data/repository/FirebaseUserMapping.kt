@@ -93,3 +93,28 @@ internal fun DocumentSnapshot.toSharedUser(authUser: FirebaseUser? = null): User
         canModerateProfiles = data["canModerateProfiles"] as? Boolean ?: (resolvedRole == UserRole.Owner),
     )
 }
+
+internal fun User.toFirestorePayload(): Map<String, Any?> {
+    return mapOf(
+        "email" to email.trim().lowercase(),
+        "username" to username.trim(),
+        "profileImageURL" to profileImageURL,
+        "profileImagePath" to null,
+        "whatsApp" to whatsApp,
+        "profileTagline" to profileTagline,
+        "profileBio" to profileBio,
+        "instagramHandle" to instagramHandle,
+        "registrationDateEpochMillis" to registrationDateEpochMillis,
+        "isAdmin" to isAdmin,
+        "role" to role,
+        "quotaPlan" to quotaPlan,
+        "aiAccessEnabled" to aiAccessEnabled,
+        "aiTextRequestsPerDay" to aiTextRequestsPerDay,
+        "aiVisualRequestsPerDay" to aiVisualRequestsPerDay,
+        "aiAgentRequestsPerDay" to aiAgentRequestsPerDay,
+        "aiHistoryRetentionDays" to aiHistoryRetentionDays,
+        "canManageMusicCatalog" to canManageMusicCatalog,
+        "canManageVideoCatalog" to canManageVideoCatalog,
+        "canModerateProfiles" to canModerateProfiles,
+    )
+}

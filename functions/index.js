@@ -442,6 +442,128 @@ function buildUserProfile(userData = {}) {
   };
 }
 
+function resolveAuthUserRegistrationEpochMillis(userRecord) {
+  const metadataCreationTime = nonEmptyString(userRecord?.metadata?.creationTime);
+  if (metadataCreationTime) {
+    const parsed = Date.parse(metadataCreationTime);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.floor(parsed);
+    }
+  }
+
+  const metadataTimestamp = Number(userRecord?.metadata?.creationTimestamp);
+  if (Number.isFinite(metadataTimestamp) && metadataTimestamp > 0) {
+    return Math.floor(metadataTimestamp);
+  }
+
+  return Date.now();
+}
+
+function resolveAuthUserBootstrapUsername(userRecord, normalizedEmail = null) {
+  const fallbackName = nonEmptyString(normalizedEmail)?.split("@")[0] || "Skydown User";
+  const candidate = nonEmptyString(userRecord?.displayName) || fallbackName;
+  return candidate.slice(0, 32).trim() || "Skydown User";
+}
+
+async function ensureAuthUserBootstrapDocument(userRecord, {forcedRole = null} = {}) {
+  const uid = nonEmptyString(userRecord?.uid);
+  if (!uid) {
+    return;
+  }
+
+  const userRef = admin.firestore().doc(`users/${uid}`);
+  const snapshot = await userRef.get();
+  const existingData = snapshot.exists ? (snapshot.data() || {}) : {};
+  const normalizedEmail = normalizeEmail(userRecord?.email) || normalizeEmail(existingData.email);
+
+  const effectiveRole = Object.values(USER_ROLES).includes(forcedRole) ?
+    forcedRole :
+    resolveUserRole(existingData.role, existingData.isAdmin === true, normalizedEmail);
+  const defaultQuotaPlan = defaultQuotaPlanForRole(effectiveRole);
+  const defaultLimits = defaultAiLimitsForQuotaPlan(defaultQuotaPlan);
+  const updates = {};
+
+  if (!nonEmptyString(existingData.email) && normalizedEmail) {
+    updates.email = normalizedEmail;
+  }
+
+  if (!nonEmptyString(existingData.username)) {
+    updates.username = resolveAuthUserBootstrapUsername(userRecord, normalizedEmail);
+  }
+
+  if (!Number.isFinite(Number(existingData.registrationDateEpochMillis))) {
+    updates.registrationDateEpochMillis = resolveAuthUserRegistrationEpochMillis(userRecord);
+  }
+
+  if (effectiveRole === USER_ROLES.owner) {
+    updates.role = USER_ROLES.owner;
+    updates.isAdmin = true;
+    updates.quotaPlan = USER_QUOTA_PLANS.ownerUnlimited;
+    updates.aiAccessEnabled = true;
+    updates.aiTextRequestsPerDay = defaultLimits.text;
+    updates.aiVisualRequestsPerDay = defaultLimits.visual;
+    updates.aiAgentRequestsPerDay = defaultLimits.agent;
+    updates.aiHistoryRetentionDays = defaultLimits.historyRetentionDays;
+    updates.canManageMusicCatalog = true;
+    updates.canManageVideoCatalog = true;
+    updates.canModerateProfiles = true;
+  } else {
+    if (!Object.values(USER_ROLES).includes(nonEmptyString(existingData.role)?.toLowerCase())) {
+      updates.role = effectiveRole;
+    }
+
+    if (typeof existingData.isAdmin !== "boolean") {
+      updates.isAdmin = roleHasAdminAccess(effectiveRole);
+    }
+
+    if (!Object.values(USER_QUOTA_PLANS).includes(nonEmptyString(existingData.quotaPlan)?.toLowerCase())) {
+      updates.quotaPlan = defaultQuotaPlan;
+    }
+
+    if (typeof existingData.aiAccessEnabled !== "boolean") {
+      updates.aiAccessEnabled = true;
+    }
+
+    if (!Number.isFinite(Number(existingData.aiTextRequestsPerDay))) {
+      updates.aiTextRequestsPerDay = defaultLimits.text;
+    }
+
+    if (!Number.isFinite(Number(existingData.aiVisualRequestsPerDay))) {
+      updates.aiVisualRequestsPerDay = defaultLimits.visual;
+    }
+
+    if (!Number.isFinite(Number(existingData.aiAgentRequestsPerDay))) {
+      updates.aiAgentRequestsPerDay = defaultLimits.agent;
+    }
+
+    if (![1, 3, 7, 30].includes(Number(existingData.aiHistoryRetentionDays))) {
+      updates.aiHistoryRetentionDays = defaultLimits.historyRetentionDays;
+    }
+
+    if (typeof existingData.canManageMusicCatalog !== "boolean") {
+      updates.canManageMusicCatalog = false;
+    }
+
+    if (typeof existingData.canManageVideoCatalog !== "boolean") {
+      updates.canManageVideoCatalog = false;
+    }
+
+    if (typeof existingData.canModerateProfiles !== "boolean") {
+      updates.canModerateProfiles = false;
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return;
+  }
+
+  await userRef.set(updates, {merge: true});
+  logger.info("User bootstrap document ensured on auth create.", {
+    uid,
+    appliedFields: Object.keys(updates),
+  });
+}
+
 async function loadUserData(uid) {
   if (!uid) {
     return null;
@@ -4490,10 +4612,11 @@ exports.applyBudgetLockdown = onMessagePublished({
 
 exports.enforceRegistrationLockdown = functionsV1.auth.user().onCreate(async (user) => {
   const email = normalizeEmail(user.email);
-  const role = email === OWNER_EMAIL ? "owner" : "user";
+  const role = email === OWNER_EMAIL ? USER_ROLES.owner : USER_ROLES.user;
   const runtimeConfig = await getRuntimeConfig({forceRefresh: true});
 
   if (!areRegistrationsBlocked(runtimeConfig, role)) {
+    await ensureAuthUserBootstrapDocument(user, {forcedRole: role});
     return;
   }
 
@@ -4502,6 +4625,7 @@ exports.enforceRegistrationLockdown = functionsV1.auth.user().onCreate(async (us
       uid: user.uid,
       email,
     });
+    await ensureAuthUserBootstrapDocument(user, {forcedRole: USER_ROLES.owner});
     return;
   }
 

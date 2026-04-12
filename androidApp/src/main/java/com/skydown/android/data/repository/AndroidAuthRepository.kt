@@ -84,7 +84,7 @@ class AndroidAuthRepository(
                 canManageVideoCatalog = false,
                 canModerateProfiles = false,
             )
-            firestore.collection("users").document(firebaseUser.uid).set(user).await()
+            firestore.collection("users").document(firebaseUser.uid).set(user.toFirestorePayload()).await()
             syncPublicProfileDocument(
                 uid = firebaseUser.uid,
                 username = user.username,
@@ -205,7 +205,7 @@ class AndroidAuthRepository(
                 canModerateProfiles = resolvedRole == UserRole.Owner,
             )
 
-            documentReference.set(user).await()
+            documentReference.set(user.toFirestorePayload()).await()
             syncPublicProfileDocument(
                 uid = authUser.uid,
                 username = user.username,
