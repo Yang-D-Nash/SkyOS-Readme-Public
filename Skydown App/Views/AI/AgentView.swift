@@ -477,7 +477,7 @@ private struct AgentComposerBar: View {
                         shouldTriggerAutomation.toggle()
                     } label: {
                         Label(
-                            shouldTriggerAutomation ? "n8n aktiv" : "An n8n senden",
+                            shouldTriggerAutomation ? "Aktion aktiv" : "Aktion ausfuehren",
                             systemImage: shouldTriggerAutomation ? "bolt.fill" : "bolt.badge.clock"
                         )
                         .font(.caption.weight(.bold))

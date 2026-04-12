@@ -10,7 +10,6 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
-import com.skydown.shared.model.isPlatformOwner
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.android.ui.model.AgentExecutionMode
 import com.skydown.android.ui.model.AgentMessage
@@ -43,9 +42,10 @@ class AgentViewModel : ViewModel() {
                     user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays,
                 )
                 _uiState.update {
+                    val canTriggerAutomation = user != null
                     it.copy(
-                        canTriggerAutomation = user?.isPlatformOwner == true,
-                        shouldTriggerAutomation = if (user?.isPlatformOwner == true) {
+                        canTriggerAutomation = canTriggerAutomation,
+                        shouldTriggerAutomation = if (canTriggerAutomation) {
                             it.shouldTriggerAutomation
                         } else {
                             false

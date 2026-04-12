@@ -135,7 +135,7 @@ final class AgentChatViewModel: ObservableObject {
     func configureUser(user: User?) {
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
         historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
-        canTriggerAutomation = user?.isPlatformOwner == true
+        canTriggerAutomation = user != nil
         if !canTriggerAutomation {
             shouldTriggerAutomation = false
         }

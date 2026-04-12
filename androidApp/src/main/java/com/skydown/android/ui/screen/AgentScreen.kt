@@ -615,7 +615,7 @@ private fun AgentComposerBar(
                         shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     ) {
-                        Text("n8n aktiv")
+                        Text("Aktion aktiv")
                     }
                 } else {
                     OutlinedButton(
@@ -624,7 +624,7 @@ private fun AgentComposerBar(
                         shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     ) {
-                        Text("An n8n senden")
+                        Text("Aktion ausfuehren")
                     }
                 }
             }

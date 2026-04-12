@@ -1007,18 +1007,7 @@ async function loadWorkflowAutomationSettings() {
       .collection(AUTOMATION_CONFIG_COLLECTION)
       .doc(AUTOMATION_CONFIG_DOCUMENT)
       .get();
-  const data = snapshot.data() || {};
-
-  return {
-    provider: nonEmptyString(data.provider) || "n8n",
-    isEnabled: data.isEnabled === true,
-    sendsUserContext: data.sendsUserContext !== false,
-    workflowName: nonEmptyString(data.workflowName) || "Skydown Automation",
-    baseURL: normalizeUrlString(data.baseURL) || "",
-    webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
-    authHeaderName: nonEmptyString(data.authHeaderName) || "",
-    authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
-  };
+  return decodeWorkflowAutomationSettings(snapshot.data() || {});
 }
 
 function automationConfigDocumentIdFor(userId) {
@@ -1033,21 +1022,54 @@ async function loadWorkflowAutomationSettingsForUser(userId) {
         .get();
 
     if (personalSnapshot.exists) {
-      const data = personalSnapshot.data() || {};
-      return {
-        provider: nonEmptyString(data.provider) || "n8n",
-        isEnabled: data.isEnabled === true,
-        sendsUserContext: data.sendsUserContext !== false,
-        workflowName: nonEmptyString(data.workflowName) || "Skydown Automation",
-        baseURL: normalizeUrlString(data.baseURL) || "",
-        webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
-        authHeaderName: nonEmptyString(data.authHeaderName) || "",
-        authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
-      };
+      return decodeWorkflowAutomationSettings(personalSnapshot.data() || {});
     }
   }
 
-  return loadWorkflowAutomationSettings();
+  const sharedSettings = await loadWorkflowAutomationSettings();
+  if (sharedSettings.isEnabled && buildAutomationWebhookUrl(sharedSettings.baseURL, sharedSettings.webhookPath)) {
+    return sharedSettings;
+  }
+
+  const firstEnabledPersonalSettings = await loadFirstEnabledPersonalWorkflowAutomationSettings();
+  if (firstEnabledPersonalSettings) {
+    return firstEnabledPersonalSettings;
+  }
+
+  return sharedSettings;
+}
+
+function decodeWorkflowAutomationSettings(data = {}) {
+  return {
+    provider: nonEmptyString(data.provider) || "n8n",
+    isEnabled: data.isEnabled === true,
+    sendsUserContext: data.sendsUserContext !== false,
+    workflowName: nonEmptyString(data.workflowName) || "Skydown Automation",
+    baseURL: normalizeUrlString(data.baseURL) || "",
+    webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
+    authHeaderName: nonEmptyString(data.authHeaderName) || "",
+    authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
+  };
+}
+
+async function loadFirstEnabledPersonalWorkflowAutomationSettings() {
+  const snapshot = await admin.firestore()
+      .collection(AUTOMATION_CONFIG_COLLECTION)
+      .get();
+
+  for (const document of snapshot.docs) {
+    if (!document.id.startsWith("automationN8n_")) {
+      continue;
+    }
+
+    const settings = decodeWorkflowAutomationSettings(document.data() || {});
+    const webhookUrl = buildAutomationWebhookUrl(settings.baseURL, settings.webhookPath);
+    if (settings.isEnabled && webhookUrl) {
+      return settings;
+    }
+  }
+
+  return null;
 }
 
 async function loadAutomationCaller(auth) {
@@ -3834,10 +3856,6 @@ async function loadAgentWorkspaceContext(auth, promptSettings) {
 
 async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history}) {
   if (!auth?.uid) {
-    return {attempted: false, triggered: false};
-  }
-
-  if (!(await isOwnerAuth(auth))) {
     return {attempted: false, triggered: false};
   }
 
