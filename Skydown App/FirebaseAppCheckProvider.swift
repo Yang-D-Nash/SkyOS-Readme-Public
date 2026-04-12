@@ -12,10 +12,8 @@ final class SkydownAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
             return AppCheckDebugProvider(app: app)
         }
 
-        if #available(iOS 14.0, *) {
-            return AppAttestProvider(app: app)
-        }
-
+        // Default to DeviceCheck for production stability on real devices.
+        // App Attest can be re-enabled later behind an explicit rollout flag.
         return DeviceCheckProvider(app: app)
 #endif
     }
