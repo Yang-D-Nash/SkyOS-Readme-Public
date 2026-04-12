@@ -58,6 +58,7 @@ const ai = genkit({
 const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+const manusApiKey = defineSecret("MANUS_API_KEY");
 const OWNER_EMAIL = "nash.lioncorna@gmail.com";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
@@ -279,9 +280,48 @@ const AGENT_MODES = {
   automation: "automation",
 };
 
+const AI_AGENT_PROVIDERS = {
+  gemini: "gemini",
+  manus: "manus",
+};
+
 const AI_REMOTE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 const AI_PROMPT_SETTINGS_CACHE_TTL_MS = 60 * 1000;
+const AI_RUNTIME_CONFIG_CACHE_TTL_MS = 60 * 1000;
+const AI_RUNTIME_CONFIG_COLLECTION = "adminConfig";
+const AI_RUNTIME_CONFIG_DOCUMENT = "aiRuntime";
+const AI_USAGE_METRICS_COLLECTION = "systemMetrics";
+const AI_USAGE_METRICS_DOCUMENT_PREFIX = "aiUsageDaily_";
+const MANUS_API_BASE_URL = "https://api.manus.ai/v2";
 const ACCOUNT_DELETE_RECENT_AUTH_MAX_AGE_SECONDS = 5 * 60;
+
+const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
+  costGuardEnabled: true,
+  agentProvider: AI_AGENT_PROVIDERS.gemini,
+  fallbackAgentProvider: AI_AGENT_PROVIDERS.gemini,
+  hardDailyCaps: {
+    text: 120,
+    visual: 20,
+    agent: 40,
+  },
+  globalDailyCaps: {
+    text: 1500,
+    visual: 180,
+    agent: 350,
+  },
+  manus: {
+    isEnabled: false,
+    requestTimeoutMs: 12000,
+    pollIntervalMs: 1500,
+    maxPollAttempts: 18,
+    listMessagesLimit: 30,
+    maxPromptChars: 2400,
+    maxHistoryTurns: 12,
+    autoStopOnWaiting: true,
+    blockHighCreditEvents: true,
+    includeVerboseEvents: false,
+  },
+});
 
 let aiFeatureConfigCache = {
   expiresAt: 0,
@@ -289,6 +329,11 @@ let aiFeatureConfigCache = {
 };
 
 let aiPromptSettingsCache = {
+  expiresAt: 0,
+  values: null,
+};
+
+let aiRuntimeSettingsCache = {
   expiresAt: 0,
   values: null,
 };
@@ -498,6 +543,135 @@ async function loadAiPromptSettings() {
 
   aiPromptSettingsCache = {
     expiresAt: now + AI_PROMPT_SETTINGS_CACHE_TTL_MS,
+    values,
+  };
+
+  return values;
+}
+
+function clampIntegerSetting(value, fallback, min, max) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  const rounded = Math.floor(numericValue);
+  return Math.max(min, Math.min(max, rounded));
+}
+
+function resolveAiKindLimits(raw, fallback, min, max) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    text: clampIntegerSetting(source.text, fallback.text, min, max),
+    visual: clampIntegerSetting(source.visual, fallback.visual, min, max),
+    agent: clampIntegerSetting(source.agent, fallback.agent, min, max),
+  };
+}
+
+function resolveAgentProvider(value, fallback = AI_AGENT_PROVIDERS.gemini) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  if (normalized && Object.values(AI_AGENT_PROVIDERS).includes(normalized)) {
+    return normalized;
+  }
+
+  return fallback;
+}
+
+function resolveAiRuntimeSettings(data = {}) {
+  const manusConfig = data.manus && typeof data.manus === "object" && !Array.isArray(data.manus) ? data.manus : {};
+  const agentProvider = resolveAgentProvider(
+      data.agentProvider,
+      DEFAULT_AI_RUNTIME_SETTINGS.agentProvider,
+  );
+  const fallbackAgentProvider = resolveAgentProvider(
+      data.fallbackAgentProvider,
+      DEFAULT_AI_RUNTIME_SETTINGS.fallbackAgentProvider,
+  );
+
+  return {
+    costGuardEnabled: data.costGuardEnabled !== false,
+    agentProvider,
+    fallbackAgentProvider: fallbackAgentProvider === agentProvider ?
+      AI_AGENT_PROVIDERS.gemini :
+      fallbackAgentProvider,
+    hardDailyCaps: resolveAiKindLimits(
+        data.hardDailyCaps,
+        DEFAULT_AI_RUNTIME_SETTINGS.hardDailyCaps,
+        1,
+        5000,
+    ),
+    globalDailyCaps: resolveAiKindLimits(
+        data.globalDailyCaps,
+        DEFAULT_AI_RUNTIME_SETTINGS.globalDailyCaps,
+        1,
+        100000,
+    ),
+    manus: {
+      isEnabled: manusConfig.isEnabled === true,
+      requestTimeoutMs: clampIntegerSetting(
+          manusConfig.requestTimeoutMs,
+          DEFAULT_AI_RUNTIME_SETTINGS.manus.requestTimeoutMs,
+          3000,
+          30000,
+      ),
+      pollIntervalMs: clampIntegerSetting(
+          manusConfig.pollIntervalMs,
+          DEFAULT_AI_RUNTIME_SETTINGS.manus.pollIntervalMs,
+          500,
+          5000,
+      ),
+      maxPollAttempts: clampIntegerSetting(
+          manusConfig.maxPollAttempts,
+          DEFAULT_AI_RUNTIME_SETTINGS.manus.maxPollAttempts,
+          2,
+          60,
+      ),
+      listMessagesLimit: clampIntegerSetting(
+          manusConfig.listMessagesLimit,
+          DEFAULT_AI_RUNTIME_SETTINGS.manus.listMessagesLimit,
+          5,
+          100,
+      ),
+      maxPromptChars: clampIntegerSetting(
+          manusConfig.maxPromptChars,
+          DEFAULT_AI_RUNTIME_SETTINGS.manus.maxPromptChars,
+          300,
+          12000,
+      ),
+      maxHistoryTurns: clampIntegerSetting(
+          manusConfig.maxHistoryTurns,
+          DEFAULT_AI_RUNTIME_SETTINGS.manus.maxHistoryTurns,
+          0,
+          24,
+      ),
+      autoStopOnWaiting: manusConfig.autoStopOnWaiting !== false,
+      blockHighCreditEvents: manusConfig.blockHighCreditEvents !== false,
+      includeVerboseEvents: manusConfig.includeVerboseEvents === true,
+    },
+  };
+}
+
+async function loadAiRuntimeSettings() {
+  const now = Date.now();
+  if (aiRuntimeSettingsCache.values && aiRuntimeSettingsCache.expiresAt > now) {
+    return aiRuntimeSettingsCache.values;
+  }
+
+  let values = DEFAULT_AI_RUNTIME_SETTINGS;
+  try {
+    const snapshot = await admin.firestore()
+        .collection(AI_RUNTIME_CONFIG_COLLECTION)
+        .doc(AI_RUNTIME_CONFIG_DOCUMENT)
+        .get();
+    values = resolveAiRuntimeSettings(snapshot.data() || {});
+  } catch (error) {
+    logger.warn("AI runtime settings could not be loaded. Falling back to defaults.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+
+  aiRuntimeSettingsCache = {
+    expiresAt: now + AI_RUNTIME_CONFIG_CACHE_TTL_MS,
     values,
   };
 
@@ -1029,37 +1203,93 @@ function aiLimitReachedMessage(kind, limit) {
   }
 }
 
+function aiGlobalLimitReachedMessage(kind, limit) {
+  switch (kind) {
+    case AI_USAGE_KINDS.visual:
+      return `Globales Tageslimit fuer Visuals erreicht (${limit}/Tag).`;
+    case AI_USAGE_KINDS.agent:
+      return `Globales Tageslimit fuer den Agent erreicht (${limit}/Tag).`;
+    case AI_USAGE_KINDS.text:
+    default:
+      return `Globales Tageslimit fuer den Bot erreicht (${limit}/Tag).`;
+  }
+}
+
+function aiUsageMetricsDocumentId(dateKey) {
+  return `${AI_USAGE_METRICS_DOCUMENT_PREFIX}${dateKey}`;
+}
+
 async function authorizeAiUsage({auth, kind}) {
   if (!Object.values(AI_USAGE_KINDS).includes(kind)) {
     throw new HttpsError("invalid-argument", "Unbekannte KI-Aktion.");
   }
 
   const {profile} = await assertAiAccess(auth);
+  const runtimeSettings = await loadAiRuntimeSettings();
 
   const dateKey = aiUsageDateKey();
   const usageRef = admin.firestore().doc(`users/${auth.uid}/aiUsage/${dateKey}`);
+  const globalUsageRef = admin.firestore()
+      .collection(AI_USAGE_METRICS_COLLECTION)
+      .doc(aiUsageMetricsDocumentId(dateKey));
+
   const usageSummary = await admin.firestore().runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(usageRef);
-    const currentData = snapshot.exists ? (snapshot.data() || {}) : {};
+    const [userSnapshot, globalSnapshot] = await Promise.all([
+      transaction.get(usageRef),
+      transaction.get(globalUsageRef),
+    ]);
+    const currentData = userSnapshot.exists ? (userSnapshot.data() || {}) : {};
+    const currentGlobalData = globalSnapshot.exists ? (globalSnapshot.data() || {}) : {};
     const counterField = aiUsageCounterField(kind);
     const currentCount = Number(currentData[counterField]) || 0;
     const currentTotal = Number(currentData.totalRequests) || 0;
-    const limit = aiUsageLimitForKind(kind, profile.aiLimits);
+    const baseLimit = aiUsageLimitForKind(kind, profile.aiLimits);
+    const hardCap = aiUsageLimitForKind(kind, runtimeSettings.hardDailyCaps);
+    const limit = runtimeSettings.costGuardEnabled ?
+      Math.max(1, Math.min(baseLimit, hardCap)) :
+      baseLimit;
 
     if (currentCount >= limit) {
       throw new HttpsError("resource-exhausted", aiLimitReachedMessage(kind, limit));
     }
 
+    const currentGlobalCount = Number(currentGlobalData[counterField]) || 0;
+    const currentGlobalTotal = Number(currentGlobalData.totalRequests) || 0;
+    const globalLimit = aiUsageLimitForKind(kind, runtimeSettings.globalDailyCaps);
+    if (runtimeSettings.costGuardEnabled &&
+      Number.isFinite(globalLimit) &&
+      globalLimit > 0 &&
+      currentGlobalCount >= globalLimit) {
+      throw new HttpsError("resource-exhausted", aiGlobalLimitReachedMessage(kind, globalLimit));
+    }
+
     const nextCount = currentCount + 1;
     const nextTotal = currentTotal + 1;
+    const nextGlobalCount = currentGlobalCount + 1;
+    const nextGlobalTotal = currentGlobalTotal + 1;
+    const nextTextCount = counterField === "textRequests" ? nextCount : (Number(currentData.textRequests) || 0);
+    const nextVisualCount = counterField === "visualRequests" ? nextCount : (Number(currentData.visualRequests) || 0);
+    const nextAgentCount = counterField === "agentRequests" ? nextCount : (Number(currentData.agentRequests) || 0);
+    const nextGlobalText = counterField === "textRequests" ? nextGlobalCount : (Number(currentGlobalData.textRequests) || 0);
+    const nextGlobalVisual = counterField === "visualRequests" ? nextGlobalCount : (Number(currentGlobalData.visualRequests) || 0);
+    const nextGlobalAgent = counterField === "agentRequests" ? nextGlobalCount : (Number(currentGlobalData.agentRequests) || 0);
 
     transaction.set(usageRef, {
       dateKey,
       role: profile.role,
-      textRequests: counterField === "textRequests" ? nextCount : (Number(currentData.textRequests) || 0),
-      visualRequests: counterField === "visualRequests" ? nextCount : (Number(currentData.visualRequests) || 0),
-      agentRequests: counterField === "agentRequests" ? nextCount : (Number(currentData.agentRequests) || 0),
+      textRequests: nextTextCount,
+      visualRequests: nextVisualCount,
+      agentRequests: nextAgentCount,
       totalRequests: nextTotal,
+      lastConsumedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    transaction.set(globalUsageRef, {
+      dateKey,
+      textRequests: nextGlobalText,
+      visualRequests: nextGlobalVisual,
+      agentRequests: nextGlobalAgent,
+      totalRequests: nextGlobalTotal,
       lastConsumedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, {merge: true});
 
@@ -1069,9 +1299,28 @@ async function authorizeAiUsage({auth, kind}) {
       kind,
       remainingForKind: Math.max(limit - nextCount, 0),
       limitForKind: limit,
-      textRemaining: Math.max(profile.aiLimits.text - (counterField === "textRequests" ? nextCount : (Number(currentData.textRequests) || 0)), 0),
-      visualRemaining: Math.max(profile.aiLimits.visual - (counterField === "visualRequests" ? nextCount : (Number(currentData.visualRequests) || 0)), 0),
-      agentRemaining: Math.max(profile.aiLimits.agent - (counterField === "agentRequests" ? nextCount : (Number(currentData.agentRequests) || 0)), 0),
+      textRemaining: Math.max(
+          (runtimeSettings.costGuardEnabled ?
+            Math.min(profile.aiLimits.text, runtimeSettings.hardDailyCaps.text) :
+            profile.aiLimits.text) - nextTextCount,
+          0,
+      ),
+      visualRemaining: Math.max(
+          (runtimeSettings.costGuardEnabled ?
+            Math.min(profile.aiLimits.visual, runtimeSettings.hardDailyCaps.visual) :
+            profile.aiLimits.visual) - nextVisualCount,
+          0,
+      ),
+      agentRemaining: Math.max(
+          (runtimeSettings.costGuardEnabled ?
+            Math.min(profile.aiLimits.agent, runtimeSettings.hardDailyCaps.agent) :
+            profile.aiLimits.agent) - nextAgentCount,
+          0,
+      ),
+      globalRemainingForKind: runtimeSettings.costGuardEnabled ?
+        Math.max(globalLimit - nextGlobalCount, 0) :
+        null,
+      globalLimitForKind: runtimeSettings.costGuardEnabled ? globalLimit : null,
       historyRetentionDays: profile.aiLimits.historyRetentionDays,
     };
   });
@@ -1081,6 +1330,7 @@ async function authorizeAiUsage({auth, kind}) {
     role: usageSummary.role,
     kind,
     remainingForKind: usageSummary.remainingForKind,
+    globalRemainingForKind: usageSummary.globalRemainingForKind,
     dateKey,
   });
 
@@ -3436,6 +3686,113 @@ function formatHistory(history) {
       .join("\n\n");
 }
 
+function composeAgentExecutionPrompt({workspaceContext, history, prompt, mode}) {
+  return `
+${workspaceContext}
+
+Bisherige Unterhaltung:
+${formatHistory(history)}
+
+Aktuelle Nutzeranfrage:
+${prompt}
+
+${responseFrameworkHint(mode, prompt)}
+  `.trim();
+}
+
+function trimTextMax(value, maxChars) {
+  const normalized = nonEmptyString(value) || "";
+  if (!maxChars || maxChars < 1 || normalized.length <= maxChars) {
+    return normalized;
+  }
+  return normalized.slice(0, maxChars);
+}
+
+function sanitizeHistoryForManus(history, manusSettings) {
+  const maxHistoryTurns = manusSettings.maxHistoryTurns;
+  if (!Array.isArray(history) || maxHistoryTurns < 1) {
+    return [];
+  }
+
+  return history
+      .slice(-maxHistoryTurns)
+      .map(({role, text}) => ({
+        role: role === "assistant" ? "assistant" : "user",
+        text: trimTextMax(text, manusSettings.maxPromptChars),
+      }))
+      .filter((entry) => entry.text.length > 0);
+}
+
+function manusApiErrorMessage(payload, fallbackMessage = "Unbekannter Manus-Fehler.") {
+  return nonEmptyString(payload?.error?.message)
+    || nonEmptyString(payload?.message)
+    || fallbackMessage;
+}
+
+function resolveManusTaskId(payload) {
+  return nonEmptyString(payload?.task_id)
+    || nonEmptyString(payload?.taskId)
+    || nonEmptyString(payload?.task?.id)
+    || nonEmptyString(payload?.id)
+    || null;
+}
+
+function resolveManusMessages(payload) {
+  if (Array.isArray(payload?.messages)) {
+    return payload.messages;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  return [];
+}
+
+function resolveLatestManusStatus(messages) {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return null;
+  }
+
+  for (const message of messages) {
+    if (nonEmptyString(message?.type) !== "status_update") {
+      continue;
+    }
+
+    const statusUpdate = message.status_update || {};
+    return {
+      agentStatus: nonEmptyString(statusUpdate.agent_status) || "",
+      waitingForEventType: nonEmptyString(statusUpdate?.status_detail?.waiting_for_event_type) || "",
+      waitingDescription: nonEmptyString(statusUpdate?.status_detail?.waiting_description) || "",
+    };
+  }
+
+  return null;
+}
+
+function resolveLatestManusAssistantReply(messages) {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return null;
+  }
+
+  for (const message of messages) {
+    if (nonEmptyString(message?.type) !== "assistant_message") {
+      continue;
+    }
+
+    const content = nonEmptyString(message?.assistant_message?.content)
+      || nonEmptyString(message?.content)
+      || nonEmptyString(message?.text);
+    if (content) {
+      return content;
+    }
+  }
+
+  return null;
+}
+
+function waitForMs(durationMs) {
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
 async function loadAgentWorkspaceContext(auth, promptSettings) {
   const lines = [];
 
@@ -3512,23 +3869,248 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history})
   }
 }
 
+function loadManusApiKey() {
+  return nonEmptyString(manusApiKey.value()) || "";
+}
+
+async function callManusApi({apiKey, endpoint, method = "GET", query = {}, body = null, timeoutMs = 12000}) {
+  const url = new URL(`${MANUS_API_BASE_URL}/${endpoint}`);
+  const queryEntries = Object.entries(query || {})
+      .filter(([, value]) => value !== undefined && value !== null && `${value}`.trim().length > 0);
+  for (const [key, value] of queryEntries) {
+    url.searchParams.set(key, `${value}`);
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url.toString(), {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "x-manus-api-key": apiKey,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+
+    const rawText = await response.text().catch(() => "");
+    let payload = null;
+    if (rawText) {
+      try {
+        payload = JSON.parse(rawText);
+      } catch (error) {
+        payload = null;
+      }
+    }
+
+    if (!response.ok) {
+      const errorMessage = manusApiErrorMessage(
+          payload,
+          `Manus API Fehler (${response.status} ${response.statusText}).`,
+      );
+      throw new Error(errorMessage);
+    }
+
+    if (payload && payload.ok === false) {
+      throw new Error(manusApiErrorMessage(payload));
+    }
+
+    return payload || {};
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function stopManusTaskQuietly(taskId, runtimeSettings) {
+  const apiKey = loadManusApiKey();
+  if (!apiKey || !taskId) {
+    return;
+  }
+
+  try {
+    await callManusApi({
+      apiKey,
+      endpoint: "task.stop",
+      method: "POST",
+      body: {task_id: taskId},
+      timeoutMs: runtimeSettings.manus.requestTimeoutMs,
+    });
+  } catch (error) {
+    logger.warn("Manus task could not be stopped gracefully.", {
+      taskId,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+}
+
+async function fetchManusMessages({apiKey, taskId, runtimeSettings}) {
+  const response = await callManusApi({
+    apiKey,
+    endpoint: "task.listMessages",
+    method: "GET",
+    query: {
+      task_id: taskId,
+      order: "desc",
+      limit: runtimeSettings.manus.listMessagesLimit,
+      verbose: runtimeSettings.manus.includeVerboseEvents ? "true" : undefined,
+    },
+    timeoutMs: runtimeSettings.manus.requestTimeoutMs,
+  });
+
+  return resolveManusMessages(response);
+}
+
+function normalizeManusAgentPrompt({
+  input,
+  runtimeSettings,
+  promptSettings,
+  workspaceContext,
+}) {
+  const safePrompt = trimTextMax(input.prompt, runtimeSettings.manus.maxPromptChars);
+  const safeHistory = sanitizeHistoryForManus(input.history, runtimeSettings.manus);
+  const composedPrompt = composeAgentExecutionPrompt({
+    workspaceContext: trimTextMax(workspaceContext, runtimeSettings.manus.maxPromptChars),
+    history: safeHistory,
+    prompt: safePrompt,
+    mode: input.mode,
+  });
+
+  return `
+System-Anweisung:
+${trimTextMax(promptSettings.agentSystemInstruction, runtimeSettings.manus.maxPromptChars)}
+
+${composedPrompt}
+  `.trim();
+}
+
+async function runManusAgent({input, runtimeSettings, promptSettings, workspaceContext}) {
+  if (runtimeSettings.manus.isEnabled !== true) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Manus ist noch nicht freigeschaltet. Bitte in adminConfig/aiRuntime aktivieren.",
+    );
+  }
+
+  const apiKey = loadManusApiKey();
+  if (!apiKey) {
+    throw new HttpsError(
+        "failed-precondition",
+        "MANUS_API_KEY fehlt in den Functions-Secrets.",
+    );
+  }
+
+  const prompt = normalizeManusAgentPrompt({
+    input,
+    runtimeSettings,
+    promptSettings,
+    workspaceContext,
+  });
+  const createPayload = {
+    message: {
+      content: prompt,
+    },
+  };
+
+  const createResponse = await callManusApi({
+    apiKey,
+    endpoint: "task.create",
+    method: "POST",
+    body: createPayload,
+    timeoutMs: runtimeSettings.manus.requestTimeoutMs,
+  });
+  const taskId = resolveManusTaskId(createResponse);
+  if (!taskId) {
+    throw new HttpsError("internal", "Manus Task konnte nicht gestartet werden.");
+  }
+
+  let taskStatus = "";
+  for (let attempt = 0; attempt < runtimeSettings.manus.maxPollAttempts; attempt += 1) {
+    const statusResponse = await callManusApi({
+      apiKey,
+      endpoint: "task.detail",
+      method: "GET",
+      query: {task_id: taskId},
+      timeoutMs: runtimeSettings.manus.requestTimeoutMs,
+    });
+    taskStatus = nonEmptyString(statusResponse?.task?.status)
+      || nonEmptyString(statusResponse?.status)
+      || "";
+
+    if (taskStatus === "stopped") {
+      break;
+    }
+
+    if (taskStatus === "error") {
+      const messages = await fetchManusMessages({apiKey, taskId, runtimeSettings});
+      const latestReply = resolveLatestManusAssistantReply(messages);
+      throw new HttpsError(
+          "internal",
+          latestReply || "Manus hat die Aufgabe mit einem Fehler beendet.",
+      );
+    }
+
+    if (taskStatus === "waiting") {
+      const messages = await fetchManusMessages({apiKey, taskId, runtimeSettings});
+      const statusUpdate = resolveLatestManusStatus(messages);
+      const waitingType = statusUpdate?.waitingForEventType || "";
+      const waitingDescription = statusUpdate?.waitingDescription || "Aktion muss bestaetigt werden.";
+
+      if (runtimeSettings.manus.blockHighCreditEvents && waitingType === "apiHighCreditNotice") {
+        await stopManusTaskQuietly(taskId, runtimeSettings);
+        throw new HttpsError(
+            "resource-exhausted",
+            "Kosten-Guard aktiv: Manus hat eine High-Credit-Freigabe angefragt. Task wurde gestoppt.",
+        );
+      }
+
+      if (runtimeSettings.manus.autoStopOnWaiting) {
+        await stopManusTaskQuietly(taskId, runtimeSettings);
+        throw new HttpsError(
+            "failed-precondition",
+            `Kosten-Guard aktiv: Manus wartet auf manuelle Freigabe (${waitingDescription}).`,
+        );
+      }
+    }
+
+    if (attempt < runtimeSettings.manus.maxPollAttempts - 1) {
+      await waitForMs(runtimeSettings.manus.pollIntervalMs);
+    }
+  }
+
+  if (taskStatus !== "stopped") {
+    await stopManusTaskQuietly(taskId, runtimeSettings);
+    throw new HttpsError(
+        "deadline-exceeded",
+        "Manus hat nicht rechtzeitig geantwortet. Task wurde zum Kostenschutz gestoppt.",
+    );
+  }
+
+  const messages = await fetchManusMessages({apiKey, taskId, runtimeSettings});
+  const reply = resolveLatestManusAssistantReply(messages);
+  if (!reply) {
+    throw new HttpsError("internal", "Manus hat keine Agent-Antwort geliefert.");
+  }
+
+  return {
+    reply,
+    provider: AI_AGENT_PROVIDERS.manus,
+    taskId,
+  };
+}
+
 const skydownAgentFlow = ai.defineFlow({
   name: "skydownAgentFlow",
   inputSchema: agentFlowRequestSchema,
   outputSchema: z.string(),
   streamSchema: z.string(),
 }, async (input, sendChunk) => {
-  const prompt = `
-${input.workspaceContext}
-
-Bisherige Unterhaltung:
-${formatHistory(input.history)}
-
-Aktuelle Nutzeranfrage:
-${input.prompt}
-
-${responseFrameworkHint(input.mode, input.prompt)}
-  `.trim();
+  const prompt = composeAgentExecutionPrompt({
+    workspaceContext: input.workspaceContext,
+    history: input.history,
+    prompt: input.prompt,
+    mode: input.mode,
+  });
 
   const {stream, response} = ai.generateStream({
     system: input.systemInstruction,
@@ -3558,7 +4140,8 @@ ${responseFrameworkHint(input.mode, input.prompt)}
 
 exports.skydownAgent = onCall({
   region: "us-central1",
-  timeoutSeconds: 60,
+  timeoutSeconds: 90,
+  secrets: [manusApiKey],
 }, async (request) => {
   await assertCallableSecurity(request, "skydownAgent");
   const input = parseCallableInput(
@@ -3571,12 +4154,46 @@ exports.skydownAgent = onCall({
     kind: AI_USAGE_KINDS.agent,
   });
   const promptSettings = await loadAiPromptSettings();
+  const runtimeSettings = await loadAiRuntimeSettings();
   const workspaceContext = await loadAgentWorkspaceContext(request.auth, promptSettings);
-  const reply = await skydownAgentFlow({
-    ...input,
-    systemInstruction: promptSettings.agentSystemInstruction,
-    workspaceContext,
-  });
+  let reply = "";
+  let agentProvider = AI_AGENT_PROVIDERS.gemini;
+  let providerFallbackUsed = false;
+  let providerNotice = "";
+
+  if (runtimeSettings.agentProvider === AI_AGENT_PROVIDERS.manus) {
+    try {
+      const manusResult = await runManusAgent({
+        input,
+        runtimeSettings,
+        promptSettings,
+        workspaceContext,
+      });
+      reply = manusResult.reply;
+      agentProvider = manusResult.provider;
+    } catch (error) {
+      if (runtimeSettings.fallbackAgentProvider === AI_AGENT_PROVIDERS.gemini) {
+        providerFallbackUsed = true;
+        providerNotice = "Manus war nicht verfuegbar. Antwort wurde ueber Gemini erstellt.";
+        logger.warn("Manus agent failed. Falling back to Gemini.", {
+          uid: request.auth?.uid || null,
+          error: error instanceof Error ? error.message : `${error}`,
+        });
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  if (!reply) {
+    reply = await skydownAgentFlow({
+      ...input,
+      systemInstruction: promptSettings.agentSystemInstruction,
+      workspaceContext,
+    });
+    agentProvider = AI_AGENT_PROVIDERS.gemini;
+  }
+
   const automation = input.executeAutomation ?
     await maybeTriggerAgentAutomation({
       auth: request.auth,
@@ -3594,6 +4211,9 @@ exports.skydownAgent = onCall({
     automationAttempted: automation.attempted === true,
     automationMessage: nonEmptyString(automation.message) || "",
     workflowName: nonEmptyString(automation.workflowName) || "",
+    agentProvider,
+    providerFallbackUsed,
+    providerNotice,
     historyRetentionDays: usage.historyRetentionDays,
   };
 });
