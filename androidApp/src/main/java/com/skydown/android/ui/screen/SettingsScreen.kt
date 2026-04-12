@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AiRuntimeAgentProvider
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.data.ScreenHeaderSettings
@@ -192,6 +193,25 @@ fun SettingsScreen(
     var aiAgentSystemInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiAssetLibraryLinkDraft by rememberSaveable { mutableStateOf("") }
     var aiAssetReferenceNotesDraft by rememberSaveable { mutableStateOf("") }
+    var aiCostGuardEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiAgentProviderDraft by rememberSaveable { mutableStateOf(AiRuntimeAgentProvider.Gemini.rawValue) }
+    var aiFallbackAgentProviderDraft by rememberSaveable { mutableStateOf(AiRuntimeAgentProvider.Gemini.rawValue) }
+    var aiManusEnabledDraft by rememberSaveable { mutableStateOf(false) }
+    var aiManusRequestTimeoutMsDraft by rememberSaveable { mutableStateOf("") }
+    var aiManusPollIntervalMsDraft by rememberSaveable { mutableStateOf("") }
+    var aiManusMaxPollAttemptsDraft by rememberSaveable { mutableStateOf("") }
+    var aiManusListMessagesLimitDraft by rememberSaveable { mutableStateOf("") }
+    var aiManusMaxPromptCharsDraft by rememberSaveable { mutableStateOf("") }
+    var aiManusMaxHistoryTurnsDraft by rememberSaveable { mutableStateOf("") }
+    var aiManusAutoStopOnWaitingDraft by rememberSaveable { mutableStateOf(true) }
+    var aiManusBlockHighCreditEventsDraft by rememberSaveable { mutableStateOf(true) }
+    var aiManusIncludeVerboseEventsDraft by rememberSaveable { mutableStateOf(false) }
+    var aiHardTextLimitDraft by rememberSaveable { mutableStateOf("") }
+    var aiHardVisualLimitDraft by rememberSaveable { mutableStateOf("") }
+    var aiHardAgentLimitDraft by rememberSaveable { mutableStateOf("") }
+    var aiGlobalTextLimitDraft by rememberSaveable { mutableStateOf("") }
+    var aiGlobalVisualLimitDraft by rememberSaveable { mutableStateOf("") }
+    var aiGlobalAgentLimitDraft by rememberSaveable { mutableStateOf("") }
     val managedShowcasePages = remember(artistPages) {
         (
             ArtistPagesStore.pagesForBrand(com.skydown.android.data.ArtistPageBrand.Zweizwei) +
@@ -298,6 +318,28 @@ fun SettingsScreen(
         aiAgentSystemInstructionDraft = uiState.aiPromptSettings.agentSystemInstruction
         aiAssetLibraryLinkDraft = uiState.aiPromptSettings.assetLibraryLink
         aiAssetReferenceNotesDraft = uiState.aiPromptSettings.assetReferenceNotes
+    }
+
+    LaunchedEffect(uiState.aiRuntimeSettings) {
+        aiCostGuardEnabledDraft = uiState.aiRuntimeSettings.costGuardEnabled
+        aiAgentProviderDraft = uiState.aiRuntimeSettings.agentProvider.rawValue
+        aiFallbackAgentProviderDraft = uiState.aiRuntimeSettings.fallbackAgentProvider.rawValue
+        aiManusEnabledDraft = uiState.aiRuntimeSettings.manus.isEnabled
+        aiManusRequestTimeoutMsDraft = uiState.aiRuntimeSettings.manus.requestTimeoutMs.toString()
+        aiManusPollIntervalMsDraft = uiState.aiRuntimeSettings.manus.pollIntervalMs.toString()
+        aiManusMaxPollAttemptsDraft = uiState.aiRuntimeSettings.manus.maxPollAttempts.toString()
+        aiManusListMessagesLimitDraft = uiState.aiRuntimeSettings.manus.listMessagesLimit.toString()
+        aiManusMaxPromptCharsDraft = uiState.aiRuntimeSettings.manus.maxPromptChars.toString()
+        aiManusMaxHistoryTurnsDraft = uiState.aiRuntimeSettings.manus.maxHistoryTurns.toString()
+        aiManusAutoStopOnWaitingDraft = uiState.aiRuntimeSettings.manus.autoStopOnWaiting
+        aiManusBlockHighCreditEventsDraft = uiState.aiRuntimeSettings.manus.blockHighCreditEvents
+        aiManusIncludeVerboseEventsDraft = uiState.aiRuntimeSettings.manus.includeVerboseEvents
+        aiHardTextLimitDraft = uiState.aiRuntimeSettings.hardDailyCaps.text.toString()
+        aiHardVisualLimitDraft = uiState.aiRuntimeSettings.hardDailyCaps.visual.toString()
+        aiHardAgentLimitDraft = uiState.aiRuntimeSettings.hardDailyCaps.agent.toString()
+        aiGlobalTextLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.text.toString()
+        aiGlobalVisualLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.visual.toString()
+        aiGlobalAgentLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.agent.toString()
     }
 
     LaunchedEffect(
@@ -1662,6 +1704,331 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text("KI-Anweisungen speichern")
+                }
+
+                Text(
+                    text = "Runtime & Provider (`adminConfig/aiRuntime`)",
+                    modifier = Modifier.padding(top = 18.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                Text(
+                    text = "Hier steuerst du, ob der Agent ueber Gemini oder Manus laeuft und welche serverseitigen Tageslimits aktiv sind.",
+                    modifier = Modifier.padding(top = 4.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        SettingsBadge(
+                            text = "Provider ${AiRuntimeAgentProvider.resolve(aiAgentProviderDraft).displayTitle}",
+                            icon = Icons.Default.Bolt,
+                            isActive = true,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = if (aiCostGuardEnabledDraft) "Kosten-Guard an" else "Kosten-Guard aus",
+                            icon = Icons.Default.CheckCircle,
+                            isActive = aiCostGuardEnabledDraft,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = if (aiManusEnabledDraft) "Manus aktiv" else "Manus aus",
+                            icon = Icons.Default.Settings,
+                            isActive = aiManusEnabledDraft,
+                        )
+                    }
+                }
+
+                SettingsToggleRow(
+                    title = "Kosten-Guard aktiv",
+                    body = "Harte User- und Global-Limits greifen serverseitig als Kostenbremse.",
+                    checked = aiCostGuardEnabledDraft,
+                    onCheckedChange = { aiCostGuardEnabledDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+
+                Text(
+                    text = "Agent Provider",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(AiRuntimeAgentProvider.entries, key = { it.rawValue }) { provider ->
+                        val isSelected = aiAgentProviderDraft == provider.rawValue
+                        OutlinedButton(
+                            onClick = { aiAgentProviderDraft = provider.rawValue },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Text(provider.displayTitle)
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Fallback Provider",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(AiRuntimeAgentProvider.entries, key = { it.rawValue }) { provider ->
+                        val isSelected = aiFallbackAgentProviderDraft == provider.rawValue
+                        OutlinedButton(
+                            onClick = { aiFallbackAgentProviderDraft = provider.rawValue },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Text(provider.displayTitle)
+                        }
+                    }
+                }
+
+                SettingsToggleRow(
+                    title = "Manus freigeben",
+                    body = "Schaltet Manus im Backend frei. Ohne aktiviertes Secret oder bei Fehlern greift der Fallback.",
+                    checked = aiManusEnabledDraft,
+                    onCheckedChange = { aiManusEnabledDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+
+                Text(
+                    text = "Manus Runtime (`adminConfig/aiRuntime.manus`)",
+                    modifier = Modifier.padding(top = 10.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+
+                Text(
+                    text = "Der API-Key bleibt aus Sicherheitsgruenden im Firebase Functions Secret `MANUS_API_KEY` und wird nicht in der App gespeichert.",
+                    modifier = Modifier.padding(top = 4.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+
+                OutlinedTextField(
+                    value = aiManusRequestTimeoutMsDraft,
+                    onValueChange = { aiManusRequestTimeoutMsDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Request Timeout (ms)") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiManusPollIntervalMsDraft,
+                    onValueChange = { aiManusPollIntervalMsDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Poll Interval (ms)") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiManusMaxPollAttemptsDraft,
+                    onValueChange = { aiManusMaxPollAttemptsDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Max Poll Attempts") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiManusListMessagesLimitDraft,
+                    onValueChange = { aiManusListMessagesLimitDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("List Messages Limit") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiManusMaxPromptCharsDraft,
+                    onValueChange = { aiManusMaxPromptCharsDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Max Prompt Chars") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiManusMaxHistoryTurnsDraft,
+                    onValueChange = { aiManusMaxHistoryTurnsDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Max History Turns") },
+                    singleLine = true,
+                )
+
+                SettingsToggleRow(
+                    title = "Auto Stop bei Waiting-Event",
+                    body = "Stoppt den Manus-Run automatisch bei Waiting-Status.",
+                    checked = aiManusAutoStopOnWaitingDraft,
+                    onCheckedChange = { aiManusAutoStopOnWaitingDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+                SettingsToggleRow(
+                    title = "High-Credit Events blocken",
+                    body = "Bricht Runs bei kostenintensiven Events sofort ab.",
+                    checked = aiManusBlockHighCreditEventsDraft,
+                    onCheckedChange = { aiManusBlockHighCreditEventsDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                SettingsToggleRow(
+                    title = "Verbose Events einblenden",
+                    body = "Aktiviert detailliertere Event-Ausgaben fuer Debugging.",
+                    checked = aiManusIncludeVerboseEventsDraft,
+                    onCheckedChange = { aiManusIncludeVerboseEventsDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                OutlinedTextField(
+                    value = aiHardTextLimitDraft,
+                    onValueChange = { aiHardTextLimitDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Hard Cap Text / Tag") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiHardVisualLimitDraft,
+                    onValueChange = { aiHardVisualLimitDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Hard Cap Visual / Tag") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiHardAgentLimitDraft,
+                    onValueChange = { aiHardAgentLimitDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Hard Cap Agent / Tag") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiGlobalTextLimitDraft,
+                    onValueChange = { aiGlobalTextLimitDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Global Cap Text / Tag") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiGlobalVisualLimitDraft,
+                    onValueChange = { aiGlobalVisualLimitDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Global Cap Visual / Tag") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = aiGlobalAgentLimitDraft,
+                    onValueChange = { aiGlobalAgentLimitDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Global Cap Agent / Tag") },
+                    singleLine = true,
+                )
+
+                Button(
+                    onClick = {
+                        val currentRuntime = uiState.aiRuntimeSettings
+                        val updatedRuntime = currentRuntime.copy(
+                            costGuardEnabled = aiCostGuardEnabledDraft,
+                            agentProvider = AiRuntimeAgentProvider.resolve(aiAgentProviderDraft),
+                            fallbackAgentProvider = AiRuntimeAgentProvider.resolve(aiFallbackAgentProviderDraft),
+                            hardDailyCaps = currentRuntime.hardDailyCaps.copy(
+                                text = aiHardTextLimitDraft.parsePositiveIntOrDefault(currentRuntime.hardDailyCaps.text),
+                                visual = aiHardVisualLimitDraft.parsePositiveIntOrDefault(currentRuntime.hardDailyCaps.visual),
+                                agent = aiHardAgentLimitDraft.parsePositiveIntOrDefault(currentRuntime.hardDailyCaps.agent),
+                            ),
+                            globalDailyCaps = currentRuntime.globalDailyCaps.copy(
+                                text = aiGlobalTextLimitDraft.parsePositiveIntOrDefault(currentRuntime.globalDailyCaps.text),
+                                visual = aiGlobalVisualLimitDraft.parsePositiveIntOrDefault(currentRuntime.globalDailyCaps.visual),
+                                agent = aiGlobalAgentLimitDraft.parsePositiveIntOrDefault(currentRuntime.globalDailyCaps.agent),
+                            ),
+                            manus = currentRuntime.manus.copy(
+                                isEnabled = aiManusEnabledDraft,
+                                requestTimeoutMs = aiManusRequestTimeoutMsDraft.parseIntInRangeOrDefault(
+                                    fallback = currentRuntime.manus.requestTimeoutMs,
+                                    min = 3000,
+                                    max = 30000,
+                                ),
+                                pollIntervalMs = aiManusPollIntervalMsDraft.parseIntInRangeOrDefault(
+                                    fallback = currentRuntime.manus.pollIntervalMs,
+                                    min = 500,
+                                    max = 5000,
+                                ),
+                                maxPollAttempts = aiManusMaxPollAttemptsDraft.parseIntInRangeOrDefault(
+                                    fallback = currentRuntime.manus.maxPollAttempts,
+                                    min = 2,
+                                    max = 60,
+                                ),
+                                listMessagesLimit = aiManusListMessagesLimitDraft.parseIntInRangeOrDefault(
+                                    fallback = currentRuntime.manus.listMessagesLimit,
+                                    min = 5,
+                                    max = 100,
+                                ),
+                                maxPromptChars = aiManusMaxPromptCharsDraft.parseIntInRangeOrDefault(
+                                    fallback = currentRuntime.manus.maxPromptChars,
+                                    min = 300,
+                                    max = 12000,
+                                ),
+                                maxHistoryTurns = aiManusMaxHistoryTurnsDraft.parseIntInRangeOrDefault(
+                                    fallback = currentRuntime.manus.maxHistoryTurns,
+                                    min = 0,
+                                    max = 24,
+                                ),
+                                autoStopOnWaiting = aiManusAutoStopOnWaitingDraft,
+                                blockHighCreditEvents = aiManusBlockHighCreditEventsDraft,
+                                includeVerboseEvents = aiManusIncludeVerboseEventsDraft,
+                            ),
+                        )
+                        viewModel.saveAiRuntimeSettings(updatedRuntime)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Text("KI Runtime speichern")
                 }
             }
         }
@@ -3761,6 +4128,15 @@ private val UserQuotaPlan.planSummary: String
 private fun String.parsePositiveIntOrDefault(fallback: Int): Int {
     val value = trim().toIntOrNull() ?: return fallback
     return if (value > 0) value else fallback
+}
+
+private fun String.parseIntInRangeOrDefault(
+    fallback: Int,
+    min: Int,
+    max: Int,
+): Int {
+    val value = trim().toIntOrNull() ?: return fallback
+    return value.coerceIn(min, max)
 }
 
 private fun historyOptionLabel(days: Int): String {

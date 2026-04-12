@@ -25,6 +25,7 @@ object AppContainer {
     val hostedMerchCheckoutClient: HostedMerchCheckoutClient by lazy { HostedMerchCheckoutClient() }
     val userProfileRepository: UserProfileRepository by lazy { UserProfileRepository() }
     val aiPromptSettingsRepository: AiPromptSettingsRepository by lazy { AiPromptSettingsRepository() }
+    val aiRuntimeSettingsRepository: AiRuntimeSettingsRepository by lazy { AiRuntimeSettingsRepository() }
     val paymentMethodsRepository: PaymentMethodsRepository by lazy { PaymentMethodsRepository() }
     val stripeBackendSecretsRepository: StripeBackendSecretsRepository by lazy { StripeBackendSecretsRepository() }
     val commerceSettingsRepository: CommerceSettingsRepository by lazy { CommerceSettingsRepository() }

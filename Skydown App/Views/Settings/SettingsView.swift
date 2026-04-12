@@ -19,6 +19,7 @@ struct SettingsView: View {
 
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @ObservedObject private var aiPromptSettingsStore = AIPromptSettingsStore.shared
+    @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @ObservedObject private var adminUserManagementStore = AdminUserManagementStore.shared
     @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
@@ -100,6 +101,25 @@ struct SettingsView: View {
     @State private var aiAgentSystemInstructionDraft = ""
     @State private var aiAssetLibraryLinkDraft = ""
     @State private var aiAssetReferenceNotesDraft = ""
+    @State private var aiCostGuardEnabledDraft = true
+    @State private var aiAgentProviderDraft: AIRuntimeAgentProvider = .gemini
+    @State private var aiFallbackAgentProviderDraft: AIRuntimeAgentProvider = .gemini
+    @State private var aiManusEnabledDraft = false
+    @State private var aiManusRequestTimeoutMsDraft = ""
+    @State private var aiManusPollIntervalMsDraft = ""
+    @State private var aiManusMaxPollAttemptsDraft = ""
+    @State private var aiManusListMessagesLimitDraft = ""
+    @State private var aiManusMaxPromptCharsDraft = ""
+    @State private var aiManusMaxHistoryTurnsDraft = ""
+    @State private var aiManusAutoStopOnWaitingDraft = true
+    @State private var aiManusBlockHighCreditEventsDraft = true
+    @State private var aiManusIncludeVerboseEventsDraft = false
+    @State private var aiHardTextLimitDraft = ""
+    @State private var aiHardVisualLimitDraft = ""
+    @State private var aiHardAgentLimitDraft = ""
+    @State private var aiGlobalTextLimitDraft = ""
+    @State private var aiGlobalVisualLimitDraft = ""
+    @State private var aiGlobalAgentLimitDraft = ""
     @State private var profileUsernameDraft = ""
     @State private var profileWhatsAppDraft = ""
     @State private var profileTaglineDraft = ""
@@ -444,6 +464,7 @@ struct SettingsView: View {
             syncScreenHeaderDrafts(with: screenHeaderSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
             syncAIPromptDrafts(with: aiPromptSettingsStore.settings)
+            syncAIRuntimeDrafts(with: aiRuntimeSettingsStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
         }
         .task(id: authManager.userSession?.isPlatformOwner == true) {
@@ -460,6 +481,7 @@ struct SettingsView: View {
             stripeBackendSecretsStore.setObservationEnabled(false)
             workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
             aiPromptSettingsStore.setObservationEnabled(false)
+            aiRuntimeSettingsStore.setObservationEnabled(false)
         }
         .onChange(of: authManager.userSession?.id) { _, userID in
             syncProfileDrafts(with: authManager.userSession)
@@ -486,6 +508,9 @@ struct SettingsView: View {
         .onReceive(aiPromptSettingsStore.$settings) { settings in
             syncAIPromptDrafts(with: settings)
         }
+        .onReceive(aiRuntimeSettingsStore.$settings) { settings in
+            syncAIRuntimeDrafts(with: settings)
+        }
         .onChange(of: activePresentedSheet) { _, sheet in
             switch sheet {
             case .adminWorkspace(let section):
@@ -505,6 +530,7 @@ struct SettingsView: View {
             stripeBackendSecretsStore.setObservationEnabled(false)
             workflowAutomationSettings.configureObservation(isAdmin: false, userID: nil)
             aiPromptSettingsStore.setObservationEnabled(false)
+            aiRuntimeSettingsStore.setObservationEnabled(false)
         }
     }
 
@@ -1481,6 +1507,164 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    Text("Runtime & Provider (`adminConfig/aiRuntime`)")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                    Text("Hier steuerst du, ob der Agent ueber Gemini oder Manus laeuft und welche serverseitigen Tagesgrenzen aktiv sind.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(
+                            text: "Provider \(aiAgentProviderDraft.displayTitle)",
+                            colorScheme: effectiveColorScheme
+                        )
+                        SettingsBadge(
+                            text: aiCostGuardEnabledDraft ? "Kosten-Guard an" : "Kosten-Guard aus",
+                            colorScheme: effectiveColorScheme
+                        )
+                        SettingsBadge(
+                            text: aiManusEnabledDraft ? "Manus aktiv" : "Manus aus",
+                            colorScheme: effectiveColorScheme
+                        )
+                    }
+
+                    Toggle("Kosten-Guard aktiv", isOn: $aiCostGuardEnabledDraft)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "Agent Provider", colorScheme: effectiveColorScheme)
+                        Picker("Agent Provider", selection: $aiAgentProviderDraft) {
+                            ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
+                                Text(provider.displayTitle).tag(provider)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "Fallback Provider", colorScheme: effectiveColorScheme)
+                        Picker("Fallback Provider", selection: $aiFallbackAgentProviderDraft) {
+                            ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
+                                Text(provider.displayTitle).tag(provider)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    Toggle("Manus freigeben", isOn: $aiManusEnabledDraft)
+
+                    Text("Manus Runtime (`adminConfig/aiRuntime.manus`)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                    Text("Der API-Key bleibt aus Sicherheitsgruenden in Firebase Functions Secret `MANUS_API_KEY` und wird nicht in der App gespeichert.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    SettingsInputField(
+                        title: "Request Timeout (ms)",
+                        text: $aiManusRequestTimeoutMsDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "12000",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Poll Interval (ms)",
+                        text: $aiManusPollIntervalMsDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "1500",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Max Poll Attempts",
+                        text: $aiManusMaxPollAttemptsDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "18",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "List Messages Limit",
+                        text: $aiManusListMessagesLimitDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "30",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Max Prompt Chars",
+                        text: $aiManusMaxPromptCharsDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "2400",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Max History Turns",
+                        text: $aiManusMaxHistoryTurnsDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "12",
+                        keyboardType: .numberPad
+                    )
+
+                    Toggle("Auto Stop bei Waiting-Event", isOn: $aiManusAutoStopOnWaitingDraft)
+                    Toggle("High-Credit Events blocken", isOn: $aiManusBlockHighCreditEventsDraft)
+                    Toggle("Verbose Events einblenden", isOn: $aiManusIncludeVerboseEventsDraft)
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    SettingsInputField(
+                        title: "Hard Cap Text / Tag",
+                        text: $aiHardTextLimitDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "120",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Hard Cap Visual / Tag",
+                        text: $aiHardVisualLimitDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "20",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Hard Cap Agent / Tag",
+                        text: $aiHardAgentLimitDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "40",
+                        keyboardType: .numberPad
+                    )
+
+                    SettingsInputField(
+                        title: "Global Cap Text / Tag",
+                        text: $aiGlobalTextLimitDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "1500",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Global Cap Visual / Tag",
+                        text: $aiGlobalVisualLimitDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "180",
+                        keyboardType: .numberPad
+                    )
+                    SettingsInputField(
+                        title: "Global Cap Agent / Tag",
+                        text: $aiGlobalAgentLimitDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "350",
+                        keyboardType: .numberPad
+                    )
+
+                    Button(action: saveAIRuntimeSettings) {
+                        Label("KI Runtime speichern", systemImage: "switch.2")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
         }
@@ -1723,6 +1907,28 @@ struct SettingsView: View {
         aiAssetReferenceNotesDraft = settings.assetReferenceNotes
     }
 
+    private func syncAIRuntimeDrafts(with settings: AIRuntimeSettings) {
+        aiCostGuardEnabledDraft = settings.costGuardEnabled
+        aiAgentProviderDraft = settings.agentProvider
+        aiFallbackAgentProviderDraft = settings.fallbackAgentProvider
+        aiManusEnabledDraft = settings.manus.isEnabled
+        aiManusRequestTimeoutMsDraft = String(settings.manus.requestTimeoutMs)
+        aiManusPollIntervalMsDraft = String(settings.manus.pollIntervalMs)
+        aiManusMaxPollAttemptsDraft = String(settings.manus.maxPollAttempts)
+        aiManusListMessagesLimitDraft = String(settings.manus.listMessagesLimit)
+        aiManusMaxPromptCharsDraft = String(settings.manus.maxPromptChars)
+        aiManusMaxHistoryTurnsDraft = String(settings.manus.maxHistoryTurns)
+        aiManusAutoStopOnWaitingDraft = settings.manus.autoStopOnWaiting
+        aiManusBlockHighCreditEventsDraft = settings.manus.blockHighCreditEvents
+        aiManusIncludeVerboseEventsDraft = settings.manus.includeVerboseEvents
+        aiHardTextLimitDraft = String(settings.hardDailyCaps.text)
+        aiHardVisualLimitDraft = String(settings.hardDailyCaps.visual)
+        aiHardAgentLimitDraft = String(settings.hardDailyCaps.agent)
+        aiGlobalTextLimitDraft = String(settings.globalDailyCaps.text)
+        aiGlobalVisualLimitDraft = String(settings.globalDailyCaps.visual)
+        aiGlobalAgentLimitDraft = String(settings.globalDailyCaps.agent)
+    }
+
     private func refreshOwnerWorkspaceObservation(
         for section: SettingsAdminWorkspaceSection?,
         userID: String? = nil
@@ -1740,6 +1946,7 @@ struct SettingsView: View {
             userID: shouldObserveAutomation ? resolvedUserID : nil
         )
         aiPromptSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
+        aiRuntimeSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
     }
 
     private func presentSheet(_ sheet: SettingsPresentedSheet) {
@@ -2007,6 +2214,98 @@ struct SettingsView: View {
                 showToastMessage("KI-Anweisungen konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
+    }
+
+    private func saveAIRuntimeSettings() {
+        Task {
+            var updated = aiRuntimeSettingsStore.settings
+            updated.costGuardEnabled = aiCostGuardEnabledDraft
+            updated.agentProvider = aiAgentProviderDraft
+            updated.fallbackAgentProvider = aiFallbackAgentProviderDraft
+            updated.hardDailyCaps = AIRuntimeKindLimits(
+                text: parsePositiveIntegerDraft(aiHardTextLimitDraft, fallback: updated.hardDailyCaps.text),
+                visual: parsePositiveIntegerDraft(aiHardVisualLimitDraft, fallback: updated.hardDailyCaps.visual),
+                agent: parsePositiveIntegerDraft(aiHardAgentLimitDraft, fallback: updated.hardDailyCaps.agent)
+            )
+            updated.globalDailyCaps = AIRuntimeKindLimits(
+                text: parsePositiveIntegerDraft(aiGlobalTextLimitDraft, fallback: updated.globalDailyCaps.text),
+                visual: parsePositiveIntegerDraft(aiGlobalVisualLimitDraft, fallback: updated.globalDailyCaps.visual),
+                agent: parsePositiveIntegerDraft(aiGlobalAgentLimitDraft, fallback: updated.globalDailyCaps.agent)
+            )
+            updated.manus.isEnabled = aiManusEnabledDraft
+            updated.manus.requestTimeoutMs = parseIntegerDraft(
+                aiManusRequestTimeoutMsDraft,
+                fallback: updated.manus.requestTimeoutMs,
+                min: 3_000,
+                max: 30_000
+            )
+            updated.manus.pollIntervalMs = parseIntegerDraft(
+                aiManusPollIntervalMsDraft,
+                fallback: updated.manus.pollIntervalMs,
+                min: 500,
+                max: 5_000
+            )
+            updated.manus.maxPollAttempts = parseIntegerDraft(
+                aiManusMaxPollAttemptsDraft,
+                fallback: updated.manus.maxPollAttempts,
+                min: 2,
+                max: 60
+            )
+            updated.manus.listMessagesLimit = parseIntegerDraft(
+                aiManusListMessagesLimitDraft,
+                fallback: updated.manus.listMessagesLimit,
+                min: 5,
+                max: 100
+            )
+            updated.manus.maxPromptChars = parseIntegerDraft(
+                aiManusMaxPromptCharsDraft,
+                fallback: updated.manus.maxPromptChars,
+                min: 300,
+                max: 12_000
+            )
+            updated.manus.maxHistoryTurns = parseIntegerDraft(
+                aiManusMaxHistoryTurnsDraft,
+                fallback: updated.manus.maxHistoryTurns,
+                min: 0,
+                max: 24
+            )
+            updated.manus.autoStopOnWaiting = aiManusAutoStopOnWaitingDraft
+            updated.manus.blockHighCreditEvents = aiManusBlockHighCreditEventsDraft
+            updated.manus.includeVerboseEvents = aiManusIncludeVerboseEventsDraft
+
+            do {
+                try await aiRuntimeSettingsStore.save(updated)
+                showToastMessage(
+                    "KI-Runtime gespeichert. Provider und Kosten-Guard gelten serverseitig sofort.",
+                    style: .success
+                )
+            } catch {
+                showToastMessage("KI-Runtime konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func parsePositiveIntegerDraft(_ draft: String, fallback: Int) -> Int {
+        parseIntegerDraft(
+            draft,
+            fallback: fallback,
+            min: 1,
+            max: 100_000
+        )
+    }
+
+    private func parseIntegerDraft(
+        _ draft: String,
+        fallback: Int,
+        min: Int,
+        max: Int
+    ) -> Int {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Int(trimmed) else {
+            return fallback
+        }
+
+        return Swift.max(min, Swift.min(max, value))
     }
 
     private func runAutomationTest() {
