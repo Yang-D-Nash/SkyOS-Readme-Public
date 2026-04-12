@@ -158,6 +158,7 @@ final class AgentChatViewModel: ObservableObject {
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
         historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
         canTriggerAutomation = user != nil
+        ManusBYOSStore.shared.setUserMode(userID: user?.id)
         if !canTriggerAutomation {
             shouldTriggerAutomation = false
         }
@@ -207,7 +208,8 @@ final class AgentChatViewModel: ObservableObject {
                     prompt: trimmedPrompt,
                     history: history,
                     mode: modeAtSend,
-                    executeAutomation: executeAutomationAtSend
+                    executeAutomation: executeAutomationAtSend,
+                    manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 let replyText = augmentedReplyText(from: result)
@@ -408,7 +410,8 @@ final class AgentChatViewModel: ObservableObject {
                     prompt: request.prompt,
                     history: request.history,
                     mode: request.mode,
-                    executeAutomation: request.executeAutomation
+                    executeAutomation: request.executeAutomation,
+                    manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 let replyText = augmentedReplyText(from: result)

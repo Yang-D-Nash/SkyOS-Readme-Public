@@ -167,9 +167,12 @@ const agentRequestSchema = z.object({
   history: z.array(agentTurnSchema).max(24).default([]),
   mode: z.enum(["release", "briefing", "content", "merch", "automation"]).default("release"),
   executeAutomation: z.boolean().default(false),
+  manusApiKeyOverride: z.string().trim().min(16).max(1024).optional(),
 });
 
-const agentFlowRequestSchema = agentRequestSchema.extend({
+const agentFlowRequestSchema = agentRequestSchema.omit({
+  manusApiKeyOverride: true,
+}).extend({
   systemInstruction: z.string().trim().min(1).max(12000),
   workspaceContext: z.string().trim().max(12000).default(""),
 });
@@ -3980,7 +3983,12 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history})
   }
 }
 
-function loadManusApiKey() {
+function loadManusApiKey(overrideKey = "") {
+  const override = nonEmptyString(overrideKey) || "";
+  if (override) {
+    return override;
+  }
+
   return nonEmptyString(manusApiKey.value()) || "";
 }
 
@@ -4033,15 +4041,15 @@ async function callManusApi({apiKey, endpoint, method = "GET", query = {}, body 
   }
 }
 
-async function stopManusTaskQuietly(taskId, runtimeSettings) {
-  const apiKey = loadManusApiKey();
-  if (!apiKey || !taskId) {
+async function stopManusTaskQuietly({taskId, runtimeSettings, apiKey}) {
+  const resolvedApiKey = loadManusApiKey(apiKey);
+  if (!resolvedApiKey || !taskId) {
     return;
   }
 
   try {
     await callManusApi({
-      apiKey,
+      apiKey: resolvedApiKey,
       endpoint: "task.stop",
       method: "POST",
       body: {task_id: taskId},
@@ -4095,7 +4103,13 @@ ${composedPrompt}
   `.trim();
 }
 
-async function runManusAgent({input, runtimeSettings, promptSettings, workspaceContext}) {
+async function runManusAgent({
+  input,
+  runtimeSettings,
+  promptSettings,
+  workspaceContext,
+  manusApiKeyOverride = "",
+}) {
   if (runtimeSettings.manus.isEnabled !== true) {
     throw new HttpsError(
         "failed-precondition",
@@ -4103,11 +4117,11 @@ async function runManusAgent({input, runtimeSettings, promptSettings, workspaceC
     );
   }
 
-  const apiKey = loadManusApiKey();
+  const apiKey = loadManusApiKey(manusApiKeyOverride);
   if (!apiKey) {
     throw new HttpsError(
         "failed-precondition",
-        "MANUS_API_KEY fehlt in den Functions-Secrets.",
+        "MANUS_API_KEY fehlt. Hinterlege einen Key in den Functions-Secrets oder sende einen eigenen BYOS-Key.",
     );
   }
 
@@ -4168,7 +4182,7 @@ async function runManusAgent({input, runtimeSettings, promptSettings, workspaceC
       const waitingDescription = statusUpdate?.waitingDescription || "Aktion muss bestaetigt werden.";
 
       if (runtimeSettings.manus.blockHighCreditEvents && waitingType === "apiHighCreditNotice") {
-        await stopManusTaskQuietly(taskId, runtimeSettings);
+        await stopManusTaskQuietly({taskId, runtimeSettings, apiKey});
         throw new HttpsError(
             "resource-exhausted",
             "Kosten-Guard aktiv: Manus hat eine High-Credit-Freigabe angefragt. Task wurde gestoppt.",
@@ -4176,7 +4190,7 @@ async function runManusAgent({input, runtimeSettings, promptSettings, workspaceC
       }
 
       if (runtimeSettings.manus.autoStopOnWaiting) {
-        await stopManusTaskQuietly(taskId, runtimeSettings);
+        await stopManusTaskQuietly({taskId, runtimeSettings, apiKey});
         throw new HttpsError(
             "failed-precondition",
             `Kosten-Guard aktiv: Manus wartet auf manuelle Freigabe (${waitingDescription}).`,
@@ -4190,7 +4204,7 @@ async function runManusAgent({input, runtimeSettings, promptSettings, workspaceC
   }
 
   if (taskStatus !== "stopped") {
-    await stopManusTaskQuietly(taskId, runtimeSettings);
+    await stopManusTaskQuietly({taskId, runtimeSettings, apiKey});
     throw new HttpsError(
         "deadline-exceeded",
         "Manus hat nicht rechtzeitig geantwortet. Task wurde zum Kostenschutz gestoppt.",
@@ -4292,6 +4306,7 @@ exports.skydownAgent = onCall({
         runtimeSettings,
         promptSettings: effectivePromptSettings,
         workspaceContext,
+        manusApiKeyOverride: input.manusApiKeyOverride,
       });
       reply = manusResult.reply;
       agentProvider = manusResult.provider;
@@ -4311,7 +4326,10 @@ exports.skydownAgent = onCall({
 
   if (!reply) {
     reply = await skydownAgentFlow({
-      ...input,
+      prompt: input.prompt,
+      history: input.history,
+      mode: input.mode,
+      executeAutomation: input.executeAutomation,
       systemInstruction: effectiveAgentSystemInstruction,
       workspaceContext,
     });

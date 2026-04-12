@@ -13,6 +13,7 @@ import com.skydown.android.data.AppNetworkMonitor
 import com.skydown.android.data.AppTextResolver
 import com.skydown.android.data.AgentPendingQueueEntry
 import com.skydown.android.data.AgentPendingQueueStore
+import com.skydown.android.data.ManusByosPreferences
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
@@ -77,6 +78,7 @@ class AgentViewModel : ViewModel() {
                     )
                 }
                 val userKey = normalizeUserKey(user)
+                ManusByosPreferences.setUserMode(user?.id)
                 if (userKey != currentUserKey) {
                     currentUserKey = userKey
                     restoreHistory()
@@ -168,6 +170,7 @@ class AgentViewModel : ViewModel() {
                     history = history,
                     mode = modeAtSend,
                     executeAutomation = executeAutomationAtSend,
+                    manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                 )
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
@@ -317,6 +320,7 @@ class AgentViewModel : ViewModel() {
                         history = request.history,
                         mode = request.mode,
                         executeAutomation = request.executeAutomation,
+                        manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                     )
                 }.onSuccess { result ->
                     AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)

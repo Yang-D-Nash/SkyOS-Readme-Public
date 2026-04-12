@@ -13,6 +13,7 @@ import com.google.firebase.firestore.PersistentCacheSettings
 import com.skydown.android.data.AppNetworkMonitor
 import com.skydown.android.data.AppTextResolver
 import com.skydown.android.data.AgentPendingQueueStore
+import com.skydown.android.data.ManusByosPreferences
 
 class SkydownApplication : Application() {
     override fun onCreate() {
@@ -20,6 +21,7 @@ class SkydownApplication : Application() {
         AppNetworkMonitor.initialize(this)
         AppTextResolver.initialize(this)
         AgentPendingQueueStore.initialize(this)
+        ManusByosPreferences.initialize(this)
         runCatching {
             if (FirebaseApp.getApps(this).isEmpty()) {
                 FirebaseApp.initializeApp(this)

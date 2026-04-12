@@ -29,6 +29,7 @@ struct SettingsView: View {
     @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
     @ObservedObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
     @ObservedObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
+    @ObservedObject private var manusByosStore = ManusBYOSStore.shared
     @ObservedObject private var notificationPermissionStore = NotificationPermissionStore.shared
     @Binding var colorScheme: String
 
@@ -97,6 +98,8 @@ struct SettingsView: View {
     @State private var automationAuthHeaderNameDraft = ""
     @State private var automationAuthHeaderValueDraft = ""
     @State private var automationKnowledgeContextDraft = ""
+    @State private var manusByosEnabledDraft = false
+    @State private var manusByosAPIKeyDraft = ""
     @State private var aiTextInstructionDraft = ""
     @State private var aiVisualInstructionDraft = ""
     @State private var aiAgentSystemInstructionDraft = ""
@@ -478,12 +481,15 @@ struct SettingsView: View {
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
             systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
+            manusByosStore.setUserMode(userID: authManager.userSession?.id)
+            manusByosAPIKeyDraft = ""
             syncProfileDrafts(with: authManager.userSession)
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
             syncShopifyDrafts(with: shopifyAdminSettingsStore.settings)
             syncScreenHeaderDrafts(with: screenHeaderSettingsStore.settings)
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
+            syncManusBYOSDrafts(with: manusByosStore.settings)
             syncAIPromptDrafts(with: aiPromptSettingsStore.settings)
             syncAIRuntimeDrafts(with: aiRuntimeSettingsStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
@@ -511,6 +517,9 @@ struct SettingsView: View {
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
         }
         .onChange(of: authManager.userSession?.id) { _, userID in
+            manusByosStore.setUserMode(userID: userID)
+            syncManusBYOSDrafts(with: manusByosStore.settings)
+            manusByosAPIKeyDraft = ""
             syncProfileDrafts(with: authManager.userSession)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace, userID: userID)
         }
@@ -531,6 +540,9 @@ struct SettingsView: View {
         }
         .onReceive(workflowAutomationSettings.$settings) { settings in
             syncAutomationDrafts(with: settings)
+        }
+        .onReceive(manusByosStore.$settings) { settings in
+            syncManusBYOSDrafts(with: settings)
         }
         .onReceive(aiPromptSettingsStore.$settings) { settings in
             syncAIPromptDrafts(with: settings)
@@ -720,7 +732,7 @@ struct SettingsView: View {
     private var personalAgentServiceSectionCard: some View {
         SettingsSectionCard(title: "Mein Agent-Service", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Hier hinterlegst du deinen eigenen n8n-Workflow fuer Agent-Aktionen. Die Verbindung ist konto-basiert (`adminConfig/automationN8n_<uid>`), damit dein Setup getrennt von anderen Accounts bleibt.")
+                Text("Hier hinterlegst du deinen eigenen n8n-Workflow fuer Agent-Aktionen und optional deinen eigenen Manus-Key (lokal auf deinem Geraet). Die Verbindung bleibt konto-basiert (`adminConfig/automationN8n_<uid>`), damit dein Setup getrennt von anderen Accounts bleibt.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -735,6 +747,10 @@ struct SettingsView: View {
                             colorScheme: effectiveColorScheme
                         )
                     }
+                    SettingsBadge(
+                        text: manusByosStore.settings.isEnabled && manusByosStore.settings.hasAPIKey ? "Manus BYOS aktiv" : "Manus BYOS aus",
+                        colorScheme: effectiveColorScheme
+                    )
                 }
 
                 Button {
@@ -1539,6 +1555,56 @@ struct SettingsView: View {
                         .buttonStyle(.bordered)
                         .disabled(automationDraftResolvedWebhookURL == nil || !automationEnabledDraft)
                     }
+
+                    Divider()
+
+                    Text("Mein Manus-Account (optional)")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                    Text("Wenn aktiv, sendet der Agent deinen lokalen Manus API Key pro Anfrage. Der Key wird nur in deinem iOS Keychain gespeichert.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    Toggle("Eigenen Manus-Account verwenden", isOn: $manusByosEnabledDraft)
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(
+                            text: manusByosStore.settings.hasAPIKey ? "Key gespeichert" : "Key fehlt",
+                            colorScheme: effectiveColorScheme
+                        )
+                        SettingsBadge(
+                            text: manusByosStore.settings.isEnabled && manusByosStore.settings.hasAPIKey ? "BYOS aktiv" : "BYOS aus",
+                            colorScheme: effectiveColorScheme
+                        )
+                    }
+
+                    SettingsSecureInputField(
+                        title: "Manus API Key",
+                        text: $manusByosAPIKeyDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "sk-..."
+                    )
+
+                    Text("Du kannst den Key jederzeit ersetzen oder entfernen. Ohne lokalen Key nutzt der Agent wieder das Backend-Setup.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                    HStack(spacing: 10) {
+                        Button(action: saveManusBYOSSettings) {
+                            Label("Manus speichern", systemImage: "lock.shield")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accent(for: effectiveColorScheme))
+
+                        Button(action: clearManusBYOSAPIKey) {
+                            Label("Key entfernen", systemImage: "trash")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(!manusByosStore.settings.hasAPIKey && manusByosAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
                 }
 
             case .aiPrompts:
@@ -1796,7 +1862,18 @@ struct SettingsView: View {
         case .visuals:
             return aiVisualReferenceLibrary.settings.isEnabled ? "Visuals aktiv" : "Visuals aus"
         case .automation:
-            return workflowAutomationSettings.settings.isPrepared ? "n8n bereit" : "Noch offen"
+            if workflowAutomationSettings.settings.isPrepared &&
+                manusByosStore.settings.isEnabled &&
+                manusByosStore.settings.hasAPIKey {
+                return "n8n + Manus bereit"
+            }
+            if workflowAutomationSettings.settings.isPrepared {
+                return "n8n bereit"
+            }
+            if manusByosStore.settings.hasAPIKey {
+                return "Manus bereit"
+            }
+            return "Noch offen"
         case .aiPrompts:
             return aiPromptSettingsStore.settings.assetLibraryLink.isEmpty ?
                 "Text \(aiPromptSettingsStore.settings.textInstruction.count)" :
@@ -2007,6 +2084,10 @@ struct SettingsView: View {
         automationAuthHeaderNameDraft = settings.authHeaderName
         automationAuthHeaderValueDraft = settings.authHeaderValue
         automationKnowledgeContextDraft = settings.knowledgeContext
+    }
+
+    private func syncManusBYOSDrafts(with settings: ManusBYOSSettings) {
+        manusByosEnabledDraft = settings.isEnabled
     }
 
     private func syncAIPromptDrafts(with settings: AIPromptSettings) {
@@ -2439,6 +2520,35 @@ struct SettingsView: View {
                 showToastMessage("n8n-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
             }
         }
+    }
+
+    private func saveManusBYOSSettings() {
+        let trimmedAPIKey = manusByosAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedAPIKey.isEmpty && manusByosEnabledDraft && !manusByosStore.settings.hasAPIKey {
+            showToastMessage("Bitte hinterlege zuerst einen Manus API Key.", style: .error)
+            return
+        }
+
+        do {
+            if !trimmedAPIKey.isEmpty {
+                try manusByosStore.saveAPIKey(trimmedAPIKey)
+                manusByosAPIKeyDraft = ""
+            }
+            try manusByosStore.updateEnabled(manusByosEnabledDraft)
+            if manusByosEnabledDraft {
+                showToastMessage("Manus BYOS aktiv. Der Agent nutzt jetzt deinen persoenlichen Key.", style: .success)
+            } else {
+                showToastMessage("Manus BYOS pausiert. Der Agent nutzt wieder das Backend-Setup.", style: .success)
+            }
+        } catch {
+            showToastMessage("Manus BYOS konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+        }
+    }
+
+    private func clearManusBYOSAPIKey() {
+        manusByosStore.clearAPIKey()
+        manusByosAPIKeyDraft = ""
+        showToastMessage("Manus API Key lokal entfernt. BYOS ist fuer dieses Konto aus.", style: .success)
     }
 
     private func saveStripeConnection() {
@@ -3379,7 +3489,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
         case .visuals:
             return "Drive-Link, Namensschema und Referenzhinweise fuer Visual-Prompts pflegen."
         case .automation:
-            return "Persoenlichen n8n-Service pro Konto anbinden und den Webhook testen."
+            return "Persoenlichen n8n-Service und optionalen Manus-BYOS-Key pro Konto anbinden."
         case .aiPrompts:
             return "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen."
         }

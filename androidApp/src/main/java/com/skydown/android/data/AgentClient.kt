@@ -25,12 +25,13 @@ class AgentClient {
         history: List<AgentHistoryTurn>,
         mode: String,
         executeAutomation: Boolean,
+        manusApiKeyOverride: String? = null,
     ): AgentResponse {
         if (!AppNetworkMonitor.isOnline.value) {
             error("Du bist offline. Der Agent arbeitet wieder, sobald Internet da ist.")
         }
 
-        val payload = mapOf(
+        val payload = mutableMapOf<String, Any>(
             "prompt" to prompt,
             "history" to history.map { turn ->
                 mapOf(
@@ -41,6 +42,10 @@ class AgentClient {
             "mode" to mode,
             "executeAutomation" to executeAutomation,
         )
+        manusApiKeyOverride
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { payload["manusApiKeyOverride"] = it }
 
         val result = functions
             .getHttpsCallable("skydownAgent")

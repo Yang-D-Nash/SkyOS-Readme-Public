@@ -9,6 +9,7 @@ import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.AppLanguageSupport
 import com.skydown.android.data.BankTransferSettings
 import com.skydown.android.data.CommerceSettings
+import com.skydown.android.data.ManusByosPreferences
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.WorkflowAutomationPreferences
@@ -58,6 +59,7 @@ class SettingsViewModel : ViewModel() {
                 val isOwner = user?.isPlatformOwner == true
                 WorkflowAutomationPreferences.setUserMode(user?.id)
                 AgentProfilePreferences.setUserMode(user?.id)
+                ManusByosPreferences.setUserMode(user?.id)
                 val displayName = user?.username
                     ?.takeIf { it.isNotBlank() }
                     ?: user?.email
@@ -120,6 +122,12 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             AgentProfilePreferences.settings.collect { settings ->
                 _uiState.update { it.copy(agentProfileSettings = settings) }
+            }
+        }
+
+        viewModelScope.launch {
+            ManusByosPreferences.settings.collect { settings ->
+                _uiState.update { it.copy(manusByosSettings = settings) }
             }
         }
 
@@ -212,6 +220,93 @@ class SettingsViewModel : ViewModel() {
             } else {
                 showPaymentFeedback(
                     message = result.exceptionOrNull()?.message ?: "Agent-Service konnte nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun saveManusByosSettings(
+        enabled: Boolean,
+        apiKeyDraft: String,
+    ) {
+        viewModelScope.launch {
+            if (_uiState.value.currentUserId.isNullOrBlank()) {
+                showPaymentFeedback(
+                    message = "Bitte melde dich an, um deinen Manus-Service zu speichern.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val trimmedApiKey = apiKeyDraft.trim()
+            val hasExistingKey = _uiState.value.manusByosSettings.hasApiKey
+            if (trimmedApiKey.isBlank() && enabled && !hasExistingKey) {
+                showPaymentFeedback(
+                    message = "Bitte hinterlege zuerst einen Manus API Key.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            if (trimmedApiKey.isNotBlank()) {
+                val saveKeyResult = ManusByosPreferences.saveApiKey(trimmedApiKey)
+                if (saveKeyResult.isFailure) {
+                    showPaymentFeedback(
+                        message = saveKeyResult.exceptionOrNull()?.message
+                            ?: "Manus API Key konnte nicht lokal gespeichert werden.",
+                        isError = true,
+                    )
+                    return@launch
+                }
+            }
+
+            val updateEnabledResult = ManusByosPreferences.updateEnabled(enabled)
+            if (updateEnabledResult.isSuccess) {
+                updateEnabledResult.getOrNull()?.let { settings ->
+                    _uiState.update { it.copy(manusByosSettings = settings) }
+                }
+                showPaymentFeedback(
+                    message = if (enabled) {
+                        "Manus BYOS aktiv. Der Agent nutzt jetzt deinen persoenlichen Key."
+                    } else {
+                        "Manus BYOS pausiert. Der Agent nutzt wieder das Backend-Setup."
+                    },
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = updateEnabledResult.exceptionOrNull()?.message
+                        ?: "Manus BYOS konnte nicht aktualisiert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun clearManusByosApiKey() {
+        viewModelScope.launch {
+            if (_uiState.value.currentUserId.isNullOrBlank()) {
+                showPaymentFeedback(
+                    message = "Bitte melde dich an, um deinen Manus API Key zu entfernen.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val result = ManusByosPreferences.clearApiKey()
+            if (result.isSuccess) {
+                result.getOrNull()?.let { settings ->
+                    _uiState.update { it.copy(manusByosSettings = settings) }
+                }
+                showPaymentFeedback(
+                    message = "Manus API Key lokal entfernt. BYOS ist fuer dieses Konto aus.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message
+                        ?: "Manus API Key konnte nicht entfernt werden.",
                     isError = true,
                 )
             }

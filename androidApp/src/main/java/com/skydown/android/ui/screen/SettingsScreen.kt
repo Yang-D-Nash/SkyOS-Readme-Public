@@ -198,6 +198,8 @@ fun SettingsScreen(
     var automationAuthHeaderNameDraft by rememberSaveable { mutableStateOf("") }
     var automationAuthHeaderValueDraft by rememberSaveable { mutableStateOf("") }
     var automationKnowledgeContextDraft by rememberSaveable { mutableStateOf("") }
+    var manusByosEnabledDraft by rememberSaveable { mutableStateOf(false) }
+    var manusByosApiKeyDraft by rememberSaveable { mutableStateOf("") }
     var agentProfileEnabledDraft by rememberSaveable { mutableStateOf(false) }
     var agentRoleLabelDraft by rememberSaveable { mutableStateOf("") }
     var agentSkillProfileDraft by rememberSaveable { mutableStateOf("") }
@@ -339,6 +341,14 @@ fun SettingsScreen(
         automationAuthHeaderNameDraft = uiState.workflowAutomationSettings.authHeaderName
         automationAuthHeaderValueDraft = uiState.workflowAutomationSettings.authHeaderValue
         automationKnowledgeContextDraft = uiState.workflowAutomationSettings.knowledgeContext
+    }
+
+    LaunchedEffect(uiState.manusByosSettings) {
+        manusByosEnabledDraft = uiState.manusByosSettings.isEnabled
+    }
+
+    LaunchedEffect(uiState.currentUserId) {
+        manusByosApiKeyDraft = ""
     }
 
     LaunchedEffect(uiState.agentProfileSettings) {
@@ -1521,7 +1531,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Automation -> {
                 Text(
-                    text = "Mein Agent-Service (n8n)",
+                    text = "Mein Agent-Service (n8n + Manus)",
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
@@ -1648,6 +1658,91 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         Text("Test senden")
+                    }
+                }
+
+                Text(
+                    text = "Mein Manus-Account (optional)",
+                    modifier = Modifier.padding(top = 18.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                SettingsToggleRow(
+                    title = "Eigenen Manus-Account verwenden",
+                    body = "Wenn aktiv, sendet der Agent deinen lokalen Manus API Key pro Anfrage. Der Key wird nur auf diesem Geraet gespeichert.",
+                    checked = manusByosEnabledDraft,
+                    onCheckedChange = { manusByosEnabledDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+
+                Row(
+                    modifier = Modifier.padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SettingsBadge(
+                        text = if (uiState.manusByosSettings.hasApiKey) "Key lokal gespeichert" else "Key fehlt",
+                        icon = Icons.Default.CheckCircle,
+                        isActive = uiState.manusByosSettings.hasApiKey,
+                    )
+                    SettingsBadge(
+                        text = if (uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey) {
+                            "BYOS aktiv"
+                        } else {
+                            "BYOS aus"
+                        },
+                        icon = Icons.Default.Bolt,
+                        isActive = uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey,
+                    )
+                }
+
+                OutlinedTextField(
+                    value = manusByosApiKeyDraft,
+                    onValueChange = { manusByosApiKeyDraft = it.take(1024) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Manus API Key") },
+                    placeholder = { Text("sk-...") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+
+                Text(
+                    text = "Du kannst den Key jederzeit ersetzen oder entfernen. Ohne lokalen Key nutzt der Agent wieder das Backend-Setup.",
+                    modifier = Modifier.padding(top = 10.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.saveManusByosSettings(
+                                enabled = manusByosEnabledDraft,
+                                apiKeyDraft = manusByosApiKeyDraft,
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text("Manus speichern")
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.clearManusByosApiKey()
+                            manusByosApiKeyDraft = ""
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = uiState.manusByosSettings.hasApiKey || manusByosApiKeyDraft.isNotBlank(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text("Key entfernen")
                     }
                 }
 
@@ -2405,7 +2500,7 @@ fun SettingsScreen(
                         SkydownCard(contentPadding = PaddingValues(18.dp)) {
                             SectionHeader("Mein Agent-Service")
                             Text(
-                                text = "Hier hinterlegst du deinen persoenlichen n8n-Workflow und dein Agent-Profil. Beides ist konto-basiert (`adminConfig/automationN8n_<uid>` + `adminConfig/agentProfile_<uid>`).",
+                                text = "Hier hinterlegst du deinen persoenlichen n8n-Workflow, dein Agent-Profil und optional deinen eigenen Manus-Key (nur lokal auf deinem Geraet). Alles ist konto-basiert (`adminConfig/automationN8n_<uid>` + `adminConfig/agentProfile_<uid>`).",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -2422,6 +2517,15 @@ fun SettingsScreen(
                                     text = if (uiState.agentProfileSettings.isConfigured) "Skills aktiv" else "Skills offen",
                                     icon = Icons.Default.Settings,
                                     isActive = uiState.agentProfileSettings.isConfigured,
+                                )
+                                SettingsBadge(
+                                    text = if (uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey) {
+                                        "Manus BYOS aktiv"
+                                    } else {
+                                        "Manus BYOS aus"
+                                    },
+                                    icon = Icons.Default.Bolt,
+                                    isActive = uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey,
                                 )
                                 uiState.workflowAutomationSettings.workflowName
                                     .takeIf { it.isNotBlank() }
@@ -3417,9 +3521,16 @@ private fun adminWorkspaceStatusText(
         AdminWorkspaceSection.Commerce -> uiState.commerceSettings.invoice.supportEmail.ifBlank { "Versand & Rechnung" }
         AdminWorkspaceSection.Visuals -> if (uiState.aiVisualReferenceLibrary.isEnabled) "Visuals aktiv" else "Visuals aus"
         AdminWorkspaceSection.Automation -> when {
+            uiState.workflowAutomationSettings.isPrepared &&
+                uiState.agentProfileSettings.isConfigured &&
+                uiState.manusByosSettings.isEnabled &&
+                uiState.manusByosSettings.hasApiKey -> "Workflow + Skills + Manus"
             uiState.workflowAutomationSettings.isPrepared && uiState.agentProfileSettings.isConfigured -> "Workflow + Skills bereit"
+            uiState.workflowAutomationSettings.isPrepared && uiState.manusByosSettings.hasApiKey -> "n8n + Manus bereit"
             uiState.workflowAutomationSettings.isPrepared -> "n8n bereit"
+            uiState.agentProfileSettings.isConfigured && uiState.manusByosSettings.hasApiKey -> "Skills + Manus bereit"
             uiState.agentProfileSettings.isConfigured -> "Skills bereit"
+            uiState.manusByosSettings.hasApiKey -> "Manus bereit"
             else -> "Noch offen"
         }
         AdminWorkspaceSection.AiPrompts -> if (uiState.aiPromptSettings.assetLibraryLink.isBlank()) {
