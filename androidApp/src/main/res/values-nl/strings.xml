@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">Offline</string>
+    <string name="offline_banner_message">Geen verbinding. Je ziet cache-inhoud en kunt doorgaan.</string>
+    <string name="settings_general_section">Algemeen</string>
+    <string name="settings_system_language_value">Systeemtaal: %1$s</string>
+    <string name="settings_supported_languages_summary">10 talen: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Meldingen</string>
+    <string name="settings_notifications_subtitle">Pushmeldingen voor belangrijke app-acties. Deze schakelaar volgt systeemrechten.</string>
+    <string name="settings_notifications_toast_enabled">Meldingen zijn ingeschakeld.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Schakel meldingen in via systeeminstellingen.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Beheer meldingen via systeeminstellingen.</string>
+    <string name="agent_queue_placeholder">In wachtrij: dit verzoek wordt automatisch verzonden zodra je weer online bent.</string>
+    <string name="agent_queue_toast_queued">Offline opgeslagen. Wordt automatisch verzonden zodra je online bent.</string>
+    <string name="agent_queue_toast_sent">Wachtrijverzoek succesvol verzonden.</string>
+    <string name="agent_automation_triggered">n8n-workflow gestart.</string>
+</resources>

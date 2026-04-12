@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">Sin conexion</string>
+    <string name="offline_banner_message">Sin conexion. Ves contenido en cache y puedes seguir navegando.</string>
+    <string name="settings_general_section">General</string>
+    <string name="settings_system_language_value">Idioma del sistema: %1$s</string>
+    <string name="settings_supported_languages_summary">10 idiomas: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Notificaciones</string>
+    <string name="settings_notifications_subtitle">Avisos push para acciones importantes de la app. Este interruptor sigue los permisos del sistema.</string>
+    <string name="settings_notifications_toast_enabled">Las notificaciones estan activadas.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Activa las notificaciones en la configuracion del sistema.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Gestiona las notificaciones en la configuracion del sistema.</string>
+    <string name="agent_queue_placeholder">En cola: esta solicitud se enviara automaticamente cuando vuelva la conexion.</string>
+    <string name="agent_queue_toast_queued">Guardado sin conexion. Se enviara automaticamente cuando estes online.</string>
+    <string name="agent_queue_toast_sent">La solicitud en cola se envio correctamente.</string>
+    <string name="agent_automation_triggered">Flujo n8n iniciado.</string>
+</resources>

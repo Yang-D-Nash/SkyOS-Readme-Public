@@ -16,8 +16,6 @@ object AppLanguageSupport {
         "ja",
     )
 
-    const val supportedLanguagesSummary: String = "10 Sprachen: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA"
-
     fun currentSystemLanguageDisplayName(locale: Locale = Locale.getDefault()): String {
         val code = normalizedLanguageCode(locale)
         val displayName = Locale.forLanguageTag(code).getDisplayLanguage(locale).ifBlank { code.uppercase(locale) }

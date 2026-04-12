@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">Hors ligne</string>
+    <string name="offline_banner_message">Pas de connexion. Vous voyez le contenu en cache et pouvez continuer.</string>
+    <string name="settings_general_section">General</string>
+    <string name="settings_system_language_value">Langue du systeme: %1$s</string>
+    <string name="settings_supported_languages_summary">10 langues: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_notifications_subtitle">Alertes push pour les actions importantes de l application. Ce bouton suit les autorisations systeme.</string>
+    <string name="settings_notifications_toast_enabled">Les notifications sont activees.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Activez les notifications dans les reglages systeme.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Gerez les notifications dans les reglages systeme.</string>
+    <string name="agent_queue_placeholder">En file d attente: cette demande sera envoyee automatiquement au retour de la connexion.</string>
+    <string name="agent_queue_toast_queued">Enregistre hors ligne. Envoi automatique des que vous etes en ligne.</string>
+    <string name="agent_queue_toast_sent">Demande en file d attente envoyee avec succes.</string>
+    <string name="agent_automation_triggered">Workflow n8n demarre.</string>
+</resources>

@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import FirebaseFunctions
 
 enum AgentChatRole {
@@ -123,13 +124,34 @@ final class AgentChatViewModel: ObservableObject {
 
     private let service: AgentChatServicing
     private let historyStore: AIScriptHistoryStore
+    private let pendingQueueStore: AgentPendingQueueStore
     private var currentUserKey: String?
+    private var pendingRequests: [PendingAgentRequest] = []
+    private var networkObserver: AnyCancellable?
+
+    private struct PendingAgentRequest {
+        let prompt: String
+        let history: [AgentHistoryTurn]
+        let mode: String
+        let executeAutomation: Bool
+        let assistantMessageID: UUID
+        let createdAt: Date
+    }
 
     init(
         service: AgentChatServicing = FirebaseFunctionsAgentService()
     ) {
         self.service = service
         self.historyStore = AIScriptHistoryStore.shared
+        self.pendingQueueStore = AgentPendingQueueStore.shared
+        networkObserver = NetworkStatusMonitor.shared.$isOnline
+            .removeDuplicates()
+            .sink { [weak self] isOnline in
+                guard isOnline else { return }
+                Task { @MainActor in
+                    await self?.retryPendingRequestsIfNeeded()
+                }
+            }
     }
 
     func configureUser(user: User?) {
@@ -151,15 +173,24 @@ final class AgentChatViewModel: ObservableObject {
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !isSending else { return }
+        guard NetworkStatusMonitor.shared.isOnline else {
+            queuePromptForRetry(trimmedPrompt)
+            return
+        }
+
         isSending = true
 
         var appendedAssistantID: UUID?
+        let modeAtSend = selectedMode.rawValue
+        let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
+        var historyAtSend: [AgentHistoryTurn] = []
         Task {
             do {
                 let assistantID = UUID()
                 appendedAssistantID = assistantID
                 let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
                 let history = buildHistory(from: messages + [userMessage])
+                historyAtSend = history
 
                 messages.append(userMessage)
                 messages.append(
@@ -175,8 +206,8 @@ final class AgentChatViewModel: ObservableObject {
                 let result = try await service.sendMessage(
                     prompt: trimmedPrompt,
                     history: history,
-                    mode: selectedMode.rawValue,
-                    executeAutomation: shouldTriggerAutomation && canTriggerAutomation
+                    mode: modeAtSend,
+                    executeAutomation: executeAutomationAtSend
                 )
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 let replyText = augmentedReplyText(from: result)
@@ -192,12 +223,48 @@ final class AgentChatViewModel: ObservableObject {
                     response: replyText
                 )
                 if result.automationTriggered {
-                    showUserToast(result.automationMessage.isEmpty ? "n8n-Workflow angestossen." : result.automationMessage, style: .success)
+                    showUserToast(
+                        result.automationMessage.isEmpty
+                            ? AppLocalized.text("agent.automation.triggered", fallback: "n8n workflow started.")
+                            : result.automationMessage,
+                        style: .success
+                    )
                 } else if result.automationAttempted && !result.automationMessage.isEmpty {
                     showUserToast(result.automationMessage, style: .error)
                 }
                 isSending = false
             } catch {
+                if let assistantID = appendedAssistantID, isOfflineError(error) {
+                    pendingRequests.append(
+                        PendingAgentRequest(
+                            prompt: trimmedPrompt,
+                            history: historyAtSend,
+                            mode: modeAtSend,
+                            executeAutomation: executeAutomationAtSend,
+                            assistantMessageID: assistantID,
+                            createdAt: .now
+                        )
+                    )
+                    persistPendingRequests()
+                    updateAssistantMessage(
+                        id: assistantID,
+                        text: AppLocalized.text(
+                            "agent.queue.placeholder",
+                            fallback: "Queued: this request will send automatically when your connection is back."
+                        ),
+                        isStreaming: false
+                    )
+                    isSending = false
+                    showUserToast(
+                        AppLocalized.text(
+                            "agent.queue.toast.queued",
+                            fallback: "Saved offline. Sending automatically once you are online."
+                        ),
+                        style: .info
+                    )
+                    return
+                }
+
                 let message = userFacingErrorMessage(for: error)
                 if let assistantID = appendedAssistantID {
                     updateAssistantMessage(
@@ -220,6 +287,8 @@ final class AgentChatViewModel: ObservableObject {
 
     func resetConversation() {
         historyStore.clearEntries(userKey: currentUserKey, source: .agent)
+        pendingRequests.removeAll()
+        pendingQueueStore.clearEntries(for: currentUserKey)
         messages = []
     }
 
@@ -235,23 +304,192 @@ final class AgentChatViewModel: ObservableObject {
 
     private func restoreHistory() {
         let restoredEntries = historyStore.entries(for: currentUserKey, source: .agent).reversed()
-        messages = restoredEntries.flatMap { entry in
+        let restoredHistoryMessages = restoredEntries.flatMap { entry in
             [
                 AgentChatMessage(role: .user, text: entry.prompt),
                 AgentChatMessage(role: .assistant, text: entry.response)
             ]
         }
+
+        pendingRequests = pendingQueueStore.entries(for: currentUserKey).compactMap { entry in
+            guard let assistantID = UUID(uuidString: entry.assistantMessageID) else { return nil }
+            return PendingAgentRequest(
+                prompt: entry.prompt,
+                history: entry.history.map { turn in
+                    AgentHistoryTurn(role: turn.role, text: turn.text)
+                },
+                mode: entry.mode,
+                executeAutomation: entry.executeAutomation,
+                assistantMessageID: assistantID,
+                createdAt: entry.createdAt
+            )
+        }
+
+        let pendingMessages = pendingRequests.flatMap { request in
+            [
+                AgentChatMessage(role: .user, text: request.prompt),
+                AgentChatMessage(
+                    id: request.assistantMessageID,
+                    role: .assistant,
+                    text: AppLocalized.text(
+                        "agent.queue.placeholder",
+                        fallback: "Queued: this request will send automatically when your connection is back."
+                    )
+                )
+            ]
+        }
+
+        messages = restoredHistoryMessages + pendingMessages
     }
 
     private func normalizedUserKey(for userKey: String?) -> String? {
         let trimmed = userKey?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed?.isEmpty == false ? trimmed : nil
+        guard let trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed.lowercased()
     }
 
     private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].text = text
         messages[index].isStreaming = isStreaming
+    }
+
+    private func queuePromptForRetry(_ trimmedPrompt: String) {
+        let assistantID = UUID()
+        let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
+        let history = buildHistory(from: messages + [userMessage])
+        let modeAtSend = selectedMode.rawValue
+        let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
+
+        messages.append(userMessage)
+        messages.append(
+            AgentChatMessage(
+                id: assistantID,
+                role: .assistant,
+                text: AppLocalized.text(
+                    "agent.queue.placeholder",
+                    fallback: "Queued: this request will send automatically when your connection is back."
+                ),
+                isStreaming: false
+            )
+        )
+        draft = ""
+
+        pendingRequests.append(
+            PendingAgentRequest(
+                prompt: trimmedPrompt,
+                history: history,
+                mode: modeAtSend,
+                executeAutomation: executeAutomationAtSend,
+                assistantMessageID: assistantID,
+                createdAt: .now
+            )
+        )
+        persistPendingRequests()
+
+        showUserToast(
+            AppLocalized.text(
+                "agent.queue.toast.queued",
+                fallback: "Saved offline. Sending automatically once you are online."
+            ),
+            style: .info
+        )
+    }
+
+    private func retryPendingRequestsIfNeeded() async {
+        guard !isSending, !pendingRequests.isEmpty else { return }
+        isSending = true
+        defer { isSending = false }
+
+        while NetworkStatusMonitor.shared.isOnline, !pendingRequests.isEmpty {
+            let request = pendingRequests.removeFirst()
+            do {
+                let result = try await service.sendMessage(
+                    prompt: request.prompt,
+                    history: request.history,
+                    mode: request.mode,
+                    executeAutomation: request.executeAutomation
+                )
+                historyStore.updateRetentionDays(result.historyRetentionDays)
+                let replyText = augmentedReplyText(from: result)
+                updateAssistantMessage(
+                    id: request.assistantMessageID,
+                    text: replyText,
+                    isStreaming: false
+                )
+                historyStore.saveEntry(
+                    userKey: currentUserKey,
+                    source: .agent,
+                    prompt: request.prompt,
+                    response: replyText
+                )
+                if result.automationTriggered {
+                    showUserToast(
+                        result.automationMessage.isEmpty
+                            ? AppLocalized.text("agent.automation.triggered", fallback: "n8n workflow started.")
+                            : result.automationMessage,
+                        style: .success
+                    )
+                } else {
+                    showUserToast(
+                        AppLocalized.text(
+                            "agent.queue.toast.sent",
+                            fallback: "Queued request sent successfully."
+                        ),
+                        style: .success
+                    )
+                }
+                persistPendingRequests()
+            } catch {
+                if isOfflineError(error) || !NetworkStatusMonitor.shared.isOnline {
+                    pendingRequests.insert(request, at: 0)
+                    persistPendingRequests()
+                    updateAssistantMessage(
+                        id: request.assistantMessageID,
+                        text: AppLocalized.text(
+                            "agent.queue.placeholder",
+                            fallback: "Queued: this request will send automatically when your connection is back."
+                        ),
+                        isStreaming: false
+                    )
+                    break
+                }
+
+                let message = userFacingErrorMessage(for: error)
+                updateAssistantMessage(
+                    id: request.assistantMessageID,
+                    text: message,
+                    isStreaming: false
+                )
+                historyStore.saveEntry(
+                    userKey: currentUserKey,
+                    source: .agent,
+                    prompt: request.prompt,
+                    response: message
+                )
+                showUserToast(message, style: .error)
+                persistPendingRequests()
+            }
+        }
+    }
+
+    private func persistPendingRequests() {
+        let normalizedUserKey = normalizedUserKey(for: currentUserKey)
+        let fallbackUserKey = normalizedUserKey ?? "guest"
+        let entries = pendingRequests.map { request in
+            AgentPendingQueueEntry(
+                userKey: fallbackUserKey,
+                prompt: request.prompt,
+                history: request.history.map { turn in
+                    AgentPendingQueueTurn(role: turn.role, text: turn.text)
+                },
+                mode: request.mode,
+                executeAutomation: request.executeAutomation,
+                assistantMessageID: request.assistantMessageID.uuidString,
+                createdAt: request.createdAt
+            )
+        }
+        pendingQueueStore.saveEntries(entries, for: normalizedUserKey)
     }
 
     private func augmentedReplyText(from response: AgentChatResponse) -> String {
@@ -269,11 +507,19 @@ final class AgentChatViewModel: ObservableObject {
         showToast = true
     }
 
+    private func isOfflineError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.code == NSURLErrorNotConnectedToInternet || nsError.code == -1009
+    }
+
     private func userFacingErrorMessage(for error: Error) -> String {
         let nsError = error as NSError
 
-        if nsError.code == NSURLErrorNotConnectedToInternet || nsError.code == -1009 {
-            return "Du bist offline. Der Agent wird wieder verfuegbar, sobald Internet da ist."
+        if isOfflineError(error) {
+            return AppLocalized.text(
+                "agent.offline.message",
+                fallback: "You are offline. The agent will continue once your connection is back."
+            )
         }
 
         if nsError.domain == FunctionsErrorDomain,

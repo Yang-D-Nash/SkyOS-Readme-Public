@@ -1,0 +1,14 @@
+"offline.banner.title" = "Cevrim disi";
+"offline.banner.message" = "Baglanti yok. Onbellekteki icerigi goruyorsun ve devam edebilirsin.";
+"settings.system_language" = "Sistem dili";
+"settings.supported_languages_summary" = "10 dil: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "Bildirimler";
+"settings.notifications.subtitle" = "Onemli uygulama islemleri icin anlik bildirimler.";
+"settings.notifications.toast.enabled" = "Bildirimler acik.";
+"settings.notifications.toast.disabled" = "Bildirimler kapali. iOS ayarlarindan acabilirsin.";
+"settings.notifications.toast.manage_in_settings" = "Bildirimleri iOS ayarlarindan yonet.";
+"agent.offline.message" = "Cevrim disisin. Baglanti geri geldiginde ajan devam edecek.";
+"agent.queue.placeholder" = "Kuyrukta: bu istek baglanti geldiginde otomatik gonderilecek.";
+"agent.queue.toast.queued" = "Cevrim disi kaydedildi. Online olunca otomatik gonderilecek.";
+"agent.queue.toast.sent" = "Kuyruktaki istek basariyla gonderildi.";
+"agent.automation.triggered" = "n8n akisi baslatildi.";

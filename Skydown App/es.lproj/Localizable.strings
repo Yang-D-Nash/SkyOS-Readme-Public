@@ -1,0 +1,14 @@
+"offline.banner.title" = "Sin conexion";
+"offline.banner.message" = "Sin conexion. Ves contenido en cache y puedes seguir navegando.";
+"settings.system_language" = "Idioma del sistema";
+"settings.supported_languages_summary" = "10 idiomas: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "Notificaciones";
+"settings.notifications.subtitle" = "Avisos push para acciones importantes de la app.";
+"settings.notifications.toast.enabled" = "Las notificaciones estan activadas.";
+"settings.notifications.toast.disabled" = "Las notificaciones estan desactivadas. Puedes activarlas en Ajustes de iOS.";
+"settings.notifications.toast.manage_in_settings" = "Gestiona las notificaciones en Ajustes de iOS.";
+"agent.offline.message" = "Estas sin conexion. El agente continuara cuando vuelva la conexion.";
+"agent.queue.placeholder" = "En cola: esta solicitud se enviara automaticamente cuando vuelva la conexion.";
+"agent.queue.toast.queued" = "Guardado sin conexion. Se enviara automaticamente cuando estes online.";
+"agent.queue.toast.sent" = "La solicitud en cola se envio correctamente.";
+"agent.automation.triggered" = "Flujo n8n iniciado.";

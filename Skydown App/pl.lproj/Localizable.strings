@@ -1,0 +1,14 @@
+"offline.banner.title" = "Offline";
+"offline.banner.message" = "Brak polaczenia. Widzisz tresci z pamieci podrecznej i mozesz kontynuowac.";
+"settings.system_language" = "Jezyk systemu";
+"settings.supported_languages_summary" = "10 jezykow: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "Powiadomienia";
+"settings.notifications.subtitle" = "Powiadomienia push o waznych akcjach w aplikacji.";
+"settings.notifications.toast.enabled" = "Powiadomienia sa wlaczone.";
+"settings.notifications.toast.disabled" = "Powiadomienia sa wylaczone. Mozesz je wlaczyc w ustawieniach iOS.";
+"settings.notifications.toast.manage_in_settings" = "Zarzadzaj powiadomieniami w ustawieniach iOS.";
+"agent.offline.message" = "Jestes offline. Agent wznowi prace, gdy polaczenie wroci.";
+"agent.queue.placeholder" = "W kolejce: to zadanie zostanie wyslane automatycznie po powrocie polaczenia.";
+"agent.queue.toast.queued" = "Zapisano offline. Wysylka automatycznie po powrocie online.";
+"agent.queue.toast.sent" = "Zadanie z kolejki wyslano pomyslnie.";
+"agent.automation.triggered" = "Uruchomiono workflow n8n.";

@@ -1,0 +1,14 @@
+"offline.banner.title" = "Offline";
+"offline.banner.message" = "No connection. You are seeing cached content and can continue navigating.";
+"settings.system_language" = "System language";
+"settings.supported_languages_summary" = "10 languages: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "Notifications";
+"settings.notifications.subtitle" = "Push updates for important app actions.";
+"settings.notifications.toast.enabled" = "Notifications are enabled.";
+"settings.notifications.toast.disabled" = "Notifications are off. You can enable them in iOS Settings.";
+"settings.notifications.toast.manage_in_settings" = "Manage notifications in iOS Settings.";
+"agent.offline.message" = "You are offline. The agent will continue once your connection is back.";
+"agent.queue.placeholder" = "Queued: this request will send automatically when your connection is back.";
+"agent.queue.toast.queued" = "Saved offline. Sending automatically once you are online.";
+"agent.queue.toast.sent" = "Queued request sent successfully.";
+"agent.automation.triggered" = "n8n workflow started.";

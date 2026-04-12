@@ -138,7 +138,12 @@ final class NotificationPermissionStore: ObservableObject {
 enum AppLanguageSupport {
     static let supportedLanguageCodes = ["de", "en", "es", "fr", "it", "pt", "nl", "pl", "tr", "ja"]
 
-    static let supportedLanguagesSummary = "10 Sprachen: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA"
+    static var supportedLanguagesSummary: String {
+        AppLocalized.text(
+            "settings.supported_languages_summary",
+            fallback: "10 languages: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA"
+        )
+    }
 
     static func currentSystemLanguageDisplayName(locale: Locale = .current) -> String {
         let code = normalizedLanguageCode()

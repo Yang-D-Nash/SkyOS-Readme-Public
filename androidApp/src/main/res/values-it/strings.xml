@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">Offline</string>
+    <string name="offline_banner_message">Nessuna connessione. Vedi contenuti in cache e puoi continuare.</string>
+    <string name="settings_general_section">Generale</string>
+    <string name="settings_system_language_value">Lingua di sistema: %1$s</string>
+    <string name="settings_supported_languages_summary">10 lingue: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Notifiche</string>
+    <string name="settings_notifications_subtitle">Aggiornamenti push per azioni importanti dell app. Questo interruttore segue i permessi di sistema.</string>
+    <string name="settings_notifications_toast_enabled">Le notifiche sono attive.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Attiva le notifiche nelle impostazioni di sistema.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Gestisci le notifiche nelle impostazioni di sistema.</string>
+    <string name="agent_queue_placeholder">In coda: questa richiesta verra inviata automaticamente quando torni online.</string>
+    <string name="agent_queue_toast_queued">Salvata offline. Invio automatico quando torni online.</string>
+    <string name="agent_queue_toast_sent">Richiesta in coda inviata con successo.</string>
+    <string name="agent_automation_triggered">Workflow n8n avviato.</string>
+</resources>

@@ -6,4 +6,18 @@
     <string name="attribution_auth">Authentication and sign-in</string>
     <string name="attribution_commerce">Store and checkout</string>
     <string name="attribution_ai">AI and automation tools</string>
+    <string name="offline_banner_title">Offline</string>
+    <string name="offline_banner_message">No connection. You are seeing cached content and can continue navigating.</string>
+    <string name="settings_general_section">General</string>
+    <string name="settings_system_language_value">System language: %1$s</string>
+    <string name="settings_supported_languages_summary">10 languages: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_notifications_subtitle">Push updates for important app actions. This toggle follows system permissions.</string>
+    <string name="settings_notifications_toast_enabled">Notifications are enabled.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Please enable notifications in system settings.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Manage notifications directly in system settings.</string>
+    <string name="agent_queue_placeholder">Queued: this request will send automatically when your connection is back.</string>
+    <string name="agent_queue_toast_queued">Saved offline. Sending automatically once you are online.</string>
+    <string name="agent_queue_toast_sent">Queued request sent successfully.</string>
+    <string name="agent_automation_triggered">n8n workflow started.</string>
 </resources>

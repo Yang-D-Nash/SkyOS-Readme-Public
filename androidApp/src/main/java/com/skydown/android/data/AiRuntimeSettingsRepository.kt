@@ -94,7 +94,7 @@ class AiRuntimeSettingsRepository(
 }
 
 private fun Map<String, Any>.toAiRuntimeSettings(): AiRuntimeSettings {
-    val manusMap = this["manus"] as? Map<String, Any> ?: emptyMap()
+    val manusMap = this["manus"].asStringKeyedMap()
     return AiRuntimeSettings(
         costGuardEnabled = this["costGuardEnabled"] as? Boolean ?: true,
         agentProvider = AiRuntimeAgentProvider.resolve(this["agentProvider"] as? String),
@@ -187,12 +187,19 @@ private fun decodeRuntimeLimits(
     rawValue: Any?,
     fallback: AiRuntimeKindLimits,
 ): AiRuntimeKindLimits {
-    val map = rawValue as? Map<String, Any> ?: emptyMap()
+    val map = rawValue.asStringKeyedMap()
     return AiRuntimeKindLimits(
         text = parseRuntimeInt(map["text"], fallback = fallback.text, min = 1, max = 100000),
         visual = parseRuntimeInt(map["visual"], fallback = fallback.visual, min = 1, max = 100000),
         agent = parseRuntimeInt(map["agent"], fallback = fallback.agent, min = 1, max = 100000),
     )
+}
+
+private fun Any?.asStringKeyedMap(): Map<String, Any?> {
+    val rawMap = this as? Map<*, *> ?: return emptyMap()
+    return rawMap.entries.mapNotNull { (key, value) ->
+        (key as? String)?.let { typedKey -> typedKey to value }
+    }.toMap()
 }
 
 private fun parseRuntimeInt(

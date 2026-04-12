@@ -1,0 +1,14 @@
+"offline.banner.title" = "Offline";
+"offline.banner.message" = "Nessuna connessione. Vedi contenuti in cache e puoi continuare.";
+"settings.system_language" = "Lingua di sistema";
+"settings.supported_languages_summary" = "10 lingue: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "Notifiche";
+"settings.notifications.subtitle" = "Aggiornamenti push per azioni importanti dell app.";
+"settings.notifications.toast.enabled" = "Le notifiche sono attive.";
+"settings.notifications.toast.disabled" = "Le notifiche sono disattivate. Puoi attivarle nelle impostazioni iOS.";
+"settings.notifications.toast.manage_in_settings" = "Gestisci le notifiche nelle impostazioni iOS.";
+"agent.offline.message" = "Sei offline. L agente continuera quando la connessione torna disponibile.";
+"agent.queue.placeholder" = "In coda: questa richiesta verra inviata automaticamente quando torni online.";
+"agent.queue.toast.queued" = "Salvata offline. Invio automatico quando torni online.";
+"agent.queue.toast.sent" = "Richiesta in coda inviata con successo.";
+"agent.automation.triggered" = "Workflow n8n avviato.";

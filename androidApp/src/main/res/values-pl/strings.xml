@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">Offline</string>
+    <string name="offline_banner_message">Brak polaczenia. Widzisz tresci z pamieci podrecznej i mozesz kontynuowac.</string>
+    <string name="settings_general_section">Ogolne</string>
+    <string name="settings_system_language_value">Jezyk systemu: %1$s</string>
+    <string name="settings_supported_languages_summary">10 jezykow: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Powiadomienia</string>
+    <string name="settings_notifications_subtitle">Powiadomienia push o waznych akcjach aplikacji. Ten przelacznik zalezy od uprawnien systemu.</string>
+    <string name="settings_notifications_toast_enabled">Powiadomienia sa wlaczone.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Wlacz powiadomienia w ustawieniach systemu.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Zarzadzaj powiadomieniami w ustawieniach systemu.</string>
+    <string name="agent_queue_placeholder">W kolejce: to zadanie zostanie wyslane automatycznie po powrocie polaczenia.</string>
+    <string name="agent_queue_toast_queued">Zapisano offline. Wysylka automatycznie po powrocie online.</string>
+    <string name="agent_queue_toast_sent">Zadanie z kolejki wyslano pomyslnie.</string>
+    <string name="agent_automation_triggered">Uruchomiono workflow n8n.</string>
+</resources>

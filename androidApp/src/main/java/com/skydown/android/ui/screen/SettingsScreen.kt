@@ -73,6 +73,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -82,6 +83,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.R
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AiRuntimeAgentProvider
 import com.skydown.android.data.ArtistPageUi
@@ -2335,37 +2337,37 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard(contentPadding = PaddingValues(18.dp)) {
-                        SectionHeader("Allgemein")
+                        SectionHeader(stringResource(R.string.settings_general_section))
                         Text(
-                            text = "Systemsprache: ${uiState.language}",
+                            text = stringResource(R.string.settings_system_language_value, uiState.language),
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         Text(
-                            text = uiState.supportedLanguagesSummary,
+                            text = stringResource(R.string.settings_supported_languages_summary),
                             modifier = Modifier.padding(top = 4.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         SettingsToggleRow(
-                            title = "Benachrichtigungen",
-                            body = "Push-Hinweise fuer Updates und wichtige App-Aktionen. Der Schalter folgt den Systemrechten.",
+                            title = stringResource(R.string.settings_notifications_title),
+                            body = stringResource(R.string.settings_notifications_subtitle),
                             checked = uiState.notificationsEnabled,
                             onCheckedChange = { enabled ->
                                 if (enabled) {
                                     if (NotificationPermissionCoordinator.areNotificationsEnabled(context)) {
                                         viewModel.updateNotifications(true)
-                                        feedbackMessage = "Benachrichtigungen sind aktiv."
+                                        feedbackMessage = context.getString(R.string.settings_notifications_toast_enabled)
                                         feedbackType = ToastType.Success
                                     } else if (NotificationPermissionCoordinator.requiresRuntimePermission()) {
                                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     } else {
                                         NotificationPermissionCoordinator.openNotificationSettings(context)
-                                        feedbackMessage = "Bitte aktiviere Benachrichtigungen in den Systemeinstellungen."
+                                        feedbackMessage = context.getString(R.string.settings_notifications_toast_enable_in_settings)
                                         feedbackType = ToastType.Info
                                     }
                                 } else {
                                     NotificationPermissionCoordinator.openNotificationSettings(context)
-                                    feedbackMessage = "Benachrichtigungen lassen sich direkt in den Systemeinstellungen deaktivieren."
+                                    feedbackMessage = context.getString(R.string.settings_notifications_toast_manage_in_settings)
                                     feedbackType = ToastType.Info
                                 }
                             },

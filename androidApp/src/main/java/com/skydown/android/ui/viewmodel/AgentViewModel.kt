@@ -2,12 +2,17 @@ package com.skydown.android.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.skydown.android.R
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.skydown.android.data.AgentHistoryTurn
 import com.skydown.android.data.AiConversationHistorySource
 import com.skydown.android.data.AiConversationHistoryStore
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AppNetworkMonitor
+import com.skydown.android.data.AppTextResolver
+import com.skydown.android.data.AgentPendingQueueEntry
+import com.skydown.android.data.AgentPendingQueueStore
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
@@ -24,15 +29,34 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AgentViewModel : ViewModel() {
+    private data class PendingAgentRequest(
+        val prompt: String,
+        val history: List<AgentHistoryTurn>,
+        val mode: String,
+        val executeAutomation: Boolean,
+        val assistantMessageId: String,
+        val createdAtEpochMillis: Long,
+    )
+
     private val agentClient = AppContainer.agentClient
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
     private var currentUserKey: String? = null
+    private val pendingRequests = ArrayDeque<PendingAgentRequest>()
+    private var isProcessingPendingQueue = false
 
     init {
         viewModelScope.launch {
             AppContainer.aiEnabled.collect { isEnabled ->
                 _uiState.update { it.copy(isAgentEnabled = isEnabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            AppNetworkMonitor.isOnline.collect { isOnline ->
+                if (isOnline) {
+                    retryPendingMessages()
+                }
             }
         }
 
@@ -105,10 +129,17 @@ class AgentViewModel : ViewModel() {
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.isSending) return
+        if (!AppNetworkMonitor.isOnline.value) {
+            enqueuePromptForRetry(trimmedPrompt)
+            return
+        }
         _uiState.update { it.copy(isSending = true, errorMessage = null) }
 
         viewModelScope.launch {
             var assistantMessageId: String? = null
+            val modeAtSend = _uiState.value.selectedMode.rawValue
+            val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
+            var historyAtSend: List<AgentHistoryTurn> = emptyList()
             runCatching {
                 val userMessage = AgentMessage(
                     role = AgentMessageRole.User,
@@ -121,6 +152,7 @@ class AgentViewModel : ViewModel() {
                 )
                 assistantMessageId = assistantMessage.id
                 val history = buildHistory(_uiState.value.messages + userMessage)
+                historyAtSend = history
 
                 _uiState.update {
                     it.copy(
@@ -134,8 +166,8 @@ class AgentViewModel : ViewModel() {
                 agentClient.sendMessage(
                     prompt = trimmedPrompt,
                     history = history,
-                    mode = _uiState.value.selectedMode.rawValue,
-                    executeAutomation = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation,
+                    mode = modeAtSend,
+                    executeAutomation = executeAutomationAtSend,
                 )
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
@@ -162,6 +194,28 @@ class AgentViewModel : ViewModel() {
                 }
                 _uiState.update { it.copy(isSending = false) }
             }.onFailure { error ->
+                val pendingAssistantMessageId = assistantMessageId
+                if (pendingAssistantMessageId != null && isOfflineError(error)) {
+                    pendingRequests.addLast(
+                        PendingAgentRequest(
+                            prompt = trimmedPrompt,
+                            history = historyAtSend,
+                            mode = modeAtSend,
+                            executeAutomation = executeAutomationAtSend,
+                            assistantMessageId = pendingAssistantMessageId,
+                            createdAtEpochMillis = System.currentTimeMillis(),
+                        ),
+                    )
+                    persistPendingRequests()
+                    updateAssistantMessage(
+                        messageId = pendingAssistantMessageId,
+                        text = AppTextResolver.string(R.string.agent_queue_placeholder),
+                        isStreaming = false,
+                    )
+                    _uiState.update { it.copy(isSending = false, errorMessage = null) }
+                    return@launch
+                }
+
                 val errorMessage = userFacingErrorMessage(error)
                 assistantMessageId?.let { messageId ->
                     updateAssistantMessage(
@@ -187,6 +241,8 @@ class AgentViewModel : ViewModel() {
     }
 
     fun resetConversation() {
+        pendingRequests.clear()
+        AgentPendingQueueStore.clearEntriesForUser(currentUserKey)
         AiConversationHistoryStore.clearEntries(
             userKey = currentUserKey,
             source = AiConversationHistorySource.Agent,
@@ -209,8 +265,122 @@ class AgentViewModel : ViewModel() {
         }
     }
 
+    private fun enqueuePromptForRetry(trimmedPrompt: String) {
+        val modeAtSend = _uiState.value.selectedMode.rawValue
+        val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
+        val userMessage = AgentMessage(
+            role = AgentMessageRole.User,
+            text = trimmedPrompt,
+        )
+        val assistantMessage = AgentMessage(
+            role = AgentMessageRole.Assistant,
+            text = AppTextResolver.string(R.string.agent_queue_placeholder),
+            isStreaming = false,
+        )
+        val history = buildHistory(_uiState.value.messages + userMessage)
+
+        pendingRequests.addLast(
+            PendingAgentRequest(
+                prompt = trimmedPrompt,
+                history = history,
+                mode = modeAtSend,
+                executeAutomation = executeAutomationAtSend,
+                assistantMessageId = assistantMessage.id,
+                createdAtEpochMillis = System.currentTimeMillis(),
+            ),
+        )
+        persistPendingRequests()
+
+        _uiState.update {
+            it.copy(
+                draft = "",
+                isSending = false,
+                errorMessage = null,
+                messages = it.messages + userMessage + assistantMessage,
+            )
+        }
+    }
+
+    private fun retryPendingMessages() {
+        if (isProcessingPendingQueue || pendingRequests.isEmpty()) {
+            return
+        }
+
+        isProcessingPendingQueue = true
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSending = true) }
+            while (AppNetworkMonitor.isOnline.value && pendingRequests.isNotEmpty()) {
+                val request = pendingRequests.removeFirst()
+                runCatching {
+                    agentClient.sendMessage(
+                        prompt = request.prompt,
+                        history = request.history,
+                        mode = request.mode,
+                        executeAutomation = request.executeAutomation,
+                    )
+                }.onSuccess { result ->
+                    AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                    val replyText = augmentedReply(result)
+                    updateAssistantMessage(
+                        messageId = request.assistantMessageId,
+                        text = replyText,
+                        isStreaming = false,
+                    )
+                    AiConversationHistoryStore.saveEntry(
+                        userKey = currentUserKey,
+                        source = AiConversationHistorySource.Agent,
+                        prompt = request.prompt,
+                        response = replyText,
+                    )
+                    if (result.automationAttempted && result.automationMessage.isNotBlank()) {
+                        _uiState.update { it.copy(errorMessage = result.automationMessage) }
+                    }
+                    persistPendingRequests()
+                }.onFailure { error ->
+                    if (isOfflineError(error) || !AppNetworkMonitor.isOnline.value) {
+                        pendingRequests.addFirst(request)
+                        persistPendingRequests()
+                        updateAssistantMessage(
+                            messageId = request.assistantMessageId,
+                            text = AppTextResolver.string(R.string.agent_queue_placeholder),
+                            isStreaming = false,
+                        )
+                        break
+                    }
+
+                    val message = userFacingErrorMessage(error)
+                    updateAssistantMessage(
+                        messageId = request.assistantMessageId,
+                        text = message,
+                        isStreaming = false,
+                    )
+                    AiConversationHistoryStore.saveEntry(
+                        userKey = currentUserKey,
+                        source = AiConversationHistorySource.Agent,
+                        prompt = request.prompt,
+                        response = message,
+                    )
+                    _uiState.update { it.copy(errorMessage = message) }
+                    persistPendingRequests()
+                }
+            }
+
+            _uiState.update { it.copy(isSending = false) }
+            isProcessingPendingQueue = false
+        }
+    }
+
     fun dismissError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun isOfflineError(error: Throwable): Boolean {
+        if (error is FirebaseFunctionsException && error.code == FirebaseFunctionsException.Code.UNAVAILABLE) {
+            return true
+        }
+        val normalizedMessage = error.message.orEmpty().lowercase()
+        return normalizedMessage.contains("offline") ||
+            normalizedMessage.contains("internet")
     }
 
     private fun updateAssistantMessage(
@@ -244,7 +414,7 @@ class AgentViewModel : ViewModel() {
             }
 
     private fun restoreHistory() {
-        val restoredMessages = AiConversationHistoryStore.entriesFor(
+        val restoredHistoryMessages = AiConversationHistoryStore.entriesFor(
             userKey = currentUserKey,
             source = AiConversationHistorySource.Agent,
         ).asReversed().flatMap { entry ->
@@ -260,9 +430,51 @@ class AgentViewModel : ViewModel() {
             )
         }
 
-        _uiState.update { currentState ->
-            currentState.copy(messages = restoredMessages)
+        pendingRequests.clear()
+        pendingRequests.addAll(
+            AgentPendingQueueStore.entriesFor(currentUserKey).map { entry ->
+                PendingAgentRequest(
+                    prompt = entry.prompt,
+                    history = entry.history,
+                    mode = entry.mode,
+                    executeAutomation = entry.executeAutomation,
+                    assistantMessageId = entry.assistantMessageId,
+                    createdAtEpochMillis = entry.createdAtEpochMillis,
+                )
+            },
+        )
+        val pendingMessages = pendingRequests.flatMap { request ->
+            listOf(
+                AgentMessage(
+                    role = AgentMessageRole.User,
+                    text = request.prompt,
+                ),
+                AgentMessage(
+                    id = request.assistantMessageId,
+                    role = AgentMessageRole.Assistant,
+                    text = AppTextResolver.string(R.string.agent_queue_placeholder),
+                ),
+            )
         }
+
+        _uiState.update { currentState ->
+            currentState.copy(messages = restoredHistoryMessages + pendingMessages)
+        }
+    }
+
+    private fun persistPendingRequests() {
+        val entries = pendingRequests.map { request ->
+            AgentPendingQueueEntry(
+                userKey = currentUserKey.orEmpty(),
+                prompt = request.prompt,
+                history = request.history,
+                mode = request.mode,
+                executeAutomation = request.executeAutomation,
+                assistantMessageId = request.assistantMessageId,
+                createdAtEpochMillis = request.createdAtEpochMillis,
+            )
+        }
+        AgentPendingQueueStore.saveEntriesForUser(currentUserKey, entries)
     }
 
     private fun normalizeUserKey(user: User?): String? {

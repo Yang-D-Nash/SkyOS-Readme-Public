@@ -1,0 +1,14 @@
+"offline.banner.title" = "オフライン";
+"offline.banner.message" = "接続がありません。キャッシュされた内容を表示しながら操作を続けられます。";
+"settings.system_language" = "システム言語";
+"settings.supported_languages_summary" = "10言語: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "通知";
+"settings.notifications.subtitle" = "重要なアクションのプッシュ通知を受け取ります。";
+"settings.notifications.toast.enabled" = "通知は有効です。";
+"settings.notifications.toast.disabled" = "通知は無効です。iOS設定で有効にできます。";
+"settings.notifications.toast.manage_in_settings" = "通知はiOS設定で管理できます。";
+"agent.offline.message" = "オフラインです。接続が戻るとエージェントは続行します。";
+"agent.queue.placeholder" = "キュー中: 接続が戻るとこのリクエストは自動送信されます。";
+"agent.queue.toast.queued" = "オフラインで保存しました。オンライン復帰後に自動送信します。";
+"agent.queue.toast.sent" = "キューのリクエストを送信しました。";
+"agent.automation.triggered" = "n8nワークフローを開始しました。";

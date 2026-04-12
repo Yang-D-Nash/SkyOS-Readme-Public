@@ -22,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.skydown.android.R
 
 @Composable
 fun ConnectivityStatusBanner(
@@ -68,13 +70,13 @@ fun ConnectivityStatusBanner(
                     .weight(1f),
             ) {
                 Text(
-                    text = "Offline",
+                    text = stringResource(R.string.offline_banner_title),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )
                 Text(
-                    text = "Keine Verbindung. Du siehst Caches und kannst weiternavigieren.",
+                    text = stringResource(R.string.offline_banner_message),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.88f),
                 )

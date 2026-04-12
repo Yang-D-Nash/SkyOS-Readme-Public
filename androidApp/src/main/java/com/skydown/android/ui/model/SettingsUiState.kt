@@ -24,7 +24,6 @@ data class SettingsUiState(
     val instagramHandle: String = "",
     val isOwner: Boolean = false,
     val language: String = AppLanguageSupport.currentSystemLanguageDisplayName(),
-    val supportedLanguagesSummary: String = AppLanguageSupport.supportedLanguagesSummary,
     val notificationsEnabled: Boolean = true,
     val colorScheme: AppearanceMode = AppearanceMode.System,
     val appVersion: String = "1.0 (16)",

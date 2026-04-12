@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">オフライン</string>
+    <string name="offline_banner_message">接続がありません。キャッシュ表示のまま操作を続けられます。</string>
+    <string name="settings_general_section">一般</string>
+    <string name="settings_system_language_value">システム言語: %1$s</string>
+    <string name="settings_supported_languages_summary">10言語: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">通知</string>
+    <string name="settings_notifications_subtitle">重要なアクションのプッシュ通知です。このスイッチはシステム権限に従います。</string>
+    <string name="settings_notifications_toast_enabled">通知は有効です。</string>
+    <string name="settings_notifications_toast_enable_in_settings">システム設定で通知を有効にしてください。</string>
+    <string name="settings_notifications_toast_manage_in_settings">通知はシステム設定で管理できます。</string>
+    <string name="agent_queue_placeholder">キュー中: 接続が戻るとこのリクエストは自動送信されます。</string>
+    <string name="agent_queue_toast_queued">オフラインで保存しました。オンライン復帰後に自動送信します。</string>
+    <string name="agent_queue_toast_sent">キューのリクエストを送信しました。</string>
+    <string name="agent_automation_triggered">n8nワークフローを開始しました。</string>
+</resources>

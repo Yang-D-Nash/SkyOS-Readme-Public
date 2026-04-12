@@ -24,34 +24,35 @@ enum SkydownLayout {
 
 #if canImport(UIKit)
 @MainActor
-final class SkydownKeyboardObserver: ObservableObject {
+final class SkydownKeyboardObserver: NSObject, ObservableObject {
     @Published private(set) var bottomInset: CGFloat = 0
 
-    private var observers: [NSObjectProtocol] = []
+    private let notificationCenter: NotificationCenter
 
     init(notificationCenter: NotificationCenter = .default) {
-        let handler: (Notification) -> Void = { [weak self] notification in
-            self?.handle(notification)
-        }
+        self.notificationCenter = notificationCenter
+        super.init()
 
-        observers = [
-            notificationCenter.addObserver(
-                forName: UIResponder.keyboardWillChangeFrameNotification,
-                object: nil,
-                queue: .main,
-                using: handler
-            ),
-            notificationCenter.addObserver(
-                forName: UIResponder.keyboardWillHideNotification,
-                object: nil,
-                queue: .main,
-                using: handler
-            )
-        ]
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(handleKeyboardNotification(_:)),
+            name: UIResponder.keyboardWillChangeFrameNotification,
+            object: nil
+        )
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(handleKeyboardNotification(_:)),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
     }
 
     deinit {
-        observers.forEach(NotificationCenter.default.removeObserver)
+        notificationCenter.removeObserver(self)
+    }
+
+    @objc private func handleKeyboardNotification(_ notification: Notification) {
+        handle(notification)
     }
 
     private func handle(_ notification: Notification) {

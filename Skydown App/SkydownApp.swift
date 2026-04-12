@@ -49,8 +49,11 @@ struct SkydownApp: App {
 
                 if !services.networkStatusMonitor.isOnline {
                     ConnectivityStatusBanner(
-                        title: "Offline",
-                        message: "Keine Verbindung. Du siehst Caches und kannst weiternavigieren."
+                        title: AppLocalized.text("offline.banner.title", fallback: "Offline"),
+                        message: AppLocalized.text(
+                            "offline.banner.message",
+                            fallback: "No connection. You are seeing cached content and can continue navigating."
+                        )
                     )
                     .padding(.top, 10)
                 }
@@ -67,8 +70,9 @@ private extension SkydownApp {
     static func configureFirestoreCache() {
         let firestore = Firestore.firestore()
         let settings = firestore.settings
-        settings.isPersistenceEnabled = true
-        settings.cacheSizeBytes = FirestoreCacheSizeUnlimited
+        settings.cacheSettings = PersistentCacheSettings(
+            sizeBytes: NSNumber(value: FirestoreCacheSizeUnlimited)
+        )
         firestore.settings = settings
     }
 }

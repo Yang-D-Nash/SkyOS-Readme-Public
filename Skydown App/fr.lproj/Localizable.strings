@@ -1,0 +1,14 @@
+"offline.banner.title" = "Hors ligne";
+"offline.banner.message" = "Pas de connexion. Vous voyez le contenu en cache et pouvez continuer.";
+"settings.system_language" = "Langue du systeme";
+"settings.supported_languages_summary" = "10 langues : DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "Notifications";
+"settings.notifications.subtitle" = "Alertes push pour les actions importantes de l application.";
+"settings.notifications.toast.enabled" = "Les notifications sont activees.";
+"settings.notifications.toast.disabled" = "Les notifications sont desactivees. Vous pouvez les activer dans Reglages iOS.";
+"settings.notifications.toast.manage_in_settings" = "Gerez les notifications dans Reglages iOS.";
+"agent.offline.message" = "Vous etes hors ligne. L agent reprendra quand la connexion revient.";
+"agent.queue.placeholder" = "En file d attente : cette demande sera envoyee automatiquement au retour de la connexion.";
+"agent.queue.toast.queued" = "Enregistre hors ligne. Envoi automatique des que vous etes en ligne.";
+"agent.queue.toast.sent" = "Demande en file d attente envoyee avec succes.";
+"agent.automation.triggered" = "Workflow n8n demarre.";

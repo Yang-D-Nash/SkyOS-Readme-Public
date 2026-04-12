@@ -1,0 +1,14 @@
+"offline.banner.title" = "Offline";
+"offline.banner.message" = "Geen verbinding. Je ziet cache-inhoud en kunt doorgaan.";
+"settings.system_language" = "Systeemtaal";
+"settings.supported_languages_summary" = "10 talen: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";
+"settings.notifications.title" = "Meldingen";
+"settings.notifications.subtitle" = "Pushmeldingen voor belangrijke app-acties.";
+"settings.notifications.toast.enabled" = "Meldingen zijn ingeschakeld.";
+"settings.notifications.toast.disabled" = "Meldingen zijn uitgeschakeld. Je kunt ze inschakelen in iOS-instellingen.";
+"settings.notifications.toast.manage_in_settings" = "Beheer meldingen in iOS-instellingen.";
+"agent.offline.message" = "Je bent offline. De agent gaat verder zodra de verbinding terug is.";
+"agent.queue.placeholder" = "In wachtrij: dit verzoek wordt automatisch verzonden zodra je weer online bent.";
+"agent.queue.toast.queued" = "Offline opgeslagen. Wordt automatisch verzonden zodra je online bent.";
+"agent.queue.toast.sent" = "Wachtrijverzoek succesvol verzonden.";
+"agent.automation.triggered" = "n8n-workflow gestart.";

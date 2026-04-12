@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">Cevrim disi</string>
+    <string name="offline_banner_message">Baglanti yok. Onbellekteki icerigi goruyorsun ve devam edebilirsin.</string>
+    <string name="settings_general_section">Genel</string>
+    <string name="settings_system_language_value">Sistem dili: %1$s</string>
+    <string name="settings_supported_languages_summary">10 dil: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Bildirimler</string>
+    <string name="settings_notifications_subtitle">Onemli uygulama islemleri icin anlik bildirimler. Bu anahtar sistem izinlerini takip eder.</string>
+    <string name="settings_notifications_toast_enabled">Bildirimler acik.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Bildirimleri sistem ayarlarindan etkinlestir.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Bildirimleri sistem ayarlarindan yonet.</string>
+    <string name="agent_queue_placeholder">Kuyrukta: bu istek baglanti geldiginde otomatik gonderilecek.</string>
+    <string name="agent_queue_toast_queued">Cevrim disi kaydedildi. Online olunca otomatik gonderilecek.</string>
+    <string name="agent_queue_toast_sent">Kuyruktaki istek basariyla gonderildi.</string>
+    <string name="agent_automation_triggered">n8n akisi baslatildi.</string>
+</resources>

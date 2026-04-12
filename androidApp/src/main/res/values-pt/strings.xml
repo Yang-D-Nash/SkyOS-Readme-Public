@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_banner_title">Offline</string>
+    <string name="offline_banner_message">Sem conexao. Voce ve conteudo em cache e pode continuar navegando.</string>
+    <string name="settings_general_section">Geral</string>
+    <string name="settings_system_language_value">Idioma do sistema: %1$s</string>
+    <string name="settings_supported_languages_summary">10 idiomas: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_notifications_title">Notificacoes</string>
+    <string name="settings_notifications_subtitle">Alertas push para acoes importantes do app. Este botao segue as permissoes do sistema.</string>
+    <string name="settings_notifications_toast_enabled">Notificacoes ativadas.</string>
+    <string name="settings_notifications_toast_enable_in_settings">Ative as notificacoes nas configuracoes do sistema.</string>
+    <string name="settings_notifications_toast_manage_in_settings">Gerencie as notificacoes nas configuracoes do sistema.</string>
+    <string name="agent_queue_placeholder">Na fila: esta solicitacao sera enviada automaticamente quando voce voltar online.</string>
+    <string name="agent_queue_toast_queued">Salvo offline. Envio automatico quando voce estiver online.</string>
+    <string name="agent_queue_toast_sent">Solicitacao da fila enviada com sucesso.</string>
+    <string name="agent_automation_triggered">Workflow n8n iniciado.</string>
+</resources>

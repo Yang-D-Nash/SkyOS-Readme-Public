@@ -290,7 +290,12 @@ struct SettingsView: View {
                     SettingsSectionCard(title: "Allgemein", colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text("Systemsprache")
+                                Text(
+                                    AppLocalized.text(
+                                        "settings.system_language",
+                                        fallback: "System language"
+                                    )
+                                )
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
                                 Spacer()
                                 Text(systemLanguage)
@@ -303,8 +308,14 @@ struct SettingsView: View {
 
                             SettingsToggleCard(
                                 colorScheme: effectiveColorScheme,
-                                title: "Benachrichtigungen",
-                                subtitle: "Push-Hinweise fuer Updates und wichtige App-Aktionen.",
+                                title: AppLocalized.text(
+                                    "settings.notifications.title",
+                                    fallback: "Notifications"
+                                ),
+                                subtitle: AppLocalized.text(
+                                    "settings.notifications.subtitle",
+                                    fallback: "Push updates for important app actions."
+                                ),
                                 isOn: notificationsToggleBinding
                             )
                         }
@@ -562,13 +573,31 @@ struct SettingsView: View {
                     if isEnabled {
                         let granted = await notificationPermissionStore.requestAuthorization()
                         if granted {
-                            showToastMessage("Benachrichtigungen sind aktiv.", style: .success)
+                            showToastMessage(
+                                AppLocalized.text(
+                                    "settings.notifications.toast.enabled",
+                                    fallback: "Notifications are enabled."
+                                ),
+                                style: .success
+                            )
                         } else {
-                            showToastMessage("Benachrichtigungen sind aus. Du kannst sie in iOS-Einstellungen aktivieren.", style: .warning)
+                            showToastMessage(
+                                AppLocalized.text(
+                                    "settings.notifications.toast.disabled",
+                                    fallback: "Notifications are off. You can enable them in iOS Settings."
+                                ),
+                                style: .warning
+                            )
                             notificationPermissionStore.openSystemSettings()
                         }
                     } else {
-                        showToastMessage("Benachrichtigungen verwaltest du in den iOS-Einstellungen.", style: .info)
+                        showToastMessage(
+                            AppLocalized.text(
+                                "settings.notifications.toast.manage_in_settings",
+                                fallback: "Manage notifications in iOS Settings."
+                            ),
+                            style: .info
+                        )
                         notificationPermissionStore.openSystemSettings()
                         await notificationPermissionStore.refresh()
                     }

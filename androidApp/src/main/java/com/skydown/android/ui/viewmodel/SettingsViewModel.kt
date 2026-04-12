@@ -49,7 +49,6 @@ class SettingsViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 language = AppLanguageSupport.currentSystemLanguageDisplayName(),
-                supportedLanguagesSummary = AppLanguageSupport.supportedLanguagesSummary,
             )
         }
 
