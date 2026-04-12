@@ -7,6 +7,7 @@
 import SwiftUI
 import FirebaseAppCheck
 import FirebaseCore
+import FirebaseFirestore
 import AVKit
 import GoogleSignIn
 import UIKit
@@ -22,6 +23,7 @@ struct SkydownApp: App {
         AppTypography.configure()
         AppCheck.setAppCheckProviderFactory(SkydownAppCheckProviderFactory())
         FirebaseApp.configure()
+        Self.configureFirestoreCache()
         AppCheck.appCheck().isTokenAutoRefreshEnabled = true
     }
 
@@ -58,6 +60,16 @@ struct SkydownApp: App {
                 await services.notificationPermissionStore.requestAuthorizationIfNeededOnLaunch()
             }
         }
+    }
+}
+
+private extension SkydownApp {
+    static func configureFirestoreCache() {
+        let firestore = Firestore.firestore()
+        let settings = firestore.settings
+        settings.isPersistenceEnabled = true
+        settings.cacheSizeBytes = FirestoreCacheSizeUnlimited
+        firestore.settings = settings
     }
 }
 

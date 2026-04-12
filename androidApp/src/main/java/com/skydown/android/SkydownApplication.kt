@@ -7,6 +7,8 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.AppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.skydown.android.data.AppNetworkMonitor
 
 class SkydownApplication : Application() {
@@ -29,6 +31,8 @@ class SkydownApplication : Application() {
         }.onFailure { error ->
             Log.e("SkydownApplication", "Firebase App Check konnte nicht initialisiert werden.", error)
         }
+
+        configureFirestoreCache()
     }
 
     private fun debugAppCheckProviderFactory(): AppCheckProviderFactory {
@@ -38,6 +42,19 @@ class SkydownApplication : Application() {
             getInstance.invoke(null) as AppCheckProviderFactory
         }.getOrElse {
             PlayIntegrityAppCheckProviderFactory.getInstance()
+        }
+    }
+
+    private fun configureFirestoreCache() {
+        runCatching {
+            val settings = FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                .build()
+
+            FirebaseFirestore.getInstance().firestoreSettings = settings
+        }.onFailure { error ->
+            Log.w("SkydownApplication", "Firestore-Cache konnte nicht konfiguriert werden.", error)
         }
     }
 }
