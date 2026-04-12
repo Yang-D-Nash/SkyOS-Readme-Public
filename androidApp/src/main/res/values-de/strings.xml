@@ -6,12 +6,9 @@
     <string name="settings_system_language_value">Systemsprache: %1$s</string>
     <string name="settings_supported_languages_summary">10 Sprachen: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
     <string name="settings_notifications_title">Benachrichtigungen</string>
-    <string name="settings_notifications_subtitle">Push-Hinweise fuer wichtige App-Aktionen. Der Schalter folgt den Systemrechten.</string>
+    <string name="settings_notifications_subtitle">Push-Hinweise zu wichtigen App-Aktionen. Der Schalter folgt den Systemrechten.</string>
     <string name="settings_notifications_toast_enabled">Benachrichtigungen sind aktiv.</string>
     <string name="settings_notifications_toast_enable_in_settings">Bitte aktiviere Benachrichtigungen in den Systemeinstellungen.</string>
     <string name="settings_notifications_toast_manage_in_settings">Benachrichtigungen verwaltest du in den Systemeinstellungen.</string>
     <string name="agent_queue_placeholder">Warteschlange: Diese Anfrage wird automatisch gesendet, sobald du wieder online bist.</string>
-    <string name="agent_queue_toast_queued">Offline gespeichert. Wird automatisch gesendet, sobald du online bist.</string>
-    <string name="agent_queue_toast_sent">Anfrage aus der Warteschlange erfolgreich gesendet.</string>
-    <string name="agent_automation_triggered">n8n-Workflow gestartet.</string>
 </resources>

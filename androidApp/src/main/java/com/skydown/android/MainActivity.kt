@@ -2,6 +2,7 @@ package com.skydown.android
 
 import android.Manifest
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -92,6 +93,8 @@ class MainActivity : ComponentActivity() {
             return
         }
         NotificationPermissionCoordinator.markPrompted(this)
-        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 }

@@ -17,7 +17,4 @@
     <string name="settings_notifications_toast_enable_in_settings">Please enable notifications in system settings.</string>
     <string name="settings_notifications_toast_manage_in_settings">Manage notifications directly in system settings.</string>
     <string name="agent_queue_placeholder">Queued: this request will send automatically when your connection is back.</string>
-    <string name="agent_queue_toast_queued">Saved offline. Sending automatically once you are online.</string>
-    <string name="agent_queue_toast_sent">Queued request sent successfully.</string>
-    <string name="agent_automation_triggered">n8n workflow started.</string>
 </resources>

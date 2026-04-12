@@ -30,13 +30,7 @@ fun View.performSkydownHaptic(kind: SkydownHapticKind) {
             }
         }
         SkydownHapticKind.Warning -> HapticFeedbackConstants.LONG_PRESS
-        SkydownHapticKind.Info -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                HapticFeedbackConstants.CONTEXT_CLICK
-            } else {
-                HapticFeedbackConstants.KEYBOARD_TAP
-            }
-        }
+        SkydownHapticKind.Info -> HapticFeedbackConstants.CONTEXT_CLICK
     }
 
     performHapticFeedback(feedbackConstant)

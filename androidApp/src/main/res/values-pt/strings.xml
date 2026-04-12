@@ -11,7 +11,4 @@
     <string name="settings_notifications_toast_enable_in_settings">Ative as notificacoes nas configuracoes do sistema.</string>
     <string name="settings_notifications_toast_manage_in_settings">Gerencie as notificacoes nas configuracoes do sistema.</string>
     <string name="agent_queue_placeholder">Na fila: esta solicitacao sera enviada automaticamente quando voce voltar online.</string>
-    <string name="agent_queue_toast_queued">Salvo offline. Envio automatico quando voce estiver online.</string>
-    <string name="agent_queue_toast_sent">Solicitacao da fila enviada com sucesso.</string>
-    <string name="agent_automation_triggered">Workflow n8n iniciado.</string>
 </resources>

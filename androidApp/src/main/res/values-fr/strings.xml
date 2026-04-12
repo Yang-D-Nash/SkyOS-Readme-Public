@@ -11,7 +11,4 @@
     <string name="settings_notifications_toast_enable_in_settings">Activez les notifications dans les reglages systeme.</string>
     <string name="settings_notifications_toast_manage_in_settings">Gerez les notifications dans les reglages systeme.</string>
     <string name="agent_queue_placeholder">En file d attente: cette demande sera envoyee automatiquement au retour de la connexion.</string>
-    <string name="agent_queue_toast_queued">Enregistre hors ligne. Envoi automatique des que vous etes en ligne.</string>
-    <string name="agent_queue_toast_sent">Demande en file d attente envoyee avec succes.</string>
-    <string name="agent_automation_triggered">Workflow n8n demarre.</string>
 </resources>

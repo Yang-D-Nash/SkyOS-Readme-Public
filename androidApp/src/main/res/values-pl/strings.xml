@@ -11,7 +11,4 @@
     <string name="settings_notifications_toast_enable_in_settings">Wlacz powiadomienia w ustawieniach systemu.</string>
     <string name="settings_notifications_toast_manage_in_settings">Zarzadzaj powiadomieniami w ustawieniach systemu.</string>
     <string name="agent_queue_placeholder">W kolejce: to zadanie zostanie wyslane automatycznie po powrocie polaczenia.</string>
-    <string name="agent_queue_toast_queued">Zapisano offline. Wysylka automatycznie po powrocie online.</string>
-    <string name="agent_queue_toast_sent">Zadanie z kolejki wyslano pomyslnie.</string>
-    <string name="agent_automation_triggered">Uruchomiono workflow n8n.</string>
 </resources>

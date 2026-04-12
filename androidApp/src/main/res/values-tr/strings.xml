@@ -11,7 +11,4 @@
     <string name="settings_notifications_toast_enable_in_settings">Bildirimleri sistem ayarlarindan etkinlestir.</string>
     <string name="settings_notifications_toast_manage_in_settings">Bildirimleri sistem ayarlarindan yonet.</string>
     <string name="agent_queue_placeholder">Kuyrukta: bu istek baglanti geldiginde otomatik gonderilecek.</string>
-    <string name="agent_queue_toast_queued">Cevrim disi kaydedildi. Online olunca otomatik gonderilecek.</string>
-    <string name="agent_queue_toast_sent">Kuyruktaki istek basariyla gonderildi.</string>
-    <string name="agent_automation_triggered">n8n akisi baslatildi.</string>
 </resources>

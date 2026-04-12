@@ -1299,8 +1299,8 @@ private fun MusicSpotlightDeckCard(
 private fun MusicSpotlightArtwork(
     imageUrl: String?,
     accent: Color,
-    frameSize: androidx.compose.ui.unit.Dp = 110.dp,
     modifier: Modifier = Modifier,
+    frameSize: androidx.compose.ui.unit.Dp = 110.dp,
 ) {
     Box(
         modifier = modifier,

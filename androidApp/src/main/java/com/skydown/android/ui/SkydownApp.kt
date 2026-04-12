@@ -1046,14 +1046,14 @@ private fun LaunchLandingButton(
 private fun HubEntryCard(
     title: String,
     subtitle: String,
-    detail: String? = null,
-    chips: List<String> = emptyList(),
     accentColor: androidx.compose.ui.graphics.Color,
     icon: ImageVector,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    detail: String? = null,
+    chips: List<String> = emptyList(),
     eyebrow: String? = null,
     artwork: BrandArtwork? = null,
-    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 

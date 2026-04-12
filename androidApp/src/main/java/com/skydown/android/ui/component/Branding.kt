@@ -342,9 +342,9 @@ fun BrandHeroMetricCard(
 @Composable
 fun BrandSectionBanner(
     title: String,
-    subtitle: String? = null,
     accent: Color,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     icon: ImageVector? = null,
     tag: String? = null,
 ) {

@@ -11,7 +11,4 @@
     <string name="settings_notifications_toast_enable_in_settings">Schakel meldingen in via systeeminstellingen.</string>
     <string name="settings_notifications_toast_manage_in_settings">Beheer meldingen via systeeminstellingen.</string>
     <string name="agent_queue_placeholder">In wachtrij: dit verzoek wordt automatisch verzonden zodra je weer online bent.</string>
-    <string name="agent_queue_toast_queued">Offline opgeslagen. Wordt automatisch verzonden zodra je online bent.</string>
-    <string name="agent_queue_toast_sent">Wachtrijverzoek succesvol verzonden.</string>
-    <string name="agent_automation_triggered">n8n-workflow gestart.</string>
 </resources>

@@ -11,7 +11,4 @@
     <string name="settings_notifications_toast_enable_in_settings">システム設定で通知を有効にしてください。</string>
     <string name="settings_notifications_toast_manage_in_settings">通知はシステム設定で管理できます。</string>
     <string name="agent_queue_placeholder">キュー中: 接続が戻るとこのリクエストは自動送信されます。</string>
-    <string name="agent_queue_toast_queued">オフラインで保存しました。オンライン復帰後に自動送信します。</string>
-    <string name="agent_queue_toast_sent">キューのリクエストを送信しました。</string>
-    <string name="agent_automation_triggered">n8nワークフローを開始しました。</string>
 </resources>
