@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Sky²²</string>
-    <string name="attribution_core">Core app interactions</string>
-    <string name="attribution_media">Media playback and video</string>
-    <string name="attribution_auth">Authentication and sign-in</string>
-    <string name="attribution_commerce">Store and checkout</string>
-    <string name="attribution_ai">AI and automation tools</string>
+    <string name="app_name" translatable="false">Sky²²</string>
+    <string name="attribution_core" translatable="false">Core app interactions</string>
+    <string name="attribution_media" translatable="false">Media playback and video</string>
+    <string name="attribution_auth" translatable="false">Authentication and sign-in</string>
+    <string name="attribution_commerce" translatable="false">Store and checkout</string>
+    <string name="attribution_ai" translatable="false">AI and automation tools</string>
     <string name="offline_banner_title">Offline</string>
     <string name="offline_banner_message">No connection. You are seeing cached content and can continue navigating.</string>
     <string name="settings_general_section">General</string>

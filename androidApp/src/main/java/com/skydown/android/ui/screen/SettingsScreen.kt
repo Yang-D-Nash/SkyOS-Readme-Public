@@ -2337,6 +2337,10 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                        val notificationsEnabledToast = stringResource(R.string.settings_notifications_toast_enabled)
+                        val notificationsEnableInSettingsToast = stringResource(R.string.settings_notifications_toast_enable_in_settings)
+                        val notificationsManageInSettingsToast = stringResource(R.string.settings_notifications_toast_manage_in_settings)
+
                         SectionHeader(stringResource(R.string.settings_general_section))
                         Text(
                             text = stringResource(R.string.settings_system_language_value, uiState.language),
@@ -2356,18 +2360,18 @@ fun SettingsScreen(
                                 if (enabled) {
                                     if (NotificationPermissionCoordinator.areNotificationsEnabled(context)) {
                                         viewModel.updateNotifications(true)
-                                        feedbackMessage = context.getString(R.string.settings_notifications_toast_enabled)
+                                        feedbackMessage = notificationsEnabledToast
                                         feedbackType = ToastType.Success
                                     } else if (NotificationPermissionCoordinator.requiresRuntimePermission()) {
                                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     } else {
                                         NotificationPermissionCoordinator.openNotificationSettings(context)
-                                        feedbackMessage = context.getString(R.string.settings_notifications_toast_enable_in_settings)
+                                        feedbackMessage = notificationsEnableInSettingsToast
                                         feedbackType = ToastType.Info
                                     }
                                 } else {
                                     NotificationPermissionCoordinator.openNotificationSettings(context)
-                                    feedbackMessage = context.getString(R.string.settings_notifications_toast_manage_in_settings)
+                                    feedbackMessage = notificationsManageInSettingsToast
                                     feedbackType = ToastType.Info
                                 }
                             },
