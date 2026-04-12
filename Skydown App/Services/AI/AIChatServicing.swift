@@ -40,6 +40,7 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
     }
 
     func generateText(prompt: String, mode: String) async throws -> AITextResponse {
+        try await ensureConnectivity()
         let result = try await functions
             .httpsCallable("generateAiText")
             .call([
@@ -62,6 +63,7 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
     }
 
     func generateVisual(prompt: String) async throws -> AIGeneratedVisual {
+        try await ensureConnectivity()
         let result = try await functions
             .httpsCallable("generateAiVisual")
             .call(["prompt": prompt])
@@ -84,6 +86,17 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
             historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
                 ?? UserRole.user.defaultAIHistoryRetentionDays
         )
+    }
+
+    private func ensureConnectivity() async throws {
+        let isOnline = await MainActor.run { NetworkStatusMonitor.shared.isOnline }
+        guard isOnline else {
+            throw NSError(
+                domain: "AIChatServicing",
+                code: -1009,
+                userInfo: [NSLocalizedDescriptionKey: "Du bist offline. Bot und Visuals werden wieder verfuegbar, sobald Internet da ist."]
+            )
+        }
     }
 }
 

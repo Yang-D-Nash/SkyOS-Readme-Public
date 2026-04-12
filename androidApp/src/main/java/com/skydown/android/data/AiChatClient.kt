@@ -12,6 +12,10 @@ class AiChatClient(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) {
     suspend fun generateText(prompt: String, mode: String): AiGeneratedTextResult {
+        if (!AppNetworkMonitor.isOnline.value) {
+            error("Du bist offline. Der Bot ist wieder verfuegbar, sobald Internet da ist.")
+        }
+
         val result = functions
             .getHttpsCallable("generateAiText")
             .call(

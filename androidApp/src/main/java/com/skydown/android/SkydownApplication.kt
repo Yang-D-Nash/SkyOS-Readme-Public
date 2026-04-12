@@ -7,10 +7,12 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.AppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.skydown.android.data.AppNetworkMonitor
 
 class SkydownApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        AppNetworkMonitor.initialize(this)
         runCatching {
             if (FirebaseApp.getApps(this).isEmpty()) {
                 FirebaseApp.initializeApp(this)

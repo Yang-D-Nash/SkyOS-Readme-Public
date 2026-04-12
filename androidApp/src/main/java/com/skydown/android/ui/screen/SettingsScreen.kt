@@ -1,5 +1,6 @@
 package com.skydown.android.ui.screen
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -55,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,12 +77,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AiRuntimeAgentProvider
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
+import com.skydown.android.data.NotificationPermissionCoordinator
 import com.skydown.android.data.ScreenHeaderSettings
 import com.skydown.android.ui.component.EditableImageFieldCard
 import com.skydown.android.ui.component.SectionHeader
@@ -130,6 +136,7 @@ fun SettingsScreen(
     val artistPages by ArtistPagesStore.pages.collectAsStateWithLifecycle()
     val artistPagesError by ArtistPagesStore.lastErrorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
@@ -248,6 +255,18 @@ fun SettingsScreen(
         uiState.paymentMethods.bankTransfer.isConfigured && uiState.paymentMethods.bankTransfer.enabled,
     ).count { it }
 
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.updateNotifications(granted && NotificationPermissionCoordinator.areNotificationsEnabled(context))
+        feedbackMessage = if (granted) {
+            "Benachrichtigungen sind aktiv."
+        } else {
+            "Benachrichtigungen sind aktuell aus. Du kannst sie in den Systemeinstellungen aktivieren."
+        }
+        feedbackType = if (granted) ToastType.Success else ToastType.Warning
+    }
+
     LaunchedEffect(uiState.paymentMethods) {
         stripeAccountHintDraft = uiState.paymentMethods.stripe.accountHint
         paypalAccountHintDraft = uiState.paymentMethods.paypal.accountHint
@@ -357,6 +376,24 @@ fun SettingsScreen(
         profileTaglineDraft = uiState.profileTagline
         profileBioDraft = uiState.profileBio
         profileInstagramHandleDraft = uiState.instagramHandle
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshSystemLanguage()
+        viewModel.updateNotifications(NotificationPermissionCoordinator.areNotificationsEnabled(context))
+    }
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshSystemLanguage()
+                viewModel.updateNotifications(NotificationPermissionCoordinator.areNotificationsEnabled(context))
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(uiState.paymentFeedbackMessage) {
@@ -2300,15 +2337,38 @@ fun SettingsScreen(
                     SkydownCard(contentPadding = PaddingValues(18.dp)) {
                         SectionHeader("Allgemein")
                         Text(
-                            text = "Sprache: ${uiState.language}",
+                            text = "Systemsprache: ${uiState.language}",
                             modifier = Modifier.padding(top = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                        Text(
+                            text = uiState.supportedLanguagesSummary,
+                            modifier = Modifier.padding(top = 4.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         SettingsToggleRow(
                             title = "Benachrichtigungen",
-                            body = "Push-Hinweise fuer Updates und wichtige App-Aktionen.",
+                            body = "Push-Hinweise fuer Updates und wichtige App-Aktionen. Der Schalter folgt den Systemrechten.",
                             checked = uiState.notificationsEnabled,
-                            onCheckedChange = viewModel::updateNotifications,
+                            onCheckedChange = { enabled ->
+                                if (enabled) {
+                                    if (NotificationPermissionCoordinator.areNotificationsEnabled(context)) {
+                                        viewModel.updateNotifications(true)
+                                        feedbackMessage = "Benachrichtigungen sind aktiv."
+                                        feedbackType = ToastType.Success
+                                    } else if (NotificationPermissionCoordinator.requiresRuntimePermission()) {
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        NotificationPermissionCoordinator.openNotificationSettings(context)
+                                        feedbackMessage = "Bitte aktiviere Benachrichtigungen in den Systemeinstellungen."
+                                        feedbackType = ToastType.Info
+                                    }
+                                } else {
+                                    NotificationPermissionCoordinator.openNotificationSettings(context)
+                                    feedbackMessage = "Benachrichtigungen lassen sich direkt in den Systemeinstellungen deaktivieren."
+                                    feedbackType = ToastType.Info
+                                }
+                            },
                             modifier = Modifier.padding(top = 12.dp),
                         )
                     }

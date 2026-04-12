@@ -29,10 +29,10 @@ struct SettingsView: View {
     @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
     @ObservedObject private var shopifyAdminSettingsStore = ShopifyAdminSettingsStore.shared
     @ObservedObject private var workflowAutomationSettings = WorkflowAutomationSettingsStore.shared
+    @ObservedObject private var notificationPermissionStore = NotificationPermissionStore.shared
     @Binding var colorScheme: String
 
-    @State private var language = "Deutsch"
-    @State private var notificationsEnabled = true
+    @State private var systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
 
     @State private var activeAlert: SettingsAlert?
     @State private var activePresentedSheet: SettingsPresentedSheet?
@@ -195,7 +195,7 @@ struct SettingsView: View {
                         username: authManager.userSession?.username,
                         isLoggedIn: authManager.userSession != nil,
                         isOwner: authManager.userSession?.isPlatformOwner == true,
-                        notificationsEnabled: notificationsEnabled,
+                        notificationsEnabled: notificationPermissionStore.notificationsEnabled,
                         appearance: currentAppearanceLabel
                     )
 
@@ -290,18 +290,22 @@ struct SettingsView: View {
                     SettingsSectionCard(title: "Allgemein", colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text("Sprache")
+                                Text("Systemsprache")
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
                                 Spacer()
-                                Text(language)
+                                Text(systemLanguage)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
+
+                            Text(AppLanguageSupport.supportedLanguagesSummary)
+                                .font(.footnote)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                             SettingsToggleCard(
                                 colorScheme: effectiveColorScheme,
                                 title: "Benachrichtigungen",
-                                subtitle: "Hinweise fuer Updates und wichtige App-Aktionen.",
-                                isOn: $notificationsEnabled
+                                subtitle: "Push-Hinweise fuer Updates und wichtige App-Aktionen.",
+                                isOn: notificationsToggleBinding
                             )
                         }
                     }
@@ -462,6 +466,7 @@ struct SettingsView: View {
         }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
+            systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
             syncProfileDrafts(with: authManager.userSession)
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
@@ -471,6 +476,12 @@ struct SettingsView: View {
             syncAIPromptDrafts(with: aiPromptSettingsStore.settings)
             syncAIRuntimeDrafts(with: aiRuntimeSettingsStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
+        }
+        .task {
+            await notificationPermissionStore.refresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
+            systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
         }
         .task(id: authManager.userSession?.isPlatformOwner == true) {
             guard authManager.userSession?.isPlatformOwner == true else { return }
@@ -541,6 +552,29 @@ struct SettingsView: View {
 
     private var currentAppearanceLabel: String {
         Appearance(rawValue: colorScheme)?.rawValue.capitalized ?? "System"
+    }
+
+    private var notificationsToggleBinding: Binding<Bool> {
+        Binding(
+            get: { notificationPermissionStore.notificationsEnabled },
+            set: { isEnabled in
+                Task {
+                    if isEnabled {
+                        let granted = await notificationPermissionStore.requestAuthorization()
+                        if granted {
+                            showToastMessage("Benachrichtigungen sind aktiv.", style: .success)
+                        } else {
+                            showToastMessage("Benachrichtigungen sind aus. Du kannst sie in iOS-Einstellungen aktivieren.", style: .warning)
+                            notificationPermissionStore.openSystemSettings()
+                        }
+                    } else {
+                        showToastMessage("Benachrichtigungen verwaltest du in den iOS-Einstellungen.", style: .info)
+                        notificationPermissionStore.openSystemSettings()
+                        await notificationPermissionStore.refresh()
+                    }
+                }
+            }
+        )
     }
 
     private func handleEditableImageProvider(

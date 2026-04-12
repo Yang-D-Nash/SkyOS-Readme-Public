@@ -71,6 +71,9 @@ object WorkflowAutomationPreferences {
     suspend fun triggerTest(): Result<String> {
         return runCatching {
             val userId = requireNotNull(currentUserId) { "Keine User-UID fuer n8n-Test verfuegbar." }
+            require(AppNetworkMonitor.isOnline.value) {
+                "Du bist offline. Der n8n-Test braucht eine aktive Internetverbindung."
+            }
             val result = functions
                 .getHttpsCallable("triggerWorkflowAutomation")
                 .call(

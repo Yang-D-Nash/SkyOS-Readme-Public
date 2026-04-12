@@ -27,20 +27,75 @@ struct SkydownApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LaunchScreenView()
-                .skydownTactileAction()
-                .environmentObject(services)
-                .environmentObject(services.featureFlags)
-                .environmentObject(services.authManager)
-                .environmentObject(services.cartViewModel)
-                .environmentObject(services.hostedCheckoutRedirectStore)
-                .onOpenURL { url in
-                    if services.hostedCheckoutRedirectStore.handle(url) {
-                        return
+            ZStack(alignment: .top) {
+                LaunchScreenView()
+                    .skydownTactileAction()
+                    .environmentObject(services)
+                    .environmentObject(services.featureFlags)
+                    .environmentObject(services.authManager)
+                    .environmentObject(services.cartViewModel)
+                    .environmentObject(services.hostedCheckoutRedirectStore)
+                    .environmentObject(services.networkStatusMonitor)
+                    .environmentObject(services.notificationPermissionStore)
+                    .onOpenURL { url in
+                        if services.hostedCheckoutRedirectStore.handle(url) {
+                            return
+                        }
+
+                        _ = GIDSignIn.sharedInstance.handle(url)
                     }
 
-                    _ = GIDSignIn.sharedInstance.handle(url)
+                if !services.networkStatusMonitor.isOnline {
+                    ConnectivityStatusBanner(
+                        title: "Offline",
+                        message: "Keine Verbindung. Du siehst Caches und kannst weiternavigieren."
+                    )
+                    .padding(.top, 10)
                 }
+            }
+            .animation(.spring(response: 0.35, dampingFraction: 0.86), value: services.networkStatusMonitor.isOnline)
+            .task {
+                await services.notificationPermissionStore.requestAuthorizationIfNeededOnLaunch()
+            }
         }
+    }
+}
+
+private struct ConnectivityStatusBanner: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "wifi.slash")
+                .font(.headline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.bold())
+                Text(message)
+                    .font(.caption2)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .foregroundColor(Color.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 61 / 255, green: 36 / 255, blue: 12 / 255),
+                    Color(red: 22 / 255, green: 33 / 255, blue: 48 / 255),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.white.opacity(0.16), lineWidth: 1)
+        )
+        .padding(.horizontal, 12)
     }
 }

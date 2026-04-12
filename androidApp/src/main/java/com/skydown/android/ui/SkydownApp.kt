@@ -84,11 +84,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AppNetworkMonitor
 import com.skydown.android.data.AppSessionStore
 import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
+import com.skydown.android.ui.component.ConnectivityStatusBanner
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -122,6 +124,7 @@ fun SkydownApp() {
     val isCompactLayout = rememberIsCompactAppLayout()
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
+    val isOnline by AppNetworkMonitor.isOnline.collectAsStateWithLifecycle()
     var showIntro by rememberSaveable { mutableStateOf(true) }
     var selectedEntryRoute by rememberSaveable { mutableStateOf<String?>(null) }
     var showsWorkflowWorkspace by rememberSaveable { mutableStateOf(false) }
@@ -312,85 +315,95 @@ fun SkydownApp() {
                     }
                 },
             ) { innerPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = startRoute,
-                    modifier = Modifier.padding(innerPadding),
-                ) {
-                composable("home") {
-                    HomeScreen(
-                        onOpenCart = openCart,
-                        onOpenProfile = openProfile,
-                        onOpenSettings = openSettings,
-                        onOpenWorkflow = if (hasAiAccess) {
-                            {
-                                showsWorkflowWorkspace = true
-                                navController.navigate("ai") {
-                                    launchSingleTop = true
+                Box(modifier = Modifier.fillMaxSize()) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = startRoute,
+                        modifier = Modifier.padding(innerPadding),
+                    ) {
+                    composable("home") {
+                        HomeScreen(
+                            onOpenCart = openCart,
+                            onOpenProfile = openProfile,
+                            onOpenSettings = openSettings,
+                            onOpenWorkflow = if (hasAiAccess) {
+                                {
+                                    showsWorkflowWorkspace = true
+                                    navController.navigate("ai") {
+                                        launchSingleTop = true
+                                    }
                                 }
-                            }
-                        } else {
-                            null
-                        },
-                    )
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                    composable("shop") {
+                        ShopScreen(
+                            onOpenLogin = { authSheet = AuthSheet.Login },
+                            onOpenCart = openCart,
+                            onOpenProfile = openProfile,
+                            onOpenSettings = openSettings,
+                        )
+                    }
+                    composable("music") {
+                        ZweizweiMusicLaneScreen(
+                            onOpenCart = openCart,
+                            onOpenProfile = openProfile,
+                            onOpenSettings = openSettings,
+                        )
+                    }
+                    composable("video") {
+                        VideoHubScreen(
+                            onOpenCart = openCart,
+                            onOpenProfile = openProfile,
+                            onOpenSettings = openSettings,
+                        )
+                    }
+                    composable("cart") {
+                        CartScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenLogin = { authSheet = AuthSheet.Login },
+                            onOpenProfile = openProfile,
+                            onOpenSettings = openSettings,
+                        )
+                    }
+                    composable("ai") {
+                        AiHubScreen(
+                            showsWorkflowWorkspace = showsWorkflowWorkspace,
+                            onToggleWorkflow = { showsWorkflowWorkspace = !showsWorkflowWorkspace },
+                            onHideWorkflow = { showsWorkflowWorkspace = false },
+                            onOpenLogin = { authSheet = AuthSheet.Login },
+                            onOpenCart = openCart,
+                            onOpenProfile = openProfile,
+                            onOpenSettings = openSettings,
+                        )
+                    }
+                    composable("settings") {
+                        SettingsScreen(
+                            onClose = { navController.popBackStack() },
+                            onOpenLogin = { authSheet = AuthSheet.Login },
+                            onOpenRegistration = { authSheet = AuthSheet.Registration },
+                            onOpenProfile = openProfile,
+                            onOpenOrders = { showOrders = true },
+                        )
+                    }
+                    composable("profile") {
+                        ProfileScreen(
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
                 }
-                composable("shop") {
-                    ShopScreen(
-                        onOpenLogin = { authSheet = AuthSheet.Login },
-                        onOpenCart = openCart,
-                        onOpenProfile = openProfile,
-                        onOpenSettings = openSettings,
-                    )
-                }
-                composable("music") {
-                    ZweizweiMusicLaneScreen(
-                        onOpenCart = openCart,
-                        onOpenProfile = openProfile,
-                        onOpenSettings = openSettings,
-                    )
-                }
-                composable("video") {
-                    VideoHubScreen(
-                        onOpenCart = openCart,
-                        onOpenProfile = openProfile,
-                        onOpenSettings = openSettings,
-                    )
-                }
-                composable("cart") {
-                    CartScreen(
-                        onBack = { navController.popBackStack() },
-                        onOpenLogin = { authSheet = AuthSheet.Login },
-                        onOpenProfile = openProfile,
-                        onOpenSettings = openSettings,
-                    )
-                }
-                composable("ai") {
-                    AiHubScreen(
-                        showsWorkflowWorkspace = showsWorkflowWorkspace,
-                        onToggleWorkflow = { showsWorkflowWorkspace = !showsWorkflowWorkspace },
-                        onHideWorkflow = { showsWorkflowWorkspace = false },
-                        onOpenLogin = { authSheet = AuthSheet.Login },
-                        onOpenCart = openCart,
-                        onOpenProfile = openProfile,
-                        onOpenSettings = openSettings,
-                    )
-                }
-                composable("settings") {
-                    SettingsScreen(
-                        onClose = { navController.popBackStack() },
-                        onOpenLogin = { authSheet = AuthSheet.Login },
-                        onOpenRegistration = { authSheet = AuthSheet.Registration },
-                        onOpenProfile = openProfile,
-                        onOpenOrders = { showOrders = true },
-                    )
-                }
-                composable("profile") {
-                    ProfileScreen(
-                        onBack = { navController.popBackStack() },
+
+                    ConnectivityStatusBanner(
+                        visible = !isOnline,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .padding(top = 10.dp),
                     )
                 }
             }
-        }
         }
 
         authSheet?.let { sheet ->

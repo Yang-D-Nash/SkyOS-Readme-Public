@@ -88,6 +88,15 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
     }
 
     func triggerTest(userID: String) async throws -> String {
+        let isOnline = await MainActor.run { NetworkStatusMonitor.shared.isOnline }
+        guard isOnline else {
+            throw NSError(
+                domain: "WorkflowAutomationSettingsStore",
+                code: -1009,
+                userInfo: [NSLocalizedDescriptionKey: "Du bist offline. Der n8n-Test braucht eine aktive Internetverbindung."]
+            )
+        }
+
         let result = try await functions
             .httpsCallable("triggerWorkflowAutomation")
             .call([

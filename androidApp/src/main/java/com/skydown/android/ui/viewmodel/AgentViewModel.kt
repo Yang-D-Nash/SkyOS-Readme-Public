@@ -295,6 +295,7 @@ class AgentViewModel : ViewModel() {
             else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
         }
 
-        else -> "Der Skydown x 22 Agent konnte gerade nicht antworten."
+        else -> error.message?.takeIf { it.isNotBlank() }
+            ?: "Der Skydown x 22 Agent konnte gerade nicht antworten."
     }
 }

@@ -26,6 +26,10 @@ class AgentClient {
         mode: String,
         executeAutomation: Boolean,
     ): AgentResponse {
+        if (!AppNetworkMonitor.isOnline.value) {
+            error("Du bist offline. Der Agent arbeitet wieder, sobald Internet da ist.")
+        }
+
         val payload = mapOf(
             "prompt" to prompt,
             "history" to history.map { turn ->

@@ -48,6 +48,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         mode: String,
         executeAutomation: Bool
     ) async throws -> AgentChatResponse {
+        try await ensureConnectivity()
         let payload: [String: Any] = [
             "prompt": prompt,
             "history": history.map { turn in
@@ -90,5 +91,16 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         }
 
         throw AgentServiceError.invalidResponse
+    }
+
+    private func ensureConnectivity() async throws {
+        let isOnline = await MainActor.run { NetworkStatusMonitor.shared.isOnline }
+        guard isOnline else {
+            throw NSError(
+                domain: "AgentServicing",
+                code: -1009,
+                userInfo: [NSLocalizedDescriptionKey: "Du bist offline. Der Agent arbeitet weiter, sobald wieder eine Verbindung besteht."]
+            )
+        }
     }
 }

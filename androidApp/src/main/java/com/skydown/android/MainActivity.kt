@@ -1,8 +1,10 @@
 package com.skydown.android
 
+import android.Manifest
 import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -19,6 +21,7 @@ import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.data.AiConversationHistoryStore
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.CheckoutRedirectStore
+import com.skydown.android.data.NotificationPermissionCoordinator
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.data.WorkflowAutomationPreferences
 import com.skydown.android.ui.SkydownApp
@@ -27,6 +30,12 @@ import com.skydown.android.ui.theme.SkydownTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        NotificationPermissionCoordinator.markPrompted(this)
+    }
+
     @UnstableApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +47,7 @@ class MainActivity : ComponentActivity() {
         SpotifyAuthManager.initialize(applicationContext)
         handleIncomingLink(intent?.data)
         volumeControlStream = AudioManager.STREAM_MUSIC
+        maybeRequestNotificationPermissionOnLaunch()
         lifecycleScope.launch {
             AppFeatureFlagsStore.refresh()
         }
@@ -75,5 +85,13 @@ class MainActivity : ComponentActivity() {
                 SpotifyAuthManager.handleRedirect(uri)
             }
         }
+    }
+
+    private fun maybeRequestNotificationPermissionOnLaunch() {
+        if (!NotificationPermissionCoordinator.shouldRequestOnLaunch(this)) {
+            return
+        }
+        NotificationPermissionCoordinator.markPrompted(this)
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }

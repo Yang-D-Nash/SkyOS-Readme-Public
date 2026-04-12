@@ -10,6 +10,7 @@ import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.ShopifyCollectionOption
 import com.skydown.android.data.StripeBackendSecretsStatus
 import com.skydown.android.data.WorkflowAutomationSettings
+import com.skydown.android.data.AppLanguageSupport
 import com.skydown.shared.model.User
 
 data class SettingsUiState(
@@ -22,7 +23,8 @@ data class SettingsUiState(
     val profileBio: String = "",
     val instagramHandle: String = "",
     val isOwner: Boolean = false,
-    val language: String = "Deutsch",
+    val language: String = AppLanguageSupport.currentSystemLanguageDisplayName(),
+    val supportedLanguagesSummary: String = AppLanguageSupport.supportedLanguagesSummary,
     val notificationsEnabled: Boolean = true,
     val colorScheme: AppearanceMode = AppearanceMode.System,
     val appVersion: String = "1.0 (16)",

@@ -15,6 +15,10 @@ class AiImageClient(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) {
     suspend fun generateVisual(prompt: String): AiGeneratedVisualResult {
+        if (!AppNetworkMonitor.isOnline.value) {
+            error("Du bist offline. Visuals lassen sich wieder erzeugen, sobald Internet da ist.")
+        }
+
         val result = functions
             .getHttpsCallable("generateAiVisual")
             .call(mapOf("prompt" to prompt))

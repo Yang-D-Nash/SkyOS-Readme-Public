@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppearancePreferences
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
+import com.skydown.android.data.AppLanguageSupport
 import com.skydown.android.data.BankTransferSettings
 import com.skydown.android.data.CommerceSettings
 import com.skydown.android.data.PaymentMethodsSettings
@@ -45,6 +46,13 @@ class SettingsViewModel : ViewModel() {
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        _uiState.update {
+            it.copy(
+                language = AppLanguageSupport.currentSystemLanguageDisplayName(),
+                supportedLanguagesSummary = AppLanguageSupport.supportedLanguagesSummary,
+            )
+        }
+
         viewModelScope.launch {
             AppContainer.currentUser.collect { user ->
                 val isOwner = user?.isPlatformOwner == true
@@ -150,6 +158,12 @@ class SettingsViewModel : ViewModel() {
 
     fun updateNotifications(enabled: Boolean) {
         _uiState.update { it.copy(notificationsEnabled = enabled) }
+    }
+
+    fun refreshSystemLanguage() {
+        _uiState.update {
+            it.copy(language = AppLanguageSupport.currentSystemLanguageDisplayName())
+        }
     }
 
     fun updateColorScheme(colorScheme: AppearanceMode) {

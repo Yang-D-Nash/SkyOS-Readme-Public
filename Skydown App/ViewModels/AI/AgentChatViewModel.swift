@@ -272,6 +272,10 @@ final class AgentChatViewModel: ObservableObject {
     private func userFacingErrorMessage(for error: Error) -> String {
         let nsError = error as NSError
 
+        if nsError.code == NSURLErrorNotConnectedToInternet || nsError.code == -1009 {
+            return "Du bist offline. Der Agent wird wieder verfuegbar, sobald Internet da ist."
+        }
+
         if nsError.domain == FunctionsErrorDomain,
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
@@ -292,6 +296,10 @@ final class AgentChatViewModel: ObservableObject {
             default:
                 break
             }
+        }
+
+        if !nsError.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return nsError.localizedDescription
         }
 
         return "Der Skydown x 22 Agent konnte gerade nicht antworten."
