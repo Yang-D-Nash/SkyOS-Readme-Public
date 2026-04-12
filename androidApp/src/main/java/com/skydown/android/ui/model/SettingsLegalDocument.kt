@@ -3,6 +3,7 @@ package com.skydown.android.ui.model
 import com.skydown.android.data.LegalContentSettings
 
 enum class SettingsLegalDocumentType {
+    ReadmeGuide,
     PrivacyPolicy,
     TermsAndConditions,
     TermsOfService,
@@ -32,6 +33,42 @@ fun SettingsLegalDocumentType.resolve(
     val imprintReference = legalContent.resolvedImprintReference
 
     return when (this) {
+        SettingsLegalDocumentType.ReadmeGuide -> SettingsLegalDocument(
+            title = "README / App Guide",
+            updatedAt = lastUpdatedLabel,
+            introduction = "Dieser Guide hilft dir beim schnellen Einstieg in $brandName. Du findest hier die wichtigsten Flows fuer Rollen, KI, Agenten, Workflows, Content und Support.",
+            sections = listOf(
+                SettingsLegalSection(
+                    title = "1. Schnellstart",
+                    body = "Konto erstellen oder einloggen, Profil mit Bild/Bio vervollstaendigen und danach Home, Music, Video, Shop und AI Schritt fuer Schritt nutzen.",
+                ),
+                SettingsLegalSection(
+                    title = "2. Rollen",
+                    body = "Owner verwaltet Systemfunktionen wie Rollen, Limits, Rechtliches und Runtime-Konfigurationen. Admin/Subadmin arbeiten in freigegebenen Bereichen. User nutzen die App inklusive KI innerhalb der zugewiesenen Kontingente.",
+                ),
+                SettingsLegalSection(
+                    title = "3. KI Bot",
+                    body = "Der Bot unterstuetzt bei Text- und Visual-Workflows, z. B. Captions, Hooks, Konzepte und Creative-Richtungen. Ergebnisse sollten vor produktiver Nutzung immer geprueft werden.",
+                ),
+                SettingsLegalSection(
+                    title = "4. Agent und Workflow-Trigger",
+                    body = "Der Agent ist fuer umsetzungsorientierte Aufgaben gedacht und kann optional eigene Workflow-Services (z. B. n8n/Webhook) triggern. Bei externen Services koennen je nach Setup eigene API-Kosten entstehen.",
+                ),
+                SettingsLegalSection(
+                    title = "5. Kostenkontrolle",
+                    body = "Kontingente, Hard Caps und globale Tageslimits helfen, Kostenrisiken zu begrenzen. Aktionen werden bei deaktiviertem Zugriff oder ueberschrittenen Limits blockiert.",
+                ),
+                SettingsLegalSection(
+                    title = "6. Content und Commerce",
+                    body = "Music/Video decken Releases, Artist-Pages und Collabo-Inhalte ab. Shop und Checkout basieren auf den aktivierten Commerce- und Zahlungs-Setups.",
+                ),
+                SettingsLegalSection(
+                    title = "7. Rechtliches und Support",
+                    body = "Aktuelle AGB, Datenschutz und Nutzungsbedingungen sind direkt in den Einstellungen abrufbar. Betreiber ist voruebergehend $operatorName. $imprintReference",
+                ),
+            ),
+            contactEmail = supportEmail,
+        )
         SettingsLegalDocumentType.PrivacyPolicy -> SettingsLegalDocument(
             title = "Datenschutzbestimmungen",
             updatedAt = lastUpdatedLabel,

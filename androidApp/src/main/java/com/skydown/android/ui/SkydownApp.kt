@@ -283,6 +283,14 @@ fun SkydownApp() {
                                         NavigationBarItem(
                                             selected = isSelected,
                                             onClick = {
+                                                if (currentDestination?.route == "settings") {
+                                                    navController.popBackStack()
+                                                }
+
+                                                if (navController.currentDestination?.route == destination.route) {
+                                                    return@NavigationBarItem
+                                                }
+
                                                 navController.navigate(destination.route) {
                                                     popUpTo(navController.graph.findStartDestination().id) {
                                                         saveState = true

@@ -2642,11 +2642,22 @@ fun SettingsScreen(
                         )
                         OutlinedButton(
                             onClick = {
-                                activeLegalDocument.value = SettingsLegalDocumentType.TermsAndConditions
+                                activeLegalDocument.value = SettingsLegalDocumentType.ReadmeGuide
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("README / App Guide")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                activeLegalDocument.value = SettingsLegalDocumentType.TermsAndConditions
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
                             Text("AGB")
@@ -2700,7 +2711,7 @@ fun SettingsScreen(
                             Text("Support-Anfrage senden")
                         }
                         Text(
-                            text = "Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.",
+                            text = "README, Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.",
                             modifier = Modifier.padding(top = 10.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )

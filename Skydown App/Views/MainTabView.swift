@@ -126,7 +126,7 @@ struct MainTabView: View {
     }
 
     private var rootTabView: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: selectedTabBinding) {
             Group {
                 DeferredView {
                     ShopView(
@@ -192,6 +192,18 @@ struct MainTabView: View {
             }
             .skydownTabBarChrome(colorScheme: currentScheme)
         }
+    }
+
+    private var selectedTabBinding: Binding<MainTab> {
+        Binding(
+            get: { selectedTab },
+            set: { newTab in
+                selectedTab = newTab
+                if activeModal == .settings {
+                    activeModal = nil
+                }
+            }
+        )
     }
 
     private var desktopAccessoryPresented: Binding<Bool> {

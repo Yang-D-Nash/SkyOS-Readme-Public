@@ -179,4 +179,52 @@ enum LegalTextTemplateFactory {
         Vertragspartner und Betreiber ist voruebergehend \(operatorName). Fragen zu diesen Bedingungen koennen an \(supportEmail) gerichtet werden.
         """
     }
+
+    static func appGuide(using settings: LegalContentSettings) -> String {
+        let brand = settings.resolvedBrandName
+        let operatorName = settings.resolvedOperatorName
+        let supportEmail = settings.resolvedSupportEmail
+        let updatedAt = settings.resolvedLastUpdatedLabel
+
+        return """
+        README / App Guide fuer \(brand)
+
+        Zuletzt aktualisiert: \(updatedAt)
+
+        Dieser Guide gibt dir einen schnellen und praxisnahen Einstieg in die App.
+
+        1. Schnellstart
+        - Konto erstellen oder einloggen
+        - Profil mit Bild, Bio und Links vervollstaendigen
+        - Home, Music, Video, Shop und AI als Kernmodule nutzen
+
+        2. Rollen im System
+        - Owner: volle Steuerung (Rollen, Limits, Einstellungen, Rechtliches)
+        - Admin/Subadmin: operative Bereiche je nach Freigabe
+        - User: eigenes Profil, eigene Inhalte, KI innerhalb der freigegebenen Kontingente
+
+        3. KI Bot nutzen
+        - Text-Modus: Caption-Ideen, Hooks, Konzepte, Copy
+        - Visual-Modus: Key-Visual-Ideen und Creative-Richtungen
+        - KI-Ausgaben immer vor verbindlicher Nutzung pruefen
+
+        4. Agent und Workflows
+        - Agent dient fuer umsetzungsorientierte Aufgaben statt nur Chat-Antworten
+        - Optional kannst du eigene Workflow-Dienste (z. B. n8n/Webhook) hinterlegen
+        - Je nach Setup koennen externe Services und eigene API-Kosten entstehen
+
+        5. Kostenkontrolle
+        - Kontingente, Hard Caps und globale Tageslimits begrenzen das Risiko
+        - Bei deaktiviertem Zugriff oder erreichten Limits werden Aktionen blockiert
+
+        6. Content und Commerce
+        - Music/Video fuer Releases, Artist-Pages und Collabo-Inhalte
+        - Shop fuer Merchandise und Checkout-Faelle gemaess aktivierter Zahlarten
+
+        7. Support und Troubleshooting
+        - Bei Login-, Rollen- oder Upload-Problemen App neu anmelden und Rechte pruefen
+        - Fuer Hilfe: \(supportEmail)
+        - Betreiber der App ist voruebergehend \(operatorName)
+        """
+    }
 }

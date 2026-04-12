@@ -355,6 +355,11 @@ struct SettingsView: View {
                                 .font(.headline)
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
+                            Button("README / App Guide") {
+                                presentSheet(.appGuide)
+                            }
+                            .buttonStyle(.bordered)
+
                             Button("AGB") {
                                 presentSheet(.termsAndConditions)
                             }
@@ -463,7 +468,7 @@ struct SettingsView: View {
                                 }
                             }
 
-                            Text("Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.")
+                            Text("README, Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.")
                                 .font(.footnote)
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                         }
@@ -2247,6 +2252,8 @@ struct SettingsView: View {
                 authManager: authManager,
                 startsInEditMode: true
             )
+        case .appGuide:
+            PolicyView(title: "README / App Guide", text: legalContentStore.settings.appGuideText)
         case .termsAndConditions:
             PolicyView(title: "AGB", text: legalContentStore.settings.termsAndConditionsText)
         case .privacyPolicy:
@@ -4463,6 +4470,7 @@ private enum SettingsPresentedSheet: Identifiable, Equatable {
     case registration
     case orders
     case profileEditor
+    case appGuide
     case termsAndConditions
     case privacyPolicy
     case termsOfService
@@ -4480,6 +4488,8 @@ private enum SettingsPresentedSheet: Identifiable, Equatable {
             return "orders"
         case .profileEditor:
             return "profileEditor"
+        case .appGuide:
+            return "appGuide"
         case .termsAndConditions:
             return "termsAndConditions"
         case .privacyPolicy:

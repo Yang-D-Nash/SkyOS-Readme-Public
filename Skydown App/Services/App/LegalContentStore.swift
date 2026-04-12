@@ -46,6 +46,10 @@ struct LegalContentSettings: Codable, Equatable {
     var termsOfServiceText: String {
         LegalTextTemplateFactory.termsOfService(using: self)
     }
+
+    var appGuideText: String {
+        LegalTextTemplateFactory.appGuide(using: self)
+    }
 }
 
 protocol LegalContentServicing {
