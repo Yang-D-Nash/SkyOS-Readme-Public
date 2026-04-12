@@ -58,14 +58,17 @@ fun RegistrationScreen(
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
-        if (result.resultCode != Activity.RESULT_OK) {
+        val intentData = result.data
+        if (intentData == null && result.resultCode != Activity.RESULT_OK) {
             googleClient.signOut()
-            viewModel.onGoogleSignInCancelled()
+            viewModel.onGoogleSignInCancelled(
+                readableGoogleFallbackForActivityResult(result.resultCode)
+            )
             return@rememberLauncherForActivityResult
         }
 
         try {
-            val account = GoogleSignInManager.accountFromIntent(result.data)
+            val account = GoogleSignInManager.accountFromIntent(intentData)
             val idToken = account.idToken
 
             if (idToken.isNullOrBlank()) {

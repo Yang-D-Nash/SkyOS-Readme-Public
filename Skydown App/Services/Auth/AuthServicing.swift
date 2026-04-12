@@ -47,6 +47,9 @@ enum AuthServiceError: LocalizedError {
 }
 
 final class FirebaseAuthService: AuthServicing {
+    private static let claimsSyncCooldown: TimeInterval = 60 * 60
+    private static let claimsSyncTimestampKeyPrefix = "skydown.auth.claimsSync.lastAttempt."
+
     private let auth: Auth
     private let firestore: Firestore
     private let functions: Functions
@@ -477,7 +480,7 @@ final class FirebaseAuthService: AuthServicing {
             instagramHandle: (data["instagramHandle"] as? String)?.trimmedNilIfEmpty,
             whatsApp: (data["whatsApp"] as? String)?.trimmedNilIfEmpty
         )
-        await syncSessionClaimsIfPossible(for: authUser)
+        scheduleSessionClaimsSyncIfNeeded(for: authUser)
     }
 
     private func currentSessionUser(for firebaseUser: FirebaseAuth.User) async -> User {
@@ -491,11 +494,17 @@ final class FirebaseAuthService: AuthServicing {
 
     private func refreshAuthToken(for authUser: FirebaseAuth.User) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let resumeGate = ContinuationResumeGate()
+
             authUser.getIDTokenForcingRefresh(true) { _, error in
                 if let error {
-                    continuation.resume(throwing: error)
+                    resumeGate.resume {
+                        continuation.resume(throwing: error)
+                    }
                 } else {
-                    continuation.resume(returning: ())
+                    resumeGate.resume {
+                        continuation.resume(returning: ())
+                    }
                 }
             }
         }
@@ -528,6 +537,21 @@ final class FirebaseAuthService: AuthServicing {
             try await syncSessionClaims(for: authUser)
         } catch {
             print("Dev Hinweis: Session Claims konnten nicht synchronisiert werden: \(error.localizedDescription)")
+        }
+    }
+
+    private func scheduleSessionClaimsSyncIfNeeded(for authUser: FirebaseAuth.User) {
+        let cacheKey = Self.claimsSyncTimestampKeyPrefix + authUser.uid
+        let now = Date().timeIntervalSince1970
+        let lastAttempt = UserDefaults.standard.double(forKey: cacheKey)
+        guard now - lastAttempt >= Self.claimsSyncCooldown else { return }
+        UserDefaults.standard.set(now, forKey: cacheKey)
+
+        let expectedUID = authUser.uid
+        Task { [weak self] in
+            guard let self else { return }
+            guard let currentUser = self.auth.currentUser, currentUser.uid == expectedUID else { return }
+            await self.syncSessionClaimsIfPossible(for: currentUser)
         }
     }
 
@@ -735,26 +759,48 @@ extension Functions {
         payload: Any = [:]
     ) async throws -> HTTPSCallableResult {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<HTTPSCallableResult, Error>) in
+            let resumeGate = ContinuationResumeGate()
+
             httpsCallable(functionName).call(payload) { result, error in
                 if let error {
-                    continuation.resume(throwing: error)
+                    resumeGate.resume {
+                        continuation.resume(throwing: error)
+                    }
                     return
                 }
 
                 guard let result else {
-                    continuation.resume(
-                        throwing: NSError(
+                    resumeGate.resume {
+                        continuation.resume(
+                            throwing: NSError(
                             domain: "FirebaseFunctions",
                             code: -1,
                             userInfo: [NSLocalizedDescriptionKey: "Cloud Function \(functionName) lieferte kein Ergebnis."]
                         )
-                    )
+                        )
+                    }
                     return
                 }
 
-                continuation.resume(returning: result)
+                resumeGate.resume {
+                    continuation.resume(returning: result)
+                }
             }
         }
+    }
+}
+
+private final class ContinuationResumeGate {
+    private let lock = NSLock()
+    private var hasResumed = false
+
+    func resume(_ block: () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard !hasResumed else { return }
+        hasResumed = true
+        block()
     }
 }
 
