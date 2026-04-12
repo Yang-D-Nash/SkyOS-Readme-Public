@@ -4,521 +4,256 @@
 | --- | --- | --- |
 | ![22 Logo](<Skydown App/Assets.xcassets/ZweizweiBrandLogo.imageset/zweizwei-logo.png>) | ![Skydown x 22](<Skydown App/Assets.xcassets/SkydownX22BrandLogo.imageset/skydown-x22-logo.png>) | ![Skydown](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
 
-Sky²² ist die gemeinsame App fuer `ZweiZwei`, `Skydown` und `Skydown x 22`.
+Sky²² ist die gemeinsame Creator-Plattform fuer `Skydown`, `ZweiZwei` und `Skydown x 22`.
+Die App verbindet Brand, Content, Commerce und KI in einem einzigen Produkt fuer Artists, Teams und Community.
 
-Die App vereint:
-
-- `Music`
-- `Video`
-- `Merch`
-- `AI Tools`
-- `Profile`
-
-Der Stand in diesem Repository ist auf einen harten, testfaehigen `Stand 1` fuer mindestens `100 Tester` ausgelegt.
+Stand: `Release Candidate` fuer produktive Tests und Rollout-Vorbereitung.
 
 ---
 
-## 1. Schnellstart
+## 1) Unternehmen und Marken
 
-### Android Release Signing
+### Skydown Entertainment
 
-Fuer eine echte Android-Release-Distribution braucht das Projekt ein lokales
-`keystore.properties` im Repo-Root. Dafuer:
+- Creative/Artist-Brand mit Fokus auf Musik, Video, Storytelling und Release-Execution.
+- Operative Heimat fuer Content-Produktion, Drops und Community-Kommunikation.
 
-1. `keystore.properties.example` nach `keystore.properties` kopieren
-2. den Pfad zum Release-Keystore und die Passwoerter eintragen
-3. alternativ dieselben Werte ueber Umgebungsvariablen setzen:
+### ZweiZwei (22)
+
+- Brand-Partner im Sky²²-Universum.
+- Zusammenarbeit mit Skydown in Content, Releases und Kampagnen.
+
+### Nicma (NICMA MUSIC)
+
+- Producer-/Studio-Brand innerhalb des Universums.
+- Fokus auf Beat- und Studio-Services inkl. Artist-Seiten, Kontakt und Angebotsdarstellung.
+
+### Warum diese App
+
+- Ein zentraler Ort fuer Artist-Auftritt, Releases, Clips, Shop und KI-Workflows.
+- Rollenbasiertes Arbeiten mit klarer Trennung zwischen Owner, Team und Usern.
+- Nutzbar als Plattform fuer Content-Teams und als Tool fuer einzelne Creator.
+
+---
+
+## 2) Produktueberblick
+
+Die App ist ein `Brand + Creator Operating System` mit diesen Bereichen:
+
+- `Home`: Einstieg, Highlights, direkte Navigation in alle Module.
+- `Music`: Releases, Artists, Beat-Hub, Nicma/Studiobereich.
+- `Video`: Video-Hub, Collabo-Inhalte, kuratierte Visual-Flows.
+- `Merch`: Shopify-basierter Katalog mit In-App Checkout-Flow.
+- `AI`: Bot (Text/Visual) plus Agent fuer umsetzungsorientierte Aufgaben.
+- `Profile`: eigenes Profil, Galerie, Uploads und Personalisierung.
+
+---
+
+## 3) Rollen und Rechte
+
+Fester Owner im System:
+
+- `nash.lioncorna@gmail.com`
+
+### Rollenmatrix (fachlich)
+
+| Rolle | Zweck | Darf | Darf nicht |
+| --- | --- | --- | --- |
+| `owner` | Plattformleitung | Rollen vergeben, KI-Limits verwalten, Shopify/Payments, Runtime-Lockdown, zentrale KI/Automation-Settings | - |
+| `admin` | internes Team | zugewiesene operative Bereiche (Music/Video/Profile) | keine Owner-Root-Aktionen |
+| `subadmin` | Creator-/Power-User | hoehere Kontingente, eigene Nutzung | keine System-Root-Rechte |
+| `user` | Standardnutzer | Profil, Galerie, Bot/Agent innerhalb Limits, eigener Workflow-Service | keine Team-/Root-Funktionen |
+| `gast` | ohne Login | Lesen/Nutzen oeffentlicher Teile | keine persistente Account-Funktion |
+
+### Rollenvergabe (technisch)
+
+- Rollenwechsel passiert serverseitig ueber `setUserRole` (Cloud Function), nur fuer Owner.
+- User-Dokumente werden beim Auth-Create automatisiert gebootstrapped.
+- Owner kann pro Konto zusaetzlich Rechte und KI-Kontingente setzen.
+
+---
+
+## 4) KI und Agent im Produkt
+
+### KI-Komponenten
+
+- `Bot`: schnelle Text-/Visual-Outputs fuer Captions, Hooks, Copy und Key-Visual-Ideen.
+- `Agent`: umsetzungsorientierte Antworten inkl. strukturierter Next Steps.
+
+### Provider und Betrieb
+
+- Serverseitiger Agent-Provider ist konfigurierbar (`Gemini` / `Manus` via Runtime Settings).
+- Optional kann jeder User `Manus BYOS` aktivieren:
+  - iOS: lokaler Key im Keychain.
+  - Android: lokaler, verschluesselter Key (Android Keystore).
+- Ohne BYOS nutzt der Agent die Backend-Konfiguration.
+
+### Kosten- und Abuse-Schutz
+
+- Tägliche Limits pro Konto (Text, Visual, Agent) sind serverseitig enforced.
+- Hard Caps und Global Caps liegen in Runtime-Settings.
+- Budget-Lockdown kann Writes/Uploads/Registrierungen zentral schalten.
+
+---
+
+## 5) Workflow Automation (n8n) pro User
+
+Sky²² nutzt `BYOS strict` fuer Workflows:
+
+- Jeder Account arbeitet nur mit seiner eigenen Konfiguration:
+  - `adminConfig/automationN8n_<uid>`
+- Optionales persoenliches Agent-Profil:
+  - `adminConfig/agentProfile_<uid>`
+
+### Was beim Trigger passiert
+
+Wenn ein User einen Workflow-Test oder Agent-Flow triggert:
+
+1. Die App ruft eine auth-geschuetzte Cloud Function auf.
+2. Backend laedt nur die persoenliche Workflow-Konfiguration dieses Users.
+3. Bei gueltigem Setup wird ein `POST` an die n8n-Webhook-URL gesendet.
+4. Payload enthaelt u. a. `trigger`, `source`, `timestamp`, `data`, optional `user`.
+5. Erfolg/Fehler wird direkt als Meldung an die App zurueckgegeben.
+
+### Erforderliche Felder im User-Setup
+
+- `n8n aktiv`
+- `Base URL`
+- `Webhook Path`
+- optional: `Auth Header Name/Value`
+- optional: `Knowledge-Kontext`
+
+---
+
+## 6) Anwender-Anleitung pro Rolle
+
+### 6.1 Owner (Plattformbetrieb)
+
+Ziel: Systemfuehrung, Teamsteuerung, Business- und Risiko-Kontrolle.
+
+Standardablauf:
+
+1. `Settings > Owner` oeffnen.
+2. Unter `Users` Rollen und KI-Limits pro Konto setzen.
+3. Unter `Shopify / Payments / Commerce` Store und Zahlung konfigurieren.
+4. Unter `AI Prompts` globale Bot-/Visual-/Agent-Anweisungen pflegen.
+5. Unter `AI Runtime` Provider, Manus-Flags und Caps steuern.
+6. Bei Bedarf `Runtime Lockdown` aktivieren/deaktivieren.
+
+### 6.2 Admin (operatives Team)
+
+Ziel: Content- und Moderationsarbeit in freigegebenen Bereichen.
+
+Typische Aufgaben:
+
+- Music- und Video-Inhalte pflegen.
+- Profile moderieren (falls freigeschaltet).
+- Artist-/Hub-Inhalte in den zugewiesenen Bereichen bearbeiten.
+
+Nicht vorgesehen:
+
+- Rollenvergabe.
+- Owner-Commerce-Root.
+- Runtime-Lockdown.
+
+### 6.3 Subadmin / Creator
+
+Ziel: intensivere produktive Nutzung mit hoeheren Kontingenten.
+
+Typische Nutzung:
+
+- Content mit Bot/Agent erstellen.
+- eigenen Workflow-Service verbinden.
+- persoenliches Agent-Profil mit Skills/Guardrails pflegen.
+
+### 6.4 User (Standardkonto)
+
+Ziel: taegliche App-Nutzung fuer Content, Profil und KI.
+
+Schnellstart:
+
+1. Konto registrieren / einloggen.
+2. Profilbild, Bio und Galerie pflegen.
+3. Bot fuer Text/Visual nutzen.
+4. Agent fuer konkrete Aufgaben nutzen.
+5. Optional eigenen n8n-Webhook in Settings hinterlegen.
+6. Optional eigenen Manus-Key lokal aktivieren.
+
+### 6.5 Gast
+
+- App kann ohne Login erkundet werden.
+- Keine persistente KI-/Profil-/Workflow-Funktion.
+
+---
+
+## 7) UX, Sprache, Offline und Feedback
+
+### UX-Feedback
+
+- In der App sind uebergreifend Toast-/Status-Meldungen fuer Aktionen integriert.
+- Ziel ist klare Rueckmeldung bei Erfolg, Fehler und Pending-Zustaenden.
+
+### Sprache
+
+- Systemsprachbasiert mit 10 hinterlegten Sprachen:
+  - `DE, EN, ES, FR, IT, PT, NL, PL, TR, JA`
+
+### Offline-Verhalten
+
+- Offline-Banner und Cache-Hinweise sind integriert.
+- Wichtige Bereiche zeigen gecachte Inhalte weiter an, wenn moeglich.
+- Agent-Requests koennen bei Offline-Szenarien zwischengespeichert und spaeter gesendet werden.
+
+### Notifications
+
+- Notification-Berechtigungen sind in der App integriert (plattformabhaengig).
+- Nutzer koennen Benachrichtigungen ueber Settings verwalten.
+
+---
+
+## 8) Setup fuer Entwickler
+
+### 8.1 Voraussetzungen
+
+- Xcode (iOS Build)
+- Android Studio / JDK (Android Build)
+- Node.js + npm (Functions)
+- Firebase CLI
+
+### 8.2 Android Release Signing
+
+Fuer echte Android-Release-Builds:
+
+1. `keystore.properties.example` nach `keystore.properties` kopieren.
+2. Keystore-Pfad und Passwoerter eintragen.
+3. Alternativ per ENV:
    - `SKYDOWN_UPLOAD_STORE_FILE`
    - `SKYDOWN_UPLOAD_STORE_PASSWORD`
    - `SKYDOWN_UPLOAD_KEY_ALIAS`
    - `SKYDOWN_UPLOAD_KEY_PASSWORD`
 
-Ohne Release-Credentials bricht ein echter Android-`release`-Build jetzt
-bewusst mit einer klaren Fehlermeldung ab. Fuer lokale Smoke-Tests ohne
-Store-Upload kannst du den Fallback explizit aktivieren:
+Optionaler lokaler Fallback (nur fuer Smoke Tests):
 
-`./gradlew :androidApp:assembleRelease -PallowDebugReleaseSigning=true`
-
-Mit gesetztem Keystore wird derselbe `release`-Build automatisch korrekt
-signiert.
-
-### Was die App fuer Nutzer ist
-
-Die App ist kein klassischer Shop und kein reiner Musikplayer.
-
-Sie ist ein gemeinsamer Brand-Hub fuer:
-
-- Releases und Artists
-- Video- und Reel-Content
-- In-App-Merch mit eigenem Checkout
-- KI-Tools mit persoenlicher History
-- persoenliche Profile mit Galerie
-
-### Die Hauptbereiche
-
-#### Home
-
-- zeigt den aktuell wichtigsten Release
-- zeigt Beat- und Video-Highlights
-- fuehrt direkt in Music, Video, Shop und Tools
-
-#### Music
-
-- Releases
-- Artists
-- Beat Hub
-- Studio / Nicma
-
-#### Videos
-
-- Video Hub
-- YouTube-Inhalte in der App
-- Skydown- und Collab-Content
-
-#### Merch
-
-- Produkte kommen aus Shopify
-- Checkout bleibt in der App
-- Versandkosten werden in der App berechnet
-
-#### Tools
-
-- chat-first KI-Bereich
-- persoenliche Bot-/Agent-History pro User
-- Limits pro Account
-
-#### Profil
-
-- Username
-- Bio
-- Profilbild
-- Galerie fuer Bilder, Videos und Sounds
-
----
-
-## 2. Rollenmodell
-
-### Owner
-
-Fester Owner dieser App ist:
-
-- `nash.lioncorna@gmail.com`
-
-Der Owner hat alleinige Kontrolle ueber:
-
-- Shopify
-- Zahlarten
-- Versand/Commerce
-- Rollen und Nutzerverwaltung
-- n8n / Automation
-- Runtime-Lockdown und Recovery
-- sensible Firebase- und Systembereiche
-
-Kurz gesagt:
-
-- `Owner darf alles`
-
-### Admin
-
-Admins sind teaminterne Leute.
-
-Admins bekommen **keine** pauschalen Root-Rechte.
-Der Owner weist ihnen gezielt Funktionen zu.
-
-Aktuell zuweisbare Funktionsbereiche:
-
-- `Music verwalten`
-- `Video verwalten`
-- `Profile moderieren`
-
-Admins haben **keinen** Zugriff auf:
-
-- Shopify-Root-Konfiguration
-- Zahlarten
-- Owner-Rollenlogik
-- n8n-Root-Konfiguration
-- Recovery-/Lockdown-Steuerung
-
-### Subadmin
-
-Subadmins sind keine internen Root-Admins mehr.
-
-Sie stehen fuer externe Premium-/Power-Accounts mit groesserem Kontingent.
-
-Subadmins bekommen:
-
-- persoenliche Nutzung
-- groessere KI-Kontingente
-- laengere History
-
-Subadmins bekommen **nicht**:
-
-- Owner-Rechte
-- System-Settings
-- operative Admin-Bereiche
-
-Aktuelle Kontingentmodelle fuer Subadmins:
-
-- `Creator`
-- `Studio`
-
-### User
-
-Normale User haben:
-
-- persoenliches Konto
-- Free-Kontingent
-- Profil und Galerie
-- persoenliche KI-History
-
-### Gast
-
-Nicht eingeloggte Leute sind zusaetzlich ein eigener Gast-Zustand.
-
-Sie haben:
-
-- keinen persistenten Account
-- keine persoenliche Cloud-History
-- keine Profilbearbeitung
-
----
-
-## 3. Kontingente
-
-### Aktuelle Modelle
-
-| Modell | Ziel | Bot/Tag | Visuals/Tag | Agent/Tag | History |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `Owner Unlimited` | Owner | 5000 | 1200 | 3000 | 30 Tage |
-| `Internal Team` | interne Admins | 240 | 40 | 140 | 30 Tage |
-| `Free` | normale User | 30 | 4 | 18 | 3 Tage |
-| `Creator` | Premium / Subadmin | 120 | 20 | 70 | 7 Tage |
-| `Studio` | groesseres Premium-Modell | 240 | 40 | 140 | 30 Tage |
-
-### Wichtige Logik
-
-- Owner bleibt praktisch unlimitiert fuer Betrieb und Tests.
-- Admins bekommen ihre Funktion ueber Toggles, nicht ueber pauschale Vollmacht.
-- User haben standardmaessig `Free`.
-- Subadmins koennen auf `Creator` oder `Studio` gesetzt werden.
-- Die Limits liegen serverseitig und sind nicht nur UI.
-
----
-
-## 4. Fuer Nash / Owner
-
-### Was du direkt steuerst
-
-In der App bist du als Owner die zentrale Root-Instanz.
-
-Du steuerst:
-
-- `Settings > Owner`
-- `Settings > Users`
-- `Settings > Shopify`
-- `Settings > Payments`
-- `Settings > Commerce`
-- `Settings > Automation`
-
-### Was nur du tun sollst
-
-- Shopify Domain / Token / Collection pflegen
-- Zahlarten aktivieren oder aendern
-- Store oeffnen oder pausieren
-- Rollen vergeben
-- Admin-Funktionen zuweisen
-- Subadmin-Kontingente vergeben
-- Lockdown schalten
-- n8n verbinden
-
-### Owner-Release-Check
-
-Vor einem Test- oder Release-Run:
-
-1. Android Debug-Build bauen
-2. iOS Build bauen
-3. Functions Syntax pruefen
-4. Rule-Tests laufen lassen
-5. Shopify Sync pruefen
-6. Tools / Profile / Uploads testen
-7. `system/runtimeConfig` pruefen
-
----
-
-## 5. Fuer Admins
-
-Admins sind fuer operative Bereiche da, nicht fuer System-Root.
-
-### Typische Aufgaben
-
-- Music/Beat-Inhalte pflegen
-- Video-Inhalte pflegen
-- Profile moderieren
-- Backoffice innerhalb zugewiesener Bereiche
-
-### Typische Nicht-Aufgaben
-
-- keine Owner-Rollen vergeben
-- keine Shopify-Root-Daten aendern
-- keine Zahlungsarten aendern
-- keine Lockdown-Steuerung
-- kein n8n-Root-Setup
-
----
-
-## 6. Fuer Subadmins und User
-
-### Subadmins
-
-Subadmins sind externe Premium-Accounts.
-
-Sie koennen je nach zugewiesenem Modell:
-
-- mehr KI nutzen
-- laengere History bekommen
-- persoenlicher arbeiten
-
-### User
-
-User starten auf:
-
-- `Free`
-
-Sie koennen:
-
-- Profil pflegen
-- Galerie aufbauen
-- Musik/Video/Merch nutzen
-- Tools mit Free-Limits nutzen
-
----
-
-## 7. Technischer Aufbau
-
-### Frontends
-
-- `iOS`: SwiftUI
-- `Android`: Jetpack Compose
-- `shared`: Kotlin Multiplatform fuer gemeinsame Modelle/Use Cases
-
-### Backend
-
-- Firebase Auth
-- Cloud Firestore
-- Cloud Storage
-- Cloud Functions
-
-### Wichtige Integrationen
-
-- Shopify fuer Produkt-/Variantenquelle
-- PODpartner fuer Produktion / Fulfillment
-- Spotify
-- YouTube
-- Instagram
-- n8n
-
-### Projektstruktur
-
-- `Skydown App/` = iOS App
-- `androidApp/` = Android App
-- `shared/` = gemeinsame Modelle / Services / Use Cases
-- `functions/` = Firebase Functions
-- `firestore.rules` = Firestore Security Rules
-- `storage.rules` = Storage Security Rules
-
----
-
-## 8. Firebase Security und Cost Control
-
-### Ziel
-
-Die Testumgebung ist absichtlich defensiv gebaut, damit bis zu `100 Tester` moeglich sind, ohne lockere Demo-Loesungen und ohne offenes Kostenrisiko.
-
-### Bereits gehaertet
-
-- `deny by default` fuer Firestore
-- `deny by default` fuer Storage
-- App Check vorbereitet fuer iOS und Android
-- Upload-Slot-Flow fuer Profil/Galerie
-- Upload-Limits
-- Runtime-Lockdown
-- serverseitige KI-Limits
-- Owner-only Root-Bereiche
-
-### Wichtige Standardwerte
-
-- `App Check Mode`: `monitor`
-- `lockdown`: `false`
-- `uploadsEnabled`: `true`
-- `registrationsEnabled`: `true`
-- `userWritesEnabled`: `true`
-- `maxGalleryImagesPerUser`: `10`
-- `maxUploadsPer24Hours`: `20`
-- `maxImageBytes`: `5 MB`
-- erlaubte Bildtypen:
-  - `image/jpeg`
-  - `image/png`
-  - `image/webp`
-
-### Runtime Config
-
-Dokument:
-
-- `system/runtimeConfig`
-
-Empfohlener Start:
-
-```json
-{
-  "lockdown": false,
-  "uploadsEnabled": true,
-  "registrationsEnabled": true,
-  "userWritesEnabled": true,
-  "appCheckMode": "monitor",
-  "budgetLockdownEnabled": false,
-  "lastLockdownReason": ""
-}
+```bash
+./gradlew :androidApp:assembleRelease -PallowDebugReleaseSigning=true
 ```
 
-### Lockdown
+### 8.3 Build-Befehle
 
-Lockdown blockiert fuer normale User:
-
-- neue Uploads
-- neue Registrierungen
-- normale Schreibzugriffe
-
-Owner behaelt Recovery-Zugriff.
-
----
-
-## 9. App Check Rollout
-
-### Android
-
-- Provider: `Play Integrity`
-- Integration im fruehen App-Start
-- Debug trennt sich sauber von Release
-
-### iOS
-
-- Provider: `App Attest`
-- Fallback: `DeviceCheck`
-- Debug/Simulator sauber getrennt
-
-### Rollout-Reihenfolge
-
-1. in Firebase Console auf `monitor` bleiben
-2. Debug Tokens fuer lokale Tests hinterlegen
-3. Android auf echtem Geraet testen
-4. iOS auf echtem Geraet testen
-5. Firestore/Storage/Functions pruefen
-6. erst danach `enforce`
-
-Mehr Details:
-
-- [app-check-rollout.md](app-check-rollout.md)
-- [manual-test-checklist.md](manual-test-checklist.md)
-
----
-
-## 10. Shopify / Merch
-
-### Prinzip
-
-- Produkte kommen aus Shopify
-- PODpartner produziert und versendet
-- Checkout bleibt in der App
-- Shopify Checkout wird nicht benutzt
-
-### Zahlungen
-
-- `PayPal` und `Bankueberweisung` bleiben ein manueller Owner-Flow.
-- `Stripe` laeuft als sicherer Hosted Checkout.
-- `Klarna` laeuft ueber `Stripe Checkout`, nicht als eigener Direkt-Provider in der App.
-
-### Was heute zuverlaessig passiert
-
-- eine Bestellung wird serverseitig angelegt
-- unbezahlte POD-/Shopify-Bestellungen werden nicht automatisch versendet
-- erst nach bestaetigter Zahlung wird die Order fuer den Shopify-/POD-Flow freigegeben
-- du kannst als Owner jede Bestellung in der Order-Queue pruefen
-
-### Owner-Setup fuer Stripe und Klarna
-
-1. `STRIPE_SECRET_KEY` als Functions Secret setzen
-2. `stripeMerchWebhook` in Stripe als Webhook hinterlegen
-3. `STRIPE_WEBHOOK_SECRET` als Functions Secret setzen
-4. in Stripe `Klarna` aktivieren, wenn du Klarna live anbieten willst
-5. danach in `Settings > Payments` `Stripe` und optional `Klarna` sichtbar schalten
-
-### Wichtige Webhook Events
-
-- `checkout.session.completed`
-- `checkout.session.async_payment_succeeded`
-- `checkout.session.async_payment_failed`
-- `checkout.session.expired`
-
-### Beispiel fuer die Webhook-URL
-
-- `https://us-central1-<dein-projekt-id>.cloudfunctions.net/stripeMerchWebhook`
-
-### Wichtiger Hinweis zu Klarna
-
-- Klarna braucht einen aktiven Stripe-Account
-- Klarna muss in Stripe fuer dein Land / dein Geschaeft freigeschaltet sein
-- erst dann sollte der Klarna-Schalter in der App fuer Nutzer sichtbar sein
-
-### Owner-Aufgaben
-
-- Store Domain pflegen
-- Storefront Access Token pflegen
-- optional Collection Handle pflegen
-- Shopify Sync starten
-
-### Wichtig
-
-Nur der Owner pflegt:
-
-- Shopify Root-Daten
-- Store-Steuerung
-- Commerce-/Payment-Konfiguration
-
----
-
-## 11. Automation / n8n
-
-Die App bleibt normal ueber Firebase eingeloggt.
-
-n8n ist als serverseitige Workflow-Bruecke gedacht.
-
-### Owner-Aufgaben
-
-- Base URL pflegen
-- Webhook Path pflegen
-- Header setzen
-- Test-Webhook senden
-
-Admins und User bekommen keinen Root-Zugriff auf diese Verbindung.
-
----
-
-## 12. Setup
-
-### iOS
+iOS:
 
 ```bash
 xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -destination 'generic/platform=iOS' build
 ```
 
-### Android
+Android:
 
 ```bash
 ./gradlew :androidApp:compileDebugKotlin
 ./gradlew :androidApp:assembleDebug
 ```
 
-### Functions / Rules
+Functions + Rules:
 
 ```bash
 node --check functions/index.js
@@ -526,7 +261,7 @@ cd functions
 npm run test:rules
 ```
 
-### Firebase Deploy
+Firebase Deploy:
 
 ```bash
 firebase deploy --only firestore:rules
@@ -536,54 +271,72 @@ firebase deploy --only functions
 
 ---
 
-## 13. Testplan fuer 100 Tester
+## 9) Security und Kostenkontrolle
 
-### Mindeststand vor Verteilung
+Sicherheitsprinzip:
 
-- Android Build gruen
-- iOS Build gruen
-- Rule-Tests gruen
-- keine offenen Crashs im Standard-Flow
-- App Check im Monitor-Mode
-- Upload-Limits aktiv
-- Lockdown-Dokument vorhanden
-- Owner-Root-Zugriff getestet
-- Shopify Sync getestet
+- `deny by default` in Firestore und Storage.
+- Rollen- und Claim-basierte Zugriffskontrolle.
+- Upload-Slot-Prinzip statt freiem Direktupload.
+- App Check Rollout mit Monitor -> Enforce.
 
-### Kritische Testfaelle
+Kostenkontrolle:
 
-- Login / Registrierung
-- Profil speichern
-- Profilbild hochladen
-- Galerie hochladen
-- KI Limits / History
-- Merch laden
-- Cart / Order
-- Beat Hub
-- Video Hub
-- Lockdown aktiviert / deaktiviert
+- serverseitige KI-Kontingente je Konto.
+- globale und harte Tages-Caps.
+- Runtime-Lockdown und optionaler Budget-Lockdown.
+
+Wichtige Runtime-Config:
+
+- `system/runtimeConfig`
+- relevante Felder: `lockdown`, `uploadsEnabled`, `registrationsEnabled`, `userWritesEnabled`, `budgetLockdownEnabled`
 
 ---
 
-## 14. Was bewusst unveraendert bleibt
+## 10) Release-Checkliste (kurz)
 
-Diese Codebasis wurde **nicht** aus Spass neu gebaut.
+Vor Verteilung an Tester/Store:
 
-Bewusst respektiert wurden:
+1. Android Debug + Release Build gruen.
+2. iOS Archive/Build gruen.
+3. Functions Syntax + Rule Tests gruen.
+4. Login/Registrierung inkl. User-Bootstrap pruefen.
+5. Rollenwechsel Owner -> Zielkonto pruefen.
+6. Bot/Visual/Agent mit Limits und Fehlermeldungen pruefen.
+7. Workflow-Test pro User-Account pruefen (`automationN8n_<uid>`).
+8. Shopify Sync und Checkout-Flows pruefen.
+9. Offline-Verhalten und Notification-Flow pruefen.
 
-- bestehender Firebase-Stack
-- bestehendes Rollenmodell `owner / admin / subadmin / user`
-- bestehende App-Architektur
-- bestehender Checkout
-- bestehende Profile-/Galerie-Logik
+Ergaenzende Dokumente:
 
-Geaendert wurde nur dort, wo es fuer:
+- [app-check-rollout.md](app-check-rollout.md)
+- [manual-test-checklist.md](manual-test-checklist.md)
 
-- Sicherheit
-- Kostenkontrolle
-- Rollenhaerte
-- Owner-Kontrolle
-- Testbarkeit
-- UX/Release-Polish
+---
 
-noetig war.
+## 11) Projektstruktur
+
+- `Skydown App/` -> iOS App (SwiftUI)
+- `androidApp/` -> Android App (Jetpack Compose)
+- `shared/` -> gemeinsame Modelle/Use Cases
+- `functions/` -> Firebase Cloud Functions
+- `firestore.rules` -> Firestore Security Rules
+- `storage.rules` -> Storage Security Rules
+
+---
+
+## 12) Kontakt / Betrieb
+
+- Produkt und Betrieb: `Skydown x 22`
+- Support/E-Mail (im Projekt hinterlegt): `skydownent@gmail.com`
+
+---
+
+## 13) Getrennte Handbuecher
+
+Fuer schnellere Orientierung gibt es zusaetzlich:
+
+- [README_OWNER.md](README_OWNER.md) -> Betriebs- und Owner-Handbuch
+- [README_USER.md](README_USER.md) -> Endnutzer-Handbuch
+
+Diese README bleibt der zentrale Ueberblick (`Business + Product + Operations`).
