@@ -32,8 +32,8 @@
     <string name="auth_email">E-mail</string>
     <string name="auth_password">Mot de passe</string>
     <string name="auth_sign_in">Se connecter</string>
-    <string name="auth_login_loading">Connexion...</string>
-    <string name="auth_google_loading">Demarrage de Google...</string>
+    <string name="auth_login_loading">Connexion&#8230;</string>
+    <string name="auth_google_loading">Demarrage de Google&#8230;</string>
     <string name="auth_sign_in_google">Se connecter avec Google</string>
     <string name="auth_login_google_hint">Google ouvre la fenetre de compte Android native pour une connexion plus rapide.</string>
     <string name="auth_no_account_register">Pas de compte? Inscrivez-vous</string>
@@ -50,7 +50,7 @@
     <string name="auth_username">Nom d utilisateur</string>
     <string name="auth_confirm_password">Confirmer le mot de passe</string>
     <string name="auth_register">S inscrire</string>
-    <string name="auth_register_loading">Inscription...</string>
+    <string name="auth_register_loading">Inscription&#8230;</string>
     <string name="auth_register_google">S inscrire avec Google</string>
     <string name="auth_register_google_hint">Votre compte est cree automatiquement lors du premier login Google. Le nom d utilisateur saisi est repris directement.</string>
     <string name="auth_google_register_missing_token">L inscription Google n a pas renvoye de jeton valide.</string>

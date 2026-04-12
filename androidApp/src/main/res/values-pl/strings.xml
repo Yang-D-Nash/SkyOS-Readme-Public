@@ -32,8 +32,8 @@
     <string name="auth_email">E-mail</string>
     <string name="auth_password">Haslo</string>
     <string name="auth_sign_in">Zaloguj sie</string>
-    <string name="auth_login_loading">Logowanie...</string>
-    <string name="auth_google_loading">Uruchamianie Google...</string>
+    <string name="auth_login_loading">Logowanie&#8230;</string>
+    <string name="auth_google_loading">Uruchamianie Google&#8230;</string>
     <string name="auth_sign_in_google">Zaloguj sie przez Google</string>
     <string name="auth_login_google_hint">Google otwiera natywne okno konta Android, aby szybciej sie zalogowac.</string>
     <string name="auth_no_account_register">Nie masz konta? Zarejestruj sie</string>
@@ -50,7 +50,7 @@
     <string name="auth_username">Nazwa uzytkownika</string>
     <string name="auth_confirm_password">Potwierdz haslo</string>
     <string name="auth_register">Zarejestruj sie</string>
-    <string name="auth_register_loading">Rejestrowanie...</string>
+    <string name="auth_register_loading">Rejestrowanie&#8230;</string>
     <string name="auth_register_google">Zarejestruj sie przez Google</string>
     <string name="auth_register_google_hint">Twoje konto tworzy sie automatycznie przy pierwszym logowaniu Google. Wpisana nazwa uzytkownika zostanie od razu uzyta.</string>
     <string name="auth_google_register_missing_token">Rejestracja Google nie zwrocila prawidlowego tokenu.</string>

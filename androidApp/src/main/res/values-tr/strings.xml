@@ -22,7 +22,7 @@
 
     <string name="auth_close">Kapat</string>
     <string name="auth_login_title">Giris yap</string>
-    <string name="auth_login_welcome">22xSky'a hos geldin</string>
+    <string name="auth_login_welcome">22xSky\'a hos geldin</string>
     <string name="auth_login_subtitle">Hesabina ve uretici araclarina erismek icin giris yap.</string>
     <string name="auth_login_badge_account">Hesap</string>
     <string name="auth_login_badge_google">Google</string>
@@ -32,10 +32,10 @@
     <string name="auth_email">E-posta</string>
     <string name="auth_password">Sifre</string>
     <string name="auth_sign_in">Giris yap</string>
-    <string name="auth_login_loading">Giris yapiliyor...</string>
-    <string name="auth_google_loading">Google baslatiliyor...</string>
+    <string name="auth_login_loading">Giris yapiliyor&#8230;</string>
+    <string name="auth_google_loading">Google baslatiliyor&#8230;</string>
     <string name="auth_sign_in_google">Google ile giris yap</string>
-    <string name="auth_login_google_hint">Google, daha hizli giris icin Android'in yerel hesap penceresini acar.</string>
+    <string name="auth_login_google_hint">Google, daha hizli giris icin Android\'in yerel hesap penceresini acar.</string>
     <string name="auth_no_account_register">Henuz hesabin yok mu? Kaydol</string>
     <string name="auth_google_signin_missing_token">Google girisi gecerli bir token donmedi.</string>
     <string name="auth_google_signin_failed">Google girisi tamamlanamadi.</string>
@@ -50,7 +50,7 @@
     <string name="auth_username">Kullanici adi</string>
     <string name="auth_confirm_password">Sifreyi onayla</string>
     <string name="auth_register">Kaydol</string>
-    <string name="auth_register_loading">Kayit yapiliyor...</string>
+    <string name="auth_register_loading">Kayit yapiliyor&#8230;</string>
     <string name="auth_register_google">Google ile kaydol</string>
     <string name="auth_register_google_hint">Hesabin ilk Google girisinde otomatik olusturulur. Girdigin kullanici adi dogrudan uygulanir.</string>
     <string name="auth_google_register_missing_token">Google kaydi gecerli bir token donmedi.</string>

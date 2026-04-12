@@ -32,8 +32,8 @@
     <string name="auth_email">メール</string>
     <string name="auth_password">パスワード</string>
     <string name="auth_sign_in">サインイン</string>
-    <string name="auth_login_loading">サインイン中...</string>
-    <string name="auth_google_loading">Googleを起動中...</string>
+    <string name="auth_login_loading">サインイン中&#8230;</string>
+    <string name="auth_google_loading">Googleを起動中&#8230;</string>
     <string name="auth_sign_in_google">Googleでサインイン</string>
     <string name="auth_login_google_hint">GoogleはAndroidのネイティブアカウントダイアログを開き、素早くサインインできます。</string>
     <string name="auth_no_account_register">アカウントをお持ちでないですか？登録</string>
@@ -50,7 +50,7 @@
     <string name="auth_username">ユーザー名</string>
     <string name="auth_confirm_password">パスワード確認</string>
     <string name="auth_register">登録</string>
-    <string name="auth_register_loading">登録中...</string>
+    <string name="auth_register_loading">登録中&#8230;</string>
     <string name="auth_register_google">Googleで登録</string>
     <string name="auth_register_google_hint">初回のGoogleログイン時にアカウントが自動作成されます。入力したユーザー名はそのまま反映されます。</string>
     <string name="auth_google_register_missing_token">Google登録で有効なトークンを取得できませんでした。</string>

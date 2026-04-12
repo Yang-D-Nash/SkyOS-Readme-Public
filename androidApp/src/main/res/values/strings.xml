@@ -39,8 +39,8 @@
     <string name="auth_email">Email</string>
     <string name="auth_password">Password</string>
     <string name="auth_sign_in">Sign in</string>
-    <string name="auth_login_loading">Signing in...</string>
-    <string name="auth_google_loading">Starting Google...</string>
+    <string name="auth_login_loading">Signing in&#8230;</string>
+    <string name="auth_google_loading">Starting Google&#8230;</string>
     <string name="auth_sign_in_google">Sign in with Google</string>
     <string name="auth_login_google_hint">Google opens the native Android account dialog for a faster sign-in.</string>
     <string name="auth_no_account_register">No account yet? Register</string>
@@ -57,7 +57,7 @@
     <string name="auth_username">Username</string>
     <string name="auth_confirm_password">Confirm password</string>
     <string name="auth_register">Register</string>
-    <string name="auth_register_loading">Registering...</string>
+    <string name="auth_register_loading">Registering&#8230;</string>
     <string name="auth_register_google">Register with Google</string>
     <string name="auth_register_google_hint">Your account is created automatically on first Google login. Entered username is used directly.</string>
     <string name="auth_google_register_missing_token">Google registration did not return a valid token.</string>

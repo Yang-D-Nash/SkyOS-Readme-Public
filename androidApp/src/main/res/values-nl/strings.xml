@@ -32,8 +32,8 @@
     <string name="auth_email">E-mail</string>
     <string name="auth_password">Wachtwoord</string>
     <string name="auth_sign_in">Inloggen</string>
-    <string name="auth_login_loading">Bezig met inloggen...</string>
-    <string name="auth_google_loading">Google starten...</string>
+    <string name="auth_login_loading">Bezig met inloggen&#8230;</string>
+    <string name="auth_google_loading">Google starten&#8230;</string>
     <string name="auth_sign_in_google">Inloggen met Google</string>
     <string name="auth_login_google_hint">Google opent het native Android-accountvenster voor snellere aanmelding.</string>
     <string name="auth_no_account_register">Nog geen account? Registreren</string>
@@ -50,7 +50,7 @@
     <string name="auth_username">Gebruikersnaam</string>
     <string name="auth_confirm_password">Bevestig wachtwoord</string>
     <string name="auth_register">Registreren</string>
-    <string name="auth_register_loading">Registreren...</string>
+    <string name="auth_register_loading">Registreren&#8230;</string>
     <string name="auth_register_google">Registreren met Google</string>
     <string name="auth_register_google_hint">Je account wordt automatisch aangemaakt bij de eerste Google-login. Een ingevulde gebruikersnaam wordt direct gebruikt.</string>
     <string name="auth_google_register_missing_token">Google-registratie gaf geen geldig token terug.</string>

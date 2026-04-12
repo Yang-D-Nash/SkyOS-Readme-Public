@@ -32,17 +32,17 @@
     <string name="auth_email">E-mail</string>
     <string name="auth_password">Password</string>
     <string name="auth_sign_in">Accedi</string>
-    <string name="auth_login_loading">Accesso...</string>
-    <string name="auth_google_loading">Avvio Google...</string>
+    <string name="auth_login_loading">Accesso&#8230;</string>
+    <string name="auth_google_loading">Avvio Google&#8230;</string>
     <string name="auth_sign_in_google">Accedi con Google</string>
-    <string name="auth_login_google_hint">Google apre il dialogo account Android nativo per un accesso piu rapido.</string>
+    <string name="auth_login_google_hint">Google apre il dialogo account Android nativo per un accesso pi&#x00F9; rapido.</string>
     <string name="auth_no_account_register">Non hai un account? Registrati</string>
     <string name="auth_google_signin_missing_token">L accesso Google non ha restituito un token valido.</string>
     <string name="auth_google_signin_failed">Non e stato possibile completare l accesso Google.</string>
 
     <string name="auth_register_title">Registrati</string>
     <string name="auth_register_new_account">Nuovo account</string>
-    <string name="auth_register_subtitle">Il flusso di onboarding e ottimizzato per Android e ti porta nell app piu velocemente.</string>
+    <string name="auth_register_subtitle">Il flusso di onboarding e ottimizzato per Android e ti porta nell app pi&#x00F9; velocemente.</string>
     <string name="auth_register_badge_profile">Profilo</string>
     <string name="auth_register_badge_google">Google</string>
     <string name="auth_register_badge_directstart">Avvio diretto</string>
@@ -50,7 +50,7 @@
     <string name="auth_username">Nome utente</string>
     <string name="auth_confirm_password">Conferma password</string>
     <string name="auth_register">Registrati</string>
-    <string name="auth_register_loading">Registrazione...</string>
+    <string name="auth_register_loading">Registrazione&#8230;</string>
     <string name="auth_register_google">Registrati con Google</string>
     <string name="auth_register_google_hint">Il tuo account viene creato automaticamente al primo login Google. Il nome utente inserito viene applicato subito.</string>
     <string name="auth_google_register_missing_token">La registrazione Google non ha restituito un token valido.</string>

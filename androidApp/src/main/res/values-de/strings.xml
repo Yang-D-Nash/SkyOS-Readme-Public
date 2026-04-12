@@ -20,7 +20,7 @@
 
     <string name="agent_queue_placeholder">Warteschlange: Diese Anfrage wird automatisch gesendet, sobald du wieder online bist.</string>
 
-    <string name="auth_close">Schliessen</string>
+    <string name="auth_close">Schlie&#x00DF;en</string>
     <string name="auth_login_title">Anmelden</string>
     <string name="auth_login_welcome">Willkommen bei 22xSky</string>
     <string name="auth_login_subtitle">Melde dich an, um auf dein Konto und Creator-Tools zuzugreifen.</string>
@@ -32,10 +32,10 @@
     <string name="auth_email">E-Mail-Adresse</string>
     <string name="auth_password">Passwort</string>
     <string name="auth_sign_in">Anmelden</string>
-    <string name="auth_login_loading">Anmelden...</string>
-    <string name="auth_google_loading">Google wird gestartet...</string>
+    <string name="auth_login_loading">Anmelden&#8230;</string>
+    <string name="auth_google_loading">Google wird gestartet&#8230;</string>
     <string name="auth_sign_in_google">Mit Google anmelden</string>
-    <string name="auth_login_google_hint">Google oeffnet den nativen Android-Kontodialog fuer einen schnelleren Einstieg.</string>
+    <string name="auth_login_google_hint">Google oeffnet den nativen Android-Kontodialog f&#x00FC;r einen schnelleren Einstieg.</string>
     <string name="auth_no_account_register">Noch kein Konto? Registrieren</string>
     <string name="auth_google_signin_missing_token">Google-Anmeldung hat kein gueltiges Token geliefert.</string>
     <string name="auth_google_signin_failed">Google-Anmeldung konnte nicht abgeschlossen werden.</string>
@@ -50,7 +50,7 @@
     <string name="auth_username">Benutzername</string>
     <string name="auth_confirm_password">Passwort bestaetigen</string>
     <string name="auth_register">Registrieren</string>
-    <string name="auth_register_loading">Registrieren...</string>
+    <string name="auth_register_loading">Registrieren&#8230;</string>
     <string name="auth_register_google">Mit Google registrieren</string>
     <string name="auth_register_google_hint">Beim ersten Google-Login wird dein Konto automatisch angelegt. Ein eingetragener Benutzername wird direkt uebernommen.</string>
     <string name="auth_google_register_missing_token">Google-Registrierung hat kein gueltiges Token geliefert.</string>
