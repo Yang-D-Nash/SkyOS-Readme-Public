@@ -1239,61 +1239,52 @@ struct ProducedWithArtistRow: View {
     }
 
     var body: some View {
-        ZStack {
-            collaborationBackground
+        HStack(alignment: .top, spacing: 12) {
+            previewArtwork
+                .frame(width: 76, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
 
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.18),
-                    Color.clear,
-                    Color.black.opacity(0.82)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
             VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(spacing: 8) {
                     Text(artist.role.uppercased())
                         .font(.caption2.weight(.bold))
-                        .foregroundColor(.white.opacity(0.94))
+                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .minimumScaleFactor(0.82)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
-                        .background(.black.opacity(0.34), in: Capsule())
-
-                    Spacer(minLength: 0)
+                        .background(
+                            Capsule()
+                                .fill(AppColors.secondaryBackground(for: colorScheme))
+                        )
 
                     if !artist.vibe.isEmpty {
                         Text(artist.vibe)
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.white)
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
                             .lineLimit(1)
                             .minimumScaleFactor(0.82)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 5)
-                            .background(AppColors.accent(for: colorScheme).opacity(0.72), in: Capsule())
+                            .background(
+                                Capsule()
+                                    .fill(AppColors.accent(for: colorScheme).opacity(0.16))
+                            )
                     }
                 }
 
-                Spacer(minLength: 6)
+                Text(artist.name)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.84)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(artist.name)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundColor(.white)
+                if !artist.highlight.isEmpty {
+                    Text(artist.highlight)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.84)
-                        .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
-
-                    if !artist.highlight.isEmpty {
-                        Text(artist.highlight)
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.92))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.84)
-                            .shadow(color: .black.opacity(0.30), radius: 10, y: 4)
-                    }
                 }
 
                 HStack(spacing: 8) {
@@ -1351,11 +1342,12 @@ struct ProducedWithArtistRow: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(12)
+
+            Spacer(minLength: 0)
         }
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 176)
+        .frame(height: 138)
         .background(
             LinearGradient(
                 colors: [
@@ -1373,7 +1365,7 @@ struct ProducedWithArtistRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
-    private var collaborationBackground: some View {
+    private var previewArtwork: some View {
         Group {
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in
@@ -1390,27 +1382,10 @@ struct ProducedWithArtistRow: View {
                 fallbackArtwork
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var fallbackArtwork: some View {
-        VStack(spacing: 8) {
-            Spacer()
-
-            Text(String(artist.name.prefix(1)).uppercased())
-                .font(.title.weight(.black))
-                .foregroundColor(.white)
-
-            if !artist.vibe.isEmpty {
-                Text(artist.vibe.uppercased())
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(.white.opacity(0.86))
-            }
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
+        ZStack {
             LinearGradient(
                 colors: [
                     AppColors.accentMystic(for: colorScheme).opacity(0.94),
@@ -1419,7 +1394,10 @@ struct ProducedWithArtistRow: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        )
+            Text(String(artist.name.prefix(1)).uppercased())
+                .font(.title.weight(.black))
+                .foregroundColor(.white)
+        }
     }
 }
 
