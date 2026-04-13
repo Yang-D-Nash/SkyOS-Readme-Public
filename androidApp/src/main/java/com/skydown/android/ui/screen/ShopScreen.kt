@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -787,7 +786,7 @@ private fun ShopCollabCarousel(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 188.dp),
+                .height(188.dp),
             pageSpacing = 12.dp,
             contentPadding = PaddingValues(horizontal = 6.dp),
         ) { pageIndex ->
@@ -831,7 +830,7 @@ private fun ShopCollabSelectionCard(
     totalItemCount: Int,
 ) {
     SkydownCard(
-        modifier = Modifier.heightIn(min = 150.dp),
+        modifier = Modifier.height(150.dp),
         contentPadding = PaddingValues(16.dp),
     ) {
         Column(
@@ -895,7 +894,7 @@ private fun ShopCollabSidebarButton(
                 indication = LocalIndication.current,
                 onClick = onTap,
             )
-            .heightIn(min = if (compact) 106.dp else 118.dp)
+            .height(if (compact) 106.dp else 118.dp)
             .padding(horizontal = if (compact) 14.dp else 16.dp, vertical = if (compact) 14.dp else 15.dp),
         verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
     ) {

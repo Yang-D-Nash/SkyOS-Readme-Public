@@ -234,7 +234,7 @@ struct MerchandiseCollabCarousel: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 188)
+        .frame(height: 188)
         .tabViewStyle(indexStyle)
         .indexViewStyle(
             PageIndexViewStyle(backgroundDisplayMode: .always)
@@ -315,7 +315,7 @@ struct MerchandiseCollabSelectionCard: View {
                 )
             }
         }
-        .frame(minHeight: 150, alignment: .topLeading)
+        .frame(height: 150, alignment: .topLeading)
         .padding(SkydownLayout.cardPadding)
         .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
     }
@@ -381,7 +381,7 @@ private struct MerchandiseCollabSidebarButton: View {
             .padding(.horizontal, compact ? 14 : 16)
             .padding(.vertical, compact ? 14 : 15)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(minHeight: compact ? 106 : 118, alignment: .topLeading)
+            .frame(height: compact ? 106 : 118, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(

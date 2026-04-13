@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -356,7 +355,6 @@ fun VideoHubScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .navigationBarsPadding()
                 .imePadding()
                 .dismissKeyboardOnTap(onDismissKeyboard = dismissKeyboard)
                 .background(
@@ -1226,7 +1224,7 @@ private fun ProducedWithArtistRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 164.dp)
+            .height(164.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(

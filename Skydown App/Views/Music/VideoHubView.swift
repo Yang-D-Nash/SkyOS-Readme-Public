@@ -1352,7 +1352,7 @@ struct ProducedWithArtistRow: View {
             .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 164)
+        .frame(height: 164)
         .background(
             LinearGradient(
                 colors: [
