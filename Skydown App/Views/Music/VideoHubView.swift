@@ -1239,7 +1239,7 @@ struct ProducedWithArtistRow: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack {
             collaborationBackground
 
             LinearGradient(
@@ -1251,38 +1251,42 @@ struct ProducedWithArtistRow: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+        }
+        .overlay(alignment: .topLeading) {
+            HStack(alignment: .top, spacing: 10) {
+                Text(artist.role.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(.white.opacity(0.94))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(.black.opacity(0.34), in: Capsule())
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 10) {
-                    Text(artist.role.uppercased())
-                        .font(.caption2.weight(.bold))
-                        .foregroundColor(.white.opacity(0.94))
+                Spacer(minLength: 0)
+
+                if !artist.vibe.isEmpty {
+                    Text(artist.vibe)
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .minimumScaleFactor(0.82)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
-                        .background(.black.opacity(0.34), in: Capsule())
-
-                    Spacer(minLength: 0)
-
-                    if !artist.vibe.isEmpty {
-                        Text(artist.vibe)
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(AppColors.accent(for: colorScheme).opacity(0.72), in: Capsule())
-                    }
+                        .background(AppColors.accent(for: colorScheme).opacity(0.72), in: Capsule())
                 }
-
-                Spacer(minLength: 8)
-
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 12)
+        }
+        .overlay(alignment: .bottomLeading) {
+            VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(artist.name)
                         .font(.subheadline.weight(.bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.84)
                         .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
 
                     if !artist.highlight.isEmpty {
@@ -1290,6 +1294,7 @@ struct ProducedWithArtistRow: View {
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.92))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.84)
                             .shadow(color: .black.opacity(0.30), radius: 10, y: 4)
                     }
                 }
@@ -1344,15 +1349,16 @@ struct ProducedWithArtistRow: View {
                             ),
                             destination: youtubeURL
                         ) {
-                                onOpenYouTube(youtubeURL.absoluteString)
+                            onOpenYouTube(youtubeURL.absoluteString)
                         }
                     }
                 }
             }
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 164)
+        .frame(height: 170)
         .background(
             LinearGradient(
                 colors: [
