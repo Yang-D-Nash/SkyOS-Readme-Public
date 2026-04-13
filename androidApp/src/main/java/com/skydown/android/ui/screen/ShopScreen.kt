@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,6 +62,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -783,7 +785,9 @@ private fun ShopCollabCarousel(
     Column {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 188.dp),
             pageSpacing = 12.dp,
             contentPadding = PaddingValues(horizontal = 6.dp),
         ) { pageIndex ->
@@ -826,7 +830,10 @@ private fun ShopCollabSelectionCard(
     lane: ShopCollabLane,
     totalItemCount: Int,
 ) {
-    SkydownCard(contentPadding = PaddingValues(16.dp)) {
+    SkydownCard(
+        modifier = Modifier.heightIn(min = 150.dp),
+        contentPadding = PaddingValues(16.dp),
+    ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -888,6 +895,7 @@ private fun ShopCollabSidebarButton(
                 indication = LocalIndication.current,
                 onClick = onTap,
             )
+            .heightIn(min = if (compact) 106.dp else 118.dp)
             .padding(horizontal = if (compact) 14.dp else 16.dp, vertical = if (compact) 14.dp else 15.dp),
         verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
     ) {
@@ -917,11 +925,15 @@ private fun ShopCollabSidebarButton(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = contentColor,
+                    maxLines = if (compact) 1 else 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = lane.subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = if (isSelected) 0.84f else 0.74f),
+                    maxLines = if (compact) 1 else 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

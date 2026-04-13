@@ -234,7 +234,7 @@ struct MerchandiseCollabCarousel: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 170)
+        .frame(minHeight: 188)
         .tabViewStyle(indexStyle)
         .indexViewStyle(
             PageIndexViewStyle(backgroundDisplayMode: .always)
@@ -279,10 +279,12 @@ struct MerchandiseCollabSelectionCard: View {
                     Text(selectedLane.title)
                         .font(.title3.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(2)
 
                     Text(selectedLane.subtitle)
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(2)
                 }
 
                 Spacer(minLength: 0)
@@ -313,6 +315,7 @@ struct MerchandiseCollabSelectionCard: View {
                 )
             }
         }
+        .frame(minHeight: 150, alignment: .topLeading)
         .padding(SkydownLayout.cardPadding)
         .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
     }
@@ -342,6 +345,8 @@ private struct MerchandiseCollabSidebarButton: View {
                             .font(.subheadline.weight(.bold))
                             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
                             .multilineTextAlignment(.leading)
+                            .lineLimit(compact ? 1 : 2)
+                            .minimumScaleFactor(0.86)
 
                         Text(lane.subtitle)
                             .font(.caption)
@@ -351,7 +356,7 @@ private struct MerchandiseCollabSidebarButton: View {
                                     : AppColors.secondaryText(for: colorScheme)
                             )
                             .multilineTextAlignment(.leading)
-                            .lineLimit(2)
+                            .lineLimit(compact ? 1 : 2)
                     }
 
                     Spacer(minLength: 0)
@@ -376,6 +381,7 @@ private struct MerchandiseCollabSidebarButton: View {
             .padding(.horizontal, compact ? 14 : 16)
             .padding(.vertical, compact ? 14 : 15)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: compact ? 106 : 118, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(

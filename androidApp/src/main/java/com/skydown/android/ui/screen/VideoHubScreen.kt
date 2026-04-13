@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -77,6 +78,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -1224,7 +1226,7 @@ private fun ProducedWithArtistRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(164.dp)
+            .heightIn(min = 164.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(
@@ -1306,6 +1308,8 @@ private fun ProducedWithArtistRow(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.94f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 
@@ -1337,6 +1341,8 @@ private fun ProducedWithArtistRow(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = DexBlueDeep,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -1349,6 +1355,8 @@ private fun ProducedWithArtistRow(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
                 color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
 
             if (artist.highlight.isNotBlank()) {
@@ -1357,6 +1365,7 @@ private fun ProducedWithArtistRow(
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.90f),
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
