@@ -9,6 +9,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -2661,11 +2663,19 @@ fun SettingsScreen(
                                     text = if (uiState.workflowAutomationSettings.isPrepared) "Workflow bereit" else "Workflow offen",
                                     icon = Icons.Default.Bolt,
                                     isActive = uiState.workflowAutomationSettings.isPrepared,
+                                    onClick = {
+                                        activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
+                                        showAdminWorkspaceSheet = true
+                                    },
                                 )
                                 SettingsBadge(
                                     text = if (uiState.agentProfileSettings.isConfigured) "Skills aktiv" else "Skills offen",
                                     icon = Icons.Default.Settings,
                                     isActive = uiState.agentProfileSettings.isConfigured,
+                                    onClick = {
+                                        activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
+                                        showAdminWorkspaceSheet = true
+                                    },
                                 )
                                 SettingsBadge(
                                     text = if (uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey) {
@@ -2675,6 +2685,10 @@ fun SettingsScreen(
                                     },
                                     icon = Icons.Default.Bolt,
                                     isActive = uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey,
+                                    onClick = {
+                                        activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
+                                        showAdminWorkspaceSheet = true
+                                    },
                                 )
                                 uiState.workflowAutomationSettings.workflowName
                                     .takeIf { it.isNotBlank() }
@@ -2683,6 +2697,10 @@ fun SettingsScreen(
                                             text = workflowName,
                                             icon = Icons.Default.Settings,
                                             isActive = true,
+                                            onClick = {
+                                                activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
+                                                showAdminWorkspaceSheet = true
+                                            },
                                         )
                                     }
                             }
@@ -3729,6 +3747,7 @@ private fun SettingsBadge(
     icon: ImageVector,
     isActive: Boolean,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     val backgroundColor = if (isActive) {
         MaterialTheme.colorScheme.primaryContainer
@@ -3740,9 +3759,25 @@ private fun SettingsBadge(
     } else {
         MaterialTheme.colorScheme.onSecondaryContainer
     }
+    val interactionSource = remember(onClick) { MutableInteractionSource() }
+    val badgeModifier = if (onClick != null) {
+        modifier
+            .skydownPressable(
+                interactionSource = interactionSource,
+                pressedScale = 0.992f,
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
+    } else {
+        modifier
+    }
 
     Row(
-        modifier = modifier
+        modifier = badgeModifier
             .clip(RoundedCornerShape(999.dp))
             .background(backgroundColor)
             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -3760,6 +3795,14 @@ private fun SettingsBadge(
             color = contentColor,
             style = MaterialTheme.typography.labelLarge,
         )
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = contentColor.copy(alpha = 0.82f),
+                modifier = Modifier.size(14.dp),
+            )
+        }
     }
 }
 

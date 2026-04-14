@@ -164,6 +164,7 @@ fun VideoHubScreen(
     var showReelViewer by rememberSaveable { mutableStateOf(false) }
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
     var showAdminSheet by rememberSaveable { mutableStateOf(false) }
+    var selectedEquipmentItem by remember { mutableStateOf<VideoEquipmentItem?>(null) }
     var pendingConfigImageTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
     var activeConfigImageUploadTarget by remember { mutableStateOf<VideoConfigImageTarget?>(null) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
@@ -381,7 +382,10 @@ fun VideoHubScreen(
                 }
 
                 item {
-                    VideoEquipmentCard(items = uiState.publicConfig.equipmentItems)
+                    VideoEquipmentCard(
+                        items = uiState.publicConfig.equipmentItems,
+                        onSelectItem = { item -> selectedEquipmentItem = item },
+                    )
                 }
 
                 item {
@@ -452,6 +456,13 @@ fun VideoHubScreen(
                     selectedVideoId = selectedVideoId,
                     onSelectVideo = { video -> selectedVideoId = video.id },
                     onDismiss = { showReelViewer = false },
+                )
+            }
+
+            selectedEquipmentItem?.let { item ->
+                VideoEquipmentDetailSheet(
+                    item = item,
+                    onDismiss = { selectedEquipmentItem = null },
                 )
             }
 
@@ -837,6 +848,7 @@ private fun VideoCollaborationsCard(
 @Composable
 private fun VideoEquipmentCard(
     items: List<VideoEquipmentItem>,
+    onSelectItem: (VideoEquipmentItem) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
@@ -868,6 +880,7 @@ private fun VideoEquipmentCard(
                 items.forEach { item ->
                     VideoEquipmentRow(
                         item = item,
+                        onClick = { onSelectItem(item) },
                     )
                 }
             }
@@ -878,7 +891,9 @@ private fun VideoEquipmentCard(
 @Composable
 private fun VideoEquipmentRow(
     item: VideoEquipmentItem,
+    onClick: (() -> Unit)? = null,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -897,6 +912,22 @@ private fun VideoEquipmentRow(
                 color = DexBlue.copy(alpha = 0.18f),
                 shape = RoundedCornerShape(18.dp),
             )
+            .let { baseModifier ->
+                if (onClick != null) {
+                    baseModifier
+                        .skydownPressable(
+                            interactionSource = interactionSource,
+                            pressedScale = 0.988f,
+                        )
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = onClick,
+                        )
+                } else {
+                    baseModifier
+                }
+            }
             .padding(horizontal = 14.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
@@ -954,6 +985,71 @@ private fun VideoEquipmentRow(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 maxLines = 3,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VideoEquipmentDetailSheet(
+    item: VideoEquipmentItem,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.background,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            VideoPill(text = "Setup", isActive = true)
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = item.detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+            )
+
+            if (!item.imageUrl.isNullOrBlank()) {
+                BrandPreviewFrame(
+                    accent = DexBlue,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(210.dp),
+                ) {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { openExternalLink(context, item.imageUrl.orEmpty()) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text("Bild im Browser oeffnen")
+                }
+            }
+
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text("Schliessen")
+            }
         }
     }
 }
@@ -1973,11 +2069,19 @@ private fun VideoLibraryRow(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            VideoPill(text = if (isSelected) "Im Player" else "Auswaehlen", isActive = isSelected)
+            VideoPill(
+                text = if (isSelected) "Im Player" else "Auswaehlen",
+                isActive = isSelected,
+                onClick = onSelect,
+            )
             VideoPill(text = if (video.isPublic) "Public" else "Private", isActive = video.isPublic)
-            VideoPill(text = video.providerBadge, isActive = false)
+            VideoPill(
+                text = video.providerBadge,
+                isActive = false,
+                onClick = if (video.openUrl.isNotBlank()) onOpenOriginal else null,
+            )
             if (isAdmin && video.isHomeFeatured) {
-                VideoPill(text = "Home", isActive = true)
+                VideoPill(text = "Home", isActive = true, onClick = onToggleHomeFeatured)
             } else if (!isAdmin) {
                 VideoPill(text = "Clip", isActive = false)
             }
@@ -2306,11 +2410,13 @@ private fun videoHubOpenActionLabel(video: VideoHubItem): String {
 private fun VideoPill(
     text: String,
     isActive: Boolean,
+    onClick: (() -> Unit)? = null,
 ) {
     BrandStatusChip(
         text = text,
         accent = ArenaGold,
         isActive = isActive,
+        onClick = onClick,
     )
 }
 

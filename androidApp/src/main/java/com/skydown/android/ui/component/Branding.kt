@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,6 +28,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,6 +49,7 @@ import coil3.compose.AsyncImage
 import com.skydown.android.R
 import com.skydown.android.ui.theme.DexBlueDeep
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.semantics.Role
 
 enum class BrandArtwork(
     @param:DrawableRes val drawableRes: Int,
@@ -439,6 +443,7 @@ fun BrandStatusChip(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     isActive: Boolean = true,
+    onClick: (() -> Unit)? = null,
 ) {
     val backgroundBrush = if (isActive) {
         Brush.linearGradient(
@@ -456,9 +461,25 @@ fun BrandStatusChip(
         )
     }
     val contentColor = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+    val interactionSource = remember(onClick) { MutableInteractionSource() }
+    val chipModifier = if (onClick != null) {
+        modifier
+            .skydownPressable(
+                interactionSource = interactionSource,
+                pressedScale = 0.992f,
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
+    } else {
+        modifier
+    }
 
     Row(
-        modifier = modifier
+        modifier = chipModifier
             .clip(RoundedCornerShape(999.dp))
             .background(backgroundBrush)
             .border(
@@ -484,6 +505,14 @@ fun BrandStatusChip(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
         )
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = contentColor.copy(alpha = 0.82f),
+                modifier = Modifier.size(14.dp),
+            )
+        }
     }
 }
 
@@ -602,9 +631,27 @@ private fun Color.perceivedBrightness(): Float = (red * 0.299f) + (green * 0.587
 fun BrandPill(
     text: String,
     tint: Color,
+    onClick: (() -> Unit)? = null,
 ) {
+    val interactionSource = remember(onClick) { MutableInteractionSource() }
+    val pillModifier = if (onClick != null) {
+        Modifier
+            .skydownPressable(
+                interactionSource = interactionSource,
+                pressedScale = 0.993f,
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
+    } else {
+        Modifier
+    }
+
     Box(
-        modifier = Modifier
+        modifier = pillModifier
             .clip(RoundedCornerShape(999.dp))
             .background(tint.copy(alpha = 0.12f))
             .border(
@@ -612,14 +659,27 @@ fun BrandPill(
                 color = tint.copy(alpha = 0.18f),
                 shape = RoundedCornerShape(999.dp),
             )
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = if (onClick != null) 12.dp else 10.dp, vertical = 6.dp),
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = tint,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (onClick != null) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = tint.copy(alpha = 0.82f),
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
     }
 }
 

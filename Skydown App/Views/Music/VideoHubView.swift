@@ -26,6 +26,7 @@ struct VideoHubView: View {
     @State private var showingReelViewer = false
     @State private var hasHandledInitialSelection = false
     @State private var showingAdminEditor = false
+    @State private var selectedEquipmentItem: SkydownVideoEquipmentItem?
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
     private let autoplayInitialSelection: Bool
@@ -59,7 +60,10 @@ struct VideoHubView: View {
                 }
                 VideoEquipmentCard(
                     colorScheme: colorScheme,
-                    items: viewModel.publicConfig.equipmentItems
+                    items: viewModel.publicConfig.equipmentItems,
+                    onSelectItem: { item in
+                        selectedEquipmentItem = item
+                    }
                 )
                 playerCard
                 libraryCard
@@ -163,6 +167,12 @@ struct VideoHubView: View {
             case .youTube(let item):
                 YouTubeEmbedPlayerView(item: item)
             }
+        }
+        .sheet(item: $selectedEquipmentItem) { item in
+            VideoEquipmentDetailSheet(
+                item: item,
+                colorScheme: colorScheme
+            )
         }
         .sheet(isPresented: $showingAdminEditor) {
             ScrollView {
@@ -766,10 +776,18 @@ struct VideoHubLibraryRow: View {
             }
 
             HStack(spacing: 8) {
-                MusicBadge(text: video.isPublic ? "Public" : "Private", isAccent: video.isPublic)
-                MusicBadge(text: video.provider.badgeLabel, isAccent: false)
+                MusicBadge(
+                    text: video.isPublic ? "Public" : "Private",
+                    isAccent: video.isPublic,
+                    onTap: onSelect
+                )
+                MusicBadge(
+                    text: video.provider.badgeLabel,
+                    isAccent: false,
+                    onTap: video.openURLString.isEmpty ? nil : onOpenOriginal
+                )
                 if isAdmin && video.isHomeFeatured {
-                    MusicBadge(text: "Home", isAccent: true)
+                    MusicBadge(text: "Home", isAccent: true, onTap: onToggleHomeFeatured)
                 }
                 if isAdmin {
                     MusicBadge(text: video.fileName, isAccent: false)
@@ -997,6 +1015,7 @@ private struct VideoReelViewer: View {
 struct VideoEquipmentCard: View {
     let colorScheme: ColorScheme
     let items: [SkydownVideoEquipmentItem]
+    let onSelectItem: (SkydownVideoEquipmentItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1018,7 +1037,10 @@ struct VideoEquipmentCard: View {
                     ForEach(items) { item in
                         VideoEquipmentRow(
                             item: item,
-                            colorScheme: colorScheme
+                            colorScheme: colorScheme,
+                            onTap: {
+                                onSelectItem(item)
+                            }
                         )
                     }
                 }
@@ -1132,6 +1154,7 @@ private struct VideoHubQuickActionButton: View {
 struct VideoEquipmentRow: View {
     let item: SkydownVideoEquipmentItem
     let colorScheme: ColorScheme
+    let onTap: (() -> Void)?
 
     private var imageURL: URL? {
         guard let value = item.imageURLString, !value.isEmpty else { return nil }
@@ -1139,6 +1162,20 @@ struct VideoEquipmentRow: View {
     }
 
     var body: some View {
+        Group {
+            if let onTap {
+                Button(action: onTap) {
+                    rowContent
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+            } else {
+                rowContent
+            }
+        }
+    }
+
+    private var rowContent: some View {
         HStack(alignment: .top, spacing: 12) {
             equipmentArtwork
 
@@ -1157,6 +1194,10 @@ struct VideoEquipmentRow: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
@@ -1198,6 +1239,68 @@ struct VideoEquipmentRow: View {
             .font(.title3.weight(.bold))
             .foregroundColor(.white.opacity(0.9))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct VideoEquipmentDetailSheet: View {
+    let item: SkydownVideoEquipmentItem
+    let colorScheme: ColorScheme
+    @Environment(\.dismiss) private var dismiss
+
+    private var imageURL: URL? {
+        guard let value = item.imageURLString, !value.isEmpty else { return nil }
+        return URL(string: value)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    MusicBadge(text: "Setup", isAccent: true)
+
+                    Text(item.title)
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(item.detail)
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    if let imageURL {
+                        AsyncImage(url: imageURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            default:
+                                Rectangle()
+                                    .fill(AppColors.secondaryBackground(for: colorScheme))
+                                    .overlay {
+                                        Image(systemName: "camera.metering.spot")
+                                            .font(.title2.weight(.bold))
+                                            .foregroundColor(AppColors.accent(for: colorScheme))
+                                    }
+                            }
+                        }
+                        .frame(height: 220)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 28)
+            }
+            .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+            .navigationTitle("Setup")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Fertig") { dismiss() }
+                }
+            }
+        }
     }
 }
 

@@ -1156,17 +1156,20 @@ struct SettingsView: View {
                 HStack(spacing: 10) {
                     SettingsBadge(
                         text: workflowAutomationSettings.settings.isPrepared ? "Workflow bereit" : "Workflow offen",
-                        colorScheme: effectiveColorScheme
+                        colorScheme: effectiveColorScheme,
+                        onTap: { presentSheet(.adminWorkspace(.automation)) }
                     )
                     if !workflowAutomationSettings.settings.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         SettingsBadge(
                             text: workflowAutomationSettings.settings.workflowName,
-                            colorScheme: effectiveColorScheme
+                            colorScheme: effectiveColorScheme,
+                            onTap: { presentSheet(.adminWorkspace(.automation)) }
                         )
                     }
                     SettingsBadge(
                         text: manusByosStore.settings.isEnabled && manusByosStore.settings.hasAPIKey ? "Manus BYOS aktiv" : "Manus BYOS aus",
-                        colorScheme: effectiveColorScheme
+                        colorScheme: effectiveColorScheme,
+                        onTap: { presentSheet(.adminWorkspace(.automation)) }
                     )
                 }
 
@@ -4107,15 +4110,36 @@ private struct AppearanceChoiceCard: View {
 private struct SettingsBadge: View {
     let text: String
     let colorScheme: ColorScheme
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
-            .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            .clipShape(Capsule())
+        Group {
+            if let onTap {
+                Button(action: onTap) {
+                    badgeContent
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+            } else {
+                badgeContent
+            }
+        }
+    }
+
+    private var badgeContent: some View {
+        HStack(spacing: 5) {
+            Text(text)
+                .font(.caption.weight(.semibold))
+            if onTap != nil {
+                Image(systemName: "arrow.right")
+                    .font(.caption2.weight(.bold))
+            }
+        }
+        .padding(.horizontal, onTap == nil ? 10 : 12)
+        .padding(.vertical, 6)
+        .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+        .clipShape(Capsule())
     }
 }
 

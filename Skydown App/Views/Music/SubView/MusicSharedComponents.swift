@@ -11,24 +11,45 @@ import UIKit
 struct MusicBadge: View {
     let text: String
     let isAccent: Bool
+    var onTap: (() -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                isAccent
-                ? AppColors.accent(for: colorScheme).opacity(0.15)
-                : AppColors.secondaryBackground(for: colorScheme)
-            )
-            .foregroundColor(
-                isAccent
-                ? AppColors.accent(for: colorScheme)
-                : AppColors.secondaryText(for: colorScheme)
-            )
-            .clipShape(Capsule())
+        Group {
+            if let onTap {
+                Button(action: onTap) {
+                    badgeContent
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+            } else {
+                badgeContent
+            }
+        }
+    }
+
+    private var badgeContent: some View {
+        HStack(spacing: 5) {
+            Text(text)
+                .font(.caption.weight(.semibold))
+            if onTap != nil {
+                Image(systemName: "arrow.right")
+                    .font(.caption2.weight(.bold))
+            }
+        }
+        .padding(.horizontal, onTap == nil ? 10 : 12)
+        .padding(.vertical, 6)
+        .background(
+            isAccent
+            ? AppColors.accent(for: colorScheme).opacity(0.15)
+            : AppColors.secondaryBackground(for: colorScheme)
+        )
+        .foregroundColor(
+            isAccent
+            ? AppColors.accent(for: colorScheme)
+            : AppColors.secondaryText(for: colorScheme)
+        )
+        .clipShape(Capsule())
     }
 }
 
