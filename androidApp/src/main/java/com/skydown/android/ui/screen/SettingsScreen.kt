@@ -8,12 +8,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -40,10 +43,14 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -75,6 +82,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -122,6 +130,114 @@ import com.skydown.shared.model.resolvedRole
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+@Composable
+private fun Button(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = ButtonDefaults.shape,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+    border: BorderStroke? = null,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
+    androidx.compose.material3.Button(
+        onClick = onClick,
+        modifier = modifier.skydownPressable(
+            interactionSource = resolvedInteractionSource,
+            pressedScale = 0.984f,
+        ),
+        enabled = enabled,
+        shape = shape,
+        colors = colors,
+        elevation = elevation,
+        border = border,
+        contentPadding = contentPadding,
+        interactionSource = resolvedInteractionSource,
+        content = content,
+    )
+}
+
+@Composable
+private fun OutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = ButtonDefaults.outlinedShape,
+    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
+    border: BorderStroke? = null,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.skydownPressable(
+            interactionSource = resolvedInteractionSource,
+            pressedScale = 0.986f,
+        ),
+        enabled = enabled,
+        shape = shape,
+        colors = colors,
+        border = border ?: ButtonDefaults.outlinedButtonBorder(enabled),
+        contentPadding = contentPadding,
+        interactionSource = resolvedInteractionSource,
+        content = content,
+    )
+}
+
+@Composable
+private fun TextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.textButtonColors(),
+    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
+    androidx.compose.material3.TextButton(
+        onClick = onClick,
+        modifier = modifier.skydownPressable(
+            interactionSource = resolvedInteractionSource,
+            pressedScale = 0.988f,
+        ),
+        enabled = enabled,
+        colors = colors,
+        contentPadding = contentPadding,
+        interactionSource = resolvedInteractionSource,
+        content = content,
+    )
+}
+
+@Composable
+private fun IconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable () -> Unit,
+) {
+    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
+    androidx.compose.material3.IconButton(
+        onClick = onClick,
+        modifier = modifier.skydownPressable(
+            interactionSource = resolvedInteractionSource,
+            pressedScale = 0.97f,
+        ),
+        enabled = enabled,
+        colors = colors,
+        interactionSource = resolvedInteractionSource,
+        content = content,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -2495,6 +2611,13 @@ fun SettingsScreen(
                             Text("Bestellungen oeffnen")
                         }
 
+                        if (!uiState.isOwner) {
+                            SettingsLockedHint(
+                                text = "Owner-Bereiche sind fuer dieses Konto gesperrt. Melde dich mit dem Owner-Konto an, um Rollen und System-Workspaces zu bearbeiten.",
+                                modifier = Modifier.padding(top = 10.dp),
+                            )
+                        }
+
                         if (uiState.isOwner) {
                             Column(
                                 modifier = Modifier.padding(top = 14.dp),
@@ -3640,6 +3763,34 @@ private fun SettingsBadge(
     }
 }
 
+@Composable
+private fun SettingsLockedHint(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.68f))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+    }
+}
+
 private enum class AdminWorkspaceSection(
     val label: String,
     val subtitle: String,
@@ -4311,7 +4462,19 @@ private fun AdminManagedUserCard(
                         shape = RoundedCornerShape(999.dp),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                     ) {
-                        Text(role.displayTitle)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (!roleSelectionEnabled) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                            Text(role.displayTitle)
+                        }
                     }
                 }
             }

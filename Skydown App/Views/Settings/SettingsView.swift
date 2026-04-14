@@ -418,6 +418,7 @@ struct SettingsView: View {
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
+                                .skydownInteractiveFeedback()
                                 .tint(AppColors.accent(for: effectiveColorScheme))
 
                                 if canUseAISelfPaySubscription {
@@ -461,6 +462,7 @@ struct SettingsView: View {
                                             }
                                         }
                                         .buttonStyle(.borderedProminent)
+                                        .skydownInteractiveFeedback()
                                         .tint(AppColors.accentHighlight(for: effectiveColorScheme))
                                         .disabled(isStartingAISubscriptionCheckout || aiSubscriptionCheckoutBlockedReason != nil)
                                     }
@@ -481,6 +483,7 @@ struct SettingsView: View {
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.borderedProminent)
+                                    .skydownInteractiveFeedback()
 
                                     Button {
                                         Task {
@@ -494,6 +497,7 @@ struct SettingsView: View {
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.bordered)
+                                    .skydownInteractiveFeedback()
 
                                     Button(role: .destructive) {
                                         activeAlert = .deleteAccount
@@ -502,6 +506,7 @@ struct SettingsView: View {
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.bordered)
+                                    .skydownInteractiveFeedback()
                                 }
                             }
                         } else {
@@ -517,6 +522,7 @@ struct SettingsView: View {
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
+                                .skydownInteractiveFeedback()
                                 .tint(AppColors.accent(for: effectiveColorScheme))
 
                                 Button {
@@ -526,6 +532,7 @@ struct SettingsView: View {
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.bordered)
+                                .skydownInteractiveFeedback()
                                 .tint(AppColors.accentMystic(for: effectiveColorScheme))
                             }
                         }
@@ -599,21 +606,25 @@ struct SettingsView: View {
                                 presentSheet(.appGuide)
                             }
                             .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
 
                             Button("AGB") {
                                 presentSheet(.termsAndConditions)
                             }
                             .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
 
                             Button("Datenschutzbestimmungen") {
                                 presentSheet(.privacyPolicy)
                             }
                             .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
 
                             Button("Nutzungsbedingungen") {
                                 presentSheet(.termsOfService)
                             }
                             .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Support")
@@ -644,6 +655,7 @@ struct SettingsView: View {
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
+                            .skydownInteractiveFeedback()
                             .tint(AppColors.accent(for: effectiveColorScheme))
 
                             if isOwnerUser {
@@ -742,6 +754,7 @@ struct SettingsView: View {
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.borderedProminent)
+                                    .skydownInteractiveFeedback()
                                     .tint(AppColors.accentHighlight(for: effectiveColorScheme))
                                 }
                             }
@@ -1105,7 +1118,15 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                .skydownInteractiveFeedback()
                 .disabled(!isOwnerUser)
+
+                if !isOwnerUser {
+                    SettingsLockedHintCard(
+                        colorScheme: effectiveColorScheme,
+                        text: "Owner-Bereiche sind fuer dieses Konto gesperrt. Melde dich mit dem Owner-Konto an, um Rollen und System-Workspaces zu bearbeiten."
+                    )
+                }
 
                 if isOwnerUser {
                     VStack(spacing: 10) {
@@ -1156,6 +1177,7 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: effectiveColorScheme))
             }
         }
@@ -1445,6 +1467,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .skydownInteractiveFeedback()
                     .tint(AppColors.accent(for: effectiveColorScheme))
                 }
 
@@ -1492,6 +1515,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
                         .disabled(shopifyAdminSettingsStore.isLoadingCollections)
 
                         if shopifyAdminSettingsStore.availableCollections.isEmpty == false {
@@ -1559,6 +1583,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .skydownInteractiveFeedback()
                         .tint(AppColors.accent(for: effectiveColorScheme))
 
                         if let url = shopifyCatalogURL {
@@ -1569,6 +1594,7 @@ struct SettingsView: View {
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
                         }
                     }
                 }
@@ -1800,6 +1826,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .skydownInteractiveFeedback()
                     .tint(AppColors.accentMystic(for: effectiveColorScheme))
                 }
 
@@ -1971,6 +1998,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .skydownInteractiveFeedback()
                         .tint(AppColors.accentHighlight(for: effectiveColorScheme))
                         .disabled(!automationSaveDisabledReasons.isEmpty)
 
@@ -1982,6 +2010,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
                         .disabled(!automationTestDisabledReasons.isEmpty)
                     }
 
@@ -2025,6 +2054,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .skydownInteractiveFeedback()
                         .tint(AppColors.accent(for: effectiveColorScheme))
 
                         Button(action: clearManusBYOSAPIKey) {
@@ -2032,6 +2062,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
                         .disabled(!manusByosStore.settings.hasAPIKey && manusByosAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
@@ -2110,6 +2141,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .skydownInteractiveFeedback()
                     .tint(AppColors.accentHighlight(for: effectiveColorScheme))
 
                     Divider()
@@ -2269,6 +2301,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+                    .skydownInteractiveFeedback()
                 }
             }
         }
@@ -3560,6 +3593,7 @@ private struct SettingsProfileEditorCard: View {
                 }
             }
             .buttonStyle(.borderedProminent)
+            .skydownInteractiveFeedback()
             .tint(AppColors.accent(for: colorScheme))
             .disabled(isSaving)
         }
@@ -3626,11 +3660,13 @@ private struct PaymentProviderSettingsCard: View {
             HStack(spacing: 10) {
                 Button(actionTitle, action: onPrimaryAction)
                     .buttonStyle(.borderedProminent)
+                    .skydownInteractiveFeedback()
                     .tint(AppColors.accent(for: colorScheme))
 
                 if let secondaryActionTitle, let onSecondaryAction {
                     Button(secondaryActionTitle, action: onSecondaryAction)
                         .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
                 }
             }
         }
@@ -3703,6 +3739,7 @@ private struct StripeBackendSecretsCard: View {
 
             Button("Sicher speichern", action: onSave)
                 .buttonStyle(.borderedProminent)
+                .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: colorScheme))
         }
         .padding(16)
@@ -3775,6 +3812,7 @@ private struct AISubscriptionPricingCard: View {
 
             Button("KI-Abo speichern", action: onSave)
                 .buttonStyle(.borderedProminent)
+                .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: colorScheme))
         }
         .padding(16)
@@ -3881,6 +3919,7 @@ private struct BankTransferSettingsCard: View {
 
             Button(isConfigured ? "Bankdaten aktualisieren" : "Bankdaten hinterlegen", action: onSave)
                 .buttonStyle(.borderedProminent)
+                .skydownInteractiveFeedback()
                 .tint(AppColors.accentMystic(for: colorScheme))
         }
         .padding(16)
@@ -4077,6 +4116,36 @@ private struct SettingsBadge: View {
             .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
             .foregroundColor(AppColors.accentMystic(for: colorScheme))
             .clipShape(Capsule())
+    }
+}
+
+private struct SettingsLockedHintCard: View {
+    let colorScheme: ColorScheme
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "lock.fill")
+                .font(.caption.weight(.bold))
+                .foregroundColor(.white)
+                .padding(.top, 2)
+
+            Text(text)
+                .font(.footnote)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.leading)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.red.opacity(colorScheme == .dark ? 0.34 : 0.76))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.24), lineWidth: 1)
+        )
     }
 }
 
@@ -4562,6 +4631,7 @@ private struct SettingsArtistPageCard: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .skydownInteractiveFeedback()
             .tint(AppColors.accent(for: colorScheme))
         }
         .padding(16)
@@ -4814,6 +4884,7 @@ private struct SettingsAdminUserCard: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .skydownInteractiveFeedback()
             .tint(AppColors.accent(for: colorScheme))
             .disabled(isSaving || !hasPendingChanges)
 

@@ -195,6 +195,43 @@ private struct SkydownTactileButtonBody: View {
     }
 }
 
+private struct SkydownPressFeedbackModifier: ViewModifier {
+    let pressedScale: CGFloat
+    let pressedOffsetY: CGFloat
+    @State private var isPressed = false
+    @State private var emittedPressHaptic = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPressed ? pressedScale : 1)
+            .saturation(isPressed ? 1.04 : 1)
+            .brightness(isPressed ? -0.014 : 0)
+            .offset(y: isPressed ? pressedOffsetY : 0)
+            .shadow(
+                color: Color.black.opacity(isPressed ? 0.14 : 0.06),
+                radius: isPressed ? 5 : 10,
+                y: isPressed ? 2 : 6
+            )
+            .animation(.spring(response: 0.22, dampingFraction: 0.74), value: isPressed)
+            .onLongPressGesture(
+                minimumDuration: 0,
+                maximumDistance: 56,
+                pressing: { pressing in
+                    isPressed = pressing
+                    if pressing && !emittedPressHaptic {
+                        emittedPressHaptic = true
+                        #if canImport(UIKit)
+                        SkydownHaptics.impact(.light)
+                        #endif
+                    } else if !pressing {
+                        emittedPressHaptic = false
+                    }
+                },
+                perform: {}
+            )
+    }
+}
+
 private struct SkydownNavigationChromeModifier: ViewModifier {
     let colorScheme: ColorScheme
 
@@ -394,5 +431,17 @@ extension View {
 
     func skydownTactileAction() -> some View {
         buttonStyle(SkydownTactileButtonStyle())
+    }
+
+    func skydownInteractiveFeedback(
+        pressedScale: CGFloat = 0.976,
+        pressedOffsetY: CGFloat = 1.4
+    ) -> some View {
+        modifier(
+            SkydownPressFeedbackModifier(
+                pressedScale: pressedScale,
+                pressedOffsetY: pressedOffsetY
+            )
+        )
     }
 }

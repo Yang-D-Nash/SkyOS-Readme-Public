@@ -50,6 +50,11 @@
 	<key>UIAppFonts</key>
 	<array>
 		<string>Awergy-Regular.otf</string>
+		<string>Syne-Regular.ttf</string>
+		<string>Syne-Medium.ttf</string>
+		<string>Syne-SemiBold.ttf</string>
+		<string>Syne-Bold.ttf</string>
+		<string>Syne-ExtraBold.ttf</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

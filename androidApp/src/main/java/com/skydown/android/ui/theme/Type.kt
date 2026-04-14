@@ -8,39 +8,53 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.skydown.android.R
 
-private val AwergyFontFamily = FontFamily(
-    Font(R.font.awergy_regular, FontWeight.Normal),
-    Font(R.font.awergy_regular, FontWeight.Medium),
-    Font(R.font.awergy_regular, FontWeight.SemiBold),
-    Font(R.font.awergy_regular, FontWeight.Bold),
-    Font(R.font.awergy_regular, FontWeight.ExtraBold),
-    Font(R.font.awergy_regular, FontWeight.Black),
+private val SyneTitleFontFamily = FontFamily(
+    Font(R.font.syne_regular, FontWeight.Normal),
+    Font(R.font.syne_medium, FontWeight.Medium),
+    Font(R.font.syne_semibold, FontWeight.SemiBold),
+    Font(R.font.syne_bold, FontWeight.Bold),
+    Font(R.font.syne_extrabold, FontWeight.ExtraBold),
+    Font(R.font.syne_extrabold, FontWeight.Black),
 )
 
 private val DefaultAppFontFamily = FontFamily.SansSerif
 
 val Typography = Typography(
     headlineLarge = TextStyle(
-        fontFamily = AwergyFontFamily,
+        fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 30.sp,
         lineHeight = 34.sp,
     ),
+    headlineMedium = TextStyle(
+        fontFamily = SyneTitleFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
+    ),
     headlineSmall = TextStyle(
-        fontFamily = AwergyFontFamily,
+        fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 28.sp,
     ),
     titleLarge = TextStyle(
-        fontFamily = DefaultAppFontFamily,
+        fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
+        lineHeight = 24.sp,
     ),
     titleMedium = TextStyle(
-        fontFamily = DefaultAppFontFamily,
+        fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp,
+        lineHeight = 22.sp,
+    ),
+    titleSmall = TextStyle(
+        fontFamily = SyneTitleFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
     ),
     bodyLarge = TextStyle(
         fontFamily = DefaultAppFontFamily,
