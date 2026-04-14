@@ -10,6 +10,12 @@
 import AVKit
 import SwiftUI
 
+private enum HomeSectionAnchor: String {
+    case release
+    case beat
+    case video
+}
+
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var beatPlaybackManager = BeatPlaybackManager()
@@ -38,68 +44,88 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                    HomeHeroIntroCard(
-                        viewModel: viewModel,
-                        colorScheme: colorScheme
-                    )
-                        .homeReveal(0)
-                    HomeFieldGuideCard(
-                        viewModel: viewModel,
-                        colorScheme: colorScheme
-                    )
-                    .homeReveal(1)
-                    HomeLatestReleaseCard(
-                        viewModel: viewModel,
-                        playbackManager: audioPlayerManager,
-                        colorScheme: colorScheme
-                    ) { track in
-                        beatPlaybackManager.stop()
-                        videoPlaybackManager.stop()
-                        audioPlayerManager.playPreview(for: track)
-                    }
-                    .homeReveal(2)
-                    HomeLatestBeatCard(
-                        viewModel: viewModel,
-                        playbackManager: beatPlaybackManager,
-                        colorScheme: colorScheme
-                    ) { beat in
-                        audioPlayerManager.stop()
-                        videoPlaybackManager.stop()
-                        beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
-                    }
-                    .homeReveal(3)
-                    HomeLatestVideoCard(
-                        viewModel: viewModel,
-                        playbackManager: videoPlaybackManager,
-                        colorScheme: colorScheme
-                    ) { video in
-                        beatPlaybackManager.stop()
-                        audioPlayerManager.stop()
-                        videoPlaybackManager.togglePlayback(for: video)
-                    }
-                    .homeReveal(4)
-                    HomeStoryCard(
-                        colorScheme: colorScheme,
-                        onOpenBeatHub: {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                        HomeHeroIntroCard(
+                            viewModel: viewModel,
+                            colorScheme: colorScheme,
+                            onOpenTrack: {
+                                withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
+                                    proxy.scrollTo(HomeSectionAnchor.release.rawValue, anchor: .top)
+                                }
+                            },
+                            onOpenBeat: {
+                                withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
+                                    proxy.scrollTo(HomeSectionAnchor.beat.rawValue, anchor: .top)
+                                }
+                            },
+                            onOpenVideo: {
+                                withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
+                                    proxy.scrollTo(HomeSectionAnchor.video.rawValue, anchor: .top)
+                                }
+                            }
+                        )
+                            .homeReveal(0)
+                        HomeFieldGuideCard(
+                            viewModel: viewModel,
+                            colorScheme: colorScheme
+                        )
+                        .homeReveal(1)
+                        HomeLatestReleaseCard(
+                            viewModel: viewModel,
+                            playbackManager: audioPlayerManager,
+                            colorScheme: colorScheme
+                        ) { track in
                             beatPlaybackManager.stop()
-                            audioPlayerManager.stop()
                             videoPlaybackManager.stop()
-                            presentSheet(.beatHub)
-                        },
-                        onOpenNicma: {
-                            beatPlaybackManager.stop()
-                            audioPlayerManager.stop()
-                            videoPlaybackManager.stop()
-                            presentSheet(.nicmaProducer)
+                            audioPlayerManager.playPreview(for: track)
                         }
-                    )
-                    .homeReveal(5)
+                        .id(HomeSectionAnchor.release.rawValue)
+                        .homeReveal(2)
+                        HomeLatestBeatCard(
+                            viewModel: viewModel,
+                            playbackManager: beatPlaybackManager,
+                            colorScheme: colorScheme
+                        ) { beat in
+                            audioPlayerManager.stop()
+                            videoPlaybackManager.stop()
+                            beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
+                        }
+                        .id(HomeSectionAnchor.beat.rawValue)
+                        .homeReveal(3)
+                        HomeLatestVideoCard(
+                            viewModel: viewModel,
+                            playbackManager: videoPlaybackManager,
+                            colorScheme: colorScheme
+                        ) { video in
+                            beatPlaybackManager.stop()
+                            audioPlayerManager.stop()
+                            videoPlaybackManager.togglePlayback(for: video)
+                        }
+                        .id(HomeSectionAnchor.video.rawValue)
+                        .homeReveal(4)
+                        HomeStoryCard(
+                            colorScheme: colorScheme,
+                            onOpenBeatHub: {
+                                beatPlaybackManager.stop()
+                                audioPlayerManager.stop()
+                                videoPlaybackManager.stop()
+                                presentSheet(.beatHub)
+                            },
+                            onOpenNicma: {
+                                beatPlaybackManager.stop()
+                                audioPlayerManager.stop()
+                                videoPlaybackManager.stop()
+                                presentSheet(.nicmaProducer)
+                            }
+                        )
+                        .homeReveal(5)
+                    }
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, SkydownLayout.screenTopPadding * 0.5)
+                    .padding(.bottom, SkydownLayout.screenBottomPadding)
                 }
-                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                .padding(.top, SkydownLayout.screenTopPadding * 0.5)
-                .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .scrollIndicators(.hidden)
             .refreshable {
@@ -521,6 +547,9 @@ private struct HomeBackdropHalo: View {
 private struct HomeHeroIntroCard: View {
     @ObservedObject var viewModel: HomeViewModel
     let colorScheme: ColorScheme
+    let onOpenTrack: () -> Void
+    let onOpenBeat: () -> Void
+    let onOpenVideo: () -> Void
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
 
     var body: some View {
@@ -548,17 +577,20 @@ private struct HomeHeroIntroCard: View {
                     BrandHeroPill(
                         text: viewModel.featuredTrack == nil ? "Track laedt" : "Track live",
                         colorScheme: colorScheme,
-                        tint: AppColors.spotify(for: colorScheme)
+                        tint: AppColors.spotify(for: colorScheme),
+                        onTap: onOpenTrack
                     )
                     BrandHeroPill(
                         text: viewModel.featuredBeat == nil ? "Beat laedt" : "Beat live",
                         colorScheme: colorScheme,
-                        tint: AppColors.accentMystic(for: colorScheme)
+                        tint: AppColors.accentMystic(for: colorScheme),
+                        onTap: onOpenBeat
                     )
                     BrandHeroPill(
                         text: viewModel.featuredVideo == nil ? "Video laedt" : "Video live",
                         colorScheme: colorScheme,
-                        tint: AppColors.accentHighlight(for: colorScheme)
+                        tint: AppColors.accentHighlight(for: colorScheme),
+                        onTap: onOpenVideo
                     )
                 }
 

@@ -242,14 +242,35 @@ struct BrandHeroPill: View {
     let text: String
     let colorScheme: ColorScheme
     let tint: Color
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundColor(tint)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 7)
-            .skydownCapsuleSurface(colorScheme: colorScheme, accent: tint)
+        Group {
+            if let onTap {
+                Button(action: onTap) {
+                    pillContent
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+            } else {
+                pillContent
+            }
+        }
+    }
+
+    private var pillContent: some View {
+        HStack(spacing: 5) {
+            Text(text)
+                .font(.caption.weight(.semibold))
+            if onTap != nil {
+                Image(systemName: "arrow.right")
+                    .font(.caption2.weight(.bold))
+            }
+        }
+        .foregroundColor(tint)
+        .padding(.horizontal, onTap == nil ? 11 : 12)
+        .padding(.vertical, 7)
+        .skydownCapsuleSurface(colorScheme: colorScheme, accent: tint)
     }
 }
 

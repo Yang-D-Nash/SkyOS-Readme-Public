@@ -12,6 +12,12 @@ import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
 
+private enum VideoHubSectionAnchor: String {
+    case videos
+    case equipment
+    case collaborations
+}
+
 struct VideoHubView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
@@ -51,37 +57,58 @@ struct VideoHubView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                heroCard
-                if viewModel.isAdmin && showingUploadComposer {
-                    uploadCard
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                VideoEquipmentCard(
-                    colorScheme: colorScheme,
-                    items: viewModel.publicConfig.equipmentItems,
-                    onSelectItem: { item in
-                        selectedEquipmentItem = item
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                    heroCard(
+                        onOpenVideos: {
+                            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                scrollProxy.scrollTo(VideoHubSectionAnchor.videos.rawValue, anchor: .top)
+                            }
+                        },
+                        onOpenEquipment: {
+                            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                scrollProxy.scrollTo(VideoHubSectionAnchor.equipment.rawValue, anchor: .top)
+                            }
+                        },
+                        onOpenCollaborations: {
+                            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                scrollProxy.scrollTo(VideoHubSectionAnchor.collaborations.rawValue, anchor: .top)
+                            }
+                        }
+                    )
+                    if viewModel.isAdmin && showingUploadComposer {
+                        uploadCard
+                            .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                )
-                playerCard
-                libraryCard
-                VideoYouTubeCard(
-                    colorScheme: colorScheme,
-                    items: viewModel.publicConfig.youtubeItems
-                ) { item in
-                    presentSheet(.youTube(item))
-                }
-                collaborationsCard
+                    VideoEquipmentCard(
+                        colorScheme: colorScheme,
+                        items: viewModel.publicConfig.equipmentItems,
+                        onSelectItem: { item in
+                            selectedEquipmentItem = item
+                        }
+                    )
+                    .id(VideoHubSectionAnchor.equipment.rawValue)
+                    playerCard
+                    libraryCard
+                        .id(VideoHubSectionAnchor.videos.rawValue)
+                    VideoYouTubeCard(
+                        colorScheme: colorScheme,
+                        items: viewModel.publicConfig.youtubeItems
+                    ) { item in
+                        presentSheet(.youTube(item))
+                    }
+                    collaborationsCard
+                        .id(VideoHubSectionAnchor.collaborations.rawValue)
 
-                if viewModel.isAdmin {
-                    adminToolsCard
+                    if viewModel.isAdmin {
+                        adminToolsCard
+                    }
                 }
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.top, SkydownLayout.screenTopPadding)
+                .padding(.bottom, SkydownLayout.screenBottomPadding + (viewModel.isAdmin ? 92 : 0))
             }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, SkydownLayout.screenTopPadding)
-            .padding(.bottom, SkydownLayout.screenBottomPadding + (viewModel.isAdmin ? 92 : 0))
         }
         .overlay(alignment: .bottomTrailing) {
             if viewModel.isAdmin {
@@ -290,7 +317,11 @@ struct VideoHubView: View {
         }
     }
 
-    private var heroCard: some View {
+    private func heroCard(
+        onOpenVideos: @escaping () -> Void,
+        onOpenEquipment: @escaping () -> Void,
+        onOpenCollaborations: @escaping () -> Void
+    ) -> some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedVideoHubEyebrow ?? "Video",
@@ -303,9 +334,9 @@ struct VideoHubView: View {
             marks: [.skydown]
         ) {
             HStack(spacing: 8) {
-                MusicBadge(text: "Videos", isAccent: true)
-                MusicBadge(text: "Equipment", isAccent: false)
-                MusicBadge(text: "Collabs", isAccent: false)
+                MusicBadge(text: "Videos", isAccent: true, onTap: onOpenVideos)
+                MusicBadge(text: "Equipment", isAccent: false, onTap: onOpenEquipment)
+                MusicBadge(text: "Collabs", isAccent: false, onTap: onOpenCollaborations)
             }
         }
     }

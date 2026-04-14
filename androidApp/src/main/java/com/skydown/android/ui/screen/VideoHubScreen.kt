@@ -378,6 +378,21 @@ fun VideoHubScreen(
                         isAdmin = uiState.isAdmin,
                         videoCount = uiState.videos.size,
                         collabCount = uiState.publicConfig.collaborationItems.size,
+                        onOpenVideos = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(3)
+                            }
+                        },
+                        onOpenEquipment = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(1)
+                            }
+                        },
+                        onOpenCollaborations = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(4)
+                            }
+                        },
                     )
                 }
 
@@ -611,6 +626,9 @@ private fun VideoHubHeroCard(
     isAdmin: Boolean,
     videoCount: Int,
     collabCount: Int,
+    onOpenVideos: () -> Unit,
+    onOpenEquipment: () -> Unit,
+    onOpenCollaborations: () -> Unit,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
@@ -630,8 +648,21 @@ private fun VideoHubHeroCard(
         marks = listOf(BrandArtwork.Skydown),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BrandPill(text = "$videoCount Clips", tint = ArenaGold)
-            BrandPill(text = "$collabCount Collabs", tint = FieldMint)
+            BrandPill(
+                text = "$videoCount Clips",
+                tint = ArenaGold,
+                onClick = onOpenVideos,
+            )
+            BrandPill(
+                text = "Equipment",
+                tint = FieldMint,
+                onClick = onOpenEquipment,
+            )
+            BrandPill(
+                text = "$collabCount Collabs",
+                tint = ArenaRed,
+                onClick = onOpenCollaborations,
+            )
         }
         Row(
             modifier = Modifier.padding(top = 12.dp),

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -55,6 +56,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -103,6 +105,7 @@ import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.viewmodel.MusicViewModel
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -133,8 +136,18 @@ fun MusicScreen(
     var selectedTrackId by rememberSaveable { mutableStateOf<Int?>(null) }
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
-    val extraBottomPadding = if (onOpenBeatHub != null || onOpenStudio != null) 112.dp else 0.dp
+    val hasShortcutHub = onOpenBeatHub != null || onOpenStudio != null
+    val extraBottomPadding = if (hasShortcutHub) 112.dp else 0.dp
+    val artistSectionIndex = if (hasShortcutHub) 3 else 2
+    val spotifyStatusSectionIndex = if (hasShortcutHub) 5 else 4
+    val tracksSectionIndex = if (uiState.tracks.isNotEmpty()) {
+        if (hasShortcutHub) 7 else 6
+    } else {
+        spotifyStatusSectionIndex
+    }
     val artistPagesByName = remember(artistPages) {
         artistPages
             .filter { it.brand == ArtistPageBrand.Zweizwei }
@@ -348,6 +361,7 @@ fun MusicScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .widthIn(max = 1080.dp),
+                    state = listState,
                     contentPadding = PaddingValues(
                         start = 16.dp,
                         top = innerPadding.calculateTopPadding() + 10.dp,
@@ -359,6 +373,21 @@ fun MusicScreen(
                     item {
                         MusicOverviewCard(
                             uiState = uiState,
+                            onOpenArtistHub = {
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(artistSectionIndex)
+                                }
+                            },
+                            onOpenTracks = {
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(tracksSectionIndex)
+                                }
+                            },
+                            onOpenSpotifyStatus = {
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(spotifyStatusSectionIndex)
+                                }
+                            },
                         )
                     }
 
@@ -836,6 +865,9 @@ private fun MusicPlayerCard(
 @Composable
 private fun MusicOverviewCard(
     uiState: MusicUiState,
+    onOpenArtistHub: () -> Unit,
+    onOpenTracks: () -> Unit,
+    onOpenSpotifyStatus: () -> Unit,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     val socialProfile = uiState.selectedArtistSocialProfile
@@ -857,11 +889,25 @@ private fun MusicOverviewCard(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
-                BrandPill(text = "${uiState.availableArtists.size} Artists", tint = ArenaGold)
+                BrandPill(
+                    text = uiState.selectedArtist,
+                    tint = SpotifyGreen,
+                    onClick = onOpenArtistHub,
+                )
+                BrandPill(
+                    text = "${uiState.availableArtists.size} Artists",
+                    tint = ArenaGold,
+                    onClick = onOpenArtistHub,
+                )
+                BrandPill(
+                    text = trackLabel,
+                    tint = ArenaGold,
+                    onClick = onOpenTracks,
+                )
                 BrandPill(
                     text = if (uiState.isSpotifyConnected) "Spotify live" else "Spotify standby",
                     tint = if (uiState.isSpotifyConnected) FieldMint else MaterialTheme.colorScheme.secondary,
+                    onClick = onOpenSpotifyStatus,
                 )
             }
 

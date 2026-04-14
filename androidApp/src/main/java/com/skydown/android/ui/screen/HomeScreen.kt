@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -58,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -112,6 +114,7 @@ import com.skydown.android.ui.theme.InstagramPurple
 import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -155,6 +158,8 @@ fun HomeScreen(
     }
     var currentAudioKey by rememberSaveable { mutableStateOf<String?>(null) }
     var currentVideoId by rememberSaveable { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     DisposableEffect(audioPlayer) {
         val listener = object : Player.Listener {
@@ -274,6 +279,7 @@ fun HomeScreen(
             )
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
+                state = listState,
                 contentPadding = PaddingValues(
                     start = SkydownUiTokens.screenHorizontalPadding,
                     top = innerPadding.calculateTopPadding() + 4.dp,
@@ -295,9 +301,33 @@ fun HomeScreen(
                             marks = listOf(BrandArtwork.Combined),
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                BrandPill(text = "22xSky", tint = ArenaGold)
-                                BrandPill(text = "$activeSignalCount/$homeSignalTotal Live", tint = FieldMint)
-                                BrandPill(text = "Live Focus", tint = ArenaRed)
+                                BrandPill(
+                                    text = "22xSky",
+                                    tint = ArenaGold,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(1)
+                                        }
+                                    },
+                                )
+                                BrandPill(
+                                    text = "$activeSignalCount/$homeSignalTotal Live",
+                                    tint = FieldMint,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(2)
+                                        }
+                                    },
+                                )
+                                BrandPill(
+                                    text = "Live Focus",
+                                    tint = ArenaRed,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(3)
+                                        }
+                                    },
+                                )
                             }
                             HomeHeroStatusRow(
                                 uiState = uiState,

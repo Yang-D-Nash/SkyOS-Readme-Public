@@ -97,6 +97,12 @@ enum MusicExperienceBrand {
     }
 }
 
+private enum MusicSectionAnchor: String {
+    case artists
+    case tracks
+    case spotify
+}
+
 struct MusicView: View {
     @StateObject private var viewModel = MusicViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
@@ -187,64 +193,88 @@ struct MusicView: View {
             )
 
             NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                        heroCard
-                        spotlightCard
-
-                        if layout.prefersTwoColumn {
-                            HStack(alignment: .top, spacing: layout.sectionSpacing) {
-                                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                                    shortcutHubCard
-                                    artistsCard
-                                    instagramCard
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                            heroCard(
+                                onOpenArtistHub: {
+                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                        scrollProxy.scrollTo(MusicSectionAnchor.artists.rawValue, anchor: .top)
+                                    }
+                                },
+                                onOpenTracks: {
+                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                        scrollProxy.scrollTo(MusicSectionAnchor.tracks.rawValue, anchor: .top)
+                                    }
+                                },
+                                onOpenSpotifyStatus: {
+                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                        scrollProxy.scrollTo(MusicSectionAnchor.spotify.rawValue, anchor: .top)
+                                    }
                                 }
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-
-                                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                                    spotifyCard
-                                    musicPlayerCard
-                                    tracksCard
-                                }
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                            }
-                        } else {
-                            shortcutHubCard
-                            artistsCard
-                            instagramCard
-                            spotifyCard
-                            musicPlayerCard
-                            tracksCard
-                        }
-                    }
-                    .frame(maxWidth: contentWidth, alignment: .leading)
-                    .padding(.horizontal, layout.horizontalPadding)
-                    .padding(.top, SkydownLayout.screenTopPadding)
-                    .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 88 : 0))
-                    .frame(maxWidth: .infinity)
-                }
-                .accessibilityIdentifier("music.catalog.root")
-                .scrollIndicators(.hidden)
-                .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-                .navigationTitle(brand.navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .skydownNavigationChrome(colorScheme: colorScheme)
-                .overlay(alignment: .bottomTrailing) {
-                    if brand.showsBeatHubShortcut {
-                        NavigationLink {
-                            BeatHubView()
-                        } label: {
-                            MusicShortcutFab(
-                                title: "Beat Hub",
-                                systemImage: "waveform.circle.fill",
-                                tint: AppColors.accent(for: colorScheme),
-                                textColor: .white
                             )
+                            spotlightCard
+
+                            if layout.prefersTwoColumn {
+                                HStack(alignment: .top, spacing: layout.sectionSpacing) {
+                                    VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                        shortcutHubCard
+                                        artistsCard
+                                            .id(MusicSectionAnchor.artists.rawValue)
+                                        instagramCard
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+
+                                    VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                        spotifyCard
+                                            .id(MusicSectionAnchor.spotify.rawValue)
+                                        musicPlayerCard
+                                        tracksCard
+                                            .id(MusicSectionAnchor.tracks.rawValue)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                                }
+                            } else {
+                                shortcutHubCard
+                                artistsCard
+                                    .id(MusicSectionAnchor.artists.rawValue)
+                                instagramCard
+                                spotifyCard
+                                    .id(MusicSectionAnchor.spotify.rawValue)
+                                musicPlayerCard
+                                tracksCard
+                                    .id(MusicSectionAnchor.tracks.rawValue)
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                        .padding(.trailing, layout.horizontalPadding)
-                        .padding(.bottom, 20)
+                        .frame(maxWidth: contentWidth, alignment: .leading)
+                        .padding(.horizontal, layout.horizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 88 : 0))
+                        .frame(maxWidth: .infinity)
+                    }
+                    .accessibilityIdentifier("music.catalog.root")
+                    .scrollIndicators(.hidden)
+                    .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+                    .navigationTitle(brand.navigationTitle)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .skydownNavigationChrome(colorScheme: colorScheme)
+                    .overlay(alignment: .bottomTrailing) {
+                        if brand.showsBeatHubShortcut {
+                            NavigationLink {
+                                BeatHubView()
+                            } label: {
+                                MusicShortcutFab(
+                                    title: "Beat Hub",
+                                    systemImage: "waveform.circle.fill",
+                                    tint: AppColors.accent(for: colorScheme),
+                                    textColor: .white
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .skydownTactileAction()
+                            .padding(.trailing, layout.horizontalPadding)
+                            .padding(.bottom, 20)
+                        }
                     }
                 }
                 .toolbar {
@@ -345,7 +375,11 @@ struct MusicView: View {
         activePresentedSheet = sheet
     }
 
-    private var heroCard: some View {
+    private func heroCard(
+        onOpenArtistHub: @escaping () -> Void,
+        onOpenTracks: @escaping () -> Void,
+        onOpenSpotifyStatus: @escaping () -> Void
+    ) -> some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
@@ -359,14 +393,17 @@ struct MusicView: View {
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    MusicBadge(text: selectedArtist, isAccent: true)
-                    MusicBadge(text: tracksStatusText, isAccent: false)
+                    MusicBadge(text: selectedArtist, isAccent: true, onTap: onOpenArtistHub)
+                    MusicBadge(text: tracksStatusText, isAccent: false, onTap: onOpenTracks)
                     if brand.showsArtistPages {
-                        MusicBadge(text: "Artist Pages", isAccent: false)
+                        MusicBadge(text: "Artist Pages", isAccent: false, onTap: {
+                            presentSheet(.artistPage)
+                        })
                     }
                     MusicBadge(
                         text: viewModel.isSpotifyConnected ? "Spotify live" : "Preview ready",
-                        isAccent: false
+                        isAccent: false,
+                        onTap: onOpenSpotifyStatus
                     )
                 }
             }
