@@ -53,6 +53,12 @@
     <string name="auth_register_loading">Registrieren&#8230;</string>
     <string name="auth_register_google">Mit Google registrieren</string>
     <string name="auth_register_google_hint">Beim ersten Google-Login wird dein Konto automatisch angelegt. Ein eingetragener Benutzername wird direkt uebernommen.</string>
+    <string name="auth_register_legal_version">Rechtliche Version: %1$s</string>
+    <string name="auth_register_accept_terms">Ich akzeptiere die Allgemeinen Geschaeftsbedingungen (AGB).</string>
+    <string name="auth_register_accept_privacy">Ich akzeptiere die Datenschutzerklaerung.</string>
+    <string name="auth_register_ai_optin">KI fuer mein Konto aktivieren (spaeter in den Einstellungen aenderbar).</string>
+    <string name="auth_register_open_terms">AGB oeffnen</string>
+    <string name="auth_register_open_privacy">Datenschutz oeffnen</string>
     <string name="auth_google_register_missing_token">Google-Registrierung hat kein gueltiges Token geliefert.</string>
     <string name="auth_google_register_failed">Google-Registrierung konnte nicht abgeschlossen werden.</string>
 </resources>

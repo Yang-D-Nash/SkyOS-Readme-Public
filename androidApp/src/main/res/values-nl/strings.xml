@@ -53,6 +53,12 @@
     <string name="auth_register_loading">Registreren&#8230;</string>
     <string name="auth_register_google">Registreren met Google</string>
     <string name="auth_register_google_hint">Je account wordt automatisch aangemaakt bij de eerste Google-login. Een ingevulde gebruikersnaam wordt direct gebruikt.</string>
+    <string name="auth_register_legal_version">Juridische versie: %1$s</string>
+    <string name="auth_register_accept_terms">Ik accepteer de Algemene Voorwaarden (AGB).</string>
+    <string name="auth_register_accept_privacy">Ik accepteer het Privacybeleid.</string>
+    <string name="auth_register_ai_optin">AI voor mijn account inschakelen (later aanpasbaar in Instellingen).</string>
+    <string name="auth_register_open_terms">AGB openen</string>
+    <string name="auth_register_open_privacy">Privacy openen</string>
     <string name="auth_google_register_missing_token">Google-registratie gaf geen geldig token terug.</string>
     <string name="auth_google_register_failed">Google-registratie kon niet worden voltooid.</string>
 </resources>

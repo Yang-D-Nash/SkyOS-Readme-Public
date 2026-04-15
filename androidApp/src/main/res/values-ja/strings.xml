@@ -53,6 +53,12 @@
     <string name="auth_register_loading">登録中&#8230;</string>
     <string name="auth_register_google">Googleで登録</string>
     <string name="auth_register_google_hint">初回のGoogleログイン時にアカウントが自動作成されます。入力したユーザー名はそのまま反映されます。</string>
+    <string name="auth_register_legal_version">法的バージョン: %1$s</string>
+    <string name="auth_register_accept_terms">利用規約（AGB）に同意します。</string>
+    <string name="auth_register_accept_privacy">プライバシーポリシーに同意します。</string>
+    <string name="auth_register_ai_optin">アカウントでAIを有効にする（後で設定から変更できます）。</string>
+    <string name="auth_register_open_terms">AGBを開く</string>
+    <string name="auth_register_open_privacy">プライバシーを開く</string>
     <string name="auth_google_register_missing_token">Google登録で有効なトークンを取得できませんでした。</string>
     <string name="auth_google_register_failed">Google登録を完了できませんでした。</string>
 </resources>

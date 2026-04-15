@@ -23,6 +23,7 @@ struct HomeView: View {
     @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
     @State private var activePresentedSheet: HomePresentedSheet?
     @State private var queuedPresentedSheet: HomePresentedSheet?
+    @State private var originalVideoViewerTarget: HomeOriginalVideoViewerTarget?
     @State private var hasLoadedInitialHomeContent = false
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
@@ -102,6 +103,8 @@ struct HomeView: View {
                             beatPlaybackManager.stop()
                             audioPlayerManager.stop()
                             videoPlaybackManager.togglePlayback(for: video)
+                        } onOpenOriginal: { video in
+                            presentOriginalVideo(video)
                         }
                         .id(HomeSectionAnchor.video.rawValue)
                         .homeReveal(4)
@@ -193,6 +196,12 @@ struct HomeView: View {
                 }
             }
         }
+        .fullScreenCover(item: $originalVideoViewerTarget) { target in
+            HomeOriginalVideoLinkViewer(
+                urlString: target.urlString,
+                title: target.title
+            )
+        }
         .onChange(of: activePresentedSheet) { _, sheet in
             guard sheet == nil, let queuedPresentedSheet else { return }
             self.queuedPresentedSheet = nil
@@ -211,6 +220,20 @@ struct HomeView: View {
 
         activePresentedSheet = sheet
     }
+
+    private func presentOriginalVideo(_ video: FeaturedHomeVideo) {
+        let url = video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !url.isEmpty else { return }
+
+        beatPlaybackManager.stop()
+        audioPlayerManager.stop()
+        videoPlaybackManager.stop()
+        activePresentedSheet = nil
+        originalVideoViewerTarget = HomeOriginalVideoViewerTarget(
+            urlString: url,
+            title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
+        )
+    }
 }
 
 private enum HomePresentedSheet: String, Identifiable, Equatable {
@@ -218,6 +241,12 @@ private enum HomePresentedSheet: String, Identifiable, Equatable {
     case nicmaProducer
 
     var id: String { rawValue }
+}
+
+private struct HomeOriginalVideoViewerTarget: Identifiable {
+    let id = UUID()
+    let urlString: String
+    let title: String
 }
 
 struct ShopView: View {
@@ -1197,7 +1226,7 @@ private struct HomeLatestVideoCard: View {
     @ObservedObject var playbackManager: HomeInlineVideoPlaybackManager
     let colorScheme: ColorScheme
     let onPlayToggle: (FeaturedHomeVideo) -> Void
-    @Environment(\.openURL) private var openURL
+    let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1295,7 +1324,7 @@ private struct HomeLatestVideoCard: View {
                                 .font(.title2.weight(.bold))
                                 .foregroundColor(AppColors.text(for: colorScheme))
 
-                            Text("Dieser Clip wird ueber einen externen Link geoeffnet.")
+                            Text("Dieser Clip laeuft in der In-App-Ansicht.")
                                 .font(.footnote.weight(.semibold))
                                 .multilineTextAlignment(.center)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1321,14 +1350,14 @@ private struct HomeLatestVideoCard: View {
                         }
                     }
 
-                    if let videoURL = URL(string: video.openURLString), !video.openURLString.isEmpty {
+                    if !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         HomeActionButton(
                             title: "Original",
                             icon: "video.fill",
                             colorScheme: colorScheme,
                             isPrimary: false
                         ) {
-                            openURL(videoURL)
+                            onOpenOriginal(video)
                         }
                     }
                 }
@@ -1347,6 +1376,104 @@ private struct HomeLatestVideoCard: View {
             shadowYOffset: 6
         )
     }
+}
+
+private struct HomeOriginalVideoLinkViewer: View {
+    let urlString: String
+    let title: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var player = AVPlayer()
+
+    private var isDirectVideoURL: Bool {
+        homeIsLikelyDirectVideoURL(urlString)
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                Color.black
+                    .ignoresSafeArea()
+
+                if isDirectVideoURL, let url = URL(string: urlString) {
+                    VideoPlayer(player: player)
+                        .ignoresSafeArea()
+                        .onAppear {
+                            player.pause()
+                            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+                            player.seek(to: .zero)
+                            player.play()
+                        }
+                } else {
+                    ExternalVideoEmbedSurface(urlString: urlString)
+                        .ignoresSafeArea()
+                }
+
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        Color.black.opacity(0.20),
+                        Color.black.opacity(0.84)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+
+                        Text(isDirectVideoURL ? "Direkt in der App" : "Web-Ansicht in der App")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.72))
+                    }
+
+                    Spacer()
+
+                    Button(action: { dismiss() }, label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(width: 48, height: 48)
+                            .background(Color.black.opacity(0.42))
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                            )
+                    })
+                    .buttonStyle(.plain)
+                    .skydownTactileAction()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, max(proxy.safeAreaInsets.top, 12))
+                .zIndex(10)
+            }
+        }
+        .onDisappear {
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+        }
+    }
+}
+
+private func homeIsLikelyDirectVideoURL(_ rawValue: String) -> Bool {
+    let normalized = rawValue
+        .lowercased()
+        .split(separator: "?")
+        .first?
+        .split(separator: "#")
+        .first
+        .map(String.init) ?? rawValue.lowercased()
+    return normalized.hasSuffix(".mp4")
+        || normalized.hasSuffix(".mov")
+        || normalized.hasSuffix(".m4v")
+        || normalized.hasSuffix(".webm")
+        || normalized.hasSuffix(".m3u8")
 }
 
 private struct HomeStoryCard: View {

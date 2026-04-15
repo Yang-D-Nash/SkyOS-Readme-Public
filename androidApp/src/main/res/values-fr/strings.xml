@@ -53,6 +53,12 @@
     <string name="auth_register_loading">Inscription&#8230;</string>
     <string name="auth_register_google">S inscrire avec Google</string>
     <string name="auth_register_google_hint">Votre compte est cree automatiquement lors du premier login Google. Le nom d utilisateur saisi est repris directement.</string>
+    <string name="auth_register_legal_version">Version legale: %1$s</string>
+    <string name="auth_register_accept_terms">J accepte les Conditions Generales (AGB).</string>
+    <string name="auth_register_accept_privacy">J accepte la Politique de confidentialite.</string>
+    <string name="auth_register_ai_optin">Activer l IA pour mon compte (modifiable plus tard dans les reglages).</string>
+    <string name="auth_register_open_terms">Ouvrir AGB</string>
+    <string name="auth_register_open_privacy">Ouvrir Confidentialite</string>
     <string name="auth_google_register_missing_token">L inscription Google n a pas renvoye de jeton valide.</string>
     <string name="auth_google_register_failed">L inscription Google n a pas pu etre finalisee.</string>
 </resources>
