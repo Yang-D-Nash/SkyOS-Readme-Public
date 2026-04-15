@@ -21,7 +21,6 @@ private enum VideoHubSectionAnchor: String {
 struct VideoHubView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.openURL) private var openURL
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
@@ -33,6 +32,7 @@ struct VideoHubView: View {
     @State private var hasHandledInitialSelection = false
     @State private var showingAdminEditor = false
     @State private var selectedEquipmentItem: SkydownVideoEquipmentItem?
+    @State private var originalViewerTarget: VideoOriginalViewerTarget?
     let onBack: (() -> Void)?
     private let initialSelectedVideoID: String?
     private let autoplayInitialSelection: Bool
@@ -92,12 +92,6 @@ struct VideoHubView: View {
                     playerCard
                     libraryCard
                         .id(VideoHubSectionAnchor.videos.rawValue)
-                    VideoYouTubeCard(
-                        colorScheme: colorScheme,
-                        items: viewModel.publicConfig.youtubeItems
-                    ) { item in
-                        presentSheet(.youTube(item))
-                    }
                     collaborationsCard
                         .id(VideoHubSectionAnchor.collaborations.rawValue)
 
@@ -230,6 +224,12 @@ struct VideoHubView: View {
                 )
             }
         }
+        .fullScreenCover(item: $originalViewerTarget) { target in
+            VideoOriginalLinkViewer(
+                urlString: target.urlString,
+                title: target.title
+            )
+        }
         .onChange(of: activePresentedSheet) { _, sheet in
             guard sheet == nil, let queuedPresentedSheet else { return }
             self.queuedPresentedSheet = nil
@@ -248,6 +248,17 @@ struct VideoHubView: View {
         }
 
         activePresentedSheet = sheet
+    }
+
+    private func presentOriginalViewer(urlString: String, title: String) {
+        let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedURL.isEmpty else { return }
+        playbackManager.player.pause()
+        activePresentedSheet = nil
+        originalViewerTarget = VideoOriginalViewerTarget(
+            urlString: trimmedURL,
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : title
+        )
     }
 
     @ViewBuilder
@@ -665,7 +676,7 @@ struct VideoHubView: View {
 
                 if let originalURL = URL(string: selectedVideo.openURLString), !selectedVideo.openURLString.isEmpty {
                     Button {
-                        openURL(originalURL)
+                        presentOriginalViewer(urlString: originalURL.absoluteString, title: selectedVideo.title)
                     } label: {
                         Label("Original oeffnen", systemImage: "arrow.up.forward.square")
                             .font(.headline)
@@ -731,9 +742,7 @@ struct VideoHubView: View {
                             showingReelViewer = true
                         },
                         onOpenOriginal: {
-                            if let url = URL(string: video.openURLString), !video.openURLString.isEmpty {
-                                openURL(url)
-                            }
+                            presentOriginalViewer(urlString: video.openURLString, title: video.title)
                         },
                         onToggleHomeFeatured: {
                             Task {
@@ -2116,6 +2125,103 @@ private enum VideoHubPresentedSheet: Identifiable, Equatable {
             return "youtube-\(item.id)"
         }
     }
+}
+
+private struct VideoOriginalViewerTarget: Identifiable {
+    let id = UUID()
+    let urlString: String
+    let title: String
+}
+
+private struct VideoOriginalLinkViewer: View {
+    let urlString: String
+    let title: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var player = AVPlayer()
+
+    private var isDirectVideoURL: Bool {
+        isLikelyDirectVideoURL(urlString)
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color.black
+                .ignoresSafeArea()
+
+            if isDirectVideoURL, let url = URL(string: urlString) {
+                VideoPlayer(player: player)
+                    .ignoresSafeArea()
+                    .onAppear {
+                        player.pause()
+                        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+                        player.seek(to: .zero)
+                        player.play()
+                    }
+            } else {
+                ExternalVideoEmbedSurface(urlString: urlString)
+                    .ignoresSafeArea()
+            }
+
+            LinearGradient(
+                colors: [
+                    .clear,
+                    Color.black.opacity(0.20),
+                    Color.black.opacity(0.84)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+
+                    Text(isDirectVideoURL ? "Direkt in der App" : "Web-Ansicht in der App")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.72))
+                }
+
+                Spacer()
+
+                Button(action: { dismiss() }, label: {
+                    Image(systemName: "xmark")
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.14))
+                        .clipShape(Circle())
+                })
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+        }
+        .onDisappear {
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+        }
+    }
+}
+
+private func isLikelyDirectVideoURL(_ rawValue: String) -> Bool {
+    let normalized = rawValue
+        .lowercased()
+        .split(separator: "?")
+        .first?
+        .split(separator: "#")
+        .first
+        .map(String.init) ?? rawValue.lowercased()
+    return normalized.hasSuffix(".mp4")
+        || normalized.hasSuffix(".mov")
+        || normalized.hasSuffix(".m4v")
+        || normalized.hasSuffix(".webm")
+        || normalized.hasSuffix(".m3u8")
 }
 
 struct ExternalVideoEmbedSurface: UIViewRepresentable {

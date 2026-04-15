@@ -24,6 +24,7 @@ data class ProducedWithArtist(
     val imageUrl: String? = null,
     val spotifyArtistId: String? = null,
     val instagramUrl: String? = null,
+    val youtubeUrl: String? = null,
 )
 
 data class VideoHubPublicConfig(

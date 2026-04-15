@@ -206,6 +206,8 @@ class VideoHubService(
                 "spotifyArtistID" to item.spotifyArtistId.orEmpty(),
                 "instagramUrl" to item.instagramUrl.orEmpty(),
                 "instagramURLString" to item.instagramUrl.orEmpty(),
+                "youtubeUrl" to item.youtubeUrl.orEmpty(),
+                "youtubeURLString" to item.youtubeUrl.orEmpty(),
             )
         }
 
@@ -452,6 +454,7 @@ class VideoHubService(
             ),
             spotifyArtistId = mapTrimmedString(map, "spotifyArtistId", "spotifyArtistID"),
             instagramUrl = mapTrimmedUrl(map, "instagramUrl", "instagramURLString", "instagramURL", "instagram"),
+            youtubeUrl = mapTrimmedUrl(map, "youtubeUrl", "youtubeURLString", "youtubeURL", "youtube"),
         )
     }
 

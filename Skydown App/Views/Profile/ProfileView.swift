@@ -7,6 +7,7 @@ struct ProfileView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @State private var pendingImagePickerTarget: ProfileImagePickerTarget?
+    @State private var galleryPreviewTarget: ProfileGalleryPreviewTarget?
 
     init(
         authManager: AuthManager,
@@ -73,6 +74,11 @@ struct ProfileView: View {
             SingleImagePicker { provider in
                 handlePickedImageProvider(provider, for: target)
             }
+        }
+        .fullScreenCover(item: $galleryPreviewTarget) { target in
+            ProfileGalleryMediaViewerSheet(
+                item: target.item
+            )
         }
     }
 
@@ -440,7 +446,10 @@ struct ProfileView: View {
                         ProfileMediaGridTile(
                             item: item,
                             colorScheme: colorScheme,
-                            canDelete: viewModel.canEditCurrentProfile
+                            canDelete: viewModel.canEditCurrentProfile,
+                            onOpen: {
+                                galleryPreviewTarget = ProfileGalleryPreviewTarget(item: item)
+                            }
                         ) {
                             Task {
                                 await viewModel.deleteGalleryItem(item)
@@ -770,15 +779,13 @@ private struct ProfileMediaGridTile: View {
     let item: ProfileGalleryItem
     let colorScheme: ColorScheme
     var canDelete: Bool = false
+    let onOpen: () -> Void
     var onDelete: (() -> Void)?
-    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Button {
-                if let url = URL(string: item.mediaURL) {
-                    openURL(url)
-                }
+                onOpen()
             } label: {
                 ZStack(alignment: .bottomLeading) {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -858,6 +865,85 @@ private struct ProfileMediaGridTile: View {
             Image(systemName: item.mediaType.systemImage)
                 .font(.title2.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
+        }
+    }
+}
+
+private struct ProfileGalleryPreviewTarget: Identifiable {
+    let id = UUID()
+    let item: ProfileGalleryItem
+}
+
+private struct ProfileGalleryMediaViewerSheet: View {
+    let item: ProfileGalleryItem
+    @Environment(\.dismiss) private var dismiss
+
+    private var imageURL: URL? {
+        URL(string: item.mediaURL)
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color.black
+                .ignoresSafeArea()
+
+            if let imageURL {
+                AsyncImage(url: imageURL) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 40)
+                } placeholder: {
+                    ProgressView()
+                        .tint(.white)
+                }
+            } else {
+                VStack(spacing: 10) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 44, weight: .bold))
+                        .foregroundColor(.white.opacity(0.74))
+                    Text("Bild konnte nicht geladen werden.")
+                        .font(.headline)
+                        .foregroundColor(.white.opacity(0.82))
+                }
+            }
+
+            VStack(spacing: 10) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.title)
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+
+                        if let caption = item.caption, !caption.isEmpty {
+                            Text(caption)
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.72))
+                                .lineLimit(2)
+                        }
+                    }
+
+                    Spacer()
+
+                    Button(action: { dismiss() }, label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(width: 42, height: 42)
+                            .background(Color.white.opacity(0.14))
+                            .clipShape(Circle())
+                    })
+                    .buttonStyle(.plain)
+                    .skydownTactileAction()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+
+                Spacer()
+            }
         }
     }
 }

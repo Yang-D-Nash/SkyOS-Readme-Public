@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PermMedia
@@ -61,6 +62,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -94,6 +97,7 @@ fun ProfileScreen(
     val context = LocalContext.current
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
+    var selectedGalleryItem by remember { mutableStateOf<ProfileGalleryItem?>(null) }
     val avatarPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
@@ -225,11 +229,7 @@ fun ProfileScreen(
                         )
                     },
                     onOpenItem = { item ->
-                        openExternalLink(
-                            context = context,
-                            url = item.mediaUrl,
-                            browserMissingMessage = "Medieninhalt konnte nicht geoeffnet werden.",
-                        )
+                        selectedGalleryItem = item
                     },
                     onDeleteItem = if (uiState.canEditCurrentProfile) {
                         viewModel::deleteGalleryItem
@@ -309,6 +309,13 @@ fun ProfileScreen(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp),
             )
+
+            selectedGalleryItem?.let { item ->
+                ProfileImageViewerDialog(
+                    item = item,
+                    onDismiss = { selectedGalleryItem = null },
+                )
+            }
         }
     }
 }
@@ -853,6 +860,71 @@ private fun GalleryTile(
                     contentDescription = "Bild entfernen",
                     tint = androidx.compose.ui.graphics.Color.White,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileImageViewerDialog(
+    item: ProfileGalleryItem,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.94f)),
+        ) {
+            AsyncImage(
+                model = item.mediaUrl,
+                contentDescription = item.title,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 48.dp),
+                contentScale = ContentScale.Fit,
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    if (!item.caption.isNullOrBlank()) {
+                        Text(
+                            text = item.caption.orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                            maxLines = 1,
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schliessen",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
             }
         }
     }

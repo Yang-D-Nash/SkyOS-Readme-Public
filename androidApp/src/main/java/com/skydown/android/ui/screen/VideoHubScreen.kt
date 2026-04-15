@@ -169,6 +169,9 @@ fun VideoHubScreen(
     var hasHandledInitialSelection by rememberSaveable { mutableStateOf(false) }
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackIsError by remember { mutableStateOf(false) }
+    var inAppOriginalUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    var inAppOriginalTitle by rememberSaveable { mutableStateOf("Original") }
+    var inAppImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
     }
@@ -406,7 +409,10 @@ fun VideoHubScreen(
                     VideoPlayerCard(
                         video = selectedVideo,
                         player = player,
-                        onOpenOriginal = { url -> openExternalLink(context, url) },
+                        onOpenOriginal = { url ->
+                            inAppOriginalTitle = selectedVideo?.title?.ifBlank { "Original" } ?: "Original"
+                            inAppOriginalUrl = url
+                        },
                         onOpenReel = if (selectedVideo != null) {
                             {
                                 player.pause()
@@ -428,7 +434,10 @@ fun VideoHubScreen(
                             player.pause()
                             showReelViewer = true
                         },
-                        onOpenOriginal = { url -> openExternalLink(context, url) },
+                        onOpenOriginal = { url ->
+                            inAppOriginalTitle = "Original"
+                            inAppOriginalUrl = url
+                        },
                         onToggleHomeFeatured = viewModel::toggleHomeFeatured,
                         onDeleteVideo = viewModel::deleteVideo,
                     )
@@ -477,6 +486,24 @@ fun VideoHubScreen(
                 VideoEquipmentDetailSheet(
                     item = item,
                     onDismiss = { selectedEquipmentItem = null },
+                    onOpenImageFullscreen = { url ->
+                        inAppImageUrl = url
+                    },
+                )
+            }
+
+            inAppOriginalUrl?.let { url ->
+                VideoOriginalLinkViewerDialog(
+                    url = url,
+                    title = inAppOriginalTitle,
+                    onDismiss = { inAppOriginalUrl = null },
+                )
+            }
+
+            inAppImageUrl?.let { imageUrl ->
+                VideoHubImageViewerDialog(
+                    imageUrl = imageUrl,
+                    onDismiss = { inAppImageUrl = null },
                 )
             }
 
@@ -608,6 +635,9 @@ fun VideoHubScreen(
                                 },
                                 onUpdateCollaborationInstagramUrl = { itemId, value ->
                                     viewModel.updateCollaborationItem(itemId, instagramUrl = value)
+                                },
+                                onUpdateCollaborationYoutubeUrl = { itemId, value ->
+                                    viewModel.updateCollaborationItem(itemId, youtubeUrl = value)
                                 },
                                 onRemoveCollaboration = viewModel::removeCollaborationItem,
                                 onSave = viewModel::savePublicConfig,
@@ -1024,9 +1054,8 @@ private fun VideoEquipmentRow(
 private fun VideoEquipmentDetailSheet(
     item: VideoEquipmentItem,
     onDismiss: () -> Unit,
+    onOpenImageFullscreen: (String) -> Unit,
 ) {
-    val context = LocalContext.current
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.background,
@@ -1065,11 +1094,11 @@ private fun VideoEquipmentDetailSheet(
                 }
 
                 OutlinedButton(
-                    onClick = { openExternalLink(context, item.imageUrl.orEmpty()) },
+                    onClick = { onOpenImageFullscreen(item.imageUrl.orEmpty()) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                 ) {
-                    Text("Bild im Browser oeffnen")
+                    Text("Bild im Vollbild ansehen")
                 }
             }
 
@@ -1105,6 +1134,7 @@ private fun VideoPublicConfigEditorCard(
     onRemoveCollaborationImage: (String) -> Unit,
     onUpdateCollaborationSpotifyArtistId: (String, String) -> Unit,
     onUpdateCollaborationInstagramUrl: (String, String) -> Unit,
+    onUpdateCollaborationYoutubeUrl: (String, String) -> Unit,
     onRemoveCollaboration: (String) -> Unit,
     onSave: () -> Unit,
 ) {
@@ -1300,6 +1330,12 @@ private fun VideoPublicConfigEditorCard(
                             value = item.instagramUrl.orEmpty(),
                             onValueChange = { onUpdateCollaborationInstagramUrl(item.id, it) },
                             label = { Text("Instagram URL") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = item.youtubeUrl.orEmpty(),
+                            onValueChange = { onUpdateCollaborationYoutubeUrl(item.id, it) },
+                            label = { Text("YouTube URL") },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedButton(
@@ -1526,6 +1562,19 @@ private fun ProducedWithArtistRow(
                             ),
                         ),
                         onClick = { onOpenLink(instagramUrl) },
+                    )
+                }
+                artist.youtubeUrl?.takeIf { it.isNotBlank() }?.let { youtubeUrl ->
+                    SocialActionChip(
+                        title = "YouTube",
+                        icon = Icons.Default.PlayArrow,
+                        gradient = Brush.linearGradient(
+                            colors = listOf(
+                                YouTubeRed,
+                                ArenaRed.copy(alpha = 0.82f),
+                            ),
+                        ),
+                        onClick = { onOpenLink(youtubeUrl) },
                     )
                 }
             }
@@ -2434,6 +2483,188 @@ private fun videoHubOpenActionLabel(video: VideoHubItem): String {
         ExternalMediaProvider.EXTERNAL_LINK -> "Extern oeffnen"
         ExternalMediaProvider.FIREBASE_STORAGE -> "Original oeffnen"
     }
+}
+
+@Composable
+private fun VideoHubImageViewerDialog(
+    imageUrl: String,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.94f)),
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 48.dp),
+                contentScale = ContentScale.Fit,
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = "Bildvorschau",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schliessen",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoOriginalLinkViewerDialog(
+    url: String,
+    title: String,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val mediaContext = remember(context) { context.mediaAttributionContext() }
+    val directVideoUrl = remember(url) { isLikelyDirectVideoUrl(url) }
+    val player = remember(mediaContext, url, directVideoUrl) {
+        ExoPlayer.Builder(mediaContext).build().apply {
+            playWhenReady = directVideoUrl
+        }
+    }
+
+    LaunchedEffect(url, directVideoUrl, player) {
+        if (directVideoUrl) {
+            player.setMediaItem(MediaItem.fromUri(url))
+            player.prepare()
+            player.play()
+        } else {
+            player.stop()
+            player.clearMediaItems()
+        }
+    }
+
+    DisposableEffect(player) {
+        onDispose {
+            player.release()
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        ) {
+            if (directVideoUrl) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { playerContext ->
+                        PlayerView(playerContext).apply {
+                            useController = true
+                            this.player = player
+                        }
+                    },
+                    update = { view ->
+                        view.player = player
+                    },
+                )
+            } else {
+                ExternalVideoWebPlayer(
+                    url = url,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.14f),
+                                Color.Black.copy(alpha = 0.66f),
+                            ),
+                        ),
+                    ),
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title.ifBlank { "Original" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Text(
+                        text = if (directVideoUrl) "Direkt in der App" else "Web-Ansicht in der App",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schliessen",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun isLikelyDirectVideoUrl(url: String): Boolean {
+    val normalized = url
+        .substringBefore('?')
+        .substringBefore('#')
+        .lowercase(Locale.ROOT)
+    return normalized.endsWith(".mp4") ||
+        normalized.endsWith(".mov") ||
+        normalized.endsWith(".m4v") ||
+        normalized.endsWith(".webm") ||
+        normalized.endsWith(".m3u8")
 }
 
 @Composable
