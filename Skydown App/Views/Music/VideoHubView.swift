@@ -107,7 +107,7 @@ struct VideoHubView: View {
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.top, SkydownLayout.screenTopPadding)
-                .padding(.bottom, SkydownLayout.screenBottomPadding + (viewModel.isAdmin ? 92 : 0))
+                .padding(.bottom, SkydownLayout.screenBottomPadding + (viewModel.isAdmin ? 56 : 0))
             }
         }
         .overlay(alignment: .bottomTrailing) {

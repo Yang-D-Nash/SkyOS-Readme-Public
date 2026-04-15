@@ -249,7 +249,7 @@ struct MusicView: View {
                         .frame(maxWidth: contentWidth, alignment: .leading)
                         .padding(.horizontal, layout.horizontalPadding)
                         .padding(.top, SkydownLayout.screenTopPadding)
-                        .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 88 : 0))
+                        .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 52 : 0))
                         .frame(maxWidth: .infinity)
                     }
                     .accessibilityIdentifier("music.catalog.root")

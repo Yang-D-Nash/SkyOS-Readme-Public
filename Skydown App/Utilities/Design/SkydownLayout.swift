@@ -13,7 +13,7 @@ import UIKit
 enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 16
     static let screenTopPadding: CGFloat = 10
-    static let screenBottomPadding: CGFloat = 22
+    static let screenBottomPadding: CGFloat = 16
     static let sectionSpacing: CGFloat = 14
     static let cardPadding: CGFloat = 15
     static let heroPadding: CGFloat = 18
