@@ -29,6 +29,9 @@ Incident-/Meldeprozess bei Datenschutzvorfall.
 6. `TOMS_CHECKLIST.md`
 Technische und organisatorische Massnahmen (TOMs) als Betriebs-Checkliste.
 
+7. `ANWALT_BRIEFING_RELEASE_V1.md`
+Fertiges Briefing + Mail-Template fuer die juristische Endpruefung.
+
 ---
 
 ## Empfohlener Ablauf
@@ -50,4 +53,3 @@ Technische und organisatorische Massnahmen (TOMs) als Betriebs-Checkliste.
 - Art. 33/34 DSGVO (Meldung von Verletzungen)
 - EU Standardvertragsklauseln C2P/P2P:
   https://eur-lex.europa.eu/eli/dec_impl/2021/915/oj
-
