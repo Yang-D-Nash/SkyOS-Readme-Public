@@ -220,3 +220,19 @@ firebase deploy --only storage
 firebase deploy --only functions
 ```
 
+---
+
+## 10) DSGVO + AVV Kit
+
+Fuer Datenschutz- und Compliance-Betrieb ist jetzt ein eigenes Kit im Repo hinterlegt:
+
+- `docs/compliance/README.md`
+- `docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
+- `docs/compliance/AVV_VERARBEITER_REGISTER.md`
+- `docs/compliance/VVT_VERARBEITUNGSTAETIGKEITEN.md`
+- `docs/compliance/BETROFFENENRECHTE_SOP.md`
+- `docs/compliance/DATENPANNEN_SOP.md`
+- `docs/compliance/TOMS_CHECKLIST.md`
+
+Empfehlung:
+Vor jedem produktiven Release die komplette `DSGVO_RELEASE_CHECKLIST.md` auf Gruen setzen.

@@ -361,3 +361,17 @@ Fuer schnellere Orientierung gibt es zusaetzlich:
 - [README_USER.md](README_USER.md) -> Endnutzer-Handbuch
 
 Diese README bleibt der zentrale Ueberblick (`Business + Product + Operations`).
+
+---
+
+## 14) DSGVO + Compliance
+
+Ein vollstaendiges operatives Compliance-Paket liegt unter:
+
+- [docs/compliance/README.md](docs/compliance/README.md)
+- [docs/compliance/DSGVO_RELEASE_CHECKLIST.md](docs/compliance/DSGVO_RELEASE_CHECKLIST.md)
+- [docs/compliance/AVV_VERARBEITER_REGISTER.md](docs/compliance/AVV_VERARBEITER_REGISTER.md)
+- [docs/compliance/VVT_VERARBEITUNGSTAETIGKEITEN.md](docs/compliance/VVT_VERARBEITUNGSTAETIGKEITEN.md)
+- [docs/compliance/BETROFFENENRECHTE_SOP.md](docs/compliance/BETROFFENENRECHTE_SOP.md)
+- [docs/compliance/DATENPANNEN_SOP.md](docs/compliance/DATENPANNEN_SOP.md)
+- [docs/compliance/TOMS_CHECKLIST.md](docs/compliance/TOMS_CHECKLIST.md)
