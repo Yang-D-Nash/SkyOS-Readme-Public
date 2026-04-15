@@ -349,6 +349,8 @@ Ergaenzende Dokumente:
 ## 12) Kontakt / Betrieb
 
 - Produkt und Betrieb: `22xSky`
+- Rechtlich Verantwortlicher und Rechteinhaber:
+  `Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
 - Support/E-Mail (im Projekt hinterlegt): `skydownent@gmail.com`
 
 ---
@@ -375,3 +377,5 @@ Ein vollstaendiges operatives Compliance-Paket liegt unter:
 - [docs/compliance/BETROFFENENRECHTE_SOP.md](docs/compliance/BETROFFENENRECHTE_SOP.md)
 - [docs/compliance/DATENPANNEN_SOP.md](docs/compliance/DATENPANNEN_SOP.md)
 - [docs/compliance/TOMS_CHECKLIST.md](docs/compliance/TOMS_CHECKLIST.md)
+- [docs/compliance/RELEASE_READINESS_2026-04-15.md](docs/compliance/RELEASE_READINESS_2026-04-15.md)
+- [docs/compliance/COMPLIANCE_REVIEW_2026-04-15.md](docs/compliance/COMPLIANCE_REVIEW_2026-04-15.md)

@@ -69,7 +69,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "7. Rechtliches und Support",
-                    body = "Aktuelle AGB, Datenschutz und Nutzungsbedingungen sind direkt in den Einstellungen abrufbar. Betreiber ist voruebergehend $operatorName. $imprintReference",
+                    body = "Aktuelle AGB, Datenschutz und Nutzungsbedingungen sind direkt in den Einstellungen abrufbar. Betreiber ist $operatorName. $imprintReference",
                 ),
                 SettingsLegalSection(
                     title = "8. Brand-DNA und Bedeutung von 22",
@@ -85,7 +85,7 @@ fun SettingsLegalDocumentType.resolve(
             sections = listOf(
                 SettingsLegalSection(
                     title = "1. Verantwortlicher",
-                    body = "Verantwortlich ist voruebergehend $operatorName. Datenschutzanfragen koennen an $supportEmail gerichtet werden. $imprintReference",
+                    body = "Verantwortlich ist $operatorName. Datenschutzanfragen koennen an $supportEmail gerichtet werden. $imprintReference",
                 ),
                 SettingsLegalSection(
                     title = "2. Welche Daten verarbeitet werden",
@@ -101,7 +101,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "5. KI, Workflow und Drittanbieter",
-                    body = "KI-Funktionen sind Assistenzfunktionen. Je nach Nutzung koennen Prompts, Uploads und Ausgaben an eingebundene KI- oder Workflow-Dienste uebermittelt werden. Die KI-Ausgaben muessen vor verbindlicher Nutzung geprueft werden.",
+                    body = "KI-Funktionen sind Assistenzfunktionen. Je nach Nutzung koennen Prompts, Uploads und Ausgaben an eingebundene KI- oder Workflow-Dienste uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. Die KI-Ausgaben muessen vor verbindlicher Nutzung geprueft werden.",
                 ),
                 SettingsLegalSection(
                     title = "6. Rechte der Nutzer",
@@ -121,7 +121,7 @@ fun SettingsLegalDocumentType.resolve(
             sections = listOf(
                 SettingsLegalSection(
                     title = "1. Geltungsbereich und Vertragspartner",
-                    body = "Vertragspartner ist voruebergehend $operatorName. Rechteinhaber der App ist voruebergehend $rightsHolderName. Rueckfragen koennen an $supportEmail gerichtet werden. $imprintReference",
+                    body = "Vertragspartner ist $operatorName. Rechteinhaber der App ist $rightsHolderName. Rueckfragen koennen an $supportEmail gerichtet werden. $imprintReference",
                 ),
                 SettingsLegalSection(
                     title = "2. Vertragsschluss",
@@ -161,7 +161,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "3. Inhalte, Rechte und Marken",
-                    body = "Rechteinhaber der App ist voruebergehend $rightsHolderName. Die App, ihre Marken, Designs, Texte, Bilder, Audio-, Video- und sonstigen Inhalte bleiben, soweit nicht anders angegeben, Eigentum von $rightsHolderName, beteiligten Kuenstlern oder der jeweiligen Rechteinhaber.",
+                    body = "Rechteinhaber der App ist $rightsHolderName. Die App, ihre Marken, Designs, Texte, Bilder, Audio-, Video- und sonstigen Inhalte bleiben, soweit nicht anders angegeben, Eigentum von $rightsHolderName, beteiligten Kuenstlern oder der jeweiligen Rechteinhaber.",
                 ),
                 SettingsLegalSection(
                     title = "4. KI und Workflow",
@@ -173,7 +173,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "6. Recht und Kontakt",
-                    body = "Betreiber und Vertragspartner ist voruebergehend $operatorName. Fragen koennen an $supportEmail gerichtet werden. Es gilt deutsches Recht, soweit keine zwingenden Verbraucherschutzvorschriften entgegenstehen.",
+                    body = "Betreiber und Vertragspartner ist $operatorName. Fragen koennen an $supportEmail gerichtet werden. Es gilt deutsches Recht, soweit keine zwingenden Verbraucherschutzvorschriften entgegenstehen.",
                 ),
             ),
             contactEmail = supportEmail,

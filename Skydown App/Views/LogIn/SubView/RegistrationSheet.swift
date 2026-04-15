@@ -142,7 +142,7 @@ struct RegistrationSheet: View {
             .scrollContentBackground(.hidden)
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
-        .onChange(of: legalContentStore.settings.resolvedLastUpdatedLabel) { newValue in
+        .onChange(of: legalContentStore.settings.resolvedLastUpdatedLabel) { _, newValue in
             viewModel.legalVersionLabel = newValue
         }
         .task {

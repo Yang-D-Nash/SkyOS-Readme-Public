@@ -11,6 +11,7 @@ enum LegalTextTemplateFactory {
     static func privacyPolicy(using settings: LegalContentSettings) -> String {
         let brand = settings.resolvedBrandName
         let operatorName = settings.resolvedOperatorName
+        let rightsHolder = settings.resolvedRightsHolderName
         let supportEmail = settings.resolvedSupportEmail
         let updatedAt = settings.resolvedLastUpdatedLabel
         let imprintReference = settings.resolvedImprintReference
@@ -23,7 +24,8 @@ enum LegalTextTemplateFactory {
         Diese Datenschutzbestimmungen informieren Sie ueber die Verarbeitung personenbezogener Daten bei der Nutzung von \(brand). Sie beruecksichtigen insbesondere die DSGVO, die fuer Telemedien und Endgeraetezugriffe einschlaegigen Datenschutzvorgaben sowie den stufenweise geltenden EU AI Act, soweit KI-Funktionen in der App genutzt werden.
 
         1. Verantwortlicher
-        Verantwortlich ist voruebergehend \(operatorName).
+        Verantwortlich ist \(operatorName).
+        Rechteinhaber ist \(rightsHolder).
         Kontakt fuer Datenschutzanfragen: \(supportEmail).
         \(imprintReference)
 
@@ -58,7 +60,7 @@ enum LegalTextTemplateFactory {
         Die in der App verfuegbaren KI-Funktionen sind als Assistenzfunktionen vorgesehen. KI-Ausgaben koennen unvollstaendig, fehlerhaft oder unpassend sein und muessen vor einer verbindlichen Nutzung geprueft werden. Bitte geben Sie keine geheimen, vertraulichen oder unnoetig sensiblen Daten Dritter ein.
 
         8. Workflow Automation und Webhook-Dienste
-        Wenn Workflow-Automationen aktiviert sind, koennen serverseitig gepruefte Daten an den konfigurierten Workflow-Endpunkt, zum Beispiel n8n, uebermittelt werden.
+        Wenn Workflow-Automationen aktiviert sind, koennen serverseitig gepruefte Daten an den konfigurierten Workflow-Endpunkt, zum Beispiel n8n, uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich.
 
         9. Empfaenger und Drittstaatentransfers
         Daten koennen an technische und operative Empfaenger uebermittelt werden, soweit dies fuer die App erforderlich ist, etwa an Hosting-, Speicher-, Authentifizierungs-, Sicherheits-, Zahlungs-, Fulfillment-, Support-, KI- oder Workflow-Dienstleister.
@@ -91,8 +93,8 @@ enum LegalTextTemplateFactory {
         Diese AGB gelten fuer entgeltliche Leistungen, Bestellungen und vermittelte Kaeufe ueber \(brand), insbesondere fuer Merchandise, digitale Inhalte, Creator-/Studio-Leistungen sowie sonstige App-Services, soweit im konkreten Angebot nichts Abweichendes geregelt ist.
 
         2. Vertragspartner
-        Vertragspartner ist voruebergehend \(operatorName).
-        Rechteinhaber der App ist voruebergehend \(rightsHolder).
+        Vertragspartner ist \(operatorName).
+        Rechteinhaber der App ist \(rightsHolder).
         Rueckfragen koennen an \(supportEmail) gerichtet werden.
         \(imprintReference)
 
@@ -158,7 +160,7 @@ enum LegalTextTemplateFactory {
         Wenn Sie Profile, Galerien, Artist-Seiten oder andere Inhalte einstellen, sichern Sie zu, hierzu berechtigt zu sein.
 
         6. Inhalte, Rechte und Marken
-        Rechteinhaber der App ist voruebergehend \(rightsHolder). Die App, ihre Marken, Designs, Texte, Bilder, Audio-, Video- und sonstigen Inhalte bleiben, soweit nicht anders angegeben, Eigentum von \(rightsHolder), beteiligten Kuenstlern oder der jeweiligen Rechteinhaber.
+        Rechteinhaber der App ist \(rightsHolder). Die App, ihre Marken, Designs, Texte, Bilder, Audio-, Video- und sonstigen Inhalte bleiben, soweit nicht anders angegeben, Eigentum von \(rightsHolder), beteiligten Kuenstlern oder der jeweiligen Rechteinhaber.
 
         7. KI-Funktionen und EU AI Act
         KI-Funktionen sind als Assistenzfunktionen gedacht. KI-Ausgaben koennen fehlerhaft, unvollstaendig oder ungeeignet sein und muessen vor jeder verbindlichen Nutzung eigenverantwortlich geprueft werden.
@@ -176,7 +178,7 @@ enum LegalTextTemplateFactory {
         Es gelten die gesetzlichen Haftungsregeln.
 
         12. Geltendes Recht und Kontakt
-        Vertragspartner und Betreiber ist voruebergehend \(operatorName). Fragen zu diesen Bedingungen koennen an \(supportEmail) gerichtet werden.
+        Vertragspartner und Betreiber ist \(operatorName). Fragen zu diesen Bedingungen koennen an \(supportEmail) gerichtet werden.
         """
     }
 
@@ -229,7 +231,7 @@ enum LegalTextTemplateFactory {
         7. Support und Troubleshooting
         - Bei Login-, Rollen- oder Upload-Problemen App neu anmelden und Rechte pruefen
         - Fuer Hilfe: \(supportEmail)
-        - Betreiber der App ist voruebergehend \(operatorName)
+        - Betreiber der App ist \(operatorName)
 
         8. Brand-DNA und Bedeutung von 22
         - Meisterzahl 22: \(masterNumberMeaning)

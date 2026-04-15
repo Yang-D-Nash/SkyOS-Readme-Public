@@ -11,11 +11,12 @@ Hinweis:
 
 ## 1) Stammdaten
 
-- Verantwortlicher: `Yang D. Nash - Skydown / 22xSky (vorlaeufig)`
+- Verantwortlicher: `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+- Anschrift: `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
 - Produkt: `22xSky`
-- Kontakt Datenschutzanfragen: `TODO`
+- Kontakt Datenschutzanfragen: `skydownent@gmail.com`
 - Version: `v1`
-- Stand: `TODO`
+- Stand: `2026-04-15`
 
 ---
 
@@ -55,4 +56,3 @@ Hinweis:
 - [ ] Speicherfristen je Kategorie finalisieren
 - [ ] Drittlandtransfers je Dienst final dokumentieren
 - [ ] Rechtsgrundlagen je optionales Feature final validieren
-

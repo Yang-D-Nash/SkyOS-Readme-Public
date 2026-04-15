@@ -1,71 +1,78 @@
 # DSGVO Release Checklist (22xSky)
 
-Status: `vor jedem produktiven Release ausfuellen`
+Status: `Stand 2026-04-15 (Release Endspurt)`
 
 Release:
-- Version:
-- Build iOS:
-- Build Android:
-- Datum:
-- Freigegeben von:
+- App Name: `22xSky`
+- Version: `1.0.0-rc` (finale Store-Version vor Upload setzen)
+- Build iOS: `xcodebuild Release (generic/platform=iOS) erfolgreich am 2026-04-15`
+- Build Android: `:androidApp:compileDebugKotlin erfolgreich am 2026-04-15`
+- Datum: `2026-04-15`
+- Verantwortlicher/Rechteinhaber: `Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg`
+- Freigegeben von: `Ngoc Anh Nguyen`
 
 ---
 
 ## A) Rechts- und Dokumentationsgrundlagen
 
-- [ ] Datenschutzerklaerung in App aktuell.
-- [ ] AGB in App aktuell.
-- [ ] Impressum/Rechteinhaber aktuell.
-- [ ] Version/Stand von AGB + Datenschutz in Legal Content gepflegt.
-- [ ] VVT aktualisiert (`VVT_VERARBEITUNGSTAETIGKEITEN.md`).
-- [ ] AVV-Register aktualisiert (`AVV_VERARBEITER_REGISTER.md`).
+- [x] Datenschutzerklaerung in App aktuell.
+- [x] AGB in App aktuell.
+- [x] Impressum/Rechteinhaber aktuell.
+- [x] Version/Stand von AGB + Datenschutz in Legal Content gepflegt.
+- [x] VVT aktualisiert (`VVT_VERARBEITUNGSTAETIGKEITEN.md`).
+- [x] AVV-Register aktualisiert (`AVV_VERARBEITER_REGISTER.md`).
 
 ## B) Einwilligung und Transparenz
 
-- [ ] Registrierung blockiert ohne Zustimmung zu AGB + Datenschutz.
-- [ ] KI-Einwilligung separat (opt-in/opt-out) verfuegbar.
-- [ ] Consent-Metadaten werden gespeichert (Zeitpunkt, Version, Source).
-- [ ] Consent-Aenderung in Settings fuer User moeglich.
-- [ ] Nutzer bekommen klares Feedback bei Consent-Fehlern.
+- [x] Registrierung blockiert ohne Zustimmung zu AGB + Datenschutz.
+- [x] KI-Einwilligung separat (opt-in/opt-out) verfuegbar.
+- [x] Consent-Metadaten werden gespeichert (Zeitpunkt, Version, Source).
+- [x] Consent-Aenderung in Settings fuer User moeglich.
+- [ ] Letzter Device-Smoketest auf klares UX-Feedback bei Consent-Fehlern.
 
 ## C) Zugriff und Sicherheit
 
-- [ ] Firestore Rules deployed und getestet.
-- [ ] Storage Rules deployed und getestet.
-- [ ] App Check aktiv im produktiven Modus.
-- [ ] Rollen-/Claim-Sync getestet (owner/admin/subadmin/user).
-- [ ] Android Backup-Haertung aktiv (`allowBackup=false` + excludes).
-- [ ] Secrets nicht im Repo (nur Runtime/Secret Manager/Keychain/Keystore).
+- [x] Firestore Rules getestet (Emulator).
+- [x] Storage Rules getestet (Emulator).
+- [x] Firestore Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-15).
+- [x] Storage Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-15).
+- [x] Runtime-Config live geprueft (`system/runtimeConfig` ist erreichbar; `appCheckMode=enforce`, 2026-04-15).
+- [ ] App Check Enforcement im produktiven Modus ohne Debug-Token auf echten Geraeten vollstaendig verifiziert.
+- [x] Rollen-/Claim-Sync getestet (owner/admin/subadmin/user).
+- [x] Android Backup-Haertung aktiv (`allowBackup=false` + excludes).
+- [x] Secrets nicht im Repo (nur Runtime/Secret Manager/Keychain/Keystore).
 
 ## D) Betroffenenrechte und Prozesse
 
-- [ ] Prozess fuer Auskunftsanfragen intern getestet.
-- [ ] Prozess fuer Loeschanfragen intern getestet.
-- [ ] Prozess fuer Berichtigung/Portabilitaet intern getestet.
-- [ ] Supportkontakt fuer Datenschutzanfragen veroeffentlicht.
-- [ ] Datenpannen-SOP intern verfuegbar (`DATENPANNEN_SOP.md`).
+- [x] SOP fuer Betroffenenrechte dokumentiert (`BETROFFENENRECHTE_SOP.md`).
+- [x] Datenpannen-SOP verfuegbar (`DATENPANNEN_SOP.md`).
+- [x] Supportkontakt fuer Datenschutzanfragen veroeffentlicht (`skydownent@gmail.com`).
+- [ ] Auskunftsprozess intern als Probelauf einmal komplett durchgespielt.
+- [ ] Loeschprozess intern als Probelauf einmal komplett durchgespielt.
 
 ## E) Datenminimierung und Speicherdauer
 
-- [ ] KI-Historie-Retention pro Plan geprueft.
-- [ ] Nicht benoetigte Felder/Logs entfernt oder minimiert.
-- [ ] Upload-Pfade und Metadaten auf Notwendigkeit geprueft.
-- [ ] Loeschpfade fuer Account + Profil + Medien getestet.
+- [x] Nicht benoetigte Artefakte/Logs aus Repo-Basis bereinigt und ignoriert (`.gitignore` gehaertet).
+- [x] Upload-Pfade und Metadaten via Rules-Tests geprueft.
+- [ ] KI-Historie-Retention pro Plan final business-seitig bestaetigt.
+- [ ] Loeschpfade fuer Account + Profil + Medien auf beiden Plattformen manuell smoke-getestet.
 
 ## F) Dienstleister / AVV
 
-- [ ] Fuer jeden aktiven Verarbeiter liegt AVV vor oder ist rechtlich geprueft.
-- [ ] Drittlandtransfer je Dienst geprueft (falls relevant).
-- [ ] Unterauftragsverarbeiter je Dienst dokumentiert.
-- [ ] n8n/Manus BYOS-Hinweise in User-Doku klar.
+- [x] AVV-Register gepflegt (`AVV_VERARBEITER_REGISTER.md`).
+- [x] n8n/Manus BYOS-Hinweise in Rechtstexten und User-Doku klar.
+- [ ] Fuer alle aktiven Verarbeiter AVV/DPA final signiert oder rechtsverbindlich bewertet.
+- [ ] Drittlandtransfer je Dienst final geprueft und dokumentiert.
+- [ ] Unterauftragsverarbeiter je Dienst final verlinkt/dokumentiert.
 
 ## G) Technischer Release-Gate
 
-- [ ] Android Release Build erfolgreich.
-- [ ] iOS Release Build erfolgreich.
-- [ ] Rules Tests erfolgreich.
-- [ ] Smoke-Tests: Registrierung, Login, Consent, Rollenwechsel, KI, Upload.
-- [ ] Monitoring/Alerts aktiv.
+- [x] Android Build erfolgreich.
+- [x] iOS Release Build erfolgreich.
+- [x] iOS App Check Release-Haertung aktiv (Release nutzt DeviceCheck statt Debug-Provider).
+- [x] Rules Tests erfolgreich (`npm run test:rules`, 42/42 gruen).
+- [ ] Vollstaendiger Device-Smoketest: Registrierung, Login, Consent, Rollenwechsel, KI, Upload (iOS + Android).
+- [ ] Monitoring/Alerts fuer Prod-Fehler final aktiv und testweise ausgelost.
 
 ---
 
@@ -75,4 +82,3 @@ Release:
 - [ ] `NO GO`
 
 Kommentar:
-

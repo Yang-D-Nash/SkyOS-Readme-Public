@@ -26,8 +26,8 @@ Der Rollout ist bewusst zweistufig:
 - Datei: [Skydown App/FirebaseAppCheckProvider.swift](/Users/nash/Documents/Skydown-App/Skydown%20App/FirebaseAppCheckProvider.swift)
 - Datei: [Skydown App/SkydownApp.swift](/Users/nash/Documents/Skydown-App/Skydown%20App/SkydownApp.swift)
 - `Debug` und `Simulator`: `AppCheckDebugProvider`
-- echte Geraete ab `iOS 14`: `AppAttestProvider`
-- Fallback: `DeviceCheckProvider`
+- `Release` auf echten Geraeten: `DeviceCheckProvider`
+- Hinweis: `AppAttestProvider` kann spaeter kontrolliert wieder aktiviert werden.
 
 ### Functions
 

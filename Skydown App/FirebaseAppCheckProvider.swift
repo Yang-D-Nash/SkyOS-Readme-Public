@@ -4,16 +4,11 @@ import FirebaseCore
 
 final class SkydownAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
     func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
-#if targetEnvironment(simulator)
+#if DEBUG || targetEnvironment(simulator)
         return AppCheckDebugProvider(app: app)
 #else
-        if ProcessInfo.processInfo.arguments.contains("-app-check-debug")
-            || ProcessInfo.processInfo.environment["SKYDOWN_APP_CHECK_DEBUG"] == "1" {
-            return AppCheckDebugProvider(app: app)
-        }
-
-        // Default to DeviceCheck for production stability on real devices.
-        // App Attest can be re-enabled later behind an explicit rollout flag.
+        // Release builds on real devices must never rely on debug tokens.
+        // DeviceCheck is used as the stable production provider.
         return DeviceCheckProvider(app: app)
 #endif
     }

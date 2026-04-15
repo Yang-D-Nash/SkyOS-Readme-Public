@@ -1,9 +1,10 @@
 # Anwalt-Briefing fuer Release V1 (22xSky)
 
-Status: Entwurf fuer juristische Endpruefung  
+Status: Entwurf fuer juristische Endpruefung
 Datum: `2026-04-15`  
 Produkt: `22xSky`  
-Rechteinhaber (vorlaeufig): `Yang D. Nash - Skydown`
+Rechteinhaber und Entwickler: `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`  
+Anschrift: `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
 
 ---
 
@@ -123,7 +124,7 @@ Unterlagen:
 - aktuelle App-Rechtstexte (AGB/Datenschutz/Impressum)
 
 Vielen Dank und viele Gruesse
-Yang D. Nash
+Ngoc Anh Nguyen (Yang D. Nash)
 22xSky / Skydown
 ```
 
@@ -136,4 +137,3 @@ Release `nur`, wenn:
 1. keine juristischen Blocker offen sind,
 2. alle Pflichtanpassungen umgesetzt sind,
 3. AVV-/DPA-Luecken geschlossen oder formal belastbar bewertet sind.
-

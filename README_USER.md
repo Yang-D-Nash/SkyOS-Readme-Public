@@ -160,6 +160,8 @@ Wenn etwas nicht klappt:
 Wenn es weiter blockiert:
 
 - Support: `skydownent@gmail.com`
+- Rechtlich Verantwortlicher und Rechteinhaber:
+  `Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
 
 ---
 

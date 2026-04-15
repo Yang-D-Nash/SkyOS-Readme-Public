@@ -4,10 +4,14 @@
 .kotlin/
 build/
 **/build/
+dist/
 local.properties
 keystore.properties
 *.jks
 *.keystore
+firebase-debug.log
+functions/firestore-debug.log
+*.xcarchive
 
 .idea/
 

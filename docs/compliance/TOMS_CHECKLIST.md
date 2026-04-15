@@ -3,70 +3,70 @@
 TOMs = Technische und organisatorische Massnahmen nach Art. 32 DSGVO.
 
 Status:
-- [ ] initial
-- [ ] aktualisiert am:
-- [ ] freigegeben durch:
+- [x] initial
+- [x] aktualisiert am: `2026-04-15`
+- [x] freigegeben durch: `Ngoc Anh Nguyen (Yang D. Nash - Skydown)` (technischer Stand)
 
 ---
 
 ## 1) Zugriffskontrolle
 
-- [ ] Rollenmodell aktiv (`owner/admin/subadmin/user`)
-- [ ] Least-Privilege umgesetzt
-- [ ] Serverseitige Claims-Sync validiert
-- [ ] Regelmaessige Rechtepruefung geplant
+- [x] Rollenmodell aktiv (`owner/admin/subadmin/user`)
+- [x] Least-Privilege umgesetzt
+- [x] Serverseitige Claims-Sync validiert
+- [ ] Regelmaessige Rechtepruefung als wiederkehrender Betriebsprozess geplant
 
 ## 2) Authentifizierung
 
-- [ ] Sichere Login-Verfahren aktiv
-- [ ] Session/Token-Handling geprueft
-- [ ] Account-Loeschung technisch verfuegbar
+- [x] Sichere Login-Verfahren aktiv
+- [x] Session/Token-Handling geprueft
+- [ ] Account-Loeschung technisch verfuegbar und auf beiden Plattformen end-to-end getestet
 
 ## 3) Transport- und Speichersicherheit
 
-- [ ] TLS/HTTPS fuer alle externen Calls
-- [ ] Secrets nicht im Client hardcoded
-- [ ] Mobile Keys lokal sicher gespeichert (Keychain/Keystore)
-- [ ] Backup-Schutz Android aktiv (`allowBackup=false`)
+- [x] TLS/HTTPS fuer alle externen Calls
+- [x] Secrets nicht im Client hardcoded
+- [x] Mobile Keys lokal sicher gespeichert (Keychain/Keystore)
+- [x] Backup-Schutz Android aktiv (`allowBackup=false`)
 
 ## 4) Datenminimierung
 
-- [ ] nur erforderliche Pflichtdaten
-- [ ] optionale Felder klar markiert
-- [ ] unnnoetige Logs reduziert
+- [x] nur erforderliche Pflichtdaten fuer Kernprozesse
+- [x] optionale Felder klar markiert
+- [x] unnoetige Logs/Build-Artefakte im Repo reduziert
 
 ## 5) Trennung und Mandantenfaehigkeit
 
-- [ ] User-Daten strikt pro UID getrennt
-- [ ] n8n-Konfiguration pro User getrennt
-- [ ] keine Cross-User-Schreibpfade ohne Berechtigung
+- [x] User-Daten strikt pro UID getrennt
+- [x] n8n-/Agent-Konfiguration pro User getrennt
+- [x] keine Cross-User-Schreibpfade ohne Berechtigung
 
 ## 6) Integritaet und Verfuegbarkeit
 
-- [ ] Firestore/Storage Rules mit deny-by-default
-- [ ] Incident-Lockdown vorhanden
-- [ ] Monitoring/Alerting fuer kritische Fehler
-- [ ] Restore-/Recovery-Strategie dokumentiert
+- [x] Firestore/Storage Rules mit deny-by-default
+- [x] Incident-Lockdown vorhanden
+- [ ] Monitoring/Alerting fuer kritische Fehler final produktiv verdrahtet
+- [ ] Restore-/Recovery-Strategie final dokumentiert
 
 ## 7) Einwilligung und Nachweis
 
-- [ ] AGB + Datenschutz Pflicht bei Registrierung
-- [ ] KI-Consent separat steuerbar
-- [ ] Consent-Metadaten versioniert gespeichert
-- [ ] Widerruf in Settings moeglich
+- [x] AGB + Datenschutz Pflicht bei Registrierung
+- [x] KI-Consent separat steuerbar
+- [x] Consent-Metadaten versioniert gespeichert
+- [x] Widerruf in Settings moeglich
 
 ## 8) Auftragsverarbeitung
 
-- [ ] AVV-Register gepflegt
-- [ ] Vertraege und SCC dokumentiert
-- [ ] Unterauftragsverarbeiter dokumentiert
+- [x] AVV-Register gepflegt
+- [ ] Vertraege und SCC final dokumentiert
+- [ ] Unterauftragsverarbeiter final dokumentiert
 
 ## 9) Prozesse und Schulung
 
-- [ ] Betroffenenrechte-SOP vorhanden
-- [ ] Datenpannen-SOP vorhanden
-- [ ] Incident-Rollen intern geklaert
-- [ ] Team weiss, wie Lockdown/Fallback genutzt wird
+- [x] Betroffenenrechte-SOP vorhanden
+- [x] Datenpannen-SOP vorhanden
+- [ ] Incident-Rollen intern final geklaert
+- [ ] Team weiss, wie Lockdown/Fallback genutzt wird (kurzer Drill)
 
 ---
 
@@ -76,4 +76,3 @@ Status:
   - Massnahme:
   - Owner:
   - Zieltermin:
-

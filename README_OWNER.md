@@ -18,6 +18,11 @@ Als Owner steuerst du:
 
 Kurz: Du verantwortest sowohl Produktqualitaet als auch Risiko- und Kostenkontrolle.
 
+Rechtlich Verantwortlicher und Rechteinhaber:
+
+- `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+- `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
+
 ---
 
 ## 2) Rollensteuerung

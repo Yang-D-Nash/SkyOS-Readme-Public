@@ -16,8 +16,8 @@ Rechte:
 ## 1) Eingang der Anfrage
 
 Kanaele:
-- Support Mail: `TODO`
-- In-App Support: `TODO`
+- Support Mail: `skydownent@gmail.com`
+- In-App Support: `Settings > Rechtliches > Kontakt`
 
 Erfassen:
 - Datum/Uhrzeit
@@ -97,4 +97,3 @@ Pro Fall dokumentieren:
 
 Aufbewahrung:
 - Nachweis zweckgebunden aufbewahren.
-

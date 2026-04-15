@@ -1151,6 +1151,7 @@ async function purgeCurrentUserAccountData(uid, email = null) {
   await firestore.doc(`userProfiles/${uid}`).delete();
   await firestore.doc(`uploadUsage/${uid}`).delete();
   await firestore.doc(`adminConfig/automationN8n_${uid}`).delete();
+  await firestore.doc(`adminConfig/agentProfile_${uid}`).delete();
 
   const uploadSlotsSnapshot = await firestore
       .collection("uploadSlots")

@@ -32,6 +32,12 @@ Technische und organisatorische Massnahmen (TOMs) als Betriebs-Checkliste.
 7. `ANWALT_BRIEFING_RELEASE_V1.md`
 Fertiges Briefing + Mail-Template fuer die juristische Endpruefung.
 
+8. `RELEASE_READINESS_2026-04-15.md`
+Konsolidierter Endspurt-Report mit technischem Nachweisstand und offenen Go-Live-Gates.
+
+9. `COMPLIANCE_REVIEW_2026-04-15.md`
+Formaler Compliance- und DSGVO-Review mit priorisierten Findings und Figma-Board-Pack.
+
 ---
 
 ## Empfohlener Ablauf

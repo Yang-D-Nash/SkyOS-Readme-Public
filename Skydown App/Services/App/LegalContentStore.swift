@@ -3,11 +3,11 @@ import FirebaseFirestore
 
 struct LegalContentSettings: Codable, Equatable {
     var brandName: String = "22xSky"
-    var operatorName: String = "Yang D. Nash - Skydown"
-    var rightsHolderName: String = "Yang D. Nash - Skydown"
+    var operatorName: String = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
+    var rightsHolderName: String = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
     var supportEmail: String = "skydownent@gmail.com"
-    var lastUpdatedLabel: String = "12. April 2026"
-    var imprintReference: String = "Die vollstaendige Anbieterkennzeichnung einschliesslich ladungsfaehiger Anschrift ist im Impressum, Store-Eintrag oder Anbieterprofil bereitzuhalten."
+    var lastUpdatedLabel: String = "15. April 2026"
+    var imprintReference: String = "Anbieterkennzeichnung: Ngoc Anh Nguyen, Yang D. Nash - Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
     var masterNumberMeaning: String = """
     Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen.
     """
