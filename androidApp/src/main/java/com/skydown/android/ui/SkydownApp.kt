@@ -254,9 +254,10 @@ fun SkydownApp() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .navigationBarsPadding()
+                                .padding(horizontal = if (isCompactLayout) 10.dp else 16.dp)
                                 .padding(
-                                    horizontal = if (isCompactLayout) 10.dp else 16.dp,
-                                    vertical = if (isCompactLayout) 6.dp else 10.dp,
+                                    top = if (isCompactLayout) 2.dp else 4.dp,
+                                    bottom = if (isCompactLayout) 6.dp else 10.dp,
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {

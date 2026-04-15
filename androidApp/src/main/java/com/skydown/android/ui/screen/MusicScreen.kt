@@ -365,7 +365,7 @@ fun MusicScreen(
                         start = 16.dp,
                         top = innerPadding.calculateTopPadding() + 10.dp,
                         end = 16.dp,
-                        bottom = innerPadding.calculateBottomPadding() + 22.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 10.dp,
                     ),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {

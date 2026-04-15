@@ -243,7 +243,7 @@ fun AiScreen(
                         bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
                             2.dp
                         } else {
-                            4.dp
+                            0.dp
                         },
                     ),
                     verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
@@ -628,12 +628,12 @@ private fun AiComposerBar(
     onDismissKeyboard: () -> Unit,
 ) {
     val outerVerticalPadding = when {
-        embeddedInTools -> 2.dp
+        embeddedInTools -> 0.dp
         compactLayout -> 6.dp
         else -> 8.dp
     }
     val cardVerticalPadding = when {
-        embeddedInTools -> 6.dp
+        embeddedInTools -> 4.dp
         compactLayout -> 8.dp
         else -> 10.dp
     }
