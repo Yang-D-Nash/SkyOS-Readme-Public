@@ -1,7 +1,6 @@
 package com.skydown.android.data
 
 import com.google.firebase.functions.FirebaseFunctions
-import kotlinx.coroutines.tasks.await
 
 data class AiGeneratedTextResult(
     val text: String,
@@ -17,14 +16,13 @@ class AiChatClient(
         }
 
         val result = functions
-            .getHttpsCallable("generateAiText")
-            .call(
-                mapOf(
+            .callWithAppCheckRetry(
+                functionName = "generateAiText",
+                payload = mapOf(
                     "prompt" to prompt,
                     "mode" to mode,
                 ),
             )
-            .await()
 
         val data = result.data as? Map<*, *> ?: error("Die Bot-Antwort konnte nicht gelesen werden.")
         val reply = data["reply"] as? String

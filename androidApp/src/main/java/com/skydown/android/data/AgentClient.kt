@@ -1,7 +1,6 @@
 package com.skydown.android.data
 
 import com.google.firebase.functions.FirebaseFunctions
-import kotlinx.coroutines.tasks.await
 
 data class AgentHistoryTurn(
     val role: String,
@@ -48,9 +47,10 @@ class AgentClient {
             ?.let { payload["manusApiKeyOverride"] = it }
 
         val result = functions
-            .getHttpsCallable("skydownAgent")
-            .call(payload)
-            .await()
+            .callWithAppCheckRetry(
+                functionName = "skydownAgent",
+                payload = payload,
+            )
 
         return when (val data = result.data) {
             is String -> AgentResponse(

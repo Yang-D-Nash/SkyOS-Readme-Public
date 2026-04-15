@@ -369,6 +369,12 @@ class AiViewModel : ViewModel() {
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Die KI ist fuer dein Konto gerade nicht freigeschaltet."
             FirebaseFunctionsException.Code.UNAUTHENTICATED ->
                 "Bitte melde dich erneut an und versuch es noch einmal."
+            FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
+                if (error.localizedMessage?.contains("App Check", ignoreCase = true) == true) {
+                    "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                } else {
+                    error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Die KI ist noch nicht vollstaendig eingerichtet."
+                }
             FirebaseFunctionsException.Code.INVALID_ARGUMENT ->
                 "Die KI-Anfrage konnte so nicht gestartet werden."
             else ->

@@ -140,7 +140,6 @@ fun MusicScreen(
     val coroutineScope = rememberCoroutineScope()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
     val hasShortcutHub = onOpenBeatHub != null || onOpenStudio != null
-    val extraBottomPadding = if (hasShortcutHub) 112.dp else 0.dp
     val artistSectionIndex = if (hasShortcutHub) 3 else 2
     val spotifyStatusSectionIndex = if (hasShortcutHub) 5 else 4
     val tracksSectionIndex = if (uiState.tracks.isNotEmpty()) {
@@ -366,7 +365,7 @@ fun MusicScreen(
                         start = 16.dp,
                         top = innerPadding.calculateTopPadding() + 10.dp,
                         end = 16.dp,
-                        bottom = innerPadding.calculateBottomPadding() + 22.dp + extraBottomPadding,
+                        bottom = innerPadding.calculateBottomPadding() + 22.dp,
                     ),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {

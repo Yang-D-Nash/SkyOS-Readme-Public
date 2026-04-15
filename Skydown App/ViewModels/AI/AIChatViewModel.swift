@@ -378,6 +378,11 @@ final class AIChatViewModel: ObservableObject {
                 return "Der 22xSky Bot hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
                 return nsError.localizedDescription.isEmpty ? "Dein heutiges KI-Limit ist erreicht." : nsError.localizedDescription
+            case .failedPrecondition:
+                if nsError.localizedDescription.localizedCaseInsensitiveContains("App Check") {
+                    return "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                }
+                return nsError.localizedDescription.isEmpty ? "Die KI ist noch nicht vollstaendig eingerichtet." : nsError.localizedDescription
             case .permissionDenied:
                 return nsError.localizedDescription.isEmpty ? "Die KI ist fuer dein Konto gerade nicht freigeschaltet." : nsError.localizedDescription
             case .unauthenticated:

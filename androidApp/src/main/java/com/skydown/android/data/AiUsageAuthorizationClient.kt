@@ -1,7 +1,6 @@
 package com.skydown.android.data
 
 import com.google.firebase.functions.FirebaseFunctions
-import kotlinx.coroutines.tasks.await
 
 enum class AiUsageAuthorizationKind(val rawValue: String) {
     Text("text"),
@@ -22,9 +21,10 @@ class AiUsageAuthorizationClient(
     suspend fun authorize(kind: AiUsageAuthorizationKind): AiUsageAuthorizationResult {
         val payload = mapOf("kind" to kind.rawValue)
         val result = functions
-            .getHttpsCallable("authorizeAiUsage")
-            .call(payload)
-            .await()
+            .callWithAppCheckRetry(
+                functionName = "authorizeAiUsage",
+                payload = payload,
+            )
 
         val data = result.data as? Map<*, *> ?: error("Die KI-Kostenkontrolle konnte nicht gelesen werden.")
         return AiUsageAuthorizationResult(

@@ -505,6 +505,12 @@ class AgentViewModel : ViewModel() {
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges Agent-Limit ist erreicht."
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
+            FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
+                if (error.localizedMessage?.contains("App Check", ignoreCase = true) == true) {
+                    "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                } else {
+                    error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist noch nicht vollstaendig eingerichtet."
+                }
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist fuer dein Konto gerade nicht freigeschaltet."
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."

@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAppCheck
 import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
@@ -915,6 +916,22 @@ extension Functions {
         _ functionName: String,
         payload: Any = [:]
     ) async throws -> HTTPSCallableResult {
+        do {
+            return try await invokeCallableOnce(functionName, payload: payload)
+        } catch {
+            guard shouldRetryAfterRefreshingAppCheckToken(for: error) else {
+                throw error
+            }
+
+            try await refreshAppCheckToken()
+            return try await invokeCallableOnce(functionName, payload: payload)
+        }
+    }
+
+    private func invokeCallableOnce(
+        _ functionName: String,
+        payload: Any = [:]
+    ) async throws -> HTTPSCallableResult {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<HTTPSCallableResult, Error>) in
             let resumeGate = ContinuationResumeGate()
 
@@ -942,6 +959,41 @@ extension Functions {
                 resumeGate.resume {
                     continuation.resume(returning: result)
                 }
+            }
+        }
+    }
+
+    private func shouldRetryAfterRefreshingAppCheckToken(for error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == FunctionsErrorDomain,
+              FunctionsErrorCode(rawValue: nsError.code) == .failedPrecondition else {
+            return false
+        }
+
+        let message = nsError.localizedDescription.lowercased()
+        return message.contains("app check") || message.contains("validierung")
+    }
+
+    private func refreshAppCheckToken() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            AppCheck.appCheck().token(forcingRefresh: true) { token, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard token != nil else {
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "FirebaseAppCheck",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "App Check Token konnte nicht aktualisiert werden."]
+                        )
+                    )
+                    return
+                }
+
+                continuation.resume(returning: ())
             }
         }
     }

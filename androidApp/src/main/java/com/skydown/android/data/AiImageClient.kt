@@ -2,7 +2,6 @@ package com.skydown.android.data
 
 import android.util.Base64
 import com.google.firebase.functions.FirebaseFunctions
-import kotlinx.coroutines.tasks.await
 
 data class AiGeneratedVisualResult(
     val text: String,
@@ -20,9 +19,10 @@ class AiImageClient(
         }
 
         val result = functions
-            .getHttpsCallable("generateAiVisual")
-            .call(mapOf("prompt" to prompt))
-            .await()
+            .callWithAppCheckRetry(
+                functionName = "generateAiVisual",
+                payload = mapOf("prompt" to prompt),
+            )
 
         val data = result.data as? Map<*, *> ?: error("Die Visual-Antwort konnte nicht gelesen werden.")
         val imageBase64 = data["imageBase64"] as? String

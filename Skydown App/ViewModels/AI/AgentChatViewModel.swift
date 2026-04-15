@@ -581,6 +581,9 @@ final class AgentChatViewModel: ObservableObject {
             case .invalidArgument:
                 return "Die Anfrage konnte so nicht verarbeitet werden."
             case .failedPrecondition:
+                if nsError.localizedDescription.localizedCaseInsensitiveContains("App Check") {
+                    return "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                }
                 return nsError.localizedDescription.isEmpty
                     ? "Der Agent ist noch nicht vollstaendig eingerichtet."
                     : nsError.localizedDescription
