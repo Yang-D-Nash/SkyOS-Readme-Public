@@ -854,7 +854,6 @@ private fun ZweizweiMusicLaneScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .navigationBarsPadding()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
@@ -878,7 +877,7 @@ private fun ZweizweiMusicLaneScreen(
                             .fillMaxWidth()
                             .widthIn(max = contentMaxWidth)
                             .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 18.dp, vertical = 22.dp),
+                            .padding(start = 18.dp, top = 22.dp, end = 18.dp, bottom = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
@@ -989,7 +988,7 @@ private fun ZweizweiMusicLaneScreen(
                                 onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                             )
                         }
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
                 }
             }
