@@ -79,6 +79,7 @@ class SettingsViewModel : ViewModel() {
                         profileTagline = user?.profileTagline.orEmpty(),
                         profileBio = user?.profileBio.orEmpty(),
                         instagramHandle = user?.instagramHandle.orEmpty(),
+                        aiAccessEnabled = user?.aiAccessEnabled ?: true,
                         isOwner = isOwner,
                         accountErrorMessage = null,
                     )
@@ -847,6 +848,46 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
+    fun saveAiAccessConsent(enabled: Boolean) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isSavingProfile = true,
+                    accountErrorMessage = null,
+                )
+            }
+
+            val result = authService.updateCurrentAiAccessEnabled(enabled)
+            if (result.isSuccess) {
+                val user = result.getOrNull()
+                _uiState.update {
+                    it.copy(
+                        aiAccessEnabled = user?.aiAccessEnabled ?: enabled,
+                        isSavingProfile = false,
+                        accountErrorMessage = null,
+                    )
+                }
+                AppContainer.refreshCurrentUser()
+                showPaymentFeedback(
+                    message = if (enabled) {
+                        "KI-Zugriff fuer dein Konto aktiviert."
+                    } else {
+                        "KI-Zugriff fuer dein Konto pausiert."
+                    },
+                    isError = false,
+                )
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isSavingProfile = false,
+                        accountErrorMessage = result.exceptionOrNull()?.message
+                            ?: "KI-Einwilligung konnte nicht gespeichert werden.",
+                    )
+                }
+            }
+        }
+    }
+
     fun signOut(onSuccess: (() -> Unit)? = null) {
         viewModelScope.launch {
             _uiState.update {
@@ -896,6 +937,7 @@ class SettingsViewModel : ViewModel() {
                         profileTagline = "",
                         profileBio = "",
                         instagramHandle = "",
+                        aiAccessEnabled = true,
                         isOwner = false,
                         isSavingProfile = false,
                         accountErrorMessage = null,

@@ -499,6 +499,19 @@ struct ProfileView: View {
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                Toggle(isOn: $viewModel.aiAccessEnabledDraft) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("KI fuer mein Konto aktiv")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Wenn aus, werden Bot, Visuals und Agent fuer dein Konto pausiert.")
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
+                .padding(14)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
 
             Button {

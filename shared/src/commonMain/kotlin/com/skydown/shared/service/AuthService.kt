@@ -2,6 +2,7 @@ package com.skydown.shared.service
 
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.ProfileUpdateInput
+import com.skydown.shared.model.RegistrationConsentInput
 import com.skydown.shared.model.RegistrationInput
 import com.skydown.shared.model.User
 import com.skydown.shared.repository.AuthRepository
@@ -21,14 +22,26 @@ class AuthService(
         return repository.signIn(input)
     }
 
-    suspend fun signInWithGoogle(idToken: String, preferredUsername: String? = null): Result<User> {
+    suspend fun signInWithGoogle(
+        idToken: String,
+        preferredUsername: String? = null,
+        registrationConsent: RegistrationConsentInput? = null,
+    ): Result<User> {
         if (idToken.isBlank()) {
             return Result.failure(IllegalArgumentException("Google-Anmeldung konnte nicht gestartet werden."))
+        }
+
+        if (registrationConsent != null) {
+            val consentError = AuthValidation.validateRegistrationConsent(registrationConsent)
+            if (consentError != null) {
+                return Result.failure(IllegalArgumentException(consentError))
+            }
         }
 
         return repository.signInWithGoogle(
             idToken = idToken,
             preferredUsername = preferredUsername?.trim()?.ifBlank { null },
+            registrationConsent = registrationConsent,
         )
     }
 
@@ -71,6 +84,10 @@ class AuthService(
                     ?.ifBlank { null },
             ),
         )
+    }
+
+    suspend fun updateCurrentAiAccessEnabled(enabled: Boolean): Result<User> {
+        return repository.updateCurrentAiAccessEnabled(enabled)
     }
 
     suspend fun signOut(): Result<Unit> = repository.signOut()

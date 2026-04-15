@@ -72,6 +72,11 @@ class AuthManager: ObservableObject {
         )
         sessionCache.store(userSession)
     }
+
+    func updateCurrentAIAccessEnabled(_ enabled: Bool) async throws {
+        userSession = try await authService.updateCurrentAIAccessEnabled(enabled)
+        sessionCache.store(userSession)
+    }
 }
 
 private struct CachedAuthSessionPayload: Codable {

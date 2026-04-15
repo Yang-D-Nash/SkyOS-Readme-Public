@@ -11,11 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,11 +40,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.common.api.ApiException
 import com.skydown.android.R
+import com.skydown.android.data.AppContainer
+import com.skydown.android.data.LegalContentSettings
 import com.skydown.android.data.GoogleSignInManager
 import com.skydown.android.ui.component.GoogleAuthButton
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.model.SettingsLegalDocumentType
+import com.skydown.android.ui.model.resolve
 import com.skydown.android.ui.viewmodel.RegistrationViewModel
 
 @Composable
@@ -50,8 +58,10 @@ fun RegistrationScreen(
     viewModel: RegistrationViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val legalSettings by AppContainer.legalContentRepository.settings.collectAsStateWithLifecycle()
     val isAuthBusy = uiState.isLoading || uiState.isGoogleLoading
     val context = LocalContext.current
+    val activeLegalDocument = remember { mutableStateOf<SettingsLegalDocumentType?>(null) }
     val googleMissingTokenMessage = stringResource(R.string.auth_google_register_missing_token)
     val googleRegisterFailedMessage = stringResource(R.string.auth_google_register_failed)
     val googleClient = remember(context) { GoogleSignInManager.client(context) }
@@ -88,6 +98,10 @@ fun RegistrationScreen(
 
     LaunchedEffect(isAuthBusy) {
         onBusyStateChanged(isAuthBusy)
+    }
+
+    LaunchedEffect(legalSettings.resolvedLastUpdatedLabel) {
+        viewModel.updateLegalVersionLabel(legalSettings.resolvedLastUpdatedLabel)
     }
 
     DisposableEffect(Unit) {
@@ -205,12 +219,57 @@ fun RegistrationScreen(
                     visualTransformation = PasswordVisualTransformation(),
                     shape = RoundedCornerShape(18.dp),
                 )
+                Text(
+                    text = stringResource(
+                        R.string.auth_register_legal_version,
+                        legalSettings.resolvedLastUpdatedLabel,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+                RegistrationConsentRow(
+                    text = stringResource(R.string.auth_register_accept_terms),
+                    checked = uiState.acceptedTerms,
+                    onCheckedChange = viewModel::updateAcceptedTerms,
+                    enabled = !isAuthBusy,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                RegistrationConsentRow(
+                    text = stringResource(R.string.auth_register_accept_privacy),
+                    checked = uiState.acceptedPrivacyPolicy,
+                    onCheckedChange = viewModel::updateAcceptedPrivacyPolicy,
+                    enabled = !isAuthBusy,
+                )
+                RegistrationConsentRow(
+                    text = stringResource(R.string.auth_register_ai_optin),
+                    checked = uiState.aiConsentEnabled,
+                    onCheckedChange = viewModel::updateAiConsentEnabled,
+                    enabled = !isAuthBusy,
+                )
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier.padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    TextButton(
+                        onClick = { activeLegalDocument.value = SettingsLegalDocumentType.TermsAndConditions },
+                        enabled = !isAuthBusy,
+                    ) {
+                        Text(stringResource(R.string.auth_register_open_terms))
+                    }
+                    TextButton(
+                        onClick = { activeLegalDocument.value = SettingsLegalDocumentType.PrivacyPolicy },
+                        enabled = !isAuthBusy,
+                    ) {
+                        Text(stringResource(R.string.auth_register_open_privacy))
+                    }
+                }
                 Button(
                     onClick = { viewModel.register(onClose) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                    enabled = !isAuthBusy,
+                    enabled = !isAuthBusy && uiState.acceptedTerms && uiState.acceptedPrivacyPolicy,
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(if (uiState.isLoading) stringResource(R.string.auth_register_loading) else stringResource(R.string.auth_register))
@@ -229,7 +288,7 @@ fun RegistrationScreen(
                         }
                     },
                     modifier = Modifier.padding(top = 12.dp),
-                    enabled = !isAuthBusy,
+                    enabled = !isAuthBusy && uiState.acceptedTerms && uiState.acceptedPrivacyPolicy,
                 )
                 Text(
                     text = stringResource(R.string.auth_register_google_hint),
@@ -243,6 +302,101 @@ fun RegistrationScreen(
                 message = uiState.errorMessage,
                 type = ToastType.Error,
             )
+        }
+    }
+
+    activeLegalDocument.value?.let { documentType ->
+        RegistrationLegalDocumentSheet(
+            documentType = documentType,
+            legalContent = legalSettings,
+            onDismiss = { activeLegalDocument.value = null },
+        )
+    }
+}
+
+@Composable
+private fun RegistrationConsentRow(
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.84f),
+        )
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun RegistrationLegalDocumentSheet(
+    documentType: SettingsLegalDocumentType,
+    legalContent: LegalContentSettings,
+    onDismiss: () -> Unit,
+) {
+    val document = documentType.resolve(legalContent)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.background,
+    ) {
+        androidx.compose.foundation.lazy.LazyColumn(
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = 20.dp,
+                top = 16.dp,
+                end = 20.dp,
+                bottom = 36.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = document.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Zuletzt aktualisiert: ${document.updatedAt}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    )
+                    Text(
+                        text = document.introduction,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                    )
+                }
+            }
+
+            items(document.sections) { section ->
+                SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp)) {
+                    Text(
+                        text = section.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = section.body,
+                        modifier = Modifier.padding(top = 10.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                    )
+                }
+            }
         }
     }
 }

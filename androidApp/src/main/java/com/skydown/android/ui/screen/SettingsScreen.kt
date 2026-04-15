@@ -375,6 +375,7 @@ fun SettingsScreen(
     var profileTaglineDraft by rememberSaveable { mutableStateOf("") }
     var profileBioDraft by rememberSaveable { mutableStateOf("") }
     var profileInstagramHandleDraft by rememberSaveable { mutableStateOf("") }
+    var profileAiAccessEnabledDraft by rememberSaveable { mutableStateOf(true) }
     val activeLegalDocument = rememberSaveable {
         mutableStateOf<SettingsLegalDocumentType?>(null)
     }
@@ -541,12 +542,14 @@ fun SettingsScreen(
         uiState.profileTagline,
         uiState.profileBio,
         uiState.instagramHandle,
+        uiState.aiAccessEnabled,
     ) {
         profileUsernameDraft = uiState.username
         profileWhatsAppDraft = uiState.whatsApp
         profileTaglineDraft = uiState.profileTagline
         profileBioDraft = uiState.profileBio
         profileInstagramHandleDraft = uiState.instagramHandle
+        profileAiAccessEnabledDraft = uiState.aiAccessEnabled
     }
 
     LaunchedEffect(Unit) {
@@ -2506,6 +2509,27 @@ fun SettingsScreen(
                                 shape = RoundedCornerShape(18.dp),
                             ) {
                                 Text("Profil bearbeiten")
+                            }
+                            SettingsToggleRow(
+                                title = "KI fuer mein Konto aktiv",
+                                body = "Wenn deaktiviert, sind Bot, Visuals und Agent fuer dein Konto serverseitig gesperrt.",
+                                checked = profileAiAccessEnabledDraft,
+                                onCheckedChange = { profileAiAccessEnabledDraft = it },
+                                enabled = !uiState.isSavingProfile && !uiState.isSigningOut && !uiState.isDeletingAccount,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                            OutlinedButton(
+                                onClick = { viewModel.saveAiAccessConsent(profileAiAccessEnabledDraft) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                enabled = !uiState.isSavingProfile &&
+                                    !uiState.isSigningOut &&
+                                    !uiState.isDeletingAccount &&
+                                    profileAiAccessEnabledDraft != uiState.aiAccessEnabled,
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text("KI-Einwilligung speichern")
                             }
                             Text(
                                 text = "Kontoaktionen",

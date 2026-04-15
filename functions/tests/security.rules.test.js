@@ -52,6 +52,14 @@ async function seedUser(uid, overrides = {}) {
       role: "user",
       quotaPlan: "free",
       aiAccessEnabled: true,
+      termsAcceptedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+      privacyAcceptedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+      termsVersion: "12. April 2026",
+      privacyVersion: "12. April 2026",
+      legalConsentSource: "rules_test_seed",
+      aiConsentGiven: true,
+      aiConsentUpdatedAt: Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z")),
+      aiConsentSource: "rules_test_seed",
       aiTextRequestsPerDay: 30,
       aiVisualRequestsPerDay: 4,
       aiAgentRequestsPerDay: 18,
@@ -149,6 +157,27 @@ test("user darf eigene Daten lesen und Profil aktualisieren", async () => {
   await assertSucceeds(getDoc(doc(aliceDb, "users", "alice")));
   await assertSucceeds(updateDoc(doc(aliceDb, "users", "alice"), {
     profileBio: "Hi there",
+  }));
+});
+
+test("user darf eigenen KI-Zugang samt Consent-Status aktualisieren", async () => {
+  await seedUser("alice");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertSucceeds(updateDoc(doc(aliceDb, "users", "alice"), {
+    aiAccessEnabled: false,
+    aiConsentGiven: false,
+    aiConsentUpdatedAt: Timestamp.fromDate(new Date("2026-04-03T09:00:00.000Z")),
+    aiConsentSource: "android_settings",
+  }));
+});
+
+test("user darf KI-Zugang nicht ohne passende Consent-Felder umstellen", async () => {
+  await seedUser("alice");
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertFails(updateDoc(doc(aliceDb, "users", "alice"), {
+    aiAccessEnabled: false,
   }));
 });
 

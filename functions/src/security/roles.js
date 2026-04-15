@@ -167,6 +167,16 @@ async function setUserRoleClaims({
     isAdmin: roleHasAdminAccess(finalRole),
     quotaPlan,
     aiAccessEnabled: existingData.aiAccessEnabled !== false,
+    termsAcceptedAt: existingData.termsAcceptedAt || admin.firestore.FieldValue.serverTimestamp(),
+    privacyAcceptedAt: existingData.privacyAcceptedAt || admin.firestore.FieldValue.serverTimestamp(),
+    termsVersion: nonEmptyString(existingData.termsVersion) || "legacy",
+    privacyVersion: nonEmptyString(existingData.privacyVersion) || "legacy",
+    legalConsentSource: nonEmptyString(existingData.legalConsentSource) || "roles_sync",
+    aiConsentGiven: typeof existingData.aiConsentGiven === "boolean" ?
+      existingData.aiConsentGiven :
+      existingData.aiAccessEnabled !== false,
+    aiConsentUpdatedAt: existingData.aiConsentUpdatedAt || admin.firestore.FieldValue.serverTimestamp(),
+    aiConsentSource: nonEmptyString(existingData.aiConsentSource) || "roles_sync",
     aiTextRequestsPerDay: Number.isFinite(textLimit) && textLimit > 0 ? Math.floor(textLimit) : defaults.text,
     aiVisualRequestsPerDay: Number.isFinite(visualLimit) && visualLimit > 0 ? Math.floor(visualLimit) : defaults.visual,
     aiAgentRequestsPerDay: Number.isFinite(agentLimit) && agentLimit > 0 ? Math.floor(agentLimit) : defaults.agent,
@@ -268,6 +278,14 @@ function buildMigrationCarryover(staleData, canonicalData) {
     "instagramHandle",
     "registrationDate",
     "registrationDateEpochMillis",
+    "termsAcceptedAt",
+    "privacyAcceptedAt",
+    "termsVersion",
+    "privacyVersion",
+    "legalConsentSource",
+    "aiConsentGiven",
+    "aiConsentUpdatedAt",
+    "aiConsentSource",
   ];
 
   for (const field of carryoverFields) {

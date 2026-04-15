@@ -10,7 +10,9 @@ import SwiftUI
 struct RegistrationSheet: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel = RegistrationViewModel()
+    @ObservedObject private var legalContentStore = LegalContentStore.shared
     @Environment(\.colorScheme) private var colorScheme
+    @State private var activeLegalDocument: RegistrationLegalDocument?
 
     private func localized(_ key: String, _ fallback: String) -> String {
         AppLocalized.text(key, fallback: fallback)
@@ -38,6 +40,44 @@ struct RegistrationSheet: View {
                     SecureField(localized("auth.confirm_password", "Confirm password"), text: $viewModel.confirmPassword)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
+                }
+
+                Section(header: Text(localized("auth.register.legal.header", "Legal consent"))) {
+                    Text(localized("auth.register.legal.version", "Legal version: \(legalContentStore.settings.resolvedLastUpdatedLabel)"))
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .listRowBackground(AppColors.primaryBackground(for: colorScheme))
+
+                    Toggle(isOn: $viewModel.acceptedTerms) {
+                        Text(localized("auth.register.legal.terms", "I accept the Terms and Conditions (AGB)."))
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
+                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
+
+                    Toggle(isOn: $viewModel.acceptedPrivacyPolicy) {
+                        Text(localized("auth.register.legal.privacy", "I accept the Privacy Policy."))
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
+                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
+
+                    Toggle(isOn: $viewModel.aiConsentEnabled) {
+                        Text(localized("auth.register.legal.ai", "Enable AI for my account (can be changed later in Settings)."))
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
+                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
+
+                    HStack(spacing: 12) {
+                        Button(localized("auth.register.legal.open_terms", "Open AGB")) {
+                            activeLegalDocument = .terms
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(localized("auth.register.legal.open_privacy", "Open Privacy")) {
+                            activeLegalDocument = .privacy
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .listRowBackground(AppColors.primaryBackground(for: colorScheme))
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -102,10 +142,31 @@ struct RegistrationSheet: View {
             .scrollContentBackground(.hidden)
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
+        .onChange(of: legalContentStore.settings.resolvedLastUpdatedLabel) { newValue in
+            viewModel.legalVersionLabel = newValue
+        }
+        .task {
+            viewModel.legalVersionLabel = legalContentStore.settings.resolvedLastUpdatedLabel
+        }
+        .sheet(item: $activeLegalDocument) { document in
+            switch document {
+            case .terms:
+                PolicyView(title: "AGB", text: legalContentStore.settings.termsAndConditionsText)
+            case .privacy:
+                PolicyView(title: "Datenschutzbestimmungen", text: legalContentStore.settings.privacyPolicyText)
+            }
+        }
         .fancyToast(isPresented: $viewModel.showToast,
                     message: viewModel.toastMessage,
                     style: viewModel.toastStyle)
     }
+}
+
+private enum RegistrationLegalDocument: String, Identifiable {
+    case terms
+    case privacy
+
+    var id: String { rawValue }
 }
 
 #Preview {

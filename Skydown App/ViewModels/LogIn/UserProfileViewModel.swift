@@ -11,6 +11,7 @@ final class UserProfileViewModel: ObservableObject {
     @Published var taglineDraft = ""
     @Published var bioDraft = ""
     @Published var instagramDraft = ""
+    @Published var aiAccessEnabledDraft = true
     @Published var isSavingProfile = false
     @Published var isUploadingAvatar = false
     @Published var isUploadingMedia = false
@@ -82,6 +83,9 @@ final class UserProfileViewModel: ObservableObject {
                 profileBio: bioDraft,
                 instagramHandle: instagramDraft
             )
+            if authManager.userSession?.aiAccessEnabled != aiAccessEnabledDraft {
+                try await authManager.updateCurrentAIAccessEnabled(aiAccessEnabledDraft)
+            }
             currentUser = authManager.userSession
             syncDrafts(from: authManager.userSession)
             isEditing = false
@@ -200,6 +204,7 @@ final class UserProfileViewModel: ObservableObject {
         taglineDraft = user?.profileTagline ?? ""
         bioDraft = user?.profileBio ?? ""
         instagramDraft = user?.instagramHandle ?? ""
+        aiAccessEnabledDraft = user?.aiAccessEnabled ?? true
     }
 
     private func defaultTitle(for type: ProfileMediaType) -> String {

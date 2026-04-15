@@ -14,6 +14,10 @@ class RegistrationViewModel: ObservableObject {
     @Published var whatsapp = ""
     @Published var password = ""
     @Published var confirmPassword = ""
+    @Published var acceptedTerms = false
+    @Published var acceptedPrivacyPolicy = false
+    @Published var aiConsentEnabled = false
+    @Published var legalVersionLabel = LegalContentStore.shared.settings.resolvedLastUpdatedLabel
     @Published var errorMessage: String?
     @Published var isLoading = false
 
@@ -33,6 +37,8 @@ class RegistrationViewModel: ObservableObject {
             || password.isEmpty
             || confirmPassword.isEmpty
             || password != confirmPassword
+            || !acceptedTerms
+            || !acceptedPrivacyPolicy
             || isLoading
     }
 
@@ -47,15 +53,28 @@ class RegistrationViewModel: ObservableObject {
             return false
         }
 
+        guard acceptedTerms, acceptedPrivacyPolicy else {
+            showUserToast("Bitte AGB und Datenschutz akzeptieren.", style: .error)
+            return false
+        }
+
         isLoading = true
         errorMessage = nil
 
         do {
+            let consent = RegistrationLegalConsent(
+                acceptedTerms: acceptedTerms,
+                acceptedPrivacyPolicy: acceptedPrivacyPolicy,
+                aiConsentEnabled: aiConsentEnabled,
+                legalVersionLabel: legalVersionLabel,
+                consentSource: "ios_registration"
+            )
             try await authService.register(
                 username: username.trimmingCharacters(in: .whitespacesAndNewlines),
                 email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                 whatsApp: whatsapp,
-                password: password
+                password: password,
+                registrationConsent: consent
             )
             showUserToast("Registrierung erfolgreich!", style: .success)
             isLoading = false
@@ -70,12 +89,25 @@ class RegistrationViewModel: ObservableObject {
     }
 
     func signInWithGoogle() async -> Bool {
+        guard acceptedTerms, acceptedPrivacyPolicy else {
+            showUserToast("Bitte AGB und Datenschutz akzeptieren.", style: .error)
+            return false
+        }
         isLoading = true
         errorMessage = nil
         let preferredUsername = username.trimmingCharacters(in: .whitespacesAndNewlines).trimmedNilIfEmpty
 
         do {
-            try await authService.signInWithGoogle(preferredUsername: preferredUsername)
+            try await authService.signInWithGoogle(
+                preferredUsername: preferredUsername,
+                registrationConsent: RegistrationLegalConsent(
+                    acceptedTerms: acceptedTerms,
+                    acceptedPrivacyPolicy: acceptedPrivacyPolicy,
+                    aiConsentEnabled: aiConsentEnabled,
+                    legalVersionLabel: legalVersionLabel,
+                    consentSource: "ios_registration_google"
+                )
+            )
             showUserToast("Google-Registrierung erfolgreich!", style: .success)
             isLoading = false
             return true

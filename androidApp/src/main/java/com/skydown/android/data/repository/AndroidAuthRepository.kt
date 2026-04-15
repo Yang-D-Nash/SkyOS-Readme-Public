@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.userProfileChangeRequest
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -14,6 +15,7 @@ import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.FirebaseFunctions
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.ProfileUpdateInput
+import com.skydown.shared.model.RegistrationConsentInput
 import com.skydown.shared.model.RegistrationInput
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserQuotaPlan
@@ -43,12 +45,24 @@ class AndroidAuthRepository(
         }
     }
 
-    override suspend fun signInWithGoogle(idToken: String, preferredUsername: String?): Result<User> {
+    override suspend fun signInWithGoogle(
+        idToken: String,
+        preferredUsername: String?,
+        registrationConsent: RegistrationConsentInput?,
+    ): Result<User> {
         return runCatching {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = auth.signInWithCredential(credential).await()
             val firebaseUser = authResult.user ?: error("Google-Benutzer konnte nicht geladen werden.")
-            resolveCurrentUserAfterAuth(firebaseUser, preferredUsername)
+            val isNewUser = authResult.additionalUserInfo?.isNewUser == true
+
+            if (isNewUser && !registrationConsent.isValidRegistrationConsent()) {
+                runCatching { firebaseUser.delete().await() }
+                auth.signOut()
+                error("Bitte nutze den Registrieren-Flow und bestaetige AGB sowie Datenschutz.")
+            }
+
+            resolveCurrentUserAfterAuth(firebaseUser, preferredUsername, registrationConsent)
                 .also(AppSessionStore::update)
         }.recoverCatching { error ->
             throw error.toReadableAuthError()
@@ -75,7 +89,7 @@ class AndroidAuthRepository(
                 isAdmin = false,
                 role = resolvedRole.rawValue,
                 quotaPlan = quotaPlan.rawValue,
-                aiAccessEnabled = true,
+                aiAccessEnabled = input.consent.aiConsentEnabled,
                 aiTextRequestsPerDay = quotaPlan.aiTextRequestsPerDay,
                 aiVisualRequestsPerDay = quotaPlan.aiVisualRequestsPerDay,
                 aiAgentRequestsPerDay = quotaPlan.aiAgentRequestsPerDay,
@@ -84,7 +98,9 @@ class AndroidAuthRepository(
                 canManageVideoCatalog = false,
                 canModerateProfiles = false,
             )
-            firestore.collection("users").document(firebaseUser.uid).set(user.toFirestorePayload()).await()
+            val payload = user.toFirestorePayload().toMutableMap()
+            payload.putAll(consentPayload(input.consent))
+            firestore.collection("users").document(firebaseUser.uid).set(payload).await()
             syncPublicProfileDocument(
                 uid = firebaseUser.uid,
                 username = user.username,
@@ -165,9 +181,31 @@ class AndroidAuthRepository(
         }
     }
 
+    override suspend fun updateCurrentAiAccessEnabled(enabled: Boolean): Result<User> {
+        return runCatching {
+            val authUser = auth.currentUser ?: error("Kein Benutzer angemeldet.")
+            val documentReference = firestore.collection("users").document(authUser.uid)
+            documentReference.update(
+                mapOf(
+                    "aiAccessEnabled" to enabled,
+                    "aiConsentGiven" to enabled,
+                    "aiConsentUpdatedAt" to Timestamp.now(),
+                    "aiConsentSource" to "android_settings",
+                ),
+            ).await()
+
+            val updatedUser = syncUserDocument(authUser)
+            AppSessionStore.update(updatedUser)
+            updatedUser
+        }.recoverCatching { error ->
+            throw error.toReadableAuthError()
+        }
+    }
+
     private suspend fun syncUserDocument(
         authUser: FirebaseUser,
         preferredUsername: String? = null,
+        registrationConsent: RegistrationConsentInput? = null,
     ): User {
         val documentReference = firestore.collection("users").document(authUser.uid)
         val snapshot = documentReference.get().await()
@@ -195,7 +233,7 @@ class AndroidAuthRepository(
                 isAdmin = resolvedRole.hasStaffAccess,
                 role = resolvedRole.rawValue,
                 quotaPlan = quotaPlan.rawValue,
-                aiAccessEnabled = true,
+                aiAccessEnabled = registrationConsent?.aiConsentEnabled ?: true,
                 aiTextRequestsPerDay = quotaPlan.aiTextRequestsPerDay,
                 aiVisualRequestsPerDay = quotaPlan.aiVisualRequestsPerDay,
                 aiAgentRequestsPerDay = quotaPlan.aiAgentRequestsPerDay,
@@ -204,8 +242,16 @@ class AndroidAuthRepository(
                 canManageVideoCatalog = resolvedRole == UserRole.Owner,
                 canModerateProfiles = resolvedRole == UserRole.Owner,
             )
-
-            documentReference.set(user.toFirestorePayload()).await()
+            val payload = user.toFirestorePayload().toMutableMap()
+            payload.putAll(
+                consentPayload(
+                    registrationConsent ?: legacyConsentPayload(
+                        aiConsentEnabled = user.aiAccessEnabled,
+                        source = "android_legacy_sync",
+                    ),
+                ),
+            )
+            documentReference.set(payload).await()
             syncPublicProfileDocument(
                 uid = authUser.uid,
                 username = user.username,
@@ -263,6 +309,44 @@ class AndroidAuthRepository(
 
         if (data["aiAccessEnabled"] !is Boolean) {
             updates["aiAccessEnabled"] = true
+        }
+
+        if (data["termsAcceptedAt"] !is com.google.firebase.Timestamp) {
+            updates["termsAcceptedAt"] = Timestamp.now()
+        }
+
+        if (data["privacyAcceptedAt"] !is com.google.firebase.Timestamp) {
+            updates["privacyAcceptedAt"] = Timestamp.now()
+        }
+
+        if ((data["termsVersion"] as? String).isNullOrBlank()) {
+            updates["termsVersion"] = "legacy"
+        }
+
+        if ((data["privacyVersion"] as? String).isNullOrBlank()) {
+            updates["privacyVersion"] = "legacy"
+        }
+
+        if ((data["legalConsentSource"] as? String).isNullOrBlank()) {
+            updates["legalConsentSource"] = "android_legacy_sync"
+        }
+
+        if (data["aiConsentGiven"] !is Boolean) {
+            updates["aiConsentGiven"] = data["aiAccessEnabled"] as? Boolean ?: true
+        }
+
+        if (data["aiConsentUpdatedAt"] !is com.google.firebase.Timestamp) {
+            updates["aiConsentUpdatedAt"] = Timestamp.now()
+        }
+
+        if ((data["aiConsentSource"] as? String).isNullOrBlank()) {
+            updates["aiConsentSource"] = "android_legacy_sync"
+        }
+
+        if (registrationConsent.isValidRegistrationConsent()) {
+            updates.putAll(consentPayload(registrationConsent!!))
+            updates["aiAccessEnabled"] = registrationConsent.aiConsentEnabled
+            updates["aiConsentGiven"] = registrationConsent.aiConsentEnabled
         }
 
         if (data["aiTextRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
@@ -349,9 +433,10 @@ class AndroidAuthRepository(
     private suspend fun resolveCurrentUserAfterAuth(
         authUser: FirebaseUser,
         preferredUsername: String? = null,
+        registrationConsent: RegistrationConsentInput? = null,
     ): User {
         return runCatching {
-            syncUserDocument(authUser, preferredUsername)
+            syncUserDocument(authUser, preferredUsername, registrationConsent)
         }.getOrElse {
             authUser.toSharedUser().copy(username = resolvedUsername(authUser, preferredUsername))
         }
@@ -420,6 +505,45 @@ class AndroidAuthRepository(
             throw error
         }
     }
+}
+
+private fun RegistrationConsentInput?.isValidRegistrationConsent(): Boolean {
+    val consent = this ?: return false
+    return consent.acceptedTerms &&
+        consent.acceptedPrivacyPolicy &&
+        consent.legalVersionLabel.isNotBlank() &&
+        consent.consentSource.isNotBlank()
+}
+
+private fun consentPayload(
+    consent: RegistrationConsentInput,
+): Map<String, Any> {
+    val now = Timestamp.now()
+    val normalizedVersion = consent.legalVersionLabel.trim().takeIf { it.isNotEmpty() } ?: "unknown"
+    val normalizedSource = consent.consentSource.trim().takeIf { it.isNotEmpty() } ?: "android_unknown"
+    return mapOf(
+        "termsAcceptedAt" to now,
+        "privacyAcceptedAt" to now,
+        "termsVersion" to normalizedVersion,
+        "privacyVersion" to normalizedVersion,
+        "legalConsentSource" to normalizedSource,
+        "aiConsentGiven" to consent.aiConsentEnabled,
+        "aiConsentUpdatedAt" to now,
+        "aiConsentSource" to normalizedSource,
+    )
+}
+
+private fun legacyConsentPayload(
+    aiConsentEnabled: Boolean,
+    source: String,
+): RegistrationConsentInput {
+    return RegistrationConsentInput(
+        acceptedTerms = true,
+        acceptedPrivacyPolicy = true,
+        aiConsentEnabled = aiConsentEnabled,
+        legalVersionLabel = "legacy",
+        consentSource = source,
+    )
 }
 
 private fun resolvedUsername(

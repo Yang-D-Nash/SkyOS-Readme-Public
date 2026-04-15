@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.model.AuthUiState
+import com.skydown.shared.model.RegistrationConsentInput
 import com.skydown.shared.model.RegistrationInput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,8 +33,30 @@ class RegistrationViewModel : ViewModel() {
         _uiState.update { it.copy(confirmPassword = value, errorMessage = null) }
     }
 
+    fun updateAcceptedTerms(value: Boolean) {
+        _uiState.update { it.copy(acceptedTerms = value, errorMessage = null) }
+    }
+
+    fun updateAcceptedPrivacyPolicy(value: Boolean) {
+        _uiState.update { it.copy(acceptedPrivacyPolicy = value, errorMessage = null) }
+    }
+
+    fun updateAiConsentEnabled(value: Boolean) {
+        _uiState.update { it.copy(aiConsentEnabled = value, errorMessage = null) }
+    }
+
+    fun updateLegalVersionLabel(value: String) {
+        _uiState.update { it.copy(legalVersionLabel = value, errorMessage = null) }
+    }
+
     fun register(onSuccess: () -> Unit) {
         val current = _uiState.value
+        if (!current.acceptedTerms || !current.acceptedPrivacyPolicy) {
+            _uiState.update {
+                it.copy(errorMessage = "Bitte akzeptiere AGB und Datenschutz, um fortzufahren.")
+            }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
@@ -44,6 +67,13 @@ class RegistrationViewModel : ViewModel() {
                     whatsApp = "",
                     password = current.password,
                     confirmPassword = current.confirmPassword,
+                    consent = RegistrationConsentInput(
+                        acceptedTerms = current.acceptedTerms,
+                        acceptedPrivacyPolicy = current.acceptedPrivacyPolicy,
+                        aiConsentEnabled = current.aiConsentEnabled,
+                        legalVersionLabel = current.legalVersionLabel,
+                        consentSource = "android_registration",
+                    ),
                 ),
             )
 
@@ -67,10 +97,27 @@ class RegistrationViewModel : ViewModel() {
 
     fun signInWithGoogle(idToken: String, onSuccess: () -> Unit) {
         val preferredUsername = _uiState.value.username.trim().ifBlank { null }
+        val current = _uiState.value
+        if (!current.acceptedTerms || !current.acceptedPrivacyPolicy) {
+            _uiState.update {
+                it.copy(
+                    isGoogleLoading = false,
+                    errorMessage = "Bitte akzeptiere AGB und Datenschutz, um fortzufahren.",
+                )
+            }
+            return
+        }
         viewModelScope.launch {
             val result = authService.signInWithGoogle(
                 idToken = idToken,
                 preferredUsername = preferredUsername,
+                registrationConsent = RegistrationConsentInput(
+                    acceptedTerms = current.acceptedTerms,
+                    acceptedPrivacyPolicy = current.acceptedPrivacyPolicy,
+                    aiConsentEnabled = current.aiConsentEnabled,
+                    legalVersionLabel = current.legalVersionLabel,
+                    consentSource = "android_registration_google",
+                ),
             )
 
             if (result.isSuccess) {

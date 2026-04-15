@@ -60,6 +60,12 @@
     <string name="auth_register_loading">Registering&#8230;</string>
     <string name="auth_register_google">Register with Google</string>
     <string name="auth_register_google_hint">Your account is created automatically on first Google login. Entered username is used directly.</string>
+    <string name="auth_register_legal_version">Legal version: %1$s</string>
+    <string name="auth_register_accept_terms">I accept the Terms and Conditions (AGB).</string>
+    <string name="auth_register_accept_privacy">I accept the Privacy Policy.</string>
+    <string name="auth_register_ai_optin">Enable AI for my account (can be changed later in Settings).</string>
+    <string name="auth_register_open_terms">Open AGB</string>
+    <string name="auth_register_open_privacy">Open Privacy</string>
     <string name="auth_google_register_missing_token">Google registration did not return a valid token.</string>
     <string name="auth_google_register_failed">Google registration could not be completed.</string>
 </resources>

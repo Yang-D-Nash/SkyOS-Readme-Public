@@ -490,7 +490,7 @@ function resolveAiLimits(userData = {}) {
   return {
     role,
     quotaPlan,
-    isEnabled: userData.aiAccessEnabled !== false,
+    isEnabled: userData.aiAccessEnabled !== false && userData.aiConsentGiven !== false,
     text: Number.isFinite(text) && text > 0 ? Math.floor(text) : defaults.text,
     visual: Number.isFinite(visual) && visual > 0 ? Math.floor(visual) : defaults.visual,
     agent: Number.isFinite(agent) && agent > 0 ? Math.floor(agent) : defaults.agent,
@@ -571,6 +571,28 @@ async function ensureAuthUserBootstrapDocument(userRecord, {forcedRole = null} =
     updates.isAdmin = true;
     updates.quotaPlan = USER_QUOTA_PLANS.ownerUnlimited;
     updates.aiAccessEnabled = true;
+    if (!(existingData.termsAcceptedAt instanceof admin.firestore.Timestamp)) {
+      updates.termsAcceptedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+    if (!(existingData.privacyAcceptedAt instanceof admin.firestore.Timestamp)) {
+      updates.privacyAcceptedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+    if (!nonEmptyString(existingData.termsVersion)) {
+      updates.termsVersion = "legacy";
+    }
+    if (!nonEmptyString(existingData.privacyVersion)) {
+      updates.privacyVersion = "legacy";
+    }
+    if (!nonEmptyString(existingData.legalConsentSource)) {
+      updates.legalConsentSource = "server_bootstrap";
+    }
+    updates.aiConsentGiven = true;
+    if (!(existingData.aiConsentUpdatedAt instanceof admin.firestore.Timestamp)) {
+      updates.aiConsentUpdatedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+    if (!nonEmptyString(existingData.aiConsentSource)) {
+      updates.aiConsentSource = "server_bootstrap";
+    }
     updates.aiTextRequestsPerDay = defaultLimits.text;
     updates.aiVisualRequestsPerDay = defaultLimits.visual;
     updates.aiAgentRequestsPerDay = defaultLimits.agent;
@@ -593,6 +615,38 @@ async function ensureAuthUserBootstrapDocument(userRecord, {forcedRole = null} =
 
     if (typeof existingData.aiAccessEnabled !== "boolean") {
       updates.aiAccessEnabled = true;
+    }
+
+    if (!(existingData.termsAcceptedAt instanceof admin.firestore.Timestamp)) {
+      updates.termsAcceptedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    if (!(existingData.privacyAcceptedAt instanceof admin.firestore.Timestamp)) {
+      updates.privacyAcceptedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    if (!nonEmptyString(existingData.termsVersion)) {
+      updates.termsVersion = "legacy";
+    }
+
+    if (!nonEmptyString(existingData.privacyVersion)) {
+      updates.privacyVersion = "legacy";
+    }
+
+    if (!nonEmptyString(existingData.legalConsentSource)) {
+      updates.legalConsentSource = "server_bootstrap";
+    }
+
+    if (typeof existingData.aiConsentGiven !== "boolean") {
+      updates.aiConsentGiven = existingData.aiAccessEnabled !== false;
+    }
+
+    if (!(existingData.aiConsentUpdatedAt instanceof admin.firestore.Timestamp)) {
+      updates.aiConsentUpdatedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    if (!nonEmptyString(existingData.aiConsentSource)) {
+      updates.aiConsentSource = "server_bootstrap";
     }
 
     if (!Number.isFinite(Number(existingData.aiTextRequestsPerDay))) {

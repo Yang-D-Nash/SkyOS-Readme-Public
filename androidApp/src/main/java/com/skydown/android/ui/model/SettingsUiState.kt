@@ -25,6 +25,7 @@ data class SettingsUiState(
     val profileTagline: String = "",
     val profileBio: String = "",
     val instagramHandle: String = "",
+    val aiAccessEnabled: Boolean = true,
     val isOwner: Boolean = false,
     val language: String = AppLanguageSupport.currentSystemLanguageDisplayName(),
     val notificationsEnabled: Boolean = true,

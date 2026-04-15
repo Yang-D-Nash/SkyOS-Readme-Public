@@ -9,8 +9,17 @@ import UIKit
 protocol AuthServicing {
     func observeAuthState(_ onChange: @escaping @MainActor (User?) -> Void) -> () -> Void
     func signIn(email: String, password: String) async throws
-    func signInWithGoogle(preferredUsername: String?) async throws
-    func register(username: String, email: String, whatsApp: String, password: String) async throws
+    func signInWithGoogle(
+        preferredUsername: String?,
+        registrationConsent: RegistrationLegalConsent?
+    ) async throws
+    func register(
+        username: String,
+        email: String,
+        whatsApp: String,
+        password: String,
+        registrationConsent: RegistrationLegalConsent
+    ) async throws
     func updateCurrentProfile(
         username: String,
         whatsApp: String?,
@@ -18,6 +27,7 @@ protocol AuthServicing {
         profileBio: String?,
         instagramHandle: String?
     ) async throws -> User
+    func updateCurrentAIAccessEnabled(_ enabled: Bool) async throws -> User
     func signOut() throws
     func deleteCurrentAccount() async throws
     func fetchCurrentUser() async throws -> User?
@@ -25,7 +35,30 @@ protocol AuthServicing {
 
 extension AuthServicing {
     func signInWithGoogle() async throws {
-        try await signInWithGoogle(preferredUsername: nil)
+        try await signInWithGoogle(preferredUsername: nil, registrationConsent: nil)
+    }
+}
+
+struct RegistrationLegalConsent: Sendable {
+    var acceptedTerms: Bool
+    var acceptedPrivacyPolicy: Bool
+    var aiConsentEnabled: Bool
+    var legalVersionLabel: String
+    var consentSource: String
+
+    var isValid: Bool {
+        acceptedTerms &&
+        acceptedPrivacyPolicy &&
+        !normalizedLegalVersionLabel.isEmpty &&
+        !normalizedConsentSource.isEmpty
+    }
+
+    var normalizedLegalVersionLabel: String {
+        legalVersionLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var normalizedConsentSource: String {
+        consentSource.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -88,7 +121,10 @@ final class FirebaseAuthService: AuthServicing {
         await syncSessionClaimsIfPossible(for: result.user)
     }
 
-    func signInWithGoogle(preferredUsername: String? = nil) async throws {
+    func signInWithGoogle(
+        preferredUsername: String? = nil,
+        registrationConsent: RegistrationLegalConsent? = nil
+    ) async throws {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             throw AuthServiceError.missingGoogleClientID
         }
@@ -109,11 +145,45 @@ final class FirebaseAuthService: AuthServicing {
             accessToken: result.user.accessToken.tokenString
         )
         let authResult = try await auth.signIn(with: credential)
+        let isNewUser = authResult.additionalUserInfo?.isNewUser ?? false
+
+        if isNewUser, let registrationConsent, registrationConsent.isValid {
+            await syncUserDocumentIfPossible(
+                for: authResult.user,
+                preferredUsername: preferredUsername,
+                registrationConsent: registrationConsent
+            )
+            return
+        }
+
+        if isNewUser {
+            try? await authResult.user.delete()
+            try? auth.signOut()
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Bitte nutze den Registrieren-Flow und bestaetige AGB sowie Datenschutz."]
+            )
+        }
+
         await syncUserDocumentIfPossible(for: authResult.user, preferredUsername: preferredUsername)
     }
 
-    func register(username: String, email: String, whatsApp: String, password: String) async throws {
+    func register(
+        username: String,
+        email: String,
+        whatsApp: String,
+        password: String,
+        registrationConsent: RegistrationLegalConsent
+    ) async throws {
         try await ensureRegistrationsOpen()
+        guard registrationConsent.isValid else {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Bitte akzeptiere AGB und Datenschutz, um fortzufahren."]
+            )
+        }
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let normalizedUsername = Self.sanitizedUsername(
             username,
@@ -133,7 +203,7 @@ final class FirebaseAuthService: AuthServicing {
             isAdmin: role.hasStaffAccess,
             role: role.rawValue,
             quotaPlan: quotaPlan.rawValue,
-            aiAccessEnabled: true,
+            aiAccessEnabled: registrationConsent.aiConsentEnabled,
             aiTextRequestsPerDay: quotaPlan.aiTextRequestsPerDay,
             aiVisualRequestsPerDay: quotaPlan.aiVisualRequestsPerDay,
             aiAgentRequestsPerDay: quotaPlan.aiAgentRequestsPerDay,
@@ -143,7 +213,9 @@ final class FirebaseAuthService: AuthServicing {
             canModerateProfiles: false
         )
 
-        try await firestore.collection("users").document(result.user.uid).setData(newUser.firestorePayload)
+        var payload = newUser.firestorePayload
+        payload.merge(consentPayload(from: registrationConsent), uniquingKeysWith: { _, new in new })
+        try await firestore.collection("users").document(result.user.uid).setData(payload)
         try await syncPublicProfileDocument(
             uid: result.user.uid,
             username: normalizedUsername,
@@ -238,6 +310,26 @@ final class FirebaseAuthService: AuthServicing {
             instagramHandle: normalizedInstagramHandle,
             whatsApp: normalizedWhatsApp
         )
+        try await refreshAuthToken(for: authUser)
+        return try await fetchUser(uid: authUser.uid) ?? authUser.toAppUser()
+    }
+
+    func updateCurrentAIAccessEnabled(_ enabled: Bool) async throws -> User {
+        guard let authUser = auth.currentUser else {
+            throw NSError(
+                domain: "FirebaseAuthService",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "Kein Benutzer angemeldet."]
+            )
+        }
+
+        try await firestore.collection("users").document(authUser.uid).setData([
+            "aiAccessEnabled": enabled,
+            "aiConsentGiven": enabled,
+            "aiConsentUpdatedAt": Timestamp(date: .now),
+            "aiConsentSource": "ios_settings"
+        ], merge: true)
+
         try await refreshAuthToken(for: authUser)
         return try await fetchUser(uid: authUser.uid) ?? authUser.toAppUser()
     }
@@ -348,7 +440,8 @@ final class FirebaseAuthService: AuthServicing {
 
     private func syncUserDocument(
         for authUser: FirebaseAuth.User,
-        preferredUsername: String? = nil
+        preferredUsername: String? = nil,
+        registrationConsent: RegistrationLegalConsent? = nil
     ) async throws {
         let documentReference = firestore.collection("users").document(authUser.uid)
         let snapshot = try await documentReference.getDocument()
@@ -373,7 +466,7 @@ final class FirebaseAuthService: AuthServicing {
                 isAdmin: bootstrapRole.hasStaffAccess,
                 role: bootstrapRole.rawValue,
                 quotaPlan: bootstrapQuotaPlan.rawValue,
-                aiAccessEnabled: true,
+                aiAccessEnabled: registrationConsent?.aiConsentEnabled ?? true,
                 aiTextRequestsPerDay: bootstrapQuotaPlan.aiTextRequestsPerDay,
                 aiVisualRequestsPerDay: bootstrapQuotaPlan.aiVisualRequestsPerDay,
                 aiAgentRequestsPerDay: bootstrapQuotaPlan.aiAgentRequestsPerDay,
@@ -382,8 +475,13 @@ final class FirebaseAuthService: AuthServicing {
                 canManageVideoCatalog: bootstrapRole == .owner,
                 canModerateProfiles: bootstrapRole == .owner
             )
-
-            try await documentReference.setData(newUser.firestorePayload)
+            let effectiveConsent = registrationConsent ?? .legacy(
+                aiConsentEnabled: newUser.aiAccessEnabled,
+                source: "ios_legacy_sync"
+            )
+            var payload = newUser.firestorePayload
+            payload.merge(consentPayload(from: effectiveConsent), uniquingKeysWith: { _, new in new })
+            try await documentReference.setData(payload)
             try await syncPublicProfileDocument(
                 uid: authUser.uid,
                 username: username,
@@ -435,6 +533,44 @@ final class FirebaseAuthService: AuthServicing {
 
         if data["aiAccessEnabled"] == nil {
             repairFields["aiAccessEnabled"] = true
+        }
+
+        if data["termsAcceptedAt"] == nil {
+            repairFields["termsAcceptedAt"] = Timestamp(date: .now)
+        }
+
+        if data["privacyAcceptedAt"] == nil {
+            repairFields["privacyAcceptedAt"] = Timestamp(date: .now)
+        }
+
+        if (data["termsVersion"] as? String)?.trimmedNilIfEmpty == nil {
+            repairFields["termsVersion"] = "legacy"
+        }
+
+        if (data["privacyVersion"] as? String)?.trimmedNilIfEmpty == nil {
+            repairFields["privacyVersion"] = "legacy"
+        }
+
+        if (data["legalConsentSource"] as? String)?.trimmedNilIfEmpty == nil {
+            repairFields["legalConsentSource"] = "ios_legacy_sync"
+        }
+
+        if data["aiConsentGiven"] == nil {
+            repairFields["aiConsentGiven"] = data["aiAccessEnabled"] as? Bool ?? true
+        }
+
+        if data["aiConsentUpdatedAt"] == nil {
+            repairFields["aiConsentUpdatedAt"] = Timestamp(date: .now)
+        }
+
+        if (data["aiConsentSource"] as? String)?.trimmedNilIfEmpty == nil {
+            repairFields["aiConsentSource"] = "ios_legacy_sync"
+        }
+
+        if let registrationConsent, registrationConsent.isValid {
+            repairFields.merge(consentPayload(from: registrationConsent), uniquingKeysWith: { _, new in new })
+            repairFields["aiAccessEnabled"] = registrationConsent.aiConsentEnabled
+            repairFields["aiConsentGiven"] = registrationConsent.aiConsentEnabled
         }
 
         if data["aiTextRequestsPerDay"] == nil || resolvedRole == .owner {
@@ -593,10 +729,15 @@ final class FirebaseAuthService: AuthServicing {
 
     private func syncUserDocumentIfPossible(
         for authUser: FirebaseAuth.User,
-        preferredUsername: String? = nil
+        preferredUsername: String? = nil,
+        registrationConsent: RegistrationLegalConsent? = nil
     ) async {
         do {
-            try await syncUserDocument(for: authUser, preferredUsername: preferredUsername)
+            try await syncUserDocument(
+                for: authUser,
+                preferredUsername: preferredUsername,
+                registrationConsent: registrationConsent
+            )
         } catch {
             print("Dev Hinweis: Benutzerdokument konnte nicht synchronisiert werden: \(error.localizedDescription)")
         }
@@ -669,6 +810,22 @@ final class FirebaseAuthService: AuthServicing {
 
             throw error
         }
+    }
+
+    private func consentPayload(from consent: RegistrationLegalConsent) -> [String: Any] {
+        let now = Timestamp(date: .now)
+        let version = consent.normalizedLegalVersionLabel
+        let source = consent.normalizedConsentSource
+        return [
+            "termsAcceptedAt": now,
+            "privacyAcceptedAt": now,
+            "termsVersion": version,
+            "privacyVersion": version,
+            "legalConsentSource": source,
+            "aiConsentGiven": consent.aiConsentEnabled,
+            "aiConsentUpdatedAt": now,
+            "aiConsentSource": source
+        ]
     }
 
     static func sanitizedUsername(
@@ -834,6 +991,18 @@ private extension FirebaseAuth.User {
             canManageMusicCatalog: resolvedRole == .owner,
             canManageVideoCatalog: resolvedRole == .owner,
             canModerateProfiles: resolvedRole == .owner
+        )
+    }
+}
+
+private extension RegistrationLegalConsent {
+    static func legacy(aiConsentEnabled: Bool, source: String) -> RegistrationLegalConsent {
+        RegistrationLegalConsent(
+            acceptedTerms: true,
+            acceptedPrivacyPolicy: true,
+            aiConsentEnabled: aiConsentEnabled,
+            legalVersionLabel: "legacy",
+            consentSource: source
         )
     }
 }
