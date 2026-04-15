@@ -1013,15 +1013,20 @@ private struct VideoReelViewer: View {
                         Image(systemName: "xmark")
                             .font(.headline.weight(.bold))
                             .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Color.white.opacity(0.14))
+                            .frame(width: 48, height: 48)
+                            .background(Color.black.opacity(0.42))
                             .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                            )
                     })
                     .buttonStyle(.plain)
                     .skydownTactileAction()
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 18)
+                .padding(.top, max(proxy.safeAreaInsets.top, 12))
+                .zIndex(10)
             }
         }
         .onAppear {
@@ -2145,62 +2150,69 @@ private struct VideoOriginalLinkViewer: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black
-                .ignoresSafeArea()
-
-            if isDirectVideoURL, let url = URL(string: urlString) {
-                VideoPlayer(player: player)
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                Color.black
                     .ignoresSafeArea()
-                    .onAppear {
-                        player.pause()
-                        player.replaceCurrentItem(with: AVPlayerItem(url: url))
-                        player.seek(to: .zero)
-                        player.play()
-                    }
-            } else {
-                ExternalVideoEmbedSurface(urlString: urlString)
-                    .ignoresSafeArea()
-            }
 
-            LinearGradient(
-                colors: [
-                    .clear,
-                    Color.black.opacity(0.20),
-                    Color.black.opacity(0.84)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline.weight(.bold))
-                        .foregroundColor(.white)
-                        .lineLimit(2)
-
-                    Text(isDirectVideoURL ? "Direkt in der App" : "Web-Ansicht in der App")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.72))
+                if isDirectVideoURL, let url = URL(string: urlString) {
+                    VideoPlayer(player: player)
+                        .ignoresSafeArea()
+                        .onAppear {
+                            player.pause()
+                            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+                            player.seek(to: .zero)
+                            player.play()
+                        }
+                } else {
+                    ExternalVideoEmbedSurface(urlString: urlString)
+                        .ignoresSafeArea()
                 }
 
-                Spacer()
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        Color.black.opacity(0.20),
+                        Color.black.opacity(0.84)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                Button(action: { dismiss() }, label: {
-                    Image(systemName: "xmark")
-                        .font(.headline.weight(.bold))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white.opacity(0.14))
-                        .clipShape(Circle())
-                })
-                .buttonStyle(.plain)
-                .skydownTactileAction()
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+
+                        Text(isDirectVideoURL ? "Direkt in der App" : "Web-Ansicht in der App")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.72))
+                    }
+
+                    Spacer()
+
+                    Button(action: { dismiss() }, label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(width: 48, height: 48)
+                            .background(Color.black.opacity(0.42))
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                            )
+                    })
+                    .buttonStyle(.plain)
+                    .skydownTactileAction()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, max(proxy.safeAreaInsets.top, 12))
+                .zIndex(10)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
         }
         .onDisappear {
             player.pause()
