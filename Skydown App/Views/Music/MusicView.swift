@@ -830,6 +830,10 @@ struct MusicView: View {
     private func artistPagerCard(for artist: String) -> some View {
         let page = artistPagesStore.page(for: brand.artistPageBrand, artistName: artist)
         let isSelected = selectedArtist == artist
+        let openArtistPage = {
+            selectedArtist = artist
+            presentSheet(.artistPage)
+        }
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
@@ -872,12 +876,16 @@ struct MusicView: View {
             .lineLimit(3)
 
             HStack(spacing: 8) {
-                MusicBadge(text: page.spotifyURL == nil ? "Page" : "Spotify", isAccent: true)
+                MusicBadge(
+                    text: page.spotifyURL == nil ? "Page" : "Spotify",
+                    isAccent: true,
+                    onTap: openArtistPage
+                )
                 if page.instagramURL != nil {
-                    MusicBadge(text: "Instagram", isAccent: false)
+                    MusicBadge(text: "Instagram", isAccent: false, onTap: openArtistPage)
                 }
                 if page.youtubeURL != nil {
-                    MusicBadge(text: "YouTube", isAccent: false)
+                    MusicBadge(text: "YouTube", isAccent: false, onTap: openArtistPage)
                 }
             }
 

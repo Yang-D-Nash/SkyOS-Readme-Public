@@ -255,6 +255,7 @@ async function createAiSubscriptionCheckoutSession({
   params.append("mode", "subscription");
   params.append("client_reference_id", normalizedUserId);
   params.append("locale", "de");
+  params.append("origin_context", "mobile_app");
   params.append("billing_address_collection", "required");
   params.append("allow_promotion_codes", "true");
   params.append("success_url", buildReturnPageUrl({

@@ -13,11 +13,11 @@ import MessageUI
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject private var aiSubscriptionStore: NativeAISubscriptionStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
     @Environment(\.openURL) private var openURL
 
-    @EnvironmentObject private var hostedCheckoutRedirectStore: HostedCheckoutRedirectStore
 
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @ObservedObject private var aiPromptSettingsStore = AIPromptSettingsStore.shared
@@ -53,6 +53,11 @@ struct SettingsView: View {
     @State private var aiSubscriptionsEnabledDraft = false
     @State private var aiCreatorPriceIDDraft = ""
     @State private var aiStudioPriceIDDraft = ""
+    @State private var aiIOSCreatorProductIDDraft = ""
+    @State private var aiIOSStudioProductIDDraft = ""
+    @State private var aiIOSAppAppleIDDraft = ""
+    @State private var aiAndroidCreatorProductIDDraft = ""
+    @State private var aiAndroidStudioProductIDDraft = ""
     @State private var paypalAccountHintDraft = ""
     @State private var klarnaAccountHintDraft = ""
     @State private var bankAccountHolderDraft = ""
@@ -152,11 +157,7 @@ struct SettingsView: View {
     @State private var profileBioDraft = ""
     @State private var profileInstagramHandleDraft = ""
     @State private var isSavingProfile = false
-    @State private var selectedAISubscriptionPlan: UserQuotaPlan = .creator
-    @State private var isStartingAISubscriptionCheckout = false
-    @State private var isAwaitingAISubscriptionReturn = false
     private let editableImageUploadService = EditableImageAssetUploadService()
-    private let aiSubscriptionCheckoutService: AISubscriptionCheckoutServicing = FirebaseAISubscriptionCheckoutService()
 
     private var effectiveColorScheme: ColorScheme {
         switch colorScheme {
@@ -422,53 +423,28 @@ struct SettingsView: View {
                                 .tint(AppColors.accent(for: effectiveColorScheme))
 
                                 if canUseAISelfPaySubscription {
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        Text("Admin KI-Abo (Self-Pay)")
-                                            .font(.headline)
-                                            .foregroundColor(AppColors.text(for: effectiveColorScheme))
-
-                                        Text("Creator/Studio laeuft hier direkt ueber Stripe Checkout. Nach erfolgreicher Zahlung wird dein Konto serverseitig freigeschaltet.")
-                                            .font(.footnote)
-                                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
-                                        Picker("Plan", selection: $selectedAISubscriptionPlan) {
-                                            Text("Creator").tag(UserQuotaPlan.creator)
-                                            Text("Studio").tag(UserQuotaPlan.studio)
+                                    NativeAISubscriptionStatusCard(
+                                        colorScheme: effectiveColorScheme,
+                                        user: user,
+                                        products: aiSubscriptionStore.products,
+                                        isStorefrontReady: aiSubscriptionStore.isStorefrontReady,
+                                        isLoadingProducts: aiSubscriptionStore.isLoadingProducts,
+                                        isSyncing: aiSubscriptionStore.isSyncing,
+                                        activePurchasePlan: aiSubscriptionStore.activePurchasePlan,
+                                        lastErrorMessage: aiSubscriptionStore.lastErrorMessage,
+                                        statusLine: aiSubscriptionStatusLine(for: user),
+                                        detailLine: aiSubscriptionDetailLine(for: user),
+                                        purchaseDisabledReason: aiSubscriptionPurchaseBlockedReason(for: user),
+                                        onPurchase: { plan in
+                                            purchaseAISubscription(plan)
+                                        },
+                                        onRestore: {
+                                            restoreAISubscriptionPurchases()
+                                        },
+                                        onManage: {
+                                            manageAISubscription()
                                         }
-                                        .pickerStyle(.segmented)
-
-                                        Text("Aktueller Plan im Konto: \(user.resolvedQuotaPlan.displayTitle)")
-                                            .font(.footnote)
-                                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
-                                        if let blockedReason = aiSubscriptionCheckoutBlockedReason {
-                                            Text(blockedReason)
-                                                .font(.footnote.weight(.semibold))
-                                                .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
-                                        }
-
-                                        Button {
-                                            startAISubscriptionCheckout()
-                                        } label: {
-                                            HStack(spacing: 8) {
-                                                if isStartingAISubscriptionCheckout {
-                                                    ProgressView()
-                                                }
-                                                Label(
-                                                    isStartingAISubscriptionCheckout ? "Checkout startet..." : "Abo in Stripe aktivieren",
-                                                    systemImage: "creditcard.fill"
-                                                )
-                                                .frame(maxWidth: .infinity)
-                                            }
-                                        }
-                                        .buttonStyle(.borderedProminent)
-                                        .skydownInteractiveFeedback()
-                                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
-                                        .disabled(isStartingAISubscriptionCheckout || aiSubscriptionCheckoutBlockedReason != nil)
-                                    }
-                                    .padding(12)
-                                    .background(AppColors.secondaryBackground(for: effectiveColorScheme))
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    )
                                 }
 
                                 Text("Kontoaktionen")
@@ -848,7 +824,6 @@ struct SettingsView: View {
             systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
             manusByosStore.setUserMode(userID: authManager.userSession?.id)
             manusByosAPIKeyDraft = ""
-            selectedAISubscriptionPlan = authManager.userSession?.resolvedQuotaPlan == .studio ? .studio : .creator
             syncProfileDrafts(with: authManager.userSession)
             syncPaymentDrafts(with: paymentMethodSettingsStore.settings)
             syncCommerceDrafts(with: commerceSettingsStore.settings)
@@ -863,6 +838,10 @@ struct SettingsView: View {
         }
         .task {
             await notificationPermissionStore.refresh()
+        }
+        .task(id: authManager.userSession?.id) {
+            guard canUseAISelfPaySubscription else { return }
+            await aiSubscriptionStore.prepareStorefront(for: authManager.userSession)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
             systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
@@ -887,12 +866,8 @@ struct SettingsView: View {
             manusByosStore.setUserMode(userID: userID)
             syncManusBYOSDrafts(with: manusByosStore.settings)
             manusByosAPIKeyDraft = ""
-            selectedAISubscriptionPlan = authManager.userSession?.resolvedQuotaPlan == .studio ? .studio : .creator
             syncProfileDrafts(with: authManager.userSession)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace, userID: userID)
-        }
-        .onChange(of: hostedCheckoutRedirectStore.latestEvent) { _, event in
-            handleHostedCheckoutRedirectEvent(event)
         }
         .onChange(of: activeAdminWorkspace) { _, section in
             refreshOwnerWorkspaceObservation(for: section)
@@ -1038,38 +1013,74 @@ struct SettingsView: View {
     }
 
     private var canUseAISelfPaySubscription: Bool {
-        authManager.userSession?.resolvedRole == .admin
+        guard let user = authManager.userSession else {
+            return false
+        }
+
+        return !user.isPlatformOwner
     }
 
-    private var selectedAISubscriptionPriceID: String {
-        switch selectedAISubscriptionPlan {
-        case .studio:
-            return paymentMethodSettingsStore.settings.aiSubscriptions.studioPriceID
+    private func aiSubscriptionStatusLine(for user: User) -> String? {
+        let statusTitle: String
+        switch user.normalizedAISubscriptionStatus {
+        case "active":
+            statusTitle = "Abo aktiv"
+        case "trialing":
+            statusTitle = "Abo im Testzeitraum"
+        case "past_due":
+            statusTitle = "Zahlung offen"
+        case "checkout_pending":
+            statusTitle = "Checkout offen"
+        case "canceled":
+            statusTitle = "Abo beendet"
+        case "expired":
+            statusTitle = "Checkout abgelaufen"
         default:
-            return paymentMethodSettingsStore.settings.aiSubscriptions.creatorPriceID
+            statusTitle = ""
         }
+
+        guard !statusTitle.isEmpty else {
+            return nil
+        }
+
+        if let subscriptionPlan = user.resolvedAISubscriptionPlan {
+            return "Status: \(statusTitle) · \(subscriptionPlan.displayTitle)"
+        }
+
+        return "Status: \(statusTitle)"
     }
 
-    private var aiSubscriptionCheckoutBlockedReason: String? {
-        guard canUseAISelfPaySubscription else {
-            return "Self-Pay-Abo ist aktuell nur fuer Admin-Konten verfuegbar."
+    private func aiSubscriptionDetailLine(for user: User) -> String? {
+        if user.hasOpenAISubscriptionCheckout, let expiryDate = user.aiSubscriptionCheckoutExpiryDate {
+            return "Dein letzter Checkout bleibt bis \(formattedSettingsDate(expiryDate)) offen."
         }
-        guard paymentMethodSettingsStore.settings.stripe.connected else {
-            return "Stripe ist noch nicht verbunden."
+
+        if let periodEndDate = user.aiSubscriptionCurrentPeriodEndDate {
+            let prefix = user.aiSubscriptionCancelAtPeriodEnd ? "Laeuft noch bis" : "Naechste Verlaengerung"
+            return "\(prefix): \(formattedSettingsDate(periodEndDate))"
         }
-        guard paymentMethodSettingsStore.settings.stripe.enabled else {
-            return "Stripe Checkout ist aktuell ausgeblendet."
-        }
-        guard paymentMethodSettingsStore.settings.aiSubscriptions.enabled else {
-            return "KI-Abo ist noch nicht freigeschaltet."
-        }
-        guard paymentMethodSettingsStore.settings.aiSubscriptions.isConfigured else {
-            return "Creator- und Studio-Price-ID fehlen noch."
-        }
-        guard !selectedAISubscriptionPriceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return "Der ausgewaehlte Plan hat noch keine Price-ID."
-        }
+
         return nil
+    }
+
+    private func aiSubscriptionPurchaseBlockedReason(for user: User) -> String? {
+        if user.hasBlockingAISubscriptionState && user.normalizedAISubscriptionProvider == "stripe" {
+            return "Dieses Konto hat bereits ein Web-Abo ueber Stripe. Bitte verwalte es erst dort, bevor du im App Store neu abschliesst."
+        }
+
+        if user.hasOpenAISubscriptionCheckout && user.normalizedAISubscriptionProvider == "stripe" {
+            return "Fuer dieses Konto ist noch ein offener Web-Checkout aktiv. Bitte schliesse ihn erst ab oder lass ihn auslaufen, bevor du im App Store startest."
+        }
+
+        return nil
+    }
+
+    private func formattedSettingsDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     private var visiblePaymentMethodCount: Int {
@@ -1641,7 +1652,12 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         isEnabled: $aiSubscriptionsEnabledDraft,
                         creatorPriceID: $aiCreatorPriceIDDraft,
-                        studioPriceID: $aiStudioPriceIDDraft
+                        studioPriceID: $aiStudioPriceIDDraft,
+                        iosCreatorProductID: $aiIOSCreatorProductIDDraft,
+                        iosStudioProductID: $aiIOSStudioProductIDDraft,
+                        iosAppAppleID: $aiIOSAppAppleIDDraft,
+                        androidCreatorProductID: $aiAndroidCreatorProductIDDraft,
+                        androidStudioProductID: $aiAndroidStudioProductIDDraft
                     ) {
                         saveAISubscriptionPricing()
                     }
@@ -2490,6 +2506,11 @@ struct SettingsView: View {
         aiSubscriptionsEnabledDraft = settings.aiSubscriptions.enabled
         aiCreatorPriceIDDraft = settings.aiSubscriptions.creatorPriceID
         aiStudioPriceIDDraft = settings.aiSubscriptions.studioPriceID
+        aiIOSCreatorProductIDDraft = settings.aiSubscriptions.iosCreatorProductID
+        aiIOSStudioProductIDDraft = settings.aiSubscriptions.iosStudioProductID
+        aiIOSAppAppleIDDraft = settings.aiSubscriptions.iosAppAppleID
+        aiAndroidCreatorProductIDDraft = settings.aiSubscriptions.androidCreatorProductID
+        aiAndroidStudioProductIDDraft = settings.aiSubscriptions.androidStudioProductID
         paypalAccountHintDraft = settings.paypal.accountHint
         klarnaAccountHintDraft = settings.klarna.accountHint
         bankAccountHolderDraft = settings.bankTransfer.accountHolder
@@ -3135,9 +3156,15 @@ struct SettingsView: View {
     private func saveAISubscriptionPricing() {
         let creatorPriceID = aiCreatorPriceIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         let studioPriceID = aiStudioPriceIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let iosCreatorProductID = aiIOSCreatorProductIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let iosStudioProductID = aiIOSStudioProductIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let iosAppAppleID = aiIOSAppAppleIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let androidCreatorProductID = aiAndroidCreatorProductIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let androidStudioProductID = aiAndroidStudioProductIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if aiSubscriptionsEnabledDraft && (creatorPriceID.isEmpty || studioPriceID.isEmpty) {
-            showToastMessage("Bitte Creator- und Studio-Price-ID eintragen, bevor du KI-Abo aktivierst.", style: .error)
+        if aiSubscriptionsEnabledDraft &&
+            (creatorPriceID.isEmpty || studioPriceID.isEmpty || iosCreatorProductID.isEmpty || iosStudioProductID.isEmpty || iosAppAppleID.isEmpty) {
+            showToastMessage("Bitte Stripe-Price-IDs, iOS-Produkt-IDs und die Apple App ID eintragen, bevor du KI-Abo aktivierst.", style: .error)
             return
         }
 
@@ -3146,6 +3173,11 @@ struct SettingsView: View {
             updated.aiSubscriptions.enabled = aiSubscriptionsEnabledDraft
             updated.aiSubscriptions.creatorPriceID = creatorPriceID
             updated.aiSubscriptions.studioPriceID = studioPriceID
+            updated.aiSubscriptions.iosCreatorProductID = iosCreatorProductID
+            updated.aiSubscriptions.iosStudioProductID = iosStudioProductID
+            updated.aiSubscriptions.iosAppAppleID = iosAppAppleID
+            updated.aiSubscriptions.androidCreatorProductID = androidCreatorProductID
+            updated.aiSubscriptions.androidStudioProductID = androidStudioProductID
 
             do {
                 try await paymentMethodSettingsStore.save(updated)
@@ -3156,58 +3188,51 @@ struct SettingsView: View {
         }
     }
 
-    private func startAISubscriptionCheckout() {
-        guard let blockedReason = aiSubscriptionCheckoutBlockedReason else {
-            isStartingAISubscriptionCheckout = true
-            Task {
-                do {
-                    let session = try await aiSubscriptionCheckoutService.startCheckout(
-                        plan: selectedAISubscriptionPlan,
-                        platform: "ios"
-                    )
-                    await MainActor.run {
-                        isStartingAISubscriptionCheckout = false
-                        isAwaitingAISubscriptionReturn = true
-                        openURL(session.checkoutURL) { accepted in
-                            if accepted {
-                                showToastMessage("Stripe Checkout geoeffnet. Nach Abschluss kehrst du automatisch in die App zurueck.", style: .info)
-                            } else {
-                                isAwaitingAISubscriptionReturn = false
-                                showToastMessage("Stripe Checkout konnte nicht geoeffnet werden.", style: .error)
-                            }
-                        }
-                    }
-                } catch {
-                    await MainActor.run {
-                        isStartingAISubscriptionCheckout = false
-                        showToastMessage("KI-Abo-Checkout konnte nicht gestartet werden: \(error.localizedDescription)", style: .error)
-                    }
-                }
-            }
+    private func purchaseAISubscription(_ plan: UserQuotaPlan) {
+        if let user = authManager.userSession,
+           let blockedReason = aiSubscriptionPurchaseBlockedReason(for: user) {
+            showToastMessage(blockedReason, style: .error)
             return
         }
 
-        showToastMessage(blockedReason, style: .warning)
+        Task {
+            do {
+                let outcome = try await aiSubscriptionStore.purchase(plan: plan)
+                switch outcome {
+                case .success(let activatedPlan):
+                    showToastMessage("\(activatedPlan.displayTitle) wurde im App Store aktiviert.", style: .success)
+                case .pending:
+                    showToastMessage("Der Kauf wartet noch auf die Freigabe im App Store.", style: .info)
+                case .cancelled:
+                    showToastMessage("Der App-Store-Kauf wurde abgebrochen.", style: .info)
+                }
+            } catch {
+                showToastMessage("Das KI-Abo konnte nicht gestartet werden: \(error.localizedDescription)", style: .error)
+            }
+        }
     }
 
-    private func handleHostedCheckoutRedirectEvent(_ event: HostedCheckoutRedirectEvent?) {
-        guard let event else { return }
-        guard event.orderID == nil else { return }
-        guard canUseAISelfPaySubscription || isAwaitingAISubscriptionReturn else { return }
+    private func restoreAISubscriptionPurchases() {
+        let shouldForceEmptySync = authManager.userSession?.normalizedAISubscriptionProvider == "app_store"
 
-        switch event.status {
-        case .success:
-            showToastMessage("Abo-Checkout abgeschlossen. Konto wird jetzt aktualisiert.", style: .success)
-            Task {
-                try? await Task.sleep(nanoseconds: 700_000_000)
-                await authManager.refreshCurrentUser()
+        Task {
+            do {
+                try await aiSubscriptionStore.restorePurchases(forceEmptySync: shouldForceEmptySync)
+                showToastMessage("App-Store-Kaeufe wurden synchronisiert.", style: .success)
+            } catch {
+                showToastMessage("Die App-Store-Synchronisierung ist fehlgeschlagen: \(error.localizedDescription)", style: .error)
             }
-        case .cancel:
-            showToastMessage("Abo-Checkout abgebrochen.", style: .info)
         }
+    }
 
-        isAwaitingAISubscriptionReturn = false
-        hostedCheckoutRedirectStore.clear()
+    private func manageAISubscription() {
+        Task {
+            do {
+                try await aiSubscriptionStore.manageSubscriptions()
+            } catch {
+                showToastMessage("Die Abo-Verwaltung konnte nicht geoeffnet werden: \(error.localizedDescription)", style: .error)
+            }
+        }
     }
 
     private func saveStripeConnection() {
@@ -3751,27 +3776,186 @@ private struct StripeBackendSecretsCard: View {
     }
 }
 
+private struct NativeAISubscriptionStatusCard: View {
+    let colorScheme: ColorScheme
+    let user: User
+    let products: [NativeAISubscriptionProduct]
+    let isStorefrontReady: Bool
+    let isLoadingProducts: Bool
+    let isSyncing: Bool
+    let activePurchasePlan: UserQuotaPlan?
+    let lastErrorMessage: String?
+    let statusLine: String?
+    let detailLine: String?
+    let purchaseDisabledReason: String?
+    let onPurchase: (UserQuotaPlan) -> Void
+    let onRestore: () -> Void
+    let onManage: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("KI-Plan")
+                        .font(.headline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Creator und Studio laufen hier direkt ueber den App Store. Dein Konto bleibt danach in der App synchron.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer()
+
+                SettingsBadge(
+                    text: isStorefrontReady ? "StoreKit bereit" : "StoreKit in Vorbereitung",
+                    colorScheme: colorScheme
+                )
+            }
+
+            Text("Aktueller Quota-Plan: \(user.resolvedQuotaPlan.displayTitle)")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            if let statusLine {
+                Text(statusLine)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+            }
+
+            if let detailLine {
+                Text(detailLine)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if let purchaseDisabledReason {
+                Text(purchaseDisabledReason)
+                    .font(.footnote)
+                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+            }
+
+            if isLoadingProducts || isSyncing {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text(isLoadingProducts ? "StoreKit-Produkte werden geladen..." : "KI-Abo wird synchronisiert...")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            } else if isStorefrontReady && !products.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(products) { product in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .center, spacing: 10) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(product.plan.displayTitle)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                                    Text(product.displayPrice)
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundColor(AppColors.accent(for: colorScheme))
+                                }
+
+                                Spacer()
+
+                                if user.hasActiveAISubscription && user.resolvedAISubscriptionPlan == product.plan {
+                                    SettingsBadge(text: "Aktiv", colorScheme: colorScheme)
+                                }
+                            }
+
+                            if !product.description.isEmpty {
+                                Text(product.description)
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
+
+                            Button {
+                                onPurchase(product.plan)
+                            } label: {
+                                Text(activePurchasePlan == product.plan ? "Wird gestartet..." : "\(product.plan.displayTitle) im App Store aktivieren")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .skydownInteractiveFeedback()
+                            .tint(AppColors.accent(for: colorScheme))
+                            .disabled(activePurchasePlan != nil || purchaseDisabledReason != nil)
+                        }
+                        .padding(12)
+                        .background(AppColors.cardBackground(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                }
+            } else if isStorefrontReady {
+                Text("StoreKit ist aktiv, aber fuer dieses Build wurden noch keine KI-Produkte geladen.")
+                    .font(.footnote)
+                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+            } else {
+                Text("Die nativen Creator- und Studio-Abos werden gerade vorbereitet. Sobald Produkt-IDs und Apple-App-ID live sind, kannst du hier direkt kaufen.")
+                    .font(.footnote)
+                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+            }
+
+            if let lastErrorMessage, !lastErrorMessage.isEmpty {
+                Text(lastErrorMessage)
+                    .font(.footnote)
+                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+            }
+
+            HStack(spacing: 10) {
+                Button("Kaeufe synchronisieren", action: onRestore)
+                    .buttonStyle(.bordered)
+                    .skydownInteractiveFeedback()
+
+                Button("Abo verwalten", action: onManage)
+                    .buttonStyle(.bordered)
+                    .skydownInteractiveFeedback()
+                    .disabled(!isStorefrontReady)
+            }
+        }
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
 private struct AISubscriptionPricingCard: View {
     let colorScheme: ColorScheme
     @Binding var isEnabled: Bool
     @Binding var creatorPriceID: String
     @Binding var studioPriceID: String
+    @Binding var iosCreatorProductID: String
+    @Binding var iosStudioProductID: String
+    @Binding var iosAppAppleID: String
+    @Binding var androidCreatorProductID: String
+    @Binding var androidStudioProductID: String
     let onSave: () -> Void
 
-    private var isConfigured: Bool {
+    private var hasStripePricing: Bool {
         !creatorPriceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !studioPriceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var hasIOSProducts: Bool {
+        !iosCreatorProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !iosStudioProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !iosAppAppleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var hasAndroidProducts: Bool {
+        !androidCreatorProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !androidStudioProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("KI-Abo via Stripe")
+                    Text("KI-Abos")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text(isEnabled ? "Self-Pay aktivierbar" : "Self-Pay deaktiviert")
+                    Text(isEnabled ? "Native Vorbereitung aktiv" : "Vorbereitung pausiert")
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(
                             isEnabled
@@ -3782,20 +3966,21 @@ private struct AISubscriptionPricingCard: View {
 
                 Spacer()
 
-                SettingsBadge(
-                    text: isConfigured ? "Price IDs ok" : "Price IDs fehlen",
-                    colorScheme: colorScheme
-                )
+                VStack(alignment: .trailing, spacing: 6) {
+                    SettingsBadge(text: hasStripePricing ? "Stripe ok" : "Stripe fehlt", colorScheme: colorScheme)
+                    SettingsBadge(text: hasIOSProducts ? "iOS ok" : "iOS fehlt", colorScheme: colorScheme)
+                    SettingsBadge(text: hasAndroidProducts ? "Android ok" : "Android offen", colorScheme: colorScheme)
+                }
             }
 
-            Text("Admin-Konten starten damit ihr eigenes Creator/Studio-Abo in Stripe. Ohne gueltige Price IDs wird kein Checkout gestartet.")
+            Text("Hier pflegst du Stripe-Preise fuer Webhooks und Web-Fallbacks sowie die nativen Produkt-IDs fuer StoreKit und spaeter Play Billing. Fuer den iOS-Rollout muessen Price-IDs, iOS-Produkt-IDs und die Apple App ID gesetzt sein.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             SettingsToggleCard(
                 colorScheme: colorScheme,
-                title: "Self-Pay-Abo erlauben",
-                subtitle: "Nur aktivieren, wenn Creator und Studio in Stripe konfiguriert sind.",
+                title: "KI-Abo live schalten",
+                subtitle: "Nur aktivieren, wenn Stripe, StoreKit und die serverseitige Pruefung fertig sind.",
                 isOn: $isEnabled
             )
 
@@ -3811,6 +3996,41 @@ private struct AISubscriptionPricingCard: View {
                 text: $studioPriceID,
                 colorScheme: colorScheme,
                 placeholder: "price_..."
+            )
+
+            SettingsInputField(
+                title: "iOS Creator Product ID",
+                text: $iosCreatorProductID,
+                colorScheme: colorScheme,
+                placeholder: "com.skydown.ai.creator"
+            )
+
+            SettingsInputField(
+                title: "iOS Studio Product ID",
+                text: $iosStudioProductID,
+                colorScheme: colorScheme,
+                placeholder: "com.skydown.ai.studio"
+            )
+
+            SettingsInputField(
+                title: "Apple App ID",
+                text: $iosAppAppleID,
+                colorScheme: colorScheme,
+                placeholder: "1234567890"
+            )
+
+            SettingsInputField(
+                title: "Android Creator Product ID",
+                text: $androidCreatorProductID,
+                colorScheme: colorScheme,
+                placeholder: "skydown_ai_creator"
+            )
+
+            SettingsInputField(
+                title: "Android Studio Product ID",
+                text: $androidStudioProductID,
+                colorScheme: colorScheme,
+                placeholder: "skydown_ai_studio"
             )
 
             Button("KI-Abo speichern", action: onSave)
@@ -4121,7 +4341,10 @@ private struct SettingsBadge: View {
                 .buttonStyle(.plain)
                 .skydownTactileAction()
             } else {
-                badgeContent
+                SkydownMetaLabel(
+                    text: text,
+                    tint: AppColors.accentMystic(for: colorScheme)
+                )
             }
         }
     }
@@ -5132,7 +5355,7 @@ private struct SettingsAdminUserCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 if draftRole == .admin {
-                    Text("Admin-KI bleibt auf Self-Pay-Basis: Nur Creator/Studio ist freigeschaltet.")
+                    Text("Admin-KI bleibt auf Creator- und Studio-Kontingenten ausgerichtet.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -5160,7 +5383,7 @@ private extension UserRole {
         case .owner:
             return "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf alles, inklusive Shopify, Zahlungen, Rollen, KI-Defaults und Recovery."
         case .admin:
-            return "Staff-Konto mit zuweisbaren Funktionen fuer Music, Video und Profil-Moderation. KI laeuft fuer Admins nur ueber Self-Pay-Plan (Creator/Studio). Kein Zugriff auf Owner-Systembereiche."
+            return "Staff-Konto mit zuweisbaren Funktionen fuer Music, Video und Profil-Moderation. Kein Zugriff auf Owner-Systembereiche. Fuer bezahlte KI-Plaene bleiben Creator und Studio die vorgesehenen Abo-Stufen."
         case .subadmin:
             return "Externe Premium-Konten mit buchbarem Kontingentmodell. Kein Admin-Workspace, keine Owner-Rechte."
         case .user:
@@ -5254,6 +5477,5 @@ private enum SettingsPresentedSheet: Identifiable, Equatable {
 #Preview {
     SettingsView(colorScheme: .constant("system"))
         .environmentObject(AuthManager())
-        .environmentObject(HostedCheckoutRedirectStore())
         .environment(\.colorScheme, .light)
 }

@@ -672,7 +672,7 @@ private fun BeatHubLibraryRow(
                         onClick = onOpenOriginal,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text(if (beat.openUrl.isNotBlank()) "Original oeffnen" else "Nicht direkt abspielbar")
+                        Text(if (beat.openUrl.isNotBlank()) "Original ansehen" else "Nicht direkt abspielbar")
                     }
                 }
 

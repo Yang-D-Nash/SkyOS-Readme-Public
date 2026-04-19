@@ -883,66 +883,75 @@ private struct ProfileGalleryMediaViewerSheet: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black
-                .ignoresSafeArea()
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                Color.black
+                    .ignoresSafeArea()
 
-            if let imageURL {
-                AsyncImage(url: imageURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 40)
-                } placeholder: {
-                    ProgressView()
-                        .tint(.white)
-                }
-            } else {
-                VStack(spacing: 10) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 44, weight: .bold))
-                        .foregroundColor(.white.opacity(0.74))
-                    Text("Bild konnte nicht geladen werden.")
-                        .font(.headline)
-                        .foregroundColor(.white.opacity(0.82))
-                }
-            }
-
-            VStack(spacing: 10) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.title)
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-
-                        if let caption = item.caption, !caption.isEmpty {
-                            Text(caption)
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.72))
-                                .lineLimit(2)
-                        }
+                if let imageURL {
+                    AsyncImage(url: imageURL) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(.horizontal, 16)
+                            .padding(.top, max(proxy.safeAreaInsets.top + 72, 96))
+                            .padding(.bottom, max(proxy.safeAreaInsets.bottom + 24, 40))
+                    } placeholder: {
+                        ProgressView()
+                            .tint(.white)
                     }
+                } else {
+                    VStack(spacing: 10) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 44, weight: .bold))
+                            .foregroundColor(.white.opacity(0.74))
+                        Text("Bild konnte nicht geladen werden.")
+                            .font(.headline)
+                            .foregroundColor(.white.opacity(0.82))
+                    }
+                }
+
+                VStack(spacing: 10) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.title)
+                                .font(.headline.weight(.bold))
+                                .foregroundColor(.white)
+                                .lineLimit(2)
+
+                            if let caption = item.caption, !caption.isEmpty {
+                                Text(caption)
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.72))
+                                    .lineLimit(2)
+                            }
+                        }
+
+                        Spacer()
+
+                        Button(action: { dismiss() }, label: {
+                            Label("Schliessen", systemImage: "xmark")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14)
+                                .frame(height: 48)
+                                .background(Color.black.opacity(0.42))
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                                )
+                        })
+                        .buttonStyle(.plain)
+                        .skydownTactileAction()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, max(proxy.safeAreaInsets.top, 12))
+                    .zIndex(10)
 
                     Spacer()
-
-                    Button(action: { dismiss() }, label: {
-                        Image(systemName: "xmark")
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .frame(width: 42, height: 42)
-                            .background(Color.white.opacity(0.14))
-                            .clipShape(Circle())
-                    })
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-
-                Spacer()
             }
         }
     }

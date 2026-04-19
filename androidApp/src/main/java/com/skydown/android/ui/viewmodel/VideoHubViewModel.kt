@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class VideoHubViewModel(
-    private val videoHubService: VideoHubService = VideoHubService(),
+    private val videoHubService: VideoHubService = AppContainer.videoHubService,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(VideoHubUiState())
     val uiState: StateFlow<VideoHubUiState> = _uiState.asStateFlow()

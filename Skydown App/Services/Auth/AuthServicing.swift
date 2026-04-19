@@ -409,6 +409,10 @@ final class FirebaseAuthService: AuthServicing {
             ?? resolvedQuotaPlan.aiAgentRequestsPerDay
         let aiHistoryRetentionDays = (data["aiHistoryRetentionDays"] as? NSNumber)?.intValue
             ?? resolvedQuotaPlan.aiHistoryRetentionDays
+        let aiSubscriptionCurrentPeriodEndEpochSeconds =
+            (data["aiSubscriptionCurrentPeriodEndEpochSeconds"] as? NSNumber)?.intValue
+        let aiSubscriptionCheckoutExpiresAtEpochSeconds =
+            (data["aiSubscriptionCheckoutExpiresAtEpochSeconds"] as? NSNumber)?.intValue
 
         let registrationDate = User.registrationDate(
             from: data,
@@ -433,6 +437,14 @@ final class FirebaseAuthService: AuthServicing {
             aiVisualRequestsPerDay: aiVisualRequestsPerDay,
             aiAgentRequestsPerDay: aiAgentRequestsPerDay,
             aiHistoryRetentionDays: aiHistoryRetentionDays,
+            aiSubscriptionStatus: (data["aiSubscriptionStatus"] as? String)?.trimmedNilIfEmpty,
+            aiSubscriptionPlan: (data["aiSubscriptionPlan"] as? String)?.trimmedNilIfEmpty,
+            aiSubscriptionCurrentPeriodEndEpochSeconds: aiSubscriptionCurrentPeriodEndEpochSeconds,
+            aiSubscriptionCheckoutExpiresAtEpochSeconds: aiSubscriptionCheckoutExpiresAtEpochSeconds,
+            aiSubscriptionCancelAtPeriodEnd: data["aiSubscriptionCancelAtPeriodEnd"] as? Bool ?? false,
+            aiSubscriptionProvider: (data["aiSubscriptionProvider"] as? String)?.trimmedNilIfEmpty,
+            aiSubscriptionSourcePlatform: (data["aiSubscriptionSourcePlatform"] as? String)?.trimmedNilIfEmpty,
+            aiSubscriptionProductID: (data["aiSubscriptionProductId"] as? String)?.trimmedNilIfEmpty,
             canManageMusicCatalog: (data["canManageMusicCatalog"] as? Bool) ?? (resolvedRole == .owner),
             canManageVideoCatalog: (data["canManageVideoCatalog"] as? Bool) ?? (resolvedRole == .owner),
             canModerateProfiles: (data["canModerateProfiles"] as? Bool) ?? (resolvedRole == .owner)

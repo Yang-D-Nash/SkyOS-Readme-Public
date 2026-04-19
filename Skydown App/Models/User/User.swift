@@ -174,6 +174,14 @@ struct User: Codable, Identifiable {
     var aiVisualRequestsPerDay: Int = UserRole.user.defaultAIVisualRequestsPerDay
     var aiAgentRequestsPerDay: Int = UserRole.user.defaultAIAgentRequestsPerDay
     var aiHistoryRetentionDays: Int = UserRole.user.defaultAIHistoryRetentionDays
+    var aiSubscriptionStatus: String? = nil
+    var aiSubscriptionPlan: String? = nil
+    var aiSubscriptionCurrentPeriodEndEpochSeconds: Int? = nil
+    var aiSubscriptionCheckoutExpiresAtEpochSeconds: Int? = nil
+    var aiSubscriptionCancelAtPeriodEnd: Bool = false
+    var aiSubscriptionProvider: String? = nil
+    var aiSubscriptionSourcePlatform: String? = nil
+    var aiSubscriptionProductID: String? = nil
     var canManageMusicCatalog: Bool = false
     var canManageVideoCatalog: Bool = false
     var canModerateProfiles: Bool = false
@@ -229,6 +237,64 @@ struct User: Codable, Identifiable {
 
     var isPlatformOwner: Bool {
         resolvedRole == .owner
+    }
+
+    var normalizedAISubscriptionStatus: String {
+        aiSubscriptionStatus?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+    }
+
+    var normalizedAISubscriptionProvider: String {
+        aiSubscriptionProvider?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+    }
+
+    var resolvedAISubscriptionPlan: UserQuotaPlan? {
+        guard let normalizedPlan = aiSubscriptionPlan?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() else {
+            return nil
+        }
+
+        return UserQuotaPlan(rawValue: normalizedPlan)
+    }
+
+    var aiSubscriptionCurrentPeriodEndDate: Date? {
+        guard let epochSeconds = aiSubscriptionCurrentPeriodEndEpochSeconds, epochSeconds > 0 else {
+            return nil
+        }
+
+        return Date(timeIntervalSince1970: TimeInterval(epochSeconds))
+    }
+
+    var aiSubscriptionCheckoutExpiryDate: Date? {
+        guard let epochSeconds = aiSubscriptionCheckoutExpiresAtEpochSeconds, epochSeconds > 0 else {
+            return nil
+        }
+
+        return Date(timeIntervalSince1970: TimeInterval(epochSeconds))
+    }
+
+    var hasActiveAISubscription: Bool {
+        ["active", "trialing"].contains(normalizedAISubscriptionStatus)
+    }
+
+    var hasBlockingAISubscriptionState: Bool {
+        ["active", "trialing", "past_due", "unpaid"].contains(normalizedAISubscriptionStatus)
+    }
+
+    var hasOpenAISubscriptionCheckout: Bool {
+        guard normalizedAISubscriptionStatus == "checkout_pending" else {
+            return false
+        }
+
+        guard let expiryDate = aiSubscriptionCheckoutExpiryDate else {
+            return true
+        }
+
+        return expiryDate > .now
     }
 }
 

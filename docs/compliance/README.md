@@ -29,13 +29,19 @@ Incident-/Meldeprozess bei Datenschutzvorfall.
 6. `TOMS_CHECKLIST.md`
 Technische und organisatorische Massnahmen (TOMs) als Betriebs-Checkliste.
 
-7. `ANWALT_BRIEFING_RELEASE_V1.md`
-Fertiges Briefing + Mail-Template fuer die juristische Endpruefung.
+7. `ANWALT_FREIGABE_CHECKLIST_2026-04-19.md`
+Knappe 1-Seiten-Checkliste fuer die juristische Freigabe vor dem Public Release.
 
-8. `RELEASE_READINESS_2026-04-15.md`
-Konsolidierter Endspurt-Report mit technischem Nachweisstand und offenen Go-Live-Gates.
+8. `ANWALT_BRIEFING_RELEASE_V1.md`
+Ausfuehrlicheres Briefing + Mail-Template fuer die juristische Endpruefung.
 
-9. `COMPLIANCE_REVIEW_2026-04-15.md`
+9. `RELEASE_READINESS_2026-04-19.md`
+Aktueller Release-Stand mit TestFlight Upload, Android Lint/Bundle-Gate und den noch offenen Signing-/Live-Konfigurations-Blockern.
+
+10. `RELEASE_READINESS_2026-04-15.md`
+Historischer Endspurt-Report vor den aktuellen Release-Haertungen.
+
+11. `COMPLIANCE_REVIEW_2026-04-15.md`
 Formaler Compliance- und DSGVO-Review mit priorisierten Findings und Figma-Board-Pack.
 
 ---

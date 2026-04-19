@@ -45,5 +45,8 @@ struct MerchandiseRowView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .shadow(color: .black.opacity(environmentColorScheme == .dark ? 0.18 : 0.06), radius: 12, y: 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("shop.merch.row")
     }
 }

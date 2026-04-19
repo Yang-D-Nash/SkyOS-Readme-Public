@@ -2,6 +2,8 @@ package com.skydown.android.data
 
 import android.util.Base64
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
+import kotlinx.coroutines.delay
 
 data class AiGeneratedVisualResult(
     val text: String,
@@ -10,10 +12,28 @@ data class AiGeneratedVisualResult(
     val historyRetentionDays: Int,
 )
 
-class AiImageClient(
+open class AiImageClient(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) {
-    suspend fun generateVisual(prompt: String): AiGeneratedVisualResult {
+    open suspend fun generateVisual(prompt: String): AiGeneratedVisualResult {
+        var lastError: Throwable? = null
+        repeat(2) { attempt ->
+            try {
+                return generateVisualOnce(prompt)
+            } catch (error: Throwable) {
+                lastError = error
+                if (attempt == 0 && error.shouldRetryVisualGeneration()) {
+                    delay(800)
+                } else {
+                    throw error
+                }
+            }
+        }
+
+        throw lastError ?: error("Der Visual-Server konnte das Bild gerade nicht erzeugen.")
+    }
+
+    private suspend fun generateVisualOnce(prompt: String): AiGeneratedVisualResult {
         if (!AppNetworkMonitor.isOnline.value) {
             error("Du bist offline. Visuals lassen sich wieder erzeugen, sobald Internet da ist.")
         }
@@ -38,4 +58,23 @@ class AiImageClient(
             historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
         )
     }
+}
+
+private fun Throwable.shouldRetryVisualGeneration(): Boolean {
+    if (this is FirebaseFunctionsException) {
+        when (code) {
+            FirebaseFunctionsException.Code.INTERNAL,
+            FirebaseFunctionsException.Code.UNAVAILABLE,
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED,
+            -> return true
+
+            else -> Unit
+        }
+    }
+
+    val message = localizedMessage.orEmpty().lowercase()
+    return message.contains("server responded with an error") ||
+        message.contains("nicht sauber geantwortet") ||
+        message.contains("keine bilddaten") ||
+        message.contains("visual-antwort")
 }

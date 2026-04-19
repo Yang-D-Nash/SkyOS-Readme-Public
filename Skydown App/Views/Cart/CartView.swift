@@ -1114,12 +1114,9 @@ private struct CartBadge: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(AppColors.accent(for: colorScheme).opacity(0.12))
-            .foregroundColor(AppColors.accent(for: colorScheme))
-            .clipShape(Capsule())
+        SkydownMetaLabel(
+            text: text,
+            tint: AppColors.accent(for: colorScheme)
+        )
     }
 }

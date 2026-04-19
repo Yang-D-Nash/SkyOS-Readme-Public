@@ -273,6 +273,22 @@ struct FeaturedHomeVideo: Identifiable {
         usesEmbeddedPreview || !downloadURL.isEmpty
     }
 
+    var opensOriginalInApp: Bool {
+        !openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var originalDestinationDescription: String {
+        if openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Kein Original-Link verfuegbar."
+        }
+
+        if !downloadURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Dieser Clip startet direkt in der In-App-Ansicht."
+        }
+
+        return "Dieser Link startet in einer In-App-Webansicht mit Zurueck und Schliessen."
+    }
+
     var openURLString: String {
         externalURL.isEmpty ? downloadURL : externalURL
     }
@@ -290,6 +306,10 @@ struct FeaturedHomeBeat {
 
     var openURLString: String {
         externalURL.isEmpty ? downloadURL : externalURL
+    }
+
+    var provider: ExternalMediaProvider {
+        ExternalMediaProvider(rawValueOrDefault: sourceProvider)
     }
 }
 

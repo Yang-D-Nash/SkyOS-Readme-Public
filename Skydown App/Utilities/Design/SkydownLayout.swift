@@ -232,6 +232,19 @@ private struct SkydownPressFeedbackModifier: ViewModifier {
     }
 }
 
+private struct SkydownSelectionFeedbackModifier<Value: Equatable>: ViewModifier {
+    let trigger: Value
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: trigger) { _, _ in
+                #if canImport(UIKit)
+                SkydownHaptics.selection()
+                #endif
+            }
+    }
+}
+
 private struct SkydownNavigationChromeModifier: ViewModifier {
     let colorScheme: ColorScheme
 
@@ -441,6 +454,16 @@ extension View {
             SkydownPressFeedbackModifier(
                 pressedScale: pressedScale,
                 pressedOffsetY: pressedOffsetY
+            )
+        )
+    }
+
+    func skydownSelectionFeedback<Value: Equatable>(
+        trigger: Value
+    ) -> some View {
+        modifier(
+            SkydownSelectionFeedbackModifier(
+                trigger: trigger
             )
         )
     }

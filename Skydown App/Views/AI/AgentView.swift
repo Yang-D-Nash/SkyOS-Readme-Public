@@ -902,14 +902,9 @@ private struct AgentBadge: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.bold))
-            .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.12))
-            )
+        SkydownMetaLabel(
+            text: text,
+            tint: AppColors.accentMystic(for: colorScheme)
+        )
     }
 }

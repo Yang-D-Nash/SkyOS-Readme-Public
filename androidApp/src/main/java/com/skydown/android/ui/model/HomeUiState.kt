@@ -54,6 +54,19 @@ data class FeaturedVideoHighlight(
 
     val openUrl: String
         get() = externalUrl.ifBlank { downloadUrl }
+
+    val opensOriginalInApp: Boolean
+        get() = openUrl.isNotBlank()
+
+    val originalActionLabel: String
+        get() = provider.originalVideoActionLabel
+
+    val originalDestinationDescription: String
+        get() = when {
+            openUrl.isBlank() -> "Kein Original-Link verfuegbar."
+            downloadUrl.isNotBlank() -> "Dieser Clip startet direkt in der In-App-Ansicht."
+            else -> "Dieser Link startet in einer In-App-Webansicht mit Zurueck und Schliessen."
+        }
 }
 
 data class HomeUiState(

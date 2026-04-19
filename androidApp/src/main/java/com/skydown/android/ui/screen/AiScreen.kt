@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalFocusManager
@@ -188,6 +189,7 @@ fun AiScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .testTag("ai.screen.root")
                 .background(
                     skydownScreenBrush(
                         primaryColor = MaterialTheme.colorScheme.primary,
@@ -435,7 +437,10 @@ private fun VisualPromptCard(
     onPromptSelected: (String) -> Unit,
     compactLayout: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
+    SkydownCard(
+        modifier = Modifier.testTag("ai.visual.prompt.card"),
+        contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp),
+    ) {
         SectionHeader("Visuals")
         LazyRow(
             modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
@@ -445,7 +450,9 @@ private fun VisualPromptCard(
             items(prompts, key = { it.label }) { prompt ->
                 OutlinedButton(
                     onClick = { onPromptSelected(prompt.prompt) },
-                    modifier = Modifier.widthIn(min = 156.dp, max = 190.dp),
+                    modifier = Modifier
+                        .widthIn(min = 156.dp, max = 190.dp)
+                        .testTag("ai.visual.prompt.button"),
                     contentPadding = PaddingValues(
                         horizontal = 12.dp,
                         vertical = if (compactLayout) 8.dp else 10.dp,
@@ -465,7 +472,7 @@ private fun VisualPromptCard(
 }
 
 @Composable
-private fun AiMessageBubble(
+fun AiMessageBubble(
     message: AiMessage,
     compactLayout: Boolean,
     onFeedback: (String, ToastType) -> Unit,
@@ -486,6 +493,7 @@ private fun AiMessageBubble(
         Column(
             modifier = Modifier
                 .widthIn(max = 360.dp)
+                .testTag("ai.message.bubble")
                 .clip(bubbleShape)
                 .background(
                     if (isUser) {
@@ -559,6 +567,7 @@ private fun AiMessageBubble(
                             .fillMaxWidth()
                             .padding(top = 12.dp)
                             .height(220.dp)
+                            .testTag("ai.message.visual")
                             .clip(RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)),
                     )
                 }
@@ -598,6 +607,7 @@ private fun AiMessageBubble(
                                             onFeedback("Bild konnte nicht gespeichert werden.", ToastType.Error)
                                     }
                             },
+                            modifier = Modifier.testTag("ai.message.save"),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                             ) {
                                 Text("Bild speichern")

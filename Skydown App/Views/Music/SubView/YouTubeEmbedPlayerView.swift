@@ -1,4 +1,3 @@
-import SafariServices
 import SwiftUI
 
 struct YouTubeEmbedPlayerView: View {
@@ -13,8 +12,10 @@ struct YouTubeEmbedPlayerView: View {
     var body: some View {
         Group {
             if let playbackURL {
-                YouTubeSafariPlayerView(url: playbackURL)
-                    .ignoresSafeArea()
+                SkydownManagedBrowserView(
+                    url: playbackURL,
+                    title: item.title.isEmpty ? "YouTube" : item.title
+                )
             } else {
                 NavigationStack {
                     ContentUnavailableView(
@@ -35,24 +36,6 @@ struct YouTubeEmbedPlayerView: View {
             }
         }
     }
-}
-
-private struct YouTubeSafariPlayerView: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        let configuration = SFSafariViewController.Configuration()
-        configuration.entersReaderIfAvailable = false
-        configuration.barCollapsingEnabled = false
-
-        let viewController = SFSafariViewController(url: url, configuration: configuration)
-        viewController.dismissButtonStyle = .close
-        viewController.preferredControlTintColor = .white
-        viewController.preferredBarTintColor = .black
-        return viewController
-    }
-
-    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
 private func resolvedYouTubePlaybackURL(from rawURL: String) -> URL? {

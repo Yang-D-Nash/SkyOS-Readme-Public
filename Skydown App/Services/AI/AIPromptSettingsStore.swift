@@ -459,6 +459,8 @@ Markenkontext:
 
 Erzeuge ein modernes, hochwertiges Visual mit klarer Stimmung.
 Stil: cinematic, urban, moody, premium, nicht kitschig, nicht generisch.
+Wenn das Motiv wie ein Foto, Filmstill oder Editorial-Frame gedacht ist, arbeite mit praeziser Kamera-, Lens- und Lichtsprache statt mit vagen Stilwoertern.
+Bevorzuge bei Foto-Motiven echte Kamera-Anmutung statt Illustration, CGI oder generischem AI-Look.
 Nutze nur sehr wenig Text im Bild. Wenn Text im Motiv vorkommt, dann maximal eine kurze Headline.
 Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.
 Antworte auf Deutsch.

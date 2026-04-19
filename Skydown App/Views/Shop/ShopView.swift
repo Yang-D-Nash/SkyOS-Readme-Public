@@ -23,6 +23,7 @@ struct HomeView: View {
     @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
     @State private var activePresentedSheet: HomePresentedSheet?
     @State private var queuedPresentedSheet: HomePresentedSheet?
+    @State private var videoHubLaunchTarget: HomeVideoHubLaunchTarget?
     @State private var originalVideoViewerTarget: HomeOriginalVideoViewerTarget?
     @State private var hasLoadedInitialHomeContent = false
     @Environment(\.colorScheme) private var colorScheme
@@ -102,9 +103,10 @@ struct HomeView: View {
                         ) { video in
                             beatPlaybackManager.stop()
                             audioPlayerManager.stop()
-                            videoPlaybackManager.togglePlayback(for: video)
+                            videoPlaybackManager.stop()
+                            videoHubLaunchTarget = HomeVideoHubLaunchTarget(videoID: video.id)
                         } onOpenOriginal: { video in
-                            presentOriginalVideo(video)
+                            openOriginalVideo(video)
                         }
                         .id(HomeSectionAnchor.video.rawValue)
                         .homeReveal(4)
@@ -190,17 +192,30 @@ struct HomeView: View {
             NavigationStack {
                 switch sheet {
                 case .beatHub:
-                    BeatHubView()
+                    BeatHubView {
+                        activePresentedSheet = nil
+                    }
                 case .nicmaProducer:
-                    NicmaProducerView()
+                    NicmaProducerView {
+                        activePresentedSheet = nil
+                    }
                 }
             }
         }
         .fullScreenCover(item: $originalVideoViewerTarget) { target in
-            HomeOriginalVideoLinkViewer(
+            SkydownOriginalVideoDestinationView(
                 urlString: target.urlString,
                 title: target.title
             )
+        }
+        .fullScreenCover(item: $videoHubLaunchTarget) { target in
+            NavigationStack {
+                VideoHubView(
+                    onBack: { videoHubLaunchTarget = nil },
+                    initialSelectedVideoID: target.videoID,
+                    autoplayInitialSelection: true
+                )
+            }
         }
         .onChange(of: activePresentedSheet) { _, sheet in
             guard sheet == nil, let queuedPresentedSheet else { return }
@@ -221,16 +236,24 @@ struct HomeView: View {
         activePresentedSheet = sheet
     }
 
-    private func presentOriginalVideo(_ video: FeaturedHomeVideo) {
-        let url = video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !url.isEmpty else { return }
+    private func openOriginalVideo(_ video: FeaturedHomeVideo) {
+        let urlString = {
+            let primary = video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !primary.isEmpty {
+                return primary
+            }
+
+            return video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        }()
+        guard !urlString.isEmpty, let url = URL(string: urlString) else { return }
 
         beatPlaybackManager.stop()
         audioPlayerManager.stop()
         videoPlaybackManager.stop()
+
         activePresentedSheet = nil
         originalVideoViewerTarget = HomeOriginalVideoViewerTarget(
-            urlString: url,
+            urlString: url.absoluteString,
             title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
         )
     }
@@ -247,6 +270,11 @@ private struct HomeOriginalVideoViewerTarget: Identifiable {
     let id = UUID()
     let urlString: String
     let title: String
+}
+
+private struct HomeVideoHubLaunchTarget: Identifiable {
+    let id = UUID()
+    let videoID: String
 }
 
 struct ShopView: View {
@@ -466,6 +494,7 @@ struct ShopView: View {
                             .padding(.bottom, SkydownLayout.screenBottomPadding)
                             .frame(maxWidth: .infinity, alignment: .top)
                         }
+                        .accessibilityIdentifier("shop.root")
                         .scrollIndicators(.hidden)
                         .refreshable {
                             viewModel.fetchData()
@@ -769,29 +798,11 @@ private struct HomeSignalBadge: View {
                 .font(.caption2.weight(.bold))
 
             Text(text)
-                .font(.caption.weight(.semibold))
+                .font(.caption.weight(.medium))
                 .lineLimit(1)
         }
         .foregroundColor(isActive ? accent : AppColors.secondaryText(for: colorScheme))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(
-            Capsule(style: .continuous)
-                .fill(
-                    isActive
-                        ? accent.opacity(colorScheme == .dark ? 0.18 : 0.14)
-                        : AppColors.secondaryBackground(for: colorScheme).opacity(0.72)
-                )
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .stroke(
-                    isActive
-                        ? accent.opacity(0.20)
-                        : AppColors.accent(for: colorScheme).opacity(0.10),
-                    lineWidth: 1
-                )
-        )
+        .padding(.vertical, 2)
     }
 }
 
@@ -1185,18 +1196,16 @@ private struct HomeLatestBeatCard: View {
 
                 if beat.isPlayable, !beat.downloadURL.isEmpty {
                     HomeActionButton(
-                        title: playbackManager.currentBeatID == beat.id ? "Stop" : "Play",
+                        title: playbackManager.currentBeatID == beat.id ? "Stoppen" : "Abspielen",
                         icon: playbackManager.currentBeatID == beat.id ? "stop.fill" : "play.fill",
                         colorScheme: colorScheme,
                         isPrimary: playbackManager.currentBeatID == beat.id
                     ) {
                         onPlayToggle(beat)
                     }
-                }
-
-                if let beatURL = URL(string: beat.openURLString), !beat.openURLString.isEmpty {
+                } else if let beatURL = URL(string: beat.openURLString), !beat.openURLString.isEmpty {
                     HomeActionButton(
-                        title: "Original",
+                        title: beat.provider.originalVideoActionTitle,
                         icon: "arrow.up.forward.square",
                         colorScheme: colorScheme,
                         isPrimary: false
@@ -1225,7 +1234,7 @@ private struct HomeLatestVideoCard: View {
     @ObservedObject var viewModel: HomeViewModel
     @ObservedObject var playbackManager: HomeInlineVideoPlaybackManager
     let colorScheme: ColorScheme
-    let onPlayToggle: (FeaturedHomeVideo) -> Void
+    let onOpenVideoHub: (FeaturedHomeVideo) -> Void
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
     var body: some View {
@@ -1279,8 +1288,8 @@ private struct HomeLatestVideoCard: View {
                             isActive: true
                         )
                         HomeSignalBadge(
-                            text: video.supportsInlinePlayback ? "Inline" : "Extern",
-                            icon: video.supportsInlinePlayback ? "play.fill" : "globe",
+                            text: video.supportsInlinePlayback ? "Direkt" : "Original",
+                            icon: video.supportsInlinePlayback ? "play.rectangle.fill" : "globe",
                             colorScheme: colorScheme,
                             accent: AppColors.accentHighlight(for: colorScheme),
                             isActive: video.supportsInlinePlayback
@@ -1288,7 +1297,14 @@ private struct HomeLatestVideoCard: View {
                     }
                 }
 
-                Text("Direkt hier.")
+                Text(
+                    (
+                        !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || !video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    )
+                    ? "Vorschau hier. Ein Tap oeffnet den Clip direkt."
+                    : "Vorschau hier. Falls kein Direktziel verfuegbar ist, geht es ueber den VideoHub weiter."
+                )
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1303,6 +1319,7 @@ private struct HomeLatestVideoCard: View {
                 } else if !video.downloadURL.isEmpty {
                     VideoPlayer(player: playbackManager.player)
                         .frame(height: 220)
+                        .allowsHitTesting(false)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
@@ -1324,7 +1341,7 @@ private struct HomeLatestVideoCard: View {
                                 .font(.title2.weight(.bold))
                                 .foregroundColor(AppColors.text(for: colorScheme))
 
-                            Text("Dieser Clip laeuft in der In-App-Ansicht.")
+                            Text(video.originalDestinationDescription)
                                 .font(.footnote.weight(.semibold))
                                 .multilineTextAlignment(.center)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1338,27 +1355,24 @@ private struct HomeLatestVideoCard: View {
                     )
                 }
 
-                VStack(spacing: 10) {
-                    if !video.downloadURL.isEmpty {
-                        HomeActionButton(
-                            title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "Stop" : "Play",
-                            icon: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "stop.fill" : "play.rectangle.fill",
-                            colorScheme: colorScheme,
-                            isPrimary: playbackManager.isPlaying && playbackManager.currentVideoID == video.id
-                        ) {
-                            onPlayToggle(video)
-                        }
+                if !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || !video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    HomeActionButton(
+                        title: video.supportsInlinePlayback ? "Video direkt oeffnen" : video.provider.originalVideoActionTitle,
+                        icon: video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square",
+                        colorScheme: colorScheme,
+                        isPrimary: true
+                    ) {
+                        onOpenOriginal(video)
                     }
-
-                    if !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        HomeActionButton(
-                            title: "Original",
-                            icon: "video.fill",
-                            colorScheme: colorScheme,
-                            isPrimary: false
-                        ) {
-                            onOpenOriginal(video)
-                        }
+                } else if video.supportsInlinePlayback {
+                    HomeActionButton(
+                        title: "Im Video ansehen",
+                        icon: "rectangle.portrait.and.arrow.right",
+                        colorScheme: colorScheme,
+                        isPrimary: true
+                    ) {
+                        onOpenVideoHub(video)
                     }
                 }
             } else {
@@ -1376,104 +1390,6 @@ private struct HomeLatestVideoCard: View {
             shadowYOffset: 6
         )
     }
-}
-
-private struct HomeOriginalVideoLinkViewer: View {
-    let urlString: String
-    let title: String
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var player = AVPlayer()
-
-    private var isDirectVideoURL: Bool {
-        homeIsLikelyDirectVideoURL(urlString)
-    }
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .top) {
-                Color.black
-                    .ignoresSafeArea()
-
-                if isDirectVideoURL, let url = URL(string: urlString) {
-                    VideoPlayer(player: player)
-                        .ignoresSafeArea()
-                        .onAppear {
-                            player.pause()
-                            player.replaceCurrentItem(with: AVPlayerItem(url: url))
-                            player.seek(to: .zero)
-                            player.play()
-                        }
-                } else {
-                    ExternalVideoEmbedSurface(urlString: urlString)
-                        .ignoresSafeArea()
-                }
-
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        Color.black.opacity(0.20),
-                        Color.black.opacity(0.84)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-
-                        Text(isDirectVideoURL ? "Direkt in der App" : "Web-Ansicht in der App")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.72))
-                    }
-
-                    Spacer()
-
-                    Button(action: { dismiss() }, label: {
-                        Image(systemName: "xmark")
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .frame(width: 48, height: 48)
-                            .background(Color.black.opacity(0.42))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                            )
-                    })
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, max(proxy.safeAreaInsets.top, 12))
-                .zIndex(10)
-            }
-        }
-        .onDisappear {
-            player.pause()
-            player.replaceCurrentItem(with: nil)
-        }
-    }
-}
-
-private func homeIsLikelyDirectVideoURL(_ rawValue: String) -> Bool {
-    let normalized = rawValue
-        .lowercased()
-        .split(separator: "?")
-        .first?
-        .split(separator: "#")
-        .first
-        .map(String.init) ?? rawValue.lowercased()
-    return normalized.hasSuffix(".mp4")
-        || normalized.hasSuffix(".mov")
-        || normalized.hasSuffix(".m4v")
-        || normalized.hasSuffix(".webm")
-        || normalized.hasSuffix(".m3u8")
 }
 
 private struct HomeStoryCard: View {
@@ -2192,13 +2108,10 @@ private struct ShopBadge: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(AppColors.accent(for: colorScheme).opacity(0.12))
-            .foregroundColor(AppColors.accent(for: colorScheme))
-            .clipShape(Capsule())
+        SkydownMetaLabel(
+            text: text,
+            tint: AppColors.accent(for: colorScheme)
+        )
     }
 }
 

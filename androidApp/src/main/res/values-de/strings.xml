@@ -56,7 +56,7 @@
     <string name="auth_register_legal_version">Rechtliche Version: %1$s</string>
     <string name="auth_register_accept_terms">Ich akzeptiere die Allgemeinen Geschaeftsbedingungen (AGB).</string>
     <string name="auth_register_accept_privacy">Ich akzeptiere die Datenschutzerklaerung.</string>
-    <string name="auth_register_ai_optin">KI fuer mein Konto aktivieren (spaeter in den Einstellungen aenderbar).</string>
+    <string name="auth_register_ai_optin">KI f&#x00FC;r mein Konto aktivieren (spaeter in den Einstellungen aenderbar).</string>
     <string name="auth_register_open_terms">AGB oeffnen</string>
     <string name="auth_register_open_privacy">Datenschutz oeffnen</string>
     <string name="auth_google_register_missing_token">Google-Registrierung hat kein gueltiges Token geliefert.</string>

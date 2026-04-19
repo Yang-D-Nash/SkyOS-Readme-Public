@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -359,7 +360,8 @@ fun MusicScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .widthIn(max = 1080.dp),
+                        .widthIn(max = 1080.dp)
+                        .testTag("music.screen.root"),
                     state = listState,
                     contentPadding = PaddingValues(
                         start = 16.dp,
@@ -769,16 +771,19 @@ private fun MusicPlayerCard(
                 text = if (hasPreview) "Preview" else "No Preview",
                 imageVector = if (hasPreview) Icons.Default.PlayArrow else Icons.Default.Refresh,
                 isActive = hasPreview,
+                onClick = if (hasPreview) onPlayToggle else null,
             )
             MusicBadge(
                 text = if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) "Spotify" else "Nur App",
                 imageVector = Icons.Default.MusicNote,
                 isActive = hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch,
+                onClick = if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) onOpenSpotify else null,
             )
             MusicBadge(
                 text = if (isPlaying) "Live" else "Ready",
                 imageVector = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.Sync,
                 isActive = isPlaying,
+                onClick = if (hasPreview) onPlayToggle else null,
             )
         }
 
@@ -1669,15 +1674,31 @@ private fun ArtistPagerCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (!page.spotifyURL.isNullOrBlank()) {
-                        SmallMusicBadge(text = "Spotify", isAccent = true)
+                        SmallMusicBadge(
+                            text = "Spotify",
+                            isAccent = true,
+                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                        )
                     } else {
-                        SmallMusicBadge(text = "Page", isAccent = true)
+                        SmallMusicBadge(
+                            text = "Page",
+                            isAccent = true,
+                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                        )
                     }
                     if (!page.instagramURL.isNullOrBlank()) {
-                        SmallMusicBadge(text = "Instagram", isAccent = false)
+                        SmallMusicBadge(
+                            text = "Instagram",
+                            isAccent = false,
+                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                        )
                     }
                     if (!page.youtubeURL.isNullOrBlank()) {
-                        SmallMusicBadge(text = "YouTube", isAccent = false)
+                        SmallMusicBadge(
+                            text = "YouTube",
+                            isAccent = false,
+                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                        )
                     }
                 }
 
@@ -1723,11 +1744,13 @@ private fun ArtistPagerCard(
 private fun SmallMusicBadge(
     text: String,
     isAccent: Boolean,
+    onClick: (() -> Unit)? = null,
 ) {
     BrandStatusChip(
         text = text,
         accent = SpotifyGreen,
         isActive = isAccent,
+        onClick = onClick,
     )
 }
 
@@ -1846,11 +1869,13 @@ private fun MusicBadge(
     text: String,
     imageVector: ImageVector,
     isActive: Boolean,
+    onClick: (() -> Unit)? = null,
 ) {
     BrandStatusChip(
         text = text,
         accent = SpotifyGreen,
         icon = imageVector,
         isActive = isActive,
+        onClick = onClick,
     )
 }

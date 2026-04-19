@@ -345,13 +345,16 @@ class AiViewModel : ViewModel() {
     }
 
     private fun buildVisualPrompt(userPrompt: String): String {
-        val referenceContext = AiVisualReferenceLibraryPreferences.promptContext()
-        return """
-            ${referenceContext ?: ""}
+        val referenceContext = AiVisualReferenceLibraryPreferences.promptContext()?.trim()
+        return if (referenceContext.isNullOrBlank()) {
+            userPrompt
+        } else {
+            """
+                $referenceContext
 
-            Nutzeranfrage:
-            $userPrompt
-        """.trimIndent()
+                $userPrompt
+            """.trimIndent()
+        }
     }
 
     private fun userFacingErrorMessage(error: Throwable): String = when (error) {
@@ -377,9 +380,23 @@ class AiViewModel : ViewModel() {
                 }
             FirebaseFunctionsException.Code.INVALID_ARGUMENT ->
                 "Die KI-Anfrage konnte so nicht gestartet werden."
+            FirebaseFunctionsException.Code.INTERNAL ->
+                if (error.localizedMessage?.contains("server responded with an error", ignoreCase = true) == true) {
+                    "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                } else {
+                    error.localizedMessage?.takeIf { it.isNotBlank() }
+                        ?: "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                }
             else ->
                 "Der 22xSky Bot ist gerade nicht verfuegbar."
         }
-        else -> error.message?.takeIf { it.isNotBlank() } ?: "Der 22xSky Bot ist gerade nicht verfuegbar."
+        else -> {
+            val message = error.message?.takeIf { it.isNotBlank() }
+            if (message?.contains("server responded with an error", ignoreCase = true) == true) {
+                "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+            } else {
+                message ?: "Der 22xSky Bot ist gerade nicht verfuegbar."
+            }
+        }
     }
 }

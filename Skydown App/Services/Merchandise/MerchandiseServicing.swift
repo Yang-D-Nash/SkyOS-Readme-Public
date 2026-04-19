@@ -5,6 +5,31 @@ protocol MerchandiseServicing {
     func observeItems(_ onChange: @escaping @MainActor (Result<[MerchandiseItem], Error>) -> Void) -> () -> Void
 }
 
+final class UITestMerchandiseService: MerchandiseServicing {
+    func observeItems(_ onChange: @escaping @MainActor (Result<[MerchandiseItem], Error>) -> Void) -> () -> Void {
+        Task { @MainActor in
+            onChange(.success([
+                MerchandiseItem(
+                    id: "ui-test-merch-item",
+                    name: "UI Test Hoodie",
+                    price: 79.0,
+                    description: "Stabiler Test-Drop fuer den Merch-Vollbild-Flow.",
+                    imageURLs: [
+                        "https://example.com/ui-test-merch-1.jpg",
+                        "https://example.com/ui-test-merch-2.jpg",
+                    ],
+                    available: true,
+                    featured: true,
+                    customBadge: "UI Test",
+                    category: "QA Drop"
+                ),
+            ]))
+        }
+
+        return {}
+    }
+}
+
 final class FirebaseMerchandiseService: MerchandiseServicing {
     private let firestore: Firestore
 

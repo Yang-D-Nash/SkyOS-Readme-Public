@@ -878,15 +878,10 @@ private struct ArtistPageBadge: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundColor(AppColors.text(for: colorScheme))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(
-                Capsule()
-                    .fill(AppColors.secondaryBackground(for: colorScheme))
-            )
+        SkydownMetaLabel(
+            text: text,
+            tint: AppColors.text(for: colorScheme)
+        )
     }
 }
 

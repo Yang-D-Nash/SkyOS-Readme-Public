@@ -445,21 +445,6 @@ fun BrandStatusChip(
     isActive: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
-    val backgroundBrush = if (isActive) {
-        Brush.linearGradient(
-            colors = listOf(
-                accent.copy(alpha = 0.18f),
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
-            ),
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                DexBlueDeep.copy(alpha = 0.08f),
-            ),
-        )
-    }
     val contentColor = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
     val interactionSource = remember(onClick) { MutableInteractionSource() }
     val chipModifier = if (onClick != null) {
@@ -478,39 +463,85 @@ fun BrandStatusChip(
         modifier
     }
 
-    Row(
-        modifier = chipModifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(backgroundBrush)
-            .border(
-                width = 1.dp,
-                color = if (isActive) accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(999.dp),
+    if (onClick != null) {
+        val backgroundBrush = if (isActive) {
+            Brush.linearGradient(
+                colors = listOf(
+                    accent.copy(alpha = 0.18f),
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
+                ),
             )
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(16.dp),
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                    DexBlueDeep.copy(alpha = 0.08f),
+                ),
             )
         }
-        Text(
-            text = text,
-            color = contentColor,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
-        if (onClick != null) {
+
+        Row(
+            modifier = chipModifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(backgroundBrush)
+                .border(
+                    width = 1.dp,
+                    color = if (isActive) accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(999.dp),
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Text(
+                text = text,
+                color = contentColor,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 tint = contentColor.copy(alpha = 0.82f),
                 modifier = Modifier.size(14.dp),
+            )
+        }
+    } else {
+        Row(
+            modifier = chipModifier.padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor.copy(alpha = 0.88f),
+                    modifier = Modifier.size(15.dp),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(
+                            color = contentColor.copy(alpha = if (isActive) 0.76f else 0.42f),
+                            shape = CircleShape,
+                        ),
+                )
+            }
+            Text(
+                text = text,
+                color = contentColor.copy(alpha = if (isActive) 0.92f else 0.74f),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
@@ -650,28 +681,28 @@ fun BrandPill(
         Modifier
     }
 
-    Box(
-        modifier = pillModifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(tint.copy(alpha = 0.12f))
-            .border(
-                width = 1.dp,
-                color = tint.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(999.dp),
-            )
-            .padding(horizontal = if (onClick != null) 12.dp else 10.dp, vertical = 6.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    if (onClick != null) {
+        Box(
+            modifier = pillModifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(tint.copy(alpha = 0.12f))
+                .border(
+                    width = 1.dp,
+                    color = tint.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(999.dp),
+                )
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                color = tint,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (onClick != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = tint,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
@@ -679,6 +710,27 @@ fun BrandPill(
                     modifier = Modifier.size(12.dp),
                 )
             }
+        }
+    } else {
+        Row(
+            modifier = Modifier.padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(5.dp)
+                    .background(
+                        color = tint.copy(alpha = 0.72f),
+                        shape = CircleShape,
+                    ),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint.copy(alpha = 0.92f),
+                fontWeight = FontWeight.Medium,
+            )
         }
     }
 }

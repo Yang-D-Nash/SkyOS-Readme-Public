@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -75,6 +76,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
@@ -100,6 +102,7 @@ import com.skydown.android.ui.component.BrandSectionBanner
 import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.ExternalVideoWebPlayer
+import com.skydown.android.ui.component.OriginalVideoViewerDialog
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
@@ -370,7 +373,9 @@ fun VideoHubScreen(
                 ),
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("video.hub.root"),
                 state = listState,
                 contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -409,9 +414,11 @@ fun VideoHubScreen(
                     VideoPlayerCard(
                         video = selectedVideo,
                         player = player,
-                        onOpenOriginal = { url ->
-                            inAppOriginalTitle = selectedVideo?.title?.ifBlank { "Original" } ?: "Original"
-                            inAppOriginalUrl = url
+                        onOpenOriginal = { video ->
+                            val originalUrl = video.inAppOriginalUrl.trim()
+                            if (originalUrl.isBlank()) return@VideoPlayerCard
+                            inAppOriginalTitle = video.title.ifBlank { "Original" }
+                            inAppOriginalUrl = originalUrl
                         },
                         onOpenReel = if (selectedVideo != null) {
                             {
@@ -435,8 +442,10 @@ fun VideoHubScreen(
                             showReelViewer = true
                         },
                         onOpenOriginal = { url ->
-                            inAppOriginalTitle = "Original"
-                            inAppOriginalUrl = url
+                            val originalUrl = url.inAppOriginalUrl.trim()
+                            if (originalUrl.isBlank()) return@VideoLibraryCard
+                            inAppOriginalTitle = url.title.ifBlank { "Original" }
+                            inAppOriginalUrl = originalUrl
                         },
                         onToggleHomeFeatured = viewModel::toggleHomeFeatured,
                         onDeleteVideo = viewModel::deleteVideo,
@@ -478,6 +487,13 @@ fun VideoHubScreen(
                     videos = uiState.videos,
                     selectedVideoId = selectedVideoId,
                     onSelectVideo = { video -> selectedVideoId = video.id },
+                    onOpenOriginal = { video ->
+                        val originalUrl = video.inAppOriginalUrl.trim()
+                        if (originalUrl.isNotBlank()) {
+                            inAppOriginalTitle = video.title.ifBlank { "Original" }
+                            inAppOriginalUrl = originalUrl
+                        }
+                    },
                     onDismiss = { showReelViewer = false },
                 )
             }
@@ -493,7 +509,7 @@ fun VideoHubScreen(
             }
 
             inAppOriginalUrl?.let { url ->
-                VideoOriginalLinkViewerDialog(
+                OriginalVideoViewerDialog(
                     url = url,
                     title = inAppOriginalTitle,
                     onDismiss = { inAppOriginalUrl = null },
@@ -1804,7 +1820,7 @@ private fun VideoUploadCard(
 private fun VideoPlayerCard(
     video: VideoHubItem?,
     player: ExoPlayer,
-    onOpenOriginal: (String) -> Unit,
+    onOpenOriginal: (VideoHubItem) -> Unit,
     onOpenReel: (() -> Unit)?,
 ) {
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
@@ -1872,7 +1888,7 @@ private fun VideoPlayerCard(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "Dieser Clip wird ueber einen externen Link ausgeliefert.",
+                                text = video.originalDestinationDescription,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -1948,7 +1964,19 @@ private fun VideoPlayerCard(
             }
         }
 
-        if (video.supportsInlinePlayback) {
+        if (video.opensOriginalInApp) {
+            BrandActionButton(
+                text = video.directOpenActionLabel,
+                onClick = { onOpenOriginal(video) },
+                accent = if (video.supportsInlinePlayback) ArenaRed else videoHubProviderAccent(video),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("video.hub.player.original.open")
+                    .padding(top = 14.dp),
+                icon = if (video.supportsInlinePlayback) Icons.Default.PlayArrow else Icons.Default.Language,
+                filled = true,
+            )
+        } else if (video.supportsInlinePlayback) {
             onOpenReel?.let { openReel ->
                 BrandActionButton(
                     text = videoHubInlineActionLabel(video),
@@ -1961,19 +1989,6 @@ private fun VideoPlayerCard(
                 )
             }
         }
-
-        if (video.openUrl.isNotBlank()) {
-            BrandActionButton(
-                text = videoHubOpenActionLabel(video),
-                onClick = { onOpenOriginal(video.openUrl) },
-                accent = videoHubProviderAccent(video),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                icon = Icons.Default.Language,
-                filled = false,
-            )
-        }
     }
 }
 
@@ -1983,7 +1998,7 @@ private fun VideoLibraryCard(
     selectedVideoId: String?,
     onSelectVideo: (VideoHubItem) -> Unit,
     onOpenReel: (VideoHubItem) -> Unit,
-    onOpenOriginal: (String) -> Unit,
+    onOpenOriginal: (VideoHubItem) -> Unit,
     onToggleHomeFeatured: (VideoHubItem) -> Unit,
     onDeleteVideo: (VideoHubItem) -> Unit,
 ) {
@@ -2042,7 +2057,7 @@ private fun VideoLibraryCard(
                             isAdmin = uiState.isAdmin,
                             onSelect = { onSelectVideo(video) },
                             onOpenReel = { onOpenReel(video) },
-                            onOpenOriginal = { onOpenOriginal(video.openUrl) },
+                            onOpenOriginal = { onOpenOriginal(video) },
                             onToggleHomeFeatured = { onToggleHomeFeatured(video) },
                             onDelete = { onDeleteVideo(video) },
                         )
@@ -2151,16 +2166,14 @@ private fun VideoLibraryRow(
             VideoPill(
                 text = if (isSelected) "Im Player" else "Auswaehlen",
                 isActive = isSelected,
-                onClick = onSelect,
             )
             VideoPill(text = if (video.isPublic) "Public" else "Private", isActive = video.isPublic)
             VideoPill(
                 text = video.providerBadge,
                 isActive = false,
-                onClick = if (video.openUrl.isNotBlank()) onOpenOriginal else null,
             )
             if (isAdmin && video.isHomeFeatured) {
-                VideoPill(text = "Home", isActive = true, onClick = onToggleHomeFeatured)
+                VideoPill(text = "Home", isActive = true)
             } else if (!isAdmin) {
                 VideoPill(text = "Clip", isActive = false)
             }
@@ -2188,7 +2201,7 @@ private fun VideoLibraryRow(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text(videoHubOpenActionLabel(video))
+                    Text(video.originalActionLabel)
                 }
             }
 
@@ -2224,23 +2237,31 @@ private fun VideoLibraryRow(
                 }
             }
         } else {
-            if (video.supportsInlinePlayback) {
+            if (video.opensOriginalInApp) {
+                if (video.supportsInlinePlayback) {
+                    Button(
+                        onClick = onOpenOriginal,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text(videoHubDirectCompactActionLabel(video))
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = onOpenOriginal,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text(video.originalActionLabel)
+                    }
+                }
+            } else if (video.supportsInlinePlayback) {
                 Button(
                     onClick = onOpenReel,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
                 ) {
                     Text(videoHubInlineCompactActionLabel(video))
-                }
-            }
-
-            if (video.openUrl.isNotBlank()) {
-                OutlinedButton(
-                    onClick = onOpenOriginal,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Text(videoHubOpenActionLabel(video))
                 }
             }
         }
@@ -2253,6 +2274,7 @@ private fun VideoReelViewerDialog(
     videos: List<VideoHubItem>,
     selectedVideoId: String?,
     onSelectVideo: (VideoHubItem) -> Unit,
+    onOpenOriginal: (VideoHubItem) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -2400,9 +2422,51 @@ private fun VideoReelViewerDialog(
                                     text = it.notes,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
+                                    maxLines = 4,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (it.opensOriginalInApp) {
+                                BrandActionButton(
+                                    text = it.directOpenActionLabel,
+                                    onClick = { onOpenOriginal(it) },
+                                    accent = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    icon = Icons.Default.Language,
+                                    filled = false,
+                                    compact = true,
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            if (videos.size > 1) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 14.dp)
+                        .background(
+                            color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.30f),
+                            shape = RoundedCornerShape(999.dp),
+                        )
+                        .padding(horizontal = 6.dp, vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    videos.forEachIndexed { index, _ ->
+                        val isActive = index == pagerState.currentPage
+                        Box(
+                            modifier = Modifier
+                                .size(width = 4.dp, height = if (isActive) 28.dp else 9.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(
+                                    androidx.compose.ui.graphics.Color.White.copy(
+                                        alpha = if (isActive) 0.96f else 0.34f,
+                                    ),
+                                ),
+                        )
                     }
                 }
             }
@@ -2411,6 +2475,7 @@ private fun VideoReelViewerDialog(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -2432,20 +2497,23 @@ private fun VideoReelViewerDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
                     )
+                    if (videos.size > 1) {
+                        Text(
+                            text = "Wische vertikal durch alle Clips",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.62f),
+                        )
+                    }
                 }
 
-                IconButton(
+                BrandActionButton(
+                    text = "Zurueck",
                     onClick = onDismiss,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.18f)),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Schliessen",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
+                    accent = MaterialTheme.colorScheme.onPrimary,
+                    icon = Icons.Default.Close,
+                    filled = false,
+                    compact = true,
+                )
             }
         }
     }
@@ -2476,12 +2544,11 @@ private fun videoHubInlineCompactActionLabel(video: VideoHubItem): String {
     }
 }
 
-private fun videoHubOpenActionLabel(video: VideoHubItem): String {
-    return when (video.provider) {
-        ExternalMediaProvider.GOOGLE_DRIVE -> "In Drive oeffnen"
-        ExternalMediaProvider.MEGA -> "In MEGA oeffnen"
-        ExternalMediaProvider.EXTERNAL_LINK -> "Extern oeffnen"
-        ExternalMediaProvider.FIREBASE_STORAGE -> "Original oeffnen"
+private fun videoHubDirectCompactActionLabel(video: VideoHubItem): String {
+    return if (video.supportsInlinePlayback) {
+        "Direkt oeffnen"
+    } else {
+        video.originalActionLabel
     }
 }
 
@@ -2512,6 +2579,7 @@ private fun VideoHubImageViewerDialog(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -2524,147 +2592,17 @@ private fun VideoHubImageViewerDialog(
                     modifier = Modifier.weight(1f),
                 )
 
-                IconButton(
+                BrandActionButton(
+                    text = "Schliessen",
                     onClick = onDismiss,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Schliessen",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VideoOriginalLinkViewerDialog(
-    url: String,
-    title: String,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    val mediaContext = remember(context) { context.mediaAttributionContext() }
-    val directVideoUrl = remember(url) { isLikelyDirectVideoUrl(url) }
-    val player = remember(mediaContext, url, directVideoUrl) {
-        ExoPlayer.Builder(mediaContext).build().apply {
-            playWhenReady = directVideoUrl
-        }
-    }
-
-    LaunchedEffect(url, directVideoUrl, player) {
-        if (directVideoUrl) {
-            player.setMediaItem(MediaItem.fromUri(url))
-            player.prepare()
-            player.play()
-        } else {
-            player.stop()
-            player.clearMediaItems()
-        }
-    }
-
-    DisposableEffect(player) {
-        onDispose {
-            player.release()
-        }
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-        ) {
-            if (directVideoUrl) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { playerContext ->
-                        PlayerView(playerContext).apply {
-                            useController = true
-                            this.player = player
-                        }
-                    },
-                    update = { view ->
-                        view.player = player
-                    },
-                )
-            } else {
-                ExternalVideoWebPlayer(
-                    url = url,
-                    modifier = Modifier.fillMaxSize(),
+                    accent = MaterialTheme.colorScheme.onPrimary,
+                    icon = Icons.Default.Close,
+                    filled = false,
+                    compact = true,
                 )
             }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.14f),
-                                Color.Black.copy(alpha = 0.66f),
-                            ),
-                        ),
-                    ),
-            )
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 18.dp),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title.ifBlank { "Original" },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Text(
-                        text = if (directVideoUrl) "Direkt in der App" else "Web-Ansicht in der App",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
-                    )
-                }
-
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Schliessen",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-            }
         }
     }
-}
-
-private fun isLikelyDirectVideoUrl(url: String): Boolean {
-    val normalized = url
-        .substringBefore('?')
-        .substringBefore('#')
-        .lowercase(Locale.ROOT)
-    return normalized.endsWith(".mp4") ||
-        normalized.endsWith(".mov") ||
-        normalized.endsWith(".m4v") ||
-        normalized.endsWith(".webm") ||
-        normalized.endsWith(".m3u8")
 }
 
 @Composable

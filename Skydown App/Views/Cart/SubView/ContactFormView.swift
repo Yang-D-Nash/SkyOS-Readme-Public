@@ -229,10 +229,19 @@ struct ContactFormView: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
+        .accessibilityIdentifier("shop.merch.detail.root")
         .background(backgroundGradient.ignoresSafeArea())
         .navigationTitle("Artikel")
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Schliessen") {
+                    dismiss()
+                }
+                .accessibilityIdentifier("shop.merch.detail.close")
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 10) {
                 Divider()
@@ -416,12 +425,9 @@ private struct ContactBadge: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(AppColors.accent(for: colorScheme).opacity(0.12))
-            .foregroundColor(AppColors.accent(for: colorScheme))
-            .clipShape(Capsule())
+        SkydownMetaLabel(
+            text: text,
+            tint: AppColors.accent(for: colorScheme)
+        )
     }
 }

@@ -23,7 +23,12 @@ struct MusicBadge: View {
                 .buttonStyle(.plain)
                 .skydownTactileAction()
             } else {
-                badgeContent
+                SkydownMetaLabel(
+                    text: text,
+                    tint: isAccent
+                    ? AppColors.accent(for: colorScheme)
+                    : AppColors.secondaryText(for: colorScheme)
+                )
             }
         }
     }

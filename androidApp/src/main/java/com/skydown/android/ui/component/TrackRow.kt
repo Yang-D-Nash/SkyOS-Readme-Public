@@ -45,6 +45,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -100,6 +103,7 @@ fun TrackRow(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize()
+            .testTag("music.track.row")
             .clickable(onClick = onSelectTrack),
         shape = RoundedCornerShape(24.dp),
         color = containerColor,
@@ -239,7 +243,17 @@ fun TrackRow(
                                 onClick = {
                                     showSpotifyPlayer = true
                                 },
-                                modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                                modifier = if (hasPreview) {
+                                    Modifier
+                                        .weight(1f)
+                                        .testTag("music.track.spotify.open")
+                                        .semantics { contentDescription = "Spotify Player oeffnen" }
+                                } else {
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .testTag("music.track.spotify.open")
+                                        .semantics { contentDescription = "Spotify Player oeffnen" }
+                                },
                                 border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = SpotifyGreen,
@@ -392,6 +406,9 @@ private fun SpotifyEmbedDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
+            modifier = Modifier
+                .testTag("music.track.spotify.dialog")
+                .semantics { contentDescription = "Spotify Player Dialog" },
             shape = RoundedCornerShape(28.dp),
             tonalElevation = 8.dp,
             shadowElevation = 10.dp,
@@ -428,7 +445,10 @@ private fun SpotifyEmbedDialog(
                         )
                     }
 
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag("music.track.spotify.close"),
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Dialog schliessen",

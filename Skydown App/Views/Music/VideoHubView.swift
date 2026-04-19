@@ -9,6 +9,7 @@
 import AVFoundation
 import AVKit
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 import WebKit
 
@@ -225,7 +226,7 @@ struct VideoHubView: View {
             }
         }
         .fullScreenCover(item: $originalViewerTarget) { target in
-            VideoOriginalLinkViewer(
+            SkydownOriginalVideoDestinationView(
                 urlString: target.urlString,
                 title: target.title
             )
@@ -250,14 +251,15 @@ struct VideoHubView: View {
         activePresentedSheet = sheet
     }
 
-    private func presentOriginalViewer(urlString: String, title: String) {
-        let trimmedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedURL.isEmpty else { return }
+    private func openOriginalVideo(_ video: SkydownVideoHubItem) {
+        let trimmedURL = video.inAppOriginalURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedURL.isEmpty, let url = URL(string: trimmedURL) else { return }
         playbackManager.player.pause()
+
         activePresentedSheet = nil
         originalViewerTarget = VideoOriginalViewerTarget(
-            urlString: trimmedURL,
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : title
+            urlString: url.absoluteString,
+            title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
         )
     }
 
@@ -604,7 +606,7 @@ struct VideoHubView: View {
                                         .font(.system(size: 34, weight: .bold))
                                         .foregroundColor(.white.opacity(0.86))
 
-                                    Text("Dieser Clip wird ueber einen externen Link ausgeliefert.")
+                                    Text(selectedVideo.originalDestinationDescription)
                                         .font(.subheadline.weight(.semibold))
                                         .multilineTextAlignment(.center)
                                         .foregroundColor(.white.opacity(0.86))
@@ -659,6 +661,26 @@ struct VideoHubView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppColors.youtube(for: colorScheme))
+                } else if selectedVideo.opensOriginalInApp {
+                    Button {
+                        openOriginalVideo(selectedVideo)
+                    } label: {
+                        Label(
+                            selectedVideo.directOpenActionTitle,
+                            systemImage: selectedVideo.supportsInlinePlayback
+                                ? "rectangle.portrait.and.arrow.right"
+                                : "arrow.up.forward.square"
+                        )
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(
+                        selectedVideo.supportsInlinePlayback
+                            ? AppColors.accentMystic(for: colorScheme)
+                            : AppColors.accent(for: colorScheme)
+                    )
                 } else if selectedVideo.supportsInlinePlayback {
                     Button {
                         playbackManager.player.pause()
@@ -672,18 +694,6 @@ struct VideoHubView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppColors.accentMystic(for: colorScheme))
-                }
-
-                if let originalURL = URL(string: selectedVideo.openURLString), !selectedVideo.openURLString.isEmpty {
-                    Button {
-                        presentOriginalViewer(urlString: originalURL.absoluteString, title: selectedVideo.title)
-                    } label: {
-                        Label("Original oeffnen", systemImage: "arrow.up.forward.square")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                    }
-                    .buttonStyle(.bordered)
                 }
 
                 if !selectedVideo.notes.isEmpty {
@@ -742,7 +752,7 @@ struct VideoHubView: View {
                             showingReelViewer = true
                         },
                         onOpenOriginal: {
-                            presentOriginalViewer(urlString: video.openURLString, title: video.title)
+                            openOriginalVideo(video)
                         },
                         onToggleHomeFeatured: {
                             Task {
@@ -818,16 +828,14 @@ struct VideoHubLibraryRow: View {
             HStack(spacing: 8) {
                 MusicBadge(
                     text: video.isPublic ? "Public" : "Private",
-                    isAccent: video.isPublic,
-                    onTap: onSelect
+                    isAccent: video.isPublic
                 )
                 MusicBadge(
                     text: video.provider.badgeLabel,
-                    isAccent: false,
-                    onTap: video.openURLString.isEmpty ? nil : onOpenOriginal
+                    isAccent: false
                 )
                 if isAdmin && video.isHomeFeatured {
-                    MusicBadge(text: "Home", isAccent: true, onTap: onToggleHomeFeatured)
+                    MusicBadge(text: "Home", isAccent: true)
                 }
                 if isAdmin {
                     MusicBadge(text: video.fileName, isAccent: false)
@@ -844,39 +852,43 @@ struct VideoHubLibraryRow: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Button(action: video.isPlayable ? onPlayToggle : onOpenReel) {
+                    Button(action: video.isPlayable ? onPlayToggle : (video.opensOriginalInApp ? onOpenOriginal : onOpenReel)) {
                         Label(
                             video.isPlayable
                                 ? (isPlaying ? "Stoppen" : "Abspielen")
-                                : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen"),
+                                : (video.opensOriginalInApp ? "Direkt oeffnen" : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen")),
                             systemImage: video.isPlayable
                                 ? (isPlaying ? "stop.fill" : "play.fill")
-                                : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square")
+                                : (video.opensOriginalInApp
+                                    ? "rectangle.portrait.and.arrow.right"
+                                    : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square"))
                         )
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(video.provider == .youTube ? AppColors.youtube(for: colorScheme) : AppColors.accent(for: colorScheme))
-                    .disabled(!video.supportsInlinePlayback && video.openURLString.isEmpty)
+                    .disabled(!video.isPlayable && !video.supportsInlinePlayback && !video.opensOriginalInApp)
                 }
             } else {
-                VStack(spacing: 10) {
-                    if video.supportsInlinePlayback {
-                        Button(action: onOpenReel) {
-                            Label("Direkt im Video", systemImage: "play.rectangle.fill")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColors.accentMystic(for: colorScheme))
+                if video.opensOriginalInApp {
+                    Button(action: onOpenOriginal) {
+                        Label(
+                            video.directOpenActionTitle,
+                            systemImage: video.supportsInlinePlayback
+                                ? "rectangle.portrait.and.arrow.right"
+                                : "arrow.up.forward.square"
+                        )
+                            .frame(maxWidth: .infinity)
                     }
-
-                    if !video.openURLString.isEmpty {
-                        Button(action: onOpenOriginal) {
-                            Label("Original oeffnen", systemImage: "arrow.up.forward.square")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
+                    .tint(video.supportsInlinePlayback ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
+                } else if video.supportsInlinePlayback {
+                    Button(action: onOpenReel) {
+                        Label("Direkt im Video", systemImage: "play.rectangle.fill")
+                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accentMystic(for: colorScheme))
                 }
             }
 
@@ -909,6 +921,7 @@ private struct VideoReelViewer: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentIndex: Int
     @State private var player = AVPlayer()
+    @State private var originalViewerTarget: VideoOriginalViewerTarget?
 
     init(
         videos: [SkydownVideoHubItem],
@@ -972,6 +985,7 @@ private struct VideoReelViewer: View {
                                 Text(video.title)
                                     .font(.title2.weight(.bold))
                                     .foregroundColor(.white)
+                                    .lineLimit(2)
 
                                 if !video.notes.isEmpty {
                                     Text(video.notes)
@@ -979,9 +993,27 @@ private struct VideoReelViewer: View {
                                         .foregroundColor(.white.opacity(0.78))
                                         .lineLimit(4)
                                 }
+
+                                if video.opensOriginalInApp {
+                                    Button {
+                                        originalViewerTarget = VideoOriginalViewerTarget(
+                                            urlString: video.inAppOriginalURLString,
+                                            title: video.title.isEmpty ? "Original" : video.title
+                                        )
+                                    } label: {
+                                        Label(video.directOpenActionTitle, systemImage: "arrow.up.forward.square")
+                                            .font(.subheadline.weight(.bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(.white)
+                                    .foregroundColor(.black)
+                                }
                             }
                             .padding(.horizontal, 22)
                             .padding(.bottom, 34)
+                            .padding(.trailing, 54)
                         }
                         .rotationEffect(.degrees(90))
                         .frame(width: proxy.size.width, height: proxy.size.height)
@@ -996,6 +1028,16 @@ private struct VideoReelViewer: View {
                 )
                 .tabViewStyle(.page(indexDisplayMode: .never))
 
+                if videos.count > 1 {
+                    HStack {
+                        Spacer()
+                        ReelProgressRail(currentIndex: currentIndex, count: videos.count)
+                    }
+                    .padding(.trailing, 14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .zIndex(8)
+                }
+
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Skydown Video")
@@ -1005,19 +1047,26 @@ private struct VideoReelViewer: View {
                         Text("\(currentIndex + 1) von \(videos.count)")
                             .font(.subheadline)
                             .foregroundColor(.white.opacity(0.72))
+
+                        if videos.count > 1 {
+                            Text("Vertikal wischen durch alle Clips")
+                                .font(.caption.weight(.medium))
+                                .foregroundColor(.white.opacity(0.62))
+                        }
                     }
 
                     Spacer()
 
                     Button(action: { dismiss() }, label: {
-                        Image(systemName: "xmark")
-                            .font(.headline.weight(.bold))
+                        Label("Zurueck zur App", systemImage: "xmark")
+                            .font(.subheadline.weight(.bold))
                             .foregroundColor(.white)
-                            .frame(width: 48, height: 48)
+                            .padding(.horizontal, 14)
+                            .frame(height: 48)
                             .background(Color.black.opacity(0.42))
-                            .clipShape(Circle())
+                            .clipShape(Capsule())
                             .overlay(
-                                Circle()
+                                Capsule()
                                     .stroke(Color.white.opacity(0.22), lineWidth: 1)
                             )
                     })
@@ -1039,6 +1088,12 @@ private struct VideoReelViewer: View {
             player.pause()
             player.replaceCurrentItem(with: nil)
         }
+        .fullScreenCover(item: $originalViewerTarget) { target in
+            SkydownOriginalVideoDestinationView(
+                urlString: target.urlString,
+                title: target.title
+            )
+        }
     }
 
     private func playCurrent() {
@@ -1054,6 +1109,24 @@ private struct VideoReelViewer: View {
         player.replaceCurrentItem(with: AVPlayerItem(url: url))
         player.seek(to: .zero)
         player.play()
+    }
+}
+
+private struct ReelProgressRail: View {
+    let currentIndex: Int
+    let count: Int
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ForEach(0..<count, id: \.self) { index in
+                Capsule()
+                    .fill(Color.white.opacity(index == currentIndex ? 0.96 : 0.34))
+                    .frame(width: 4, height: index == currentIndex ? 28 : 9)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 10)
+        .background(Color.black.opacity(0.30), in: Capsule())
     }
 }
 
@@ -2138,90 +2211,448 @@ private struct VideoOriginalViewerTarget: Identifiable {
     let title: String
 }
 
-private struct VideoOriginalLinkViewer: View {
+struct SkydownOriginalVideoDestinationView: View {
     let urlString: String
     let title: String
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var player = AVPlayer()
+    @State private var isPlaying = false
 
-    private var isDirectVideoURL: Bool {
-        isLikelyDirectVideoURL(urlString)
+    private var directVideoURL: URL? {
+        guard skydownIsLikelyDirectVideoURL(urlString) else { return nil }
+        return URL(string: urlString)
+    }
+
+    private var resolvedURL: URL? {
+        URL(string: urlString)
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .top) {
-                Color.black
-                    .ignoresSafeArea()
+        Group {
+            if let directVideoURL {
+                GeometryReader { proxy in
+                    ZStack(alignment: .top) {
+                        Color.black
+                            .ignoresSafeArea()
 
-                if isDirectVideoURL, let url = URL(string: urlString) {
-                    VideoPlayer(player: player)
-                        .ignoresSafeArea()
-                        .onAppear {
-                            player.pause()
-                            player.replaceCurrentItem(with: AVPlayerItem(url: url))
-                            player.seek(to: .zero)
-                            player.play()
+                        SkydownInlineVideoSurface(player: player)
+                            .ignoresSafeArea()
+                            .onAppear {
+                                player.pause()
+                                player.replaceCurrentItem(with: AVPlayerItem(url: directVideoURL))
+                                player.seek(to: .zero)
+                                player.play()
+                                isPlaying = true
+                            }
+
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.82),
+                                Color.black.opacity(0.52),
+                                .clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 220)
+                        .ignoresSafeArea(edges: .top)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(title)
+                                .font(.headline.weight(.bold))
+                                .foregroundColor(.white)
+                                .lineLimit(2)
+
+                            Text("Direkt in der In-App-Ansicht. Schliessen bringt dich direkt zurueck.")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.76))
+
+                            HStack(spacing: 10) {
+                                SkydownViewerToolbarButton(
+                                    title: "Extern",
+                                    systemImage: "arrow.up.forward.square",
+                                    isPrimary: false
+                                ) {
+                                    if let resolvedURL {
+                                        openURL(resolvedURL)
+                                    }
+                                }
+
+                                SkydownViewerToolbarButton(
+                                    title: "Schliessen",
+                                    systemImage: "xmark",
+                                    isPrimary: true
+                                ) {
+                                    dismiss()
+                                }
+                            }
                         }
-                } else {
-                    ExternalVideoEmbedSurface(urlString: urlString)
-                        .ignoresSafeArea()
-                }
+                        .padding(.horizontal, 20)
+                        .padding(.top, max(proxy.safeAreaInsets.top, 12))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .zIndex(2)
 
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        Color.black.opacity(0.20),
-                        Color.black.opacity(0.84)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                        VStack {
+                            Spacer()
 
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
+                            VStack(spacing: 10) {
+                                HStack(spacing: 10) {
+                                    SkydownViewerToolbarButton(
+                                        title: isPlaying ? "Pause" : "Play",
+                                        systemImage: isPlaying ? "pause.fill" : "play.fill",
+                                        isPrimary: false
+                                    ) {
+                                        if isPlaying {
+                                            player.pause()
+                                        } else {
+                                            player.play()
+                                        }
+                                        isPlaying.toggle()
+                                    }
 
-                        Text(isDirectVideoURL ? "Direkt in der App" : "Web-Ansicht in der App")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.72))
+                                    SkydownViewerToolbarButton(
+                                        title: "Extern",
+                                        systemImage: "arrow.up.forward.square",
+                                        isPrimary: false
+                                    ) {
+                                        if let resolvedURL {
+                                            openURL(resolvedURL)
+                                        }
+                                    }
+                                }
+
+                                SkydownViewerToolbarButton(
+                                    title: "Zurueck zur App",
+                                    systemImage: "xmark",
+                                    isPrimary: true
+                                ) {
+                                    dismiss()
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .zIndex(3)
                     }
-
-                    Spacer()
-
-                    Button(action: { dismiss() }, label: {
-                        Image(systemName: "xmark")
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .frame(width: 48, height: 48)
-                            .background(Color.black.opacity(0.42))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                            )
-                    })
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, max(proxy.safeAreaInsets.top, 12))
-                .zIndex(10)
+            } else if let resolvedURL {
+                SkydownManagedBrowserView(
+                    url: resolvedURL,
+                    title: title
+                )
+            } else {
+                NavigationStack {
+                    ContentUnavailableView(
+                        "Link nicht verfuegbar",
+                        systemImage: "play.rectangle",
+                        description: Text("Das Original konnte nicht geladen werden.")
+                    )
+                    .navigationTitle(title.isEmpty ? "Original" : title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Schliessen") {
+                                dismiss()
+                            }
+                        }
+                    }
+                }
             }
         }
         .onDisappear {
             player.pause()
             player.replaceCurrentItem(with: nil)
+            isPlaying = false
         }
     }
 }
 
-private func isLikelyDirectVideoURL(_ rawValue: String) -> Bool {
+private struct SkydownViewerToolbarButton: View {
+    let title: String
+    let systemImage: String
+    let isPrimary: Bool
+    var isEnabled = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.footnote.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(isPrimary ? Color.white : Color.white.opacity(0.12))
+                )
+                .foregroundColor(isPrimary ? .black : .white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(isPrimary ? 0 : 0.18), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.46)
+    }
+}
+
+struct SkydownManagedBrowserView: View {
+    let url: URL
+    let title: String
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @StateObject private var browserState = SkydownManagedBrowserState()
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                SkydownManagedBrowserWebView(
+                    url: url,
+                    browserState: browserState
+                )
+                .ignoresSafeArea()
+
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.86),
+                        Color.black.opacity(0.54),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 240)
+                .ignoresSafeArea(edges: .top)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(title.isEmpty ? "Original" : title)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+
+                    Text("Web-Ansicht mit sichtbaren Aktionen fuer Zurueck, Weiter, Extern und Schliessen.")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.76))
+
+                    HStack(spacing: 10) {
+                        SkydownViewerToolbarButton(
+                            title: "Zurueck",
+                            systemImage: "chevron.left",
+                            isPrimary: false,
+                            isEnabled: browserState.canGoBack
+                        ) {
+                            browserState.goBack()
+                        }
+
+                        SkydownViewerToolbarButton(
+                            title: "Weiter",
+                            systemImage: "chevron.right",
+                            isPrimary: false,
+                            isEnabled: browserState.canGoForward
+                        ) {
+                            browserState.goForward()
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        SkydownViewerToolbarButton(
+                            title: "Extern",
+                            systemImage: "arrow.up.forward.square",
+                            isPrimary: false
+                        ) {
+                            openURL(browserState.currentURL ?? url)
+                        }
+
+                        SkydownViewerToolbarButton(
+                            title: "Schliessen",
+                            systemImage: "xmark",
+                            isPrimary: true
+                        ) {
+                            dismiss()
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, max(proxy.safeAreaInsets.top, 12))
+                .padding(.bottom, 16)
+                .background(Color.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .padding(.horizontal, 16)
+
+                VStack {
+                    Spacer()
+
+                    HStack(spacing: 10) {
+                        SkydownViewerToolbarButton(
+                            title: "Extern",
+                            systemImage: "arrow.up.forward.square",
+                            isPrimary: false
+                        ) {
+                            openURL(browserState.currentURL ?? url)
+                        }
+
+                        SkydownViewerToolbarButton(
+                            title: "Zurueck zur App",
+                            systemImage: "xmark",
+                            isPrimary: true
+                        ) {
+                            dismiss()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .onDisappear {
+            browserState.stopLoading()
+        }
+    }
+}
+
+private struct SkydownInlineVideoSurface: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> SkydownInlinePlayerView {
+        let view = SkydownInlinePlayerView()
+        view.playerLayer?.player = player
+        return view
+    }
+
+    func updateUIView(_ uiView: SkydownInlinePlayerView, context: Context) {
+        uiView.playerLayer?.player = player
+    }
+}
+
+private final class SkydownInlinePlayerView: UIView {
+    override class var layerClass: AnyClass {
+        AVPlayerLayer.self
+    }
+
+    var playerLayer: AVPlayerLayer? {
+        layer as? AVPlayerLayer
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .black
+        playerLayer?.videoGravity = .resizeAspect
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        backgroundColor = .black
+        playerLayer?.videoGravity = .resizeAspect
+    }
+}
+
+private final class SkydownManagedBrowserState: NSObject, ObservableObject {
+    @Published var canGoBack = false
+    @Published var canGoForward = false
+    @Published var currentURL: URL?
+
+    private weak var webView: WKWebView?
+    private var loadedInitialURL: URL?
+
+    func attach(_ webView: WKWebView, initialURL: URL) {
+        self.webView = webView
+        if loadedInitialURL != initialURL {
+            loadedInitialURL = initialURL
+            webView.load(URLRequest(url: initialURL))
+        }
+        refresh(from: webView)
+    }
+
+    func goBack() {
+        webView?.goBack()
+        refresh(from: webView)
+    }
+
+    func goForward() {
+        webView?.goForward()
+        refresh(from: webView)
+    }
+
+    func stopLoading() {
+        webView?.stopLoading()
+    }
+
+    func refresh(from webView: WKWebView?) {
+        canGoBack = webView?.canGoBack ?? false
+        canGoForward = webView?.canGoForward ?? false
+        currentURL = webView?.url ?? loadedInitialURL
+    }
+}
+
+private struct SkydownManagedBrowserWebView: UIViewRepresentable {
+    let url: URL
+    @ObservedObject var browserState: SkydownManagedBrowserState
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(browserState: browserState)
+    }
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        webView.allowsBackForwardNavigationGestures = true
+        webView.isOpaque = false
+        webView.backgroundColor = .black
+        webView.scrollView.backgroundColor = .black
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        browserState.attach(webView, initialURL: url)
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        browserState.attach(webView, initialURL: url)
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        let browserState: SkydownManagedBrowserState
+
+        init(browserState: SkydownManagedBrowserState) {
+            self.browserState = browserState
+        }
+
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            browserState.refresh(from: webView)
+        }
+
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            browserState.refresh(from: webView)
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            browserState.refresh(from: webView)
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            browserState.refresh(from: webView)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            browserState.refresh(from: webView)
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            browserState.refresh(from: webView)
+        }
+    }
+}
+
+private func skydownIsLikelyDirectVideoURL(_ rawValue: String) -> Bool {
     let normalized = rawValue
         .lowercased()
         .split(separator: "?")

@@ -30,6 +30,10 @@ data class AiUiState(
     val quickPrompts: List<String> = aiQuickPromptsFor(AiTextMode.General),
     val visualPrompts: List<AiVisualPrompt> = listOf(
         AiVisualPrompt(
+            label = "Artist Foto",
+            prompt = "Generiere ein cineastisches Artist-Foto fuer 22xSky wie ein hochwertiger ARRI-Frame: 35mm Prime, offene Blende um f/1.4, organisches Bokeh, natuerliche Tiefenstaffelung, moody Licht, realistisches Editorial-Foto, keine Illustration, kein CGI und kein generischer AI-Look.",
+        ),
+        AiVisualPrompt(
             label = "Cover Art",
             prompt = "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von 22xSky mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift.",
         ),

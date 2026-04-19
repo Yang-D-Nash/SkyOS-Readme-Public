@@ -40,6 +40,9 @@ data class VideoHubItem(
     val openUrl: String
         get() = externalUrl.takeIf { it.isNotBlank() } ?: nativePlaybackUrl
 
+    val inAppOriginalUrl: String
+        get() = openUrl.takeIf { it.isNotBlank() } ?: inlineEmbedUrl.takeIf { it.isNotBlank() }.orEmpty()
+
     val isYouTubeSource: Boolean
         get() = resolveYouTubeVideoId(embedUrl.takeIf { it.isNotBlank() } ?: externalUrl) != null
 
@@ -64,6 +67,22 @@ data class VideoHubItem(
             ExternalMediaProvider.GOOGLE_DRIVE -> "Drive"
             ExternalMediaProvider.MEGA -> "MEGA"
             ExternalMediaProvider.EXTERNAL_LINK -> "Extern"
+        }
+
+    val opensOriginalInApp: Boolean
+        get() = inAppOriginalUrl.isNotBlank()
+
+    val originalActionLabel: String
+        get() = provider.originalVideoActionLabel
+
+    val directOpenActionLabel: String
+        get() = if (supportsInlinePlayback) "Video direkt oeffnen" else originalActionLabel
+
+    val originalDestinationDescription: String
+        get() = when {
+            inAppOriginalUrl.isBlank() -> "Kein Original-Link verfuegbar."
+            nativePlaybackUrl.isNotBlank() -> "Dieser Clip startet direkt in der In-App-Ansicht."
+            else -> "Dieser Link startet in einer In-App-Webansicht mit Zurueck und Schliessen."
         }
 
     val isPlayable: Boolean

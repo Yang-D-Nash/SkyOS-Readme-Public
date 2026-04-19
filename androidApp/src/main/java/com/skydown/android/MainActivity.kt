@@ -18,19 +18,35 @@ import androidx.compose.ui.Modifier
 import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppearancePreferences
+import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AiAccessMode
 import com.skydown.android.data.AiConversationHistoryStore
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.CheckoutRedirectStore
 import com.skydown.android.data.NotificationPermissionCoordinator
+import com.skydown.android.data.AppSessionStore
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.data.WorkflowAutomationPreferences
 import com.skydown.android.ui.SkydownApp
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.ui.theme.SkydownTheme
+import com.skydown.shared.model.User
+import com.skydown.shared.model.UserQuotaPlan
+import com.skydown.shared.model.UserRole
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_UI_TEST_SKIP_INTRO = "ui_test_skip_intro"
+        const val EXTRA_UI_TEST_START_ROUTE = "ui_test_start_route"
+        const val EXTRA_UI_TEST_USE_MOCK_MERCH = "ui_test_use_mock_merch"
+        const val EXTRA_UI_TEST_USE_MOCK_MUSIC = "ui_test_use_mock_music"
+        const val EXTRA_UI_TEST_USE_MOCK_VIDEO_HUB = "ui_test_use_mock_video_hub"
+        const val EXTRA_UI_TEST_USE_MOCK_AI_VISUAL = "ui_test_use_mock_ai_visual"
+        const val EXTRA_UI_TEST_SIGNED_IN_USER = "ui_test_signed_in_user"
+    }
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
@@ -40,15 +56,51 @@ class MainActivity : ComponentActivity() {
     @UnstableApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val skipIntroForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_SKIP_INTRO, false) == true
+        val startRouteForUiTest = intent?.getStringExtra(EXTRA_UI_TEST_START_ROUTE)
+        val useMockMerchForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_MERCH, false) == true
+        val useMockMusicForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_MUSIC, false) == true
+        val useMockVideoHubForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_VIDEO_HUB, false) == true
+        val useMockAiVisualForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_AI_VISUAL, false) == true
+        val useSignedInUserForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_SIGNED_IN_USER, false) == true
+        val uiTestUser = if (useSignedInUserForUiTest) {
+            createUiTestSignedInUser()
+        } else {
+            null
+        }
+        val isUiTestLaunch =
+            skipIntroForUiTest ||
+                startRouteForUiTest != null ||
+                useMockMerchForUiTest ||
+                useMockMusicForUiTest ||
+                useMockVideoHubForUiTest ||
+                useMockAiVisualForUiTest ||
+                uiTestUser != null
         enableEdgeToEdge()
         AppearancePreferences.initialize(applicationContext)
+        AppFeatureFlagsStore.configureUiTestOverrides(
+            aiEnabled = if (useMockAiVisualForUiTest || uiTestUser != null) true else null,
+            aiAccessMode = if (useMockAiVisualForUiTest || uiTestUser != null) AiAccessMode.SignedIn else null,
+        )
         AppFeatureFlagsStore.initialize()
         AiConversationHistoryStore.initialize(applicationContext)
         AiVisualReferenceLibraryPreferences.initialize(applicationContext)
         SpotifyAuthManager.initialize(applicationContext)
+        if (isUiTestLaunch) {
+            AppSessionStore.update(uiTestUser)
+        }
+        AppContainer.configureUiTestMode(
+            useMockMerchandise = useMockMerchForUiTest,
+            useMockMusic = useMockMusicForUiTest,
+            useMockVideoHub = useMockVideoHubForUiTest,
+            useMockAiVisual = useMockAiVisualForUiTest,
+            currentUserOverride = uiTestUser,
+        )
         handleIncomingLink(intent?.data)
         volumeControlStream = AudioManager.STREAM_MUSIC
-        maybeRequestNotificationPermissionOnLaunch()
+        if (!isUiTestLaunch) {
+            maybeRequestNotificationPermissionOnLaunch()
+        }
         lifecycleScope.launch {
             AppFeatureFlagsStore.refresh()
         }
@@ -65,7 +117,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    SkydownApp()
+                    SkydownApp(
+                        startRouteOverride = startRouteForUiTest,
+                        skipIntro = skipIntroForUiTest,
+                    )
                 }
             }
         }
@@ -96,5 +151,22 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    private fun createUiTestSignedInUser(): User {
+        return User(
+            id = "ui-test-user",
+            email = "ui-test@skydown.app",
+            username = "UI Test",
+            registrationDateEpochMillis = 1_710_000_000_000,
+            isAdmin = false,
+            role = UserRole.User.rawValue,
+            quotaPlan = UserQuotaPlan.Free.rawValue,
+            aiAccessEnabled = true,
+            aiTextRequestsPerDay = 30,
+            aiVisualRequestsPerDay = 4,
+            aiAgentRequestsPerDay = 18,
+            aiHistoryRetentionDays = 3,
+        )
     }
 }

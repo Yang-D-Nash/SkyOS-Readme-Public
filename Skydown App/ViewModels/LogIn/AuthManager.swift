@@ -47,12 +47,15 @@ class AuthManager: ObservableObject {
         sessionCache.clear()
     }
 
-    func refreshCurrentUser() async {
+    @discardableResult
+    func refreshCurrentUser() async -> User? {
         do {
             userSession = try await authService.fetchCurrentUser()
             sessionCache.store(userSession)
+            return userSession
         } catch {
             print("Fehler beim Laden des Profils: \(error.localizedDescription)")
+            return userSession
         }
     }
 
@@ -97,6 +100,14 @@ private struct CachedAuthSessionPayload: Codable {
     var aiVisualRequestsPerDay: Int
     var aiAgentRequestsPerDay: Int
     var aiHistoryRetentionDays: Int
+    var aiSubscriptionStatus: String?
+    var aiSubscriptionPlan: String?
+    var aiSubscriptionCurrentPeriodEndEpochSeconds: Int?
+    var aiSubscriptionCheckoutExpiresAtEpochSeconds: Int?
+    var aiSubscriptionCancelAtPeriodEnd: Bool?
+    var aiSubscriptionProvider: String?
+    var aiSubscriptionSourcePlatform: String?
+    var aiSubscriptionProductID: String?
     var canManageMusicCatalog: Bool
     var canManageVideoCatalog: Bool
     var canModerateProfiles: Bool
@@ -119,6 +130,14 @@ private struct CachedAuthSessionPayload: Codable {
         self.aiVisualRequestsPerDay = user.aiVisualRequestsPerDay
         self.aiAgentRequestsPerDay = user.aiAgentRequestsPerDay
         self.aiHistoryRetentionDays = user.aiHistoryRetentionDays
+        self.aiSubscriptionStatus = user.aiSubscriptionStatus
+        self.aiSubscriptionPlan = user.aiSubscriptionPlan
+        self.aiSubscriptionCurrentPeriodEndEpochSeconds = user.aiSubscriptionCurrentPeriodEndEpochSeconds
+        self.aiSubscriptionCheckoutExpiresAtEpochSeconds = user.aiSubscriptionCheckoutExpiresAtEpochSeconds
+        self.aiSubscriptionCancelAtPeriodEnd = user.aiSubscriptionCancelAtPeriodEnd
+        self.aiSubscriptionProvider = user.aiSubscriptionProvider
+        self.aiSubscriptionSourcePlatform = user.aiSubscriptionSourcePlatform
+        self.aiSubscriptionProductID = user.aiSubscriptionProductID
         self.canManageMusicCatalog = user.canManageMusicCatalog
         self.canManageVideoCatalog = user.canManageVideoCatalog
         self.canModerateProfiles = user.canModerateProfiles
@@ -143,6 +162,14 @@ private struct CachedAuthSessionPayload: Codable {
             aiVisualRequestsPerDay: aiVisualRequestsPerDay,
             aiAgentRequestsPerDay: aiAgentRequestsPerDay,
             aiHistoryRetentionDays: aiHistoryRetentionDays,
+            aiSubscriptionStatus: aiSubscriptionStatus,
+            aiSubscriptionPlan: aiSubscriptionPlan,
+            aiSubscriptionCurrentPeriodEndEpochSeconds: aiSubscriptionCurrentPeriodEndEpochSeconds,
+            aiSubscriptionCheckoutExpiresAtEpochSeconds: aiSubscriptionCheckoutExpiresAtEpochSeconds,
+            aiSubscriptionCancelAtPeriodEnd: aiSubscriptionCancelAtPeriodEnd ?? false,
+            aiSubscriptionProvider: aiSubscriptionProvider,
+            aiSubscriptionSourcePlatform: aiSubscriptionSourcePlatform,
+            aiSubscriptionProductID: aiSubscriptionProductID,
             canManageMusicCatalog: canManageMusicCatalog,
             canManageVideoCatalog: canManageVideoCatalog,
             canModerateProfiles: canModerateProfiles

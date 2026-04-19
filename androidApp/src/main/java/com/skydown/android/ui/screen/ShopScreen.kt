@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -60,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -188,7 +190,9 @@ fun ShopScreen(
         ) {
             val isWideLayout = maxWidth >= 920.dp
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("shop.root"),
                 contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -986,6 +990,7 @@ private fun MerchandiseDetailSheet(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .testTag("shop.merch.detail.root")
                 .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.52f))
                 .padding(12.dp)
                 .clip(RoundedCornerShape(30.dp))
@@ -1067,6 +1072,7 @@ private fun MerchandiseDetailSheet(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
+                        .testTag("shop.merch.detail.close")
                         .clip(RoundedCornerShape(18.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)),
                 ) {
@@ -1081,6 +1087,7 @@ private fun MerchandiseDetailSheet(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 20.dp, bottom = 18.dp)
+                        .testTag("shop.merch.fullscreen.open")
                         .clip(RoundedCornerShape(999.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)),
                 ) {
@@ -1331,6 +1338,7 @@ private fun MerchandiseImageViewerDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .testTag("shop.merch.fullscreen.root")
                 .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.94f)),
         ) {
             HorizontalPager(
@@ -1356,6 +1364,7 @@ private fun MerchandiseImageViewerDialog(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -1374,18 +1383,15 @@ private fun MerchandiseImageViewerDialog(
                     )
                 }
 
-                IconButton(
+                BrandActionButton(
+                    text = "Schliessen",
                     onClick = onDismiss,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Schliessen",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
+                    accent = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.testTag("shop.merch.fullscreen.close"),
+                    icon = Icons.Default.Close,
+                    filled = false,
+                    compact = true,
+                )
             }
         }
     }

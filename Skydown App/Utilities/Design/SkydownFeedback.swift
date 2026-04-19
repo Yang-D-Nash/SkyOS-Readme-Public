@@ -12,6 +12,14 @@ enum SkydownHaptics {
         }
     }
 
+    static func selection() {
+        DispatchQueue.main.async {
+            let generator = UISelectionFeedbackGenerator()
+            generator.prepare()
+            generator.selectionChanged()
+        }
+    }
+
     static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         DispatchQueue.main.async {
             let generator = UINotificationFeedbackGenerator()
@@ -30,6 +38,7 @@ enum SkydownHaptics {
 #else
 enum SkydownHaptics {
     static func impact(_ style: Never? = nil) {}
+    static func selection() {}
     static func notification(_ type: Never? = nil) {}
     static func announce(_ message: String) {}
 }

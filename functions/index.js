@@ -30,6 +30,10 @@ const {
 } = require("./src/security/runtime-config");
 const {requestUploadSlot} = require("./src/security/upload-slots");
 const {
+  decodeAppStoreTransactions,
+  resolveAppStoreSubscriptionState,
+} = require("./src/payments/app-store-subscriptions");
+const {
   createAiSubscriptionCheckoutSession,
   createHostedCheckoutSession,
   deriveStripeCheckoutStatus,
@@ -61,6 +65,7 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const manusApiKey = defineSecret("MANUS_API_KEY");
 const OWNER_EMAIL = "nash.lioncorna@gmail.com";
+const IOS_APP_BUNDLE_ID = "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
 const SHOPIFY_CONFIG_COLLECTION = "appConfig";
@@ -211,9 +216,23 @@ Markenkontext:
 
 Erzeuge ein modernes, hochwertiges Visual mit klarer Stimmung.
 Stil: cinematic, urban, moody, premium, nicht kitschig, nicht generisch.
+Wenn das Motiv wie ein Foto, Filmstill oder Editorial-Frame gedacht ist, arbeite mit praeziser Kamera-, Lens- und Lichtsprache statt mit vagen Stilwoertern.
 Nutze nur sehr wenig Text im Bild. Wenn Text im Motiv vorkommt, dann maximal eine kurze Headline.
 Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.
 Antworte auf Deutsch.
+`.trim();
+
+const AI_VISUAL_PHOTOGRAPHY_DIRECTION = `
+Wenn die Anfrage wie ein Foto, Portrait, Street-Shot, Editorial, Produktfoto oder realistischer Kamera-Frame wirkt:
+- Inszeniere das Motiv wie ein hochwertiges Filmstill oder Editorial-Foto, nicht wie generische AI-Art.
+- Nutze glaubwuerdige Kamera-Sprache: ARRI-artiger Cinematic-Look, hochwertige Prime-Linse, haeufig 30mm oder 35mm, offene Blende etwa f/1.4 bis f/2.0 wenn passend.
+- Arbeite mit natuerlicher Tiefenstaffelung, selektivem Fokus, organischem Bokeh und sauberem Fokus-Falloff.
+- Lichtsetzung: motiviert, filmisch, weich aber gerichtet, mit realistischen Highlights und Schatten statt flacher Ausleuchtung.
+- Materialien wie Haut, Stoffe, Metall, Glas, Rauch und Asphalt sollen hochwertig und real wirken.
+- Bevorzuge echte Foto-Anmutung mit realistischer Haut, glaubwuerdigen Proportionen, natuerlichen Haenden, sauberer Anatomie und physikalisch plausibler Perspektive.
+- Lieber subtile Filmkoernung, realistische Dynamik und feine Objektivcharakteristik als ueberschaerfte digitale Optik.
+- Vermeide explizit Illustration, Painting, 3D-Render, CGI, Plastik-Haut, uebertriebenen Glow, unnatuerliche Farben und den typischen generischen AI-Look.
+- Uebertreibe Blur, Bloom und Glow nicht; das Hauptmotiv muss klar lesbar bleiben.
 `.trim();
 
 const DEFAULT_AGENT_SYSTEM_PROMPT = `
@@ -456,6 +475,7 @@ function resolveAiSubscriptionMetadata(stripeObject = {}) {
     userId: nonEmptyString(metadata.userId) || nonEmptyString(stripeObject?.client_reference_id),
     plan: normalizeAiSubscriptionPlan(metadata.plan),
     priceId: nonEmptyString(metadata.priceId),
+    platform: nonEmptyString(metadata.platform)?.toLowerCase() || "",
   };
 }
 
@@ -1698,6 +1718,28 @@ function composeVisualGenerationPrompt(inputPrompt, visualInstruction, assetCont
   return `
 ${visualInstruction}
 
+${AI_VISUAL_PHOTOGRAPHY_DIRECTION}
+
+${assetContext ? `Verfuegbare Referenzen:\n${assetContext}\n` : ""}
+
+Nutzeranfrage:
+${inputPrompt}
+  `.trim();
+}
+
+function composeVisualImageOnlyPrompt(inputPrompt, visualInstruction, assetContext) {
+  const normalizedInstruction = visualInstruction
+    .replace("Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.", "")
+    .replace("Antworte auf Deutsch.", "")
+    .trim();
+
+  return `
+${normalizedInstruction}
+
+${AI_VISUAL_PHOTOGRAPHY_DIRECTION}
+
+Erzeuge genau ein hochwertiges Bild und keinen zusaetzlichen Text.
+
 ${assetContext ? `Verfuegbare Referenzen:\n${assetContext}\n` : ""}
 
 Nutzeranfrage:
@@ -1768,29 +1810,115 @@ async function generateAiTextReply({prompt, mode}) {
 async function generateAiVisualResult(prompt) {
   const promptSettings = await loadAiPromptSettings();
   const assetContext = composeAssetLibraryPromptContext(promptSettings);
-  const response = await ai.generate({
-    model: vertexAI.model("gemini-2.5-flash-image"),
+  const primaryResult = await generateAiVisualWithRetries({
+    modelName: "gemini-2.5-flash-image",
     prompt: composeVisualGenerationPrompt(
         prompt,
         promptSettings.visualInstruction,
         assetContext,
     ),
-    config: {
-      responseModalities: ["TEXT", "IMAGE"],
-    },
+    responseModalities: ["TEXT", "IMAGE"],
+    defaultText: "Visual generiert.",
   });
-
-  const media = response.media;
-  const encodedImage = extractInlineBase64Media(media?.url, media?.contentType);
-  if (!encodedImage?.base64) {
-    throw new HttpsError("internal", "Skydown Bot konnte kein Visual erzeugen.");
+  if (primaryResult) {
+    return primaryResult;
   }
 
-  return {
-    text: nonEmptyString(response.text) || "Visual generiert.",
-    imageBase64: encodedImage.base64,
-    mimeType: encodedImage.mimeType || "image/png",
-  };
+  logger.warn("Primary visual model failed. Falling back to Imagen.", {
+    promptLength: typeof prompt === "string" ? prompt.length : 0,
+    primaryModel: "gemini-2.5-flash-image",
+    fallbackModel: "imagen-3.0-generate-002",
+  });
+
+  const fallbackResult = await generateAiVisualWithRetries({
+    modelName: "imagen-3.0-generate-002",
+    prompt: composeVisualImageOnlyPrompt(
+        prompt,
+        promptSettings.visualInstruction,
+        assetContext,
+    ),
+    defaultText: "Cineastisches Visual generiert.",
+  });
+  if (fallbackResult) {
+    return fallbackResult;
+  }
+
+  throw new HttpsError(
+      "internal",
+      "Der Visual-Server konnte das Bild gerade nicht erzeugen. Bitte direkt noch einmal versuchen.",
+  );
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function generateAiVisualWithRetries({
+  modelName,
+  prompt,
+  responseModalities = null,
+  defaultText,
+}) {
+  const maxAttempts = 2;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let response;
+    try {
+      const request = {
+        model: vertexAI.model(modelName),
+        prompt,
+      };
+      if (responseModalities) {
+        request.config = {responseModalities};
+      }
+      response = await ai.generate(request);
+    } catch (error) {
+      const metadata = {
+        modelName,
+        promptLength: typeof prompt === "string" ? prompt.length : 0,
+        attempt,
+        maxAttempts,
+        error: error instanceof Error ? error.message : `${error}`,
+      };
+      if (attempt < maxAttempts) {
+        logger.warn("AI visual generation attempt failed. Retrying.", metadata);
+        await sleep(1200);
+        continue;
+      }
+
+      logger.error("AI visual generation failed.", metadata);
+      return null;
+    }
+
+    const media = response.media;
+    const encodedImage = extractInlineBase64Media(media?.url, media?.contentType);
+    if (encodedImage?.base64) {
+      return {
+        text: nonEmptyString(response.text) || defaultText,
+        imageBase64: encodedImage.base64,
+        mimeType: encodedImage.mimeType || "image/png",
+      };
+    }
+
+    const metadata = {
+      modelName,
+      promptLength: typeof prompt === "string" ? prompt.length : 0,
+      attempt,
+      maxAttempts,
+      hasMediaUrl: Boolean(media?.url),
+      mimeType: media?.contentType || "",
+      hasText: Boolean(nonEmptyString(response.text)),
+    };
+    if (attempt < maxAttempts) {
+      logger.warn("AI visual generation returned no decodable image. Retrying.", metadata);
+      await sleep(1200);
+      continue;
+    }
+
+    logger.error("AI visual generation returned no decodable image.", metadata);
+  }
+
+  return null;
 }
 
 function getShopifyDomain(storeDomain) {
@@ -1865,6 +1993,11 @@ async function loadPaymentMethodSettings() {
       enabled: aiSubscriptions.enabled === true,
       creatorPriceId: nonEmptyString(aiSubscriptions.creatorPriceId) || "",
       studioPriceId: nonEmptyString(aiSubscriptions.studioPriceId) || "",
+      iosCreatorProductId: nonEmptyString(aiSubscriptions.iosCreatorProductId) || "",
+      iosStudioProductId: nonEmptyString(aiSubscriptions.iosStudioProductId) || "",
+      iosAppAppleId: Number(aiSubscriptions.iosAppAppleId || 0),
+      androidCreatorProductId: nonEmptyString(aiSubscriptions.androidCreatorProductId) || "",
+      androidStudioProductId: nonEmptyString(aiSubscriptions.androidStudioProductId) || "",
     },
   };
 }
@@ -1885,6 +2018,29 @@ function resolveAiSubscriptionPriceId(paymentSettings, plan) {
   }
 
   return nonEmptyString(config.creatorPriceId) || "";
+}
+
+function buildIosAiSubscriptionProductMap(paymentSettings) {
+  const config = paymentSettings?.aiSubscriptions || {};
+  if (config.enabled !== true) {
+    return {};
+  }
+
+  const mapping = {};
+  const creatorProductId = nonEmptyString(config.iosCreatorProductId);
+  const studioProductId = nonEmptyString(config.iosStudioProductId);
+  if (creatorProductId) {
+    mapping[creatorProductId] = USER_QUOTA_PLANS.creator;
+  }
+  if (studioProductId) {
+    mapping[studioProductId] = USER_QUOTA_PLANS.studio;
+  }
+  return mapping;
+}
+
+function resolveIosAiAppAppleId(paymentSettings) {
+  const appAppleId = Number(paymentSettings?.aiSubscriptions?.iosAppAppleId || 0);
+  return Number.isFinite(appAppleId) && appAppleId > 0 ? Math.floor(appAppleId) : 0;
 }
 
 async function loadCommerceSettings() {
@@ -2083,6 +2239,8 @@ async function processAiSubscriptionCheckoutWebhook(eventType, stripeObject = {}
     aiSubscriptionStatus: status,
     aiSubscriptionPlan: plan,
     aiSubscriptionPriceId: metadata.priceId || nonEmptyString(userData.aiSubscriptionPriceId) || admin.firestore.FieldValue.delete(),
+    aiSubscriptionProvider: "stripe",
+    aiSubscriptionSourcePlatform: metadata.platform || nonEmptyString(userData.aiSubscriptionSourcePlatform) || "web",
     aiSubscriptionStripeCheckoutSessionId: identifiers.sessionId ||
       nonEmptyString(userData.aiSubscriptionStripeCheckoutSessionId) ||
       admin.firestore.FieldValue.delete(),
@@ -2155,6 +2313,8 @@ async function processAiSubscriptionLifecycleWebhook(eventType, stripeObject = {
     aiSubscriptionStatus: status,
     aiSubscriptionPlan: plan,
     aiSubscriptionPriceId: metadata.priceId || nonEmptyString(userData.aiSubscriptionPriceId) || admin.firestore.FieldValue.delete(),
+    aiSubscriptionProvider: "stripe",
+    aiSubscriptionSourcePlatform: metadata.platform || nonEmptyString(userData.aiSubscriptionSourcePlatform) || "web",
     aiSubscriptionStripeCustomerId: nonEmptyString(stripeObject?.customer) ||
       nonEmptyString(userData.aiSubscriptionStripeCustomerId) ||
       admin.firestore.FieldValue.delete(),
@@ -3585,7 +3745,6 @@ function buildShopifyOrderInput(orderId, data) {
     sourceName: "skydown_app",
     note: buildOrderNote(orderId, data),
     financialStatus: "PAID",
-    fulfillmentStatus: "UNFULFILLED",
     shippingAddress: {
       firstName,
       lastName,
@@ -3913,12 +4072,30 @@ exports.startAiSubscriptionCheckout = onCall({
   }
 
   const profile = buildUserProfile(userData);
-  if (profile.role !== USER_ROLES.admin) {
-    throw new HttpsError("permission-denied", "Self-Pay-Abo ist nur fuer Admin-Konten verfuegbar.");
+  if (profile.role === USER_ROLES.owner) {
+    throw new HttpsError("failed-precondition", "Owner-Konto braucht kein Self-Pay-Abo.");
   }
 
   if (!profile.aiAccessEnabled) {
     throw new HttpsError("failed-precondition", "Die KI ist fuer dein Konto aktuell pausiert.");
+  }
+
+  const subscriptionStatus = normalizeAiSubscriptionStatus(userData.aiSubscriptionStatus, "");
+  if (["active", "trialing", "past_due", "unpaid"].includes(subscriptionStatus)) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Auf diesem Konto existiert bereits ein KI-Abo. Verwaltung und Planwechsel folgen im naechsten Schritt.",
+    );
+  }
+
+  const checkoutExpiresAt = Number(userData.aiSubscriptionCheckoutExpiresAtEpochSeconds || 0);
+  const nowEpochSeconds = Math.floor(Date.now() / 1000);
+  if (subscriptionStatus === "checkout_pending" &&
+    (!Number.isFinite(checkoutExpiresAt) || checkoutExpiresAt > nowEpochSeconds)) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Fuer dieses Konto ist bereits ein offener Stripe-Checkout aktiv.",
+    );
   }
 
   const requestedPlan = normalizeAiSubscriptionPlan(request.data?.plan);
@@ -3947,6 +4124,13 @@ exports.startAiSubscriptionCheckout = onCall({
   }
 
   const platform = normalizeCheckoutPlatform(request.data?.platform);
+  if (["ios", "android"].includes(platform)) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Mobile KI-Abos bleiben bis zur nativen In-App-Abrechnung deaktiviert.",
+    );
+  }
+
   const checkoutSession = await createAiSubscriptionCheckoutSession({
     secretKey,
     projectId,
@@ -3963,6 +4147,8 @@ exports.startAiSubscriptionCheckout = onCall({
     aiSubscriptionStatus: "checkout_pending",
     aiSubscriptionPlan: requestedPlan,
     aiSubscriptionPriceId: priceId,
+    aiSubscriptionProvider: "stripe",
+    aiSubscriptionSourcePlatform: platform,
     aiSubscriptionStripeCheckoutSessionId: checkoutSession.sessionId,
     aiSubscriptionStripeCustomerId: checkoutSession.customerId ||
       nonEmptyString(userData.aiSubscriptionStripeCustomerId) ||
@@ -3986,6 +4172,140 @@ exports.startAiSubscriptionCheckout = onCall({
     checkoutUrl: checkoutSession.checkoutUrl,
     sessionId: checkoutSession.sessionId,
     plan: requestedPlan,
+  };
+});
+
+exports.syncIosAiSubscriptionStatus = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "syncIosAiSubscriptionStatus");
+
+  const uid = assertAuthenticatedUser(
+      request.auth,
+      "Bitte melde dich an, um dein App-Store-Abo zu synchronisieren.",
+  );
+  const userData = await loadUserData(uid);
+  if (!userData) {
+    throw new HttpsError("not-found", "Konto wurde nicht gefunden.");
+  }
+
+  const profile = buildUserProfile(userData);
+  if (profile.role === USER_ROLES.owner) {
+    return {
+      status: "ignored",
+      reason: "owner_account",
+    };
+  }
+
+  const paymentSettings = await loadPaymentMethodSettings();
+  if (paymentSettings?.aiSubscriptions?.enabled !== true) {
+    throw new HttpsError("failed-precondition", "KI-Abos sind serverseitig noch nicht live geschaltet.");
+  }
+
+  const iosProductIdToPlan = buildIosAiSubscriptionProductMap(paymentSettings);
+  if (Object.keys(iosProductIdToPlan).length < 2) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Die iOS-Produkt-IDs fuer Creator und Studio fehlen noch im Payment-Setup.",
+    );
+  }
+
+  const iosAppAppleId = resolveIosAiAppAppleId(paymentSettings);
+  if (!iosAppAppleId) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Die Apple App ID fuer serverseitige StoreKit-Pruefung fehlt noch.",
+    );
+  }
+
+  const signedTransactions = Array.isArray(request.data?.signedTransactions) ?
+    request.data.signedTransactions :
+    typeof request.data?.signedTransactions === "string" ?
+      [request.data.signedTransactions] :
+      [];
+  const decodeResult = await decodeAppStoreTransactions({
+    signedTransactions,
+    productIdToPlan: iosProductIdToPlan,
+    userId: uid,
+    bundleId: IOS_APP_BUNDLE_ID,
+    appAppleId: iosAppAppleId,
+    enableOnlineChecks: false,
+  });
+
+  if (decodeResult.receivedTransactionCount > 0 && decodeResult.decodedTransactions.length === 0) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Die App-Store-Transaktion konnte keinem gueltigen KI-Abo fuer dieses Konto zugeordnet werden.",
+    );
+  }
+
+  const resolvedState = resolveAppStoreSubscriptionState(decodeResult.decodedTransactions);
+  const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const currentProvider = nonEmptyString(userData.aiSubscriptionProvider)?.toLowerCase() || "";
+  const userRef = admin.firestore().doc(`users/${uid}`);
+  const updates = {
+    aiSubscriptionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  if (resolvedState.status === "active") {
+    Object.assign(updates, resolveAiLimitsUpdateForPlan(resolvedState.plan));
+    Object.assign(updates, {
+      aiSubscriptionStatus: resolvedState.status,
+      aiSubscriptionPlan: resolvedState.plan,
+      aiSubscriptionProvider: resolvedState.provider,
+      aiSubscriptionSourcePlatform: resolvedState.sourcePlatform,
+      aiSubscriptionProductId: resolvedState.productId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionStoreEnvironment: resolvedState.environment || admin.firestore.FieldValue.delete(),
+      aiSubscriptionOriginalTransactionId: resolvedState.originalTransactionId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionTransactionId: resolvedState.transactionId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionPriceId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCurrentPeriodEndEpochSeconds: resolvedState.currentPeriodEndEpochSeconds || admin.firestore.FieldValue.delete(),
+      aiSubscriptionCheckoutExpiresAtEpochSeconds: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCancelAtPeriodEnd: false,
+      aiSubscriptionActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } else if (currentProvider === "app_store") {
+    Object.assign(updates, resolveAiLimitsUpdateForRole(role));
+    Object.assign(updates, {
+      aiSubscriptionStatus: resolvedState.status === "inactive" ? "inactive" : resolvedState.status,
+      aiSubscriptionPlan: resolvedState.plan || admin.firestore.FieldValue.delete(),
+      aiSubscriptionProvider: resolvedState.provider || admin.firestore.FieldValue.delete(),
+      aiSubscriptionSourcePlatform: resolvedState.sourcePlatform || admin.firestore.FieldValue.delete(),
+      aiSubscriptionProductId: resolvedState.productId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionStoreEnvironment: resolvedState.environment || admin.firestore.FieldValue.delete(),
+      aiSubscriptionOriginalTransactionId: resolvedState.originalTransactionId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionTransactionId: resolvedState.transactionId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionPriceId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCurrentPeriodEndEpochSeconds: resolvedState.currentPeriodEndEpochSeconds || admin.firestore.FieldValue.delete(),
+      aiSubscriptionCheckoutExpiresAtEpochSeconds: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCancelAtPeriodEnd: false,
+    });
+  } else {
+    return {
+      status: "ignored",
+      reason: "no_app_store_entitlements",
+      matchedTransactionCount: decodeResult.decodedTransactions.length,
+    };
+  }
+
+  await userRef.set(updates, {merge: true});
+
+  logger.info("iOS AI subscription status synced.", {
+    uid,
+    status: updates.aiSubscriptionStatus,
+    plan: resolvedState.plan || null,
+    provider: resolvedState.provider || null,
+    matchedTransactionCount: decodeResult.decodedTransactions.length,
+  });
+
+  return {
+    status: updates.aiSubscriptionStatus,
+    plan: resolvedState.plan || null,
+    provider: resolvedState.provider || null,
+    sourcePlatform: resolvedState.sourcePlatform || null,
+    currentPeriodEndEpochSeconds: resolvedState.currentPeriodEndEpochSeconds || null,
+    matchedTransactionCount: decodeResult.decodedTransactions.length,
   };
 });
 
@@ -4264,7 +4584,7 @@ exports.generateAiText = onCall({
 
 exports.generateAiVisual = onCall({
   region: "us-central1",
-  timeoutSeconds: 60,
+  timeoutSeconds: 120,
 }, async (request) => {
   await assertCallableSecurity(request, "generateAiVisual");
   const input = parseCallableInput(
@@ -4272,16 +4592,32 @@ exports.generateAiVisual = onCall({
       request.data,
       "Die Visual-Anfrage konnte so nicht gestartet werden.",
   );
-  const usage = await authorizeAiUsage({
-    auth: request.auth,
-    kind: AI_USAGE_KINDS.visual,
-  });
-  const visual = await generateAiVisualResult(input.prompt);
+  try {
+    const usage = await authorizeAiUsage({
+      auth: request.auth,
+      kind: AI_USAGE_KINDS.visual,
+    });
+    const visual = await generateAiVisualResult(input.prompt);
 
-  return {
-    ...visual,
-    historyRetentionDays: usage.historyRetentionDays,
-  };
+    return {
+      ...visual,
+      historyRetentionDays: usage.historyRetentionDays,
+    };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+
+    logger.error("generateAiVisual failed unexpectedly.", {
+      uid: request.auth?.uid || null,
+      promptLength: input.prompt.length,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    throw new HttpsError(
+        "internal",
+        "Der Visual-Server konnte das Bild gerade nicht erzeugen. Bitte direkt noch einmal versuchen.",
+    );
+  }
 });
 
 function responseFrameworkHint(mode, prompt) {

@@ -253,7 +253,7 @@ struct BrandHeroPill: View {
                 .buttonStyle(.plain)
                 .skydownTactileAction()
             } else {
-                pillContent
+                SkydownMetaLabel(text: text, tint: tint)
             }
         }
     }
@@ -271,6 +271,24 @@ struct BrandHeroPill: View {
         .padding(.horizontal, onTap == nil ? 11 : 12)
         .padding(.vertical, 7)
         .skydownCapsuleSurface(colorScheme: colorScheme, accent: tint)
+    }
+}
+
+struct SkydownMetaLabel: View {
+    let text: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(tint.opacity(0.72))
+                .frame(width: 5, height: 5)
+
+            Text(text)
+                .font(.caption.weight(.medium))
+                .foregroundColor(tint.opacity(0.92))
+        }
+        .padding(.vertical, 2)
     }
 }
 

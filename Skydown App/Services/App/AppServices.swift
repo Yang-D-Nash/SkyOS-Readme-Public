@@ -13,6 +13,7 @@ final class AppServices: ObservableObject {
     let orderService: OrderServicing
     let musicService: MusicServicing
     let hostedCheckoutRedirectStore: HostedCheckoutRedirectStore
+    let aiSubscriptionStore: NativeAISubscriptionStore
     let networkStatusMonitor: NetworkStatusMonitor
     let notificationPermissionStore: NotificationPermissionStore
 
@@ -23,15 +24,23 @@ final class AppServices: ObservableObject {
         authService: AuthServicing = FirebaseAuthService(),
         aiChatService: AIChatServicing = FirebaseFunctionsAIChatService(),
         agentChatService: AgentChatServicing = FirebaseFunctionsAgentService(),
-        merchandiseService: MerchandiseServicing = FirebaseMerchandiseService(),
+        merchandiseService: MerchandiseServicing? = nil,
         orderService: OrderServicing = FirebaseOrderService(),
         musicService: MusicServicing = SpotifyMusicService()
     ) {
+        let launchArguments = ProcessInfo.processInfo.arguments
+        let resolvedMerchandiseService = merchandiseService ?? {
+            if launchArguments.contains("-ui_test_merch_flow") {
+                return UITestMerchandiseService()
+            }
+            return FirebaseMerchandiseService()
+        }()
+
         self.authService = authService
         self.aiChatService = aiChatService
         self.agentChatService = agentChatService
         self.featureFlags = FeatureFlagsService()
-        self.merchandiseService = merchandiseService
+        self.merchandiseService = resolvedMerchandiseService
         self.orderService = orderService
         self.musicService = musicService
         self.hostedCheckoutRedirectStore = HostedCheckoutRedirectStore()
@@ -40,6 +49,12 @@ final class AppServices: ObservableObject {
 
         let authManager = AuthManager(authService: authService)
         self.authManager = authManager
+        self.aiSubscriptionStore = NativeAISubscriptionStore(
+            onSubscriptionSynced: { [weak authManager] in
+                guard let authManager else { return }
+                _ = await authManager.refreshCurrentUser()
+            }
+        )
         self.cartViewModel = CartViewModel(
             authManager: authManager,
             orderService: orderService

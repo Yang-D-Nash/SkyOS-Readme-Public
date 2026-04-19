@@ -15,6 +15,14 @@ enum class ExternalMediaProvider(val rawValue: String) {
             return entries.firstOrNull { it.rawValue == rawValue } ?: FIREBASE_STORAGE
         }
     }
+
+    val originalVideoActionLabel: String
+        get() = when (this) {
+            FIREBASE_STORAGE -> "Original ansehen"
+            GOOGLE_DRIVE -> "Drive ansehen"
+            MEGA -> "MEGA ansehen"
+            EXTERNAL_LINK -> "Link ansehen"
+        }
 }
 
 data class ExternalMediaSource(

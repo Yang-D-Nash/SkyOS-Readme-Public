@@ -111,7 +111,7 @@ fun YouTubePlayerDialog(
                     onClick = { onOpenExternal(externalUrl) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("In YouTube oeffnen")
+                    Text("YouTube ansehen")
                 }
 
                 OutlinedButton(

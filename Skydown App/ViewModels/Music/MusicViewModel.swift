@@ -111,6 +111,21 @@ enum ExternalMediaProvider: String {
             return "Extern"
         }
     }
+
+    var originalVideoActionTitle: String {
+        switch self {
+        case .firebaseStorage:
+            return "Original oeffnen"
+        case .googleDrive:
+            return "Drive oeffnen"
+        case .youTube:
+            return "YouTube oeffnen"
+        case .mega:
+            return "MEGA oeffnen"
+        case .externalLink:
+            return "Link oeffnen"
+        }
+    }
 }
 
 private struct ExternalMediaSource {
@@ -972,6 +987,10 @@ struct SkydownVideoHubItem: Identifiable {
         externalURL.musicNilIfEmpty ?? downloadURL
     }
 
+    var inAppOriginalURLString: String {
+        openURLString.musicNilIfEmpty ?? embedURL.musicNilIfEmpty ?? ""
+    }
+
     var youTubeItem: SkydownYouTubeVideoItem? {
         guard provider == .youTube else { return nil }
         let resolvedURL = openURLString.musicNilIfEmpty ?? embedURL.musicNilIfEmpty
@@ -990,6 +1009,26 @@ struct SkydownVideoHubItem: Identifiable {
 
     var supportsInlinePlayback: Bool {
         youTubeItem != nil || usesEmbeddedPreview || isPlayable
+    }
+
+    var opensOriginalInApp: Bool {
+        !inAppOriginalURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var directOpenActionTitle: String {
+        supportsInlinePlayback ? "Video direkt oeffnen" : provider.originalVideoActionTitle
+    }
+
+    var originalDestinationDescription: String {
+        if inAppOriginalURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Kein Original-Link verfuegbar."
+        }
+
+        if !nativePlaybackURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Dieser Clip startet direkt in der In-App-Ansicht."
+        }
+
+        return "Dieser Link startet in einer In-App-Webansicht mit Zurueck und Schliessen."
     }
 
     var isPlayable: Bool {

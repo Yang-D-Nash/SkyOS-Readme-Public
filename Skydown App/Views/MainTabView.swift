@@ -196,6 +196,7 @@ struct MainTabView: View {
             }
             .skydownTabBarChrome(colorScheme: currentScheme)
         }
+        .skydownSelectionFeedback(trigger: selectedTab)
     }
 
     private var selectedTabBinding: Binding<MainTab> {
@@ -405,18 +406,19 @@ private struct ZweizweiTabView: View {
     let onOpenSettings: () -> Void
 
     var body: some View {
-        switch destination {
-        case .hub:
-            NavigationStack {
-                GeometryReader { proxy in
-                    let layout = SkydownResponsiveLayout(availableWidth: proxy.size.width)
-                    let contentWidth = min(
-                        layout.contentMaxWidth,
-                        max(proxy.size.width - (layout.horizontalPadding * 2), 0)
-                    )
+        Group {
+            switch destination {
+            case .hub:
+                NavigationStack {
+                    GeometryReader { proxy in
+                        let layout = SkydownResponsiveLayout(availableWidth: proxy.size.width)
+                        let contentWidth = min(
+                            layout.contentMaxWidth,
+                            max(proxy.size.width - (layout.horizontalPadding * 2), 0)
+                        )
 
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                             BrandHeroSurface(
                                 colorScheme: colorScheme,
                                 eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
@@ -606,9 +608,11 @@ private struct ZweizweiTabView: View {
             NavigationStack {
                 NicmaProducerView {
                     destination = .hub
+                    }
                 }
             }
         }
+        .skydownSelectionFeedback(trigger: destination)
     }
 }
 
@@ -1113,17 +1117,11 @@ private struct AIWorkflowWorkspaceCard: View {
 }
 
 private struct AIHubBadge: View {
-    @Environment(\.colorScheme) private var colorScheme
     let text: String
     let color: Color
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundColor(color)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 7)
-            .skydownCapsuleSurface(colorScheme: colorScheme, accent: color)
+        SkydownMetaLabel(text: text, tint: color)
     }
 }
 

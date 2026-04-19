@@ -98,6 +98,7 @@ import com.skydown.android.ui.component.BrandSectionBanner
 import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.ExternalVideoWebPlayer
+import com.skydown.android.ui.component.OriginalVideoViewerDialog
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
@@ -132,6 +133,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedVideoHubId by rememberSaveable { mutableStateOf<String?>(null) }
 
     if (activeDestination == homeDestinationNicmaProducer) {
         NicmaProducerScreen(
@@ -143,6 +145,18 @@ fun HomeScreen(
     if (activeDestination == homeDestinationBeatHub) {
         BeatHubScreen(
             onBack = { activeDestination = null },
+        )
+        return
+    }
+
+    if (activeDestination == homeDestinationVideoHub) {
+        VideoHubScreen(
+            onBack = {
+                activeDestination = null
+                selectedVideoHubId = null
+            },
+            initialSelectedVideoId = selectedVideoHubId,
+            autoplayInitialSelection = true,
         )
         return
     }
@@ -409,24 +423,18 @@ fun HomeScreen(
                         HomeLatestVideoCard(
                             uiState = uiState,
                             player = videoPlayer,
-                            isPlaying = currentVideoId == uiState.featuredVideo?.id,
-                            onPlayToggle = { video ->
-                                if (video.downloadUrl.isBlank()) return@HomeLatestVideoCard
-
-                                if (currentVideoId == video.id) {
-                                    videoPlayer.pause()
-                                    videoPlayer.seekTo(0)
-                                    currentVideoId = null
-                                } else {
-                                    audioPlayer.stop()
-                                    audioPlayer.clearMediaItems()
-                                    currentAudioKey = null
-                                    videoPlayer.play()
-                                    currentVideoId = video.id
-                                }
+                            onOpenVideoHub = { video ->
+                                audioPlayer.stop()
+                                audioPlayer.clearMediaItems()
+                                currentAudioKey = null
+                                videoPlayer.pause()
+                                videoPlayer.seekTo(0)
+                                currentVideoId = null
+                                selectedVideoHubId = video.id
+                                activeDestination = homeDestinationVideoHub
                             },
                             onOpenOriginal = { video ->
-                                val originalUrl = video.openUrl.trim()
+                                val originalUrl = video.openUrl.trim().ifBlank { video.inlineEmbedUrl.trim() }
                                 if (originalUrl.isBlank()) return@HomeLatestVideoCard
                                 videoPlayer.pause()
                                 videoPlayer.seekTo(0)
@@ -465,7 +473,7 @@ fun HomeScreen(
             }
 
             inAppOriginalVideoUrl?.let { url ->
-                HomeOriginalVideoViewerDialog(
+                OriginalVideoViewerDialog(
                     url = url,
                     title = inAppOriginalVideoTitle,
                     onDismiss = { inAppOriginalVideoUrl = null },
@@ -1478,7 +1486,7 @@ private fun HomeLatestBeatCard(
 
         if (beat.isPlayable && beat.downloadUrl.isNotBlank()) {
             HomeMediaActionButton(
-                label = if (isPlaying) "Stop" else "Play",
+                label = if (isPlaying) "Stoppen" else "Abspielen",
                 isActive = isPlaying,
                 accent = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier
@@ -1486,11 +1494,9 @@ private fun HomeLatestBeatCard(
                     .padding(top = 14.dp),
                 onClick = { onPlayToggle(beat) },
             )
-        }
-
-        if (beat.openUrl.isNotBlank()) {
+        } else if (beat.openUrl.isNotBlank()) {
             BrandActionButton(
-                text = "Original oeffnen",
+                text = beat.provider.originalVideoActionLabel,
                 onClick = { openExternalLink(context, beat.openUrl) },
                 accent = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier
@@ -1507,8 +1513,7 @@ private fun HomeLatestBeatCard(
 private fun HomeLatestVideoCard(
     uiState: HomeUiState,
     player: ExoPlayer,
-    isPlaying: Boolean,
-    onPlayToggle: (FeaturedVideoHighlight) -> Unit,
+    onOpenVideoHub: (FeaturedVideoHighlight) -> Unit,
     onOpenOriginal: (FeaturedVideoHighlight) -> Unit,
 ) {
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
@@ -1623,7 +1628,7 @@ private fun HomeLatestVideoCard(
                     .clip(MaterialTheme.shapes.extraLarge),
                 factory = { playerContext ->
                     PlayerView(playerContext).apply {
-                        useController = true
+                        useController = false
                         this.player = player
                     }
                 },
@@ -1642,35 +1647,32 @@ private fun HomeLatestVideoCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "Dieser Clip wird ueber einen externen Link geoeffnet.",
+                    text = video.originalDestinationDescription,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
         }
 
-        if (video.downloadUrl.isNotBlank()) {
+        if (video.openUrl.isNotBlank() || video.inlineEmbedUrl.isNotBlank()) {
             HomeMediaActionButton(
-                label = if (isPlaying) "Reel stoppen" else "Reel starten",
-                isActive = isPlaying,
+                label = if (video.supportsInlinePlayback) "Video direkt oeffnen" else video.originalActionLabel,
+                isActive = false,
                 accent = InstagramOrange,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
-                onClick = { onPlayToggle(video) },
-            )
-        }
-
-        if (video.openUrl.isNotBlank()) {
-            BrandActionButton(
-                text = homeVideoOpenActionLabel(video),
                 onClick = { onOpenOriginal(video) },
+            )
+        } else if (video.supportsInlinePlayback) {
+            HomeMediaActionButton(
+                label = "Im Video ansehen",
+                isActive = false,
                 accent = InstagramOrange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp),
-                icon = Icons.Default.Language,
-                filled = false,
+                    .padding(top = 14.dp),
+                onClick = { onOpenVideoHub(video) },
             )
         }
     }
@@ -1994,156 +1996,19 @@ private fun HomeBadge(
     )
 }
 
-@Composable
-private fun HomeOriginalVideoViewerDialog(
-    url: String,
-    title: String,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    val mediaContext = remember(context) { context.mediaAttributionContext() }
-    val directVideoUrl = remember(url) { homeIsLikelyDirectVideoUrl(url) }
-    val player = remember(mediaContext, url, directVideoUrl) {
-        ExoPlayer.Builder(mediaContext).build().apply {
-            playWhenReady = directVideoUrl
-        }
-    }
-
-    LaunchedEffect(url, directVideoUrl, player) {
-        if (directVideoUrl) {
-            player.setMediaItem(MediaItem.fromUri(url))
-            player.prepare()
-            player.play()
-        } else {
-            player.stop()
-            player.clearMediaItems()
-        }
-    }
-
-    DisposableEffect(player) {
-        onDispose {
-            player.release()
-        }
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-        ) {
-            if (directVideoUrl) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { playerContext ->
-                        PlayerView(playerContext).apply {
-                            useController = true
-                            this.player = player
-                        }
-                    },
-                    update = { view ->
-                        view.player = player
-                    },
-                )
-            } else {
-                ExternalVideoWebPlayer(
-                    url = url,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.14f),
-                                Color.Black.copy(alpha = 0.66f),
-                            ),
-                        ),
-                    ),
-            )
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 18.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title.ifBlank { "Original" },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Text(
-                        text = if (directVideoUrl) "Direkt in der App" else "Web-Ansicht in der App",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
-                    )
-                }
-
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.Black.copy(alpha = 0.44f)),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Schliessen",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-            }
-        }
-    }
-}
-
 private fun homeVideoModeLabel(video: FeaturedVideoHighlight): String {
     return when {
-        video.usesEmbeddedPreview -> "Preview"
-        video.supportsInlinePlayback -> "Reel"
-        else -> "Extern"
+        video.usesEmbeddedPreview -> "Direkt"
+        video.supportsInlinePlayback -> "Direkt"
+        else -> "Link"
     }
-}
-
-private fun homeIsLikelyDirectVideoUrl(rawValue: String): Boolean {
-    val normalized = rawValue
-        .lowercase()
-        .substringBefore('?')
-        .substringBefore('#')
-    return normalized.endsWith(".mp4") ||
-        normalized.endsWith(".mov") ||
-        normalized.endsWith(".m4v") ||
-        normalized.endsWith(".webm") ||
-        normalized.endsWith(".m3u8")
 }
 
 private fun homeVideoModeDescription(video: FeaturedVideoHighlight): String {
     return when {
-        video.usesEmbeddedPreview -> "Der Clip laeuft direkt in einer Preview."
-        video.supportsInlinePlayback -> "Der Clip laeuft direkt als Reel in der App."
-        else -> "Dieser Clip oeffnet ueber einen externen Link."
-    }
-}
-
-private fun homeVideoOpenActionLabel(video: FeaturedVideoHighlight): String {
-    return when (video.provider) {
-        ExternalMediaProvider.GOOGLE_DRIVE -> "In Drive oeffnen"
-        ExternalMediaProvider.MEGA -> "In MEGA oeffnen"
-        ExternalMediaProvider.EXTERNAL_LINK -> "Extern oeffnen"
-        ExternalMediaProvider.FIREBASE_STORAGE -> "Original oeffnen"
+        video.usesEmbeddedPreview -> "Vorschau hier, ein Tap oeffnet den Clip direkt mit sichtbarem Rueckweg."
+        video.supportsInlinePlayback -> "Ein Tap oeffnet den Clip direkt in der In-App-Ansicht."
+        else -> video.originalDestinationDescription
     }
 }
 
@@ -2233,4 +2098,5 @@ private val homeZweizweiSocialLinks = listOf(
 
 private const val homeDestinationBeatHub = "home_beat_hub"
 private const val homeDestinationNicmaProducer = "home_nicma_producer"
+private const val homeDestinationVideoHub = "home_video_hub"
 private const val homeSignalTotal = 3

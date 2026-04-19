@@ -67,6 +67,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
@@ -913,18 +914,14 @@ private fun ProfileImageViewerDialog(
                     }
                 }
 
-                IconButton(
+                BrandActionButton(
+                    text = "Schliessen",
                     onClick = onDismiss,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Schliessen",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
+                    accent = MaterialTheme.colorScheme.onPrimary,
+                    icon = Icons.Default.Close,
+                    filled = false,
+                    compact = true,
+                )
             }
         }
     }

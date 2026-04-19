@@ -27,9 +27,25 @@ struct AISubscriptionPricingSettings: Equatable {
     var enabled: Bool = false
     var creatorPriceID: String = ""
     var studioPriceID: String = ""
+    var iosCreatorProductID: String = ""
+    var iosStudioProductID: String = ""
+    var iosAppAppleID: String = ""
+    var androidCreatorProductID: String = ""
+    var androidStudioProductID: String = ""
 
     var isConfigured: Bool {
         !creatorPriceID.trimmed.isEmpty && !studioPriceID.trimmed.isEmpty
+    }
+
+    var isIOSConfigured: Bool {
+        !iosCreatorProductID.trimmed.isEmpty &&
+        !iosStudioProductID.trimmed.isEmpty &&
+        !iosAppAppleID.trimmed.isEmpty
+    }
+
+    var isAndroidConfigured: Bool {
+        !androidCreatorProductID.trimmed.isEmpty &&
+        !androidStudioProductID.trimmed.isEmpty
     }
 }
 
@@ -131,10 +147,24 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
     }
 
     private static func decodeAISubscriptions(_ data: [String: Any]?) -> AISubscriptionPricingSettings {
-        AISubscriptionPricingSettings(
+        let iosAppAppleID: String
+        if let stringValue = data?["iosAppAppleId"] as? String {
+            iosAppAppleID = stringValue
+        } else if let numberValue = data?["iosAppAppleId"] as? NSNumber {
+            iosAppAppleID = numberValue.stringValue
+        } else {
+            iosAppAppleID = ""
+        }
+
+        return AISubscriptionPricingSettings(
             enabled: data?["enabled"] as? Bool ?? false,
             creatorPriceID: data?["creatorPriceId"] as? String ?? "",
-            studioPriceID: data?["studioPriceId"] as? String ?? ""
+            studioPriceID: data?["studioPriceId"] as? String ?? "",
+            iosCreatorProductID: data?["iosCreatorProductId"] as? String ?? "",
+            iosStudioProductID: data?["iosStudioProductId"] as? String ?? "",
+            iosAppAppleID: iosAppAppleID,
+            androidCreatorProductID: data?["androidCreatorProductId"] as? String ?? "",
+            androidStudioProductID: data?["androidStudioProductId"] as? String ?? ""
         )
     }
 
@@ -166,7 +196,12 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
             "aiSubscriptions": [
                 "enabled": settings.aiSubscriptions.enabled,
                 "creatorPriceId": settings.aiSubscriptions.creatorPriceID.trimmed,
-                "studioPriceId": settings.aiSubscriptions.studioPriceID.trimmed
+                "studioPriceId": settings.aiSubscriptions.studioPriceID.trimmed,
+                "iosCreatorProductId": settings.aiSubscriptions.iosCreatorProductID.trimmed,
+                "iosStudioProductId": settings.aiSubscriptions.iosStudioProductID.trimmed,
+                "iosAppAppleId": settings.aiSubscriptions.iosAppAppleID.trimmed,
+                "androidCreatorProductId": settings.aiSubscriptions.androidCreatorProductID.trimmed,
+                "androidStudioProductId": settings.aiSubscriptions.androidStudioProductID.trimmed
             ],
             "updatedAt": FieldValue.serverTimestamp()
         ]

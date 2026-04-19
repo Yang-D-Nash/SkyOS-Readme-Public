@@ -159,6 +159,10 @@ final class AIChatViewModel: ObservableObject {
 
     let visualPrompts = [
         AIVisualPrompt(
+            label: "Artist Foto",
+            prompt: "Generiere ein cineastisches Artist-Foto fuer 22xSky wie ein hochwertiger ARRI-Frame: 35mm Prime, offene Blende um f/1.4, organisches Bokeh, natuerliche Tiefenstaffelung, moody Licht, realistisches Editorial-Foto, keine Illustration, kein CGI und kein generischer AI-Look."
+        ),
+        AIVisualPrompt(
             label: "Cover Art",
             prompt: "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von 22xSky mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift."
         ),
@@ -276,7 +280,8 @@ final class AIChatViewModel: ObservableObject {
                     userKey: currentUserKey,
                     source: .bot,
                     prompt: trimmedPrompt,
-                    response: result.text
+                    response: result.text,
+                    imageData: result.imageData
                 )
                 isSending = false
             } catch {
@@ -323,7 +328,11 @@ final class AIChatViewModel: ObservableObject {
         messages = restoredEntries.flatMap { entry in
             [
                 AIChatMessage(role: .user, text: entry.prompt),
-                AIChatMessage(role: .assistant, text: entry.response)
+                AIChatMessage(
+                    role: .assistant,
+                    text: entry.response,
+                    imageData: historyStore.imageData(for: entry)
+                )
             ]
         }
     }
@@ -348,12 +357,16 @@ final class AIChatViewModel: ObservableObject {
     }
 
     private func buildVisualPrompt(for userPrompt: String) -> String {
-        let referenceContext = AIVisualReferenceLibraryStore.promptContext()
+        let referenceContext = AIVisualReferenceLibraryStore.promptContext()?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let referenceContext, !referenceContext.isEmpty else {
+            return userPrompt
+        }
 
         return """
-        \(referenceContext ?? "")
+        \(referenceContext)
 
-        Nutzeranfrage:
         \(userPrompt)
         """
     }
@@ -389,9 +402,20 @@ final class AIChatViewModel: ObservableObject {
                 return "Bitte melde dich erneut an und versuch es noch einmal."
             case .invalidArgument:
                 return "Die KI-Anfrage konnte so nicht gestartet werden."
+            case .internal:
+                if nsError.localizedDescription.localizedCaseInsensitiveContains("server responded with an error") {
+                    return "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                }
+                return nsError.localizedDescription.isEmpty
+                    ? "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                    : nsError.localizedDescription
             default:
                 break
             }
+        }
+
+        if nsError.localizedDescription.localizedCaseInsensitiveContains("server responded with an error") {
+            return "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
         }
 
         return error.localizedDescription.isEmpty

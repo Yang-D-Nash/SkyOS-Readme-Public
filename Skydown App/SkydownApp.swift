@@ -35,6 +35,7 @@ struct SkydownApp: App {
                     .environmentObject(services.authManager)
                     .environmentObject(services.cartViewModel)
                     .environmentObject(services.hostedCheckoutRedirectStore)
+                    .environmentObject(services.aiSubscriptionStore)
                     .environmentObject(services.networkStatusMonitor)
                     .environmentObject(services.notificationPermissionStore)
                     .onOpenURL { url in

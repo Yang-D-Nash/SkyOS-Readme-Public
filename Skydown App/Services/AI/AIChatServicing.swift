@@ -61,6 +61,35 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
     }
 
     func generateVisual(prompt: String) async throws -> AIGeneratedVisual {
+        var lastError: Error?
+        for attempt in 1...2 {
+            do {
+                return try await generateVisualOnce(prompt: prompt)
+            } catch {
+                lastError = error
+                guard attempt < 2, shouldRetryVisualGeneration(after: error) else {
+                    throw error
+                }
+
+                try? await Task.sleep(nanoseconds: 800_000_000)
+            }
+        }
+
+        throw lastError ?? AIChatServiceError.invalidResponse
+    }
+
+    private func ensureConnectivity() async throws {
+        let isOnline = await MainActor.run { NetworkStatusMonitor.shared.isOnline }
+        guard isOnline else {
+            throw NSError(
+                domain: "AIChatServicing",
+                code: -1009,
+                userInfo: [NSLocalizedDescriptionKey: "Du bist offline. Bot und Visuals werden wieder verfuegbar, sobald Internet da ist."]
+            )
+        }
+    }
+
+    private func generateVisualOnce(prompt: String) async throws -> AIGeneratedVisual {
         try await ensureConnectivity()
         let result = try await functions.invokeCallable("generateAiVisual", payload: ["prompt": prompt])
 
@@ -84,15 +113,28 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
         )
     }
 
-    private func ensureConnectivity() async throws {
-        let isOnline = await MainActor.run { NetworkStatusMonitor.shared.isOnline }
-        guard isOnline else {
-            throw NSError(
-                domain: "AIChatServicing",
-                code: -1009,
-                userInfo: [NSLocalizedDescriptionKey: "Du bist offline. Bot und Visuals werden wieder verfuegbar, sobald Internet da ist."]
-            )
+    private func shouldRetryVisualGeneration(after error: Error) -> Bool {
+        if let serviceError = error as? AIChatServiceError {
+            switch serviceError {
+            case .invalidResponse, .invalidImageData:
+                return true
+            }
         }
+
+        let nsError = error as NSError
+        if nsError.domain == FunctionsErrorDomain,
+           let code = FunctionsErrorCode(rawValue: nsError.code) {
+            switch code {
+            case .internal, .unavailable, .deadlineExceeded:
+                return true
+            default:
+                break
+            }
+        }
+
+        let message = nsError.localizedDescription.lowercased()
+        return message.contains("server responded with an error") ||
+            message.contains("nicht sauber geantwortet")
     }
 }
 

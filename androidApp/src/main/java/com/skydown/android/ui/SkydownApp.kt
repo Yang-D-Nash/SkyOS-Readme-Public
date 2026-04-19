@@ -69,6 +69,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +98,7 @@ import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownPressable
+import com.skydown.android.ui.component.skydownSelectionFeedback
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.screen.AiHubScreen
 import com.skydown.android.ui.screen.ArtistPageScreen
@@ -121,13 +123,26 @@ import kotlinx.coroutines.launch
 @UnstableApi
 @Composable
 fun SkydownApp() {
+    SkydownApp(
+        startRouteOverride = null,
+        skipIntro = false,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@UnstableApi
+@Composable
+fun SkydownApp(
+    startRouteOverride: String?,
+    skipIntro: Boolean,
+) {
     val navController = rememberNavController()
     val isCompactLayout = rememberIsCompactAppLayout()
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     val isOnline by AppNetworkMonitor.isOnline.collectAsStateWithLifecycle()
-    var showIntro by rememberSaveable { mutableStateOf(true) }
-    var selectedEntryRoute by rememberSaveable { mutableStateOf<String?>(null) }
+    var showIntro by rememberSaveable(skipIntro) { mutableStateOf(!skipIntro) }
+    var selectedEntryRoute by rememberSaveable(startRouteOverride) { mutableStateOf(startRouteOverride) }
     var showsWorkflowWorkspace by rememberSaveable { mutableStateOf(false) }
     var authSheet by rememberSaveable { mutableStateOf<AuthSheet?>(null) }
     var authSheetLocked by rememberSaveable { mutableStateOf(false) }
@@ -183,21 +198,23 @@ fun SkydownApp() {
         }
     }
 
-    DisposableAuthSync(
-        auth = auth,
-        observedAuthUid = observedAuthUid,
-        currentSessionUserId = currentSessionUserId.value,
-        onObservedAuthUidChanged = { observedAuthUid = it },
-        onSignedOut = {
-            AppSessionStore.update(null)
-            authSheetLocked = false
-        },
-        onRefreshCurrentUser = {
-            coroutineScope.launch {
-                AppContainer.refreshCurrentUser()
-            }
-        },
-    )
+    if (!AppContainer.isUiTestCurrentUserOverrideActive) {
+        DisposableAuthSync(
+            auth = auth,
+            observedAuthUid = observedAuthUid,
+            currentSessionUserId = currentSessionUserId.value,
+            onObservedAuthUidChanged = { observedAuthUid = it },
+            onSignedOut = {
+                AppSessionStore.update(null)
+                authSheetLocked = false
+            },
+            onRefreshCurrentUser = {
+                coroutineScope.launch {
+                    AppContainer.refreshCurrentUser()
+                }
+            },
+        )
+    }
 
     CompositionLocalProvider(LocalSessionUser provides currentUser) {
         val destinations = buildList {
@@ -248,6 +265,9 @@ fun SkydownApp() {
             }
 
             Scaffold(
+                modifier = Modifier.skydownSelectionFeedback(
+                    trigger = currentDestination?.route ?: startRoute,
+                ),
                 bottomBar = {
                     if (!hideBottomNavigation) {
                         Box(
@@ -814,7 +834,12 @@ private fun ZweizweiMusicLaneScreen(
     var artistPageReturnDestination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    when (destination) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .skydownSelectionFeedback(trigger = destination),
+    ) {
+        when (destination) {
         ZweizweiMusicDestination.Hub -> Scaffold(
             modifier = Modifier,
             containerColor = MaterialTheme.colorScheme.background,
@@ -933,6 +958,7 @@ private fun ZweizweiMusicLaneScreen(
                                     catalogInitialArtist = "JANNO"
                                     destination = ZweizweiMusicDestination.Catalog
                                 },
+                                modifier = Modifier.testTag("music.hub.songs.open"),
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 LaunchLandingButton(
@@ -968,6 +994,7 @@ private fun ZweizweiMusicLaneScreen(
                                     catalogInitialArtist = "JANNO"
                                     destination = ZweizweiMusicDestination.Catalog
                                 },
+                                modifier = Modifier.testTag("music.hub.songs.open"),
                             )
                             LaunchLandingButton(
                                 title = "Beat Hub",
@@ -1025,6 +1052,7 @@ private fun ZweizweiMusicLaneScreen(
         ZweizweiMusicDestination.NicmaProducer -> NicmaProducerScreen(
             onBack = { destination = ZweizweiMusicDestination.Hub },
         )
+        }
     }
 }
 

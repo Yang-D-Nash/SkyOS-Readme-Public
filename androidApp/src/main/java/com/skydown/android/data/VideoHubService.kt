@@ -34,7 +34,7 @@ data class ExternalVideoHubRequest(
     val externalUrl: String,
 )
 
-class VideoHubService(
+open class VideoHubService(
     private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) {
@@ -42,7 +42,7 @@ class VideoHubService(
     private val configCollectionName = "videographyHubMeta"
     private val configDocumentId = "publicConfig"
 
-    fun observeVideos(
+    open fun observeVideos(
         isAdmin: Boolean,
         onChange: (Result<List<VideoHubItem>>) -> Unit,
     ): () -> Unit {
@@ -68,7 +68,7 @@ class VideoHubService(
         return { listener.remove() }
     }
 
-    fun observePublicConfig(
+    open fun observePublicConfig(
         onChange: (Result<VideoHubPublicConfig>) -> Unit,
     ): () -> Unit {
         val listener = firestore.collection(configCollectionName)
@@ -216,7 +216,6 @@ class VideoHubService(
             .set(
                 mapOf(
                     "equipmentItems" to equipmentItems,
-                    "youtubeItems" to FieldValue.delete(),
                     "collaborationItems" to collaborationItems,
                     "updatedAt" to FieldValue.serverTimestamp(),
                     "updatedBy" to currentUser?.id.orEmpty(),

@@ -91,6 +91,10 @@ struct AIView: View {
                     .padding(.bottom, 6)
                 } else {
                     ScrollViewReader { proxy in
+                        let scrollToken = viewModel.messages.last.map { message in
+                            "\(message.id.uuidString)-\(message.isStreaming)-\(message.text.count)-\(message.imageData?.count ?? 0)"
+                        } ?? "chat-empty"
+
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 10) {
                                 ForEach(viewModel.messages) { message in
@@ -117,9 +121,16 @@ struct AIView: View {
                                 isComposerFocused = false
                             }
                         )
-                        .onChange(of: viewModel.messages.count) { _, _ in
-                            withAnimation(.easeOut(duration: 0.25)) {
+                        .onAppear {
+                            DispatchQueue.main.async {
                                 proxy.scrollTo("chat-end", anchor: .bottom)
+                            }
+                        }
+                        .onChange(of: scrollToken) { _, _ in
+                            DispatchQueue.main.async {
+                                withAnimation(.easeOut(duration: 0.25)) {
+                                    proxy.scrollTo("chat-end", anchor: .bottom)
+                                }
                             }
                         }
                     }
@@ -521,6 +532,7 @@ private struct AIComposerBar: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .skydownSelectionFeedback(trigger: composerMode)
 
                     Button(action: onReset) {
                         Image(systemName: "arrow.counterclockwise")
@@ -567,6 +579,7 @@ private struct AIComposerBar: View {
                             }
                         }
                     }
+                    .skydownSelectionFeedback(trigger: textMode)
                 }
 
                 HStack(alignment: .bottom, spacing: 10) {
@@ -661,15 +674,10 @@ private struct AIBadge: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.bold))
-            .foregroundColor(AppColors.accent(for: colorScheme))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(AppColors.accent(for: colorScheme).opacity(0.12))
-            )
+        SkydownMetaLabel(
+            text: text,
+            tint: AppColors.accent(for: colorScheme)
+        )
     }
 }
 

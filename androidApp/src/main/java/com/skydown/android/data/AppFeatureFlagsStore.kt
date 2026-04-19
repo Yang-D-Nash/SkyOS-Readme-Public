@@ -26,8 +26,20 @@ object AppFeatureFlagsStore {
     private val remoteConfig by lazy { FirebaseRemoteConfig.getInstance() }
     private val _isAiEnabled = MutableStateFlow(true)
     private val _aiAccessMode = MutableStateFlow(AiAccessMode.SignedIn)
+    @Volatile
+    private var uiTestAiEnabledOverride: Boolean? = null
+    @Volatile
+    private var uiTestAiAccessModeOverride: AiAccessMode? = null
     val isAiEnabled: StateFlow<Boolean> = _isAiEnabled.asStateFlow()
     val aiAccessMode: StateFlow<AiAccessMode> = _aiAccessMode.asStateFlow()
+
+    fun configureUiTestOverrides(
+        aiEnabled: Boolean?,
+        aiAccessMode: AiAccessMode?,
+    ) {
+        uiTestAiEnabledOverride = aiEnabled
+        uiTestAiAccessModeOverride = aiAccessMode
+    }
 
     fun initialize() {
         val settings = FirebaseRemoteConfigSettings.Builder()
@@ -41,11 +53,17 @@ object AppFeatureFlagsStore {
                 aiAccessModeKey to AiAccessMode.SignedIn.rawValue,
             ),
         )
-        _isAiEnabled.value = true
-        _aiAccessMode.value = AiAccessMode.SignedIn
+        _isAiEnabled.value = uiTestAiEnabledOverride ?: true
+        _aiAccessMode.value = uiTestAiAccessModeOverride ?: AiAccessMode.SignedIn
     }
 
     suspend fun refresh() {
+        if (uiTestAiEnabledOverride != null || uiTestAiAccessModeOverride != null) {
+            _isAiEnabled.value = uiTestAiEnabledOverride ?: true
+            _aiAccessMode.value = uiTestAiAccessModeOverride ?: AiAccessMode.SignedIn
+            return
+        }
+
         runCatching { remoteConfig.fetchAndActivate().await() }
         _isAiEnabled.value = remoteConfig.getBoolean(aiEnabledKey)
         _aiAccessMode.value = AiAccessMode.from(remoteConfig.getString(aiAccessModeKey))

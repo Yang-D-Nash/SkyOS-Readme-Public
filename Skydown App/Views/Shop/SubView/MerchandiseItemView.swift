@@ -116,6 +116,7 @@ struct MerchandiseItemView: View {
                 }
                 .buttonStyle(.plain)
                 .skydownTactileAction()
+                .accessibilityIdentifier("shop.merch.fullscreen.open")
                 .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
@@ -128,11 +129,24 @@ struct MerchandiseItemView: View {
             }
         }
         .fullScreenCover(isPresented: $showingFullscreenGallery) {
-            MerchandiseFullscreenGalleryView(
-                itemName: item.name,
-                imageURLs: displayImageURLs,
-                selectedImageIndex: $selectedImageIndex
-            )
+            NavigationStack {
+                MerchandiseFullscreenGalleryView(
+                    itemName: item.name,
+                    imageURLs: displayImageURLs,
+                    selectedImageIndex: $selectedImageIndex
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Schliessen") {
+                            showingFullscreenGallery = false
+                        }
+                        .accessibilityIdentifier("shop.merch.fullscreen.close")
+                    }
+                }
+                .toolbarBackground(.hidden, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
+                .navigationBarTitleDisplayMode(.inline)
+            }
         }
     }
 }
@@ -144,7 +158,7 @@ private struct MerchandiseFullscreenGalleryView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             Color.black
                 .ignoresSafeArea()
 
@@ -169,40 +183,27 @@ private struct MerchandiseFullscreenGalleryView: View {
                     .tag(index)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
-
-            VStack(spacing: 12) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(itemName)
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-
-                        Text("\(selectedImageIndex + 1) von \(max(imageURLs.count, 1))")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.72))
-                    }
-
-                    Spacer()
-
-                    Button(action: { dismiss() }, label: {
-                        Image(systemName: "xmark")
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
-                            .frame(width: 42, height: 42)
-                            .background(Color.white.opacity(0.14))
-                            .clipShape(Circle())
-                    })
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .automatic))
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack {
+                Text(itemName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
 
                 Spacer()
+
+                Text("\(selectedImageIndex + 1) von \(max(imageURLs.count, 1))")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.76))
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Color.black.opacity(0.72))
         }
+        .accessibilityIdentifier("shop.merch.fullscreen.root")
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 
@@ -219,21 +220,12 @@ private struct MerchInfoBadge: View {
     let isAccent: Bool
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                isAccent
-                    ? AppColors.accent(for: colorScheme).opacity(0.14)
-                    : AppColors.secondaryBackground(for: colorScheme).opacity(0.9)
-            )
-            .foregroundColor(
-                isAccent
-                    ? AppColors.accent(for: colorScheme)
-                    : AppColors.secondaryText(for: colorScheme)
-            )
-            .clipShape(Capsule())
+        SkydownMetaLabel(
+            text: text,
+            tint: isAccent
+                ? AppColors.accent(for: colorScheme)
+                : AppColors.secondaryText(for: colorScheme)
+        )
     }
 }
 

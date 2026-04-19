@@ -14,6 +14,7 @@ final class Skydown_AppUITests: XCTestCase {
 
         // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
 
         // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
     }
@@ -146,6 +147,80 @@ final class Skydown_AppUITests: XCTestCase {
         waitForUISettle()
         saveScreenshot(name: "06-settings")
     }
+
+    @MainActor
+    func testMerchFullscreenCanBeClosed() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-ui_test_merch_flow"]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        tapTab(app: app, index: 0)
+
+        let shopRoot = app.descendants(matching: .any)["shop.root"].firstMatch
+        XCTAssertTrue(
+            shopRoot.waitForExistence(timeout: 20),
+            "Der Shop-Root sollte fuer den Merch-Flow sichtbar sein."
+        )
+
+        let merchRow = app.descendants(matching: .any)["shop.merch.row"].firstMatch
+        XCTAssertTrue(
+            merchRow.waitForExistence(timeout: 20),
+            "Mindestens ein Merch-Item sollte im UI-Test-Katalog sichtbar sein."
+        )
+        merchRow.tap()
+
+        let detailRoot = app.descendants(matching: .any)["shop.merch.detail.root"].firstMatch
+        XCTAssertTrue(
+            detailRoot.waitForExistence(timeout: 20),
+            "Der Artikel-Screen sollte nach dem Oeffnen erscheinen."
+        )
+
+        let fullscreenButton = app.buttons["shop.merch.fullscreen.open"].firstMatch
+        XCTAssertTrue(
+            fullscreenButton.waitForExistence(timeout: 10),
+            "Der Merch-Artikel sollte einen klaren Vollbild-CTA anbieten."
+        )
+        fullscreenButton.tap()
+
+        let fullscreenRoot = app.descendants(matching: .any)["shop.merch.fullscreen.root"].firstMatch
+        XCTAssertTrue(
+            fullscreenRoot.waitForExistence(timeout: 10),
+            "Der Vollbild-Viewer sollte sichtbar werden."
+        )
+
+        let fullscreenClose = app.descendants(matching: .any)["shop.merch.fullscreen.close"].firstMatch
+        XCTAssertTrue(
+            fullscreenClose.waitForExistence(timeout: 10),
+            "Der Vollbild-Viewer sollte einen expliziten Schliessen-Button haben."
+        )
+        fullscreenClose.tap()
+
+        XCTAssertTrue(
+            waitForNonExistence(of: fullscreenRoot, timeout: 10),
+            "Nach Schliessen des Vollbilds sollte der Viewer verschwinden."
+        )
+        XCTAssertTrue(
+            detailRoot.waitForExistence(timeout: 10),
+            "Nach dem Vollbild muss der Nutzer wieder im Artikel landen."
+        )
+
+        let detailClose = app.buttons["shop.merch.detail.close"].firstMatch
+        XCTAssertTrue(
+            detailClose.waitForExistence(timeout: 10),
+            "Der Artikel-Screen sollte einen klaren Schliessen-Button haben."
+        )
+        detailClose.tap()
+
+        XCTAssertTrue(
+            waitForNonExistence(of: detailRoot, timeout: 10),
+            "Nach dem Schliessen des Artikels sollte der Detail-Screen verschwinden."
+        )
+        XCTAssertTrue(
+            shopRoot.waitForExistence(timeout: 10),
+            "Nach dem Schliessen des Artikels muss der Nutzer wieder im Shop sein."
+        )
+    }
 }
 
 private extension Skydown_AppUITests {
@@ -181,6 +256,13 @@ private extension Skydown_AppUITests {
     @MainActor
     func waitForUISettle() {
         RunLoop.current.run(until: Date().addingTimeInterval(1.8))
+    }
+
+    @MainActor
+    func waitForNonExistence(of element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "exists == false")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
     }
 
     @MainActor

@@ -55,7 +55,7 @@
     <string name="auth_register_google_hint">Sua conta e criada automaticamente no primeiro login Google. O nome de usu&#x00E1;rio informado e aplicado direto.</string>
     <string name="auth_register_legal_version">Versao legal: %1$s</string>
     <string name="auth_register_accept_terms">Aceito os Termos e Condicoes (AGB).</string>
-    <string name="auth_register_accept_privacy">Aceito a Politica de Privacidade.</string>
+    <string name="auth_register_accept_privacy">Aceito a Pol&#x00ED;tica de Privacidade.</string>
     <string name="auth_register_ai_optin">Ativar IA para minha conta (pode ser alterado depois em Configuracoes).</string>
     <string name="auth_register_open_terms">Abrir AGB</string>
     <string name="auth_register_open_privacy">Abrir Privacidade</string>

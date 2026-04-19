@@ -44,7 +44,7 @@ android {
         applicationId = "com.skydown.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 31
+        versionCode = 35
         versionName = "1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
