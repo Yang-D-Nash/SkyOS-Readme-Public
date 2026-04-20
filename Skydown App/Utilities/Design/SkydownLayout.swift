@@ -11,15 +11,25 @@ import UIKit
 #endif
 
 enum SkydownLayout {
-    static let screenHorizontalPadding: CGFloat = 16
-    static let screenTopPadding: CGFloat = 10
-    static let screenBottomPadding: CGFloat = 16
-    static let sectionSpacing: CGFloat = 14
-    static let cardPadding: CGFloat = 15
-    static let heroPadding: CGFloat = 18
-    static let cardCornerRadius: CGFloat = 24
-    static let heroCornerRadius: CGFloat = 28
-    static let buttonCornerRadius: CGFloat = 18
+    static let screenHorizontalPadding: CGFloat = 18
+    static let screenTopPadding: CGFloat = 12
+    static let screenBottomPadding: CGFloat = 18
+    static let sectionSpacing: CGFloat = 16
+    static let cardPadding: CGFloat = 16
+    static let heroPadding: CGFloat = 20
+    static let cardCornerRadius: CGFloat = 26
+    static let heroCornerRadius: CGFloat = 30
+    static let buttonCornerRadius: CGFloat = 20
+}
+
+enum SkydownMotion {
+    static let screenTransition = Animation.spring(response: 0.54, dampingFraction: 0.88, blendDuration: 0.16)
+    static let emphasizedTransition = Animation.spring(response: 0.42, dampingFraction: 0.82, blendDuration: 0.12)
+}
+
+enum SkydownMotionAxis {
+    case horizontal
+    case vertical
 }
 
 #if canImport(UIKit)
@@ -245,6 +255,97 @@ private struct SkydownSelectionFeedbackModifier<Value: Equatable>: ViewModifier 
     }
 }
 
+private struct SkydownSceneMotionModifier<Trigger: Equatable>: ViewModifier {
+    let trigger: Trigger
+    let axis: SkydownMotionAxis
+    let travel: CGFloat
+    let blurRadius: CGFloat
+    @State private var motionProgress: CGFloat = 1
+    @State private var hasAnimatedInitialAppearance = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(0.76 + (0.24 * motionProgress))
+            .scaleEffect(0.986 + (0.014 * motionProgress))
+            .offset(
+                x: axis == .horizontal ? (1 - motionProgress) * travel : 0,
+                y: axis == .vertical ? (1 - motionProgress) * travel : 0
+            )
+            .blur(radius: (1 - motionProgress) * blurRadius)
+            .animation(SkydownMotion.screenTransition, value: motionProgress)
+            .task {
+                guard !hasAnimatedInitialAppearance else { return }
+                hasAnimatedInitialAppearance = true
+                stageEntrance(from: 0.22)
+            }
+            .onChange(of: trigger) { _, _ in
+                stageEntrance(from: 0.12)
+            }
+    }
+
+    private func stageEntrance(from startingProgress: CGFloat) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            motionProgress = startingProgress
+        }
+
+        Task { @MainActor in
+            await Task.yield()
+            withAnimation(SkydownMotion.screenTransition) {
+                motionProgress = 1
+            }
+        }
+    }
+}
+
+private struct SkydownSceneActivationModifier: ViewModifier {
+    let isActive: Bool
+    let axis: SkydownMotionAxis
+    let travel: CGFloat
+    let blurRadius: CGFloat
+    @State private var motionProgress: CGFloat = 1
+    @State private var hasPrimedInitialState = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(0.78 + (0.22 * motionProgress))
+            .scaleEffect(0.988 + (0.012 * motionProgress))
+            .offset(
+                x: axis == .horizontal ? (1 - motionProgress) * travel : 0,
+                y: axis == .vertical ? (1 - motionProgress) * travel : 0
+            )
+            .blur(radius: (1 - motionProgress) * blurRadius)
+            .animation(SkydownMotion.screenTransition, value: motionProgress)
+            .task {
+                guard !hasPrimedInitialState else { return }
+                hasPrimedInitialState = true
+                if isActive {
+                    stageEntrance(from: 0.18)
+                }
+            }
+            .onChange(of: isActive) { _, newValue in
+                guard newValue else { return }
+                stageEntrance(from: 0.1)
+            }
+    }
+
+    private func stageEntrance(from startingProgress: CGFloat) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            motionProgress = startingProgress
+        }
+
+        Task { @MainActor in
+            await Task.yield()
+            withAnimation(SkydownMotion.screenTransition) {
+                motionProgress = 1
+            }
+        }
+    }
+}
+
 private struct SkydownNavigationChromeModifier: ViewModifier {
     let colorScheme: ColorScheme
 
@@ -272,15 +373,105 @@ private struct SkydownTabBarChromeModifier: ViewModifier {
             content
                 .toolbar(.visible, for: .tabBar)
                 .toolbarColorScheme(colorScheme, for: .tabBar)
+                .background {
+                    SkydownTabBarAppearanceView(colorScheme: colorScheme)
+                        .frame(width: 0, height: 0)
+                }
         } else {
             content
                 .toolbar(.visible, for: .tabBar)
                 .toolbarBackground(.visible, for: .tabBar)
                 .toolbarBackground(.ultraThinMaterial, for: .tabBar)
                 .toolbarColorScheme(colorScheme, for: .tabBar)
+                .background {
+                    SkydownTabBarAppearanceView(colorScheme: colorScheme)
+                        .frame(width: 0, height: 0)
+                }
         }
     }
 }
+
+#if canImport(UIKit)
+private struct SkydownTabBarAppearanceView: UIViewRepresentable {
+    let colorScheme: ColorScheme
+
+    func makeUIView(context: Context) -> UIView {
+        UIView(frame: .zero)
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.shadowColor = UIColor(
+            colorScheme == .dark
+                ? Color.white.opacity(0.04)
+                : Color.black.opacity(0.08)
+        )
+        appearance.backgroundEffect = UIBlurEffect(
+            style: colorScheme == .dark ? .systemChromeMaterialDark : .systemThinMaterialLight
+        )
+        appearance.backgroundColor = UIColor(
+            colorScheme == .dark
+                ? AppColors.cardBackground(for: colorScheme).opacity(0.72)
+                : Color.white.opacity(0.86)
+        )
+        appearance.selectionIndicatorImage = selectionIndicatorImage()
+
+        let selectedColor = UIColor(AppColors.text(for: colorScheme))
+        let normalColor = UIColor(AppColors.secondaryText(for: colorScheme).opacity(0.74))
+        let selectedAttributes: [NSAttributedString.Key: Any] = [
+            .font: AppTypography.tabBarLabelUIFont,
+            .foregroundColor: selectedColor
+        ]
+        let normalAttributes: [NSAttributedString.Key: Any] = [
+            .font: AppTypography.tabBarLabelUIFont,
+            .foregroundColor: normalColor
+        ]
+
+        for itemAppearance in [
+            appearance.stackedLayoutAppearance,
+            appearance.inlineLayoutAppearance,
+            appearance.compactInlineLayoutAppearance
+        ] {
+            itemAppearance.normal.iconColor = normalColor
+            itemAppearance.normal.titleTextAttributes = normalAttributes
+            itemAppearance.selected.iconColor = selectedColor
+            itemAppearance.selected.titleTextAttributes = selectedAttributes
+        }
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        UITabBar.appearance().tintColor = selectedColor
+        UITabBar.appearance().unselectedItemTintColor = normalColor
+    }
+
+    private func selectionIndicatorImage() -> UIImage {
+        let size = CGSize(width: 82, height: 36)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { _ in
+            let rect = CGRect(origin: .zero, size: size).insetBy(dx: 3, dy: 3)
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: 18)
+            UIColor(
+                AppColors.accent(for: colorScheme)
+                    .opacity(colorScheme == .dark ? 0.22 : 0.10)
+            ).setFill()
+            path.fill()
+
+            UIColor(
+                AppColors.accentHighlight(for: colorScheme)
+                    .opacity(colorScheme == .dark ? 0.22 : 0.12)
+            ).setStroke()
+            path.lineWidth = 1
+            path.stroke()
+        }
+
+        return image.resizableImage(
+            withCapInsets: UIEdgeInsets(top: 18, left: 18, bottom: 18, right: 18),
+            resizingMode: .stretch
+        )
+    }
+}
+#endif
 
 private struct SkydownPanelSurfaceModifier: ViewModifier {
     let colorScheme: ColorScheme
@@ -290,7 +481,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
     let shadowYOffset: CGFloat
 
     private var strokeColor: Color {
-        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.15 : 0.14)
+        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.18 : 0.14)
     }
 
     @ViewBuilder
@@ -304,10 +495,10 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                     shape.fill(
                         LinearGradient(
                             colors: [
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.30 : 0.88),
-                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.72),
-                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.10 : 0.08),
-                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.04)
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.42 : 0.88),
+                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.20 : 0.72),
+                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.12 : 0.08),
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.04)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -320,7 +511,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                 }
                 .clipShape(shape)
                 .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.08),
+                    color: .black.opacity(colorScheme == .dark ? 0.12 : 0.08),
                     radius: shadowRadius,
                     y: shadowYOffset
                 )
@@ -334,13 +525,13 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                                 LinearGradient(
                                     colors: [
                                         AppColors.cardBackground(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.56 : 0.92),
+                                            .opacity(colorScheme == .dark ? 0.70 : 0.92),
                                         AppColors.secondaryBackground(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.18 : 0.70),
+                                            .opacity(colorScheme == .dark ? 0.26 : 0.70),
                                         (accent ?? AppColors.accent(for: colorScheme))
-                                            .opacity(colorScheme == .dark ? 0.10 : 0.08),
+                                            .opacity(colorScheme == .dark ? 0.12 : 0.08),
                                         AppColors.accentHighlight(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.06 : 0.04)
+                                            .opacity(colorScheme == .dark ? 0.08 : 0.04)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -354,7 +545,7 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                 }
                 .clipShape(shape)
                 .shadow(
-                    color: .black.opacity(colorScheme == .dark ? 0.16 : 0.08),
+                    color: .black.opacity(colorScheme == .dark ? 0.12 : 0.08),
                     radius: shadowRadius,
                     y: shadowYOffset
                 )
@@ -367,7 +558,22 @@ private struct SkydownCapsuleSurfaceModifier: ViewModifier {
     let accent: Color?
 
     private var strokeColor: Color {
-        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.20 : 0.18)
+        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.24 : 0.18)
+    }
+
+    private var fillGradient: LinearGradient {
+        let resolvedAccent = accent ?? AppColors.accent(for: colorScheme)
+
+        return LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.42),
+                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.56 : 0.88),
+                resolvedAccent.opacity(colorScheme == .dark ? 0.16 : 0.10),
+                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     @ViewBuilder
@@ -377,28 +583,60 @@ private struct SkydownCapsuleSurfaceModifier: ViewModifier {
         if #available(iOS 26.0, *) {
             content
                 .glassEffect(.regular.interactive(false), in: shape)
+                .background {
+                    shape.fill(fillGradient)
+                }
                 .overlay {
                     shape
-                        .stroke(strokeColor, lineWidth: 1)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.32),
+                                    strokeColor,
+                                    (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.30 : 0.22)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
                 }
                 .clipShape(shape)
+                .shadow(
+                    color: (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.16 : 0.08),
+                    radius: 10,
+                    y: 4
+                )
         } else {
             content
                 .background {
                     shape
                         .fill(.ultraThinMaterial)
                         .overlay {
-                            shape.fill(
-                                AppColors.cardBackground(for: colorScheme)
-                                    .opacity(colorScheme == .dark ? 0.32 : 0.78)
-                            )
+                            shape.fill(fillGradient)
                         }
                 }
                 .overlay {
                     shape
-                        .stroke(strokeColor, lineWidth: 1)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.32),
+                                    strokeColor,
+                                    (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.30 : 0.22)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
                 }
                 .clipShape(shape)
+                .shadow(
+                    color: (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.16 : 0.08),
+                    radius: 10,
+                    y: 4
+                )
         }
     }
 }
@@ -464,6 +702,38 @@ extension View {
         modifier(
             SkydownSelectionFeedbackModifier(
                 trigger: trigger
+            )
+        )
+    }
+
+    func skydownSceneMotion<Trigger: Equatable>(
+        trigger: Trigger,
+        axis: SkydownMotionAxis = .horizontal,
+        travel: CGFloat = 24,
+        blurRadius: CGFloat = 8
+    ) -> some View {
+        modifier(
+            SkydownSceneMotionModifier(
+                trigger: trigger,
+                axis: axis,
+                travel: travel,
+                blurRadius: blurRadius
+            )
+        )
+    }
+
+    func skydownSceneActivation(
+        isActive: Bool,
+        axis: SkydownMotionAxis = .horizontal,
+        travel: CGFloat = 24,
+        blurRadius: CGFloat = 7
+    ) -> some View {
+        modifier(
+            SkydownSceneActivationModifier(
+                isActive: isActive,
+                axis: axis,
+                travel: travel,
+                blurRadius: blurRadius
             )
         )
     }

@@ -57,6 +57,14 @@ struct VideoHubView: View {
         return viewModel.videos.firstIndex { $0.id == selectedVideo.id } ?? 0
     }
 
+    private var videoLibraryFeaturedCount: Int {
+        viewModel.videos.filter(\.isHomeFeatured).count
+    }
+
+    private var videoLibraryDirectCount: Int {
+        viewModel.videos.filter { $0.opensOriginalInApp || $0.supportsInlinePlayback }.count
+    }
+
     var body: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
@@ -125,7 +133,7 @@ struct VideoHubView: View {
         .background(
             AppColors.screenGradient(
                 for: colorScheme,
-                secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                secondaryAccent: AppColors.youtube(for: colorScheme)
             )
             .ignoresSafeArea()
         )
@@ -212,7 +220,7 @@ struct VideoHubView: View {
             .background(
                 AppColors.screenGradient(
                     for: colorScheme,
-                    secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                    secondaryAccent: AppColors.youtube(for: colorScheme)
                 )
                 .ignoresSafeArea()
             )
@@ -725,6 +733,10 @@ struct VideoHubView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
+            if !viewModel.isLoadingVideos && !viewModel.videos.isEmpty {
+                videoLibraryPulse
+            }
+
             if viewModel.isLoadingVideos {
                 ProgressView("Videos werden geladen ...")
             } else if viewModel.videos.isEmpty {
@@ -779,6 +791,104 @@ struct VideoHubView: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
+
+    private var videoLibraryPulse: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Video Pulse")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Alle Clips auf einen Blick mit Fokus, Direktzugang und Home-Status, bevor du in die Library springst.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    videoLibraryMetricCard(
+                        title: "Clips",
+                        value: "\(viewModel.videos.count)",
+                        accent: AppColors.accent(for: colorScheme)
+                    )
+                    videoLibraryMetricCard(
+                        title: "Direct",
+                        value: "\(videoLibraryDirectCount)",
+                        accent: AppColors.accentMystic(for: colorScheme)
+                    )
+                    videoLibraryMetricCard(
+                        title: "Home",
+                        value: "\(videoLibraryFeaturedCount)",
+                        accent: AppColors.youtube(for: colorScheme)
+                    )
+                }
+
+                VStack(spacing: 12) {
+                    videoLibraryMetricCard(
+                        title: "Clips",
+                        value: "\(viewModel.videos.count)",
+                        accent: AppColors.accent(for: colorScheme)
+                    )
+                    videoLibraryMetricCard(
+                        title: "Direct",
+                        value: "\(videoLibraryDirectCount)",
+                        accent: AppColors.accentMystic(for: colorScheme)
+                    )
+                    videoLibraryMetricCard(
+                        title: "Home",
+                        value: "\(videoLibraryFeaturedCount)",
+                        accent: AppColors.youtube(for: colorScheme)
+                    )
+                }
+            }
+
+            if let selectedVideo {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Im Fokus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+
+                    Text(selectedVideo.title)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("\(selectedVideo.projectName) • \(selectedVideo.directOpenActionTitle)")
+                        .font(.footnote.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(AppColors.secondaryBackground(for: colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                )
+            }
+        }
+    }
+
+    private func videoLibraryMetricCard(title: String, value: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(accent)
+
+            Text(value)
+                .font(.title3.weight(.black))
+                .foregroundColor(AppColors.text(for: colorScheme))
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(accent.opacity(0.18), lineWidth: 1)
+        )
+    }
 }
 
 struct VideoHubLibraryRow: View {
@@ -793,6 +903,56 @@ struct VideoHubLibraryRow: View {
     let onOpenOriginal: () -> Void
     let onToggleHomeFeatured: () -> Void
     let onDelete: () -> Void
+
+    private var routeTitle: String {
+        if video.opensOriginalInApp {
+            return video.supportsInlinePlayback ? "Direkt in App + Original" : "Original in App"
+        }
+        if video.supportsInlinePlayback {
+            return "Direkt im Reel"
+        }
+        return "Externer Clip"
+    }
+
+    private var routeDetail: String {
+        if isAdmin {
+            if video.isPlayable {
+                return isSelected
+                    ? "Der Clip sitzt gerade im Player und kann sofort gestartet oder gestoppt werden."
+                    : "Ein Tap setzt den Clip in den Player. Von dort bleibt er als Fokus-Video sichtbar."
+            }
+            if video.opensOriginalInApp {
+                return "Das Original bleibt in der App erreichbar, inklusive Schliessen und Rueckweg."
+            }
+            if video.supportsInlinePlayback {
+                return "Der Clip laeuft direkt als In-App-Reel mit schnellem Preview-Flow."
+            }
+            return "Hier bleibt aktuell nur der externe Oeffnen-Flow."
+        }
+
+        if video.opensOriginalInApp {
+            return video.supportsInlinePlayback
+                ? "Ein Tap oeffnet den Clip direkt in der App, ohne Zwischenweg ueber den Browser."
+                : "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Zurueck in die App."
+        }
+        if video.supportsInlinePlayback {
+            return "Ein Tap startet die direkte Videoansicht ohne weiteren Zwischenscreen."
+        }
+        return "Dieses Video oeffnet aktuell ueber einen externen Link."
+    }
+
+    private var routeAccent: Color {
+        switch video.provider {
+        case .youTube:
+            return AppColors.youtube(for: colorScheme)
+        case .mega:
+            return AppColors.accentMystic(for: colorScheme)
+        case .googleDrive:
+            return AppColors.accent(for: colorScheme)
+        case .firebaseStorage, .externalLink:
+            return AppColors.accentMystic(for: colorScheme)
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -842,6 +1002,16 @@ struct VideoHubLibraryRow: View {
                 } else {
                     MusicBadge(text: "Clip", isAccent: false)
                 }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(routeTitle)
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(routeAccent)
+
+                Text(routeDetail)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             if isAdmin {
@@ -1040,7 +1210,7 @@ private struct VideoReelViewer: View {
 
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Skydown Video")
+                        Text("SkyOs Video")
                             .font(.headline.weight(.bold))
                             .foregroundColor(.white)
 
@@ -1141,12 +1311,12 @@ struct VideoEquipmentCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Setup.")
+            Text("Visual Stack fuer Shoot, Edit und Finish.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if items.isEmpty {
-                Text("Noch kein Setup hinterlegt.")
+                Text("Noch kein Equipment hinterlegt.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
@@ -1374,7 +1544,7 @@ struct VideoEquipmentDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    MusicBadge(text: "Setup", isAccent: true)
+                    MusicBadge(text: "Visual Stack", isAccent: true)
 
                     Text(item.title)
                         .font(.title2.weight(.bold))
@@ -1411,7 +1581,7 @@ struct VideoEquipmentDetailSheet: View {
                 .padding(.bottom, 28)
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Setup")
+            .navigationTitle("Equipment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

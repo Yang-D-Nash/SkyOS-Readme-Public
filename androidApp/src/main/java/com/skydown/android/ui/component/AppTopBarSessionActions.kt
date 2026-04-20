@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,18 +38,26 @@ fun RowScope.AppTopBarSessionActions(
     onOpenCart: (() -> Unit)? = null,
     onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: () -> Unit,
+    dense: Boolean = false,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val currentUser = LocalSessionUser.current
     val compactLayout = rememberIsCompactAppLayout()
     val displayName = currentUser?.username?.trim().takeUnless { it.isNullOrBlank() } ?: "Gast"
     val initials = displayName.firstOrNull()?.uppercase() ?: "G"
+    val sessionLabel = if (currentUser == null) "Gastmodus" else "Session"
+    val showsCompactIdentity = dense
+    val sessionAccent = if (currentUser == null) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
+        shape = RoundedCornerShape(if (dense) 18.dp else 20.dp),
+        border = BorderStroke(1.dp, sessionAccent.copy(alpha = 0.20f)),
+        tonalElevation = 6.dp,
         modifier = Modifier.clickable {
             if (currentUser != null) {
                 (onOpenProfile ?: onOpenSettings).invoke()
@@ -59,21 +68,52 @@ fun RowScope.AppTopBarSessionActions(
     ) {
         Row(
             modifier = Modifier.padding(
-                horizontal = if (compactLayout) 8.dp else 10.dp,
-                vertical = if (compactLayout) 5.dp else 7.dp,
+                horizontal = when {
+                    dense && compactLayout -> 6.dp
+                    dense -> 8.dp
+                    compactLayout -> 9.dp
+                    else -> 12.dp
+                },
+                vertical = when {
+                    dense && compactLayout -> 3.dp
+                    dense -> 4.dp
+                    compactLayout -> 6.dp
+                    else -> 8.dp
+                },
             ),
-            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(
+                when {
+                    dense && compactLayout -> 4.dp
+                    compactLayout -> 6.dp
+                    dense -> 5.dp
+                    else -> 8.dp
+                },
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(
+                    when {
+                        dense && compactLayout -> 4.dp
+                        compactLayout -> 6.dp
+                        dense -> 5.dp
+                        else -> 8.dp
+                    },
+                ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (compactLayout) 22.dp else 23.dp)
+                        .size(
+                            when {
+                                dense && compactLayout -> 20.dp
+                                dense -> 22.dp
+                                compactLayout -> 26.dp
+                                else -> 28.dp
+                            },
+                        )
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                        .background(sessionAccent.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (!currentUser?.profileImageURL.isNullOrBlank()) {
@@ -87,20 +127,40 @@ fun RowScope.AppTopBarSessionActions(
                         Text(
                             text = initials,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = sessionAccent,
                             fontWeight = FontWeight.Bold,
                         )
                     }
                 }
 
-                if (!compactLayout) {
-                    Text(
-                        text = displayName,
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                    modifier = Modifier.weight(1f, fill = false),
+                ) {
+                    if (!showsCompactIdentity) {
+                        Text(
+                            text = sessionLabel.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = sessionAccent.copy(alpha = 0.92f),
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (showsCompactIdentity || !compactLayout) {
+                        Text(
+                            text = displayName,
+                            style = if (showsCompactIdentity) {
+                                MaterialTheme.typography.labelMedium
+                            } else {
+                                MaterialTheme.typography.labelMedium
+                            },
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (showsCompactIdentity) 0.90f else 1f),
+                            fontWeight = if (showsCompactIdentity) FontWeight.SemiBold else FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -114,6 +174,8 @@ fun RowScope.AppTopBarSessionActions(
             imageVector = Icons.Default.ShoppingCart,
             contentDescription = "Warenkorb",
             compactLayout = compactLayout,
+            dense = dense,
+            accentColor = MaterialTheme.colorScheme.secondary,
         )
     }
 
@@ -122,6 +184,8 @@ fun RowScope.AppTopBarSessionActions(
         imageVector = Icons.Default.Settings,
         contentDescription = "Einstellungen",
         compactLayout = compactLayout,
+        dense = dense,
+        accentColor = MaterialTheme.colorScheme.tertiary,
     )
 }
 
@@ -131,24 +195,34 @@ private fun SessionIconAction(
     imageVector: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     compactLayout: Boolean,
+    dense: Boolean,
+    accentColor: androidx.compose.ui.graphics.Color,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
         shape = CircleShape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-        tonalElevation = 4.dp,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.20f)),
+        tonalElevation = 6.dp,
         modifier = Modifier.skydownPressable(interactionSource),
     ) {
         IconButton(
             onClick = onClick,
-            modifier = Modifier.size(if (compactLayout) 36.dp else 38.dp),
+            modifier = Modifier.size(
+                when {
+                    dense && compactLayout -> 30.dp
+                    dense -> 32.dp
+                    compactLayout -> 38.dp
+                    else -> 40.dp
+                },
+            ),
             interactionSource = interactionSource,
         ) {
             Icon(
                 imageVector = imageVector,
                 contentDescription = contentDescription,
+                tint = accentColor.copy(alpha = 0.94f),
             )
         }
     }

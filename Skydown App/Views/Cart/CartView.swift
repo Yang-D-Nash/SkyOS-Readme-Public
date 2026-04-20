@@ -117,6 +117,54 @@ struct CartView: View {
             shippingError: shippingQuote.countryCode == "--" ? "Das Lieferland konnte noch nicht eindeutig erkannt werden." : nil
         )
     }
+
+    private var checkoutReadinessTitle: String {
+        if canSubmitOrder { return "Ready" }
+        if authManager.userSession == nil { return "Login" }
+        if !isCheckoutAvailable { return "Pause" }
+        if !isFormValid { return "Form" }
+        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Zahlart" }
+        return "Check"
+    }
+
+    private var checkoutReadinessDetail: String {
+        if canSubmitOrder { return "Direkt abschickbar" }
+        if authManager.userSession == nil { return "Konto fehlt" }
+        if !isCheckoutAvailable { return "Store pausiert" }
+        if !isFormValid { return "Pflichtfelder offen" }
+        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Route waehlen" }
+        return "Kurz pruefen"
+    }
+
+    private var checkoutPaymentTitle: String {
+        if selectedPaymentMethod.isEmpty {
+            return availableCheckoutMethods.isEmpty ? "Rueckkontakt" : "Waehlen"
+        }
+        return selectedPaymentMethod
+    }
+
+    private var checkoutPaymentDetail: String {
+        switch selectedPaymentMethod {
+        case "Stripe":
+            return "Sicherer Live-Checkout"
+        case "Klarna":
+            return "Checkout via Stripe"
+        case "PayPal":
+            return "Manueller Handoff"
+        case "Bankueberweisung":
+            return "Direkt ohne Gateway"
+        default:
+            return availableCheckoutMethods.isEmpty ? "Zahlart folgt per Rueckkontakt" : "Noch keine Auswahl"
+        }
+    }
+
+    private var checkoutTotalTitle: String {
+        pricingSummary.total > 0 ? String(format: "EUR %.2f", pricingSummary.total) : "Leer"
+    }
+
+    private var checkoutTotalDetail: String {
+        pricingSummary.total > 0 ? "\(pricingSummary.zoneLabel) inkl. Versand" : "Warenkorb aktuell leer"
+    }
     
     var body: some View {
         NavigationStack {
@@ -127,6 +175,16 @@ struct CartView: View {
                         itemCount: cartVM.items.count,
                         totalPrice: pricingSummary.total,
                         isLoggedIn: authManager.userSession != nil
+                    )
+
+                    CheckoutPulseCard(
+                        colorScheme: colorScheme,
+                        readinessTitle: checkoutReadinessTitle,
+                        readinessDetail: checkoutReadinessDetail,
+                        paymentTitle: checkoutPaymentTitle,
+                        paymentDetail: checkoutPaymentDetail,
+                        totalTitle: checkoutTotalTitle,
+                        totalDetail: checkoutTotalDetail
                     )
 
                     CartSectionCard(
@@ -551,9 +609,9 @@ struct CartView: View {
         }
         let subject = preferredEmail.map { "Neue Bestellung - \($0)" } ?? "Neue Bestellung"
         let body = """
-        Hallo 22xSky-Team,
+        Hallo SkyOs-Team,
 
-        es wurde eine neue Bestellung in 22xSky vorbereitet.
+        es wurde eine neue Bestellung in SkyOs vorbereitet.
 
         Name: \(name.isEmpty ? "Nicht angegeben" : name)
         E-Mail: \(email.isEmpty ? "Nicht angegeben" : email)
@@ -682,7 +740,7 @@ private struct PricingSummaryCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            Text("Rechnung und Rueckmeldung laufen ueber \(companyName.takeIfNotBlank() ?? "Skydown Entertainment").")
+            Text("Rechnung und Rueckmeldung laufen ueber \(companyName.takeIfNotBlank() ?? "Skydown").")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -735,12 +793,27 @@ private struct PaymentMethodSelectionCard: View {
                     Button {
                         selectedMethod = method
                     } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: selectedMethod == method ? "checkmark.circle.fill" : "circle")
-                                .font(.subheadline.weight(.semibold))
-                            Text(method)
-                                .font(.subheadline.weight(.semibold))
-                                .lineLimit(1)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: selectedMethod == method ? "checkmark.circle.fill" : "circle")
+                                    .font(.subheadline.weight(.semibold))
+                                Text(method)
+                                    .font(.subheadline.weight(.semibold))
+                                    .lineLimit(1)
+                            }
+
+                            Text(paymentRouteDetail(for: method))
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                .lineLimit(2)
+
+                            Text(selectedMethod == method ? "Aktive Route" : "Verfuegbare Route")
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(
+                                    selectedMethod == method
+                                        ? AppColors.accent(for: colorScheme)
+                                        : AppColors.secondaryText(for: colorScheme)
+                                )
                         }
                         .foregroundColor(
                             selectedMethod == method
@@ -778,6 +851,21 @@ private struct PaymentMethodSelectionCard: View {
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
+        }
+    }
+
+    private func paymentRouteDetail(for method: String) -> String {
+        switch method {
+        case "Stripe":
+            return "Kartenzahlung direkt im sicheren Live-Checkout."
+        case "Klarna":
+            return "Klarna startet ueber den sicheren Stripe-Flow."
+        case "PayPal":
+            return "PayPal bleibt owner-geprueft und wird danach weitergefuehrt."
+        case "Bankueberweisung":
+            return "Direkt und ohne Gateway-Kosten mit hinterlegten Kontodaten."
+        default:
+            return "Zahlungsroute fuer diese Bestellung."
         }
     }
 }
@@ -964,6 +1052,81 @@ private struct CartHeroCard: View {
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
+        )
+    }
+}
+
+private struct CheckoutPulseCard: View {
+    let colorScheme: ColorScheme
+    let readinessTitle: String
+    let readinessDetail: String
+    let paymentTitle: String
+    let paymentDetail: String
+    let totalTitle: String
+    let totalDetail: String
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                CartFlowSignalCard(
+                    title: "Status",
+                    value: readinessTitle,
+                    detail: readinessDetail,
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+                CartFlowSignalCard(
+                    title: "Payment",
+                    value: paymentTitle,
+                    detail: paymentDetail,
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+                CartFlowSignalCard(
+                    title: "Total",
+                    value: totalTitle,
+                    detail: totalDetail,
+                    accent: AppColors.spotify(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+            }
+        }
+    }
+}
+
+private struct CartFlowSignalCard: View {
+    let title: String
+    let value: String
+    let detail: String
+    let accent: Color
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(1)
+
+            Text(detail)
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(1)
+        }
+        .frame(width: 150, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(accent.opacity(0.16), lineWidth: 1)
         )
     }
 }

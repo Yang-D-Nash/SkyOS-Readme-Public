@@ -254,7 +254,7 @@ struct MusicView: View {
                     }
                     .accessibilityIdentifier("music.catalog.root")
                     .scrollIndicators(.hidden)
-                    .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+                    .background(musicBackground)
                     .navigationTitle(brand.navigationTitle)
                     .navigationBarTitleDisplayMode(.inline)
                     .skydownNavigationChrome(colorScheme: colorScheme)
@@ -373,6 +373,104 @@ struct MusicView: View {
         }
 
         activePresentedSheet = sheet
+    }
+
+    private var musicBackground: some View {
+        ZStack {
+            AppColors.screenGradient(
+                for: colorScheme,
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
+
+            RadialGradient(
+                colors: [
+                    AppColors.spotify(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.08),
+                    Color.clear
+                ],
+                center: .topTrailing,
+                startRadius: 12,
+                endRadius: 320
+            )
+
+            RadialGradient(
+                colors: [
+                    AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.06),
+                    Color.clear
+                ],
+                center: .bottomLeading,
+                startRadius: 20,
+                endRadius: 300
+            )
+
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.10),
+                    Color.clear,
+                    Color.black.opacity(colorScheme == .dark ? 0.05 : 0.02)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .ignoresSafeArea()
+    }
+
+    private func musicCardBackground(
+        accent: Color,
+        secondaryAccent: Color? = nil,
+        cornerRadius: CGFloat = SkydownLayout.cardCornerRadius
+    ) -> some View {
+        let secondary = secondaryAccent ?? AppColors.accentHighlight(for: colorScheme)
+
+        return RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.985 : 0.995),
+                        AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.76 : 0.68),
+                        accent.opacity(colorScheme == .dark ? 0.12 : 0.07),
+                        secondary.opacity(colorScheme == .dark ? 0.08 : 0.05)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.06 : 0.14),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottom
+                        )
+                    )
+                    .blendMode(.screen)
+            }
+    }
+
+    private func musicCardStroke(
+        accent: Color,
+        secondaryAccent: Color? = nil,
+        cornerRadius: CGFloat = SkydownLayout.cardCornerRadius
+    ) -> some View {
+        let secondary = secondaryAccent ?? AppColors.accentHighlight(for: colorScheme)
+
+        return RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .stroke(
+                LinearGradient(
+                    colors: [
+                        accent.opacity(colorScheme == .dark ? 0.20 : 0.14),
+                        secondary.opacity(colorScheme == .dark ? 0.14 : 0.10),
+                        Color.white.opacity(colorScheme == .dark ? 0.06 : 0.12)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: 1
+            )
     }
 
     private func heroCard(
@@ -510,7 +608,24 @@ struct MusicView: View {
             }
             .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.spotify(for: colorScheme))
+            .background(
+                musicCardBackground(
+                    accent: AppColors.spotify(for: colorScheme),
+                    secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                )
+            )
+            .overlay(
+                musicCardStroke(
+                    accent: AppColors.spotify(for: colorScheme),
+                    secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+            .shadow(
+                color: .black.opacity(colorScheme == .dark ? 0.14 : 0.07),
+                radius: 14,
+                y: 8
+            )
         }
     }
 
@@ -624,7 +739,24 @@ struct MusicView: View {
             }
             .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
+            .background(
+                musicCardBackground(
+                    accent: AppColors.accent(for: colorScheme),
+                    secondaryAccent: AppColors.spotify(for: colorScheme)
+                )
+            )
+            .overlay(
+                musicCardStroke(
+                    accent: AppColors.accent(for: colorScheme),
+                    secondaryAccent: AppColors.spotify(for: colorScheme)
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+            .shadow(
+                color: .black.opacity(colorScheme == .dark ? 0.12 : 0.06),
+                radius: 12,
+                y: 7
+            )
         }
     }
 
@@ -643,12 +775,18 @@ struct MusicView: View {
         .padding(.vertical, 11)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.secondaryBackground(for: colorScheme))
+            musicCardBackground(
+                accent: accent,
+                secondaryAccent: AppColors.spotify(for: colorScheme),
+                cornerRadius: 18
+            )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(accent.opacity(0.18), lineWidth: 1)
+            musicCardStroke(
+                accent: accent,
+                secondaryAccent: AppColors.spotify(for: colorScheme),
+                cornerRadius: 18
+            )
         )
     }
 
@@ -728,12 +866,18 @@ struct MusicView: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AppColors.secondaryBackground(for: colorScheme))
+            musicCardBackground(
+                accent: accent,
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
+                cornerRadius: 20
+            )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(accent.opacity(0.18), lineWidth: 1)
+            musicCardStroke(
+                accent: accent,
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
+                cornerRadius: 20
+            )
         )
     }
 
@@ -743,9 +887,30 @@ struct MusicView: View {
                 .font(.headline)
 
             if brand.showsArtistPages {
-                Text("Scroll durch alle Artist-Pages, setz einen Artist in den Fokus und oeffne direkt das passende Profil.")
+                Text("Alle Artists sind direkt anwaehlbar. Nutze die Schnellwahl fuer den direkten Einstieg oder swipe unten durch den Showcase.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                artistMapSection
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Schnellwahl")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    ForEach(artists, id: \.self) { artist in
+                        artistOverviewRow(for: artist)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Swipe Showcase")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Fuer einen schnellen visuellen Durchlauf mit grosser Vorschau.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 12) {
@@ -757,6 +922,7 @@ struct MusicView: View {
                     .padding(.vertical, 2)
                 }
                 .accessibilityIdentifier("music.artists.rail")
+                }
             } else {
                 ForEach(artists, id: \.self) { artist in
                     artistButton(for: artist)
@@ -766,12 +932,286 @@ struct MusicView: View {
         .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .fill(AppColors.cardBackground(for: colorScheme))
+            musicCardBackground(
+                accent: AppColors.accentHighlight(for: colorScheme),
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+            musicCardStroke(
+                accent: AppColors.accentHighlight(for: colorScheme),
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
+        )
+    }
+
+    private var artistMapSection: some View {
+        let liveCount = artists.filter { artistPage(for: $0).hasCustomPresentation }.count
+        let connectedCount = artists.filter { artistReachCount(for: artistPage(for: $0)) > 1 }.count
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Artist Map")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Alle Artists auf einen Blick mit Fokus, Reach und Status. Tippe direkt auf eine Karte fuer den schnellen Wechsel.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    artistMetricCard(title: "Artists", value: "\(artists.count)", accent: AppColors.accent(for: colorScheme))
+                    artistMetricCard(title: "Live Pages", value: "\(liveCount)", accent: AppColors.spotify(for: colorScheme))
+                    artistMetricCard(title: "Connected", value: "\(connectedCount)", accent: AppColors.accentHighlight(for: colorScheme))
+                }
+
+                VStack(spacing: 12) {
+                    artistMetricCard(title: "Artists", value: "\(artists.count)", accent: AppColors.accent(for: colorScheme))
+                    artistMetricCard(title: "Live Pages", value: "\(liveCount)", accent: AppColors.spotify(for: colorScheme))
+                    artistMetricCard(title: "Connected", value: "\(connectedCount)", accent: AppColors.accentHighlight(for: colorScheme))
+                }
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 156), spacing: 12)], spacing: 12) {
+                ForEach(artists, id: \.self) { artist in
+                    artistSignalTile(for: artist)
+                }
+            }
+        }
+    }
+
+    private func artistMetricCard(title: String, value: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(accent)
+
+            Text(value)
+                .font(.title3.weight(.black))
+                .foregroundColor(AppColors.text(for: colorScheme))
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            musicCardBackground(
+                accent: accent,
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
+                cornerRadius: 18
+            )
+        )
+        .overlay(
+            musicCardStroke(
+                accent: accent,
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
+                cornerRadius: 18
+            )
+        )
+    }
+
+    private func artistSignalTile(for artist: String) -> some View {
+        let page = artistPage(for: artist)
+        let isSelected = selectedArtist == artist
+        let statusText = isSelected ? "Im Fokus" : (page.hasCustomPresentation ? "Live" : "Page")
+        let reachText = artistReachSummary(for: page)
+
+        return Button {
+            selectedArtist = artist
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(artist)
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .lineLimit(1)
+
+                        Text(page.tagline ?? "\(brand.artistPageBrand.displayTitle) Artist")
+                            .font(.caption.weight(.medium))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Text(statusText)
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(
+                                    isSelected
+                                    ? AppColors.spotify(for: colorScheme)
+                                    : AppColors.secondaryBackground(for: colorScheme)
+                                )
+                        )
+                }
+
+                HStack(spacing: 8) {
+                    artistSignalPill(text: reachText, accent: AppColors.accent(for: colorScheme))
+                    artistSignalPill(
+                        text: page.hasCustomPresentation ? "Custom Page" : "Direkter Einstieg",
+                        accent: AppColors.spotify(for: colorScheme)
+                    )
+                }
+
+                Text(isSelected ? "Aktuell im Fokus" : "Tippen zum Fokussieren")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(
+                        isSelected
+                        ? AppColors.spotify(for: colorScheme)
+                        : AppColors.secondaryText(for: colorScheme)
+                    )
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                musicCardBackground(
+                    accent: isSelected ? AppColors.spotify(for: colorScheme) : AppColors.accentHighlight(for: colorScheme),
+                    secondaryAccent: AppColors.accent(for: colorScheme),
+                    cornerRadius: 20
+                )
+            )
+            .overlay(
+                musicCardStroke(
+                    accent: isSelected ? AppColors.spotify(for: colorScheme) : AppColors.accentHighlight(for: colorScheme),
+                    secondaryAccent: AppColors.accent(for: colorScheme),
+                    cornerRadius: 20
+                )
+            )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+    }
+
+    private func artistSignalPill(text: String, accent: Color) -> some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundColor(accent)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(accent.opacity(colorScheme == .dark ? 0.18 : 0.12))
+            )
+    }
+
+    private func artistPage(for artist: String) -> ArtistPage {
+        artistPagesStore.page(for: brand.artistPageBrand, artistName: artist)
+    }
+
+    private func artistReachCount(for page: ArtistPage) -> Int {
+        [page.spotifyURL, page.instagramURL, page.youtubeURL]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .count
+    }
+
+    private func artistReachSummary(for page: ArtistPage) -> String {
+        let channels = [
+            page.spotifyURL == nil ? nil : "Spotify",
+            page.instagramURL == nil ? nil : "Instagram",
+            page.youtubeURL == nil ? nil : "YouTube"
+        ]
+            .compactMap { $0 }
+
+        if channels.isEmpty {
+            return "Noch keine Links"
+        }
+
+        return channels.prefix(2).joined(separator: " • ")
+    }
+
+    private func artistOverviewRow(for artist: String) -> some View {
+        let page = artistPage(for: artist)
+        let isSelected = selectedArtist == artist
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(artist)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(1)
+
+                    Text(page.tagline ?? "\(brand.artistPageBrand.displayTitle) Artist")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 8)
+
+                if isSelected {
+                    Text("Im Fokus")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(AppColors.spotify(for: colorScheme))
+                        .clipShape(Capsule())
+                } else if page.hasCustomPresentation {
+                    Text("Live")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(AppColors.accent(for: colorScheme))
+                        .clipShape(Capsule())
+                }
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    selectedArtist = artist
+                } label: {
+                    Label(isSelected ? "Im Fokus" : "Artist waehlen", systemImage: isSelected ? "checkmark.circle.fill" : "music.mic")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .background(AppColors.accent(for: colorScheme))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+
+                Button {
+                    selectedArtist = artist
+                    presentSheet(.artistPage)
+                } label: {
+                    Label("Page oeffnen", systemImage: "person.crop.square.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .background(AppColors.spotifySurface(for: colorScheme))
+                .foregroundColor(AppColors.spotify(for: colorScheme))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            musicCardBackground(
+                accent: AppColors.spotify(for: colorScheme),
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
+                cornerRadius: 20
+            )
+        )
+        .overlay(
+            musicCardStroke(
+                accent: AppColors.spotify(for: colorScheme),
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
+                cornerRadius: 20
+            )
         )
     }
 
@@ -828,7 +1268,7 @@ struct MusicView: View {
     }
 
     private func artistPagerCard(for artist: String) -> some View {
-        let page = artistPagesStore.page(for: brand.artistPageBrand, artistName: artist)
+        let page = artistPage(for: artist)
         let isSelected = selectedArtist == artist
         let openArtistPage = {
             selectedArtist = artist
@@ -869,7 +1309,7 @@ struct MusicView: View {
             }
 
             Text(
-                page.bio ?? "\(artist) hat eine eigene Page mit Songs, Story und den wichtigsten Links."
+                page.bio ?? "\(artist) ist in Sky OS angelegt. Story, Visuals und Links koennen hier live geschaltet werden."
             )
             .font(.footnote)
             .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -940,12 +1380,16 @@ struct MusicView: View {
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .fill(AppColors.secondaryBackground(for: colorScheme))
+            musicCardBackground(
+                accent: AppColors.accentHighlight(for: colorScheme),
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+            musicCardStroke(
+                accent: AppColors.accentHighlight(for: colorScheme),
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
         )
     }
 
@@ -1001,12 +1445,16 @@ struct MusicView: View {
         .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .fill(AppColors.cardBackground(for: colorScheme))
+            musicCardBackground(
+                accent: AppColors.spotify(for: colorScheme),
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+            )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+            musicCardStroke(
+                accent: AppColors.spotify(for: colorScheme),
+                secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+            )
         )
     }
 
@@ -1032,12 +1480,16 @@ struct MusicView: View {
         .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .fill(AppColors.cardBackground(for: colorScheme))
+            musicCardBackground(
+                accent: AppColors.accent(for: colorScheme),
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+            musicCardStroke(
+                accent: AppColors.accent(for: colorScheme),
+                secondaryAccent: AppColors.spotify(for: colorScheme)
+            )
         )
     }
 
@@ -1134,12 +1586,16 @@ struct MusicView: View {
             .padding(SkydownLayout.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                    .fill(AppColors.cardBackground(for: colorScheme))
+                musicCardBackground(
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    secondaryAccent: AppColors.spotify(for: colorScheme)
+                )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                    .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                musicCardStroke(
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    secondaryAccent: AppColors.spotify(for: colorScheme)
+                )
             )
         }
     }

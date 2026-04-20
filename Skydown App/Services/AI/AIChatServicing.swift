@@ -25,7 +25,7 @@ enum AIChatServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "Der 22xSky Bot hat keine gueltige Antwort geliefert."
+            return "Der SkyOs Bot hat keine gueltige Antwort geliefert."
         case .invalidImageData:
             return "Das generierte Visual konnte nicht gelesen werden."
         }

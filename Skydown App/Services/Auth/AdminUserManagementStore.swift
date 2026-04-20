@@ -77,13 +77,17 @@ final class FirestoreAdminUserManagementService: AdminUserManagementServicing {
             "aiVisualRequestsPerDay": max(1, user.aiVisualRequestsPerDay),
             "aiAgentRequestsPerDay": max(1, user.aiAgentRequestsPerDay),
             "aiHistoryRetentionDays": user.resolvedAIHistoryRetentionDays,
-            "canManageMusicCatalog": user.canManageMusic,
-            "canManageVideoCatalog": user.canManageVideos,
-            "canModerateProfiles": user.canModerateUserProfiles,
+            "canManageMusicCatalog": user.canManageMusicCatalog,
+            "canManageVideoCatalog": user.canManageVideoCatalog,
+            "canModerateProfiles": user.canModerateProfiles,
             "updatedAt": FieldValue.serverTimestamp()
         ]
 
-        try await firestore.collection(collectionName).document(canonicalTarget.uid).setData(payload, merge: true)
+        do {
+            try await firestore.collection(collectionName).document(canonicalTarget.uid).setData(payload, merge: true)
+        } catch {
+            throw readableManagedUserUpdateError(error)
+        }
     }
 }
 
@@ -126,6 +130,25 @@ private func readableManagedUserUpdateError(_ error: Error) -> Error {
         return NSError(
             domain: "AdminUserManagementStore",
             code: code.rawValue,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
+    }
+
+    if nsError.domain == FirestoreErrorDomain,
+       let code = FirestoreErrorCode.Code(rawValue: nsError.code) {
+        let message: String
+        switch code {
+        case .permissionDenied:
+            message = "Die neuen Rechte konnten serverseitig nicht gespeichert werden. Bitte die App kurz neu oeffnen und den Save erneut ausfuehren."
+        case .unauthenticated:
+            message = "Bitte neu anmelden und das Konto danach erneut speichern."
+        default:
+            return error
+        }
+
+        return NSError(
+            domain: "AdminUserManagementStore",
+            code: nsError.code,
             userInfo: [NSLocalizedDescriptionKey: message]
         )
     }
@@ -259,7 +282,7 @@ private func sortUsers(lhs: User, rhs: User) -> Bool {
 private func sanitizedManagedUsername(_ username: String?, fallbackEmail: String) -> String {
     normalizedManagedString(username)
         ?? normalizedManagedString(fallbackEmail.split(separator: "@").first.map(String.init))
-        ?? "Skydown User"
+        ?? "SkyOs User"
 }
 
 private func normalizedManagedString(_ value: String?) -> String? {

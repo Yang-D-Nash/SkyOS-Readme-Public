@@ -553,8 +553,8 @@ private fun resolvedUsername(
     val fallbackEmail = authUser.email.orEmpty()
     val candidate = preferredUsername?.trim()?.takeIf { it.isNotEmpty() }
         ?: authUser.displayName?.takeIf { it.isNotBlank() }
-        ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" }
-    return candidate.trim().take(32).trim().ifBlank { "Skydown User" }
+        ?: fallbackEmail.substringBefore("@").ifBlank { "SkyOs User" }
+    return candidate.trim().take(32).trim().ifBlank { "SkyOs User" }
 }
 
 private fun Throwable.toReadableAuthError(): Throwable {

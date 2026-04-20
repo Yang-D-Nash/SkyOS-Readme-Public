@@ -22,7 +22,7 @@
 
     <string name="auth_close">Chiudi</string>
     <string name="auth_login_title">Accedi</string>
-    <string name="auth_login_welcome">Benvenuto in 22xSky</string>
+    <string name="auth_login_welcome">Benvenuto in SkyOs</string>
     <string name="auth_login_subtitle">Accedi per usare il tuo account e gli strumenti creator.</string>
     <string name="auth_login_badge_account">Account</string>
     <string name="auth_login_badge_google">Google</string>

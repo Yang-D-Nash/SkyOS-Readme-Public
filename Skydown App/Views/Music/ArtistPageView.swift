@@ -70,6 +70,21 @@ struct ArtistPageView: View {
         socialLinks.count
     }
 
+    private var artistStateLabel: String {
+        page.hasCustomPresentation ? "Live" : "Draft"
+    }
+
+    private var artistSoundLabel: String {
+        if tracksViewModel.isLoading {
+            return "Sync"
+        }
+        return topTracks.isEmpty ? "Leer" : "\(topTracks.count) Songs"
+    }
+
+    private var artistReachLabel: String {
+        linkCount == 0 ? "Offline" : "\(linkCount) Links"
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -328,6 +343,8 @@ struct ArtistPageView: View {
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
+                artistSessionDeck
+
                 artistHighlightsRow
 
                 if !socialLinks.isEmpty {
@@ -380,8 +397,39 @@ struct ArtistPageView: View {
         )
     }
 
+    private var artistSessionDeck: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ArtistSessionSignalCard(
+                    title: "Status",
+                    value: artistStateLabel,
+                    detail: page.hasCustomPresentation ? "Profil live" : "Noch nicht live",
+                    accent: AppColors.accentHighlight(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+
+                ArtistSessionSignalCard(
+                    title: "Listen",
+                    value: artistSoundLabel,
+                    detail: tracksViewModel.isLoading ? "Tracks werden geladen" : "Direkt im Sound drin",
+                    accent: AppColors.spotify(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+
+                ArtistSessionSignalCard(
+                    title: "Reach",
+                    value: artistReachLabel,
+                    detail: linkCount == 0 ? "Noch keine Weiterleitung" : "Instagram, Spotify, YouTube",
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+            }
+        }
+    }
+
     private var artistCTAButtons: some View {
-        HStack(spacing: 10) {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
             ForEach(socialLinks.prefix(3)) { link in
                 Button {
                     if link.kind == .youtube {
@@ -404,7 +452,7 @@ struct ArtistPageView: View {
                             .lineLimit(1)
                     }
                     .foregroundColor(link.foregroundColor)
-                    .frame(maxWidth: .infinity)
+                    .frame(width: 160)
                     .padding(.vertical, 12)
                     .background(link.backgroundColor)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -413,38 +461,41 @@ struct ArtistPageView: View {
                 .skydownTactileAction()
             }
         }
+        }
     }
 
     private var artistHighlightsRow: some View {
-        HStack(spacing: 10) {
-            ArtistInfoMetric(
-                title: "Artist",
-                value: brand.displayTitle,
-                colorScheme: colorScheme
-            )
-
-            if !tracksViewModel.tracks.isEmpty {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
                 ArtistInfoMetric(
-                    title: "Songs",
-                    value: "\(tracksViewModel.tracks.count)",
+                    title: "Artist",
+                    value: brand.displayTitle,
                     colorScheme: colorScheme
                 )
-            }
 
-            if let latestReleaseText {
-                ArtistInfoMetric(
-                    title: "Neuester Release",
-                    value: latestReleaseText,
-                    colorScheme: colorScheme
-                )
-            }
+                if !tracksViewModel.tracks.isEmpty {
+                    ArtistInfoMetric(
+                        title: "Songs",
+                        value: "\(tracksViewModel.tracks.count)",
+                        colorScheme: colorScheme
+                    )
+                }
 
-            if linkCount > 0 {
-                ArtistInfoMetric(
-                    title: "Links",
-                    value: "\(linkCount)",
-                    colorScheme: colorScheme
-                )
+                if let latestReleaseText {
+                    ArtistInfoMetric(
+                        title: "Neuester Release",
+                        value: latestReleaseText,
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if linkCount > 0 {
+                    ArtistInfoMetric(
+                        title: "Links",
+                        value: "\(linkCount)",
+                        colorScheme: colorScheme
+                    )
+                }
             }
         }
     }
@@ -797,6 +848,43 @@ struct ArtistPageView: View {
         showToast = true
     }
 
+}
+
+private struct ArtistSessionSignalCard: View {
+    let title: String
+    let value: String
+    let detail: String
+    let accent: Color
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(1)
+
+            Text(detail)
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(1)
+        }
+        .frame(width: 136, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(accent.opacity(0.16), lineWidth: 1)
+        )
+    }
 }
 
 private enum ArtistPageEditableImageTarget: String, Identifiable, Equatable {

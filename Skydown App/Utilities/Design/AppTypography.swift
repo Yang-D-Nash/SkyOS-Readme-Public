@@ -4,6 +4,7 @@ import UIKit
 
 enum AppTypography {
     private enum TitleWeight {
+        case regular
         case medium
         case semibold
         case bold
@@ -11,6 +12,8 @@ enum AppTypography {
 
         var postScriptName: String {
             switch self {
+            case .regular:
+                return "Syne-Regular"
             case .medium:
                 return "Syne-Medium"
             case .semibold:
@@ -24,6 +27,8 @@ enum AppTypography {
 
         var fallbackWeight: UIFont.Weight {
             switch self {
+            case .regular:
+                return .regular
             case .medium:
                 return .medium
             case .semibold:
@@ -37,6 +42,8 @@ enum AppTypography {
 
         var fallbackSwiftUIWeight: Font.Weight {
             switch self {
+            case .regular:
+                return .regular
             case .medium:
                 return .medium
             case .semibold:
@@ -63,19 +70,63 @@ enum AppTypography {
     }
 
     static var heroEyebrow: Font {
-        scaledFont(size: 12, relativeTo: .caption, weight: .semibold)
+        scaledFont(size: 12.5, relativeTo: .caption, weight: .bold)
+    }
+
+    static var sectionEyebrow: Font {
+        scaledFont(size: 11.5, relativeTo: .caption, weight: .semibold)
     }
 
     static var heroTitle: Font {
-        scaledFont(size: 30, relativeTo: .largeTitle, weight: .extraBold)
+        scaledFont(size: 34, relativeTo: .largeTitle, weight: .extraBold)
     }
 
     static var sectionTitle: Font {
-        scaledFont(size: 22, relativeTo: .title2, weight: .bold)
+        scaledFont(size: 24, relativeTo: .title2, weight: .bold)
+    }
+
+    static var sectionHeadline: Font {
+        scaledFont(size: 18.5, relativeTo: .headline, weight: .bold)
     }
 
     static var cardTitle: Font {
-        scaledFont(size: 20, relativeTo: .title3, weight: .semibold)
+        scaledFont(size: 21, relativeTo: .title3, weight: .bold)
+    }
+
+    static var body: Font {
+        scaledFont(size: 15.5, relativeTo: .body, weight: .regular)
+    }
+
+    static var bodyStrong: Font {
+        scaledFont(size: 15.5, relativeTo: .body, weight: .semibold)
+    }
+
+    static var bodyCaption: Font {
+        scaledFont(size: 13.5, relativeTo: .caption, weight: .medium)
+    }
+
+    static var buttonLabel: Font {
+        scaledFont(size: 14.5, relativeTo: .subheadline, weight: .semibold)
+    }
+
+    static var metricLabel: Font {
+        scaledFont(size: 16.5, relativeTo: .headline, weight: .bold)
+    }
+
+    static var editorialBody: Font {
+        scaledFont(size: 15.5, relativeTo: .body, weight: .regular)
+    }
+
+    static var editorialCaption: Font {
+        scaledFont(size: 13.5, relativeTo: .caption, weight: .medium)
+    }
+
+    static var editorialFootnote: Font {
+        scaledFont(size: 12.5, relativeTo: .footnote, weight: .medium)
+    }
+
+    static var tabBarLabelUIFont: UIFont {
+        scaledUIFont(size: 11.5, textStyle: .caption1, weight: .medium)
     }
 
     private static func scaledFont(
@@ -117,10 +168,10 @@ enum AppTypography {
         let navigationAppearance = UINavigationBarAppearance()
         navigationAppearance.configureWithTransparentBackground()
         navigationAppearance.titleTextAttributes = [
-            .font: scaledUIFont(size: 20, textStyle: .headline, weight: .bold)
+            .font: scaledUIFont(size: 21, textStyle: .headline, weight: .bold)
         ]
         navigationAppearance.largeTitleTextAttributes = [
-            .font: scaledUIFont(size: 32, textStyle: .largeTitle, weight: .extraBold)
+            .font: scaledUIFont(size: 34, textStyle: .largeTitle, weight: .extraBold)
         ]
 
         UINavigationBar.appearance().standardAppearance = navigationAppearance

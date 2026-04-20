@@ -55,7 +55,7 @@ class AgentClient {
         return when (val data = result.data) {
             is String -> AgentResponse(
                 reply = data.takeIf { it.isNotBlank() }
-                    ?: error("Der 22xSky Agent hat keine Antwort geliefert."),
+                    ?: error("Der SkyOs Agent hat keine Antwort geliefert."),
                 historyRetentionDays = 3,
                 automationTriggered = false,
                 automationAttempted = false,
@@ -64,14 +64,14 @@ class AgentClient {
             )
             is Map<*, *> -> AgentResponse(
                 reply = (data["reply"] as? String)?.takeIf { it.isNotBlank() }
-                    ?: error("Der 22xSky Agent hat keine Antwort geliefert."),
+                    ?: error("Der SkyOs Agent hat keine Antwort geliefert."),
                 historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
                 automationTriggered = data["automationTriggered"] as? Boolean ?: false,
                 automationAttempted = data["automationAttempted"] as? Boolean ?: false,
                 automationMessage = (data["automationMessage"] as? String).orEmpty(),
                 workflowName = (data["workflowName"] as? String).orEmpty(),
             )
-            else -> error("Der 22xSky Agent hat keine Antwort geliefert.")
+            else -> error("Der SkyOs Agent hat keine Antwort geliefert.")
         }
     }
 }

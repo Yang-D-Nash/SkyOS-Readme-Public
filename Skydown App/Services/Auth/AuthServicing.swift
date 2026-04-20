@@ -87,6 +87,8 @@ final class FirebaseAuthService: AuthServicing {
     private let auth: Auth
     private let firestore: Firestore
     private let functions: Functions
+    private var currentUserAccessListener: ListenerRegistration?
+    private var currentUserAccessFingerprint: String?
 
     init(
         auth: Auth = Auth.auth(),
@@ -101,10 +103,18 @@ final class FirebaseAuthService: AuthServicing {
     func observeAuthState(_ onChange: @escaping @MainActor (User?) -> Void) -> () -> Void {
         let handle = auth.addStateDidChangeListener { [weak self] _, firebaseUser in
             guard let self else { return }
+            self.resetCurrentUserAccessObservation()
 
             Task {
                 if let firebaseUser {
+                    let expectedUID = firebaseUser.uid
                     let user = await self.currentSessionUser(for: firebaseUser)
+                    guard self.auth.currentUser?.uid == expectedUID else { return }
+                    self.startCurrentUserAccessObservation(
+                        for: firebaseUser,
+                        baseline: self.sessionAccessFingerprint(for: user),
+                        onChange: onChange
+                    )
                     await onChange(user)
                 } else {
                     await onChange(nil)
@@ -112,8 +122,9 @@ final class FirebaseAuthService: AuthServicing {
             }
         }
 
-        return { [weak auth] in
+        return { [weak self, weak auth] in
             auth?.removeStateDidChangeListener(handle)
+            self?.resetCurrentUserAccessObservation()
         }
     }
 
@@ -641,6 +652,67 @@ final class FirebaseAuthService: AuthServicing {
         }
     }
 
+    private func startCurrentUserAccessObservation(
+        for authUser: FirebaseAuth.User,
+        baseline: String?,
+        onChange: @escaping @MainActor (User?) -> Void
+    ) {
+        resetCurrentUserAccessObservation()
+        currentUserAccessFingerprint = baseline
+        let observedUID = authUser.uid
+
+        currentUserAccessListener = firestore.collection("users").document(observedUID).addSnapshotListener { [weak self] snapshot, error in
+            guard let self else { return }
+            guard error == nil else { return }
+            guard let nextFingerprint = self.sessionAccessFingerprint(from: snapshot) else { return }
+            guard nextFingerprint != self.currentUserAccessFingerprint else { return }
+
+            self.currentUserAccessFingerprint = nextFingerprint
+
+            Task {
+                guard let currentAuthUser = self.auth.currentUser, currentAuthUser.uid == observedUID else { return }
+                try? await self.refreshAuthToken(for: currentAuthUser)
+                let refreshedUser = await self.currentSessionUser(for: currentAuthUser)
+                await onChange(refreshedUser)
+            }
+        }
+    }
+
+    private func resetCurrentUserAccessObservation() {
+        currentUserAccessListener?.remove()
+        currentUserAccessListener = nil
+        currentUserAccessFingerprint = nil
+    }
+
+    private func sessionAccessFingerprint(for user: User?) -> String? {
+        guard let user else { return nil }
+        let userID = user.id?.trimmedNilIfEmpty ?? auth.currentUser?.uid
+        guard let userID else { return nil }
+
+        return [
+            userID,
+            user.role.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            String(user.isAdmin),
+            String(user.canManageMusicCatalog),
+            String(user.canManageVideoCatalog),
+            String(user.canModerateProfiles)
+        ].joined(separator: "|")
+    }
+
+    private func sessionAccessFingerprint(from snapshot: DocumentSnapshot?) -> String? {
+        guard let snapshot, snapshot.exists else { return nil }
+        let data = snapshot.data() ?? [:]
+
+        return [
+            snapshot.documentID,
+            ((data["role"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) ?? "",
+            String((data["isAdmin"] as? Bool) == true),
+            String((data["canManageMusicCatalog"] as? Bool) == true),
+            String((data["canManageVideoCatalog"] as? Bool) == true),
+            String((data["canModerateProfiles"] as? Bool) == true)
+        ].joined(separator: "|")
+    }
+
     private func refreshAuthToken(for authUser: FirebaseAuth.User) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let resumeGate = ContinuationResumeGate()
@@ -849,7 +921,7 @@ final class FirebaseAuthService: AuthServicing {
         let candidate = username?.trimmedNilIfEmpty
             ?? authUserDisplayName?.trimmedNilIfEmpty
             ?? fallbackEmail.split(separator: "@").first.map(String.init)?.trimmedNilIfEmpty
-            ?? "Skydown User"
+            ?? "SkyOs User"
         let trimmedCandidate = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmedCandidate.count <= 32 {

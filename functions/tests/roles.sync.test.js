@@ -276,9 +276,78 @@ test("setUserRoleClaims migriert veraltete UIDs auf aktiven Auth-User per E-Mail
   const activeUser = adminMock._state.documents.get("users/active-uid");
   assert.equal(activeUser.email, "fresh@example.com");
   assert.equal(activeUser.role, "admin");
+  assert.equal(activeUser.quotaPlan, "internal_team");
   assert.equal(activeUser.username, "Fresh");
 
   const staleUser = adminMock._state.documents.get("users/stale-uid");
   assert.equal(staleUser.accountStatus, "migrated");
   assert.equal(staleUser.mergedIntoUid, "active-uid");
+});
+
+test("setUserRoleClaims setzt alte Admin-Defaults ohne aktives Abo auf internal_team zurueck", async () => {
+  const adminMock = createAdminMock({
+    userByUid: {
+      "admin-uid": "admin@example.com",
+    },
+    initialDocs: {
+      "users/admin-uid": {
+        email: "admin@example.com",
+        role: "admin",
+        isAdmin: true,
+        quotaPlan: "creator",
+        aiSubscriptionPlan: "creator",
+        aiSubscriptionStatus: "inactive",
+        aiAccessEnabled: true,
+        aiTextRequestsPerDay: 120,
+        aiVisualRequestsPerDay: 20,
+        aiAgentRequestsPerDay: 70,
+        aiHistoryRetentionDays: 7,
+      },
+    },
+  });
+  const roles = loadRolesWithMockedAdmin(adminMock);
+
+  await roles.setUserRoleClaims({
+    uid: "admin-uid",
+    requestedRole: "admin",
+    updatedByUid: "owner-uid",
+    updatedByEmail: "nash.lioncorna@gmail.com",
+  });
+
+  const adminUser = adminMock._state.documents.get("users/admin-uid");
+  assert.equal(adminUser.quotaPlan, "internal_team");
+});
+
+test("setUserRoleClaims behaelt aktive Creator- oder Studio-Abos fuer Admins", async () => {
+  const adminMock = createAdminMock({
+    userByUid: {
+      "admin-uid": "admin@example.com",
+    },
+    initialDocs: {
+      "users/admin-uid": {
+        email: "admin@example.com",
+        role: "admin",
+        isAdmin: true,
+        quotaPlan: "studio",
+        aiSubscriptionPlan: "studio",
+        aiSubscriptionStatus: "active",
+        aiAccessEnabled: true,
+        aiTextRequestsPerDay: 240,
+        aiVisualRequestsPerDay: 40,
+        aiAgentRequestsPerDay: 140,
+        aiHistoryRetentionDays: 30,
+      },
+    },
+  });
+  const roles = loadRolesWithMockedAdmin(adminMock);
+
+  await roles.setUserRoleClaims({
+    uid: "admin-uid",
+    requestedRole: "admin",
+    updatedByUid: "owner-uid",
+    updatedByEmail: "nash.lioncorna@gmail.com",
+  });
+
+  const adminUser = adminMock._state.documents.get("users/admin-uid");
+  assert.equal(adminUser.quotaPlan, "studio");
 });

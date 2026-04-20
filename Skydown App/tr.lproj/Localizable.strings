@@ -12,7 +12,7 @@
 "agent.queue.toast.queued" = "Cevrim disi kaydedildi. Online olunca otomatik gonderilecek.";
 "agent.queue.toast.sent" = "Kuyruktaki istek basariyla gonderildi.";
 "agent.automation.triggered" = "n8n akisi baslatildi.";
-"auth.login.welcome" = "22xSky'a hos geldin";
+"auth.login.welcome" = "SkyOs'a hos geldin";
 "auth.login.subtitle" = "Hesabina ve uretici araclarina erismek icin giris yap.";
 "auth.login.title" = "Giris yap";
 "auth.email" = "E-posta";

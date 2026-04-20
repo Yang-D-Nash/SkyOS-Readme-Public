@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 
 private const val COMPACT_HEIGHT_THRESHOLD_DP = 760f
 private const val COMPACT_WIDTH_THRESHOLD_DP = 392f
+private const val COMPACT_VISUAL_WIDTH_THRESHOLD_DP = 720f
 
 @Composable
 fun rememberIsCompactHeightLayout(): Boolean {
@@ -30,4 +31,12 @@ fun rememberIsCompactAppLayout(): Boolean {
     val widthDp = with(density) { windowInfo.containerSize.width.toDp().value }
     val heightDp = with(density) { windowInfo.containerSize.height.toDp().value }
     return heightDp <= COMPACT_HEIGHT_THRESHOLD_DP || widthDp <= COMPACT_WIDTH_THRESHOLD_DP
+}
+
+@Composable
+fun rememberUsesCompactVisualDensity(): Boolean {
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    val widthDp = with(density) { windowInfo.containerSize.width.toDp().value }
+    return widthDp <= COMPACT_VISUAL_WIDTH_THRESHOLD_DP
 }

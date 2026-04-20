@@ -46,21 +46,27 @@ fun SkydownCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
+    val colorScheme = MaterialTheme.colorScheme
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
+                elevation = 18.dp,
                 shape = shape,
+                ambientColor = colorScheme.primary.copy(alpha = 0.14f),
+                spotColor = colorScheme.tertiary.copy(alpha = 0.20f),
             )
             .clip(shape)
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.07f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.04f),
+                        Color.White.copy(alpha = 0.12f),
+                        colorScheme.surface.copy(alpha = 0.94f),
+                        colorScheme.surfaceVariant.copy(alpha = 0.50f),
+                        colorScheme.primary.copy(alpha = 0.075f),
+                        colorScheme.tertiary.copy(alpha = 0.045f),
+                        Color.Black.copy(alpha = 0.026f),
                     ),
                 ),
             )
@@ -68,13 +74,15 @@ fun SkydownCard(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = 0.28f),
+                        colorScheme.outline.copy(alpha = 0.34f),
+                        colorScheme.primary.copy(alpha = 0.18f),
+                        colorScheme.tertiary.copy(alpha = 0.12f),
                     ),
                 ),
                 shape = shape,
             )
+            .skydownSheen(accent = colorScheme.primary, alpha = 0.034f)
             .padding(contentPadding),
         content = content,
     )

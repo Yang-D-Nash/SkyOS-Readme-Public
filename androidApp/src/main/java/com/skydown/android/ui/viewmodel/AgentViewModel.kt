@@ -126,7 +126,7 @@ class AgentViewModel : ViewModel() {
         }
         if (!_uiState.value.isAgentEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der 22xSky Agent ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der SkyOs Agent ist gerade deaktiviert.")
             }
             return
         }
@@ -499,9 +499,9 @@ class AgentViewModel : ViewModel() {
         is FirebaseFunctionsException -> when (error.code) {
             FirebaseFunctionsException.Code.NOT_FOUND,
             FirebaseFunctionsException.Code.UNIMPLEMENTED,
-            -> "Der 22xSky Agent ist fuer diese Funktion gerade noch nicht verfuegbar."
-            FirebaseFunctionsException.Code.UNAVAILABLE -> "Der 22xSky Agent ist gerade nicht erreichbar."
-            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Der 22xSky Agent hat zu lange fuer die Antwort gebraucht."
+            -> "Der SkyOs Agent ist fuer diese Funktion gerade noch nicht verfuegbar."
+            FirebaseFunctionsException.Code.UNAVAILABLE -> "Der SkyOs Agent ist gerade nicht erreichbar."
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Der SkyOs Agent hat zu lange fuer die Antwort gebraucht."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges Agent-Limit ist erreicht."
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
@@ -514,10 +514,10 @@ class AgentViewModel : ViewModel() {
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist fuer dein Konto gerade nicht freigeschaltet."
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
-            else -> "Der 22xSky Agent konnte gerade nicht antworten."
+            else -> "Der SkyOs Agent konnte gerade nicht antworten."
         }
 
         else -> error.message?.takeIf { it.isNotBlank() }
-            ?: "Der 22xSky Agent konnte gerade nicht antworten."
+            ?: "Der SkyOs Agent konnte gerade nicht antworten."
     }
 }

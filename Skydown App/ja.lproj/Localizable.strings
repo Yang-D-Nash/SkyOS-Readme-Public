@@ -12,7 +12,7 @@
 "agent.queue.toast.queued" = "オフラインで保存しました。オンライン復帰後に自動送信します。";
 "agent.queue.toast.sent" = "キューのリクエストを送信しました。";
 "agent.automation.triggered" = "n8nワークフローを開始しました。";
-"auth.login.welcome" = "22xSkyへようこそ";
+"auth.login.welcome" = "SkyOsへようこそ";
 "auth.login.subtitle" = "アカウントとクリエイターツールにアクセスするにはサインインしてください。";
 "auth.login.title" = "サインイン";
 "auth.email" = "メール";

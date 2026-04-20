@@ -12,7 +12,7 @@
 "agent.queue.toast.queued" = "Enregistre hors ligne. Envoi automatique des que vous etes en ligne.";
 "agent.queue.toast.sent" = "Demande en file d attente envoyee avec succes.";
 "agent.automation.triggered" = "Workflow n8n demarre.";
-"auth.login.welcome" = "Bienvenue sur 22xSky";
+"auth.login.welcome" = "Bienvenue sur SkyOs";
 "auth.login.subtitle" = "Connectez-vous pour acceder a votre compte et a vos outils createur.";
 "auth.login.title" = "Connexion";
 "auth.email" = "E-mail";

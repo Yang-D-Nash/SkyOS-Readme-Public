@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -108,6 +109,7 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.dismissKeyboardOnTap
+import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
@@ -147,6 +149,7 @@ fun VideoHubScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val compactVisualDensity = rememberUsesCompactVisualDensity()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     val coroutineScope = rememberCoroutineScope()
@@ -317,6 +320,7 @@ fun VideoHubScreen(
                             onOpenCart = onOpenCart,
                             onOpenProfile = onOpenProfile,
                             onOpenSettings = onOpenSettings,
+                            dense = compactVisualDensity,
                         )
                     }
                 },
@@ -366,9 +370,9 @@ fun VideoHubScreen(
                 .background(
                     skydownScreenBrush(
                         primaryColor = DexBlue,
-                        secondaryColor = YouTubeRed,
-                        primaryAlpha = 0.16f,
-                        secondaryAlpha = 0.10f,
+                        secondaryColor = ArenaGold,
+                        primaryAlpha = 0.085f,
+                        secondaryAlpha = 0.055f,
                     ),
                 ),
         ) {
@@ -677,9 +681,9 @@ private fun VideoHubHeroCard(
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY²²" },
+        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Clips, eigene Videos und Collabs im visuellen Skydown-Flow." },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Clips, eigene Videos und Collabs im visuellen SkyOs-Flow." },
         detail = screenHeaderSettings.videoHubDetail.ifBlank {
             if (isAdmin) {
                 "$videoCount Clips und $collabCount Collabs live."
@@ -929,13 +933,13 @@ private fun VideoEquipmentCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
             title = "Equipment & Software",
-            subtitle = "Setup fuer Shoot, Edit und Finish.",
+            subtitle = "Visual Stack fuer Shoot, Edit und Finish.",
             icon = Icons.Default.CameraAlt,
             accent = DexBlue,
-            tag = "SETUP",
+            tag = "STACK",
         )
         Text(
-            text = "Das aktuelle Setup zeigt, womit die Visuals gebaut und veredelt werden.",
+            text = "Das aktuelle Equipment zeigt, womit die Visuals gebaut und veredelt werden.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -943,7 +947,7 @@ private fun VideoEquipmentCard(
 
         if (items.isEmpty()) {
             Text(
-                text = "Noch kein Setup hinterlegt.",
+                text = "Noch kein Equipment hinterlegt.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),
@@ -1048,7 +1052,7 @@ private fun VideoEquipmentRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            VideoPill(text = "Setup", isActive = true)
+            VideoPill(text = "Visual Stack", isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleSmall,
@@ -1082,7 +1086,7 @@ private fun VideoEquipmentDetailSheet(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            VideoPill(text = "Setup", isActive = true)
+            VideoPill(text = "Visual Stack", isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -1157,7 +1161,7 @@ private fun VideoPublicConfigEditorCard(
     SkydownCard(contentPadding = PaddingValues(18.dp)) {
         VideoHubSectionBanner(
             title = "Admin Control",
-            subtitle = "Owner und Video-Admins pflegen hier Setup, Links und Featured Collabs.",
+            subtitle = "Owner und Video-Admins steuern hier Equipment, Links und Featured Collabs.",
             icon = Icons.Default.Sync,
             accent = ArenaRed,
             tag = "ADMIN",
@@ -1185,11 +1189,11 @@ private fun VideoPublicConfigEditorCard(
         }
 
         VideoControlDeckCard(
-            title = "Equipment Setup",
+            title = "Equipment Library",
             subtitle = "Kameras, Tools und Software fuer den visuellen Workflow.",
             icon = Icons.Default.CameraAlt,
             accent = DexBlue,
-            tag = "SETUP",
+            tag = "STACK",
             modifier = Modifier.padding(top = 18.dp),
         ) {
             Column(
@@ -1407,7 +1411,7 @@ private fun ProducedWithArtistRow(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        DexBlueDeep.copy(alpha = 0.92f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
                         FieldMint.copy(alpha = 0.16f),
                         ArenaGold.copy(alpha = 0.10f),
                     ),
@@ -1455,9 +1459,9 @@ private fun ProducedWithArtistRow(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.20f),
+                            Color.Black.copy(alpha = 0.08f),
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.82f),
+                            Color.Black.copy(alpha = 0.56f),
                         ),
                     ),
                 ),
@@ -1476,7 +1480,7 @@ private fun ProducedWithArtistRow(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Color.Black.copy(alpha = 0.32f))
+                        .background(Color.Black.copy(alpha = 0.20f))
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
                     Text(
@@ -1492,7 +1496,7 @@ private fun ProducedWithArtistRow(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(ArenaGold.copy(alpha = 0.28f))
+                        .background(ArenaGold.copy(alpha = 0.22f))
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
                     Text(
@@ -2021,6 +2025,13 @@ private fun VideoLibraryCard(
             modifier = Modifier.padding(top = 8.dp),
         )
 
+        if (uiState.videos.isNotEmpty()) {
+            VideoLibraryOverviewSection(
+                videos = uiState.videos,
+                selectedVideoId = selectedVideoId,
+            )
+        }
+
         when {
             uiState.isLoadingVideos -> {
                 Row(
@@ -2065,6 +2076,161 @@ private fun VideoLibraryCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun VideoLibraryOverviewSection(
+    videos: List<VideoHubItem>,
+    selectedVideoId: String?,
+) {
+    val featuredCount = videos.count { it.isHomeFeatured }
+    val directCount = videos.count { it.opensOriginalInApp || it.supportsInlinePlayback }
+    val focusVideo = videos.firstOrNull { it.id == selectedVideoId } ?: videos.firstOrNull()
+
+    Column(
+        modifier = Modifier.padding(top = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "Video Pulse",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "Alle Clips auf einen Blick mit Fokus, Direktzugang und Home-Status, bevor du in die Library gehst.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+        )
+
+        BoxWithConstraints {
+            val wideMetrics = maxWidth >= 420.dp
+            if (wideMetrics) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VideoLibraryMetricCard(
+                        title = "Clips",
+                        value = videos.size.toString(),
+                        accent = DexBlue,
+                        modifier = Modifier.weight(1f),
+                    )
+                    VideoLibraryMetricCard(
+                        title = "Direct",
+                        value = directCount.toString(),
+                        accent = ArenaRed,
+                        modifier = Modifier.weight(1f),
+                    )
+                    VideoLibraryMetricCard(
+                        title = "Home",
+                        value = featuredCount.toString(),
+                        accent = ArenaGold,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VideoLibraryMetricCard(
+                        title = "Clips",
+                        value = videos.size.toString(),
+                        accent = DexBlue,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    VideoLibraryMetricCard(
+                        title = "Direct",
+                        value = directCount.toString(),
+                        accent = ArenaRed,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    VideoLibraryMetricCard(
+                        title = "Home",
+                        value = featuredCount.toString(),
+                        accent = ArenaGold,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+
+        focusVideo?.let { video ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                videoHubProviderAccent(video).copy(alpha = 0.14f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                            ),
+                        ),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = videoHubProviderAccent(video).copy(alpha = 0.18f),
+                        shape = RoundedCornerShape(18.dp),
+                    )
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "Im Fokus",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = videoHubProviderAccent(video),
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${video.projectName} • ${video.directOpenActionLabel}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoLibraryMetricCard(
+    title: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        accent.copy(alpha = 0.14f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelSmall,
+            color = accent.copy(alpha = 0.88f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Black,
+        )
     }
 }
 
@@ -2172,12 +2338,32 @@ private fun VideoLibraryRow(
                 text = video.providerBadge,
                 isActive = false,
             )
+            VideoPill(
+                text = if (video.opensOriginalInApp) {
+                    if (video.supportsInlinePlayback) "Direkt" else "Original"
+                } else if (video.supportsInlinePlayback) {
+                    "Reel"
+                } else {
+                    "Link"
+                },
+                isActive = video.opensOriginalInApp || video.supportsInlinePlayback,
+            )
             if (isAdmin && video.isHomeFeatured) {
                 VideoPill(text = "Home", isActive = true)
             } else if (!isAdmin) {
                 VideoPill(text = "Clip", isActive = false)
             }
         }
+
+        Text(
+            text = videoLibraryInteractionHint(
+                video = video,
+                isAdmin = isAdmin,
+                isSelected = isSelected,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = videoHubProviderAccent(video).copy(alpha = 0.92f),
+        )
 
         if (isAdmin) {
             if (video.supportsInlinePlayback) {
@@ -2266,6 +2452,41 @@ private fun VideoLibraryRow(
             }
         }
     }
+}
+
+private fun videoLibraryInteractionHint(
+    video: VideoHubItem,
+    isAdmin: Boolean,
+    isSelected: Boolean,
+): String {
+    if (isAdmin) {
+        if (video.isPlayable) {
+            return if (isSelected) {
+                "Der Clip sitzt gerade im Player und bleibt als Fokus-Video oben sichtbar."
+            } else {
+                "Ein Tap laedt den Clip in den Player und macht ihn zum aktuellen Fokus."
+            }
+        }
+        if (video.opensOriginalInApp) {
+            return "Das Original bleibt in der App und fuehrt mit Schliessen sicher zurueck."
+        }
+        if (video.supportsInlinePlayback) {
+            return "Dieser Clip laeuft direkt im In-App-Reel ohne Browser-Zwischenweg."
+        }
+        return "Aktuell bleibt hier nur der externe Oeffnen-Flow."
+    }
+
+    if (video.opensOriginalInApp) {
+        return if (video.supportsInlinePlayback) {
+            "Ein Tap oeffnet den Clip direkt in der App, ohne weiteren Zwischenscreen."
+        } else {
+            "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Rueckweg."
+        }
+    }
+    if (video.supportsInlinePlayback) {
+        return "Ein Tap startet die direkte Videoansicht sofort im Feed-Flow."
+    }
+    return "Dieses Video oeffnet aktuell nur ueber einen externen Link."
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -2485,9 +2706,9 @@ private fun VideoReelViewerDialog(
                         text = videos
                             .getOrNull(pagerState.currentPage)
                             ?.let { video ->
-                                if (video.usesEmbeddedPreview) "Skydown Preview" else "Skydown Reel"
+                                if (video.usesEmbeddedPreview) "SkyOs Preview" else "SkyOs Reel"
                             }
-                            ?: "Skydown Video",
+                            ?: "SkyOs Video",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary,

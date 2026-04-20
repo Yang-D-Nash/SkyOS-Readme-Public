@@ -31,7 +31,7 @@ private enum AIHubMode: String, CaseIterable, Identifiable {
     }
 }
 
-private enum ZweizweiDestination {
+private enum ZweizweiDestination: Equatable {
     case hub
     case catalog
     case beatHub
@@ -57,6 +57,7 @@ struct MainTabView: View {
     @State private var activeModal: MainTabModal?
     @State private var queuedModal: MainTabModal?
     @State private var showsWorkflowWorkspace = false
+    @State private var settingsInitialAdminWorkspaceRawValue: String?
 
     private var preferredScheme: ColorScheme? {
         switch colorScheme {
@@ -138,9 +139,10 @@ struct MainTabView: View {
                         onOpenLogin: { presentModal(.login) },
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
-                        onOpenSettings: { presentModal(.settings) },
+                        onOpenSettings: { presentSettings() },
                         merchandiseService: services.merchandiseService
                     )
+                    .skydownSceneActivation(isActive: selectedTab == .merch, axis: .horizontal, travel: 28)
                 }
                 .tabItem { Label(localized("tabs.merch", "Merch"), systemImage: "bag.fill") }
                 .tag(MainTab.merch)
@@ -149,8 +151,9 @@ struct MainTabView: View {
                     ZweizweiTabView(
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
-                        onOpenSettings: { presentModal(.settings) }
+                        onOpenSettings: { presentSettings() }
                     )
+                    .skydownSceneActivation(isActive: selectedTab == .zweizwei, axis: .horizontal, travel: 28)
                 }
                 .tabItem { Label(localized("tabs.music", "Music"), systemImage: "waveform.circle.fill") }
                 .tag(MainTab.zweizwei)
@@ -159,12 +162,15 @@ struct MainTabView: View {
                     HomeView(
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
-                        onOpenSettings: { presentModal(.settings) },
+                        onOpenSettings: { presentSettings() },
                         onOpenWorkflow: hasAIAccess ? {
-                            showsWorkflowWorkspace = true
-                            selectedTab = .tools
+                            withAnimation(SkydownMotion.screenTransition) {
+                                showsWorkflowWorkspace = true
+                                selectedTab = .tools
+                            }
                         } : nil
                     )
+                    .skydownSceneActivation(isActive: selectedTab == .hub, axis: .horizontal, travel: 28)
                 }
                 .tabItem { Label(localized("tabs.home", "Home"), systemImage: "house.fill") }
                 .tag(MainTab.hub)
@@ -173,8 +179,9 @@ struct MainTabView: View {
                     VideoHubTabView(
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
-                        onOpenSettings: { presentModal(.settings) }
+                        onOpenSettings: { presentSettings() }
                     )
+                    .skydownSceneActivation(isActive: selectedTab == .skydown, axis: .horizontal, travel: 28)
                 }
                 .tabItem { Label(localized("tabs.videos", "Videos"), systemImage: "play.rectangle.fill") }
                 .tag(MainTab.skydown)
@@ -188,8 +195,10 @@ struct MainTabView: View {
                         onOpenCart: { presentModal(.cart) },
                         onOpenLogin: { presentModal(.login) },
                         onOpenProfile: { presentModal(.profile) },
-                        onOpenSettings: { presentModal(.settings) }
+                        onOpenSettings: { presentSettings() },
+                        onOpenAutomationSettings: { presentSettings(initialAdminWorkspaceRawValue: "Automation") }
                     )
+                    .skydownSceneActivation(isActive: selectedTab == .tools, axis: .horizontal, travel: 28)
                 }
                 .tabItem { Label(localized("tabs.tools", "Tools"), systemImage: "sparkles") }
                 .tag(MainTab.tools)
@@ -203,7 +212,9 @@ struct MainTabView: View {
         Binding(
             get: { selectedTab },
             set: { newTab in
-                selectedTab = newTab
+                withAnimation(SkydownMotion.screenTransition) {
+                    selectedTab = newTab
+                }
                 if activeModal == .settings {
                     activeModal = nil
                 }
@@ -226,13 +237,16 @@ struct MainTabView: View {
     private func modalContent(for modal: MainTabModal) -> some View {
         switch modal {
         case .settings:
-            DeferredSettingsPresentation(colorScheme: $colorScheme)
+            DeferredSettingsPresentation(
+                colorScheme: $colorScheme,
+                initialAdminWorkspaceRawValue: settingsInitialAdminWorkspaceRawValue
+            )
         case .profile:
             ProfileView(authManager: services.authManager)
         case .cart:
             CartView(
                 onOpenProfile: { presentModal(.profile) },
-                onOpenSettings: { presentModal(.settings) }
+                onOpenSettings: { presentSettings() }
             )
         case .login:
             LoginView()
@@ -247,12 +261,20 @@ struct MainTabView: View {
             return
         }
 
-        activeModal = modal
+        withAnimation(SkydownMotion.emphasizedTransition) {
+            activeModal = modal
+        }
+    }
+
+    private func presentSettings(initialAdminWorkspaceRawValue: String? = nil) {
+        settingsInitialAdminWorkspaceRawValue = initialAdminWorkspaceRawValue
+        presentModal(.settings)
     }
 }
 
 private struct DeferredSettingsPresentation: View {
     @Binding var colorScheme: String
+    let initialAdminWorkspaceRawValue: String?
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var isReady = false
 
@@ -270,7 +292,10 @@ private struct DeferredSettingsPresentation: View {
     var body: some View {
         Group {
             if isReady {
-                SettingsView(colorScheme: $colorScheme)
+                SettingsView(
+                    colorScheme: $colorScheme,
+                    initialAdminWorkspaceRawValue: initialAdminWorkspaceRawValue
+                )
             } else {
                 ZStack {
                     AppColors.screenGradient(
@@ -325,73 +350,126 @@ struct AppSessionToolbarActions: View {
         String(displayName.prefix(1)).uppercased()
     }
 
+    private var sessionLabel: String {
+        authManager.userSession == nil ? "Gastmodus" : "Session"
+    }
+
+    private var sessionAccent: Color {
+        authManager.userSession == nil
+            ? AppColors.accentMystic(for: colorScheme)
+            : AppColors.accent(for: colorScheme)
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             Button(action: authManager.userSession == nil ? onOpenSettings : (onOpenProfile ?? onOpenSettings)) {
-                HStack(spacing: 8) {
-                    if let profileImageURL = authManager.userSession?.profileImageURL,
-                       let url = URL(string: profileImageURL) {
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
+                HStack(spacing: 10) {
+                    ZStack(alignment: .bottomTrailing) {
+                        if let profileImageURL = authManager.userSession?.profileImageURL,
+                           let url = URL(string: profileImageURL) {
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                profileFallbackAvatar
+                            }
+                            .frame(width: 30, height: 30)
+                            .clipShape(Circle())
+                        } else {
                             profileFallbackAvatar
                         }
-                        .frame(width: 24, height: 24)
-                        .clipShape(Circle())
-                    } else {
-                        profileFallbackAvatar
+
+                        Circle()
+                            .fill(sessionAccent)
+                            .frame(width: 9, height: 9)
+                            .overlay(
+                                Circle()
+                                    .stroke(AppColors.cardBackground(for: colorScheme), lineWidth: 1.5)
+                            )
+                            .offset(x: 2, y: 1)
                     }
 
-                    Text(displayName)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(sessionLabel.uppercased())
+                            .font(.caption2.weight(.bold))
+                            .tracking(0.8)
+                            .foregroundColor(sessionAccent.opacity(0.88))
+
+                        Text(displayName)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .lineLimit(1)
+                    }
+
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.88))
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
             .skydownCapsuleSurface(
                 colorScheme: colorScheme,
-                accent: AppColors.accent(for: colorScheme)
+                accent: sessionAccent
             )
             .buttonStyle(.plain)
             .skydownTactileAction()
 
             if let onOpenCart {
-                Button(action: onOpenCart) {
-                    Image(systemName: "bag.fill")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .padding(9)
-                        .skydownCapsuleSurface(colorScheme: colorScheme)
-                }
-                .skydownTactileAction()
+                SessionToolbarIconButton(
+                    systemName: "bag.fill",
+                    accessibilityID: "app.open_cart",
+                    accent: AppColors.accentHighlight(for: colorScheme),
+                    colorScheme: colorScheme,
+                    action: onOpenCart
+                )
             }
 
-            Button(action: onOpenSettings) {
-                Image(systemName: "gearshape.fill")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                    .padding(9)
-                    .skydownCapsuleSurface(colorScheme: colorScheme)
-            }
-            .accessibilityIdentifier("app.open_settings")
-            .skydownTactileAction()
+            SessionToolbarIconButton(
+                systemName: "gearshape.fill",
+                accessibilityID: "app.open_settings",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                action: onOpenSettings
+            )
         }
     }
 
     private var profileFallbackAvatar: some View {
         ZStack {
             Circle()
-                .fill(AppColors.accent(for: colorScheme).opacity(0.14))
-                .frame(width: 24, height: 24)
+                .fill(sessionAccent.opacity(0.16))
+                .frame(width: 30, height: 30)
 
             Text(initials)
                 .font(.caption.weight(.bold))
-                .foregroundColor(AppColors.accent(for: colorScheme))
+                .foregroundColor(sessionAccent)
         }
+    }
+}
+
+private struct SessionToolbarIconButton: View {
+    let systemName: String
+    let accessibilityID: String
+    let accent: Color
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .padding(10)
+                .skydownCapsuleSurface(
+                    colorScheme: colorScheme,
+                    accent: accent
+                )
+        }
+        .accessibilityIdentifier(accessibilityID)
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 
@@ -483,7 +561,9 @@ private struct ZweizweiTabView: View {
                                     ) {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
-                                        destination = .catalog
+                                        withAnimation(SkydownMotion.screenTransition) {
+                                            destination = .catalog
+                                        }
                                     }
 
                                     HStack(alignment: .top, spacing: 12) {
@@ -496,7 +576,9 @@ private struct ZweizweiTabView: View {
                                             systemImage: "speaker.wave.3.fill",
                                             badges: ["Playback", "Selection", "Flow"]
                                         ) {
-                                            destination = .beatHub
+                                            withAnimation(SkydownMotion.screenTransition) {
+                                                destination = .beatHub
+                                            }
                                         }
 
                                         ShellActionCard(
@@ -508,7 +590,9 @@ private struct ZweizweiTabView: View {
                                             systemImage: "sparkles",
                                             badges: ["Record", "Mix", "Master"]
                                         ) {
-                                            destination = .nicma
+                                            withAnimation(SkydownMotion.screenTransition) {
+                                                destination = .nicma
+                                            }
                                         }
                                     }
                                 }
@@ -526,7 +610,9 @@ private struct ZweizweiTabView: View {
                                     ) {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
-                                        destination = .catalog
+                                        withAnimation(SkydownMotion.screenTransition) {
+                                            destination = .catalog
+                                        }
                                     }
 
                                     ShellActionCard(
@@ -538,7 +624,9 @@ private struct ZweizweiTabView: View {
                                         systemImage: "speaker.wave.3.fill",
                                         badges: ["Playback", "Selection", "Flow"]
                                     ) {
-                                        destination = .beatHub
+                                        withAnimation(SkydownMotion.screenTransition) {
+                                            destination = .beatHub
+                                        }
                                     }
 
                                     ShellActionCard(
@@ -550,7 +638,9 @@ private struct ZweizweiTabView: View {
                                         systemImage: "sparkles",
                                         badges: ["Record", "Mix", "Master"]
                                     ) {
-                                        destination = .nicma
+                                        withAnimation(SkydownMotion.screenTransition) {
+                                            destination = .nicma
+                                        }
                                     }
                                 }
                             }
@@ -592,7 +682,9 @@ private struct ZweizweiTabView: View {
                 onBack: {
                     catalogInitialArtist = nil
                     catalogAutoPresentArtistPage = false
-                    destination = .hub
+                    withAnimation(SkydownMotion.screenTransition) {
+                        destination = .hub
+                    }
                 },
                 onOpenCart: onOpenCart,
                 onOpenProfile: onOpenProfile,
@@ -601,17 +693,22 @@ private struct ZweizweiTabView: View {
         case .beatHub:
             NavigationStack {
                 BeatHubView {
-                    destination = .hub
+                    withAnimation(SkydownMotion.screenTransition) {
+                        destination = .hub
+                    }
                 }
             }
         case .nicma:
             NavigationStack {
                 NicmaProducerView {
-                    destination = .hub
+                    withAnimation(SkydownMotion.screenTransition) {
+                        destination = .hub
+                    }
                     }
                 }
             }
         }
+        .skydownSceneMotion(trigger: destination, axis: .horizontal, travel: 30)
         .skydownSelectionFeedback(trigger: destination)
     }
 }
@@ -771,6 +868,7 @@ private struct AIHubView: View {
     let onOpenLogin: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
+    let onOpenAutomationSettings: () -> Void
     @State private var mode: AIHubMode = .bot
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authManager: AuthManager
@@ -783,7 +881,8 @@ private struct AIHubView: View {
         onOpenCart: @escaping () -> Void,
         onOpenLogin: @escaping () -> Void,
         onOpenProfile: @escaping () -> Void,
-        onOpenSettings: @escaping () -> Void
+        onOpenSettings: @escaping () -> Void,
+        onOpenAutomationSettings: @escaping () -> Void
     ) {
         self.aiChatService = aiChatService
         self.agentChatService = agentChatService
@@ -791,8 +890,25 @@ private struct AIHubView: View {
         self.onOpenLogin = onOpenLogin
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
+        self.onOpenAutomationSettings = onOpenAutomationSettings
         _featureFlags = ObservedObject(wrappedValue: featureFlags)
         _showsWorkflowWorkspace = showsWorkflowWorkspace
+    }
+
+    private var motionState: String {
+        if authManager.userSession == nil {
+            return "login"
+        }
+
+        if !featureFlags.allowsAIAccess(for: authManager.userSession) {
+            return "restricted"
+        }
+
+        if showsWorkflowWorkspace {
+            return "workflow"
+        }
+
+        return "mode-\(mode.rawValue)"
     }
 
     var body: some View {
@@ -801,7 +917,7 @@ private struct AIHubView: View {
                 if authManager.userSession == nil {
                     AIHubLoginCard(
                         colorScheme: colorScheme,
-                        title: featureFlags.aiAccessMode == .adminOnly ? "KI wird vorbereitet" : "KI nur mit Konto",
+                        title: featureFlags.aiAccessMode == .adminOnly ? "KI nur fuer freigegebene Konten" : "KI nur mit Konto",
                         message: featureFlags.aiAccessMessage(for: nil),
                         onOpenLogin: onOpenLogin
                     )
@@ -818,12 +934,16 @@ private struct AIHubView: View {
                         mode: mode,
                         colorScheme: colorScheme,
                         showsWorkflowWorkspace: showsWorkflowWorkspace,
-                        onSelectMode: {
-                            showsWorkflowWorkspace = false
-                            mode = $0
+                        onSelectMode: { newMode in
+                            withAnimation(SkydownMotion.screenTransition) {
+                                showsWorkflowWorkspace = false
+                                mode = newMode
+                            }
                         },
                         onToggleWorkflow: {
-                            showsWorkflowWorkspace.toggle()
+                            withAnimation(SkydownMotion.screenTransition) {
+                                showsWorkflowWorkspace.toggle()
+                            }
                         }
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -833,9 +953,11 @@ private struct AIHubView: View {
                         if showsWorkflowWorkspace {
                             AIWorkflowWorkspaceCard(
                                 colorScheme: colorScheme,
-                                onOpenSettings: onOpenSettings
+                                onOpenSettings: onOpenAutomationSettings
                             ) {
-                                showsWorkflowWorkspace = false
+                                withAnimation(SkydownMotion.screenTransition) {
+                                    showsWorkflowWorkspace = false
+                                }
                             }
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                         } else if mode == .bot {
@@ -853,6 +975,7 @@ private struct AIHubView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .skydownSceneMotion(trigger: motionState, axis: .horizontal, travel: 26)
                 }
             }
             .background(
@@ -1030,7 +1153,7 @@ private struct AIHubCompactHeader: View {
                 HStack(spacing: 6) {
                     Image(systemName: showsWorkflowWorkspace ? "xmark.circle.fill" : "bolt.horizontal.circle.fill")
                         .font(.headline)
-                    Text(showsWorkflowWorkspace ? "Zur KI" : "Automation")
+                    Text(showsWorkflowWorkspace ? "Zur KI" : "Workflow")
                         .font(.subheadline.weight(.semibold))
                 }
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1074,22 +1197,28 @@ private struct AIWorkflowWorkspaceCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Automation")
+            Text("Workflow Cockpit")
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Hier bereitest du n8n-Automationen vor. Die App bleibt normal eingeloggt und der User-Kontext wird serverseitig geprueft an deinen Workflow weitergegeben.")
+            Text("Verbinde Agent, Kontext und Aktionen so, dass auch Laien sofort wissen, was passiert.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
+            VStack(alignment: .leading, spacing: 10) {
+                AIWorkflowStepRow(index: "01", title: "Briefing", detail: "Der Agent macht aus einer Idee einen klaren Plan.", colorScheme: colorScheme)
+                AIWorkflowStepRow(index: "02", title: "Aktion", detail: "Optional wird dein n8n-Workflow mit User-Kontext gestartet.", colorScheme: colorScheme)
+                AIWorkflowStepRow(index: "03", title: "Rueckweg", detail: "Du bleibst in der App und kannst direkt weiterarbeiten.", colorScheme: colorScheme)
+            }
+
             HStack(spacing: 10) {
                 AIHubBadge(text: "n8n", color: AppColors.accentHighlight(for: colorScheme))
-                AIHubBadge(text: "Webhook", color: AppColors.accent(for: colorScheme))
-                AIHubBadge(text: "User-Kontext", color: AppColors.accentMystic(for: colorScheme))
+                AIHubBadge(text: "Agent", color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: "Kontext", color: AppColors.accentMystic(for: colorScheme))
             }
 
             Button(action: onOpenSettings) {
-                Text("Einstellungen oeffnen")
+                Text("Workflow einrichten")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -1113,6 +1242,35 @@ private struct AIWorkflowWorkspaceCard: View {
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+    }
+}
+
+private struct AIWorkflowStepRow: View {
+    let index: String
+    let title: String
+    let detail: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(index)
+                .font(.caption.weight(.bold))
+                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                .frame(width: 38, height: 38)
+                .background(
+                    Circle()
+                        .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+        }
     }
 }
 

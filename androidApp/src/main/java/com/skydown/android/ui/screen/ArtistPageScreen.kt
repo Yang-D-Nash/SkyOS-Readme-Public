@@ -3,6 +3,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -548,6 +550,8 @@ private fun ArtistPageHeroCard(
     latestReleaseText: String?,
     onOpenYouTube: (VideoYouTubeItem) -> Unit,
 ) {
+    val linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() }
+
     SkydownCard(contentPadding = PaddingValues(0.dp)) {
         Box(
             modifier = Modifier
@@ -676,32 +680,58 @@ private fun ArtistPageHeroCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ArtistSessionSignalCard(
+                    title = "Status",
+                    value = if (page.hasCustomPresentation) "Live" else "Draft",
+                    detail = if (page.hasCustomPresentation) "Profil live" else "Noch nicht live",
+                    accent = MaterialTheme.colorScheme.primary,
+                )
+                ArtistSessionSignalCard(
+                    title = "Listen",
+                    value = if (trackCount > 0) "$trackCount Songs" else "Leer",
+                    detail = if (trackCount > 0) "Direkt im Sound drin" else "Noch keine Songs live",
+                    accent = SpotifyGreen,
+                )
+                ArtistSessionSignalCard(
+                    title = "Reach",
+                    value = if (linkCount > 0) "$linkCount Links" else "Offline",
+                    detail = if (linkCount > 0) "Instagram, Spotify, YouTube" else "Noch keine Weiterleitung",
+                    accent = MaterialTheme.colorScheme.secondary,
+                )
+            }
+
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 ArtistMetricCard(
                     title = "Artist",
                     value = brand.displayTitle,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.width(136.dp),
                 )
                 if (trackCount > 0) {
                     ArtistMetricCard(
                         title = "Songs",
                         value = "$trackCount",
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.width(136.dp),
                     )
                 }
                 latestReleaseText?.let {
                     ArtistMetricCard(
                         title = "Neuester Release",
                         value = it,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.width(148.dp),
                     )
                 }
-                val linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() }
                 if (linkCount > 0) {
                     ArtistMetricCard(
                         title = "Links",
                         value = "$linkCount",
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.width(136.dp),
                     )
                 }
             }
@@ -800,7 +830,10 @@ private fun ArtistPageHeroQuickLinks(
         return
     }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         links.forEach { link ->
             Button(
                 onClick = {
@@ -817,7 +850,7 @@ private fun ArtistPageHeroQuickLinks(
                         openExternalLink(context, link.url)
                     }
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(154.dp),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = link.backgroundColor,
@@ -1018,6 +1051,43 @@ private fun ArtistMetricCard(
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun ArtistSessionSignalCard(
+    title: String,
+    value: String,
+    detail: String,
+    accent: Color,
+) {
+    Column(
+        modifier = Modifier
+            .width(136.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f))
+            .padding(horizontal = 12.dp, vertical = 11.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+        Text(
+            text = detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = accent.copy(alpha = 0.86f),
             maxLines = 1,
         )
     }

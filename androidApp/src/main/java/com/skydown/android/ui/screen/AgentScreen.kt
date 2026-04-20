@@ -131,18 +131,21 @@ fun AgentScreen(
 
     Scaffold(
         modifier = if (showTopBar) {
-            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-        } else {
             Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+        } else {
+            Modifier.fillMaxSize()
         },
         containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = if (showTopBar) {
             {
                 TopAppBar(
                     title = {
                         SkydownTopBarTitle(
                             title = "Agent",
-                            subtitle = "Briefings, To-dos, Release-Plaene und Struktur.",
+                            subtitle = "Briefing, Plan, Aktion.",
                         )
                     },
                     colors = skydownTopBarColors(),
@@ -186,8 +189,8 @@ fun AgentScreen(
                     skydownScreenBrush(
                         primaryColor = MaterialTheme.colorScheme.tertiary,
                         secondaryColor = MaterialTheme.colorScheme.primary,
-                        primaryAlpha = 0.08f,
-                        secondaryAlpha = 0.05f,
+                        primaryAlpha = 0.058f,
+                        secondaryAlpha = 0.038f,
                     ),
                 )
         ) {
@@ -283,12 +286,12 @@ private fun AgentEmptyStateHeader() {
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Nutze den Agent fuer Briefings, Shotlists, Release-Plaene und klare naechste Schritte. Schreib direkt unten los oder starte mit einem Prompt.",
+            text = "Starte mit einer Idee. Der Agent macht daraus Plan, To-dos und naechste Schritte.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
         Text(
-            text = "Auch der Agent fuehrt den Verlauf pro Konto weiter, damit Briefings und To-dos anschlussfaehig bleiben.",
+            text = "Verlauf bleibt pro Konto verbunden.",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
         )
@@ -323,12 +326,12 @@ private fun AgentOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "22xSky Agent",
+                    text = "SkyOs Agent",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = if (isEnabled) "X22 Agent aktiv" else "X22 Agent pausiert",
+                    text = if (isEnabled) "SkyOs Agent aktiv" else "SkyOs Agent pausiert",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
@@ -365,7 +368,7 @@ private fun AgentDisabledCard() {
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "X22 Agent pausiert",
+                    text = "SkyOs Agent pausiert",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -462,7 +465,7 @@ private fun AgentMessageBubble(
                 ),
         ) {
             Text(
-                text = if (isUser) "Du" else "X22 Agent",
+                text = if (isUser) "Du" else "SkyOs Agent",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
@@ -479,7 +482,7 @@ private fun AgentMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "X22 Agent plant gerade...",
+                        text = "SkyOs Agent plant gerade...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -503,7 +506,7 @@ private fun AgentMessageBubble(
                     ) {
                         Button(
                             onClick = {
-                                copyAiText(context, "X22 Agent", message.text)
+                                copyAiText(context, "SkyOs Agent", message.text)
                                 onFeedback("Antwort kopiert.", ToastType.Success)
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
@@ -513,7 +516,7 @@ private fun AgentMessageBubble(
 
                         OutlinedButton(
                             onClick = {
-                                shareAiText(context, "X22 Agent", message.text)
+                                shareAiText(context, "SkyOs Agent", message.text)
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {

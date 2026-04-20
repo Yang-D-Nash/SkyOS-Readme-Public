@@ -118,9 +118,6 @@ import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.ui.viewmodel.SettingsViewModel
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserQuotaPlan
-import com.skydown.shared.model.canManageMusic
-import com.skydown.shared.model.canManageVideos
-import com.skydown.shared.model.canModerateUserProfiles
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.isPlatformOwner
 import com.skydown.shared.model.resolvedAiAgentRequestsPerDay
@@ -244,6 +241,7 @@ private fun IconButton(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    initialAdminWorkspaceKey: String? = null,
     onClose: (() -> Unit)? = null,
     onOpenLogin: () -> Unit = {},
     onOpenRegistration: () -> Unit = {},
@@ -382,11 +380,15 @@ fun SettingsScreen(
     val showDeleteAccountDialog = rememberSaveable {
         mutableStateOf(false)
     }
-    var activeAdminWorkspaceKey by rememberSaveable { mutableStateOf(AdminWorkspaceSection.Users.name) }
+    var activeAdminWorkspaceKey by rememberSaveable(initialAdminWorkspaceKey) {
+        mutableStateOf(initialAdminWorkspaceKey ?: AdminWorkspaceSection.Users.name)
+    }
     val activeAdminWorkspace = remember(activeAdminWorkspaceKey) {
         AdminWorkspaceSection.fromSavedKey(activeAdminWorkspaceKey)
     }
-    var showAdminWorkspaceSheet by rememberSaveable { mutableStateOf(false) }
+    var showAdminWorkspaceSheet by rememberSaveable(initialAdminWorkspaceKey) {
+        mutableStateOf(initialAdminWorkspaceKey != null)
+    }
     var pendingHeaderImageTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
     var activeHeaderImageUploadTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
     val visiblePaymentMethodCount = listOf(
@@ -833,7 +835,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     label = { Text("Home Eyebrow") },
-                    placeholder = { Text("z. B. Willkommen bei Skydown") },
+                    placeholder = { Text("z. B. Willkommen bei SkyOs") },
                     singleLine = true,
                 )
 
@@ -1353,7 +1355,7 @@ fun SettingsScreen(
                         uiState.paymentMethods.stripe.enabled,
                     accountHint = stripeAccountHintDraft,
                     accountHintLabel = "Stripe Konto / Workspace",
-                    accountHintPlaceholder = "z. B. Skydown Merch Workspace",
+                    accountHintPlaceholder = "z. B. SkyOs Merch Workspace",
                     onAccountHintChange = { stripeAccountHintDraft = it },
                     onSaveConnection = { viewModel.connectStripe(stripeAccountHintDraft) },
                     onDisconnect = if (uiState.paymentMethods.stripe.connected) {
@@ -1734,7 +1736,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Auth Header Name") },
-                    placeholder = { Text("z. B. X-Skydown-Automation-Key") },
+                    placeholder = { Text("z. B. X-SkyOs-Automation-Key") },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -2626,6 +2628,30 @@ fun SettingsScreen(
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
+                        OwnerCommandCenterCard(
+                            isOwner = uiState.isOwner,
+                            paymentStatus = "$visiblePaymentMethodCount Checkout-Routen",
+                            userStatus = "${uiState.managedUsers.size} Konten",
+                            headerStatus = "${screenHeaderSettings.configuredCount} Header",
+                            aiStatus = if (uiState.aiRuntimeSettings.costGuardEnabled) "Cost Guard aktiv" else "Cost Guard pruefen",
+                            onOpenUsers = {
+                                activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
+                                showAdminWorkspaceSheet = true
+                            },
+                            onOpenPayments = {
+                                activeAdminWorkspaceKey = AdminWorkspaceSection.Payments.name
+                                showAdminWorkspaceSheet = true
+                            },
+                            onOpenHeaders = {
+                                activeAdminWorkspaceKey = AdminWorkspaceSection.Headers.name
+                                showAdminWorkspaceSheet = true
+                            },
+                            onOpenAi = {
+                                activeAdminWorkspaceKey = AdminWorkspaceSection.AiPrompts.name
+                                showAdminWorkspaceSheet = true
+                            },
+                            modifier = Modifier.padding(top = 14.dp),
+                        )
                         OutlinedButton(
                             onClick = onOpenOrders,
                             modifier = Modifier
@@ -2675,7 +2701,7 @@ fun SettingsScreen(
                         SkydownCard(contentPadding = PaddingValues(18.dp)) {
                             SectionHeader("Mein Agent-Service")
                             Text(
-                                text = "Hier hinterlegst du deinen persoenlichen n8n-Workflow, dein Agent-Profil und optional deinen eigenen Manus-Key (nur lokal auf deinem Geraet). Alles ist konto-basiert (`adminConfig/automationN8n_<uid>` + `adminConfig/agentProfile_<uid>`).",
+                                text = "Verbinde n8n, Agent-Skills und optional Manus fuer dein Konto.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -2912,7 +2938,7 @@ fun SettingsScreen(
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
                                 label = { Text("Brandname") },
-                                placeholder = { Text("z. B. 22xSky") },
+                                placeholder = { Text("z. B. SkyOs") },
                                 singleLine = true,
                             )
 
@@ -3548,7 +3574,7 @@ private fun SettingsOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = if (uiState.isLoggedIn) uiState.username else "Skydown Einstellungen",
+                    text = if (uiState.isLoggedIn) uiState.username else "SkyOs Einstellungen",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -3603,6 +3629,165 @@ private fun SettingsOverviewCard(
                 modifier = Modifier.padding(top = 10.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun OwnerCommandCenterCard(
+    isOwner: Boolean,
+    paymentStatus: String,
+    userStatus: String,
+    headerStatus: String,
+    aiStatus: String,
+    onOpenUsers: () -> Unit,
+    onOpenPayments: () -> Unit,
+    onOpenHeaders: () -> Unit,
+    onOpenAi: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.surface,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+                    ),
+                ),
+            )
+            .padding(16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = if (isOwner) "Owner Command Center" else "Owner Command Center gesperrt",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = if (isOwner) {
+                            "Direkte Kontrollpunkte fuer Release, Commerce und KI-Kosten."
+                        } else {
+                            "Nur das feste Owner-Konto kann diese Live-Systeme veraendern."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                }
+
+                SettingsBadge(
+                    text = if (isOwner) "Root aktiv" else "Locked",
+                    icon = if (isOwner) Icons.Default.CheckCircle else Icons.Default.Lock,
+                    isActive = isOwner,
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OwnerCommandSignalButton(
+                    title = "Rollen",
+                    detail = userStatus,
+                    icon = Icons.Default.Person,
+                    enabled = isOwner,
+                    onClick = onOpenUsers,
+                    modifier = Modifier.weight(1f),
+                )
+                OwnerCommandSignalButton(
+                    title = "Zahlungen",
+                    detail = paymentStatus,
+                    icon = Icons.Default.CreditCard,
+                    enabled = isOwner,
+                    onClick = onOpenPayments,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OwnerCommandSignalButton(
+                    title = "Header",
+                    detail = headerStatus,
+                    icon = Icons.Default.Palette,
+                    enabled = isOwner,
+                    onClick = onOpenHeaders,
+                    modifier = Modifier.weight(1f),
+                )
+                OwnerCommandSignalButton(
+                    title = "KI Schutz",
+                    detail = aiStatus,
+                    icon = Icons.Default.Bolt,
+                    enabled = isOwner,
+                    onClick = onOpenAi,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnerCommandSignalButton(
+    title: String,
+    detail: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 0.9f else 0.46f))
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(9.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 0.62f else 0.24f),
+            )
+        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+        )
     }
 }
 
@@ -4348,13 +4533,13 @@ private fun AdminManagedUserCard(
         mutableIntStateOf(user.resolvedAiHistoryRetentionDays)
     }
     var canManageMusicCatalog by rememberSaveable(user.id, user.canManageMusicCatalog) {
-        mutableStateOf(user.canManageMusic)
+        mutableStateOf(user.canManageMusicCatalog)
     }
     var canManageVideoCatalog by rememberSaveable(user.id, user.canManageVideoCatalog) {
-        mutableStateOf(user.canManageVideos)
+        mutableStateOf(user.canManageVideoCatalog)
     }
     var canModerateProfiles by rememberSaveable(user.id, user.canModerateProfiles) {
-        mutableStateOf(user.canModerateUserProfiles)
+        mutableStateOf(user.canModerateProfiles)
     }
     var isSaving by rememberSaveable(user.id) {
         mutableStateOf(false)
@@ -4837,6 +5022,9 @@ private fun AdminManagedUserCard(
             }
             UserRole.Admin -> {
                 selectedQuotaPlan = UserQuotaPlan.InternalTeam.rawValue
+                canManageMusicCatalog = user.canManageMusicCatalog
+                canManageVideoCatalog = user.canManageVideoCatalog
+                canModerateProfiles = user.canModerateProfiles
                 textLimitDraft = UserQuotaPlan.InternalTeam.aiTextRequestsPerDay.toString()
                 visualLimitDraft = UserQuotaPlan.InternalTeam.aiVisualRequestsPerDay.toString()
                 agentLimitDraft = UserQuotaPlan.InternalTeam.aiAgentRequestsPerDay.toString()
@@ -4957,7 +5145,7 @@ private fun openSupportEmail(
         "Support-Anfrage"
     }
     val body = """
-        Hallo 22xSky-Team,
+        Hallo SkyOs-Team,
 
         ich habe folgende Anfrage:
 

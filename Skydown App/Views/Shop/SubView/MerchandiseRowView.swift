@@ -23,11 +23,11 @@ struct MerchandiseRowView: View {
             HStack {
                 if item.hasCuratedMerchCategory {
                     Text(item.merchCategoryTitle)
-                        .font(.subheadline.weight(.semibold))
+                        .font(AppTypography.buttonLabel)
                         .foregroundColor(AppColors.accentHighlight(for: environmentColorScheme))
                 } else {
                     Text("Details")
-                        .font(.subheadline.weight(.semibold))
+                        .font(AppTypography.buttonLabel)
                         .foregroundColor(AppColors.accent(for: environmentColorScheme))
                 }
 
@@ -38,13 +38,13 @@ struct MerchandiseRowView: View {
             }
         }
         .padding(16)
-        .background(AppColors.cardBackground(for: environmentColorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: environmentColorScheme).opacity(0.12), lineWidth: 1)
+        .skydownPanelSurface(
+            colorScheme: environmentColorScheme,
+            accent: AppColors.accentHighlight(for: environmentColorScheme),
+            cornerRadius: 24,
+            shadowRadius: 14,
+            shadowYOffset: 8
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .shadow(color: .black.opacity(environmentColorScheme == .dark ? 0.18 : 0.06), radius: 12, y: 8)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("shop.merch.row")

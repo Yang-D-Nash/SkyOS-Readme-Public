@@ -43,46 +43,6 @@ struct ArtistPage: Identifiable, Equatable {
     }
 }
 
-struct ArtistPageSeed: Identifiable, Equatable {
-    let brand: ArtistPageBrand
-    let artistName: String
-    let tagline: String?
-    let bio: String?
-    let instagramURL: String?
-    let spotifyURL: String?
-    let youtubeURL: String?
-
-    init(
-        brand: ArtistPageBrand,
-        artistName: String,
-        tagline: String? = nil,
-        bio: String? = nil,
-        instagramURL: String? = nil,
-        spotifyURL: String? = nil,
-        youtubeURL: String? = nil
-    ) {
-        self.brand = brand
-        self.artistName = artistName
-        self.tagline = tagline
-        self.bio = bio
-        self.instagramURL = instagramURL
-        self.spotifyURL = spotifyURL
-        self.youtubeURL = youtubeURL
-    }
-
-    var id: String {
-        documentID
-    }
-
-    var slug: String {
-        artistPageSlug(from: artistName)
-    }
-
-    var documentID: String {
-        artistPageDocumentID(brand: brand, artistName: artistName)
-    }
-}
-
 func artistPageSlug(from artistName: String) -> String {
     let normalized = artistName
         .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -102,21 +62,22 @@ func artistPageDocumentID(brand: ArtistPageBrand, artistName: String) -> String 
 }
 
 extension ArtistPage {
-    static func placeholder(
-        seed: ArtistPageSeed,
+    static func draft(
+        brand: ArtistPageBrand,
+        artistName: String,
         timestamp: Date = .now
     ) -> ArtistPage {
         ArtistPage(
-            id: seed.documentID,
-            brand: seed.brand,
-            artistName: seed.artistName,
-            tagline: seed.tagline,
-            bio: seed.bio,
+            id: artistPageDocumentID(brand: brand, artistName: artistName),
+            brand: brand,
+            artistName: artistName,
+            tagline: nil,
+            bio: nil,
             profileImageURL: nil,
             heroImageURL: nil,
-            instagramURL: seed.instagramURL,
-            spotifyURL: seed.spotifyURL,
-            youtubeURL: seed.youtubeURL,
+            instagramURL: nil,
+            spotifyURL: nil,
+            youtubeURL: nil,
             editorUids: [],
             createdAt: timestamp,
             updatedAt: timestamp,

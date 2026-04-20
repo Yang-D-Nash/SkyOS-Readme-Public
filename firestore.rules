@@ -15,8 +15,26 @@ service cloud.firestore {
           : "user";
     }
 
+    function userDocRole() {
+      return currentUserDocExists()
+        && currentUserDoc().role is string
+        && currentUserDoc().role in ["owner", "admin", "subadmin", "user"]
+          ? currentUserDoc().role
+          : (
+            currentUserDocExists() && currentUserDoc().isAdmin == true
+              ? "admin"
+              : claimRole()
+          );
+    }
+
+    function effectiveRole() {
+      return signedIn()
+        ? (isOwnerEmail() ? "owner" : userDocRole())
+        : "user";
+    }
+
     function isOwner() {
-      return signedIn() && (claimRole() == "owner" || isOwnerEmail());
+      return signedIn() && effectiveRole() == "owner";
     }
 
     function isOwnerEmail() {
@@ -27,7 +45,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && claimRole() in ["owner", "admin"];
+      return signedIn() && effectiveRole() in ["owner", "admin"];
     }
 
     function isSelf(uid) {
@@ -44,7 +62,7 @@ service cloud.firestore {
 
     function canManageMusicCatalog() {
       return isOwner() || (
-        claimRole() == "admin"
+        effectiveRole() == "admin"
         && currentUserDocExists()
         && currentUserDoc().canManageMusicCatalog == true
       );
@@ -52,7 +70,7 @@ service cloud.firestore {
 
     function canManageVideoCatalog() {
       return isOwner() || (
-        claimRole() == "admin"
+        effectiveRole() == "admin"
         && currentUserDocExists()
         && currentUserDoc().canManageVideoCatalog == true
       );
@@ -60,7 +78,7 @@ service cloud.firestore {
 
     function canModerateProfiles() {
       return isOwner() || (
-        claimRole() == "admin"
+        effectiveRole() == "admin"
         && currentUserDocExists()
         && currentUserDoc().canModerateProfiles == true
       );
@@ -606,6 +624,7 @@ service cloud.firestore {
         "canManageMusicCatalog",
         "canManageVideoCatalog",
         "canModerateProfiles",
+        "updatedAt",
         "claimsSyncedAt",
         "claimsUpdatedByUid",
         "claimsUpdatedByEmail"
@@ -641,6 +660,7 @@ service cloud.firestore {
       && optionalMapBoolean(request.resource.data, "aiConsentGiven")
       && optionalMapTimestamp(request.resource.data, "aiConsentUpdatedAt")
       && optionalMapString(request.resource.data, "aiConsentSource", 64)
+      && optionalMapTimestamp(request.resource.data, "updatedAt")
       && (
         !request.resource.data.keys().hasAny(["aiConsentGiven"])
         || request.resource.data.aiConsentGiven == request.resource.data.aiAccessEnabled

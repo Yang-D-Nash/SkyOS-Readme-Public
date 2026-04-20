@@ -2,6 +2,7 @@ package com.skydown.android.data
 
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.functions.FirebaseFunctions
@@ -9,9 +10,6 @@ import com.google.firebase.functions.FirebaseFunctionsException
 import com.skydown.android.data.repository.toSharedUser
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
-import com.skydown.shared.model.canManageMusic
-import com.skydown.shared.model.canManageVideos
-import com.skydown.shared.model.canModerateUserProfiles
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.shared.model.resolvedQuotaPlan
 import com.skydown.shared.model.resolvedRole
@@ -74,24 +72,28 @@ class AdminUserManagementRepository(
                 com.skydown.shared.model.UserQuotaPlan.defaultPlanFor(resolvedRole)
             }
 
-            firestore.collection(collectionName).document(canonicalTarget.uid).set(
-                mapOf(
-                    "email" to user.email.trim().lowercase(),
-                    "role" to resolvedRole.rawValue,
-                    "isAdmin" to resolvedRole.hasStaffAccess,
-                    "quotaPlan" to resolvedQuotaPlan.rawValue,
-                    "aiAccessEnabled" to user.aiAccessEnabled,
-                    "aiTextRequestsPerDay" to user.aiTextRequestsPerDay.coerceAtLeast(1),
-                    "aiVisualRequestsPerDay" to user.aiVisualRequestsPerDay.coerceAtLeast(1),
-                    "aiAgentRequestsPerDay" to user.aiAgentRequestsPerDay.coerceAtLeast(1),
-                    "aiHistoryRetentionDays" to user.resolvedAiHistoryRetentionDays,
-                    "canManageMusicCatalog" to user.canManageMusic,
-                    "canManageVideoCatalog" to user.canManageVideos,
-                    "canModerateProfiles" to user.canModerateUserProfiles,
-                    "updatedAt" to FieldValue.serverTimestamp(),
-                ),
-                SetOptions.merge(),
-            ).await()
+            try {
+                firestore.collection(collectionName).document(canonicalTarget.uid).set(
+                    mapOf(
+                        "email" to user.email.trim().lowercase(),
+                        "role" to resolvedRole.rawValue,
+                        "isAdmin" to resolvedRole.hasStaffAccess,
+                        "quotaPlan" to resolvedQuotaPlan.rawValue,
+                        "aiAccessEnabled" to user.aiAccessEnabled,
+                        "aiTextRequestsPerDay" to user.aiTextRequestsPerDay.coerceAtLeast(1),
+                        "aiVisualRequestsPerDay" to user.aiVisualRequestsPerDay.coerceAtLeast(1),
+                        "aiAgentRequestsPerDay" to user.aiAgentRequestsPerDay.coerceAtLeast(1),
+                        "aiHistoryRetentionDays" to user.resolvedAiHistoryRetentionDays,
+                        "canManageMusicCatalog" to user.canManageMusicCatalog,
+                        "canManageVideoCatalog" to user.canManageVideoCatalog,
+                        "canModerateProfiles" to user.canModerateProfiles,
+                        "updatedAt" to FieldValue.serverTimestamp(),
+                    ),
+                    SetOptions.merge(),
+                ).await()
+            } catch (error: FirebaseFirestoreException) {
+                throw error.toReadableManagedUserError()
+            }
         }
     }
 }
@@ -128,6 +130,21 @@ private fun FirebaseFunctionsException.toReadableManagedUserError(): Throwable {
         FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
             "Sicherheitscheck fehlgeschlagen. Bitte die App neu oeffnen und die Aktion auf einem echten Geraet erneut probieren. Bei Debug-Builds muss das App-Check-Debug-Token in Firebase hinterlegt sein."
         FirebaseFunctionsException.Code.UNAUTHENTICATED ->
+            "Bitte neu anmelden und das Konto danach erneut speichern."
+        else -> localizedMessage
+    }
+
+    return IllegalStateException(
+        message?.takeIf { it.isNotBlank() } ?: "Konto konnte nicht gespeichert werden.",
+        this,
+    )
+}
+
+private fun FirebaseFirestoreException.toReadableManagedUserError(): Throwable {
+    val message = when (code) {
+        FirebaseFirestoreException.Code.PERMISSION_DENIED ->
+            "Die neuen Rechte konnten serverseitig nicht gespeichert werden. Bitte die App kurz neu oeffnen und den Save erneut ausfuehren."
+        FirebaseFirestoreException.Code.UNAUTHENTICATED ->
             "Bitte neu anmelden und das Konto danach erneut speichern."
         else -> localizedMessage
     }

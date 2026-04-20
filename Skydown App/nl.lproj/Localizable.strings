@@ -12,7 +12,7 @@
 "agent.queue.toast.queued" = "Offline opgeslagen. Wordt automatisch verzonden zodra je online bent.";
 "agent.queue.toast.sent" = "Wachtrijverzoek succesvol verzonden.";
 "agent.automation.triggered" = "n8n-workflow gestart.";
-"auth.login.welcome" = "Welkom bij 22xSky";
+"auth.login.welcome" = "Welkom bij SkyOs";
 "auth.login.subtitle" = "Meld je aan voor toegang tot je account en creator-tools.";
 "auth.login.title" = "Inloggen";
 "auth.email" = "E-mail";

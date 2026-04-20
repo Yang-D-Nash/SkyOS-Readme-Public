@@ -22,7 +22,7 @@
 
     <string name="auth_close">Sluiten</string>
     <string name="auth_login_title">Inloggen</string>
-    <string name="auth_login_welcome">Welkom bij 22xSky</string>
+    <string name="auth_login_welcome">Welkom bij SkyOs</string>
     <string name="auth_login_subtitle">Meld je aan voor toegang tot je account en creator-tools.</string>
     <string name="auth_login_badge_account">Account</string>
     <string name="auth_login_badge_google">Google</string>

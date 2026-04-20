@@ -17,32 +17,30 @@ private val SyneTitleFontFamily = FontFamily(
     Font(R.font.syne_extrabold, FontWeight.Black),
 )
 
-private val DefaultAppFontFamily = FontFamily.SansSerif
-
 val Typography = Typography(
     headlineLarge = TextStyle(
         fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 30.sp,
-        lineHeight = 34.sp,
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
     ),
     headlineMedium = TextStyle(
         fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 32.sp,
+        fontSize = 27.sp,
+        lineHeight = 31.sp,
     ),
     headlineSmall = TextStyle(
         fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
+        fontSize = 23.sp,
         lineHeight = 28.sp,
     ),
     titleLarge = TextStyle(
         fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
-        lineHeight = 24.sp,
+        lineHeight = 25.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = SyneTitleFontFamily,
@@ -52,25 +50,47 @@ val Typography = Typography(
     ),
     titleSmall = TextStyle(
         fontFamily = SyneTitleFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 21.sp,
     ),
     bodyLarge = TextStyle(
-        fontFamily = DefaultAppFontFamily,
+        fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
-        lineHeight = 22.sp,
+        lineHeight = 21.sp,
     ),
     bodyMedium = TextStyle(
-        fontFamily = DefaultAppFontFamily,
+        fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
+        lineHeight = 19.sp,
+    ),
+    bodySmall = TextStyle(
+        fontFamily = SyneTitleFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
     ),
     labelLarge = TextStyle(
-        fontFamily = DefaultAppFontFamily,
+        fontFamily = SyneTitleFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 13.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.2.sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = SyneTitleFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.18.sp,
+    ),
+    labelSmall = TextStyle(
+        fontFamily = SyneTitleFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.7.sp,
     ),
 )

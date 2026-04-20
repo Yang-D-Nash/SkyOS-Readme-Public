@@ -75,6 +75,30 @@ fun CartScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pricing = cartPricingSummary(uiState)
+    val checkoutReadinessTitle = when {
+        uiState.isSubmitting -> "Senden"
+        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Ready"
+        !uiState.isLoggedIn -> "Login"
+        !(uiState.isStoreOpen || uiState.isAdmin) -> "Pause"
+        !viewModel.isFormValid() -> "Form"
+        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Zahlart"
+        else -> "Check"
+    }
+    val checkoutReadinessDetail = when {
+        uiState.isSubmitting -> "Bestellung wird vorbereitet"
+        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Direkt abschickbar"
+        !uiState.isLoggedIn -> "Konto fehlt"
+        !(uiState.isStoreOpen || uiState.isAdmin) -> "Store pausiert"
+        !viewModel.isFormValid() -> "Pflichtfelder offen"
+        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Route waehlen"
+        else -> "Kurz pruefen"
+    }
+    val checkoutPaymentTitle = uiState.selectedPaymentMethod.ifBlank {
+        if (uiState.paymentMethods.checkoutMethodLabels.isEmpty()) "Rueckkontakt" else "Waehlen"
+    }
+    val checkoutPaymentDetail = paymentRouteDetail(uiState.selectedPaymentMethod.ifBlank { "Rueckkontakt" })
+    val checkoutTotalTitle = if (pricing.total > 0) "EUR ${formatCurrency(pricing.total)}" else "Leer"
+    val checkoutTotalDetail = if (pricing.total > 0) "${pricing.zoneLabel} inkl. Versand" else "Warenkorb aktuell leer"
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         if (uiState.errorMessage != null || uiState.successMessage != null) {
@@ -152,6 +176,17 @@ fun CartScreen(
                         itemCount = uiState.items.size,
                         totalPrice = pricing.total,
                         isLoggedIn = uiState.isLoggedIn,
+                    )
+                }
+
+                item {
+                    CheckoutPulseCard(
+                        readinessTitle = checkoutReadinessTitle,
+                        readinessDetail = checkoutReadinessDetail,
+                        paymentTitle = checkoutPaymentTitle,
+                        paymentDetail = checkoutPaymentDetail,
+                        totalTitle = checkoutTotalTitle,
+                        totalDetail = checkoutTotalDetail,
                     )
                 }
 
@@ -598,7 +633,7 @@ private fun PricingSummaryCard(
             )
         }
         Text(
-            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Skydown Entertainment" }}.",
+            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Skydown" }}.",
             modifier = Modifier.padding(top = 10.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -624,18 +659,45 @@ private fun PaymentMethodSelectionCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             methods.forEach { method ->
-                OutlinedButton(
-                    onClick = { onSelect(method) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
+                val isSelected = selectedMethod == method
+                val content: @Composable () -> Unit = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Top,
                     ) {
-                        Text(method)
-                        Text(if (selectedMethod == method) "Ausgewaehlt" else "Waehlen")
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(method, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = paymentRouteDetail(method),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                            Text(
+                                text = if (isSelected) "Aktive Route" else "Verfuegbare Route",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            )
+                        }
+                    }
+                }
+                if (isSelected) {
+                    FilledTonalButton(
+                        onClick = { onSelect(method) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        content()
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { onSelect(method) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        content()
                     }
                 }
             }
@@ -648,6 +710,80 @@ private fun PaymentMethodSelectionCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         }
+    }
+}
+
+@Composable
+private fun CheckoutPulseCard(
+    readinessTitle: String,
+    readinessDetail: String,
+    paymentTitle: String,
+    paymentDetail: String,
+    totalTitle: String,
+    totalDetail: String,
+) {
+    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+        SectionHeader("Checkout Pulse")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            CheckoutSignalCard(
+                title = "Status",
+                value = readinessTitle,
+                detail = readinessDetail,
+                modifier = Modifier.weight(1f),
+            )
+            CheckoutSignalCard(
+                title = "Payment",
+                value = paymentTitle,
+                detail = paymentDetail,
+                modifier = Modifier.weight(1f),
+            )
+            CheckoutSignalCard(
+                title = "Total",
+                value = totalTitle,
+                detail = totalDetail,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckoutSignalCard(
+    title: String,
+    value: String,
+    detail: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f))
+            .padding(horizontal = 12.dp, vertical = 11.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+        )
+        Text(
+            text = detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            maxLines = 2,
+        )
     }
 }
 
@@ -826,6 +962,17 @@ private fun formatCurrency(value: Double, decimals: Int): String {
     return String.format(Locale.US, "%.${decimals}f", value)
 }
 
+private fun paymentRouteDetail(method: String): String {
+    return when (method) {
+        "Stripe" -> "Sicherer Live-Checkout fuer Karten."
+        "Klarna" -> "Klarna startet ueber den Stripe-Flow."
+        "PayPal" -> "Manueller PayPal-Handoff mit Rueckkontakt."
+        "Bankueberweisung" -> "Direkt und ohne Gateway-Kosten."
+        "Rueckkontakt" -> "Zahlart folgt per Rueckkontakt."
+        else -> "Zahlungsroute fuer diese Bestellung."
+    }
+}
+
 private data class CartPricingSummaryUi(
     val subtotal: Double,
     val shipping: Double,
@@ -904,9 +1051,9 @@ private fun openOrderEmail(
         state.shippingCountry.trim().ifBlank { "Deutschland" },
     ).filter { it.isNotBlank() }.joinToString("\n")
     val body = """
-        Hallo 22xSky-Team,
+        Hallo SkyOs-Team,
 
-        es wurde eine neue Bestellung in 22xSky vorbereitet.
+        es wurde eine neue Bestellung in SkyOs vorbereitet.
 
         Name: ${state.name.ifBlank { "Nicht angegeben" }}
         E-Mail: ${state.email.ifBlank { "Nicht angegeben" }}

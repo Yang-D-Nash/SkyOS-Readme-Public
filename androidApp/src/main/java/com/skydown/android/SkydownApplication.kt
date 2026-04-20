@@ -2,7 +2,6 @@ package com.skydown.android
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
-import android.os.Build
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -29,13 +28,21 @@ class SkydownApplication : Application() {
             }
 
             val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-            val providerFactory = if (isDebuggable && isProbablyEmulator()) {
+            val providerFactory = if (isDebuggable) {
                 debugAppCheckProviderFactory()
             } else {
                 PlayIntegrityAppCheckProviderFactory.getInstance()
             }
 
             FirebaseAppCheck.getInstance().installAppCheckProviderFactory(providerFactory)
+            Log.i(
+                "SkydownApplication",
+                if (isDebuggable) {
+                    "Firebase App Check laeuft im Debug-Provider-Modus."
+                } else {
+                    "Firebase App Check laeuft mit Play Integrity."
+                },
+            )
         }.onFailure { error ->
             Log.e("SkydownApplication", "Firebase App Check konnte nicht initialisiert werden.", error)
         }
@@ -51,26 +58,6 @@ class SkydownApplication : Application() {
         }.getOrElse {
             PlayIntegrityAppCheckProviderFactory.getInstance()
         }
-    }
-
-    private fun isProbablyEmulator(): Boolean {
-        val fingerprint = Build.FINGERPRINT.lowercase()
-        val model = Build.MODEL.lowercase()
-        val manufacturer = Build.MANUFACTURER.lowercase()
-        val brand = Build.BRAND.lowercase()
-        val device = Build.DEVICE.lowercase()
-        val product = Build.PRODUCT.lowercase()
-
-        return fingerprint.startsWith("generic") ||
-            fingerprint.contains("emulator") ||
-            fingerprint.contains("vbox") ||
-            model.contains("emulator") ||
-            model.contains("android sdk built for") ||
-            manufacturer.contains("genymotion") ||
-            (brand.startsWith("generic") && device.startsWith("generic")) ||
-            product.contains("sdk") ||
-            product.contains("emulator") ||
-            product.contains("simulator")
     }
 
     private fun configureFirestoreCache() {

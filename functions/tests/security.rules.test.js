@@ -259,6 +259,74 @@ test("owner und admin duerfen User-Daten lesen, subadmin nicht", async () => {
   await assertFails(getDoc(doc(subadminDb, "users", "alice")));
 });
 
+test("owner darf Staff-Rechte und Limits inklusive updatedAt auf User-Dokumenten speichern", async () => {
+  await seedUser("owner", {
+    email: "nash.lioncorna@gmail.com",
+    isAdmin: true,
+    role: "owner",
+    quotaPlan: "owner_unlimited",
+    aiTextRequestsPerDay: 5000,
+    aiVisualRequestsPerDay: 1200,
+    aiAgentRequestsPerDay: 3000,
+    aiHistoryRetentionDays: 30,
+    canManageMusicCatalog: true,
+    canManageVideoCatalog: true,
+    canModerateProfiles: true,
+  });
+  await seedUser("alice");
+
+  const ownerDb = testEnv.authenticatedContext("owner", {
+    email: "nash.lioncorna@gmail.com",
+    role: "owner",
+  }).firestore();
+
+  await assertSucceeds(updateDoc(doc(ownerDb, "users", "alice"), {
+    role: "admin",
+    isAdmin: true,
+    quotaPlan: "internal_team",
+    aiAccessEnabled: true,
+    aiTextRequestsPerDay: 400,
+    aiVisualRequestsPerDay: 120,
+    aiAgentRequestsPerDay: 240,
+    aiHistoryRetentionDays: 30,
+    canManageMusicCatalog: true,
+    canManageVideoCatalog: false,
+    canModerateProfiles: true,
+    updatedAt: Timestamp.fromDate(new Date("2026-04-20T12:00:00.000Z")),
+  }));
+});
+
+test("admin-Rechte greifen in Firestore auch bei veraltetem role-Claim ueber das User-Dokument", async () => {
+  await seedUser("video-admin", {
+    role: "admin",
+    isAdmin: true,
+    canManageVideoCatalog: true,
+  });
+
+  const staleTokenDb = testEnv.authenticatedContext("video-admin", {role: "user"}).firestore();
+
+  await assertSucceeds(setDoc(doc(staleTokenDb, "videographyHub", "stale-claim-video"), {
+    title: "Stale Claim Video",
+    projectName: "22xSky",
+    email: "video-admin@example.com",
+    notes: "",
+    fileName: "stale-claim-video.mp4",
+    mimeType: "video/mp4",
+    downloadURL: "https://example.com/stale-claim-video.mp4",
+    externalURL: "",
+    embedURL: "",
+    storagePath: "videos/stale-claim-video.mp4",
+    uploaderName: "Video Admin",
+    uploaderEmail: "video-admin@example.com",
+    uploaderID: "video-admin",
+    isPublic: true,
+    isHomeFeatured: false,
+    sourceProvider: "firebase_storage",
+    sourceFileID: "",
+    createdAt: Timestamp.fromDate(new Date("2026-04-20T08:00:00.000Z")),
+  }));
+});
+
 test("subadmin bleibt ausserhalb von Owner- und Admin-Bereichen", async () => {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), "admin", "moderation_queue"), {
@@ -557,6 +625,25 @@ test("owner email darf eigene Asset-Bilder auch ohne owner claim hochladen", asy
         uploadSlotId: "slot_asset_owner_email_001",
         ownerUid: "nash-owner",
       },
+    },
+  ));
+});
+
+test("admin-Rechte greifen im Storage auch bei veraltetem role-Claim ueber das User-Dokument", async () => {
+  await seedUser("video-admin", {
+    role: "admin",
+    isAdmin: true,
+    canManageVideoCatalog: true,
+  });
+
+  const storage = testEnv.authenticatedContext("video-admin", {role: "user"}).storage();
+  const fileRef = ref(storage, "videos/stale-claim-upload.mp4");
+
+  await assertSucceeds(uploadBytes(
+    fileRef,
+    Uint8Array.from([1, 2, 3, 4]),
+    {
+      contentType: "video/mp4",
     },
   ));
 });

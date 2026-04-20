@@ -3,6 +3,7 @@ package com.skydown.android.ui.screen
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
@@ -38,14 +40,11 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -72,16 +71,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.skydown.android.ui.component.SectionHeader
+import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.BrandActionButton
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandHeroMetricCard
+import com.skydown.android.ui.component.BrandPill
+import com.skydown.android.ui.component.BrandSectionBanner
+import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
+import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.AiComposerMode
@@ -99,7 +106,10 @@ fun AiScreen(
     showTopBar: Boolean = true,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val compactLayout = rememberIsCompactAppLayout()
+    val baseCompactLayout = rememberIsCompactAppLayout()
+    val compactVisualDensity = rememberUsesCompactVisualDensity()
+    val compactLayout = baseCompactLayout || compactVisualDensity
+    val contentMaxWidth = if (compactVisualDensity) 620.dp else Dp.Unspecified
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
@@ -139,18 +149,21 @@ fun AiScreen(
 
     Scaffold(
         modifier = if (showTopBar) {
-            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-        } else {
             Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+        } else {
+            Modifier.fillMaxSize()
         },
         containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = if (showTopBar) {
             {
                 TopAppBar(
                     title = {
                         SkydownTopBarTitle(
-                            title = "Bot",
-                            subtitle = "Hooks, Captions, Visuals.",
+                            title = "Atelier",
+                            subtitle = "Private Text- und Visual Direction.",
                         )
                     },
                     colors = skydownTopBarColors(),
@@ -168,6 +181,7 @@ fun AiScreen(
                     textMode = uiState.textMode,
                     isSending = uiState.isSending,
                     compactLayout = compactLayout,
+                    contentMaxWidth = contentMaxWidth,
                     embeddedInTools = !showTopBar,
                     applyBottomSystemInset = showTopBar,
                     onDraftChanged = viewModel::updateDraft,
@@ -194,80 +208,109 @@ fun AiScreen(
                     skydownScreenBrush(
                         primaryColor = MaterialTheme.colorScheme.primary,
                         secondaryColor = MaterialTheme.colorScheme.tertiary,
-                        primaryAlpha = 0.08f,
-                        secondaryAlpha = 0.06f,
+                        primaryAlpha = 0.058f,
+                        secondaryAlpha = 0.038f,
                     ),
                 )
         ) {
-            if (uiState.isAiEnabled && uiState.messages.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                if (uiState.isAiEnabled && uiState.messages.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = contentMaxWidth)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .padding(
+                                start = SkydownUiTokens.screenHorizontalPadding,
+                                top = innerPadding.calculateTopPadding() + if (showTopBar) 2.dp else 0.dp,
+                                end = SkydownUiTokens.screenHorizontalPadding,
+                                bottom = innerPadding.calculateBottomPadding(),
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
+                    ) {
+                        AiCommandHeroCard(compactVisualDensity = compactLayout)
+                        AiSessionStrip(
+                            composerMode = uiState.composerMode,
+                            textMode = uiState.textMode,
+                            messageCount = uiState.messages.size,
+                            compactVisualDensity = compactLayout,
+                        )
+                        QuickPromptCard(
+                            prompts = uiState.quickPrompts,
+                            onPromptSelected = { prompt ->
+                                dismissKeyboard()
+                                viewModel.sendPrompt(prompt)
+                            },
+                            compactLayout = compactLayout,
+                        )
+                        VisualPromptCard(
+                            prompts = uiState.visualPrompts,
+                            onPromptSelected = { prompt ->
+                                dismissKeyboard()
+                                viewModel.generateVisual(prompt)
+                            },
+                            compactLayout = compactLayout,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .widthIn(max = contentMaxWidth)
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        contentPadding = PaddingValues(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = innerPadding.calculateTopPadding() + if (showTopBar) 2.dp else 0.dp,
+                            top = if (showTopBar) {
+                                innerPadding.calculateTopPadding()
+                            } else {
+                                0.dp
+                            },
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = innerPadding.calculateBottomPadding(),
+                            bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
+                                2.dp
+                            } else {
+                                0.dp
+                            },
                         ),
-                    verticalArrangement = Arrangement.Bottom,
-                ) {
-                    AiEmptyStateHeader()
-                    QuickPromptCard(
-                        prompts = uiState.quickPrompts,
-                        onPromptSelected = { prompt ->
-                            dismissKeyboard()
-                            viewModel.sendPrompt(prompt)
-                        },
-                        compactLayout = compactLayout,
-                    )
-                    VisualPromptCard(
-                        prompts = uiState.visualPrompts,
-                        onPromptSelected = { prompt ->
-                            dismissKeyboard()
-                            viewModel.generateVisual(prompt)
-                        },
-                        compactLayout = compactLayout,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = SkydownUiTokens.screenHorizontalPadding,
-                        top = if (showTopBar) {
-                            innerPadding.calculateTopPadding()
+                        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+                    ) {
+                        if (!uiState.isAiEnabled) {
+                            item {
+                                AiDisabledCard()
+                            }
                         } else {
-                            0.dp
-                        },
-                        end = SkydownUiTokens.screenHorizontalPadding,
-                        bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
-                            2.dp
-                        } else {
-                            0.dp
-                        },
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
-                ) {
-                    if (!uiState.isAiEnabled) {
-                        item {
-                            AiDisabledCard()
-                        }
-                    } else {
-                        items(uiState.messages, key = { it.id }) { message ->
-                            AiMessageBubble(
-                                message = message,
-                                compactLayout = compactLayout,
-                                onFeedback = { messageText, type ->
-                                    localFeedbackMessage = messageText
-                                    localFeedbackType = type
-                                },
-                            )
-                        }
+                            item {
+                                AiOverviewCard(isEnabled = true)
+                            }
 
-                        item {
-                            Spacer(modifier = Modifier.height(2.dp))
+                            item {
+                                AiSessionStrip(
+                                    composerMode = uiState.composerMode,
+                                    textMode = uiState.textMode,
+                                    messageCount = uiState.messages.size,
+                                    compactVisualDensity = compactLayout,
+                                )
+                            }
+
+                            items(uiState.messages, key = { it.id }) { message ->
+                                AiMessageBubble(
+                                    message = message,
+                                    compactLayout = compactLayout,
+                                    onFeedback = { messageText, type ->
+                                        localFeedbackMessage = messageText
+                                        localFeedbackType = type
+                                    },
+                                )
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(2.dp))
+                            }
                         }
                     }
                 }
@@ -289,25 +332,24 @@ fun AiScreen(
 }
 
 @Composable
-private fun AiEmptyStateHeader() {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+private fun AiCommandHeroCard(
+    compactVisualDensity: Boolean,
+) {
+    BrandHeroCard(
+        eyebrow = "SKY OS",
+        title = "KI Atelier",
+        subtitle = "Text, Visuals und Konzepte im privaten Sky-Flow.",
+        detail = "Persoenlicher Bot. Kontext bleibt exklusiv pro Konto verbunden.",
+        accent = MaterialTheme.colorScheme.primary,
+        secondaryAccent = MaterialTheme.colorScheme.tertiary,
+        marks = listOf(BrandArtwork.Combined),
+        compactVisualDensity = compactVisualDensity,
     ) {
-        Text(
-            text = "Was brauchst du?",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = "Kurz tippen und los.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        )
-        Text(
-            text = "Dein Verlauf wird pro Konto weitergefuehrt, damit der Bot nicht jedes Mal bei null startet.",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandPill(text = "Private", tint = MaterialTheme.colorScheme.primary)
+            BrandPill(text = "Visual", tint = MaterialTheme.colorScheme.tertiary)
+            BrandPill(text = "Memory", tint = MaterialTheme.colorScheme.secondary)
+        }
     }
 }
 
@@ -315,47 +357,148 @@ private fun AiEmptyStateHeader() {
 private fun AiOverviewCard(
     isEnabled: Boolean,
 ) {
-    SkydownCard {
+    SkydownCard(contentPadding = PaddingValues(14.dp)) {
+        BrandSectionBanner(
+            title = if (isEnabled) "Atelier live" else "Atelier standby",
+            subtitle = "Text, Visuals und Stilentscheidungen laufen in einer privaten Session.",
+            accent = MaterialTheme.colorScheme.primary,
+            icon = Icons.Default.AutoAwesome,
+            tag = if (isEnabled) "Owner Mode" else "Standby",
+        )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+            BrandHeroMetricCard(
+                label = "OUTPUT",
+                value = "Text + Visual",
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+                isActive = isEnabled,
+            )
+            BrandHeroMetricCard(
+                label = "STATUS",
+                value = if (isEnabled) "Online" else "Paused",
+                accent = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f),
+                isActive = isEnabled,
+            )
+        }
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            BrandStatusChip(
+                text = "Private Context",
+                accent = MaterialTheme.colorScheme.primary,
+                isActive = isEnabled,
+            )
+            BrandStatusChip(
+                text = "Visual Pipeline",
+                accent = MaterialTheme.colorScheme.tertiary,
+                isActive = isEnabled,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.04f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.14f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+                        ),
+                    ),
+                    shape = RoundedCornerShape(18.dp),
+                )
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = "Direkter Zugriff auf Caption-, Konzept- und Bildarbeit ohne Toolbruch oder Kontextverlust.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiSessionStrip(
+    composerMode: AiComposerMode,
+    textMode: AiTextMode,
+    messageCount: Int,
+    compactVisualDensity: Boolean,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 8.dp else 10.dp)) {
+        BrandSectionBanner(
+            title = "Session",
+            subtitle = "Private Kontextlage mit direktem Fokus fuer Copy und Visuals.",
+            accent = MaterialTheme.colorScheme.primary,
+            tag = if (messageCount == 0) "Fresh" else "$messageCount Steps",
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(end = 4.dp),
+        ) {
+            item {
+                AiSessionSignalCard(
+                    title = "Mode",
+                    value = if (composerMode == AiComposerMode.Visual) "Visual" else "Text",
+                    detail = if (composerMode == AiComposerMode.Visual) "Bild-Generierung" else "Text-Produktion",
+                    accent = MaterialTheme.colorScheme.primary,
+                    compactVisualDensity = compactVisualDensity,
                 )
             }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "22xSky Bot",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+            item {
+                AiSessionSignalCard(
+                    title = "Focus",
+                    value = if (composerMode == AiComposerMode.Visual) "Cinematic" else textMode.title,
+                    detail = if (composerMode == AiComposerMode.Visual) "Prompt -> Visual" else "Textmodus direkt steuerbar",
+                    accent = MaterialTheme.colorScheme.tertiary,
+                    compactVisualDensity = compactVisualDensity,
                 )
-                Text(
-                    text = if (isEnabled) "X22 Bot aktiv" else "X22 Bot pausiert",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = "Captions, Hooks, Skripte, Visuals.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            }
+            item {
+                AiSessionSignalCard(
+                    title = "Memory",
+                    value = if (messageCount == 0) "Neu" else "$messageCount Steps",
+                    detail = "Verlauf bleibt pro Konto aktiv",
+                    accent = MaterialTheme.colorScheme.secondary,
+                    compactVisualDensity = compactVisualDensity,
                 )
             }
         }
     }
+}
+
+@Composable
+private fun AiSessionSignalCard(
+    title: String,
+    value: String,
+    detail: String,
+    accent: Color,
+    compactVisualDensity: Boolean,
+) {
+    BrandHeroMetricCard(
+        label = title.uppercase(),
+        value = value,
+        accent = accent,
+        modifier = Modifier.widthIn(min = if (compactVisualDensity) 148.dp else 164.dp),
+        isActive = true,
+    )
 }
 
 @Composable
@@ -381,7 +524,7 @@ private fun AiDisabledCard() {
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "X22 Bot pausiert",
+                    text = "SkyOs Bot pausiert",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -403,29 +546,25 @@ private fun QuickPromptCard(
     compactLayout: Boolean,
 ) {
     SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
-        SectionHeader("Prompts")
+        BrandSectionBanner(
+            title = "Prompt Library",
+            subtitle = "Kuratiert fuer schnelle, markentaugliche Starts.",
+            accent = MaterialTheme.colorScheme.primary,
+            tag = "Text",
+        )
         LazyRow(
             modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts) { prompt ->
-                OutlinedButton(
+                AiPromptActionCard(
+                    eyebrow = "CURATED",
+                    text = prompt,
+                    accent = MaterialTheme.colorScheme.primary,
+                    compactLayout = compactLayout,
                     onClick = { onPromptSelected(prompt) },
-                    modifier = Modifier.widthIn(min = 190.dp, max = 236.dp),
-                    contentPadding = PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = if (compactLayout) 8.dp else 10.dp,
-                    ),
-                    shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                ) {
-                    Text(
-                        text = prompt,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                )
             }
         }
     }
@@ -441,32 +580,109 @@ private fun VisualPromptCard(
         modifier = Modifier.testTag("ai.visual.prompt.card"),
         contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp),
     ) {
-        SectionHeader("Visuals")
+        BrandSectionBanner(
+            title = "Visual Deck",
+            subtitle = "Sofort cineastische Startpunkte fuer Artwork und Story Frames.",
+            accent = MaterialTheme.colorScheme.tertiary,
+            tag = "Visual",
+        )
         LazyRow(
             modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts, key = { it.label }) { prompt ->
-                OutlinedButton(
+                AiPromptActionCard(
+                    eyebrow = "SHOT",
+                    text = prompt.label,
+                    detail = "Tap fuer cineastischen Start",
+                    accent = MaterialTheme.colorScheme.tertiary,
+                    compactLayout = compactLayout,
+                    modifier = Modifier.testTag("ai.visual.prompt.button"),
                     onClick = { onPromptSelected(prompt.prompt) },
-                    modifier = Modifier
-                        .widthIn(min = 156.dp, max = 190.dp)
-                        .testTag("ai.visual.prompt.button"),
-                    contentPadding = PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = if (compactLayout) 8.dp else 10.dp,
-                    ),
-                    shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                ) {
-                    Text(
-                        text = prompt.label,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun AiPromptActionCard(
+    eyebrow: String,
+    text: String,
+    accent: Color,
+    compactLayout: Boolean,
+    modifier: Modifier = Modifier,
+    detail: String? = null,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(if (compactLayout) 18.dp else 20.dp)
+
+    Box(
+        modifier = modifier
+            .widthIn(min = if (detail == null) 208.dp else 176.dp, max = if (detail == null) 248.dp else 214.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.05f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                        accent.copy(alpha = 0.13f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.16f),
+                        accent.copy(alpha = 0.24f),
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                    ),
+                ),
+                shape = shape,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = if (compactLayout) 12.dp else 14.dp,
+                vertical = if (compactLayout) 11.dp else 12.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
+        ) {
+            Text(
+                text = eyebrow,
+                style = MaterialTheme.typography.labelSmall,
+                color = accent.copy(alpha = 0.88f),
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Text(
+                text = text,
+                style = if (detail == null) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (detail == null) FontWeight.Medium else FontWeight.Bold,
+                maxLines = if (detail == null) 3 else 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!detail.isNullOrBlank()) {
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            BrandActionButton(
+                text = if (detail == null) "Starten" else "Rendern",
+                onClick = onClick,
+                accent = accent,
+                filled = false,
+                compact = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
@@ -485,6 +701,40 @@ fun AiMessageBubble(
         bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 10.dp,
         bottomEnd = if (isUser) 10.dp else SkydownUiTokens.cardCornerRadius,
     )
+    val bubbleBrush = if (isUser) {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primary,
+                MaterialTheme.colorScheme.secondary,
+                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
+            ),
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.06f),
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.99f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f),
+            ),
+        )
+    }
+    val bubbleBorder = if (isUser) {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.24f),
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.34f),
+            ),
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.16f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+            ),
+        )
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -495,22 +745,11 @@ fun AiMessageBubble(
                 .widthIn(max = 360.dp)
                 .testTag("ai.message.bubble")
                 .clip(bubbleShape)
-                .background(
-                    if (isUser) {
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary,
-                            ),
-                        )
-                    } else {
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                            ),
-                        )
-                    },
+                .background(bubbleBrush)
+                .border(
+                    width = 1.dp,
+                    brush = bubbleBorder,
+                    shape = bubbleShape,
                 )
                 .padding(
                     horizontal = if (compactLayout) 12.dp else 14.dp,
@@ -518,7 +757,7 @@ fun AiMessageBubble(
                 ),
         ) {
             Text(
-                text = if (isUser) "Du" else "X22 Bot",
+                text = if (isUser) "Du" else "Atelier",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
@@ -535,7 +774,7 @@ fun AiMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "X22 Bot antwortet gerade...",
+                        text = "Atelier komponiert gerade...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -573,44 +812,49 @@ fun AiMessageBubble(
                 }
 
                 if (!isUser && !message.isStreaming) {
-                    Row(
+                    LazyRow(
                         modifier = Modifier.padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(end = 4.dp),
                     ) {
-                        Button(
-                            onClick = {
-                                copyAiText(context, "X22 Bot", message.text)
-                                onFeedback("Antwort kopiert.", ToastType.Success)
-                            },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text("Kopieren")
+                        item {
+                            BrandStatusChip(
+                                text = "Kopieren",
+                                accent = MaterialTheme.colorScheme.primary,
+                                onClick = {
+                                    copyAiText(context, "SkyOs Bot", message.text)
+                                    onFeedback("Antwort kopiert.", ToastType.Success)
+                                },
+                            )
                         }
 
-                        OutlinedButton(
-                            onClick = {
-                                shareAiText(context, "X22 Bot", message.text)
-                            },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text("Teilen")
+                        item {
+                            BrandStatusChip(
+                                text = "Teilen",
+                                accent = MaterialTheme.colorScheme.secondary,
+                                onClick = {
+                                    shareAiText(context, "SkyOs Bot", message.text)
+                                    onFeedback("Share-Sheet geoeffnet.", ToastType.Info)
+                                },
+                            )
                         }
 
                         if (message.imageBytes != null) {
-                            OutlinedButton(
-                            onClick = {
-                                saveAiImage(context, message.imageBytes, message.imageMimeType)
-                                    .onSuccess {
+                            item {
+                                BrandStatusChip(
+                                    text = "Speichern",
+                                    accent = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.testTag("ai.message.save"),
+                                    onClick = {
+                                        saveAiImage(context, message.imageBytes, message.imageMimeType)
+                                            .onSuccess {
                                             onFeedback("Bild gespeichert.", ToastType.Success)
-                                    }
-                                    .onFailure {
+                                            }
+                                            .onFailure {
                                             onFeedback("Bild konnte nicht gespeichert werden.", ToastType.Error)
-                                    }
-                            },
-                            modifier = Modifier.testTag("ai.message.save"),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            ) {
-                                Text("Bild speichern")
+                                            }
+                                    },
+                                )
                             }
                         }
                     }
@@ -628,6 +872,7 @@ private fun AiComposerBar(
     textMode: AiTextMode,
     isSending: Boolean,
     compactLayout: Boolean,
+    contentMaxWidth: Dp,
     embeddedInTools: Boolean,
     applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
@@ -637,6 +882,11 @@ private fun AiComposerBar(
     onReset: () -> Unit,
     onDismissKeyboard: () -> Unit,
 ) {
+    val composerAccent = if (composerMode == AiComposerMode.Visual) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
     val outerVerticalPadding = when {
         embeddedInTools -> 0.dp
         compactLayout -> 6.dp
@@ -666,151 +916,153 @@ private fun AiComposerBar(
                 horizontal = if (compactLayout) 8.dp else 10.dp,
                 vertical = outerVerticalPadding,
             ),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        SkydownCard(
-            contentPadding = PaddingValues(
-                horizontal = if (compactLayout) 10.dp else 12.dp,
-                vertical = cardVerticalPadding,
-            ),
+        Box(
+            modifier = Modifier
+                .widthIn(max = contentMaxWidth)
+                .fillMaxWidth(),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            SkydownCard(
+                contentPadding = PaddingValues(
+                    horizontal = if (compactLayout) 10.dp else 12.dp,
+                    vertical = cardVerticalPadding,
+                ),
             ) {
-                if (composerMode == AiComposerMode.Text) {
-                    Button(
-                        onClick = { onComposerModeChange(AiComposerMode.Text) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                    ) {
-                        Text("Text")
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { onComposerModeChange(AiComposerMode.Text) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                    ) {
-                        Text("Text")
-                    }
-                }
-
-                if (composerMode == AiComposerMode.Visual) {
-                    Button(
-                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                    ) {
-                        Text("Visual")
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                    ) {
-                        Text("Visual")
-                    }
-                }
-
-                IconButton(
-                    onClick = onReset,
-                    enabled = !isSending,
-                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Chat zuruecksetzen",
+                    BrandActionButton(
+                        text = "Text",
+                        onClick = { onComposerModeChange(AiComposerMode.Text) },
+                        accent = MaterialTheme.colorScheme.primary,
+                        filled = composerMode == AiComposerMode.Text,
+                        compact = true,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    BrandActionButton(
+                        text = "Visual",
+                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        filled = composerMode == AiComposerMode.Visual,
+                        compact = true,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    BrandActionButton(
+                        text = "Neu",
+                        onClick = onReset,
+                        accent = MaterialTheme.colorScheme.secondary,
+                        icon = Icons.Default.Refresh,
+                        filled = false,
+                        compact = true,
+                        enabled = !isSending,
+                        modifier = Modifier.widthIn(min = if (embeddedInTools) 88.dp else 96.dp),
                     )
                 }
-            }
 
-            if (composerMode == AiComposerMode.Text) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = sectionSpacing),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(end = 4.dp),
-                ) {
-                    items(AiTextMode.entries, key = { it.rawValue }) { mode ->
-                        val isSelected = mode == textMode
-                        if (isSelected) {
-                            Button(
+                if (composerMode == AiComposerMode.Text) {
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = sectionSpacing),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(end = 4.dp),
+                    ) {
+                        items(AiTextMode.entries, key = { it.rawValue }) { mode ->
+                            val isSelected = mode == textMode
+                            BrandStatusChip(
+                                text = mode.title,
+                                accent = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                                },
+                                isActive = isSelected,
                                 onClick = { onTextModeChange(mode) },
-                                shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            ) {
-                                Text(mode.title)
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = { onTextModeChange(mode) },
-                                shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            ) {
-                                Text(mode.title)
-                            }
+                            )
                         }
                     }
                 }
-            }
 
-            OutlinedTextField(
-                value = draft,
-                onValueChange = onDraftChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = sectionSpacing),
-                placeholder = {
-                    Text(
-                        if (composerMode == AiComposerMode.Text) {
-                            textMode.placeholder
-                        } else {
-                            "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = onDraftChanged,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = sectionSpacing),
+                    placeholder = {
+                        Text(
+                            if (composerMode == AiComposerMode.Text) {
+                                textMode.placeholder
+                            } else {
+                                "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
+                            },
+                        )
+                    },
+                    minLines = 1,
+                    maxLines = fieldMaxLines,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            onSend()
+                            onDismissKeyboard()
                         },
-                    )
-                },
-                minLines = 1,
-                maxLines = fieldMaxLines,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        onSend()
-                        onDismissKeyboard()
-                    },
-                ),
-            )
+                    ),
+                    shape = RoundedCornerShape(if (compactLayout) 18.dp else 20.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = composerAccent.copy(alpha = 0.72f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                        cursorColor = composerAccent,
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.46f),
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                    ),
+                )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = sectionSpacing),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = onDismissKeyboard,
-                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = sectionSpacing),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Tastatur ausblenden",
+                    BrandStatusChip(
+                        text = if (composerMode == AiComposerMode.Text) {
+                            textMode.title
+                        } else {
+                            "Cinematic"
+                        },
+                        accent = composerAccent,
+                        isActive = true,
                     )
-                }
 
-                FilledIconButton(
-                    onClick = {
-                        onSend()
-                        onDismissKeyboard()
-                    },
-                    enabled = draft.isNotBlank() && !isSending,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = if (composerMode == AiComposerMode.Text) "Senden" else "Visual generieren",
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BrandActionButton(
+                            text = "Ausblenden",
+                            onClick = onDismissKeyboard,
+                            accent = MaterialTheme.colorScheme.secondary,
+                            icon = Icons.Default.KeyboardArrowDown,
+                            filled = false,
+                            compact = true,
+                        )
+                        BrandActionButton(
+                            text = if (composerMode == AiComposerMode.Text) "Senden" else "Rendern",
+                            onClick = {
+                                onSend()
+                                onDismissKeyboard()
+                            },
+                            accent = composerAccent,
+                            icon = Icons.AutoMirrored.Filled.Send,
+                            filled = true,
+                            compact = true,
+                            enabled = draft.isNotBlank() && !isSending,
+                            isLoading = isSending,
+                        )
+                    }
                 }
             }
         }

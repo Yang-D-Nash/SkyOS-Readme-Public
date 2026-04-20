@@ -75,17 +75,17 @@ final class FeatureFlagsService: ObservableObject {
             return "Die KI ist gerade pausiert."
         case .adminOnly:
             if user == nil {
-                return "Melde dich an, dann sagen wir dir Bescheid, sobald die KI fuer dein Konto verfuegbar ist."
+                return "Bitte melde dich an. Die KI ist aktuell nur fuer freigegebene Konten sichtbar."
             }
 
             if user?.aiAccessEnabled == false {
-                return "Die KI ist fuer dein Konto gerade pausiert."
+                return "Der KI-Zugriff ist fuer dein Konto derzeit deaktiviert."
             }
 
             return "Die KI ist gerade nur fuer Staff-Konten freigeschaltet."
         case .signedIn:
             if user?.aiAccessEnabled == false {
-                return "Die KI ist fuer dein Konto gerade pausiert."
+                return "Der KI-Zugriff ist fuer dein Konto derzeit deaktiviert."
             }
             return "Melde dich an, um Bot, Agent und Visuals zu nutzen."
         }

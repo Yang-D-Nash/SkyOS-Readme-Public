@@ -84,7 +84,7 @@ enum UserQuotaPlan: String, Codable, CaseIterable {
         case .owner:
             return .ownerUnlimited
         case .admin:
-            return .creator
+            return .internalTeam
         case .subadmin:
             return .creator
         case .user:

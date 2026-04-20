@@ -12,7 +12,7 @@
 "agent.queue.toast.queued" = "Offline gespeichert. Wird automatisch gesendet, sobald du online bist.";
 "agent.queue.toast.sent" = "Anfrage aus der Warteschlange erfolgreich gesendet.";
 "agent.automation.triggered" = "n8n-Workflow gestartet.";
-"auth.login.welcome" = "Willkommen bei 22xSky";
+"auth.login.welcome" = "Willkommen bei SkyOs";
 "auth.login.subtitle" = "Melde dich an, um auf dein Konto und Creator-Tools zuzugreifen.";
 "auth.login.title" = "Anmelden";
 "auth.email" = "E-Mail";

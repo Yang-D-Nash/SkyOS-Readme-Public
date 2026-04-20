@@ -32,7 +32,7 @@ private struct DesktopAIShareSheet: View {
     let activityItems: [Any]
     @State private var showingExporter = false
     @State private var exportDocument: ShareExportDocument?
-    @State private var exportFilename = "Skydown-Share"
+    @State private var exportFilename = "SkyOs-Share"
     @State private var statusMessage: String?
 
     private var sharedText: String? {
@@ -71,7 +71,7 @@ private struct DesktopAIShareSheet: View {
                 if let sharedImage, let pngData = sharedImage.pngData() {
                     Button("Bild sichern") {
                         exportDocument = ShareExportDocument(data: pngData, contentType: .png)
-                        exportFilename = "Skydown-Image"
+                        exportFilename = "SkyOs-Image"
                         showingExporter = true
                     }
                     .buttonStyle(.borderedProminent)

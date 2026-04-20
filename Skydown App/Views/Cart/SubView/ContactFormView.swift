@@ -57,6 +57,54 @@ struct ContactFormView: View {
     private var canOrder: Bool {
         isFormValid && authManager.userSession != nil && storeIsOpen && item.available
     }
+
+    private var selectionSummary: String {
+        var parts = ["\(selectedQuantity)x", selectedSize]
+        if let color = selectedColor.trimmedNonEmpty {
+            parts.append(color)
+        }
+        return parts.joined(separator: " • ")
+    }
+
+    private var optionSummary: String {
+        let colorCount = availableColors.isEmpty ? 0 : availableColors.count
+        if colorCount > 0 {
+            return "\(availableSizes.count) Groessen • \(colorCount) Farben"
+        }
+        return "\(availableSizes.count) Groessen"
+    }
+
+    private var readinessTitle: String {
+        if canOrder {
+            return "Ready"
+        }
+        if authManager.userSession == nil {
+            return "Login"
+        }
+        if !storeIsOpen {
+            return "Store pausiert"
+        }
+        if !item.available {
+            return "Nicht live"
+        }
+        return "Auswahl pruefen"
+    }
+
+    private var readinessDetail: String {
+        if canOrder {
+            return "Direkt in den Warenkorb"
+        }
+        if authManager.userSession == nil {
+            return "Einloggen und im App-Flow bleiben"
+        }
+        if !storeIsOpen {
+            return "Der Drop ist gerade geschlossen"
+        }
+        if !item.available {
+            return "Dieses Produkt ist aktuell offline"
+        }
+        return "Bitte Variante vervollstaendigen"
+    }
     
     private func addToCart() {
         cartVM.addItem(
@@ -80,8 +128,33 @@ struct ContactFormView: View {
                     colorScheme: colorScheme,
                     itemName: item.name,
                     price: item.price,
-                    isLoggedIn: authManager.userSession != nil
+                    isLoggedIn: authManager.userSession != nil,
+                    storeIsOpen: storeIsOpen,
+                    isAvailable: item.available
                 )
+
+                ContactReadinessStrip(
+                    colorScheme: colorScheme,
+                    readinessTitle: readinessTitle,
+                    readinessDetail: readinessDetail,
+                    accountTitle: authManager.userSession != nil ? "Aktiv" : "Login noetig",
+                    accountDetail: authManager.userSession != nil ? "Checkout bleibt in der App" : "Danach bleibt der Bestellweg direkt im Flow",
+                    selectionTitle: selectionSummary,
+                    selectionDetail: optionSummary
+                )
+
+                if let story = item.description.trimmedNonEmpty {
+                    ContactSectionCard(title: "Drop Story", colorScheme: colorScheme) {
+                        Text(story)
+                            .font(.body)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        HStack(spacing: 10) {
+                            ContactBadge(text: storeIsOpen ? "Store live" : "Store pausiert", colorScheme: colorScheme)
+                            ContactBadge(text: item.available ? "Produkt sichtbar" : "Aktuell offline", colorScheme: colorScheme)
+                        }
+                    }
+                }
 
                 ContactSectionCard(title: "Produkt", colorScheme: colorScheme) {
                     MerchandiseItemView(item: item)
@@ -231,7 +304,7 @@ struct ContactFormView: View {
         .scrollIndicators(.hidden)
         .accessibilityIdentifier("shop.merch.detail.root")
         .background(backgroundGradient.ignoresSafeArea())
-        .navigationTitle("Artikel")
+        .navigationTitle(item.name)
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
         .toolbar {
@@ -311,7 +384,7 @@ struct ContactFormView: View {
         if !item.available {
             return "Aktuell nicht verfuegbar"
         }
-        return "In Warenkorb legen"
+        return String(format: "In Warenkorb · EUR %.2f", item.price)
     }
 }
 
@@ -346,28 +419,43 @@ private struct ContactHeroCard: View {
     let itemName: String
     let price: Double
     let isLoggedIn: Bool
+    let storeIsOpen: Bool
+    let isAvailable: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(itemName)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Wähle Größe und Menge in einem kompakteren, fingerfreundlichen Sheet statt im alten Formular-Look.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
+                ContactBadge(text: String(format: "EUR %.2f", price), colorScheme: colorScheme)
+                ContactBadge(text: isLoggedIn ? "Konto aktiv" : "Login noetig", colorScheme: colorScheme)
+                ContactBadge(text: storeIsOpen && isAvailable ? "Ready to order" : "Drop check", colorScheme: colorScheme)
             }
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(AppColors.accent(for: colorScheme).opacity(0.16))
-                    .frame(width: 58, height: 58)
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Merch Drop")
+                        .font(.caption.weight(.bold))
+                        .tracking(1.2)
+                        .foregroundColor(AppColors.accent(for: colorScheme))
 
-                Image(systemName: "bag.badge.plus")
-                    .font(.title2)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
+                    Text(itemName)
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Waehle Variante, Menge und Checkout in einem kompakten In-App-Flow, der direkt kommuniziert und nicht aus der App herausfuehrt.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(AppColors.accent(for: colorScheme).opacity(0.16))
+                        .frame(width: 58, height: 58)
+
+                    Image(systemName: "bag.badge.plus")
+                        .font(.title2)
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
             }
         }
         .padding(20)
@@ -386,14 +474,73 @@ private struct ContactHeroCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 26))
-        .overlay(alignment: .bottomLeading) {
-            HStack(spacing: 10) {
-                ContactBadge(text: String(format: "EUR %.2f", price), colorScheme: colorScheme)
-                ContactBadge(text: isLoggedIn ? "Konto aktiv" : "Login nötig", colorScheme: colorScheme)
+    }
+}
+
+private struct ContactReadinessStrip: View {
+    let colorScheme: ColorScheme
+    let readinessTitle: String
+    let readinessDetail: String
+    let accountTitle: String
+    let accountDetail: String
+    let selectionTitle: String
+    let selectionDetail: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Bestell-Ueberblick")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Die wichtigsten Signale liegen vor dem Formular, damit der Flow schnell lesbar bleibt.")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    statusCard(title: readinessTitle, detail: readinessDetail, accent: AppColors.accent(for: colorScheme))
+                    statusCard(title: accountTitle, detail: accountDetail, accent: AppColors.accentMystic(for: colorScheme))
+                    statusCard(title: selectionTitle, detail: selectionDetail, accent: AppColors.spotify(for: colorScheme))
+                }
+
+                VStack(spacing: 12) {
+                    statusCard(title: readinessTitle, detail: readinessDetail, accent: AppColors.accent(for: colorScheme))
+                    statusCard(title: accountTitle, detail: accountDetail, accent: AppColors.accentMystic(for: colorScheme))
+                    statusCard(title: selectionTitle, detail: selectionDetail, accent: AppColors.spotify(for: colorScheme))
+                }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 18)
         }
+    }
+
+    private func statusCard(title: String, detail: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(2)
+
+            Text(detail)
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(3)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme),
+                    accent.opacity(colorScheme == .dark ? 0.18 : 0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(accent.opacity(0.20), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 

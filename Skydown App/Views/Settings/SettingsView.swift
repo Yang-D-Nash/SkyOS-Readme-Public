@@ -35,12 +35,19 @@ struct SettingsView: View {
     @ObservedObject private var legalContentStore = LegalContentStore.shared
     @ObservedObject private var notificationPermissionStore = NotificationPermissionStore.shared
     @Binding var colorScheme: String
+    private let initialAdminWorkspaceRawValue: String?
+
+    init(colorScheme: Binding<String>, initialAdminWorkspaceRawValue: String? = nil) {
+        _colorScheme = colorScheme
+        self.initialAdminWorkspaceRawValue = initialAdminWorkspaceRawValue
+    }
 
     @State private var systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
 
     @State private var activeAlert: SettingsAlert?
     @State private var activePresentedSheet: SettingsPresentedSheet?
     @State private var queuedPresentedSheet: SettingsPresentedSheet?
+    @State private var didPresentInitialAdminWorkspace = false
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
@@ -648,7 +655,7 @@ struct SettingsView: View {
                                         title: "Brandname",
                                         text: $legalBrandNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. 22xSky"
+                                        placeholder: "z. B. SkyOs"
                                     )
 
                                     SettingsInputField(
@@ -835,6 +842,7 @@ struct SettingsView: View {
             syncAIRuntimeDrafts(with: aiRuntimeSettingsStore.settings)
             syncLegalContentDrafts(with: legalContentStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
+            presentInitialAdminWorkspaceIfNeeded()
         }
         .task {
             await notificationPermissionStore.refresh()
@@ -1122,6 +1130,19 @@ struct SettingsView: View {
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
+                OwnerCommandCenterCard(
+                    colorScheme: effectiveColorScheme,
+                    isOwner: isOwnerUser,
+                    paymentStatus: "\(visiblePaymentMethodCount) Checkout-Routen",
+                    userStatus: "\(adminUserManagementStore.users.count) Konten",
+                    headerStatus: "\(configuredScreenHeaderCount) Header",
+                    aiStatus: aiRuntimeSettingsStore.settings.costGuardEnabled ? "Cost Guard aktiv" : "Cost Guard pruefen",
+                    onOpenUsers: { presentSheet(.adminWorkspace(.users)) },
+                    onOpenPayments: { presentSheet(.adminWorkspace(.payments)) },
+                    onOpenHeaders: { presentSheet(.adminWorkspace(.headers)) },
+                    onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
+                )
+
                 Button {
                     presentSheet(.orders)
                 } label: {
@@ -1160,7 +1181,7 @@ struct SettingsView: View {
     private var personalAgentServiceSectionCard: some View {
         SettingsSectionCard(title: "Mein Agent-Service", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Hier hinterlegst du deinen eigenen n8n-Workflow fuer Agent-Aktionen und optional deinen eigenen Manus-Key (lokal auf deinem Geraet). Die Verbindung bleibt konto-basiert (`adminConfig/automationN8n_<uid>`), damit dein Setup getrennt von anderen Accounts bleibt.")
+                Text("Verbinde n8n, Agent-Skills und optional Manus fuer dein Konto.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1239,21 +1260,6 @@ struct SettingsView: View {
                                 ) { updatedUser in
                                     await saveManagedUser(updatedUser)
                                 }
-                                .id(
-                                    [
-                                        managedUser.id ?? "unknown",
-                                        managedUser.role,
-                                        managedUser.quotaPlan,
-                                        String(managedUser.aiAccessEnabled),
-                                        String(managedUser.aiTextRequestsPerDay),
-                                        String(managedUser.aiVisualRequestsPerDay),
-                                        String(managedUser.aiAgentRequestsPerDay),
-                                        String(managedUser.aiHistoryRetentionDays),
-                                        String(managedUser.canManageMusicCatalog),
-                                        String(managedUser.canManageVideoCatalog),
-                                        String(managedUser.canModerateProfiles)
-                                    ].joined(separator: "-")
-                                )
                             }
                         }
                     }
@@ -1326,7 +1332,7 @@ struct SettingsView: View {
                         title: "Home Eyebrow",
                         text: $homeHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Willkommen bei Skydown"
+                        placeholder: "z. B. Willkommen bei SkyOs"
                     )
 
                     SettingsInputField(
@@ -1625,7 +1631,7 @@ struct SettingsView: View {
                         statusText: paymentMethodSettingsStore.settings.stripe.connected ? "Verbunden" : "Nicht verbunden",
                         checkoutVisible: paymentMethodSettingsStore.settings.stripe.connected && paymentMethodSettingsStore.settings.stripe.enabled,
                         accountHintTitle: "Stripe Konto / Workspace",
-                        accountHintPlaceholder: "z. B. Skydown Merch Workspace",
+                        accountHintPlaceholder: "z. B. SkyOs Merch Workspace",
                         accountHint: $stripeAccountHintDraft,
                         actionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Verbindung aktualisieren" : "Mit Stripe verbinden",
                         secondaryActionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Trennen" : nil,
@@ -1789,7 +1795,7 @@ struct SettingsView: View {
                         title: "Firmenname",
                         text: $invoiceCompanyNameDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Skydown Entertainment"
+                        placeholder: "Skydown"
                     )
 
                     SettingsInputField(
@@ -1959,7 +1965,7 @@ struct SettingsView: View {
                         title: "Auth Header Name",
                         text: $automationAuthHeaderNameDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. X-Skydown-Automation-Key",
+                        placeholder: "z. B. X-SkyOs-Automation-Key",
                         keyboardType: .asciiCapable
                     )
 
@@ -2385,7 +2391,7 @@ struct SettingsView: View {
         let email = preferredSupportSenderEmail?.takeIfNotBlank() ?? "Nicht verfuegbar"
 
         return """
-        Hallo 22xSky-Team,
+        Hallo SkyOs-Team,
 
         ich habe folgende Anfrage:
 
@@ -2704,6 +2710,19 @@ struct SettingsView: View {
         activePresentedSheet = sheet
     }
 
+    private func presentInitialAdminWorkspaceIfNeeded() {
+        guard !didPresentInitialAdminWorkspace,
+              let initialAdminWorkspaceRawValue,
+              let section = SettingsAdminWorkspaceSection(rawValue: initialAdminWorkspaceRawValue) else {
+            return
+        }
+
+        didPresentInitialAdminWorkspace = true
+        DispatchQueue.main.async {
+            presentSheet(.adminWorkspace(section))
+        }
+    }
+
     @ViewBuilder
     private func settingsSheetContent(for sheet: SettingsPresentedSheet) -> some View {
         switch sheet {
@@ -2898,7 +2917,7 @@ struct SettingsView: View {
     private func saveManagedUser(_ user: User) async -> Result<String, Error> {
         do {
             try await adminUserManagementStore.save(user)
-            let message = "Konto gespeichert. Rolle und KI-Limits wurden aktualisiert."
+            let message = "Konto gespeichert. Rolle, Rechte und KI-Limits wurden aktualisiert."
             showToastMessage(message, style: .success)
             return .success(message)
         } catch {
@@ -4169,7 +4188,7 @@ private struct SettingsHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(username ?? "Skydown Einstellungen")
+                Text(username ?? "SkyOs Einstellungen")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -4223,6 +4242,149 @@ private struct SettingsHeroCard: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+}
+
+private struct OwnerCommandCenterCard: View {
+    let colorScheme: ColorScheme
+    let isOwner: Bool
+    let paymentStatus: String
+    let userStatus: String
+    let headerStatus: String
+    let aiStatus: String
+    let onOpenUsers: () -> Void
+    let onOpenPayments: () -> Void
+    let onOpenHeaders: () -> Void
+    let onOpenAI: () -> Void
+
+    private var columns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: 10),
+            GridItem(.flexible(), spacing: 10)
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(isOwner ? "Owner Command Center" : "Owner Command Center gesperrt")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text(isOwner ? "Direkte Kontrollpunkte fuer Release, Commerce und KI-Kosten." : "Nur das feste Owner-Konto kann diese Live-Systeme veraendern.")
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer()
+
+                SettingsBadge(
+                    text: isOwner ? "Root aktiv" : "Locked",
+                    colorScheme: colorScheme
+                )
+            }
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                OwnerCommandSignalButton(
+                    colorScheme: colorScheme,
+                    title: "Rollen",
+                    detail: userStatus,
+                    iconName: "person.2.badge.key",
+                    isEnabled: isOwner,
+                    action: onOpenUsers
+                )
+                OwnerCommandSignalButton(
+                    colorScheme: colorScheme,
+                    title: "Zahlungen",
+                    detail: paymentStatus,
+                    iconName: "creditcard",
+                    isEnabled: isOwner,
+                    action: onOpenPayments
+                )
+                OwnerCommandSignalButton(
+                    colorScheme: colorScheme,
+                    title: "Header",
+                    detail: headerStatus,
+                    iconName: "photo.on.rectangle.angled",
+                    isEnabled: isOwner,
+                    action: onOpenHeaders
+                )
+                OwnerCommandSignalButton(
+                    colorScheme: colorScheme,
+                    title: "KI Schutz",
+                    detail: aiStatus,
+                    iconName: "bolt.shield",
+                    isEnabled: isOwner,
+                    action: onOpenAI
+                )
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme),
+                    AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.1),
+                    AppColors.secondaryBackground(for: colorScheme)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+    }
+}
+
+private struct OwnerCommandSignalButton: View {
+    let colorScheme: ColorScheme
+    let title: String
+    let detail: String
+    let iconName: String
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: iconName)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+
+                    Spacer()
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .opacity(isEnabled ? 1 : 0.35)
+                }
+
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(detail)
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(AppColors.cardBackground(for: colorScheme).opacity(isEnabled ? 0.95 : 0.45))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(isEnabled ? 0.14 : 0.06), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .skydownInteractiveFeedback()
+        .disabled(!isEnabled)
     }
 }
 
@@ -4925,9 +5087,9 @@ private struct SettingsAdminUserCard: View {
         _visualLimitDraft = State(initialValue: String(user.resolvedAIVisualRequestsPerDay))
         _agentLimitDraft = State(initialValue: String(user.resolvedAIAgentRequestsPerDay))
         _historyRetentionDays = State(initialValue: user.resolvedAIHistoryRetentionDays)
-        _canManageMusicCatalog = State(initialValue: user.canManageMusic)
-        _canManageVideoCatalog = State(initialValue: user.canManageVideos)
-        _canModerateProfiles = State(initialValue: user.canModerateUserProfiles)
+        _canManageMusicCatalog = State(initialValue: user.canManageMusicCatalog)
+        _canManageVideoCatalog = State(initialValue: user.canManageVideoCatalog)
+        _canModerateProfiles = State(initialValue: user.canModerateProfiles)
     }
 
     private var canAssignOwnerRoleToUser: Bool {
@@ -5175,9 +5337,9 @@ private struct SettingsAdminUserCard: View {
                 if draftQuotaPlan == .ownerUnlimited || draftQuotaPlan == .internalTeam || draftQuotaPlan == .free {
                     draftQuotaPlan = .creator
                 }
-                canManageMusicCatalog = user.canManageMusic
-                canManageVideoCatalog = user.canManageVideos
-                canModerateProfiles = user.canModerateUserProfiles
+                canManageMusicCatalog = user.canManageMusicCatalog
+                canManageVideoCatalog = user.canManageVideoCatalog
+                canModerateProfiles = user.canModerateProfiles
             case .subadmin:
                 if draftQuotaPlan == .ownerUnlimited || draftQuotaPlan == .internalTeam || draftQuotaPlan == .free {
                     draftQuotaPlan = .creator

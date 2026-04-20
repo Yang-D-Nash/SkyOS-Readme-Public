@@ -473,7 +473,7 @@ private struct AgentHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("22xSky Agent")
+                Text("SkyOs Agent")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -539,7 +539,7 @@ private struct AgentDisabledCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("X22 Agent pausiert")
+                    Text("SkyOs Agent pausiert")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -621,7 +621,7 @@ private struct AgentMessageBubble: View {
             if isUser { Spacer(minLength: 48) }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(isUser ? "Du" : "X22 Agent")
+                Text(isUser ? "Du" : "SkyOs Agent")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accentMystic(for: colorScheme))
 
@@ -630,7 +630,7 @@ private struct AgentMessageBubble: View {
                         ProgressView()
                             .tint(AppColors.accentMystic(for: colorScheme))
 
-                        Text("X22 Agent plant gerade...")
+                        Text("SkyOs Agent plant gerade...")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }

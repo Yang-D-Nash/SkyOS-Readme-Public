@@ -65,6 +65,8 @@ struct AIView: View {
                         Spacer(minLength: showsNavigation ? 8 : 4)
 
                         AIEmptyStateHeader(colorScheme: colorScheme)
+                        AIHeroCard(colorScheme: colorScheme, badges: aiHeroBadges)
+                        aiSessionDeck
 
                         AIQuickPromptCard(
                             colorScheme: colorScheme,
@@ -97,6 +99,8 @@ struct AIView: View {
 
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 10) {
+                                aiSessionDeck
+
                                 ForEach(viewModel.messages) { message in
                                     AIMessageBubble(
                                         message: message,
@@ -170,6 +174,42 @@ struct AIView: View {
             secondaryAccent: AppColors.accentMystic(for: colorScheme)
         )
     }
+
+    private var aiHeroBadges: [String] {
+        [
+            viewModel.composerMode.title,
+            viewModel.composerMode == .visual ? "Visual Output" : viewModel.textMode.title,
+            viewModel.messages.isEmpty ? "Neue Session" : "\(viewModel.messages.count) Steps"
+        ]
+    }
+
+    private var aiSessionDeck: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                AISessionSignalCard(
+                    title: "Mode",
+                    value: viewModel.composerMode.title,
+                    detail: viewModel.composerMode == .visual ? "Bild-Generierung" : "Text-Produktion",
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+                AISessionSignalCard(
+                    title: "Focus",
+                    value: viewModel.composerMode == .visual ? "Cinematic" : viewModel.textMode.title,
+                    detail: viewModel.composerMode == .visual ? "Prompt -> Visual" : "Textmodus direkt steuerbar",
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+                AISessionSignalCard(
+                    title: "Memory",
+                    value: viewModel.messages.isEmpty ? "Neu" : "\(viewModel.messages.count) Steps",
+                    detail: "Verlauf bleibt pro Konto aktiv",
+                    accent: AppColors.spotify(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+            }
+        }
+    }
 }
 
 private struct AIEmptyStateHeader: View {
@@ -199,7 +239,7 @@ private struct AIHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("22xSky Bot")
+                Text("SkyOs Bot")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -265,7 +305,7 @@ private struct AIDisabledCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("X22 Bot pausiert")
+                    Text("SkyOs Bot pausiert")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -395,7 +435,7 @@ private struct AIMessageBubble: View {
             if isUser { Spacer(minLength: 48) }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(isUser ? "Du" : "X22 Bot")
+                Text(isUser ? "Du" : "SkyOs Bot")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accent(for: colorScheme))
 
@@ -404,7 +444,7 @@ private struct AIMessageBubble: View {
                         ProgressView()
                             .tint(AppColors.accent(for: colorScheme))
 
-                        Text("X22 Bot antwortet gerade...")
+                        Text("SkyOs Bot antwortet gerade...")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -677,6 +717,43 @@ private struct AIBadge: View {
         SkydownMetaLabel(
             text: text,
             tint: AppColors.accent(for: colorScheme)
+        )
+    }
+}
+
+private struct AISessionSignalCard: View {
+    let title: String
+    let value: String
+    let detail: String
+    let accent: Color
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(1)
+
+            Text(detail)
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(1)
+        }
+        .frame(width: 142, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(accent.opacity(0.16), lineWidth: 1)
         )
     }
 }

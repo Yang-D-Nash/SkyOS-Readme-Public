@@ -138,12 +138,12 @@ struct MerchandiseCollabSidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Collection Sidebar")
-                    .font(.headline)
+                Text("Drop Map")
+                    .font(AppTypography.sectionHeadline)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Collections")
-                    .font(.footnote)
+                Text("Alle Collections, Collabs und Core Pieces auf einen Blick.")
+                    .font(AppTypography.bodyCaption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
@@ -187,6 +187,47 @@ struct MerchandiseCollabRail: View {
             }
             .padding(.horizontal, 1)
         }
+    }
+}
+
+struct MerchandiseCollabQuickGrid: View {
+    let lanes: [MerchandiseCollabLane]
+    let selectedLaneID: String
+    let colorScheme: ColorScheme
+    let onSelect: (MerchandiseCollabLane) -> Void
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Direktwahl")
+                    .font(AppTypography.sectionHeadline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text("Neben dem Swipe kannst du jede Collection direkt antippen.")
+                    .font(AppTypography.bodyCaption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+                ForEach(lanes) { lane in
+                    MerchandiseCollabSidebarButton(
+                        lane: lane,
+                        isSelected: lane.id == selectedLaneID,
+                        colorScheme: colorScheme,
+                        compact: true
+                    ) {
+                        onSelect(lane)
+                    }
+                }
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accentHighlight(for: colorScheme))
     }
 }
 
@@ -234,7 +275,7 @@ struct MerchandiseCollabCarousel: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 188)
+        .frame(height: 224)
         .tabViewStyle(indexStyle)
         .indexViewStyle(
             PageIndexViewStyle(backgroundDisplayMode: .always)
@@ -272,17 +313,49 @@ struct MerchandiseCollabSelectionCard: View {
         selectedLane.itemCount == 1 ? "1 Piece" : "\(selectedLane.itemCount) Pieces"
     }
 
+    private var laneKindLabel: String {
+        if selectedLane.id == MerchandiseCollabLane.allID {
+            return "Alle"
+        }
+        return selectedLane.isCoreLane ? "Core" : "Collection"
+    }
+
+    private var coverageLabel: String {
+        guard totalItemCount > 0 else { return "0%" }
+        let ratio = Double(selectedLane.itemCount) / Double(totalItemCount)
+        return "\(Int((ratio * 100).rounded()))%"
+    }
+
+    private var coverageDetail: String {
+        totalItemCount == selectedLane.itemCount ? "Gesamter Katalog" : "des sichtbaren Katalogs"
+    }
+
+    private var focusTitle: String {
+        selectedLane.id == MerchandiseCollabLane.allID ? "Alle Drops im Fokus" : "Fokus auf \(selectedLane.title)"
+    }
+
+    private var focusDetail: String {
+        if selectedLane.id == MerchandiseCollabLane.allID {
+            return "Direkt durch alle sichtbaren Pieces browsen."
+        }
+        return "Filtert direkt auf diese Lane und haelt den Rest ruhig im Hintergrund."
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
+                    Text("Drop Map")
+                        .font(AppTypography.sectionEyebrow)
+                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+
                     Text(selectedLane.title)
-                        .font(.title3.weight(.bold))
+                        .font(AppTypography.cardTitle)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .lineLimit(2)
 
-                    Text(selectedLane.subtitle)
-                        .font(.footnote)
+                    Text(focusTitle)
+                        .font(AppTypography.bodyCaption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .lineLimit(2)
                 }
@@ -291,31 +364,46 @@ struct MerchandiseCollabSelectionCard: View {
 
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(laneLabel)
-                        .font(.caption.weight(.bold))
+                        .font(AppTypography.sectionEyebrow)
                         .foregroundColor(AppColors.accentHighlight(for: colorScheme))
 
-                    Text(totalItemCount == selectedLane.itemCount ? "Gesamt" : "Auswahl")
-                        .font(.caption2.weight(.semibold))
+                    Text(coverageLabel)
+                        .font(AppTypography.bodyCaption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             }
 
-            HStack(spacing: 8) {
-                MerchandiseCollabMetaPill(
-                    text: laneLabel,
-                    colorScheme: colorScheme,
-                    accent: AppColors.accent(for: colorScheme)
-                )
-                MerchandiseCollabMetaPill(
-                    text: selectedLane.id == MerchandiseCollabLane.allID
-                        ? "Alle"
-                        : (selectedLane.isCoreLane ? "Core" : "Collection"),
-                    colorScheme: colorScheme,
-                    accent: AppColors.accentMystic(for: colorScheme)
-                )
+            Text(focusDetail)
+                .font(AppTypography.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    MerchandiseCollabFocusMetric(
+                        title: "Route",
+                        value: laneKindLabel,
+                        detail: selectedLane.subtitle,
+                        colorScheme: colorScheme,
+                        accent: AppColors.accentMystic(for: colorScheme)
+                    )
+                    MerchandiseCollabFocusMetric(
+                        title: "Share",
+                        value: coverageLabel,
+                        detail: coverageDetail,
+                        colorScheme: colorScheme,
+                        accent: AppColors.accentHighlight(for: colorScheme)
+                    )
+                    MerchandiseCollabFocusMetric(
+                        title: "Pieces",
+                        value: laneLabel,
+                        detail: totalItemCount == selectedLane.itemCount ? "Gesamtauswahl" : "Aktiver Filter",
+                        colorScheme: colorScheme,
+                        accent: AppColors.accent(for: colorScheme)
+                    )
+                }
             }
         }
-        .frame(height: 150, alignment: .topLeading)
+        .frame(height: 186, alignment: .topLeading)
         .padding(SkydownLayout.cardPadding)
         .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
     }
@@ -342,14 +430,14 @@ private struct MerchandiseCollabSidebarButton: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(lane.title)
-                            .font(.subheadline.weight(.bold))
+                            .font(AppTypography.buttonLabel)
                             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
                             .multilineTextAlignment(.leading)
                             .lineLimit(compact ? 1 : 2)
                             .minimumScaleFactor(0.86)
 
                         Text(lane.subtitle)
-                            .font(.caption)
+                            .font(AppTypography.bodyCaption)
                             .foregroundColor(
                                 isSelected
                                     ? Color.white.opacity(0.84)
@@ -364,7 +452,7 @@ private struct MerchandiseCollabSidebarButton: View {
 
                 HStack(spacing: 8) {
                     Text(lane.itemCount == 1 ? "1 Piece" : "\(lane.itemCount) Pieces")
-                        .font(.caption.weight(.semibold))
+                        .font(AppTypography.bodyCaption)
                         .foregroundColor(isSelected ? .white : AppColors.accentHighlight(for: colorScheme))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
@@ -376,12 +464,30 @@ private struct MerchandiseCollabSidebarButton: View {
                                         : AppColors.secondaryBackground(for: colorScheme)
                                 )
                         )
+
+                    Text(
+                        lane.id == MerchandiseCollabLane.allID
+                            ? "Alle"
+                            : (lane.isCoreLane ? "Core" : "Collection")
+                    )
+                    .font(AppTypography.bodyCaption)
+                    .foregroundColor(isSelected ? .white.opacity(0.92) : AppColors.text(for: colorScheme))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(
+                                isSelected
+                                    ? Color.white.opacity(0.10)
+                                    : AppColors.secondaryBackground(for: colorScheme)
+                            )
+                    )
                 }
             }
             .padding(.horizontal, compact ? 14 : 16)
             .padding(.vertical, compact ? 14 : 15)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: compact ? 106 : 118, alignment: .topLeading)
+            .frame(height: compact ? 114 : 126, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(
@@ -405,6 +511,43 @@ private struct MerchandiseCollabSidebarButton: View {
     }
 }
 
+private struct MerchandiseCollabFocusMetric: View {
+    let title: String
+    let value: String
+    let detail: String
+    let colorScheme: ColorScheme
+    let accent: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title.uppercased())
+                .font(AppTypography.sectionEyebrow)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text(value)
+                .font(AppTypography.metricLabel)
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(1)
+
+            Text(detail)
+                .font(AppTypography.bodyCaption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(1)
+        }
+        .frame(width: 136, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(accent.opacity(0.16), lineWidth: 1)
+        )
+    }
+}
+
 private struct MerchandiseCollabMetaPill: View {
     let text: String
     let colorScheme: ColorScheme
@@ -412,7 +555,7 @@ private struct MerchandiseCollabMetaPill: View {
 
     var body: some View {
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(AppTypography.bodyCaption)
             .foregroundColor(accent)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)

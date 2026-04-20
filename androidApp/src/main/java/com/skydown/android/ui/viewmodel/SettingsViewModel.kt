@@ -67,7 +67,7 @@ class SettingsViewModel : ViewModel() {
                     ?: user?.email
                         ?.substringBefore("@")
                         ?.takeIf { it.isNotBlank() }
-                    ?: if (user != null) "Skydown User" else ""
+                    ?: if (user != null) "SkyOs User" else ""
 
                 _uiState.update {
                     it.copy(
@@ -562,7 +562,7 @@ class SettingsViewModel : ViewModel() {
 
         val result = adminUserManagementRepository.updateUser(user)
         return if (result.isSuccess) {
-            val message = "Konto gespeichert. Rolle und KI-Limits wurden aktualisiert."
+            val message = "Konto gespeichert. Rolle, Rechte und KI-Limits wurden aktualisiert."
             showPaymentFeedback(
                 message = message,
                 isError = false,

@@ -137,13 +137,16 @@ struct HomeView: View {
                 viewModel.refresh()
             }
             .background {
-                AppColors.screenGradient(for: colorScheme)
+                AppColors.screenGradient(
+                    for: colorScheme,
+                    secondaryAccent: AppColors.spotify(for: colorScheme)
+                )
                     .overlay {
                         HomeMapBackdrop(colorScheme: colorScheme)
                     }
                     .ignoresSafeArea()
             }
-            .navigationTitle("22xSky")
+            .navigationTitle("SkyOs")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -459,12 +462,24 @@ struct ShopView: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 } else {
-                                    MerchandiseCollabCarousel(
-                                        lanes: merchCollabLanes,
-                                        selectedLaneID: $selectedCollabLaneID,
-                                        totalItemCount: viewModel.merchandiseItems.count,
-                                        colorScheme: colorScheme
-                                    )
+                                    VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                        MerchandiseCollabCarousel(
+                                            lanes: merchCollabLanes,
+                                            selectedLaneID: $selectedCollabLaneID,
+                                            totalItemCount: viewModel.merchandiseItems.count,
+                                            colorScheme: colorScheme
+                                        )
+
+                                        if merchCollabLanes.count > 1 {
+                                            MerchandiseCollabQuickGrid(
+                                                lanes: merchCollabLanes,
+                                                selectedLaneID: selectedCollabLaneID,
+                                                colorScheme: colorScheme
+                                            ) { lane in
+                                                selectedCollabLaneID = lane.id
+                                            }
+                                        }
+                                    }
 
                                     if filteredMerchandiseItems.isEmpty {
                                         ShopInfoCard(
@@ -501,7 +516,13 @@ struct ShopView: View {
                         }
                     }
                 }
-                .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+                .background(
+                    AppColors.screenGradient(
+                        for: colorScheme,
+                        secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+                    )
+                    .ignoresSafeArea()
+                )
                 .navigationTitle("Shop")
                 .navigationBarTitleDisplayMode(.inline)
                 .skydownNavigationChrome(colorScheme: colorScheme)
@@ -621,8 +642,8 @@ private struct HomeHeroIntroCard: View {
 
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "22xSky Home",
-            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "22xSky",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOs Home",
+            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOs",
             subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles direkt im Blick.",
             detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch, Tools.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
@@ -772,11 +793,11 @@ private struct HomeSectionBanner: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(AppTypography.cardTitle)
+                    .font(AppTypography.sectionHeadline)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 Text(subtitle)
-                    .font(.footnote)
+                    .font(AppTypography.bodyCaption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
@@ -798,7 +819,7 @@ private struct HomeSignalBadge: View {
                 .font(.caption2.weight(.bold))
 
             Text(text)
-                .font(.caption.weight(.medium))
+                .font(AppTypography.bodyCaption)
                 .lineLimit(1)
         }
         .foregroundColor(isActive ? accent : AppColors.secondaryText(for: colorScheme))
@@ -955,11 +976,11 @@ private struct HomeRadarSignalRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(signal.title)
-                    .font(.footnote.weight(.semibold))
+                    .font(AppTypography.buttonLabel)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 Text(signal.subtitle)
-                    .font(.caption)
+                    .font(AppTypography.bodyCaption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .lineLimit(2)
             }
@@ -1528,11 +1549,11 @@ private struct HomeLaneSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(AppTypography.sectionHeadline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             Text(subtitle)
-                .font(.footnote)
+                .font(AppTypography.bodyCaption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(spacing: 10) {
@@ -1765,11 +1786,11 @@ private struct HomeActionButton: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.footnote.weight(.semibold))
+                        .font(AppTypography.buttonLabel)
 
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
-                            .font(.caption2.weight(.medium))
+                            .font(AppTypography.bodyCaption)
                             .foregroundColor(
                                 isPrimary
                                     ? Color.white.opacity(0.82)
@@ -2038,24 +2059,30 @@ private struct ShopHeroCard: View {
             if onToggleStore != nil || onSyncShopify != nil {
                 HStack(spacing: 10) {
                     if let onToggleStore {
-                        Button(action: onToggleStore) {
-                            Text(isUpdatingStoreState ? "Update..." : (isStoreOpen ? "Schliessen" : "Oeffnen"))
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
+                        HomeActionButton(
+                            title: isUpdatingStoreState ? "Update..." : (isStoreOpen ? "Schliessen" : "Oeffnen"),
+                            subtitle: isStoreOpen ? "Store fuer Bestellungen pausieren." : "Store wieder fuer Bestellungen aktivieren.",
+                            icon: isStoreOpen ? "pause.fill" : "play.fill",
+                            colorScheme: colorScheme,
+                            brand: .neutral,
+                            isPrimary: true
+                        ) {
+                            onToggleStore()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(isStoreOpen ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
                         .disabled(isUpdatingStoreState)
                     }
 
                     if let onSyncShopify {
-                        Button(action: onSyncShopify) {
-                            Text(isSyncingCatalog ? "Laedt..." : "Sync")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
+                        HomeActionButton(
+                            title: isSyncingCatalog ? "Laedt..." : "Sync",
+                            subtitle: "Shopify-Katalog und Collection-Daten aktualisieren.",
+                            icon: "arrow.triangle.2.circlepath",
+                            colorScheme: colorScheme,
+                            brand: .neutral,
+                            isPrimary: false
+                        ) {
+                            onSyncShopify()
                         }
-                        .buttonStyle(.bordered)
-                        .tint(AppColors.accentHighlight(for: colorScheme))
                         .disabled(isSyncingCatalog)
                     }
                 }
@@ -2076,17 +2103,17 @@ private struct ShopInfoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(title)
-                .font(.headline)
+                .font(AppTypography.sectionHeadline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             Text(message)
-                .font(.body)
+                .font(AppTypography.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if let actionTitle, let action {
                 Button(action: action) {
                     Text(actionTitle)
-                        .font(.headline)
+                        .font(AppTypography.buttonLabel)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)

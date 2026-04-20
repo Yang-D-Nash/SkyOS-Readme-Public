@@ -160,19 +160,19 @@ final class AIChatViewModel: ObservableObject {
     let visualPrompts = [
         AIVisualPrompt(
             label: "Artist Foto",
-            prompt: "Generiere ein cineastisches Artist-Foto fuer 22xSky wie ein hochwertiger ARRI-Frame: 35mm Prime, offene Blende um f/1.4, organisches Bokeh, natuerliche Tiefenstaffelung, moody Licht, realistisches Editorial-Foto, keine Illustration, kein CGI und kein generischer AI-Look."
+            prompt: "Generiere ein cineastisches Artist-Foto fuer SkyOs wie ein hochwertiger ARRI-Frame: 35mm Prime, offene Blende um f/1.4, organisches Bokeh, natuerliche Tiefenstaffelung, moody Licht, realistisches Editorial-Foto, keine Illustration, kein CGI und kein generischer AI-Look."
         ),
         AIVisualPrompt(
             label: "Cover Art",
-            prompt: "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von 22xSky mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift."
+            prompt: "Generiere ein quadratisches Cover-Art fuer einen dunklen Hip-Hop-Release von SkyOs mit cineastischer Nachtstimmung und starkem Fokus auf Mood statt Schrift."
         ),
         AIVisualPrompt(
             label: "Release Poster",
-            prompt: "Generiere ein vertikales Release-Poster fuer 22xSky, urban, premium, moody, mit Platz fuer einen kuenftigen Tracktitel."
+            prompt: "Generiere ein vertikales Release-Poster fuer SkyOs, urban, premium, moody, mit Platz fuer einen kuenftigen Tracktitel."
         ),
         AIVisualPrompt(
             label: "Story Visual",
-            prompt: "Generiere ein starkes 9:16 Story-Visual fuer einen neuen 22xSky Drop, street, cinematic, klarer Fokus und wenig Text im Bild."
+            prompt: "Generiere ein starkes 9:16 Story-Visual fuer einen neuen SkyOs Drop, street, cinematic, klarer Fokus und wenig Text im Bild."
         )
     ]
 
@@ -384,11 +384,11 @@ final class AIChatViewModel: ObservableObject {
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
             case .notFound, .unimplemented:
-                return "Der 22xSky Bot ist fuer diesen Bereich gerade noch nicht verfuegbar."
+                return "Der SkyOs Bot ist fuer diesen Bereich gerade noch nicht verfuegbar."
             case .unavailable:
-                return "Der 22xSky Bot ist gerade nicht erreichbar."
+                return "Der SkyOs Bot ist gerade nicht erreichbar."
             case .deadlineExceeded:
-                return "Der 22xSky Bot hat zu lange fuer die Antwort gebraucht."
+                return "Der SkyOs Bot hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
                 return nsError.localizedDescription.isEmpty ? "Dein heutiges KI-Limit ist erreicht." : nsError.localizedDescription
             case .failedPrecondition:
@@ -419,7 +419,7 @@ final class AIChatViewModel: ObservableObject {
         }
 
         return error.localizedDescription.isEmpty
-            ? "Der 22xSky Bot ist gerade nicht verfuegbar."
+            ? "Der SkyOs Bot ist gerade nicht verfuegbar."
             : error.localizedDescription
     }
 }

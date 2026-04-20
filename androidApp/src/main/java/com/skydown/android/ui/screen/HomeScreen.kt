@@ -240,7 +240,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        "22xSky",
+                        "SkyOs",
                     )
                 },
                 actions = {
@@ -289,8 +289,8 @@ fun HomeScreen(
                     skydownScreenBrush(
                         primaryColor = DexBlue,
                         secondaryColor = ArenaRed,
-                        primaryAlpha = 0.18f,
-                        secondaryAlpha = 0.12f,
+                        primaryAlpha = 0.095f,
+                        secondaryAlpha = 0.060f,
                     ),
                 ),
         ) {
@@ -311,9 +311,9 @@ fun HomeScreen(
                 item {
                     HomeAnimatedItem(order = 0) {
                         BrandHeroCard(
-                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY²²" },
+                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY OS" },
                             title = screenHeaderSettings.homeTitle.ifBlank { "Home" },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren Skydown-Flow." },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren SkyOs-Flow." },
                             detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount von $homeSignalTotal Bereichen sind gerade live." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                             accent = ArenaGold,
@@ -322,7 +322,7 @@ fun HomeScreen(
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 BrandPill(
-                                    text = "22xSky",
+                                    text = "SkyOs",
                                     tint = ArenaGold,
                                     onClick = {
                                         coroutineScope.launch {

@@ -17,8 +17,8 @@ internal fun FirebaseUser.toSharedUser(
         email = fallbackEmail,
         username = (displayName
             ?.takeIf { it.isNotBlank() }
-            ?: fallbackEmail.substringBefore("@").ifBlank { "Skydown User" }
-        ).trim().take(32).trim().ifBlank { "Skydown User" },
+            ?: fallbackEmail.substringBefore("@").ifBlank { "SkyOs User" }
+        ).trim().take(32).trim().ifBlank { "SkyOs User" },
         profileImageURL = null,
         whatsApp = null,
         profileTagline = null,
@@ -54,7 +54,7 @@ internal fun DocumentSnapshot.toSharedUser(authUser: FirebaseUser? = null): User
         ?: return null
     val username = (data["username"] as? String)?.takeIf { it.isNotBlank() }
         ?: authUser?.displayName?.takeIf { it.isNotBlank() }
-        ?: email.substringBefore("@").ifBlank { "Skydown User" }
+        ?: email.substringBefore("@").ifBlank { "SkyOs User" }
     val storedIsAdmin = data["isAdmin"] as? Boolean ?: false
     val resolvedRole = UserRole.resolve(
         rawValue = data["role"] as? String,

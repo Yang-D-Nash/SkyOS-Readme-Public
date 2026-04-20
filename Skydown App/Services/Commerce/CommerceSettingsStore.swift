@@ -10,7 +10,7 @@ struct CommerceShippingSettings: Equatable {
 }
 
 struct CommerceInvoiceSettings: Equatable {
-    var companyName: String = "Skydown Entertainment"
+    var companyName: String = "Skydown"
     var companyAddress: String = ""
     var taxNumber: String = ""
     var vatId: String = ""
@@ -77,7 +77,7 @@ final class FirestoreCommerceSettingsService: CommerceSettingsServicing {
                 shippingNotes: shipping["shippingNotes"] as? String ?? ""
             ),
             invoice: CommerceInvoiceSettings(
-                companyName: invoice["companyName"] as? String ?? "Skydown Entertainment",
+                companyName: invoice["companyName"] as? String ?? "Skydown",
                 companyAddress: invoice["companyAddress"] as? String ?? "",
                 taxNumber: invoice["taxNumber"] as? String ?? "",
                 vatId: invoice["vatId"] as? String ?? "",

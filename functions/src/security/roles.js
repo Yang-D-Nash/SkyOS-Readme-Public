@@ -49,7 +49,7 @@ function defaultQuotaPlanForRole(role) {
     case USER_ROLES.owner:
       return USER_QUOTA_PLANS.ownerUnlimited;
     case USER_ROLES.admin:
-      return USER_QUOTA_PLANS.creator;
+      return USER_QUOTA_PLANS.internalTeam;
     case USER_ROLES.subadmin:
       return USER_QUOTA_PLANS.creator;
     case USER_ROLES.user:
@@ -76,6 +76,40 @@ function defaultAiLimitsForQuotaPlan(plan) {
 
 function defaultAiLimitsForRole(role) {
   return defaultAiLimitsForQuotaPlan(defaultQuotaPlanForRole(role));
+}
+
+const SELF_PAID_QUOTA_PLANS = Object.freeze([
+  USER_QUOTA_PLANS.creator,
+  USER_QUOTA_PLANS.studio,
+]);
+const ACTIVE_AI_SUBSCRIPTION_STATUSES = Object.freeze(["active", "trialing"]);
+
+function normalizeAiSubscriptionPlan(plan) {
+  const normalized = nonEmptyString(plan)?.toLowerCase();
+  return SELF_PAID_QUOTA_PLANS.includes(normalized) ? normalized : null;
+}
+
+function normalizeAiSubscriptionStatus(status, fallback = "inactive") {
+  return nonEmptyString(status)?.toLowerCase() || fallback;
+}
+
+function shouldPreservePaidQuotaPlan(role, existingData = {}) {
+  if (![USER_ROLES.admin, USER_ROLES.subadmin].includes(role)) {
+    return false;
+  }
+
+  const existingQuotaPlan = normalizeAiSubscriptionPlan(existingData.quotaPlan);
+  if (!existingQuotaPlan) {
+    return false;
+  }
+
+  const subscriptionPlan = normalizeAiSubscriptionPlan(existingData.aiSubscriptionPlan);
+  const subscriptionStatus = normalizeAiSubscriptionStatus(existingData.aiSubscriptionStatus, "");
+  if (!ACTIVE_AI_SUBSCRIPTION_STATUSES.includes(subscriptionStatus)) {
+    return false;
+  }
+
+  return !subscriptionPlan || subscriptionPlan === existingQuotaPlan;
 }
 
 function buildRoleClaims(role) {
@@ -146,13 +180,10 @@ async function setUserRoleClaims({
     {...resolvedTarget.staleData, ...canonicalData} :
     canonicalData;
   const migrationCarryover = buildMigrationCarryover(resolvedTarget.staleData, canonicalData);
-  const existingQuotaPlan = nonEmptyString(existingData.quotaPlan)?.toLowerCase();
-  const selfPaidPlans = [USER_QUOTA_PLANS.creator, USER_QUOTA_PLANS.studio];
   const quotaPlan = finalRole === USER_ROLES.owner ?
     USER_QUOTA_PLANS.ownerUnlimited :
-    [USER_ROLES.admin, USER_ROLES.subadmin].includes(finalRole) &&
-    selfPaidPlans.includes(existingQuotaPlan) ?
-      existingQuotaPlan :
+    shouldPreservePaidQuotaPlan(finalRole, existingData) ?
+      normalizeAiSubscriptionPlan(existingData.quotaPlan) :
       defaultQuotaPlanForRole(finalRole);
   const defaults = defaultAiLimitsForQuotaPlan(quotaPlan);
   const textLimit = Number(existingData.aiTextRequestsPerDay);

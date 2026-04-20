@@ -15,7 +15,7 @@ data class CommerceShippingSettings(
 )
 
 data class CommerceInvoiceSettings(
-    val companyName: String = "Skydown Entertainment",
+    val companyName: String = "Skydown",
     val companyAddress: String = "",
     val taxNumber: String = "",
     val vatId: String = "",
@@ -71,7 +71,7 @@ private fun Map<String, Any>.toCommerceSettings(): CommerceSettings {
             shippingNotes = shipping["shippingNotes"] as? String ?: "",
         ),
         invoice = CommerceInvoiceSettings(
-            companyName = invoice["companyName"] as? String ?: "Skydown Entertainment",
+            companyName = invoice["companyName"] as? String ?: "Skydown",
             companyAddress = invoice["companyAddress"] as? String ?: "",
             taxNumber = invoice["taxNumber"] as? String ?: "",
             vatId = invoice["vatId"] as? String ?: "",

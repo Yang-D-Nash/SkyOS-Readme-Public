@@ -497,10 +497,18 @@ function resolveAiLimitsUpdateForRole(role) {
 
 function resolveAiLimits(userData = {}) {
   const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
-  const quotaPlan = typeof userData.quotaPlan === "string" &&
+  const storedQuotaPlan = typeof userData.quotaPlan === "string" &&
     Object.values(USER_QUOTA_PLANS).includes(userData.quotaPlan) ?
       userData.quotaPlan :
       defaultQuotaPlanForRole(role);
+  const hasActivePaidSubscription = AI_SUBSCRIPTION_PLANS.includes(
+      normalizeAiSubscriptionPlan(userData.aiSubscriptionPlan) || "",
+  ) && isAiSubscriptionStatusActive(userData.aiSubscriptionStatus);
+  const quotaPlan = role === USER_ROLES.admin &&
+    storedQuotaPlan !== USER_QUOTA_PLANS.internalTeam &&
+    !hasActivePaidSubscription ?
+      USER_QUOTA_PLANS.internalTeam :
+      storedQuotaPlan;
   const defaults = defaultAiLimitsForQuotaPlan(quotaPlan);
   const text = Number(userData.aiTextRequestsPerDay);
   const visual = Number(userData.aiVisualRequestsPerDay);
@@ -989,6 +997,7 @@ async function assertAiAccess(auth) {
 
   if (
     profile.role === USER_ROLES.admin &&
+    profile.aiLimits.quotaPlan !== USER_QUOTA_PLANS.internalTeam &&
     (
       !AI_SUBSCRIPTION_PLANS.includes(profile.aiLimits.quotaPlan) ||
       !isAiSubscriptionStatusActive(userData.aiSubscriptionStatus)

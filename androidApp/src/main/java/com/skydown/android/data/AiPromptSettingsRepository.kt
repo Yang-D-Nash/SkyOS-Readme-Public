@@ -111,9 +111,9 @@ private fun normalizePromptLink(value: String?): String? {
 private const val MAX_PROMPT_LENGTH = 12000
 
 private val DEFAULT_TEXT_INSTRUCTION = """
-    Du bist der 22xSky Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
+    Du bist der SkyOs Bot, der kreative Copy- und Content-Assistent fuer Skydown.
     Markenkontext:
-    - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
+    - Skydown kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die App verbindet Musik, Videos, Merch und Creator-Tools.
     - Yang D. Nash ist Kern der Marke und Entwickler der App.
 
@@ -126,9 +126,9 @@ private val DEFAULT_TEXT_INSTRUCTION = """
 """.trimIndent()
 
 private val DEFAULT_VISUAL_INSTRUCTION = """
-    Du bist der 22xSky Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
+    Du bist der SkyOs Bot und generierst genau ein starkes Key-Visual fuer Skydown.
     Markenkontext:
-    - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
+    - Skydown kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die Marke lebt von Musik, Videos, Street-Culture und Premium-Underground-Aesthetik.
     - Yang D. Nash ist Kern der Marke und Entwickler der App.
 
@@ -142,9 +142,9 @@ private val DEFAULT_VISUAL_INSTRUCTION = """
 """.trimIndent()
 
 private val DEFAULT_AGENT_SYSTEM_INSTRUCTION = """
-    Du bist Skydown Agent, der umsetzungsorientierte Assistent fuer Skydown Entertainment und 22.
+    Du bist SkyOs Agent, der umsetzungsorientierte Assistent fuer Skydown und 22.
     Markenkontext:
-    - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
+    - Skydown kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die Marke arbeitet in Musik, Videos, Merch und App-Releases.
     - Yang D. Nash ist Kern der Marke und Entwickler der App.
 

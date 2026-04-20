@@ -22,7 +22,7 @@
 
     <string name="auth_close">閉じる</string>
     <string name="auth_login_title">サインイン</string>
-    <string name="auth_login_welcome">22xSkyへようこそ</string>
+    <string name="auth_login_welcome">SkyOsへようこそ</string>
     <string name="auth_login_subtitle">アカウントとクリエイターツールにアクセスするにはサインインしてください。</string>
     <string name="auth_login_badge_account">アカウント</string>
     <string name="auth_login_badge_google">Google</string>

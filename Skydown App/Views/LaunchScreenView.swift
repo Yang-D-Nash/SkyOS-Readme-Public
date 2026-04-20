@@ -156,7 +156,8 @@ private struct LaunchLandingView: View {
                         Color.black,
                         Color(red: 2/255, green: 7/255, blue: 13/255),
                         Color(red: 7/255, green: 16/255, blue: 26/255),
-                        Color(red: 33/255, green: 63/255, blue: 96/255).opacity(0.34),
+                        Color(red: 20/255, green: 42/255, blue: 68/255).opacity(0.48),
+                        Color(red: 33/255, green: 63/255, blue: 96/255).opacity(0.30),
                         Color(red: 5/255, green: 11/255, blue: 18/255),
                         Color.black
                     ],
@@ -179,14 +180,29 @@ private struct LaunchLandingView: View {
                 Circle()
                     .fill(Color(red: 91/255, green: 149/255, blue: 216/255).opacity(0.12))
                     .frame(width: layout.prefersDesktopChrome ? 360 : 260, height: layout.prefersDesktopChrome ? 360 : 260)
-                    .blur(radius: 62)
+                    .blur(radius: 70)
                     .offset(x: proxy.size.width * 0.26, y: -280)
 
                 Circle()
                     .fill(Color(red: 138/255, green: 170/255, blue: 206/255).opacity(0.08))
                     .frame(width: layout.prefersDesktopChrome ? 320 : 240, height: layout.prefersDesktopChrome ? 320 : 240)
-                    .blur(radius: 68)
+                    .blur(radius: 76)
                     .offset(x: -proxy.size.width * 0.18, y: 280)
+
+                Ellipse()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppColors.accentMystic(for: hubColorScheme).opacity(0.18),
+                                AppColors.spotify(for: hubColorScheme).opacity(0.04)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: layout.prefersDesktopChrome ? 520 : 320, height: layout.prefersDesktopChrome ? 260 : 180)
+                    .blur(radius: 48)
+                    .offset(x: proxy.size.width * 0.16, y: 210)
 
                 RoundedRectangle(cornerRadius: 44, style: .continuous)
                     .fill(AppColors.spotify(for: hubColorScheme).opacity(0.06))
@@ -197,64 +213,81 @@ private struct LaunchLandingView: View {
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: layout.sectionSpacing + 4) {
+                        HStack(spacing: 8) {
+                            LaunchLandingMetaPill(text: "Sky OS", accent: AppColors.accent(for: hubColorScheme))
+                            LaunchLandingMetaPill(text: "One Flow", accent: AppColors.accentMystic(for: hubColorScheme))
+                            LaunchLandingMetaPill(text: "Direct", accent: AppColors.spotify(for: hubColorScheme))
+                        }
+
                         BrandHeroSurface(
                             colorScheme: hubColorScheme,
-                            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "22xSky Home",
-                            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "22xSky",
-                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Waehle deinen Start.",
-                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch und Tools direkt im Einstieg.",
+                            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOs Home",
+                            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOs",
+                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles fuehlt sich wie eine einzige App an.",
+                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Waehle deinen ersten Move. Music, Video, Merch und Tools bleiben danach in einem klaren Flow verbunden.",
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
                             accent: AppColors.accent(for: hubColorScheme),
                             secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
                             marks: [.skydownX22]
                         ) {
-                            HStack(spacing: 10) {
-                                BrandHeroPill(
-                                    text: "Music",
-                                    colorScheme: hubColorScheme,
-                                    tint: AppColors.spotify(for: hubColorScheme)
-                                )
-                                BrandHeroPill(
-                                    text: "Video",
-                                    colorScheme: hubColorScheme,
-                                    tint: AppColors.accentMystic(for: hubColorScheme)
-                                )
-                                BrandHeroPill(
-                                    text: "Merch",
-                                    colorScheme: hubColorScheme,
-                                    tint: AppColors.accentHighlight(for: hubColorScheme)
-                                )
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 10) {
+                                    BrandHeroPill(
+                                        text: "Music",
+                                        colorScheme: hubColorScheme,
+                                        tint: AppColors.spotify(for: hubColorScheme)
+                                    )
+                                    BrandHeroPill(
+                                        text: "Video",
+                                        colorScheme: hubColorScheme,
+                                        tint: AppColors.accentMystic(for: hubColorScheme)
+                                    )
+                                    BrandHeroPill(
+                                        text: "Merch",
+                                        colorScheme: hubColorScheme,
+                                        tint: AppColors.accentHighlight(for: hubColorScheme)
+                                    )
+                                    BrandHeroPill(
+                                        text: "AI",
+                                        colorScheme: hubColorScheme,
+                                        tint: AppColors.accent(for: hubColorScheme)
+                                    )
+                                }
+
+                                Text("Direkt reingehen, jederzeit unten wechseln, nie in einer Sackgasse haengen bleiben.")
+                                    .font(AppTypography.editorialCaption)
+                                    .foregroundColor(.white.opacity(0.82))
                             }
                         }
 
                         if layout.prefersThreeColumn {
                             HStack(spacing: 12) {
                                 LaunchLandingSignalCard(
-                                    title: "3 Lanes",
-                                    value: "Music, Video, Shop",
+                                    title: "1 Tap Start",
+                                    value: "Direkt in Music, Video oder Shop.",
                                     accent: AppColors.spotify(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Direkter Start",
-                                    value: "Kein Umweg nach dem Intro",
+                                    title: "Immer Zurueck",
+                                    value: "Navigation bleibt klar und frei.",
                                     accent: AppColors.accentMystic(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Sync",
-                                    value: "iOS und Android gleich gedacht",
+                                    title: "Ein System",
+                                    value: "Discovery, Playback und Checkout greifen zusammen.",
                                     accent: AppColors.accentHighlight(for: hubColorScheme)
                                 )
                             }
                         } else {
                             VStack(spacing: 10) {
                                 LaunchLandingSignalCard(
-                                    title: "3 Lanes",
-                                    value: "Music, Video, Shop",
+                                    title: "1 Tap Start",
+                                    value: "Direkt in Music, Video oder Shop.",
                                     accent: AppColors.spotify(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Direkter Start",
-                                    value: "Kein Umweg nach dem Intro",
+                                    title: "Immer Zurueck",
+                                    value: "Navigation bleibt klar und frei.",
                                     accent: AppColors.accentMystic(for: hubColorScheme)
                                 )
                             }
@@ -267,7 +300,7 @@ private struct LaunchLandingView: View {
                                         eyebrow: "Music",
                                         title: "Music",
                                         subtitle: "Releases, Artists, Beats.",
-                                        detail: "Catalog, Beat Hub und Studio direkt in einem Flow.",
+                                        detail: "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
@@ -278,7 +311,7 @@ private struct LaunchLandingView: View {
                                         eyebrow: "Video",
                                         title: "Videos",
                                         subtitle: "Reels, Clips, YouTube.",
-                                        detail: "Playback, Creator-Flows und fertige Clips ohne Reibung.",
+                                        detail: "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
                                         accent: AppColors.accentMystic(for: hubColorScheme),
                                         brandMark: .skydown,
                                         badges: ["Playback", "Reels", "YouTube"],
@@ -289,7 +322,7 @@ private struct LaunchLandingView: View {
                                         eyebrow: "Store",
                                         title: "Merch",
                                         subtitle: "Drops, Styles, Checkout.",
-                                        detail: "Direkt in neue Pieces springen und sauber durch den Checkout gehen.",
+                                        detail: "Direkt in neue Pieces springen und sauber im Checkout bleiben.",
                                         accent: AppColors.accentHighlight(for: hubColorScheme),
                                         brandMark: .skydownX22,
                                         badges: ["Drops", "Fits", "Checkout"],
@@ -303,7 +336,7 @@ private struct LaunchLandingView: View {
                                         eyebrow: "Music",
                                         title: "Music",
                                         subtitle: "Releases, Artists, Beats.",
-                                        detail: "Catalog, Beat Hub und Studio direkt in einem Flow.",
+                                        detail: "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
@@ -316,7 +349,7 @@ private struct LaunchLandingView: View {
                                             eyebrow: "Video",
                                             title: "Videos",
                                             subtitle: "Reels, Clips, YouTube.",
-                                            detail: "Playback, Creator-Flows und fertige Clips ohne Reibung.",
+                                            detail: "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
                                             accent: AppColors.accentMystic(for: hubColorScheme),
                                             brandMark: .skydown,
                                             badges: ["Playback", "Reels", "YouTube"],
@@ -327,7 +360,7 @@ private struct LaunchLandingView: View {
                                             eyebrow: "Store",
                                             title: "Merch",
                                             subtitle: "Drops, Styles, Checkout.",
-                                            detail: "Direkt in neue Pieces springen und sauber durch den Checkout gehen.",
+                                            detail: "Direkt in neue Pieces springen und sauber im Checkout bleiben.",
                                             accent: AppColors.accentHighlight(for: hubColorScheme),
                                             brandMark: .skydownX22,
                                             badges: ["Drops", "Fits", "Checkout"],
@@ -342,7 +375,7 @@ private struct LaunchLandingView: View {
                                         eyebrow: "Music",
                                         title: "Music",
                                         subtitle: "Releases, Artists, Beats.",
-                                        detail: "Catalog, Beat Hub und Studio direkt in einem Flow.",
+                                        detail: "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
@@ -354,7 +387,7 @@ private struct LaunchLandingView: View {
                                         eyebrow: "Video",
                                         title: "Videos",
                                         subtitle: "Reels, Clips, YouTube.",
-                                        detail: "Playback, Creator-Flows und fertige Clips ohne Reibung.",
+                                        detail: "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
                                         accent: AppColors.accentMystic(for: hubColorScheme),
                                         brandMark: .skydown,
                                         badges: ["Playback", "Reels", "YouTube"],
@@ -366,7 +399,7 @@ private struct LaunchLandingView: View {
                                         eyebrow: "Store",
                                         title: "Merch",
                                         subtitle: "Drops, Styles, Checkout.",
-                                        detail: "Direkt in neue Pieces springen und sauber durch den Checkout gehen.",
+                                        detail: "Direkt in neue Pieces springen und sauber im Checkout bleiben.",
                                         accent: AppColors.accentHighlight(for: hubColorScheme),
                                         brandMark: .skydownX22,
                                         badges: ["Drops", "Fits", "Checkout"],
@@ -377,10 +410,10 @@ private struct LaunchLandingView: View {
                             }
                         }
 
-                        Text("Unten wechselst du spaeter jederzeit zwischen allen Bereichen.")
-                            .font(.caption.weight(.medium))
-                            .foregroundColor(.white.opacity(0.66))
-                            .padding(.top, 4)
+                        Text("Unten wechselst du spaeter jederzeit zwischen allen Bereichen. Der Einstieg bleibt direkt, die App bleibt offen und lesbar.")
+                            .font(AppTypography.editorialFootnote)
+                            .foregroundColor(.white.opacity(0.74))
+                            .padding(.top, 6)
                     }
                     .frame(maxWidth: contentWidth, alignment: .leading)
                     .padding(.horizontal, layout.horizontalPadding)
@@ -429,19 +462,20 @@ private struct LaunchLandingButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top, spacing: 14) {
                     Image(brandMark.imageName)
                         .resizable()
                         .scaledToFit()
-                        .padding(8)
-                        .frame(width: 58, height: 58)
+                        .padding(9)
+                        .frame(width: 62, height: 62)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            AppColors.cardBackground(for: hubColorScheme).opacity(0.96),
+                                            Color.white.opacity(0.05),
+                                            AppColors.cardBackground(for: hubColorScheme).opacity(0.94),
                                             accent.opacity(0.22)
                                         ],
                                         startPoint: .topLeading,
@@ -454,8 +488,8 @@ private struct LaunchLandingButton: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(eyebrow.uppercased())
                             .font(AppTypography.heroEyebrow)
-                            .tracking(1.2)
-                            .foregroundColor(.white.opacity(0.70))
+                            .tracking(1.4)
+                            .foregroundColor(accent.opacity(0.92))
 
                         Text(title)
                             .font(AppTypography.sectionTitle)
@@ -463,8 +497,8 @@ private struct LaunchLandingButton: View {
                             .shadow(color: .black.opacity(0.24), radius: 10, y: 4)
 
                         Text(subtitle)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.78))
+                            .font(AppTypography.editorialCaption)
+                            .foregroundColor(.white.opacity(0.82))
                             .multilineTextAlignment(.leading)
                     }
 
@@ -481,38 +515,56 @@ private struct LaunchLandingButton: View {
                 }
 
                 Text(detail)
-                    .font(.footnote.weight(.medium))
-                    .foregroundColor(.white.opacity(0.68))
+                    .font(AppTypography.editorialCaption)
+                    .foregroundColor(.white.opacity(0.72))
                     .multilineTextAlignment(.leading)
 
-                HStack(spacing: 8) {
-                    ForEach(badges, id: \.self) { badge in
-                        Text(badge)
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(accent)
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 7)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(Color.white.opacity(0.05))
-                            )
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .stroke(accent.opacity(0.24), lineWidth: 1)
-                            )
+                HStack(alignment: .center, spacing: 10) {
+                    HStack(spacing: 8) {
+                        ForEach(badges, id: \.self) { badge in
+                            Text(badge)
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(accent)
+                                .padding(.horizontal, 11)
+                                .padding(.vertical, 7)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(Color.white.opacity(0.05))
+                                )
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .stroke(accent.opacity(0.24), lineWidth: 1)
+                                )
+                        }
                     }
+
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 10) {
+                    Text("Direkt in \(title)")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(.white.opacity(0.94))
+
+                    Spacer(minLength: 10)
+
+                    LaunchLandingActionPill(
+                        text: "Open",
+                        accent: accent
+                    )
                 }
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 210, alignment: .leading)
+            .padding(22)
+            .frame(maxWidth: .infinity, minHeight: 226, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
+                                Color.white.opacity(0.05),
                                 Color.black.opacity(0.82),
                                 Color(red: 8/255, green: 14/255, blue: 24/255).opacity(0.94),
-                                accent.opacity(0.15)
+                                accent.opacity(0.16)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -521,10 +573,10 @@ private struct LaunchLandingButton: View {
             )
             .overlay(alignment: .topTrailing) {
                 Circle()
-                    .fill(accent.opacity(0.18))
-                    .frame(width: 120, height: 120)
-                    .blur(radius: 24)
-                    .offset(x: 28, y: -24)
+                    .fill(accent.opacity(0.22))
+                    .frame(width: 132, height: 132)
+                    .blur(radius: 30)
+                    .offset(x: 28, y: -20)
             }
             .overlay(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
@@ -545,21 +597,67 @@ private struct LaunchLandingButton: View {
     }
 }
 
+private struct LaunchLandingMetaPill: View {
+    let text: String
+    let accent: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.bold))
+            .foregroundColor(.white.opacity(0.90))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.05))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(accent.opacity(0.28), lineWidth: 1)
+            )
+    }
+}
+
+private struct LaunchLandingActionPill: View {
+    let text: String
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(text)
+                .font(.caption.weight(.bold))
+            Image(systemName: "arrow.up.right")
+                .font(.caption.weight(.bold))
+        }
+        .foregroundColor(.white.opacity(0.94))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule(style: .continuous)
+                .fill(accent.opacity(0.20))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(accent.opacity(0.30), lineWidth: 1)
+        )
+    }
+}
+
 private struct LaunchLandingSignalCard: View {
     let title: String
     let value: String
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title.uppercased())
                 .font(AppTypography.heroEyebrow)
-                .tracking(1.2)
+                .tracking(1.4)
                 .foregroundColor(accent)
 
             Text(value)
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(.white.opacity(0.84))
+                .font(AppTypography.editorialCaption)
+                .foregroundColor(.white.opacity(0.86))
                 .multilineTextAlignment(.leading)
         }
         .padding(16)
@@ -570,14 +668,21 @@ private struct LaunchLandingSignalCard: View {
                     LinearGradient(
                         colors: [
                             Color.white.opacity(0.05),
-                            accent.opacity(0.10),
-                            Color.black.opacity(0.22)
+                            accent.opacity(0.12),
+                            Color.black.opacity(0.24)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
         )
+        .overlay(alignment: .topLeading) {
+            Capsule(style: .continuous)
+                .fill(accent.opacity(0.94))
+                .frame(width: 42, height: 3)
+                .padding(.top, 12)
+                .padding(.leading, 16)
+        }
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)

@@ -409,7 +409,7 @@ private fun ProfileHeroCard(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                text = uiState.username.ifBlank { "Skydown User" },
+                                text = uiState.username.ifBlank { "SkyOs User" },
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Black,
                                 color = androidx.compose.ui.graphics.Color.White,
