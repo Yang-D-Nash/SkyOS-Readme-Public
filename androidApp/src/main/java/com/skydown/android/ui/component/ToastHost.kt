@@ -1,6 +1,9 @@
 package com.skydown.android.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -59,8 +62,42 @@ fun ToastHost(
 
     AnimatedVisibility(
         visible = !message.isNullOrBlank(),
-        enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn() + scaleIn(initialScale = 0.96f),
-        exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut() + scaleOut(targetScale = 0.96f),
+        enter = slideInVertically(
+            initialOffsetY = { it / 2 },
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                easing = LinearOutSlowInEasing,
+            ),
+        ) + fadeIn(
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                easing = LinearOutSlowInEasing,
+            ),
+        ) + scaleIn(
+            initialScale = 0.97f,
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                easing = LinearOutSlowInEasing,
+            ),
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { it / 2 },
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                easing = FastOutSlowInEasing,
+            ),
+        ) + fadeOut(
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                easing = FastOutSlowInEasing,
+            ),
+        ) + scaleOut(
+            targetScale = 0.97f,
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                easing = FastOutSlowInEasing,
+            ),
+        ),
         modifier = modifier,
     ) {
         Column(
@@ -94,6 +131,11 @@ fun ToastHost(
                         ),
                     ),
                     shape = shape,
+                )
+                .skydownLuminousSweep(
+                    shape = shape,
+                    accent = type.accent,
+                    alpha = 0.18f,
                 )
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -88,6 +88,7 @@ fun AiHubScreen(
                     SkydownTopBarTitle(
                         title = "Atelier",
                         subtitle = "KI, Agenten, Workflows.",
+                        accent = MaterialTheme.colorScheme.tertiary,
                     )
                 },
                 actions = {

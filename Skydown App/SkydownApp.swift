@@ -55,9 +55,14 @@ struct SkydownApp: App {
                         )
                     )
                     .padding(.top, 10)
+                    .transition(
+                        .move(edge: .top)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.985, anchor: .top))
+                    )
                 }
             }
-            .animation(.spring(response: 0.35, dampingFraction: 0.86), value: services.networkStatusMonitor.isOnline)
+            .animation(SkydownMotion.statusTransition, value: services.networkStatusMonitor.isOnline)
             .task {
                 await services.notificationPermissionStore.requestAuthorizationIfNeededOnLaunch()
             }
@@ -121,6 +126,12 @@ private struct ConnectivityStatusBanner: View {
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color.white.opacity(0.16), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.16), radius: 18, y: 8)
+        .skydownLuminousSweep(
+            cornerRadius: 14,
+            accent: Color(red: 1.0, green: 0.78, blue: 0.42),
+            alpha: 0.16
         )
         .padding(.horizontal, 12)
     }

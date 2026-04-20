@@ -1,31 +1,56 @@
-# 22xSky Owner Guide
+# SkyOs Owner Guide
 
-Dieses Handbuch ist fuer den Betrieb des Produkts aus Owner-Sicht.
-Es beschreibt die taegliche Steuerung von Rollen, KI, Workflows, Commerce, Sicherheit und Release-Freigaben.
+Dieses Handbuch beschreibt den Betrieb von SkyOs aus Owner-Sicht.
+SkyOs ist die Produkt- und Steuerungsschicht des `Skydown x 22` Universums und verbindet Experience, Rollen, KI, Workflows, Commerce, Sicherheit und Release-Governance.
+
+Zuletzt aktualisiert: `20. April 2026`
 
 ---
 
 ## 1) Zielbild Owner
 
-Als Owner steuerst du:
+Als Owner verantwortest du nicht nur Einstellungen, sondern das Systemgefuehl.
+Du steuerst:
 
-- Rollen und Berechtigungen
-- KI-Freigaben und Tageslimits
-- globale KI-Systemanweisungen
-- Agent-Provider und Runtime-Flags
-- Shopify/Payments/Commerce
-- Runtime-Lockdown und Recovery
+- Rollen und Rechte
+- KI-Freigaben, Tageslimits und globale Caps
+- Prompt- und Runtime-Governance
+- Workflow-Automation und BYOS-Setups
+- Commerce, Payments und Checkout-Freigaben
+- Rechtliches, Compliance und Release-Gates
+- Lockdown, Recovery und Kostenkontrolle
 
-Kurz: Du verantwortest sowohl Produktqualitaet als auch Risiko- und Kostenkontrolle.
+Kurz:
+Du verantwortest Produktqualitaet, Betriebssicherheit und Vertrauensniveau.
 
-Rechtlich Verantwortlicher und Rechteinhaber:
+Rechtlich Verantwortlicher und Betreiber:
 
-- `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+- `Skydown`
 - `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
+- Kontakt: `skydownent@gmail.com`
 
 ---
 
-## 2) Rollensteuerung
+## 2) Produktlogik Owner
+
+SkyOs ist als System gedacht.
+Deshalb gilt fuer Owner-Entscheidungen:
+
+- Klarheit vor Feature-Dichte
+- Kontrolle vor Spektakel
+- konsistente Freigaben vor schnellen Ausnahmen
+- sichere Defaults vor aggressiver Oeffnung
+
+Bei jeder Owner-Entscheidung sollte geprueft werden:
+
+1. Verbessert das die Experience?
+2. Erhoeht das Kosten- oder Missbrauchsrisiken?
+3. Versteht ein normaler Nutzer noch, was passiert?
+4. Bleibt die App als ein System lesbar?
+
+---
+
+## 3) Rollensteuerung
 
 Fester Owner-Account:
 
@@ -37,124 +62,115 @@ Rollen im System:
 - `admin`
 - `subadmin`
 - `user`
-- `gast` (ohne Login)
+- `gast`
 
 Wichtige Regeln:
 
-- Rollenwechsel sind Owner-only und laufen serverseitig.
-- Teamrechte werden gezielt vergeben, nicht pauschal.
-- Neue Auth-Konten bekommen beim Onboarding ein Bootstrap-User-Dokument, damit sie sauber im User-Management erscheinen.
+- Rollenwechsel sind owner-only und serverseitig abgesichert.
+- Teamrechte werden gezielt und bereichsbezogen vergeben.
+- Neue Konten werden technisch gebootstrapped, damit sie sauber im User-Management erscheinen.
 
 Empfohlener Ablauf:
 
 1. `Settings > Owner > Users` oeffnen.
 2. Zielkonto waehlen.
-3. Rolle, Quota-Plan und Funktionsrechte setzen.
-4. Speichern und anschliessend als Testkonto verifizieren.
+3. Rolle, Quota und Zusatzrechte setzen.
+4. Speichern.
+5. Mit Testkonto oder Zielkonto verifizieren.
 
 ---
 
-## 3) KI Governance (Bot, Visuals, Agent)
+## 4) KI Governance
 
-### 3.1 Pro Konto steuerbar
+SkyOs trennt zwischen Produktwert und Kostenkontrolle.
+
+### Pro Konto steuerbar
 
 - KI an/aus
 - Tageslimits fuer:
-  - Text/Bot
+  - Bot / Text
   - Visuals
   - Agent
 - History-Retention
 
-### 3.2 Global steuerbar (Owner)
+### Global steuerbar
 
 - Bot-Systemanweisung
 - Visual-Systemanweisung
 - Agent-Systemanweisung
-- Asset-/Knowledge-Hinweise fuer die globalen Prompts
+- globale Stil- und Brandvorgaben
+- Provider- und Runtime-Konfiguration
 
-### 3.3 Runtime-Steuerung (Owner)
+### Runtime-Steuerung
 
-- Agent Provider (`Gemini` oder `Manus`)
+- Agent Provider
 - Fallback Provider
-- Manus Runtime:
-  - Timeouts
-  - Polling
-  - Prompt/History-Limits
-  - Auto-Stop/Cost-Guard-Optionen
 - Hard Daily Caps
 - Global Daily Caps
+- Timeouts / Polling / History-Grenzen
+- Lockdown bei Budget- oder Abuse-Risiken
 
 Empfehlung:
 
-1. Erst konservative Caps setzen.
-2. 3-7 Tage echte Nutzung beobachten.
-3. Danach pro Segment (Admin, Creator, User) graduell anheben.
+1. konservativ starten
+2. echte Nutzung beobachten
+3. erst dann segmentiert anheben
 
 ---
 
-## 4) Workflow Automation (n8n) Governance
+## 5) Workflow Automation Governance
 
-22xSky nutzt pro User getrennte Workflow-Konfigurationen:
+SkyOs nutzt persoenliche Workflow-Konfigurationen je Konto.
 
 - `adminConfig/automationN8n_<uid>`
+- optional `adminConfig/agentProfile_<uid>`
 
-Optionales persoenliches Agent-Profil:
+Konsequenz:
 
-- `adminConfig/agentProfile_<uid>`
+- jeder Nutzer bleibt in seiner eigenen Workflow-Welt
+- kein unbeabsichtigtes Cross-User-Mischen
+- klare Verantwortlichkeit fuer externe Dienste und Kosten
 
-Wichtige Konsequenz:
+Webhook-Flow:
 
-- Jeder Account kann einen eigenen Workflow-Service nutzen.
-- Es gibt kein globales Cross-User-Mischen im BYOS-Strict-Modus.
-
-Webhook-Trigger-Flow:
-
-1. User/Agent sendet Trigger an Cloud Function.
-2. Backend laedt nur die eigene `automationN8n_<uid>`.
-3. Backend postet Payload an den konfigurierten Webhook.
-4. Antwort wird als Erfolg/Fehler an die App zurueckgegeben.
+1. Nutzer oder Agent sendet Trigger an die Cloud Function.
+2. Das Backend laedt nur die persoenliche Konfiguration des Users.
+3. Der konfigurierten Webhook wird aufgerufen.
+4. Erfolg oder Fehler wird an die App zurueckgegeben.
 
 ---
 
-## 5) Commerce, Shopify und Payments
+## 6) Commerce, Shopify und Payments
 
 Owner-only Bereiche:
 
-- Shopify Store Domain/Token/Collection
-- Payment-Methoden
+- Shopify-Setup
 - Commerce-Basiseinstellungen
-- Stripe Backend Secrets
+- Payment-Methoden
+- Zahlungs- und Secret-Verwaltung
 
-Betriebshinweise:
+Pruefregeln:
 
-- Stripe ist der sichere Live-Checkout-Pfad.
-- Klarna laeuft ueber Stripe (wenn im Stripe-Account freigeschaltet).
-- PayPal/Bank koennen als manueller Owner-Flow gefuehrt werden.
-
-Release vor Commerce-Freigabe:
-
-1. Produkt-Sync pruefen.
-2. Checkout-Ende-zu-Ende testen.
-3. Payment-Statuswechsel im Order-Flow validieren.
+1. Produkt-Sync stimmt
+2. Checkout ist Ende-zu-Ende testbar
+3. Payment-Statuswechsel landen korrekt im Order-Flow
+4. Support- und Recovery-Pfad sind klar
 
 ---
 
-## 6) Sicherheit und Kostenkontrolle
+## 7) Sicherheit, Lockdown und Recovery
 
 Technische Leitplanken:
 
-- Firestore/Storage mit `deny by default`
-- Rollen- und Claim-basierte Freigaben
-- Upload-Slot-Mechanik statt offener Uploads
-- serverseitige KI-Limits
-- Runtime-Lockdown
-- Budget-Lockdown Hook
+- deny-by-default Rules
+- Claims- und Rollenlogik
+- App Check / Abuse-Schutz
+- Upload-Slots statt offener Upload-Flaechen
+- serverseitige Limits
+- Runtime Lockdown
+- Budget Lockdown
 
-Runtime-Dokument:
-
-- `system/runtimeConfig`
-
-Kritische Felder:
+Wichtige Runtime-Felder:
 
 - `lockdown`
 - `uploadsEnabled`
@@ -162,82 +178,37 @@ Kritische Felder:
 - `userWritesEnabled`
 - `budgetLockdownEnabled`
 
+Wenn etwas kippt:
+
+1. Lockdown aktivieren
+2. betroffene Funktion isolieren
+3. Fehlerbild und Logs sichern
+4. Fix in Testumgebung pruefen
+5. kontrolliert wieder oeffnen
+
 ---
 
-## 7) Release Gate (Owner Checkliste)
+## 8) Release Gate
 
 Vor jeder externen Verteilung:
 
-1. Android Build (Debug + Release) gruen.
-2. iOS Build/Archive gruen.
-3. Functions Syntax und Rule-Tests gruen.
-4. Registrierung/Login mit frischem Konto pruefen.
-5. Rollenwechsel Owner -> Zielrolle pruefen.
-6. Bot/Visual/Agent (inkl. Limit-Fehlern) pruefen.
-7. n8n Test pro Testkonto pruefen.
-8. Merch/Checkout/Payment Ruecklaeufe pruefen.
-9. Offline, Notifications und wichtige UX-Feedbacks pruefen.
+1. Android Build gruen
+2. iOS Build / Archive gruen
+3. Functions und Rules gruen
+4. frisches Konto: Registrierung / Login / Profil pruefen
+5. Rollenwechsel und Rechte pruefen
+6. Bot / Visual / Agent inkl. Limit-Fehler pruefen
+7. Workflow-Test pro Testkonto pruefen
+8. Shop / Checkout / Payment pruefen
+9. Rechtliches, Support und In-App Dokumente pruefen
 
-Nur wenn alles gruen ist, Release weitergeben.
-
----
-
-## 8) Incident Playbook (Kurz)
-
-Wenn etwas kippt:
-
-1. `Runtime Lockdown` aktivieren.
-2. Betroffene Funktionen isolieren (z. B. KI/Automation/Uploads).
-3. Logs und Fehlerbild dokumentieren.
-4. Fix in Staging testen.
-5. Lockdown kontrolliert zuruecknehmen.
+Release darf erst raus, wenn Funktion, Sprache und Vertrauen zusammenpassen.
 
 ---
 
-## 9) Technische Kurzbefehle
+## 9) Relevante Dokumente
 
-iOS Build:
-
-```bash
-xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -destination 'generic/platform=iOS' build
-```
-
-Android Build:
-
-```bash
-./gradlew :androidApp:compileDebugKotlin
-./gradlew :androidApp:assembleDebug
-```
-
-Functions + Rules:
-
-```bash
-node --check functions/index.js
-cd functions
-npm run test:rules
-```
-
-Deploy:
-
-```bash
-firebase deploy --only firestore:rules
-firebase deploy --only storage
-firebase deploy --only functions
-```
-
----
-
-## 10) DSGVO + AVV Kit
-
-Fuer Datenschutz- und Compliance-Betrieb ist jetzt ein eigenes Kit im Repo hinterlegt:
-
-- `docs/compliance/README.md`
-- `docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
-- `docs/compliance/AVV_VERARBEITER_REGISTER.md`
-- `docs/compliance/VVT_VERARBEITUNGSTAETIGKEITEN.md`
-- `docs/compliance/BETROFFENENRECHTE_SOP.md`
-- `docs/compliance/DATENPANNEN_SOP.md`
-- `docs/compliance/TOMS_CHECKLIST.md`
-
-Empfehlung:
-Vor jedem produktiven Release die komplette `DSGVO_RELEASE_CHECKLIST.md` auf Gruen setzen.
+- [README.md](/Users/nash/.codex/worktrees/55fe/Skydown-App/README.md)
+- [README_USER.md](/Users/nash/.codex/worktrees/55fe/Skydown-App/README_USER.md)
+- [docs/design/SKYOS_EXPERIENCE_PRINCIPLES.md](/Users/nash/.codex/worktrees/55fe/Skydown-App/docs/design/SKYOS_EXPERIENCE_PRINCIPLES.md)
+- [docs/compliance/README.md](/Users/nash/.codex/worktrees/55fe/Skydown-App/docs/compliance/README.md)

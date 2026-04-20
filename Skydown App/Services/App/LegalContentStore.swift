@@ -6,7 +6,7 @@ struct LegalContentSettings: Codable, Equatable {
     var operatorName: String = "Skydown"
     var rightsHolderName: String = "Skydown"
     var supportEmail: String = "skydownent@gmail.com"
-    var lastUpdatedLabel: String = "15. April 2026"
+    var lastUpdatedLabel: String = "20. April 2026"
     var imprintReference: String = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
     var masterNumberMeaning: String = """
     Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen.

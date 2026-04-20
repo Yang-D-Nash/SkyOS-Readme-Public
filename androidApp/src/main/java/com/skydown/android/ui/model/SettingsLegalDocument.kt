@@ -39,13 +39,13 @@ fun SettingsLegalDocumentType.resolve(
 
     return when (this) {
         SettingsLegalDocumentType.ReadmeGuide -> SettingsLegalDocument(
-            title = "README / App Guide",
+            title = "README / SkyOs Guide",
             updatedAt = lastUpdatedLabel,
-            introduction = "Dieser Guide hilft dir beim schnellen Einstieg in $brandName. Du findest hier die wichtigsten Flows fuer Rollen, KI, Agenten, Workflows, Content und Support.",
+            introduction = "Dieser Guide hilft dir beim schnellen Einstieg in $brandName als zusammenhaengendes Creator Operating System. Du findest hier die wichtigsten Flows fuer Rollen, KI, Agenten, Workflows, Content und Support.",
             sections = listOf(
                 SettingsLegalSection(
                     title = "1. Schnellstart",
-                    body = "Konto erstellen oder einloggen, Profil mit Bild/Bio vervollstaendigen und danach Home, Music, Video, Shop und AI Schritt fuer Schritt nutzen.",
+                    body = "Konto erstellen oder einloggen, Profil mit Bild/Bio vervollstaendigen und danach Home als Orientierung nutzen, bevor Music, Video, Shop und AI Schritt fuer Schritt erschlossen werden.",
                 ),
                 SettingsLegalSection(
                     title = "2. Rollen",
@@ -57,7 +57,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "4. Agent und Workflow-Trigger",
-                    body = "Der Agent ist fuer umsetzungsorientierte Aufgaben gedacht und kann optional eigene Workflow-Services (z. B. n8n/Webhook) triggern. Bei externen Services koennen je nach Setup eigene API-Kosten entstehen.",
+                    body = "Der Agent ist fuer umsetzungsorientierte Aufgaben gedacht und kann optional eigene Workflow-Services (z. B. n8n/Webhook) triggern. Bei externen Services koennen je nach Setup eigene API-Kosten entstehen. SkyOs trennt persoenliche Workflow-Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten klar bleiben.",
                 ),
                 SettingsLegalSection(
                     title = "5. Kostenkontrolle",
@@ -65,7 +65,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "6. Content und Commerce",
-                    body = "Music/Video decken Releases, Artist-Pages und Collabo-Inhalte ab. Shop und Checkout basieren auf den aktivierten Commerce- und Zahlungs-Setups.",
+                    body = "Music/Video decken Releases, Artist-Pages und Collabo-Inhalte ab. Shop und Checkout basieren auf den aktivierten Commerce- und Zahlungs-Setups. Das Ziel ist ein Systemgefuehl: entdecken, verstehen, handeln und wieder sauber zurueckfinden.",
                 ),
                 SettingsLegalSection(
                     title = "7. Rechtliches und Support",
@@ -81,7 +81,7 @@ fun SettingsLegalDocumentType.resolve(
         SettingsLegalDocumentType.PrivacyPolicy -> SettingsLegalDocument(
             title = "Datenschutzbestimmungen",
             updatedAt = lastUpdatedLabel,
-            introduction = "Diese Datenschutzbestimmungen informieren ueber die Verarbeitung personenbezogener Daten bei $brandName. Sie beruecksichtigen insbesondere die DSGVO, einschlaegige Datenschutzvorgaben fuer Telemedien und Endgeraetezugriffe sowie den stufenweise geltenden EU AI Act, soweit KI-Funktionen genutzt werden.",
+            introduction = "Diese Datenschutzbestimmungen informieren ueber die Verarbeitung personenbezogener Daten bei $brandName. $brandName ist als zusammenhaengendes Creator- und Workflow-System konzipiert und verbindet Profile, Medien, Commerce, KI und Automation innerhalb einer App.",
             sections = listOf(
                 SettingsLegalSection(
                     title = "1. Verantwortlicher",
@@ -101,7 +101,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "5. KI, Workflow und Drittanbieter",
-                    body = "KI-Funktionen sind Assistenzfunktionen. Je nach Nutzung koennen Prompts, Uploads und Ausgaben an eingebundene KI- oder Workflow-Dienste uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. Die KI-Ausgaben muessen vor verbindlicher Nutzung geprueft werden.",
+                    body = "KI-Funktionen sind Assistenzfunktionen. Je nach Nutzung koennen Prompts, Uploads und Ausgaben an eingebundene KI- oder Workflow-Dienste uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. SkyOs trennt persoenliche Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten nachvollziehbar bleiben. KI-Ausgaben muessen vor verbindlicher Nutzung geprueft werden.",
                 ),
                 SettingsLegalSection(
                     title = "6. Rechte der Nutzer",
@@ -117,7 +117,7 @@ fun SettingsLegalDocumentType.resolve(
         SettingsLegalDocumentType.TermsAndConditions -> SettingsLegalDocument(
             title = "AGB",
             updatedAt = lastUpdatedLabel,
-            introduction = "Diese Allgemeinen Geschaeftsbedingungen gelten fuer entgeltliche Leistungen, Bestellungen und vermittelte Kaeufe ueber $brandName, insbesondere fuer Merchandise, digitale Inhalte, Creator-/Studio-Leistungen und damit verbundene App-Services.",
+            introduction = "Diese Allgemeinen Geschaeftsbedingungen gelten fuer entgeltliche Leistungen, Bestellungen und vermittelte Kaeufe ueber $brandName, insbesondere fuer Merchandise, digitale Inhalte, Creator-/Studio-Leistungen, AI-gestuetzte Unterstuetzung, Workflow-nahe Services und damit verbundene App-Services.",
             sections = listOf(
                 SettingsLegalSection(
                     title = "1. Geltungsbereich und Vertragspartner",
@@ -129,7 +129,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "3. Preise, Zahlung und Versand",
-                    body = "Alle in der App angezeigten Preise, Versandkosten und Zahlungsarten werden vor Abschluss des Kaufs angezeigt. Die verfuegbaren Zahlarten richten sich nach dem aktivierten Checkout und den hinterlegten Zahlungsdiensten.",
+                    body = "Alle in der App angezeigten Preise, Versandkosten und Zahlungsarten werden vor Abschluss des Kaufs angezeigt. Massgeblich sind die Angaben, die im Checkout unmittelbar vor Abschluss dargestellt werden. Die verfuegbaren Zahlarten richten sich nach dem aktivierten Checkout und den hinterlegten Zahlungsdiensten.",
                 ),
                 SettingsLegalSection(
                     title = "4. Lieferung und Fulfillment",
@@ -137,7 +137,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "5. Digitale Leistungen, KI und Workflow",
-                    body = "Soweit ueber die App digitale Inhalte, Creator-Leistungen, KI-gestuetzte Unterstuetzung oder Workflow-Services angeboten werden, dienen diese regelmaessig der kreativen oder technischen Unterstuetzung. KI- oder Automationsausgaben koennen fachliche, rechtliche oder wirtschaftliche Pruefungen nicht ersetzen.",
+                    body = "Soweit ueber die App digitale Inhalte, Creator-Leistungen, KI-gestuetzte Unterstuetzung oder Workflow-Services angeboten werden, dienen diese regelmaessig der kreativen oder technischen Unterstuetzung. KI- oder Automationsausgaben koennen fachliche, rechtliche oder wirtschaftliche Pruefungen nicht ersetzen und muessen vor verbindlicher Nutzung eigenverantwortlich geprueft werden.",
                 ),
                 SettingsLegalSection(
                     title = "6. Haftung und Schlussbestimmungen",
@@ -149,7 +149,7 @@ fun SettingsLegalDocumentType.resolve(
         SettingsLegalDocumentType.TermsOfService -> SettingsLegalDocument(
             title = "Nutzungsbedingungen",
             updatedAt = lastUpdatedLabel,
-            introduction = "Diese Nutzungsbedingungen regeln den Zugriff auf $brandName und die Nutzung der Inhalte, Profil-, Medien-, Shop-, KI- und Workflow-Funktionen innerhalb der App.",
+            introduction = "Diese Nutzungsbedingungen regeln den Zugriff auf $brandName und die Nutzung der Inhalte, Profil-, Medien-, Shop-, KI- und Workflow-Funktionen innerhalb der App. $brandName ist als zusammenhaengendes System gedacht; diese Bedingungen gelten fuer alle darin bereitgestellten Produktbereiche.",
             sections = listOf(
                 SettingsLegalSection(
                     title = "1. Annahme und Aenderungen",
@@ -157,7 +157,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "2. Konto und zulaessige Nutzung",
-                    body = "Fuer bestimmte Funktionen ist ein Konto erforderlich. Die App darf nur rechtmaessig und gemaess diesen Bedingungen genutzt werden. Untersagt sind insbesondere Manipulationen, automatisierter Missbrauch, Umgehung technischer Schutzmassnahmen, unbefugter Zugriff und rechtswidrige Uploads.",
+                    body = "Fuer bestimmte Funktionen ist ein Konto erforderlich. Nutzer sind fuer die Richtigkeit ihrer Kontoangaben, den Schutz ihrer Zugangsdaten und die rechtmaessige Nutzung ihres Kontos verantwortlich. Untersagt sind insbesondere Manipulationen, automatisierter Missbrauch, Umgehung technischer Schutzmassnahmen, unbefugter Zugriff und rechtswidrige Uploads.",
                 ),
                 SettingsLegalSection(
                     title = "3. Inhalte, Rechte und Marken",
@@ -169,7 +169,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "5. Verfuegbarkeit, Sperrung und Haftung",
-                    body = "Eine jederzeit unterbrechungsfreie oder fehlerfreie Nutzung wird nicht geschuldet. Konten oder Inhalte koennen bei Verstoessen, Sicherheits- oder Kostenrisiken eingeschraenkt oder gesperrt werden. Die Haftung richtet sich nach den gesetzlichen Vorgaben.",
+                    body = "Eine jederzeit unterbrechungsfreie oder fehlerfreie Nutzung wird nicht geschuldet. Produktbereiche, Designs, Rollenlogiken, KI-Funktionen, Preise oder Integrationen koennen im Rahmen der Weiterentwicklung angepasst werden. Konten oder Inhalte koennen bei Verstoessen, Sicherheits- oder Kostenrisiken eingeschraenkt oder gesperrt werden. Die Haftung richtet sich nach den gesetzlichen Vorgaben.",
                 ),
                 SettingsLegalSection(
                     title = "6. Recht und Kontakt",

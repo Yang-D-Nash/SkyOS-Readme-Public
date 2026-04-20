@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -241,6 +242,7 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "SkyOs",
+                        accent = ArenaGold,
                     )
                 },
                 actions = {
@@ -251,9 +253,9 @@ fun HomeScreen(
                     ) {
                         val interactionSource = remember { MutableInteractionSource() }
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
                             shape = RoundedCornerShape(999.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                             tonalElevation = 4.dp,
                             modifier = Modifier.skydownPressable(interactionSource),
                         ) {
@@ -508,34 +510,63 @@ private fun HomeHeroStatusRow(
     uiState: HomeUiState,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        HomeHeroStatusCard(
-            label = "Music",
-            value = uiState.featuredTrack?.trackName ?: "Neuer Release",
-            icon = Icons.Default.MusicNote,
-            accent = SpotifyGreen,
-            isActive = uiState.featuredTrack != null,
-            modifier = Modifier.weight(1f),
-        )
-        HomeHeroStatusCard(
-            label = "Beats",
-            value = uiState.featuredBeat?.title ?: "Neue Auswahl",
-            icon = Icons.Default.GraphicEq,
-            accent = ArenaGold,
-            isActive = uiState.featuredBeat != null,
-            modifier = Modifier.weight(1f),
-        )
-        HomeHeroStatusCard(
-            label = "Video",
-            value = uiState.featuredVideo?.title ?: "Neuer Clip",
-            icon = Icons.Default.Movie,
-            accent = ArenaRed,
-            isActive = uiState.featuredVideo != null,
-            modifier = Modifier.weight(1f),
-        )
+        if (maxWidth < 390.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                HomeHeroStatusCard(
+                    label = "Music",
+                    value = uiState.featuredTrack?.trackName ?: "Neuer Release",
+                    icon = Icons.Default.MusicNote,
+                    accent = SpotifyGreen,
+                    isActive = uiState.featuredTrack != null,
+                )
+                HomeHeroStatusCard(
+                    label = "Beats",
+                    value = uiState.featuredBeat?.title ?: "Neue Auswahl",
+                    icon = Icons.Default.GraphicEq,
+                    accent = ArenaGold,
+                    isActive = uiState.featuredBeat != null,
+                )
+                HomeHeroStatusCard(
+                    label = "Video",
+                    value = uiState.featuredVideo?.title ?: "Neuer Clip",
+                    icon = Icons.Default.Movie,
+                    accent = ArenaRed,
+                    isActive = uiState.featuredVideo != null,
+                )
+            }
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                HomeHeroStatusCard(
+                    label = "Music",
+                    value = uiState.featuredTrack?.trackName ?: "Neuer Release",
+                    icon = Icons.Default.MusicNote,
+                    accent = SpotifyGreen,
+                    isActive = uiState.featuredTrack != null,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeHeroStatusCard(
+                    label = "Beats",
+                    value = uiState.featuredBeat?.title ?: "Neue Auswahl",
+                    icon = Icons.Default.GraphicEq,
+                    accent = ArenaGold,
+                    isActive = uiState.featuredBeat != null,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeHeroStatusCard(
+                    label = "Video",
+                    value = uiState.featuredVideo?.title ?: "Neuer Clip",
+                    icon = Icons.Default.Movie,
+                    accent = ArenaRed,
+                    isActive = uiState.featuredVideo != null,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
     }
 }
 

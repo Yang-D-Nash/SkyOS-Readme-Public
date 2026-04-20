@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -92,8 +93,8 @@ fun BrandHeroCard(
     val imageAspectRatio = if (compactVisualDensity) 2.72f else 2.32f
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
     val titleColor = if (hasBackgroundImage) Color.White else MaterialTheme.colorScheme.onSurface
-    val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.84f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
-    val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.96f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f)
+    val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.86f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f)
+    val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.88f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
     val outerImageHorizontalPadding = if (compactVisualDensity) 7.dp else 9.dp
     val outerImageVerticalPadding = if (compactVisualDensity) 5.dp else 7.dp
     val contentHorizontalPadding = if (compactVisualDensity) 14.dp else 16.dp
@@ -102,26 +103,27 @@ fun BrandHeroCard(
     val titleStyle = if (compactVisualDensity) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall
     val subtitleStyle = if (compactVisualDensity) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodySmall
     val detailStyle = if (compactVisualDensity) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium
+    val isDarkPalette = MaterialTheme.colorScheme.background.luminance() < 0.36f
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = if (compactVisualDensity) 10.dp else 14.dp,
+                elevation = if (compactVisualDensity) 12.dp else 16.dp,
                 shape = shape,
-                ambientColor = accent.copy(alpha = 0.12f),
-                spotColor = accent.copy(alpha = 0.22f),
+                ambientColor = accent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
+                spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.14f else 0.18f),
             )
             .clip(shape)
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.10f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.995f),
-                        accent.copy(alpha = 0.18f),
-                        secondaryAccent.copy(alpha = 0.15f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.86f),
-                        Color.Black.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.20f else 0.10f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (isDarkPalette) 0.998f else 0.995f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) 0.60f else 0.64f),
+                        accent.copy(alpha = if (isDarkPalette) 0.046f else 0.072f),
+                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.028f else 0.046f),
+                        Color.Black.copy(alpha = if (isDarkPalette) 0.012f else 0.026f),
                     ),
                 ),
             )
@@ -129,15 +131,15 @@ fun BrandHeroCard(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.18f),
-                        accent.copy(alpha = 0.34f),
-                        secondaryAccent.copy(alpha = 0.24f),
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.34f else 0.24f),
+                        MaterialTheme.colorScheme.outline.copy(alpha = if (isDarkPalette) 0.32f else 0.28f),
+                        accent.copy(alpha = if (isDarkPalette) 0.10f else 0.16f),
+                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.06f else 0.10f),
                     ),
                 ),
                 shape = shape,
             )
-            .skydownSheen(accent = accent, alpha = 0.10f),
+            .skydownSheen(accent = accent, alpha = if (isDarkPalette) 0.034f else 0.032f),
     ) {
         if (hasBackgroundImage) {
             BoxWithConstraints(
@@ -163,7 +165,7 @@ fun BrandHeroCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.20f)),
+                            .background(Color.Black.copy(alpha = if (isDarkPalette) 0.14f else 0.24f)),
                     )
 
                     Box(
@@ -172,9 +174,9 @@ fun BrandHeroCard(
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.Black.copy(alpha = 0.06f),
+                                        Color.White.copy(alpha = if (isDarkPalette) 0.10f else 0.05f),
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.30f),
+                                        Color.Black.copy(alpha = if (isDarkPalette) 0.24f else 0.40f),
                                     ),
                                 ),
                             ),
@@ -186,9 +188,9 @@ fun BrandHeroCard(
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        accent.copy(alpha = 0.16f),
+                                        accent.copy(alpha = if (isDarkPalette) 0.09f else 0.14f),
                                         Color.Transparent,
-                                        secondaryAccent.copy(alpha = 0.14f),
+                                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.07f else 0.10f),
                                     ),
                                 ),
                             ),
@@ -207,14 +209,14 @@ fun BrandHeroCard(
                         .align(Alignment.TopEnd)
                         .size(if (compactVisualDensity) 88.dp else 102.dp)
                         .blur(if (compactVisualDensity) 24.dp else 30.dp)
-                        .background(accent.copy(alpha = 0.08f), CircleShape),
+                        .background(accent.copy(alpha = if (isDarkPalette) 0.04f else 0.06f), CircleShape),
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .size(if (compactVisualDensity) 64.dp else 76.dp)
                         .blur(if (compactVisualDensity) 18.dp else 24.dp)
-                        .background(secondaryAccent.copy(alpha = 0.08f), CircleShape),
+                        .background(secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.06f), CircleShape),
                 )
 
                 Row(
@@ -239,14 +241,14 @@ fun BrandHeroCard(
                             style = titleStyle,
                             color = titleColor,
                             fontWeight = FontWeight.Black,
-                            maxLines = if (compactVisualDensity) 2 else 3,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = subtitle,
                             style = subtitleStyle,
                             color = subtitleColor,
-                                maxLines = 1,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (!detail.isNullOrBlank()) {
@@ -254,7 +256,7 @@ fun BrandHeroCard(
                                 text = detail,
                                 style = detailStyle,
                                 color = detailColor,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -305,10 +307,10 @@ fun BrandHeroMetricCard(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.05f),
+                        Color.White.copy(alpha = 0.045f),
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.995f),
-                        accent.copy(alpha = if (isActive) 0.22f else 0.10f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
+                        accent.copy(alpha = if (isActive) 0.11f else 0.055f),
                     ),
                 ),
             )
@@ -317,8 +319,8 @@ fun BrandHeroMetricCard(
                 brush = Brush.linearGradient(
                     colors = listOf(
                         Color.White.copy(alpha = 0.14f),
-                        accent.copy(alpha = if (isActive) 0.28f else 0.16f),
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
+                        accent.copy(alpha = if (isActive) 0.20f else 0.10f),
                     ),
                 ),
                 shape = RoundedCornerShape(22.dp),
@@ -397,15 +399,15 @@ fun BrandSectionBanner(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                accent.copy(alpha = 0.24f),
-                                accent.copy(alpha = 0.10f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                                accent.copy(alpha = 0.14f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f),
                             ),
                         ),
                     )
                     .border(
                         width = 1.dp,
-                        color = accent.copy(alpha = 0.24f),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
                         shape = RoundedCornerShape(18.dp),
                     )
                     .padding(10.dp),
@@ -446,14 +448,14 @@ fun BrandSectionBanner(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                accent.copy(alpha = 0.20f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                                accent.copy(alpha = 0.10f),
                             ),
                         ),
                     )
                     .border(
                         width = 1.dp,
-                        color = accent.copy(alpha = 0.24f),
+                        color = accent.copy(alpha = 0.18f),
                         shape = RoundedCornerShape(999.dp),
                     )
                     .padding(horizontal = 10.dp, vertical = 6.dp),

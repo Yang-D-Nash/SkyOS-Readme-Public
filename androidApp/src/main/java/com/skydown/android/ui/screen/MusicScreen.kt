@@ -248,6 +248,7 @@ fun MusicScreen(
                     SkydownTopBarTitle(
                         title = "Music",
                         subtitle = "Artists, Tracks, Spotify.",
+                        accent = SpotifyGreen,
                     )
                 },
                 actions = {

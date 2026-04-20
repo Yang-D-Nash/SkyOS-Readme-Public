@@ -71,6 +71,11 @@ struct BrandHeroSurface<Footer: View>: View {
     }
 
     var body: some View {
+        let hasBackgroundImage = !(backgroundImageURL?.isEmpty ?? true)
+        let titleColor = hasBackgroundImage ? Color.white : AppColors.text(for: colorScheme)
+        let subtitleColor = hasBackgroundImage ? Color.white.opacity(0.84) : AppColors.secondaryText(for: colorScheme).opacity(0.96)
+        let detailColor = hasBackgroundImage ? Color.white.opacity(0.86) : AppColors.text(for: colorScheme).opacity(0.86)
+
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -82,18 +87,18 @@ struct BrandHeroSurface<Footer: View>: View {
                     Text(title)
                         .font(AppTypography.heroTitle)
                         .lineSpacing(2)
-                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .foregroundColor(titleColor)
 
                     Text(subtitle)
                         .font(AppTypography.editorialBody)
                         .lineSpacing(2)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.96))
+                        .foregroundColor(subtitleColor)
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
                             .font(AppTypography.editorialCaption)
                             .tracking(0.3)
-                            .foregroundColor(AppColors.text(for: colorScheme).opacity(0.86))
+                            .foregroundColor(detailColor)
                     }
                 }
 
@@ -127,11 +132,11 @@ struct BrandHeroSurface<Footer: View>: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(colorScheme == .dark ? 0.08 : 0.42),
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.95),
-                                accent.opacity(colorScheme == .dark ? 0.16 : 0.10),
-                                secondaryAccent.opacity(colorScheme == .dark ? 0.14 : 0.08),
-                                Color.black.opacity(colorScheme == .dark ? 0.08 : 0.02)
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.44),
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.99 : 0.96),
+                                accent.opacity(colorScheme == .dark ? 0.07 : 0.07),
+                                secondaryAccent.opacity(colorScheme == .dark ? 0.05 : 0.05),
+                                Color.black.opacity(colorScheme == .dark ? 0.02 : 0.015)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -157,9 +162,10 @@ struct BrandHeroSurface<Footer: View>: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.black.opacity(colorScheme == .dark ? 0.28 : 0.18),
-                                    accent.opacity(colorScheme == .dark ? 0.20 : 0.12),
-                                    secondaryAccent.opacity(colorScheme == .dark ? 0.16 : 0.10)
+                                    Color.white.opacity(colorScheme == .dark ? 0.14 : 0.12),
+                                    Color.black.opacity(colorScheme == .dark ? 0.12 : 0.12),
+                                    accent.opacity(colorScheme == .dark ? 0.10 : 0.08),
+                                    secondaryAccent.opacity(colorScheme == .dark ? 0.07 : 0.06)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -167,17 +173,17 @@ struct BrandHeroSurface<Footer: View>: View {
                         )
 
                     heroShape
-                        .fill(Color.black.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                        .fill(Color.black.opacity(colorScheme == .dark ? 0.14 : 0.12))
                 }
 
                 Circle()
-                    .fill(accent.opacity(colorScheme == .dark ? 0.18 : 0.08))
+                    .fill(accent.opacity(colorScheme == .dark ? 0.12 : 0.06))
                     .frame(width: 220, height: 220)
                     .blur(radius: 54)
                     .offset(x: 136, y: -82)
 
                 Circle()
-                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.16 : 0.08))
+                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.10 : 0.06))
                     .frame(width: 176, height: 176)
                     .blur(radius: 48)
                     .offset(x: -118, y: 108)
@@ -202,8 +208,8 @@ struct BrandHeroSurface<Footer: View>: View {
                 LinearGradient(
                         colors: [
                             Color.white.opacity(0),
-                            Color.white.opacity(colorScheme == .dark ? 0.10 : 0.18),
-                            accent.opacity(colorScheme == .dark ? 0.08 : 0.12),
+                            Color.white.opacity(colorScheme == .dark ? 0.14 : 0.18),
+                            accent.opacity(colorScheme == .dark ? 0.10 : 0.12),
                             Color.white.opacity(0)
                         ],
                     startPoint: .topLeading,
@@ -223,9 +229,9 @@ struct BrandHeroSurface<Footer: View>: View {
                 .stroke(
                     LinearGradient(
                         colors: [
-                            accent.opacity(0.22),
-                            secondaryAccent.opacity(0.18),
-                            Color.white.opacity(colorScheme == .dark ? 0.10 : 0.12)
+                            AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.24),
+                            accent.opacity(0.12),
+                            secondaryAccent.opacity(0.08)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

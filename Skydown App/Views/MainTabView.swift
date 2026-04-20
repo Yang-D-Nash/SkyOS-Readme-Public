@@ -82,6 +82,21 @@ struct MainTabView: View {
         featureFlags.allowsAIAccess(for: authManager.userSession)
     }
 
+    private var selectedTabAccent: Color {
+        switch selectedTab {
+        case .merch:
+            return AppColors.accentHighlight(for: currentScheme)
+        case .zweizwei:
+            return AppColors.spotify(for: currentScheme)
+        case .hub:
+            return AppColors.accent(for: currentScheme)
+        case .skydown:
+            return AppColors.youtube(for: currentScheme)
+        case .tools:
+            return AppColors.accentMystic(for: currentScheme)
+        }
+    }
+
     private func localized(_ key: String, _ fallback: String) -> String {
         AppLocalized.text(key, fallback: fallback)
     }
@@ -103,9 +118,10 @@ struct MainTabView: View {
                     }
             }
         }
-        .accentColor(AppColors.accent(for: currentScheme))
+        .accentColor(selectedTabAccent)
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
         .preferredColorScheme(preferredScheme)
+        .animation(SkydownMotion.emphasizedTransition, value: selectedTab)
         .onChange(of: hasAIAccess) { _, allowed in
             if !allowed {
                 showsWorkflowWorkspace = false
@@ -203,7 +219,7 @@ struct MainTabView: View {
                 .tabItem { Label(localized("tabs.tools", "Tools"), systemImage: "sparkles") }
                 .tag(MainTab.tools)
             }
-            .skydownTabBarChrome(colorScheme: currentScheme)
+            .skydownTabBarChrome(colorScheme: currentScheme, accent: selectedTabAccent)
         }
         .skydownSelectionFeedback(trigger: selectedTab)
     }
@@ -350,10 +366,6 @@ struct AppSessionToolbarActions: View {
         String(displayName.prefix(1)).uppercased()
     }
 
-    private var sessionLabel: String {
-        authManager.userSession == nil ? "Gastmodus" : "Session"
-    }
-
     private var sessionAccent: Color {
         authManager.userSession == nil
             ? AppColors.accentMystic(for: colorScheme)
@@ -374,7 +386,7 @@ struct AppSessionToolbarActions: View {
                             } placeholder: {
                                 profileFallbackAvatar
                             }
-                            .frame(width: 30, height: 30)
+                            .frame(width: 28, height: 28)
                             .clipShape(Circle())
                         } else {
                             profileFallbackAvatar
@@ -390,25 +402,18 @@ struct AppSessionToolbarActions: View {
                             .offset(x: 2, y: 1)
                     }
 
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(sessionLabel.uppercased())
-                            .font(.caption2.weight(.bold))
-                            .tracking(0.8)
-                            .foregroundColor(sessionAccent.opacity(0.88))
-
-                        Text(displayName)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .lineLimit(1)
-                    }
+                    Text(displayName)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(1)
 
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.bold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.88))
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
             .skydownCapsuleSurface(
                 colorScheme: colorScheme,
                 accent: sessionAccent
@@ -440,7 +445,7 @@ struct AppSessionToolbarActions: View {
         ZStack {
             Circle()
                 .fill(sessionAccent.opacity(0.16))
-                .frame(width: 30, height: 30)
+                .frame(width: 28, height: 28)
 
             Text(initials)
                 .font(.caption.weight(.bold))

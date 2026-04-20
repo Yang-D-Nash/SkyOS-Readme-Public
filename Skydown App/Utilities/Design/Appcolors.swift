@@ -33,44 +33,44 @@ struct AppColors {
     static func accentHighlight(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 143/255, green: 164/255, blue: 184/255)
+            return Color(red: 154/255, green: 176/255, blue: 198/255)
         case .dark:
-            return Color(red: 235/255, green: 241/255, blue: 247/255)
+            return Color(red: 240/255, green: 245/255, blue: 250/255)
         @unknown default:
-            return Color(red: 143/255, green: 164/255, blue: 184/255)
+            return Color(red: 154/255, green: 176/255, blue: 198/255)
         }
     }
     
     static func primaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 236/255, green: 240/255, blue: 245/255)
+            return Color(red: 240/255, green: 244/255, blue: 248/255)
         case .dark:
-            return Color(red: 8/255, green: 12/255, blue: 18/255)
+            return Color(red: 15/255, green: 23/255, blue: 33/255)
         @unknown default:
-            return Color(red: 236/255, green: 240/255, blue: 245/255)
+            return Color(red: 240/255, green: 244/255, blue: 248/255)
         }
     }
     
     static func secondaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 226/255, green: 232/255, blue: 239/255)
+            return Color(red: 231/255, green: 237/255, blue: 244/255)
         case .dark:
-            return Color(red: 14/255, green: 21/255, blue: 31/255)
+            return Color(red: 24/255, green: 34/255, blue: 47/255)
         @unknown default:
-            return Color(red: 226/255, green: 232/255, blue: 239/255)
+            return Color(red: 231/255, green: 237/255, blue: 244/255)
         }
     }
     
     static func cardBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 248/255, green: 250/255, blue: 252/255)
+            return Color(red: 251/255, green: 253/255, blue: 255/255)
         case .dark:
-            return Color(red: 20/255, green: 29/255, blue: 40/255).opacity(0.94)
+            return Color(red: 31/255, green: 42/255, blue: 55/255).opacity(0.96)
         @unknown default:
-            return Color(red: 248/255, green: 250/255, blue: 252/255)
+            return Color(red: 251/255, green: 253/255, blue: 255/255)
         }
     }
     
@@ -88,12 +88,20 @@ struct AppColors {
     static func secondaryText(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 82/255, green: 98/255, blue: 115/255)
+            return Color(red: 88/255, green: 104/255, blue: 122/255)
         case .dark:
-            return Color(red: 195/255, green: 205/255, blue: 216/255)
+            return Color(red: 220/255, green: 228/255, blue: 236/255)
         @unknown default:
-            return Color(red: 82/255, green: 98/255, blue: 115/255)
+            return Color(red: 88/255, green: 104/255, blue: 122/255)
         }
+    }
+
+    static func luminanceLift(for colorScheme: ColorScheme) -> Color {
+        Color.white
+    }
+
+    static func cinematicShadow(for colorScheme: ColorScheme) -> Color {
+        Color.black
     }
 
     static func spotify(for colorScheme: ColorScheme) -> Color {
@@ -183,34 +191,36 @@ struct AppColors {
         let midSky: Color
         let horizonGlow: Color
         let depthShadow: Color
+        let luminanceLift = luminanceLift(for: colorScheme)
 
         switch colorScheme {
         case .light:
-            topSky = Color(red: 232/255, green: 237/255, blue: 243/255)
-            midSky = Color(red: 218/255, green: 226/255, blue: 234/255)
-            horizonGlow = Color(red: 196/255, green: 208/255, blue: 221/255)
-            depthShadow = Color.black.opacity(0.07)
+            topSky = Color(red: 242/255, green: 246/255, blue: 250/255)
+            midSky = Color(red: 228/255, green: 235/255, blue: 243/255)
+            horizonGlow = Color(red: 209/255, green: 221/255, blue: 233/255)
+            depthShadow = Color.black.opacity(0.05)
         case .dark:
-            topSky = Color(red: 7/255, green: 11/255, blue: 16/255)
-            midSky = Color(red: 11/255, green: 17/255, blue: 25/255)
-            horizonGlow = Color(red: 23/255, green: 34/255, blue: 49/255)
-            depthShadow = Color.black.opacity(0.20)
-        @unknown default:
-            topSky = Color(red: 232/255, green: 237/255, blue: 243/255)
-            midSky = Color(red: 218/255, green: 226/255, blue: 234/255)
-            horizonGlow = Color(red: 196/255, green: 208/255, blue: 221/255)
+            topSky = Color(red: 20/255, green: 29/255, blue: 40/255)
+            midSky = Color(red: 28/255, green: 39/255, blue: 53/255)
+            horizonGlow = Color(red: 42/255, green: 58/255, blue: 76/255)
             depthShadow = Color.black.opacity(0.07)
+        @unknown default:
+            topSky = Color(red: 242/255, green: 246/255, blue: 250/255)
+            midSky = Color(red: 228/255, green: 235/255, blue: 243/255)
+            horizonGlow = Color(red: 209/255, green: 221/255, blue: 233/255)
+            depthShadow = Color.black.opacity(0.05)
         }
 
         return LinearGradient(
             colors: [
+                luminanceLift.opacity(colorScheme == .dark ? 0.18 : 0.70),
                 topSky,
                 midSky,
                 horizonGlow,
-                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.11 : 0.028),
-                secondary.opacity(colorScheme == .dark ? 0.08 : 0.022),
+                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.09 : 0.036),
+                secondary.opacity(colorScheme == .dark ? 0.06 : 0.026),
                 depthShadow,
-                Color.black.opacity(colorScheme == .dark ? 0.22 : 0.11),
+                cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.09 : 0.06),
                 primaryBackground(for: colorScheme)
             ],
             startPoint: .top,

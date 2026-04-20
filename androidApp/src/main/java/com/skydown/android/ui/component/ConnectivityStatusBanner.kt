@@ -1,8 +1,13 @@
 package com.skydown.android.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -32,10 +37,46 @@ fun ConnectivityStatusBanner(
     visible: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val shape = RoundedCornerShape(14.dp)
+
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically(initialOffsetY = { -it / 2 }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { -it / 2 }) + fadeOut(),
+        enter = slideInVertically(
+            initialOffsetY = { -it / 2 },
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                easing = LinearOutSlowInEasing,
+            ),
+        ) + fadeIn(
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                easing = LinearOutSlowInEasing,
+            ),
+        ) + scaleIn(
+            initialScale = 0.985f,
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                easing = LinearOutSlowInEasing,
+            ),
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { -it / 2 },
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                easing = FastOutSlowInEasing,
+            ),
+        ) + fadeOut(
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                easing = FastOutSlowInEasing,
+            ),
+        ) + scaleOut(
+            targetScale = 0.985f,
+            animationSpec = tween(
+                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                easing = FastOutSlowInEasing,
+            ),
+        ),
         modifier = modifier,
     ) {
         Row(
@@ -49,12 +90,17 @@ fun ConnectivityStatusBanner(
                             Color(0xFF102A41),
                         ),
                     ),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = shape,
                 )
                 .border(
                     width = 1.dp,
                     color = Color.White.copy(alpha = 0.16f),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = shape,
+                )
+                .skydownLuminousSweep(
+                    shape = shape,
+                    accent = Color(0xFFFFC56A),
+                    alpha = 0.16f,
                 )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,

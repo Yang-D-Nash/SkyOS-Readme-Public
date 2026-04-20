@@ -107,6 +107,7 @@ struct ToastView: View {
                 .stroke(style.color.opacity(0.24), lineWidth: 1)
         }
         .shadow(color: style.color.opacity(0.18), radius: 20, y: 10)
+        .skydownLuminousSweep(cornerRadius: 22, accent: style.color, alpha: 0.18)
         .accessibilityElement(children: .combine)
     }
 }

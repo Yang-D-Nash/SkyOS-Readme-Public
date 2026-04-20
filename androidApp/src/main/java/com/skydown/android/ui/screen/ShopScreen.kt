@@ -159,7 +159,13 @@ fun ShopScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { SkydownTopBarTitle("Shop", "Produkte direkt in der App.") },
+                title = {
+                    SkydownTopBarTitle(
+                        "Shop",
+                        "Produkte direkt in der App.",
+                        accent = SpotifyGreen,
+                    )
+                },
                 actions = {
                     AppTopBarSessionActions(
                         onOpenCart = onOpenCart,

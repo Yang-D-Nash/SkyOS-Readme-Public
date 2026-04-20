@@ -45,40 +45,47 @@ fun RowScope.AppTopBarSessionActions(
     val compactLayout = rememberIsCompactAppLayout()
     val displayName = currentUser?.username?.trim().takeUnless { it.isNullOrBlank() } ?: "Gast"
     val initials = displayName.firstOrNull()?.uppercase() ?: "G"
-    val sessionLabel = if (currentUser == null) "Gastmodus" else "Session"
-    val showsCompactIdentity = dense
     val sessionAccent = if (currentUser == null) {
         MaterialTheme.colorScheme.tertiary
     } else {
         MaterialTheme.colorScheme.primary
     }
+    val sessionInteractionSource = remember { MutableInteractionSource() }
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = if (dense) 0.62f else 0.68f),
         shape = RoundedCornerShape(if (dense) 18.dp else 20.dp),
-        border = BorderStroke(1.dp, sessionAccent.copy(alpha = 0.20f)),
-        tonalElevation = 6.dp,
-        modifier = Modifier.clickable {
-            if (currentUser != null) {
-                (onOpenProfile ?: onOpenSettings).invoke()
-            } else {
-                onOpenSettings()
-            }
-        },
+        border = BorderStroke(
+            1.dp,
+            sessionAccent.copy(alpha = if (currentUser == null) 0.18f else 0.16f),
+        ),
+        tonalElevation = if (dense) 4.dp else 6.dp,
+        modifier = Modifier
+            .skydownPressable(sessionInteractionSource)
+            .clickable(
+                interactionSource = sessionInteractionSource,
+                indication = null,
+            ) {
+                if (currentUser != null) {
+                    (onOpenProfile ?: onOpenSettings).invoke()
+                } else {
+                    onOpenSettings()
+                }
+            },
     ) {
         Row(
             modifier = Modifier.padding(
                 horizontal = when {
-                    dense && compactLayout -> 6.dp
+                    dense && compactLayout -> 7.dp
                     dense -> 8.dp
                     compactLayout -> 9.dp
-                    else -> 12.dp
+                    else -> 10.dp
                 },
                 vertical = when {
                     dense && compactLayout -> 3.dp
                     dense -> 4.dp
-                    compactLayout -> 6.dp
-                    else -> 8.dp
+                    compactLayout -> 5.dp
+                    else -> 6.dp
                 },
             ),
             horizontalArrangement = Arrangement.spacedBy(
@@ -128,40 +135,20 @@ fun RowScope.AppTopBarSessionActions(
                             text = initials,
                             style = MaterialTheme.typography.labelMedium,
                             color = sessionAccent,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                         )
                     }
                 }
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                Text(
+                    text = displayName,
                     modifier = Modifier.weight(1f, fill = false),
-                ) {
-                    if (!showsCompactIdentity) {
-                        Text(
-                            text = sessionLabel.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = sessionAccent.copy(alpha = 0.92f),
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (showsCompactIdentity || !compactLayout) {
-                        Text(
-                            text = displayName,
-                            style = if (showsCompactIdentity) {
-                                MaterialTheme.typography.labelMedium
-                            } else {
-                                MaterialTheme.typography.labelMedium
-                            },
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (showsCompactIdentity) 0.90f else 1f),
-                            fontWeight = if (showsCompactIdentity) FontWeight.SemiBold else FontWeight.Normal,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.90f),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -201,10 +188,10 @@ private fun SessionIconAction(
     val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = if (dense) 0.60f else 0.66f),
         shape = CircleShape,
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.20f)),
-        tonalElevation = 6.dp,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.16f)),
+        tonalElevation = if (dense) 4.dp else 6.dp,
         modifier = Modifier.skydownPressable(interactionSource),
     ) {
         IconButton(
@@ -213,8 +200,8 @@ private fun SessionIconAction(
                 when {
                     dense && compactLayout -> 30.dp
                     dense -> 32.dp
-                    compactLayout -> 38.dp
-                    else -> 40.dp
+                    compactLayout -> 34.dp
+                    else -> 36.dp
                 },
             ),
             interactionSource = interactionSource,

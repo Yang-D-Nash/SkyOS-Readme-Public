@@ -1,13 +1,20 @@
 package com.skydown.android.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -44,22 +51,26 @@ fun skydownScreenBrush(
     val background = MaterialTheme.colorScheme.background
     val isDarkPalette = background.luminance() < 0.36f
 
-    val topSky = if (isDarkPalette) Color(0xFF070B10) else Color(0xFFE8EDF2)
-    val upperSky = if (isDarkPalette) Color(0xFF0D141D) else Color(0xFFD9E1E9)
-    val horizonBase = if (isDarkPalette) Color(0xFF1A2838) else Color(0xFFC7D2DE)
-    val groundDepth = if (isDarkPalette) Color(0xFF08111A) else Color(0xFFA8B7C6)
-    val primaryMist = lerp(primaryColor, horizonBase, if (isDarkPalette) 0.86f else 0.86f)
-    val secondaryMist = lerp(secondaryColor, horizonBase, if (isDarkPalette) 0.88f else 0.88f)
+    val topLift = if (isDarkPalette) Color(0xFF1E2D3A) else Color(0xFFF8FBFD)
+    val topSky = if (isDarkPalette) Color(0xFF15202C) else Color(0xFFEEF3F8)
+    val upperSky = if (isDarkPalette) Color(0xFF1D2B39) else Color(0xFFE2EAF2)
+    val horizonBase = if (isDarkPalette) Color(0xFF314355) else Color(0xFFD4E0EA)
+    val groundDepth = if (isDarkPalette) Color(0xFF182633) else Color(0xFFB4C3D2)
+    val primaryMist = lerp(primaryColor, horizonBase, 0.84f)
+    val secondaryMist = lerp(secondaryColor, horizonBase, 0.87f)
+    val vignette = Color.Black.copy(alpha = if (isDarkPalette) 0.10f else 0.10f)
 
     return Brush.verticalGradient(
         colors = listOf(
+            topLift,
             topSky,
             upperSky,
             horizonBase,
-            primaryMist.copy(alpha = primaryAlpha + if (isDarkPalette) 0.014f else 0.006f),
-            secondaryMist.copy(alpha = secondaryAlpha + if (isDarkPalette) 0.010f else 0.004f),
-            groundDepth.copy(alpha = if (isDarkPalette) 0.24f else 0.16f),
-            Color.Black.copy(alpha = if (isDarkPalette) 0.18f else 0.11f),
+            Color.White.copy(alpha = if (isDarkPalette) 0.050f else 0.30f),
+            primaryMist.copy(alpha = primaryAlpha + if (isDarkPalette) 0.014f else 0.010f),
+            secondaryMist.copy(alpha = secondaryAlpha + if (isDarkPalette) 0.012f else 0.008f),
+            groundDepth.copy(alpha = if (isDarkPalette) 0.16f else 0.18f),
+            vignette,
             background,
         ),
     )
@@ -68,7 +79,7 @@ fun skydownScreenBrush(
 @Composable
 fun skydownTopBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
     containerColor = Color.Transparent,
-    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
     navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
     titleContentColor = MaterialTheme.colorScheme.onSurface,
     actionIconContentColor = MaterialTheme.colorScheme.onSurface,
@@ -78,8 +89,30 @@ fun skydownTopBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
 fun SkydownTopBarTitle(
     title: String,
     subtitle: String? = null,
+    accent: Color = MaterialTheme.colorScheme.primary,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    val systemLabel = if (title.equals("SkyOs", ignoreCase = true)) "System" else "SkyOs"
+
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(accent.copy(alpha = 0.92f), CircleShape),
+            )
+            Text(
+                text = systemLabel.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = accent.copy(alpha = 0.96f),
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,

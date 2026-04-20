@@ -21,7 +21,7 @@ enum LegalTextTemplateFactory {
 
         Zuletzt aktualisiert: \(updatedAt)
 
-        Diese Datenschutzbestimmungen informieren Sie ueber die Verarbeitung personenbezogener Daten bei der Nutzung von \(brand). Sie beruecksichtigen insbesondere die DSGVO, die fuer Telemedien und Endgeraetezugriffe einschlaegigen Datenschutzvorgaben sowie den stufenweise geltenden EU AI Act, soweit KI-Funktionen in der App genutzt werden.
+        Diese Datenschutzbestimmungen informieren Sie ueber die Verarbeitung personenbezogener Daten bei der Nutzung von \(brand). \(brand) ist als zusammenhaengendes Creator- und Workflow-System konzipiert und verbindet Profile, Medien, Commerce, KI und Automation innerhalb einer App. Diese Hinweise beruecksichtigen insbesondere die DSGVO, einschlaegige Datenschutzvorgaben fuer Telemedien und Endgeraetezugriffe sowie den stufenweise geltenden EU AI Act, soweit KI-Funktionen genutzt werden.
 
         1. Verantwortlicher
         Verantwortlich ist \(operatorName).
@@ -54,13 +54,13 @@ enum LegalTextTemplateFactory {
         Wenn Sie Profilangaben, Galerieinhalte, Artist-Seiten oder andere Inhalte zur oeffentlichen Darstellung freigeben, koennen diese fuer andere Nutzer oder fuer die Oeffentlichkeit sichtbar sein. Stellen Sie bitte nur Inhalte ein, fuer die Sie die erforderlichen Rechte besitzen und die keine Rechte Dritter verletzen.
 
         6. Bestellungen, Zahlungen und Fulfillment
-        Fuer Merchandise, digitale Leistungen oder sonstige entgeltliche Angebote koennen externe Dienstleister eingebunden werden, insbesondere Shopify, Fulfillment-Partner, Zahlungsdienstleister sowie Versand- oder Kommunikationsdienste.
+        Fuer Merchandise, digitale Leistungen oder sonstige entgeltliche Angebote koennen externe Dienstleister eingebunden werden, insbesondere Shopify, Fulfillment-Partner, Zahlungsdienstleister sowie Versand- oder Kommunikationsdienste. Es werden nur die Daten verarbeitet, die fuer Darstellung, Kaufabwicklung, Zustellung, Support und Nachweis erforderlich sind.
 
         7. KI-Funktionen, DSGVO und EU AI Act
         Die in der App verfuegbaren KI-Funktionen sind als Assistenzfunktionen vorgesehen. KI-Ausgaben koennen unvollstaendig, fehlerhaft oder unpassend sein und muessen vor einer verbindlichen Nutzung geprueft werden. Bitte geben Sie keine geheimen, vertraulichen oder unnoetig sensiblen Daten Dritter ein.
 
         8. Workflow Automation und Webhook-Dienste
-        Wenn Workflow-Automationen aktiviert sind, koennen serverseitig gepruefte Daten an den konfigurierten Workflow-Endpunkt, zum Beispiel n8n, uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich.
+        Wenn Workflow-Automationen aktiviert sind, koennen serverseitig gepruefte Daten an den konfigurierten Workflow-Endpunkt, zum Beispiel n8n, uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. SkyOs verfolgt dabei das Prinzip persoenlicher Konfigurationen pro Konto, um Rechte, Verantwortung und Kosten sauber zu trennen.
 
         9. Empfaenger und Drittstaatentransfers
         Daten koennen an technische und operative Empfaenger uebermittelt werden, soweit dies fuer die App erforderlich ist, etwa an Hosting-, Speicher-, Authentifizierungs-, Sicherheits-, Zahlungs-, Fulfillment-, Support-, KI- oder Workflow-Dienstleister.
@@ -90,7 +90,7 @@ enum LegalTextTemplateFactory {
         Zuletzt aktualisiert: \(updatedAt)
 
         1. Geltungsbereich
-        Diese AGB gelten fuer entgeltliche Leistungen, Bestellungen und vermittelte Kaeufe ueber \(brand), insbesondere fuer Merchandise, digitale Inhalte, Creator-/Studio-Leistungen sowie sonstige App-Services, soweit im konkreten Angebot nichts Abweichendes geregelt ist.
+        Diese AGB gelten fuer entgeltliche Leistungen, Bestellungen und vermittelte Kaeufe ueber \(brand), insbesondere fuer Merchandise, digitale Inhalte, Creator-/Studio-Leistungen, AI-gestuetzte Unterstuetzung, Workflow-nahe Services sowie sonstige App-Services, soweit im konkreten Angebot nichts Abweichendes geregelt ist.
 
         2. Vertragspartner
         Vertragspartner ist \(operatorName).
@@ -102,13 +102,13 @@ enum LegalTextTemplateFactory {
         Die Darstellung von Produkten oder Leistungen in der App stellt noch kein verbindliches Angebot dar. Ein Vertrag kommt erst zustande, wenn Ihre Bestellung angenommen, Ihr Auftrag bestaetigt oder nach erfolgreicher Zahlung freigegeben wird.
 
         4. Preise, Zahlung und Versand
-        Alle in der App angezeigten Preise, Versandkosten und Zahlungsarten werden vor Abschluss des Kaufs angezeigt.
+        Alle in der App angezeigten Preise, Versandkosten und Zahlungsarten werden vor Abschluss des Kaufs angezeigt. Massgeblich sind die Angaben, die im Checkout unmittelbar vor Abschluss dargestellt werden.
 
         5. Lieferung und Fulfillment
         Lieferzeiten koennen je nach Produkt, Zielland, Verfuegbarkeit, Produktionsdauer und Fulfillment-Partner variieren.
 
         6. Digitale Leistungen, KI und Workflow-Services
-        Soweit ueber die App digitale Inhalte, Creator-Leistungen, KI-gestuetzte Unterstuetzung oder Workflow-Services angeboten werden, dienen diese regelmaessig der kreativen oder technischen Unterstuetzung.
+        Soweit ueber die App digitale Inhalte, Creator-Leistungen, KI-gestuetzte Unterstuetzung oder Workflow-Services angeboten werden, dienen diese regelmaessig der kreativen oder technischen Unterstuetzung. Sie ersetzen keine individuelle Rechts-, Steuer-, Finanz-, Medizin- oder Sicherheitsberatung. Automatisierte oder KI-gestuetzte Ergebnisse muessen vor verbindlicher Nutzung eigenverantwortlich geprueft werden.
 
         7. Eigentumsvorbehalt
         Gelieferte Ware bleibt bis zur vollstaendigen Bezahlung unser Eigentum, soweit gesetzlich zulaessig.
@@ -117,7 +117,7 @@ enum LegalTextTemplateFactory {
         Verbrauchern steht bei Fernabsatzvertraegen grundsaetzlich ein gesetzliches Widerrufsrecht zu.
 
         9. Gewaehrleistung, Produktsicherheit und Rueckrufe
-        Es gelten die gesetzlichen Maengelrechte.
+        Es gelten die gesetzlichen Maengelrechte. Produkt-, Sicherheits- oder Rueckrufhinweise werden, soweit einschlaegig, ueber die jeweils geeigneten Kanaele kommuniziert.
 
         10. Haftung
         Wir haften unbeschraenkt bei Vorsatz, grober Fahrlaessigkeit, Verletzung von Leben, Koerper oder Gesundheit sowie in den gesetzlich zwingenden Faellen.
@@ -142,7 +142,7 @@ enum LegalTextTemplateFactory {
 
         Zuletzt aktualisiert: \(updatedAt)
 
-        Diese Nutzungsbedingungen regeln den Zugang zu \(brand) und die Nutzung der Inhalte, Profil-, Medien-, Shop-, KI- und Workflow-Funktionen innerhalb der App.
+        Diese Nutzungsbedingungen regeln den Zugang zu \(brand) und die Nutzung der Inhalte, Profil-, Medien-, Shop-, KI- und Workflow-Funktionen innerhalb der App. \(brand) ist als zusammenhaengendes System gedacht; diese Bedingungen gelten fuer alle darin bereitgestellten Produktbereiche.
 
         1. Annahme der Bedingungen
         Mit der Nutzung der App bestaetigen Sie, dass Sie diese Bedingungen gelesen haben und akzeptieren.
@@ -151,13 +151,13 @@ enum LegalTextTemplateFactory {
         Wir koennen diese Bedingungen aktualisieren.
 
         3. Konto und Zugang
-        Fuer bestimmte Funktionen ist ein Konto erforderlich.
+        Fuer bestimmte Funktionen ist ein Konto erforderlich. Nutzer sind fuer die Richtigkeit ihrer Kontoangaben, den Schutz ihrer Zugangsdaten und die rechtmaessige Nutzung ihres Kontos verantwortlich.
 
         4. Zulaessige Nutzung
         Die App darf nur rechtmaessig und gemaess diesen Bedingungen genutzt werden.
 
         5. Profile, Uploads und Moderation
-        Wenn Sie Profile, Galerien, Artist-Seiten oder andere Inhalte einstellen, sichern Sie zu, hierzu berechtigt zu sein.
+        Wenn Sie Profile, Galerien, Artist-Seiten oder andere Inhalte einstellen, sichern Sie zu, hierzu berechtigt zu sein. Inhalte koennen bei Rechtsverletzungen, Sicherheitsrisiken, Missbrauch oder klaren Verstoessen gegen diese Bedingungen eingeschraenkt, entfernt oder moderiert werden.
 
         6. Inhalte, Rechte und Marken
         Rechteinhaber der App ist \(rightsHolder). Die App, ihre Marken, Designs, Texte, Bilder, Audio-, Video- und sonstigen Inhalte bleiben, soweit nicht anders angegeben, Eigentum von \(rightsHolder), beteiligten Kuenstlern oder der jeweiligen Rechteinhaber.
@@ -169,7 +169,7 @@ enum LegalTextTemplateFactory {
         Wenn Workflow-Automationen aktiv sind, werden Anfragen ueber serverseitig gepruefte Endpunkte an den konfigurierten Workflow weitergeleitet.
 
         9. Verfuegbarkeit und Aenderungen
-        Wir bemuehen uns um eine moeglichst stabile Verfuegbarkeit, schulden jedoch keine jederzeit unterbrechungsfreie oder fehlerfreie Nutzung.
+        Wir bemuehen uns um eine moeglichst stabile Verfuegbarkeit, schulden jedoch keine jederzeit unterbrechungsfreie oder fehlerfreie Nutzung. Produktbereiche, Designs, Rollenlogiken, KI-Funktionen, Preise oder Integrationen koennen im Rahmen der Weiterentwicklung angepasst werden.
 
         10. Sperrung, Kuendigung und Recovery
         Wir koennen Konten, Inhalte oder Zugaenge sperren, beschraenken oder beenden, wenn gegen diese Bedingungen verstossen wird.
@@ -194,16 +194,16 @@ enum LegalTextTemplateFactory {
         let symbolicCodeExplanation = settings.resolvedSymbolicCodeExplanation
 
         return """
-        README / App Guide fuer \(brand)
+        README / SkyOs Guide fuer \(brand)
 
         Zuletzt aktualisiert: \(updatedAt)
 
-        Dieser Guide gibt dir einen schnellen und praxisnahen Einstieg in die App.
+        Dieser Guide gibt dir einen schnellen und praxisnahen Einstieg in \(brand) als zusammenhaengendes Creator Operating System.
 
         1. Schnellstart
         - Konto erstellen oder einloggen
         - Profil mit Bild, Bio und Links vervollstaendigen
-        - Home, Music, Video, Shop und AI als Kernmodule nutzen
+        - Home als Orientierung nutzen und danach Music, Video, Shop und AI gezielt erschliessen
 
         2. Rollen im System
         - Owner: volle Steuerung (Rollen, Limits, Einstellungen, Rechtliches)
@@ -219,6 +219,7 @@ enum LegalTextTemplateFactory {
         - Agent dient fuer umsetzungsorientierte Aufgaben statt nur Chat-Antworten
         - Optional kannst du eigene Workflow-Dienste (z. B. n8n/Webhook) hinterlegen
         - Je nach Setup koennen externe Services und eigene API-Kosten entstehen
+        - SkyOs trennt persoenliche Workflow-Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten klar bleiben
 
         5. Kostenkontrolle
         - Kontingente, Hard Caps und globale Tageslimits begrenzen das Risiko
@@ -227,6 +228,7 @@ enum LegalTextTemplateFactory {
         6. Content und Commerce
         - Music/Video fuer Releases, Artist-Pages und Collabo-Inhalte
         - Shop fuer Merchandise und Checkout-Faelle gemaess aktivierter Zahlarten
+        - Das Ziel ist ein Systemgefuehl: entdecken, verstehen, handeln und wieder zurueckfinden
 
         7. Support und Troubleshooting
         - Bei Login-, Rollen- oder Upload-Problemen App neu anmelden und Rechte pruefen

@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -47,26 +48,28 @@ fun SkydownCard(
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.background.luminance() < 0.36f
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 18.dp,
+                elevation = 16.dp,
                 shape = shape,
-                ambientColor = colorScheme.primary.copy(alpha = 0.14f),
-                spotColor = colorScheme.tertiary.copy(alpha = 0.20f),
+                ambientColor = colorScheme.primary.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
+                spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.16f),
             )
             .clip(shape)
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.12f),
-                        colorScheme.surface.copy(alpha = 0.94f),
-                        colorScheme.surfaceVariant.copy(alpha = 0.50f),
-                        colorScheme.primary.copy(alpha = 0.075f),
-                        colorScheme.tertiary.copy(alpha = 0.045f),
-                        Color.Black.copy(alpha = 0.026f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.20f else 0.10f),
+                        colorScheme.surface.copy(alpha = if (isDarkPalette) 0.996f else 0.985f),
+                        colorScheme.surface.copy(alpha = if (isDarkPalette) 0.986f else 0.94f),
+                        colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) 0.50f else 0.32f),
+                        colorScheme.primary.copy(alpha = if (isDarkPalette) 0.026f else 0.046f),
+                        colorScheme.tertiary.copy(alpha = if (isDarkPalette) 0.016f else 0.024f),
+                        Color.Black.copy(alpha = if (isDarkPalette) 0.012f else 0.028f),
                     ),
                 ),
             )
@@ -74,15 +77,15 @@ fun SkydownCard(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.28f),
-                        colorScheme.outline.copy(alpha = 0.34f),
-                        colorScheme.primary.copy(alpha = 0.18f),
-                        colorScheme.tertiary.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.34f else 0.26f),
+                        colorScheme.outline.copy(alpha = if (isDarkPalette) 0.34f else 0.34f),
+                        colorScheme.primary.copy(alpha = if (isDarkPalette) 0.07f else 0.10f),
+                        Color.Black.copy(alpha = if (isDarkPalette) 0.015f else 0.04f),
                     ),
                 ),
                 shape = shape,
             )
-            .skydownSheen(accent = colorScheme.primary, alpha = 0.034f)
+            .skydownSheen(accent = colorScheme.primary, alpha = if (isDarkPalette) 0.030f else 0.018f)
             .padding(contentPadding),
         content = content,
     )

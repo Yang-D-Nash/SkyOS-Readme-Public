@@ -25,7 +25,7 @@ struct ToastModifier: ViewModifier {
                         .combined(with: .opacity)
                         .combined(with: .scale(scale: 0.96, anchor: .bottom))
                     )
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isPresented)
+                .animation(SkydownMotion.statusTransition, value: isPresented)
                 .task(id: message + style.title) {
                     SkydownHaptics.announce(message)
                     #if canImport(UIKit)
@@ -45,7 +45,7 @@ struct ToastModifier: ViewModifier {
                     try? await Task.sleep(for: .seconds(duration))
                     guard !Task.isCancelled else { return }
                     await MainActor.run {
-                        withAnimation {
+                        withAnimation(SkydownMotion.statusTransition) {
                             isPresented = false
                         }
                     }

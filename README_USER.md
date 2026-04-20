@@ -1,88 +1,109 @@
-# 22xSky User Guide
+# SkyOs User Guide
 
-Dieses Handbuch erklaert die App aus Endnutzer-Sicht.
-Es zeigt dir, wie du schnell startest, KI/Agent sinnvoll nutzt und deinen eigenen Workflow-Service verbindest.
+Dieses Handbuch erklaert SkyOs aus Nutzer-Sicht.
+SkyOs ist die Produktwelt von `Skydown x 22` und verbindet Music, Video, Merch, Profile, KI und Workflows in einem einzigen System.
+
+Zuletzt aktualisiert: `20. April 2026`
 
 ---
 
-## 1) Was ist 22xSky?
+## 1) Was ist SkyOs?
 
-22xSky ist die gemeinsame Plattform von `Skydown` und `22`.
+SkyOs ist kein einzelnes Tool, sondern eine zusammenhaengende Produktwelt.
 Du bekommst in einer App:
 
-- Music und Artist-Content
-- Video- und Collabo-Bereiche
-- Merch
-- KI-Tools (Bot + Agent)
-- persoenliches Profil mit Galerie
+- `Home` fuer Orientierung und Einstieg
+- `Music` fuer Releases, Artists und Beats
+- `Video` fuer Clips und Visual-Flows
+- `Shop` fuer Merch und Checkout
+- `AI` fuer Bot, Visuals, Agent und Workflow-Unterstuetzung
+- `Profile` fuer deine Identitaet, Galerie und Creator-Praesenz
 
-Brand-DNA:
-
-- Meisterzahl `22` steht fuer Vision + Umsetzung (Master Builder).
-- Symbolcode: `1337-514-731`
-- Leet-Code: `7H3_F4LL_0F_H34/3N`
+Das Ziel:
+Alles soll sich wie ein System anfuehlen, nicht wie mehrere getrennte Apps.
 
 ---
 
 ## 2) Schnellstart in 60 Sekunden
 
 1. Konto erstellen oder einloggen.
-2. Profilbild, Username und Bio setzen.
-3. Im KI-Bereich den Bot testen (Text oder Visual).
-4. Den Agent mit einer konkreten Aufgabe testen.
-5. Optional in den Settings eigenen Workflow (n8n) hinterlegen.
+2. Profilbild, Name und Bio setzen.
+3. Home kurz lesen und die Kernbereiche erkunden.
+4. Im AI-Bereich den Bot testen.
+5. Den Agent mit einer konkreten Aufgabe testen.
+6. Optional eigenen Workflow-Service in den Settings hinterlegen.
 
 ---
 
-## 3) Profile und Galerie
+## 3) Wie du SkyOs sinnvoll nutzt
 
-Mit deinem Konto kannst du:
+### Home
 
-- Profilinformationen bearbeiten
-- Bilder in deine Galerie hochladen
-- Inhalte spaeter wieder loeschen oder aktualisieren
+Nutze Home fuer:
 
-Hinweis:
+- Orientierung
+- aktuelle Highlights
+- schnellen Einstieg in Music, Video, Shop und AI
 
-- Uploads und Schreibrechte koennen bei aktivem System-Lockdown temporaer eingeschraenkt sein.
+### AI
+
+Nutze AI fuer:
+
+- Textideen
+- Visual-Richtungen
+- strukturierte Agent-Aufgaben
+- persoenliche Workflows
+
+### Music / Video / Shop
+
+Diese Bereiche sind keine Inseln.
+Sie greifen in SkyOs zusammen:
+
+- entdecken
+- ansehen / anhoeren
+- weitergehen
+- reagieren
+- kaufen / handeln
 
 ---
 
 ## 4) Bot und Agent richtig nutzen
 
-### 4.1 Bot
+### Bot
 
-Nutze den Bot fuer schnelle Outputs:
+Gut fuer:
 
 - Captions
 - Hooks
-- Post-Text
+- Copy
 - Visual-Ideen
 
-Tipp:
+### Agent
 
-- Je klarer dein Prompt (Ziel, Zielgruppe, Stil), desto besser das Ergebnis.
+Gut fuer:
 
-### 4.2 Agent
-
-Nutze den Agent fuer Aufgaben mit Struktur:
-
-- Content-Plan
+- Briefings
+- Content-Plaene
 - Release-Vorbereitung
-- Briefing
-- Automations-Uebergabe
+- To-do-Strukturen
+- Uebergabe an Workflows
 
 Tipp:
+Sag immer klar, welches Ergebnis du willst.
+Zum Beispiel:
 
-- Gib dem Agenten immer ein Ergebnisformat vor, z. B. "5 Schritte + To-dos + Risiken".
+- `5 Schritte`
+- `kurz und konkret`
+- `mit Risiken`
+- `als Plan fuer TikTok + Instagram`
 
 ---
 
-## 5) Eigenen Workflow verbinden (n8n)
+## 5) Workflow verbinden
 
-Jeder Nutzer kann seinen eigenen Workflow-Service nutzen.
+Jeder Nutzer kann einen eigenen Workflow-Service hinterlegen.
 
-In `Settings` hinterlegst du:
+In den Settings kannst du setzen:
 
 - `n8n aktiv`
 - `Base URL`
@@ -90,84 +111,69 @@ In `Settings` hinterlegst du:
 - optional `Auth Header`
 - optional `Knowledge-Kontext`
 
-Danach kannst du einen Test triggern.
+Danach laeuft der Test so:
 
-Was passiert dann:
-
-1. Die App sendet den Trigger an das Backend.
-2. Das Backend nutzt nur deine persoenliche Workflow-Konfiguration.
+1. App sendet Trigger ans Backend.
+2. Backend nutzt nur deine persoenliche Workflow-Konfiguration.
 3. Dein Webhook wird aufgerufen.
-4. Du bekommst direkt Erfolg oder Fehler als Rueckmeldung.
+4. Du bekommst direkt Erfolg oder Fehler zurueck.
 
 ---
 
-## 6) Eigenen Manus-Account (BYOS, optional)
-
-Wenn du willst, kannst du deinen eigenen Manus-Key nutzen.
-
-- iOS: Key wird lokal im Keychain gespeichert.
-- Android: Key wird lokal verschluesselt gespeichert.
-
-Wichtig:
-
-- Ohne deinen lokalen Key nutzt die App wieder das Backend-Setup.
-- Du kannst den Key jederzeit ersetzen oder entfernen.
-
----
-
-## 7) Rollen aus User-Sicht
+## 6) Rechte, Rollen und Limits
 
 Standard ist `user`.
-Wenn dir der Owner eine andere Rolle gibt, aendern sich ggf. deine Rechte und Limits.
+Je nach Freigabe durch den Owner koennen sich deine Rechte aendern.
 
 Beispiele:
 
 - `subadmin`: hoehere Kontingente
-- `admin`: zusaetzliche operative Teamrechte
+- `admin`: zusaetzliche Teamrechte
+
+Wichtig:
+
+- nicht jede Funktion ist fuer jede Rolle offen
+- Limits schuetzen Systemstabilitaet und Kosten
+- bei gesperrten Funktionen sollte die App einen Grund anzeigen
 
 ---
 
-## 8) Sprache, Offline und Notifications
-
-### Sprache
-
-Die App orientiert sich an deiner Systemsprache.
-Unterstuetzte Sprachen:
-
-- `DE, EN, ES, FR, IT, PT, NL, PL, TR, JA`
-
-### Offline
-
-- Bei fehlender Verbindung zeigt die App Offline-Hinweise.
-- Gecachte Inhalte bleiben verfuegbar, wenn vorhanden.
-- Bestimmte Aktionen brauchen weiterhin Internet (z. B. Live-KI, n8n-Test).
-
-### Notifications
-
-- Benachrichtigungen koennen in der App und in den Geraete-Einstellungen verwaltet werden.
-
----
-
-## 9) Troubleshooting
+## 7) Fehler, Offline, Support
 
 Wenn etwas nicht klappt:
 
-1. Internetverbindung pruefen.
-2. App neu starten und erneut anmelden.
-3. In Settings pruefen, ob dein Workflow komplett konfiguriert ist.
-4. Bei "nicht verfuegbar"-Meldungen spaeter erneut versuchen.
+1. Verbindung pruefen
+2. App neu oeffnen
+3. erneut anmelden
+4. Workflow- oder Rechte-Setup pruefen
 
-Wenn es weiter blockiert:
+Typische Ursachen:
 
-- Support: `skydownent@gmail.com`
-- Rechtlich Verantwortlicher und Rechteinhaber:
-  `Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
+- Limit erreicht
+- Rolle reicht nicht aus
+- externer Dienst antwortet nicht
+- System ist temporaer im Lockdown
+
+Support:
+
+- `skydownent@gmail.com`
+
+Betreiber:
+
+- `Skydown`
+- `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
 
 ---
 
-## 10) Best Practices fuer starke Ergebnisse
+## 8) Grundregel fuer starke Ergebnisse
 
-1. Aufgaben klar formulieren: Ziel, Plattform, Ton, Laenge.
-2. Fuer Agent-Aufgaben ein fixes Ausgabeformat verlangen.
-3. Workflow erst lokal testen, dann in produktiven Kampagnen nutzen.
-4. Prompts und Guardrails schrittweise verbessern statt alles auf einmal.
+SkyOs funktioniert am besten, wenn du klar formulierst:
+
+- Ziel
+- Stil
+- Plattform
+- Format
+- Tiefe
+
+Kurz:
+Je klarer du fuehrst, desto staerker kann SkyOs antworten.

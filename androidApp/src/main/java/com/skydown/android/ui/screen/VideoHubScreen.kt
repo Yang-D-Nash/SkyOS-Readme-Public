@@ -294,6 +294,7 @@ fun VideoHubScreen(
                     SkydownTopBarTitle(
                         title = "Video",
                         subtitle = "Clips, Videos, Kollabos.",
+                        accent = ArenaGold,
                     )
                 },
                 actions = {
