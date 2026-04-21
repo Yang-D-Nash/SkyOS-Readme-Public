@@ -223,8 +223,8 @@ private struct LaunchLandingView: View {
                             colorScheme: hubColorScheme,
                             eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS Home",
                             title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
-                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles fuehlt sich wie eine einzige App an.",
-                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Waehle deinen ersten Move. Music, Video, Merch und Tools bleiben danach in einem klaren Flow verbunden.",
+                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles fühlt sich wie eine einzige App an.",
+                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Wähle deinen ersten Move. Music, Video, Merch und Tools bleiben danach in einem klaren Flow verbunden.",
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
                             accent: AppColors.accent(for: hubColorScheme),
                             secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
@@ -254,7 +254,7 @@ private struct LaunchLandingView: View {
                                     )
                                 }
 
-                                Text("Direkt reingehen, jederzeit unten wechseln, nie in einer Sackgasse haengen bleiben.")
+                                Text("Direkt reingehen, jederzeit unten wechseln, nie in einer Sackgasse hängen bleiben.")
                                     .font(AppTypography.editorialCaption)
                                     .foregroundColor(.white.opacity(0.82))
                             }

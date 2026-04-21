@@ -1045,7 +1045,7 @@ private fun LaunchLandingScreen(
                         BrandHeroCard(
                             eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SkyOS Home" },
                             title = screenHeaderSettings.homeTitle.ifBlank { "SkyOS" },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Alles fuehlt sich wie eine einzige App an." },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Alles fühlt sich wie eine einzige App an." },
                             detail = screenHeaderSettings.homeDetail.ifBlank { "Music, Video, Merch und Tools in einem Flow." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                             accent = MaterialTheme.colorScheme.primary,
@@ -1061,7 +1061,7 @@ private fun LaunchLandingScreen(
                                     BrandPill(text = "AI", tint = MaterialTheme.colorScheme.primary)
                                 }
                                 Text(
-                                    text = "Direkt rein, unten wechseln, frei zurueck.",
+                                    text = "Direkt rein, unten wechseln, frei zurück.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                                 )
