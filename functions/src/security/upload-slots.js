@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const {HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const {
+  ALLOWED_ASSET_VIDEO_CONTENT_TYPES,
   ALLOWED_IMAGE_CONTENT_TYPES,
   SECURITY_LIMITS,
   UPLOAD_SLOT_COLLECTION,
@@ -16,8 +17,13 @@ function nonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-function normalizeMimeType(value) {
+function normalizeMimeType(value, kind) {
   const mimeType = nonEmptyString(value)?.toLowerCase();
+  if (kind === "asset") {
+    return ALLOWED_IMAGE_CONTENT_TYPES.includes(mimeType) || ALLOWED_ASSET_VIDEO_CONTENT_TYPES.includes(mimeType) ?
+      mimeType :
+      null;
+  }
   return ALLOWED_IMAGE_CONTENT_TYPES.includes(mimeType) ? mimeType : null;
 }
 
@@ -56,9 +62,10 @@ function resolveExtension(mimeType, requestedExtension) {
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
+    "video/mp4": "mp4",
   };
   const expected = fallbackByMime[mimeType] || "jpg";
-  return normalizedRequested && ["jpg", "jpeg", "png", "webp"].includes(normalizedRequested) ?
+  return normalizedRequested && ["jpg", "jpeg", "png", "webp", "mp4"].includes(normalizedRequested) ?
     normalizedRequested :
     expected;
 }
@@ -119,22 +126,23 @@ async function requestUploadSlot({auth, data, appCheckState}) {
     throw new HttpsError("invalid-argument", "kind muss profile, gallery oder asset sein.");
   }
 
-  const mimeType = normalizeMimeType(data?.mimeType);
+  const mimeType = normalizeMimeType(data?.mimeType, kind);
   if (!mimeType) {
     return {
       allowed: false,
       reason: "invalid_content_type",
-      message: "Nur JPEG, PNG und WEBP sind erlaubt.",
+      message: kind === "asset" ? "Nur JPEG, PNG, WEBP und MP4 sind erlaubt." : "Nur JPEG, PNG und WEBP sind erlaubt.",
     };
   }
 
   const declaredBytes = Number(data?.byteSize);
-  if (Number.isFinite(declaredBytes) && declaredBytes > SECURITY_LIMITS.maxImageBytes) {
+  const maxBytes = mimeType.startsWith("video/") ? SECURITY_LIMITS.maxVideoBytes : SECURITY_LIMITS.maxImageBytes;
+  if (Number.isFinite(declaredBytes) && declaredBytes > maxBytes) {
     return {
       allowed: false,
       reason: "file_too_large",
       message: "Die Datei ist zu gross.",
-      maxBytes: SECURITY_LIMITS.maxImageBytes,
+      maxBytes,
     };
   }
 
@@ -184,7 +192,7 @@ async function requestUploadSlot({auth, data, appCheckState}) {
     storagePath,
     fileName,
     contentType: mimeType,
-    maxBytes: SECURITY_LIMITS.maxImageBytes,
+    maxBytes,
     status: "approved",
     declaredBytes: Number.isFinite(declaredBytes) ? Math.floor(declaredBytes) : null,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -214,7 +222,7 @@ async function requestUploadSlot({auth, data, appCheckState}) {
     kind,
     storagePath,
     fileName,
-    maxBytes: SECURITY_LIMITS.maxImageBytes,
+    maxBytes,
     expiresAt: expiresAt.toDate().toISOString(),
     metadata: {
       uploadSlotId: slotId,

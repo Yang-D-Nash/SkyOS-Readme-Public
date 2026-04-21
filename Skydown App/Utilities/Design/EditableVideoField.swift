@@ -9,6 +9,7 @@ struct EditableVideoField: View {
     let uploadStatusText: String
     let onPickVideo: () -> Void
     let onRemoveVideo: (() -> Void)?
+    let accessibilityIDPrefix: String?
 
     init(
         title: String,
@@ -17,6 +18,7 @@ struct EditableVideoField: View {
         buttonTitle: String = "Vom iPhone waehlen",
         isUploading: Bool = false,
         uploadStatusText: String = "Video wird vorbereitet und hochgeladen.",
+        accessibilityIDPrefix: String? = nil,
         onPickVideo: @escaping () -> Void,
         onRemoveVideo: (() -> Void)? = nil
     ) {
@@ -26,6 +28,7 @@ struct EditableVideoField: View {
         self.buttonTitle = buttonTitle
         self.isUploading = isUploading
         self.uploadStatusText = uploadStatusText
+        self.accessibilityIDPrefix = accessibilityIDPrefix
         self.onPickVideo = onPickVideo
         self.onRemoveVideo = onRemoveVideo
     }
@@ -92,6 +95,7 @@ struct EditableVideoField: View {
             .buttonStyle(.bordered)
             .tint(AppColors.accentMystic(for: colorScheme))
             .disabled(isUploading)
+            .accessibilityIdentifier(accessibilityIDPrefix.map { "\($0).pick" } ?? "")
 
             if videoURL.trimmedNilIfEmpty != nil {
                 Button("Video entfernen", role: .destructive) {
@@ -103,6 +107,7 @@ struct EditableVideoField: View {
                 }
                 .font(.footnote.weight(.semibold))
                 .disabled(isUploading)
+                .accessibilityIdentifier(accessibilityIDPrefix.map { "\($0).remove" } ?? "")
             }
         }
     }

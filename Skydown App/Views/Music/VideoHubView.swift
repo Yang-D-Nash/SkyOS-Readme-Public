@@ -279,7 +279,7 @@ struct VideoHubView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Artists und Creatives, mit denen die Visuals entstehen.")
+            Text("Creatives hinter den Visuals.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -310,8 +310,8 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             accent: AppColors.accentMystic(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 
@@ -347,8 +347,8 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedVideoHubEyebrow ?? "Video",
             title: screenHeaderSettingsStore.settings.resolvedVideoHubTitle ?? "Video",
-            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Clips, Visuals und starke Kollaborationen.",
-            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Clips, Looks und Leute hinter dem Vibe.",
+            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Clips · Visuals · Collabs",
+            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Looks & Leute.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
@@ -372,7 +372,7 @@ struct VideoHubView: View {
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Komprimierte Cuts laden schneller.")
+            Text("Kleinere Dateien = schneller.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -382,8 +382,8 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             accent: AppColors.accent(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 
@@ -393,7 +393,7 @@ struct VideoHubView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Equipment, Featured Collabs und Format-Hinweise kompakt im Editor.")
+            Text("Equipment & Collabs im Editor.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -414,8 +414,8 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             accent: AppColors.accentMystic(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 
@@ -474,7 +474,7 @@ struct VideoHubView: View {
                     .padding(.vertical, 14)
             }
 
-            Text("Oder als externer Video-Link freigeben.")
+            Text("Oder Video-Link.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

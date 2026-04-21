@@ -46,7 +46,8 @@ struct AppColors {
         case .light:
             return Color(red: 246/255, green: 245/255, blue: 242/255)
         case .dark:
-            return Color(red: 11/255, green: 18/255, blue: 31/255)
+            // Lifted slate: less “crushed black”, more OS-like air.
+            return Color(red: 20/255, green: 26/255, blue: 36/255)
         @unknown default:
             return Color(red: 246/255, green: 245/255, blue: 242/255)
         }
@@ -57,7 +58,7 @@ struct AppColors {
         case .light:
             return Color(red: 237/255, green: 239/255, blue: 242/255)
         case .dark:
-            return Color(red: 20/255, green: 30/255, blue: 44/255)
+            return Color(red: 28/255, green: 36/255, blue: 48/255)
         @unknown default:
             return Color(red: 237/255, green: 239/255, blue: 242/255)
         }
@@ -68,7 +69,7 @@ struct AppColors {
         case .light:
             return Color(red: 255/255, green: 252/255, blue: 247/255)
         case .dark:
-            return Color(red: 28/255, green: 40/255, blue: 55/255).opacity(0.97)
+            return Color(red: 34/255, green: 42/255, blue: 54/255).opacity(0.94)
         @unknown default:
             return Color(red: 255/255, green: 252/255, blue: 247/255)
         }
@@ -90,7 +91,7 @@ struct AppColors {
         case .light:
             return Color(red: 97/255, green: 108/255, blue: 121/255)
         case .dark:
-            return Color(red: 216/255, green: 223/255, blue: 231/255)
+            return Color(red: 198/255, green: 206/255, blue: 216/255)
         @unknown default:
             return Color(red: 97/255, green: 108/255, blue: 121/255)
         }
@@ -134,7 +135,7 @@ struct AppColors {
         case .light:
             return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.12)
         case .dark:
-            return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.18)
+            return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.11)
         @unknown default:
             return Color(red: 30/255, green: 215/255, blue: 96/255).opacity(0.12)
         }
@@ -216,10 +217,10 @@ struct AppColors {
             horizonGlow = Color(red: 225/255, green: 230/255, blue: 236/255)
             depthShadow = cinematicShadow(for: colorScheme).opacity(0.045)
         case .dark:
-            topSky = Color(red: 13/255, green: 21/255, blue: 34/255)
-            midSky = Color(red: 18/255, green: 29/255, blue: 44/255)
-            horizonGlow = Color(red: 31/255, green: 45/255, blue: 64/255)
-            depthShadow = cinematicShadow(for: colorScheme).opacity(0.085)
+            topSky = Color(red: 22/255, green: 28/255, blue: 38/255)
+            midSky = Color(red: 26/255, green: 34/255, blue: 46/255)
+            horizonGlow = Color(red: 38/255, green: 48/255, blue: 62/255)
+            depthShadow = cinematicShadow(for: colorScheme).opacity(0.055)
         @unknown default:
             topSky = Color(red: 250/255, green: 247/255, blue: 243/255)
             midSky = Color(red: 238/255, green: 240/255, blue: 243/255)
@@ -229,17 +230,17 @@ struct AppColors {
 
         return LinearGradient(
             colors: [
-                luminanceLift.opacity(colorScheme == .dark ? 0.08 : 0.52),
+                luminanceLift.opacity(colorScheme == .dark ? 0.11 : 0.52),
                 topSky,
                 pearlWash.opacity(colorScheme == .dark ? 0.07 : 0.16),
                 midSky,
                 surfaceWash.opacity(colorScheme == .dark ? 0.12 : 0.22),
                 horizonGlow,
-                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.024),
-                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.05 : 0.022),
-                secondary.opacity(colorScheme == .dark ? 0.032 : 0.016),
-                depthShadow.opacity(colorScheme == .dark ? 0.62 : 0.60),
-                cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.055 : 0.030),
+                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.028 : 0.024),
+                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.034 : 0.022),
+                secondary.opacity(colorScheme == .dark ? 0.022 : 0.016),
+                depthShadow.opacity(colorScheme == .dark ? 0.42 : 0.60),
+                cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.038 : 0.030),
                 primaryBackground(for: colorScheme)
             ],
             startPoint: .topLeading,

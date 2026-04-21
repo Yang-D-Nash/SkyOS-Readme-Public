@@ -372,7 +372,7 @@ let nicmaInstagramDestination = MusicInstagramDestination(
     title: "NICMA MUSIC",
     handle: "@nicma.music",
     urlString: "https://www.instagram.com/nicma.music/",
-    helper: "Producer und Studio"
+    helper: "Studio"
 )
 
 let nicmaProducerPackages: [NicmaProducerPackage] = [
@@ -397,18 +397,18 @@ let nicmaProducerPackages: [NicmaProducerPackage] = [
         price: "200 €"
     ),
     NicmaProducerPackage(
-        title: "Track Recording ohne Mix / Master",
-        detail: "Recording Session",
+        title: "Recording (ohne Mix/Master)",
+        detail: "Session",
         price: "120 €"
     ),
     NicmaProducerPackage(
-        title: "Track Recording inkl. Mix / Master",
-        detail: "Kompletter Recording-Flow",
+        title: "Recording + Mix/Master",
+        detail: "Komplett",
         price: "250 €"
     ),
     NicmaProducerPackage(
-        title: "8h Studio Zeit + Engineer",
-        detail: "zzgl. Nachbearbeitung",
+        title: "8h Studio + Engineer",
+        detail: "+ Nachbearbeitung",
         price: "400 € + Nachbearbeitung"
     )
 ]

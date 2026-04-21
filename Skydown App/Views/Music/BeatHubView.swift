@@ -203,7 +203,7 @@ struct BeatHubView: View {
                     .padding(.vertical, 14)
             }
 
-            Text("Oder als externer Beat-Link freigeben.")
+            Text("Oder Beat-Link.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

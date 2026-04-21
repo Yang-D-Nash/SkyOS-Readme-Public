@@ -99,8 +99,16 @@ service firebase.storage {
       return request.resource.contentType in ["image/jpeg", "image/png", "image/webp"];
     }
 
+    function allowedAssetType() {
+      return allowedImageType() || request.resource.contentType in ["video/mp4"];
+    }
+
     function allowedImageSize() {
       return request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function allowedAssetSize() {
+      return allowedImageSize() || request.resource.size <= 25 * 1024 * 1024;
     }
 
     function validProfileFileName(fileName) {
@@ -109,6 +117,10 @@ service firebase.storage {
 
     function validGalleryFileName(fileName) {
       return fileName.matches("^[A-Za-z0-9_-]{20,120}\\.(jpg|jpeg|png|webp)$");
+    }
+
+    function validAssetFileName(fileName) {
+      return fileName.matches("^[A-Za-z0-9_-]{20,120}\\.(jpg|jpeg|png|webp|mp4)$");
     }
 
     function uploadFolder(kind) {
@@ -184,9 +196,9 @@ service firebase.storage {
 
       allow create, update: if isSelf(uid)
         && uploadsAllowed()
-        && validGalleryFileName(fileName)
-        && allowedImageType()
-        && allowedImageSize()
+        && validAssetFileName(fileName)
+        && allowedAssetType()
+        && allowedAssetSize()
         && hasUploadMetadata(uid)
         && hasValidUploadSlot(
           request.resource.metadata.uploadSlotId,

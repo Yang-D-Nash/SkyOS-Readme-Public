@@ -40,12 +40,12 @@ class ContactFormViewModel: ObservableObject {
 
     func updateMessage() {
         let colorPart = selectedColor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : " in \(selectedColor)"
-        message = "Hallo, ich bin an '\(item.name)' in Größe \(selectedSize)\(colorPart) x\(selectedQuantity) interessiert."
+        message = "'\(item.name)' · \(selectedSize)\(colorPart) · x\(selectedQuantity)"
     }
 
     func addToCart() {
         guard isFormValid else {
-            cartVM.showUserToast("Bitte Name und E-Mail ausfüllen.", style: .error)
+            cartVM.showUserToast("Name und E-Mail.", style: .error)
             return
         }
 

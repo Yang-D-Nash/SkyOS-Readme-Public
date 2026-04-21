@@ -47,7 +47,26 @@ final class UserProfileViewModel: ObservableObject {
     }
 
     var canEditCurrentProfile: Bool {
-        currentUser?.id == authManager.userSession?.id
+        guard let session = authManager.userSession else { return false }
+        guard let profile = currentUser else { return false }
+
+        let sessionId = profileSubjectId(session)
+        let profileId = profileSubjectId(profile)
+        if let sessionId, let profileId {
+            return sessionId == profileId
+        }
+
+        // Own profile sheet: ids can briefly be unset during hydration; fall back to email.
+        return normalizedEmail(session.email) == normalizedEmail(profile.email)
+    }
+
+    private func profileSubjectId(_ user: User) -> String? {
+        let raw = user.id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return raw.isEmpty ? nil : raw
+    }
+
+    private func normalizedEmail(_ email: String) -> String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
     func configure(user: User?) {

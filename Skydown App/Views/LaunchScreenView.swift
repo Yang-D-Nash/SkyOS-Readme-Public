@@ -153,13 +153,12 @@ private struct LaunchLandingView: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color.black,
-                        Color(red: 2/255, green: 7/255, blue: 13/255),
-                        Color(red: 7/255, green: 16/255, blue: 26/255),
-                        Color(red: 20/255, green: 42/255, blue: 68/255).opacity(0.48),
-                        Color(red: 33/255, green: 63/255, blue: 96/255).opacity(0.30),
-                        Color(red: 5/255, green: 11/255, blue: 18/255),
-                        Color.black
+                        Color(red: 10/255, green: 14/255, blue: 20/255),
+                        Color(red: 16/255, green: 22/255, blue: 30/255),
+                        Color(red: 22/255, green: 30/255, blue: 42/255),
+                        Color(red: 32/255, green: 48/255, blue: 68/255).opacity(0.32),
+                        Color(red: 24/255, green: 32/255, blue: 44/255),
+                        Color(red: 14/255, green: 18/255, blue: 26/255)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -168,9 +167,9 @@ private struct LaunchLandingView: View {
 
                 LinearGradient(
                     colors: [
-                        Color.black.opacity(0.26),
-                        Color.black.opacity(0.08),
-                        Color.black.opacity(0.34)
+                        Color.black.opacity(0.14),
+                        Color.black.opacity(0.04),
+                        Color.black.opacity(0.18)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -178,13 +177,13 @@ private struct LaunchLandingView: View {
                 .ignoresSafeArea()
 
                 Circle()
-                    .fill(Color(red: 91/255, green: 149/255, blue: 216/255).opacity(0.12))
+                    .fill(Color(red: 91/255, green: 149/255, blue: 216/255).opacity(0.08))
                     .frame(width: layout.prefersDesktopChrome ? 360 : 260, height: layout.prefersDesktopChrome ? 360 : 260)
                     .blur(radius: 70)
                     .offset(x: proxy.size.width * 0.26, y: -280)
 
                 Circle()
-                    .fill(Color(red: 138/255, green: 170/255, blue: 206/255).opacity(0.08))
+                    .fill(Color(red: 138/255, green: 170/255, blue: 206/255).opacity(0.055))
                     .frame(width: layout.prefersDesktopChrome ? 320 : 240, height: layout.prefersDesktopChrome ? 320 : 240)
                     .blur(radius: 76)
                     .offset(x: -proxy.size.width * 0.18, y: 280)
@@ -215,16 +214,16 @@ private struct LaunchLandingView: View {
                     VStack(alignment: .leading, spacing: layout.sectionSpacing + 4) {
                         HStack(spacing: 8) {
                             LaunchLandingMetaPill(text: "Sky OS", accent: AppColors.accent(for: hubColorScheme))
-                            LaunchLandingMetaPill(text: "One Flow", accent: AppColors.accentMystic(for: hubColorScheme))
-                            LaunchLandingMetaPill(text: "Direct", accent: AppColors.spotify(for: hubColorScheme))
+                            LaunchLandingMetaPill(text: "Flow", accent: AppColors.accentMystic(for: hubColorScheme))
+                            LaunchLandingMetaPill(text: "Live", accent: AppColors.spotify(for: hubColorScheme))
                         }
 
                         BrandHeroSurface(
                             colorScheme: hubColorScheme,
                             eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS Home",
                             title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
-                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles fühlt sich wie eine einzige App an.",
-                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Wähle deinen ersten Move. Music, Video, Merch und Tools bleiben danach in einem klaren Flow verbunden.",
+                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Eine Oberfläche. Viele Module.",
+                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Music · Video · Merch · Tools — verbunden.",
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
                             accent: AppColors.accent(for: hubColorScheme),
                             secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
@@ -254,7 +253,7 @@ private struct LaunchLandingView: View {
                                     )
                                 }
 
-                                Text("Direkt reingehen, jederzeit unten wechseln, nie in einer Sackgasse hängen bleiben.")
+                                Text("Tabs unten. Immer nah.")
                                     .font(AppTypography.editorialCaption)
                                     .foregroundColor(.white.opacity(0.82))
                             }
@@ -263,31 +262,31 @@ private struct LaunchLandingView: View {
                         if layout.prefersThreeColumn {
                             HStack(spacing: 12) {
                                 LaunchLandingSignalCard(
-                                    title: "1 Tap Start",
-                                    value: "Direkt in Music, Video oder Shop.",
+                                    title: "1 Tap",
+                                    value: "Music · Video · Shop",
                                     accent: AppColors.spotify(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Immer Zurück",
-                                    value: "Navigation bleibt klar und frei.",
+                                    title: "Zurück",
+                                    value: "Klar · ruhig",
                                     accent: AppColors.accentMystic(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Ein System",
-                                    value: "Discovery, Playback und Checkout greifen zusammen.",
+                                    title: "System",
+                                    value: "Ein Flow",
                                     accent: AppColors.accentHighlight(for: hubColorScheme)
                                 )
                             }
                         } else {
                             VStack(spacing: 10) {
                                 LaunchLandingSignalCard(
-                                    title: "1 Tap Start",
-                                    value: "Direkt in Music, Video oder Shop.",
+                                    title: "1 Tap",
+                                    value: "Music · Video · Shop",
                                     accent: AppColors.spotify(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Immer Zurück",
-                                    value: "Navigation bleibt klar und frei.",
+                                    title: "Zurück",
+                                    value: "Klar · ruhig",
                                     accent: AppColors.accentMystic(for: hubColorScheme)
                                 )
                             }
@@ -299,8 +298,8 @@ private struct LaunchLandingView: View {
                                     LaunchLandingButton(
                                         eyebrow: "Music",
                                         title: "Music",
-                                        subtitle: "Releases, Artists, Beats.",
-                                        detail: "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                                        subtitle: "Artists · Beats · Studio",
+                                        detail: "Ein Zugang. Kein Umweg.",
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
@@ -310,8 +309,8 @@ private struct LaunchLandingView: View {
                                     LaunchLandingButton(
                                         eyebrow: "Video",
                                         title: "Videos",
-                                        subtitle: "Reels, Clips, YouTube.",
-                                        detail: "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                                        subtitle: "Reels · Clips · YouTube",
+                                        detail: "Playback bleibt zusammen.",
                                         accent: AppColors.accentMystic(for: hubColorScheme),
                                         brandMark: .skydown,
                                         badges: ["Playback", "Reels", "YouTube"],
@@ -321,8 +320,8 @@ private struct LaunchLandingView: View {
                                     LaunchLandingButton(
                                         eyebrow: "Store",
                                         title: "Merch",
-                                        subtitle: "Drops, Styles, Checkout.",
-                                        detail: "Direkt in neue Pieces springen und sauber im Checkout bleiben.",
+                                        subtitle: "Drops · Checkout",
+                                        detail: "Shop ohne Sprünge.",
                                         accent: AppColors.accentHighlight(for: hubColorScheme),
                                         brandMark: .skydownX22,
                                         badges: ["Drops", "Fits", "Checkout"],
@@ -335,8 +334,8 @@ private struct LaunchLandingView: View {
                                     LaunchLandingButton(
                                         eyebrow: "Music",
                                         title: "Music",
-                                        subtitle: "Releases, Artists, Beats.",
-                                        detail: "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                                        subtitle: "Artists · Beats · Studio",
+                                        detail: "Ein Zugang. Kein Umweg.",
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
@@ -348,8 +347,8 @@ private struct LaunchLandingView: View {
                                         LaunchLandingButton(
                                             eyebrow: "Video",
                                             title: "Videos",
-                                            subtitle: "Reels, Clips, YouTube.",
-                                            detail: "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                                            subtitle: "Reels · Clips · YouTube",
+                                            detail: "Playback bleibt zusammen.",
                                             accent: AppColors.accentMystic(for: hubColorScheme),
                                             brandMark: .skydown,
                                             badges: ["Playback", "Reels", "YouTube"],
@@ -359,8 +358,8 @@ private struct LaunchLandingView: View {
                                         LaunchLandingButton(
                                             eyebrow: "Store",
                                             title: "Merch",
-                                            subtitle: "Drops, Styles, Checkout.",
-                                            detail: "Direkt in neue Pieces springen und sauber im Checkout bleiben.",
+                                            subtitle: "Drops · Checkout",
+                                            detail: "Shop ohne Sprünge.",
                                             accent: AppColors.accentHighlight(for: hubColorScheme),
                                             brandMark: .skydownX22,
                                             badges: ["Drops", "Fits", "Checkout"],
@@ -374,8 +373,8 @@ private struct LaunchLandingView: View {
                                     LaunchLandingButton(
                                         eyebrow: "Music",
                                         title: "Music",
-                                        subtitle: "Releases, Artists, Beats.",
-                                        detail: "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                                        subtitle: "Artists · Beats · Studio",
+                                        detail: "Ein Zugang. Kein Umweg.",
                                         accent: AppColors.spotify(for: hubColorScheme),
                                         brandMark: .zweizwei,
                                         badges: ["Catalog", "Beats", "Studio"],
@@ -386,8 +385,8 @@ private struct LaunchLandingView: View {
                                     LaunchLandingButton(
                                         eyebrow: "Video",
                                         title: "Videos",
-                                        subtitle: "Reels, Clips, YouTube.",
-                                        detail: "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                                        subtitle: "Reels · Clips · YouTube",
+                                        detail: "Playback bleibt zusammen.",
                                         accent: AppColors.accentMystic(for: hubColorScheme),
                                         brandMark: .skydown,
                                         badges: ["Playback", "Reels", "YouTube"],
@@ -398,8 +397,8 @@ private struct LaunchLandingView: View {
                                     LaunchLandingButton(
                                         eyebrow: "Store",
                                         title: "Merch",
-                                        subtitle: "Drops, Styles, Checkout.",
-                                        detail: "Direkt in neue Pieces springen und sauber im Checkout bleiben.",
+                                        subtitle: "Drops · Checkout",
+                                        detail: "Shop ohne Sprünge.",
                                         accent: AppColors.accentHighlight(for: hubColorScheme),
                                         brandMark: .skydownX22,
                                         badges: ["Drops", "Fits", "Checkout"],
@@ -410,7 +409,7 @@ private struct LaunchLandingView: View {
                             }
                         }
 
-                        Text("Unten wechselst du spaeter jederzeit zwischen allen Bereichen. Der Einstieg bleibt direkt, die App bleibt offen und lesbar.")
+                        Text("Wechsel unten.")
                             .font(AppTypography.editorialFootnote)
                             .foregroundColor(.white.opacity(0.74))
                             .padding(.top, 6)
@@ -483,7 +482,7 @@ private struct LaunchLandingButton: View {
                                     )
                                 )
                         )
-                        .shadow(color: accent.opacity(0.34), radius: 16, y: 8)
+                        .shadow(color: accent.opacity(0.18), radius: 10, y: 4)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(eyebrow.uppercased())

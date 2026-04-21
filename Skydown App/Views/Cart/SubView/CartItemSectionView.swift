@@ -13,7 +13,7 @@ struct CartItemSectionView: View {
     var body: some View {
         Section("Dein Warenkorb") {
             if cartVM.items.isEmpty {
-                Text("Dein Warenkorb ist leer.").foregroundColor(.gray)
+                Text("Warenkorb leer.").foregroundColor(.gray)
             } else {
                 ForEach(cartVM.items) { cartItem in
                     HStack {

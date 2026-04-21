@@ -83,9 +83,9 @@ struct BrandHeroSurface<Footer: View>: View {
                     HStack(alignment: .center, spacing: 8) {
                         Text(eyebrow.uppercased())
                             .font(AppTypography.heroEyebrow)
-                            .tracking(2.4)
+                            .tracking(1.15)
                             .foregroundColor(accent)
-                            .shadow(color: titleShadowColor.opacity(0.75), radius: 8, y: 3)
+                            .shadow(color: titleShadowColor.opacity(0.45), radius: 4, y: 2)
 
                         Capsule(style: .continuous)
                             .fill(
@@ -107,13 +107,13 @@ struct BrandHeroSurface<Footer: View>: View {
                         .lineSpacing(2)
                         .foregroundColor(titleColor)
                         .multilineTextAlignment(.leading)
-                        .shadow(color: titleShadowColor, radius: 14, y: 6)
+                        .shadow(color: titleShadowColor, radius: 7, y: 3)
 
                     Text(subtitle)
                         .font(AppTypography.heroSubtitle)
                         .lineSpacing(3)
                         .foregroundColor(subtitleColor)
-                        .shadow(color: subtitleShadowColor, radius: 10, y: 4)
+                        .shadow(color: subtitleShadowColor, radius: 5, y: 2)
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
@@ -121,7 +121,7 @@ struct BrandHeroSurface<Footer: View>: View {
                             .tracking(0.42)
                             .foregroundColor(detailColor)
                             .padding(.top, 1)
-                            .shadow(color: subtitleShadowColor.opacity(0.82), radius: 8, y: 3)
+                            .shadow(color: subtitleShadowColor.opacity(0.45), radius: 4, y: 2)
                     }
                 }
 
@@ -244,13 +244,13 @@ struct BrandHeroSurface<Footer: View>: View {
                 }
 
                 Circle()
-                    .fill(accent.opacity(colorScheme == .dark ? 0.10 : 0.05))
+                    .fill(accent.opacity(colorScheme == .dark ? 0.045 : 0.05))
                     .frame(width: 260, height: 260)
                     .blur(radius: 44)
                     .offset(x: 142, y: -88)
 
                 Circle()
-                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.08 : 0.05))
+                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.038 : 0.05))
                     .frame(width: 210, height: 210)
                     .blur(radius: 40)
                     .offset(x: -124, y: 112)
@@ -260,8 +260,8 @@ struct BrandHeroSurface<Footer: View>: View {
             colorScheme: colorScheme,
             accent: accent,
             cornerRadius: SkydownLayout.heroCornerRadius,
-            shadowRadius: 20,
-            shadowYOffset: 10
+            shadowRadius: 12,
+            shadowYOffset: 5
         )
         .overlay {
             GeometryReader { proxy in
@@ -322,7 +322,7 @@ struct BrandHeroSurface<Footer: View>: View {
                 .frame(width: 132, height: 3)
                 .padding(.top, 14)
                 .padding(.leading, 18)
-                .opacity(0.92)
+                .opacity(0.58)
         }
     }
 }
@@ -449,9 +449,9 @@ private struct BrandMarkTile: View {
                 )
         )
         .shadow(
-            color: accent.opacity(colorScheme == .dark ? 0.16 : 0.08),
-            radius: 12,
-            y: 6
+            color: accent.opacity(colorScheme == .dark ? 0.09 : 0.06),
+            radius: 8,
+            y: 3
         )
     }
 }

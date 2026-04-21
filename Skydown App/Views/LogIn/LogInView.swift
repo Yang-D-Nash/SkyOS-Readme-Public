@@ -25,7 +25,7 @@ struct LoginView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(localized("auth.login.subtitle", "Sign in to access your account and creator tools."))
+                    Text(localized("auth.login.subtitle", "Sign in for your account and tools."))
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -38,12 +38,14 @@ struct LoginView: View {
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .foregroundColor(AppColors.text(for: colorScheme))
+                        .accessibilityIdentifier("login.email")
                     
                     SecureField(localized("auth.password", "Password"), text: $viewModel.password)
                         .padding()
                         .background(AppColors.secondaryBackground(for: colorScheme))
                         .cornerRadius(10)
                         .foregroundColor(AppColors.text(for: colorScheme))
+                        .accessibilityIdentifier("login.password")
                 }
                 .padding(.horizontal)
                 
@@ -52,6 +54,7 @@ struct LoginView: View {
                         .foregroundColor(.red)
                         .padding(.horizontal)
                         .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("login.error")
                 }
                 
                 Button {
@@ -71,6 +74,7 @@ struct LoginView: View {
                 .opacity(viewModel.isSignInButtonDisabled ? 0.6 : 1.0)
                 .disabled(viewModel.isSignInButtonDisabled)
                 .padding(.horizontal)
+                .accessibilityIdentifier("login.submit")
 
                 Button {
                     Task { await viewModel.signInWithGoogle() }
@@ -88,6 +92,7 @@ struct LoginView: View {
                 }
                 .disabled(viewModel.isLoading)
                 .padding(.horizontal)
+                .accessibilityIdentifier("login.google")
                 
                 Button {
                     showingRegistrationSheet = true
@@ -95,6 +100,7 @@ struct LoginView: View {
                     Text(localized("auth.no_account_register", "No account yet? Register"))
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
+                .accessibilityIdentifier("login.open_registration")
                 .sheet(isPresented: $showingRegistrationSheet) {
                     RegistrationSheet()
                 }
@@ -113,6 +119,7 @@ struct LoginView: View {
         .fancyToast(isPresented: $viewModel.showToast,
                     message: viewModel.toastMessage,
                     style: viewModel.toastStyle)
+        .accessibilityIdentifier("login.root")
     }
 }
 

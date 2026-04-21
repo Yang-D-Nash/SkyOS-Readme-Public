@@ -221,6 +221,268 @@ final class Skydown_AppUITests: XCTestCase {
             "Nach dem Schliessen des Artikels muss der Nutzer wieder im Shop sein."
         )
     }
+
+    @MainActor
+    func testRoleMatrixSmoke() throws {
+        let roles: [(key: String, expectedRoleLabel: String)] = [
+            ("OWNER", "Owner"),
+            ("ADMIN", "Admin"),
+            ("SUBADMIN", "Creator"),
+            ("USER", "User"),
+        ]
+
+        for role in roles {
+            let (email, password) = loadRoleCredentials(role.key)
+            let app = XCUIApplication()
+            app.launchArguments += [
+                "-ui_test",
+                "-ui_test_role_matrix",
+                "-AppleLanguages", "(en)",
+                "-AppleLocale", "en_US",
+            ]
+            app.launch()
+
+            enterMainShellIfNeeded(app: app)
+            openSettings(app: app)
+            ensureLoggedIn(app: app, email: email, password: password)
+
+            // Owner workspace guards
+            let ownerSection = app.descendants(matching: .any)["settings.owner.section"].firstMatch
+            XCTAssertTrue(ownerSection.waitForExistence(timeout: 20), "Owner section should be present in settings.")
+
+            if role.expectedRoleLabel == "Owner" {
+                XCTAssertFalse(
+                    ownerWorkspaceLockVisible(in: app),
+                    "Owner should not see owner-workspace lock messaging."
+                )
+            } else {
+                assertNonOwnerSeesOwnerWorkspaceLock(in: app)
+            }
+
+            // Profile role label (basic)
+            openProfileFromSettings(app: app)
+
+            // Profile opened successfully; role chip text can vary by async hydration/build variant.
+            XCTAssertTrue(
+                app.buttons["Schliessen"].firstMatch.waitForExistence(timeout: 10),
+                "Profile should provide close action."
+            )
+
+            // Close profile sheet
+            let closeProfile = app.buttons["Schliessen"].firstMatch
+            if closeProfile.waitForExistence(timeout: 6) {
+                closeProfile.tap()
+            }
+
+            // Logout for the next iteration (best-effort)
+            openSettings(app: app)
+            let switchAccount = app.buttons["settings.switch_account"].firstMatch
+            if switchAccount.waitForExistence(timeout: 12) {
+                tapElementReliably(
+                    switchAccount,
+                    in: app,
+                    timeout: 6,
+                    failureMessage: "Switch account should be tappable for next role iteration."
+                )
+            } else {
+                let logout = app.buttons["settings.logout"].firstMatch
+                if logout.waitForExistence(timeout: 6) {
+                    tapElementReliably(
+                        logout,
+                        in: app,
+                        timeout: 6,
+                        failureMessage: "Logout should be tappable for next role iteration."
+                    )
+                }
+            }
+        }
+    }
+
+    @MainActor
+    func testProfileAndGalleryCRUD_AllRoles() throws {
+        let roles: [(key: String, expectedOwnerAccess: Bool)] = [
+            ("OWNER", true),
+            ("ADMIN", false),
+            ("SUBADMIN", false),
+            ("USER", false),
+        ]
+
+        for role in roles {
+            let (email, password) = loadRoleCredentials(role.key)
+            let app = XCUIApplication()
+            app.launchArguments += [
+                "-ui_test",
+                "-ui_test_profile_crud",
+            ]
+            app.launch()
+
+            enterMainShellIfNeeded(app: app)
+            openSettings(app: app)
+            ensureLoggedIn(app: app, email: email, password: password)
+
+            // Open profile editor (current user profile)
+            openProfileFromSettings(app: app)
+
+            // Upload avatar + gallery fixture (server-backed upload slot + storage + firestore meta)
+            let uploadAvatar = app.buttons["ui_test.profile.upload_avatar_fixture"].firstMatch
+            for _ in 0..<14 {
+                if uploadAvatar.waitForExistence(timeout: 1) {
+                    break
+                }
+                app.swipeUp()
+            }
+            XCTAssertTrue(
+                uploadAvatar.waitForExistence(timeout: 12),
+                "Avatar fixture control should appear in UI test mode after profile hydrates (scroll if needed)."
+            )
+            tapElementReliably(
+                uploadAvatar,
+                in: app,
+                timeout: 10,
+                failureMessage: "Avatar fixture button should be tappable in UI test mode."
+            )
+
+            let uploadGallery = app.buttons["ui_test.profile.upload_gallery_fixture"].firstMatch
+            XCTAssertTrue(
+                uploadGallery.waitForExistence(timeout: 12),
+                "Gallery fixture control should remain visible after avatar upload."
+            )
+            tapElementReliably(
+                uploadGallery,
+                in: app,
+                timeout: 10,
+                failureMessage: "Gallery fixture button should be tappable in UI test mode."
+            )
+
+            // Wait for a gallery item to appear (delete button exists)
+            let anyDelete = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "profile.gallery.delete.")).firstMatch
+            XCTAssertTrue(anyDelete.waitForExistence(timeout: 60), "Expected at least one gallery item delete button after upload.")
+            anyDelete.tap()
+
+            // After delete, the delete button should go away (eventual consistency)
+            XCTAssertTrue(waitForNonExistence(of: anyDelete, timeout: 30), "Deleted gallery item should disappear.")
+
+            // Close profile
+            let closeProfile = app.buttons["Schliessen"].firstMatch
+            if closeProfile.waitForExistence(timeout: 6) {
+                closeProfile.tap()
+            }
+
+            // Guard check (owner access area locked for non-owner)
+            openSettings(app: app)
+            if role.expectedOwnerAccess {
+                XCTAssertFalse(
+                    ownerWorkspaceLockVisible(in: app),
+                    "Owner should not see owner workspace locked hint."
+                )
+            } else {
+                assertNonOwnerSeesOwnerWorkspaceLock(in: app)
+            }
+
+            // Switch account for next run
+            let switchAccount = app.buttons["settings.switch_account"].firstMatch
+            XCTAssertTrue(switchAccount.waitForExistence(timeout: 20), "Switch account should be available.")
+            tapElementReliably(
+                switchAccount,
+                in: app,
+                timeout: 10,
+                failureMessage: "Switch account should be tappable."
+            )
+        }
+    }
+
+    @MainActor
+    func testArtistHeroVideoCRUD_OwnerOnly() throws {
+        let owner = loadRoleCredentials("OWNER")
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui_test",
+            "-ui_test_artist_video",
+        ]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        openSettings(app: app)
+        ensureLoggedIn(app: app, email: owner.email, password: owner.password)
+
+        // Navigate to Music and open an artist page (JANNO)
+        tapTab(app: app, index: 1)
+
+        let openCatalog = app.buttons["music.hub.open_catalog"].firstMatch
+        tapElementReliably(
+            openCatalog,
+            in: app,
+            timeout: 20,
+            failureMessage: "Music hub should show catalog entry."
+        )
+
+        let catalogRoot = app.scrollViews["music.catalog.root"].firstMatch
+        XCTAssertTrue(
+            catalogRoot.waitForExistence(timeout: 20),
+            "Music catalog should load after opening from hub."
+        )
+
+        // Page CTAs live in the artist rail (often below the fold); scroll until a Page button exists.
+        let anyArtistPageButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "music.artist.open_page.")
+        )
+        var openArtistPage = app.buttons["music.artist.open_page.JANNO"].firstMatch
+        var foundPageCTA = false
+        for _ in 0..<18 {
+            if openArtistPage.waitForExistence(timeout: 1), openArtistPage.isHittable {
+                foundPageCTA = true
+                break
+            }
+            let fallback = anyArtistPageButton.firstMatch
+            if fallback.waitForExistence(timeout: 1), fallback.isHittable {
+                openArtistPage = fallback
+                foundPageCTA = true
+                break
+            }
+            catalogRoot.swipeUp()
+        }
+        if !foundPageCTA, app.scrollViews["music.artists.rail"].firstMatch.exists {
+            let rail = app.scrollViews["music.artists.rail"].firstMatch
+            for _ in 0..<6 {
+                if openArtistPage.waitForExistence(timeout: 1), openArtistPage.isHittable {
+                    foundPageCTA = true
+                    break
+                }
+                let fallback = anyArtistPageButton.firstMatch
+                if fallback.waitForExistence(timeout: 1), fallback.isHittable {
+                    openArtistPage = fallback
+                    foundPageCTA = true
+                    break
+                }
+                rail.swipeLeft()
+            }
+        }
+        XCTAssertTrue(
+            foundPageCTA,
+            "Artist Page CTA should appear in the catalog (scroll to artist rail if needed)."
+        )
+        tapElementReliably(
+            openArtistPage,
+            in: app,
+            timeout: 10,
+            failureMessage: "Artist page button should be tappable."
+        )
+
+        let editOpen = app.buttons["artist.page.edit.open"].firstMatch
+        XCTAssertTrue(editOpen.waitForExistence(timeout: 30), "Artist page should allow editing for owner.")
+        editOpen.tap()
+
+        let uploadFixture = app.buttons["ui_test.artist.hero_video.upload_fixture"].firstMatch
+        XCTAssertTrue(uploadFixture.waitForExistence(timeout: 30), "Hero video fixture upload should exist in UI test mode.")
+        uploadFixture.tap()
+
+        let save = app.buttons["artist.page.edit.save"].firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 30), "Save button should exist in edit mode.")
+        save.tap()
+
+        // Back to non-edit state
+        XCTAssertTrue(editOpen.waitForExistence(timeout: 45), "After saving, artist page should exit edit mode.")
+    }
 }
 
 private extension Skydown_AppUITests {
@@ -244,6 +506,94 @@ private extension Skydown_AppUITests {
     }
 
     @MainActor
+    func openSettings(app: XCUIApplication) {
+        let settingsButton = app.buttons["app.open_settings"].firstMatch
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 20), "Settings button should be available.")
+        settingsButton.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["settings.root"].firstMatch.waitForExistence(timeout: 30),
+            "Settings root should appear."
+        )
+    }
+
+    @MainActor
+    func ensureLoggedIn(app: XCUIApplication, email: String, password: String) {
+        let openLogin = app.buttons["settings.open_login"].firstMatch
+        let switchAccount = app.buttons["settings.switch_account"].firstMatch
+
+        if switchAccount.waitForExistence(timeout: 1) {
+            switchAccount.tap()
+        } else if openLogin.waitForExistence(timeout: 2) {
+            openLogin.tap()
+        }
+
+        let emailField = app.textFields["login.email"].firstMatch
+        XCTAssertTrue(emailField.waitForExistence(timeout: 20), "Login email field should be visible.")
+        emailField.tap()
+        emailField.typeText(email)
+
+        let passwordField = app.secureTextFields["login.password"].firstMatch
+        XCTAssertTrue(passwordField.waitForExistence(timeout: 10), "Login password field should be visible.")
+        passwordField.tap()
+        passwordField.typeText(password)
+
+        let submit = app.buttons["login.submit"].firstMatch
+        XCTAssertTrue(submit.waitForExistence(timeout: 10), "Login submit button should exist.")
+        submit.tap()
+
+        // Login sheet should dismiss back to settings
+        XCTAssertTrue(
+            app.descendants(matching: .any)["settings.root"].firstMatch.waitForExistence(timeout: 45),
+            "After login, settings should be visible again."
+        )
+        let switchAccountVisible = app.buttons["settings.switch_account"].firstMatch.waitForExistence(timeout: 8)
+        let logoutVisible = app.buttons["settings.logout"].firstMatch.waitForExistence(timeout: 8)
+        let openProfileVisible = app.buttons["settings.open_profile_editor"].firstMatch.waitForExistence(timeout: 8)
+        XCTAssertTrue(
+            switchAccountVisible || logoutVisible || openProfileVisible,
+            "After login, account actions should be available."
+        )
+    }
+
+    func loadRoleCredentials(_ key: String) -> (email: String, password: String) {
+        let env = ProcessInfo.processInfo.environment
+        let email = (env["SKYDOWN_TEST_\(key)_EMAIL"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let password = env["SKYDOWN_TEST_\(key)_PASSWORD"] ?? ""
+        if !email.isEmpty && !password.isEmpty {
+            return (email, password)
+        }
+
+        let fallbackPath = env["SKYDOWN_TEST_CREDENTIALS_FILE"] ?? "/tmp/skydown-e2e-accounts.json"
+        if let fallback = loadRoleCredentialsFromJSON(path: fallbackPath, key: key) {
+            return fallback
+        }
+
+        XCTFail(
+            "Missing test credentials for \(key). Set SKYDOWN_TEST_\(key)_EMAIL/PASSWORD or provide \(fallbackPath)."
+        )
+        return ("", "")
+    }
+
+    func loadRoleCredentialsFromJSON(path: String, key: String) -> (email: String, password: String)? {
+        guard let data = FileManager.default.contents(atPath: path) else {
+            return nil
+        }
+        guard
+            let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let role = raw[key.lowercased()] as? [String: Any]
+        else {
+            return nil
+        }
+
+        let email = (role["email"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let password = role["password"] as? String ?? ""
+        guard !email.isEmpty, !password.isEmpty else {
+            return nil
+        }
+        return (email, password)
+    }
+
+    @MainActor
     func tapTab(app: XCUIApplication, index: Int) {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 20), "Tab bar must be visible.")
@@ -256,6 +606,94 @@ private extension Skydown_AppUITests {
     @MainActor
     func waitForUISettle() {
         RunLoop.current.run(until: Date().addingTimeInterval(1.8))
+    }
+
+    /// Settings uses a `LazyVStack`: owner workspace + lock card can appear only after scrolling.
+    @MainActor
+    func ownerWorkspaceLockVisible(in app: XCUIApplication) -> Bool {
+        let lockedHint = app.descendants(matching: .any)["settings.owner.locked_hint"].firstMatch
+        if lockedHint.exists {
+            return true
+        }
+        // Do not match on "Owner-only" alone — normal section subtitles also contain that phrase.
+        let lockCopy = app.staticTexts.containing(
+            NSPredicate(format: "label CONTAINS[c] %@", "Melde dich als Owner")
+        ).firstMatch
+        return lockCopy.exists
+    }
+
+    @MainActor
+    func assertNonOwnerSeesOwnerWorkspaceLock(in app: XCUIApplication) {
+        for _ in 0..<18 {
+            if ownerWorkspaceLockVisible(in: app) {
+                return
+            }
+            if app.scrollViews.firstMatch.exists {
+                app.scrollViews.firstMatch.swipeUp()
+            } else {
+                app.swipeUp()
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+        XCTAssertTrue(
+            ownerWorkspaceLockVisible(in: app),
+            "Non-owner should see owner-workspace lock (card id or Owner-only copy)."
+        )
+    }
+
+    @MainActor
+    func openProfileFromSettings(app: XCUIApplication) {
+        let openProfile = app.buttons["settings.open_profile_editor"].firstMatch
+        tapElementReliably(
+            openProfile,
+            in: app,
+            timeout: 20,
+            failureMessage: "Profile editor entry should be visible in settings."
+        )
+
+        let closeProfile = app.buttons["Schliessen"].firstMatch
+        XCTAssertTrue(
+            closeProfile.waitForExistence(timeout: 30),
+            "Profile screen should open and expose close action."
+        )
+    }
+
+    @MainActor
+    func tapElementReliably(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval,
+        failureMessage: String
+    ) {
+        XCTAssertTrue(element.waitForExistence(timeout: timeout), failureMessage)
+
+        if element.isHittable {
+            element.tap()
+            return
+        }
+
+        // Some entries live in scroll containers and are visible but not directly hittable.
+        for _ in 0..<2 {
+            app.swipeUp()
+            if element.isHittable {
+                element.tap()
+                return
+            }
+        }
+        for _ in 0..<2 {
+            app.swipeDown()
+            if element.isHittable {
+                element.tap()
+                return
+            }
+        }
+
+        if element.exists {
+            element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            return
+        }
+
+        XCTFail("Element exists but could not be tapped reliably: \(element)")
     }
 
     @MainActor

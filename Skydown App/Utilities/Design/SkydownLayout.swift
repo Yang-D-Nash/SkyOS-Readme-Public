@@ -613,14 +613,14 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
             }
             .clipShape(shape)
             .shadow(
-                color: resolvedAccent.opacity(colorScheme == .dark ? 0.024 : 0.020),
-                radius: max(shadowRadius - 7, 5),
-                y: max(shadowYOffset - 5, 2)
+                color: resolvedAccent.opacity(colorScheme == .dark ? 0.016 : 0.020),
+                radius: max(shadowRadius - 8, 4),
+                y: max(shadowYOffset - 6, 2)
             )
             .shadow(
-                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.09),
-                radius: max(shadowRadius - 4, 6),
-                y: max(shadowYOffset - 2, 3)
+                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.09),
+                radius: max(shadowRadius - 6, 5),
+                y: max(shadowYOffset - 3, 2)
             )
     }
 }

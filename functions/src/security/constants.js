@@ -31,10 +31,15 @@ const ALLOWED_IMAGE_CONTENT_TYPES = Object.freeze([
   "image/webp",
 ]);
 
+const ALLOWED_ASSET_VIDEO_CONTENT_TYPES = Object.freeze([
+  "video/mp4",
+]);
+
 const SECURITY_LIMITS = Object.freeze({
   maxGalleryImagesPerUser: 10,
   maxUploadsPer24Hours: 20,
   maxImageBytes: 5 * 1024 * 1024,
+  maxVideoBytes: 25 * 1024 * 1024,
   uploadSlotTtlMinutes: 15,
 });
 
@@ -54,6 +59,7 @@ const DEFAULT_RUNTIME_CONFIG = Object.freeze({
 });
 
 module.exports = {
+  ALLOWED_ASSET_VIDEO_CONTENT_TYPES,
   ALLOWED_IMAGE_CONTENT_TYPES,
   APP_CHECK_MODES,
   BILLING_LOCKDOWN_REASON_PREFIX,

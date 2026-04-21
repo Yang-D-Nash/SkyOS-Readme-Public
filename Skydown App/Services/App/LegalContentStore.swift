@@ -8,7 +8,7 @@ private let legacyLegalOperatorName = "Skydown"
 private let legacyLegalRightsHolderName = "Skydown"
 private let defaultLegalSupportEmail = "skydownent@gmail.com"
 private let defaultLegalLastUpdatedLabel = "20. April 2026"
-private let defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown OS, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private let defaultLegalImprintReference = "Anbieter: Skydown OS · Erich-Plate-Weg 44 · 22419 Hamburg · DE · skydownent@gmail.com"
 private let legacyLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
 
 struct LegalContentSettings: Codable, Equatable {
@@ -19,22 +19,17 @@ struct LegalContentSettings: Codable, Equatable {
     var lastUpdatedLabel: String = defaultLegalLastUpdatedLabel
     var imprintReference: String = defaultLegalImprintReference
     var masterNumberMeaning: String = """
-    Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen.
+    22 (Master Builder): visionaer, praktisch, umsetzungsstark — Ideen werden belastbare Strukturen.
     """
     var brandManifesto: String = """
-    Dort, wo der Himmel faellt, beginnt unser Denken.
-    Was zerbricht, offenbart Tiefe - nicht Verlust.
-    Wir hoeren auf das, was nicht laut ist: Wandel, Stille, Sinn.
-    Unser Handeln wurzelt im Inneren, wo Klarheit entsteht.
-    Nicht im Machen liegt unsere Kraft, sondern im Verstehen.
-    Denn wir glauben: Der Himmel faellt nicht auf uns - er oeffnet sich in uns.
+    Wo der Himmel faellt, beginnt unser Denken.
+    Wir hoeren das Leise: Wandel, Stille, Sinn.
+    Der Himmel faellt nicht auf uns — er oeffnet sich in uns.
     """
     var symbolicNumericCode: String = "1337-514-731"
     var symbolicLeetCode: String = "7H3_F4LL_0F_H34/3N"
     var symbolicCodeExplanation: String = """
-    7H3 steht fuer THE, F4LL fuer FALL, 0F fuer OF und H34/3N fuer HEAVEN.
-    Der Code symbolisiert den Fall des Himmels als innere Oeffnung - wie ein Schluessel zu verborgener Erkenntnis.
-    Alternative Codes: 731-4177-0V3R-H34/3N oder 1337-514-731.
+    7H3=THE, F4LL=FALL, 0F=OF, H34/3N=HEAVEN — Fall des Himmels als innere Oeffnung. Alt.: 731-4177-0V3R-H34/3N · 1337-514-731.
     """
 
     static let `default` = LegalContentSettings()

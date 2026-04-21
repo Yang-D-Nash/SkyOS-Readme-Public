@@ -25,13 +25,13 @@ struct OrderView: View {
                     )
 
                     if viewModel.isLoading {
-                        OrdersSectionCard(title: "Synchronisierung", colorScheme: colorScheme) {
-                            ProgressView("Bestellungen werden geladen...")
+                        OrdersSectionCard(title: "Sync", colorScheme: colorScheme) {
+                            ProgressView("Laden…")
                                 .tint(AppColors.accent(for: colorScheme))
                         }
                     } else if viewModel.orders.isEmpty {
                         OrdersSectionCard(title: "Keine Bestellungen", colorScheme: colorScheme) {
-                            Text("Sobald Orders eingehen, erscheinen sie hier direkt als Karten statt in einer Standardliste.")
+                            Text("Noch keine Orders — erscheinen als Karten.")
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         }
                     } else {
@@ -82,7 +82,7 @@ struct OrderView: View {
                     }
                 }
             }, message: {
-                Text("Möchten Sie diese Bestellung wirklich löschen?")
+                Text("Nicht rückgängig.")
             })
         }
         .fancyToast(isPresented: $viewModel.showToast,
@@ -116,12 +116,12 @@ private struct OrdersHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Owner Queue")
+                Text("Orders")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Bestellungen als Owner sauber pruefen und freigeben kannst.")
+                Text("Status & Kontakt — prüfen, freigeben, erledigen.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -152,7 +152,7 @@ private struct OrdersHeroCard: View {
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 12, y: 5)
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: 10) {
                 OrdersBadge(text: "\(orderCount) Orders", colorScheme: colorScheme)
@@ -529,7 +529,7 @@ private struct OrdersOrderCard: View {
                 if paymentStatus != "confirmed" {
                     Button(action: onConfirmPayment) {
                         Label(
-                            isConfirmingPayment ? "Bestaetige..." : "Zahlung bestaetigen",
+                            isConfirmingPayment ? "…" : "Zahlung OK",
                             systemImage: "creditcard.and.123"
                         )
                         .frame(maxWidth: .infinity)
@@ -540,7 +540,7 @@ private struct OrdersOrderCard: View {
 
                 Button(action: onToggleCompleted) {
                     Label(
-                        order.isCompleted ? "Wieder öffnen" : "Als erledigt markieren",
+                        order.isCompleted ? "Öffnen" : "Erledigt",
                         systemImage: order.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle.fill"
                     )
                     .frame(maxWidth: .infinity)

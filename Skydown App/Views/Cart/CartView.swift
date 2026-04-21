@@ -114,7 +114,7 @@ struct CartView: View {
             includedTax: includedTax,
             total: total,
             zoneLabel: shippingQuote.zone.rawValue,
-            shippingError: shippingQuote.countryCode == "--" ? "Das Lieferland konnte noch nicht eindeutig erkannt werden." : nil
+            shippingError: shippingQuote.countryCode == "--" ? "Land noch unklar." : nil
         )
     }
 
@@ -146,15 +146,15 @@ struct CartView: View {
     private var checkoutPaymentDetail: String {
         switch selectedPaymentMethod {
         case "Stripe":
-            return "Sicherer Live-Checkout"
+            return "Live-Checkout"
         case "Klarna":
-            return "Checkout via Stripe"
+            return "Via Stripe"
         case "PayPal":
-            return "Manueller Handoff"
+            return "Manuell"
         case "Bankueberweisung":
-            return "Direkt ohne Gateway"
+            return "Ohne Gateway"
         default:
-            return availableCheckoutMethods.isEmpty ? "Zahlart folgt per Rueckkontakt" : "Noch keine Auswahl"
+            return availableCheckoutMethods.isEmpty ? "Rückkontakt" : "—"
         }
     }
 
@@ -163,7 +163,7 @@ struct CartView: View {
     }
 
     private var checkoutTotalDetail: String {
-        pricingSummary.total > 0 ? "\(pricingSummary.zoneLabel) inkl. Versand" : "Warenkorb aktuell leer"
+        pricingSummary.total > 0 ? "\(pricingSummary.zoneLabel) · inkl. Versand" : "Leer"
     }
     
     var body: some View {
@@ -203,7 +203,7 @@ struct CartView: View {
                             title: "Konto erforderlich",
                             colorScheme: colorScheme
                         ) {
-                            Text("Melde dich an, damit du deinen Warenkorb speichern und die Bestellung abschicken kannst.")
+                            Text("Anmelden — Warenkorb speichern & bestellen.")
                                 .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -224,7 +224,7 @@ struct CartView: View {
                             colorScheme: colorScheme
                         ) {
                             if cartVM.items.isEmpty {
-                                Text("Dein Warenkorb ist leer. Sobald du etwas hinzufügst, erscheint es hier direkt als Karte.")
+                                Text("Noch leer — Artikel erscheinen als Karten.")
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             } else {
@@ -243,7 +243,7 @@ struct CartView: View {
                             title: "Kontaktdaten",
                             colorScheme: colorScheme
                         ) {
-                            Text("Diese Angaben helfen uns beim Rückkontakt zu deiner Bestellung.")
+                            Text("Für Rückmeldung zur Bestellung.")
                                 .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -274,7 +274,7 @@ struct CartView: View {
                             title: "Lieferadresse",
                             colorScheme: colorScheme
                         ) {
-                            Text("Die Versandadresse wird fuer Rueckmeldung, Versand und Bestellabwicklung benoetigt.")
+                            Text("Für Versand & Abwicklung.")
                                 .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -328,7 +328,7 @@ struct CartView: View {
                                 title: "Checkout pausiert",
                                 colorScheme: colorScheme
                             ) {
-                                Text("Der Merchandise-Store ist gerade pausiert. Deine Auswahl bleibt sichtbar, aber neue Bestellungen werden erst wieder freigeschaltet, sobald der Store geoeffnet ist.")
+                                Text("Store pausiert — Auswahl bleibt, Bestellungen wenn wieder offen.")
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             }
@@ -362,7 +362,7 @@ struct CartView: View {
                             title: "Nachricht",
                             colorScheme: colorScheme
                         ) {
-                            Text("Optional für Hinweise zu Lieferung, Verfügbarkeit oder Sonderwünschen.")
+                            Text("Optional: Lieferung, Verfügbarkeit, Wünsche.")
                                 .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -679,15 +679,15 @@ private struct PaymentMethodsCheckoutInfo: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !isCheckoutAvailable {
-                Text("Der Merchandise-Store ist aktuell pausiert. Zahlarten und Checkout werden erst wieder aktiv, sobald der Store geoeffnet ist.")
+                Text("Store pausiert — Zahlarten & Checkout folgen mit Öffnung.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else if settings.checkoutMethodLabels.isEmpty {
-                Text("Aktuell ist noch keine Zahlart fuer Kunden sichtbar. Der Merch-Checkout bleibt bis dahin auf Anfrage und Rueckkontakt ausgelegt.")
+                Text("Keine Zahlart sichtbar — Checkout auf Anfrage.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else {
-                Text("Diese Zahlarten sind aktuell aktiv:")
+                Text("Aktiv:")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -698,11 +698,11 @@ private struct PaymentMethodsCheckoutInfo: View {
                 }
 
                 if settings.bankTransfer.enabled && settings.bankTransfer.isConfigured {
-                    Text("Bankdaten und genaue Anweisung folgen nach der Bestellbestaetigung direkt durch das Team.")
+                    Text("Bankdaten nach Bestätigung vom Team.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else {
-                    Text("Stripe und Klarna laufen als sicherer Live-Checkout. PayPal und Bankueberweisung bleiben manuell owner-geprueft.")
+                    Text("Stripe/Klarna live — PayPal/Bank manuell (Owner).")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -740,7 +740,7 @@ private struct PricingSummaryCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            Text("Rechnung und Rueckmeldung laufen ueber \(companyName.takeIfNotBlank() ?? "Skydown OS").")
+            Text("Rechnung über \(companyName.takeIfNotBlank() ?? "Skydown OS").")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -780,7 +780,7 @@ private struct PaymentMethodSelectionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Waehle die Zahlart fuer diese Bestellung.")
+            Text("Zahlart für diese Bestellung.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -847,7 +847,7 @@ private struct PaymentMethodSelectionCard: View {
             }
 
             if selectedMethod == "Klarna" {
-                Text("Klarna oeffnet nach dem Absenden einen sicheren Live-Checkout ueber Stripe.")
+                Text("Klarna → sicherer Checkout (Stripe).")
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -857,15 +857,15 @@ private struct PaymentMethodSelectionCard: View {
     private func paymentRouteDetail(for method: String) -> String {
         switch method {
         case "Stripe":
-            return "Kartenzahlung direkt im sicheren Live-Checkout."
+            return "Karte — Live-Checkout."
         case "Klarna":
-            return "Klarna startet ueber den sicheren Stripe-Flow."
+            return "Klarna via Stripe."
         case "PayPal":
-            return "PayPal bleibt owner-geprueft und wird danach weitergefuehrt."
+            return "PayPal — manuell (Owner)."
         case "Bankueberweisung":
-            return "Direkt und ohne Gateway-Kosten mit hinterlegten Kontodaten."
+            return "Überweisung — Kontodaten hinterlegt."
         default:
-            return "Zahlungsroute fuer diese Bestellung."
+            return "Route für diese Bestellung."
         }
     }
 }
@@ -879,12 +879,12 @@ private struct SelectedPaymentMethodInfoCard: View {
         VStack(alignment: .leading, spacing: 12) {
             switch selectedMethod {
             case "PayPal":
-                Text("PayPal wird hier als sicherer manueller Handoff genutzt. Fuer einen direkten Flow hinterlege am besten einen PayPal.Me-Link.")
+                Text("PayPal — manuell. PayPal.Me im Admin für direkten Flow.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 if settings.paypal.accountHint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Im Admin-Bereich ist noch kein PayPal.Me-Link oder keine Business-Mail hinterlegt.")
+                    Text("Kein PayPal.Me / Business-Mail im Admin.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else {
@@ -892,7 +892,7 @@ private struct SelectedPaymentMethodInfoCard: View {
                 }
 
             case "Bankueberweisung":
-                Text("Die Bankueberweisung laeuft direkt und ohne Gateway-Kosten. Die hinterlegten Daten gelten fuer diese Bestellung.")
+                Text("Überweisung — ohne Gateway. Daten für diese Bestellung.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -915,12 +915,12 @@ private struct SelectedPaymentMethodInfoCard: View {
                 }
 
             case "Stripe":
-                Text("Stripe startet nach dem Absenden einen sicheren Live-Checkout fuer Kartenzahlungen.")
+                Text("Stripe — sicherer Karten-Checkout nach Absenden.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             case "Klarna":
-                Text("Klarna startet nach dem Absenden einen sicheren Live-Checkout ueber Stripe und bestaetigt die Zahlung automatisch im Backend.")
+                Text("Klarna (Stripe) — Zahlung bestätigt im Backend.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1003,12 +1003,12 @@ private struct CartHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Checkout bereit")
+                Text("Warenkorb")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Der Warenkorb folgt jetzt derselben klaren Karten- und Section-Struktur wie Music, Bot und Settings.")
+                Text("Gleiche Karten-Sections wie im Rest der App.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -1030,7 +1030,7 @@ private struct CartHeroCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 12, y: 5)
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: 10) {
                 CartBadge(text: "\(itemCount) Artikel", colorScheme: colorScheme)

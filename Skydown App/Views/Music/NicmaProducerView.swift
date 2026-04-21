@@ -47,7 +47,7 @@ struct NicmaProducerView: View {
             links.append(
                 NicmaPageLink(
                     title: "Spotify",
-                    subtitle: "Artist / Producer Profil",
+                    subtitle: "Artist · Producer",
                     url: spotifyURL,
                     systemImage: "music.note",
                     tint: AppColors.spotify(for: colorScheme)
@@ -59,7 +59,7 @@ struct NicmaProducerView: View {
             links.append(
                 NicmaPageLink(
                     title: "YouTube",
-                    subtitle: "Videos & Sessions",
+                    subtitle: "Videos · Sessions",
                     url: youtubeURL,
                     systemImage: "play.rectangle.fill",
                     tint: AppColors.youtube(for: colorScheme)
@@ -127,7 +127,7 @@ struct NicmaProducerView: View {
                 .font(.largeTitle.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text(page.bio ?? "Mixing, Mastering und Recording mit klarer Preisliste, direktem Kontakt und sauberem Producer-Fokus.")
+            Text(page.bio ?? "Mix, Master, Recording — klar, direkt.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -180,7 +180,7 @@ struct NicmaProducerView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text(page.tagline ?? "Direkter Kontakt und oeffentliche Plattformen fuer NICMA.")
+            Text(page.tagline ?? "Kontakt & Plattformen.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

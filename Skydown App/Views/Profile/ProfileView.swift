@@ -8,6 +8,9 @@ struct ProfileView: View {
     @Environment(\.openURL) private var openURL
     @State private var pendingImagePickerTarget: ProfileImagePickerTarget?
     @State private var galleryPreviewTarget: ProfileGalleryPreviewTarget?
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-ui_test")
+        || ProcessInfo.processInfo.arguments.contains("-ui_test_role_matrix")
+        || ProcessInfo.processInfo.arguments.contains("-ui_test_profile_crud")
 
     init(
         authManager: AuthManager,
@@ -40,6 +43,10 @@ struct ProfileView: View {
 
                     if viewModel.isEditing && viewModel.canEditCurrentProfile {
                         editSection
+                    }
+
+                    if isUITestMode && viewModel.canEditCurrentProfile {
+                        uiTestActionsSection
                     }
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -245,7 +252,9 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 10) {
                     ProfileMetaPill(title: "Rolle", value: roleTitle)
+                        .accessibilityIdentifier("profile.role_pill")
                     ProfileMetaPill(title: "Plan", value: planTitle)
+                        .accessibilityIdentifier("profile.plan_pill")
                 }
 
                 Spacer(minLength: 44)
@@ -329,6 +338,7 @@ struct ProfileView: View {
                             textColor: .white
                         )
                     )
+                        .accessibilityIdentifier("profile.edit.toggle")
 
                     Button {
                         pendingImagePickerTarget = .avatar
@@ -347,6 +357,7 @@ struct ProfileView: View {
                         )
                     )
                     .disabled(isUploadingImageFlow)
+                        .accessibilityIdentifier("profile.avatar.upload")
 
                     if let currentAvatar = viewModel.currentUser?.profileImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
                        !currentAvatar.isEmpty {
@@ -369,6 +380,7 @@ struct ProfileView: View {
                             )
                         )
                         .disabled(isUploadingImageFlow)
+                            .accessibilityIdentifier("profile.avatar.delete")
                     }
 
                     Button {
@@ -388,6 +400,7 @@ struct ProfileView: View {
                         )
                     )
                     .disabled(isUploadingImageFlow)
+                        .accessibilityIdentifier("profile.gallery.upload")
                 }
                 .padding(18)
             }
@@ -429,6 +442,7 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                     .skydownTactileAction()
                     .disabled(isUploadingMedia || viewModel.isUploadingAvatar)
+                    .accessibilityIdentifier("profile.gallery.add")
                 }
             }
 
@@ -464,8 +478,8 @@ struct ProfileView: View {
             colorScheme: colorScheme,
             accent: AppColors.accentHighlight(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 
@@ -475,7 +489,7 @@ struct ProfileView: View {
                 Text("Profil bearbeiten")
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
-                Text("Name, Kurzinfo und Kontaktpunkte wirken hier direkt auf dein Profil.")
+                Text("Name, Kurzinfo, Kontakt — live im Profil.")
                     .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -513,7 +527,7 @@ struct ProfileView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("KI fuer mein Konto aktiv")
                             .font(.subheadline.weight(.semibold))
-                        Text("Wenn aus, werden Bot, Visuals und Agent fuer dein Konto pausiert.")
+                        Text("Aus = Bot, Visuals, Agent pausiert.")
                             .font(.caption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -547,16 +561,73 @@ struct ProfileView: View {
             .buttonStyle(.plain)
             .skydownTactileAction()
             .disabled(viewModel.isSavingProfile)
+            .accessibilityIdentifier("profile.edit.save")
         }
         .padding(SkydownLayout.cardPadding)
         .skydownPanelSurface(
             colorScheme: colorScheme,
             accent: AppColors.accentMystic(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
+
+    private var uiTestActionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("UI Test")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            Text("Nur sichtbar bei UI-Tests.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 10) {
+                Button {
+                    Task {
+                        await viewModel.uploadAvatar(data: ProfileUITestFixtures.sampleJPEG)
+                    }
+                } label: {
+                    Text("Avatar Fixture")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accent(for: colorScheme))
+                .accessibilityIdentifier("ui_test.profile.upload_avatar_fixture")
+                .disabled(viewModel.isUploadingAvatar || viewModel.isUploadingMedia)
+
+                Button {
+                    Task {
+                        await viewModel.uploadGalleryImage(data: ProfileUITestFixtures.sampleJPEG)
+                    }
+                } label: {
+                    Text("Gallery Fixture")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColors.accentMystic(for: colorScheme))
+                .accessibilityIdentifier("ui_test.profile.upload_gallery_fixture")
+                .disabled(viewModel.isUploadingAvatar || viewModel.isUploadingMedia)
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentHighlight(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 10,
+            shadowYOffset: 6
+        )
+        .accessibilityIdentifier("ui_test.profile.section")
+    }
+}
+
+private enum ProfileUITestFixtures {
+    // 1x1 JPEG, tiny payload for upload tests.
+    static let sampleJPEG: Data = Data(base64Encoded:
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAALCAAQABABAREA/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGoAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCcf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8BIf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8BIf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z"
+    ) ?? Data()
 }
 
 private enum ProfileImagePickerTarget: String, Identifiable {
@@ -832,6 +903,7 @@ private struct ProfileMediaGridTile: View {
             }
             .buttonStyle(.plain)
             .skydownTactileAction()
+            .accessibilityIdentifier("profile.gallery.item.\(item.id ?? "unknown")")
 
             if canDelete, let onDelete {
                 Button(action: onDelete) {
@@ -845,6 +917,7 @@ private struct ProfileMediaGridTile: View {
                 .buttonStyle(.plain)
                 .skydownTactileAction()
                 .padding(10)
+                .accessibilityIdentifier("profile.gallery.delete.\(item.id ?? "unknown")")
             }
         }
     }

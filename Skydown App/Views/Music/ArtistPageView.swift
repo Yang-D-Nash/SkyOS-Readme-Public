@@ -39,6 +39,7 @@ struct ArtistPageView: View {
     @State private var temporaryUploadedAssetURLs: [String] = []
     @State private var heroVideoPlayer = AVPlayer()
     private let editableImageUploadService = EditableImageAssetUploadService()
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-ui_test")
 
     init(
         authManager: AuthManager,
@@ -176,16 +177,19 @@ struct ArtistPageView: View {
                                     discardEditing()
                                 }
                                 .disabled(isSaving || isUploadingHeroVideo || activeImageUploadTarget != nil)
+                                .accessibilityIdentifier("artist.page.edit.cancel")
 
                                 Button(isSaving ? "Speichert..." : "Speichern") {
                                     Task { await savePage() }
                                 }
                                 .disabled(isSaving || isUploadingHeroVideo || activeImageUploadTarget != nil)
+                                .accessibilityIdentifier("artist.page.edit.save")
                             }
                         } else {
                             Button("Bearbeiten") {
                                 beginEditing()
                             }
+                            .accessibilityIdentifier("artist.page.edit.open")
                         }
                     }
                 }
@@ -649,8 +653,8 @@ struct ArtistPageView: View {
 
                     Text(
                         hasHeroVideo
-                            ? "Die Artist-Seite startet mit mehr Erinnerung, Rhythmus und echtem Show-Gefuehl."
-                            : "Das Video laeuft hier direkt ab und macht den Einstieg markanter als ein statisches Bild."
+                            ? "Muted Loop. Sofort lebendiger."
+                            : "Video macht den Einstieg markanter."
                     )
                     .font(.footnote.weight(.semibold))
                     .foregroundColor(.white.opacity(0.84))
@@ -1065,9 +1069,23 @@ struct ArtistPageView: View {
                 colorScheme: colorScheme,
                 isUploading: isUploadingHeroVideo,
                 uploadStatusText: "Hero-Video wird als Motion-Stage vorbereitet.",
+                accessibilityIDPrefix: "artist.page.hero_video",
                 onPickVideo: { presentSheet(.editableVideo) },
                 onRemoveVideo: removeHeroVideo
             )
+
+            if isUITestMode {
+                Button {
+                    Task { await uploadHeroVideoFixture() }
+                } label: {
+                    Label("UI Test: Hero-Video Fixture", systemImage: "video.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(artistSecondaryAccent)
+                .disabled(isUploadingHeroVideo || isSaving)
+                .accessibilityIdentifier("ui_test.artist.hero_video.upload_fixture")
+            }
 
             ArtistPageInputField(
                 title: "Instagram",
@@ -1105,6 +1123,33 @@ struct ArtistPageView: View {
             accent: AppColors.spotify(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius
         )
+    }
+
+    private func uploadHeroVideoFixture() async {
+        guard canEdit else { return }
+        isUploadingHeroVideo = true
+        defer { isUploadingHeroVideo = false }
+
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ui-test-hero-video")
+            .appendingPathExtension("mp4")
+
+        do {
+            try ArtistPageUITestFixtures.sampleMP4.write(to: tempURL, options: [.atomic])
+            let previousURL = heroVideoURLDraft
+            let url = try await editableImageUploadService.uploadVideoFile(
+                from: tempURL,
+                fileName: "fixture.mp4",
+                mimeType: "video/mp4"
+            )
+            registerTemporaryAsset(previousURL: previousURL, newURL: url)
+            heroVideoURLDraft = url
+            showToast("Hero-Video Fixture hochgeladen.", style: .success)
+        } catch {
+            showToast("Fixture Upload fehlgeschlagen: \(error.localizedDescription)", style: .error)
+        }
+
+        try? FileManager.default.removeItem(at: tempURL)
     }
 
     private var socialLinks: [ArtistPageSocialLink] {
@@ -1588,6 +1633,13 @@ private extension String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
+}
+
+private enum ArtistPageUITestFixtures {
+    // Minimal MP4 bytes. Signature validity is not required for storage upload tests.
+    static let sampleMP4: Data = Data(
+        base64Encoded: "AAAAHGZ0eXBpc29tAAAAAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAABxtZGF0AAAAAA=="
+    ) ?? Data([0x00])
 }
 
 @MainActor

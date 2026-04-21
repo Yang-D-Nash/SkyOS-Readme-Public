@@ -644,8 +644,8 @@ private struct HomeHeroIntroCard: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS Home",
             title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
-            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles direkt im Blick.",
-            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch, Tools.",
+            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Eine Oberfläche.",
+            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Music · Video · Merch · Tools",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
@@ -675,8 +675,8 @@ private struct HomeHeroIntroCard: View {
 
                 Text(
                     availableSignals > 0
-                        ? "\(availableSignals) Updates live."
-                        : "Live-Feed aktiv. Neue Updates folgen."
+                        ? "\(availableSignals) live."
+                        : "Feed aktiv."
                 )
                 .font(.footnote.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.82))
@@ -693,21 +693,21 @@ private struct HomeFieldGuideCard: View {
         [
             HomeRadarSignal(
                 title: "Music",
-                subtitle: viewModel.featuredTrack?.trackName ?? "Naechster Release wird geladen",
+                subtitle: viewModel.featuredTrack?.trackName ?? "Lädt…",
                 icon: "music.note",
                 accent: AppColors.spotify(for: colorScheme),
                 isActive: viewModel.featuredTrack != nil
             ),
             HomeRadarSignal(
                 title: "Beat",
-                subtitle: viewModel.featuredBeat?.title ?? "Beat Hub wird aktualisiert",
+                subtitle: viewModel.featuredBeat?.title ?? "Lädt…",
                 icon: "waveform",
                 accent: AppColors.accentMystic(for: colorScheme),
                 isActive: viewModel.featuredBeat != nil
             ),
             HomeRadarSignal(
                 title: "Visual",
-                subtitle: viewModel.featuredVideo?.title ?? "Naechster Clip wird geladen",
+                subtitle: viewModel.featuredVideo?.title ?? "Lädt…",
                 icon: "video.fill",
                 accent: AppColors.accentHighlight(for: colorScheme),
                 isActive: viewModel.featuredVideo != nil
@@ -718,14 +718,14 @@ private struct HomeFieldGuideCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HomeSectionBanner(
-                title: "Live Uebersicht",
-                subtitle: "Live-Board fuer Musik, Beats und Visuals.",
+                title: "Live",
+                subtitle: "Music · Beats · Visuals",
                 icon: "scope",
                 colorScheme: colorScheme,
                 accent: AppColors.accentMystic(for: colorScheme)
             )
 
-            Text("Alle Bereiche auf einen Blick.")
+            Text("Alles sichtbar.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -744,7 +744,7 @@ private struct HomeFieldGuideCard: View {
                 }
             }
 
-            Text("Wird laufend aktualisiert.")
+            Text("Live aktualisiert.")
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -753,8 +753,8 @@ private struct HomeFieldGuideCard: View {
             colorScheme: colorScheme,
             accent: AppColors.accentMystic(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 }
@@ -773,8 +773,8 @@ private struct HomeSectionBanner: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                accent.opacity(colorScheme == .dark ? 0.24 : 0.18),
-                                accent.opacity(colorScheme == .dark ? 0.12 : 0.08),
+                                accent.opacity(colorScheme == .dark ? 0.14 : 0.18),
+                                accent.opacity(colorScheme == .dark ? 0.08 : 0.08),
                                 AppColors.secondaryBackground(for: colorScheme).opacity(0.68)
                             ],
                             startPoint: .topLeading,
@@ -1134,8 +1134,8 @@ private struct HomeLatestReleaseCard: View {
             colorScheme: colorScheme,
             accent: AppColors.accent(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 
@@ -1245,8 +1245,8 @@ private struct HomeLatestBeatCard: View {
             colorScheme: colorScheme,
             accent: AppColors.accent(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 }
@@ -1407,8 +1407,8 @@ private struct HomeLatestVideoCard: View {
             colorScheme: colorScheme,
             accent: AppColors.accent(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 }
@@ -1424,14 +1424,14 @@ private struct HomeStoryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HomeSectionBanner(
-                title: "Direktzugriff",
-                subtitle: "Schnelle Wege zu Musik, Studio und Kontakt.",
+                title: "Shortcuts",
+                subtitle: "Music · Studio · Kontakt",
                 icon: "sparkles",
                 colorScheme: colorScheme,
                 accent: AppColors.accent(for: colorScheme)
             )
 
-            Text("Starte direkt im passenden Bereich und wechsle ohne Umwege weiter.")
+            Text("Direkt weiter — ohne Umwege.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1450,7 +1450,7 @@ private struct HomeStoryCard: View {
 
                 HomeLaneSection(
                     title: "Music",
-                    subtitle: "Releases, Beats und Studio.",
+                    subtitle: "Releases · Beats · Studio",
                     colorScheme: colorScheme
                 ) {
                     ForEach(homeZweizweiInstagramDestinations) { destination in
@@ -1522,8 +1522,8 @@ private struct HomeStoryCard: View {
             colorScheme: colorScheme,
             accent: AppColors.accent(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 6
+            shadowRadius: 9,
+            shadowYOffset: 4
         )
     }
 }
@@ -2034,9 +2034,9 @@ private struct ShopHeroCard: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedShopEyebrow ?? "Store",
             title: screenHeaderSettingsStore.settings.resolvedShopTitle ?? "Shop",
-            subtitle: screenHeaderSettingsStore.settings.resolvedShopSubtitle ?? "Merch direkt in der App.",
+            subtitle: screenHeaderSettingsStore.settings.resolvedShopSubtitle ?? "Merch in-app.",
             detail: screenHeaderSettingsStore.settings.resolvedShopDetail
-                ?? (isStoreOpen ? "Offen fuer Bestellungen." : "Ansicht aktiv, Checkout pausiert."),
+                ?? (isStoreOpen ? "Checkout offen." : "Nur Ansicht."),
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedShopImageURL,
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
@@ -2061,7 +2061,7 @@ private struct ShopHeroCard: View {
                     if let onToggleStore {
                         HomeActionButton(
                             title: isUpdatingStoreState ? "Update..." : (isStoreOpen ? "Schliessen" : "Oeffnen"),
-                            subtitle: isStoreOpen ? "Store fuer Bestellungen pausieren." : "Store wieder fuer Bestellungen aktivieren.",
+                            subtitle: isStoreOpen ? "Bestellungen pausieren." : "Bestellungen aktivieren.",
                             icon: isStoreOpen ? "pause.fill" : "play.fill",
                             colorScheme: colorScheme,
                             brand: .neutral,
@@ -2075,7 +2075,7 @@ private struct ShopHeroCard: View {
                     if let onSyncShopify {
                         HomeActionButton(
                             title: isSyncingCatalog ? "Laedt..." : "Sync",
-                            subtitle: "Shopify-Katalog und Collection-Daten aktualisieren.",
+                            subtitle: "Katalog syncen.",
                             icon: "arrow.triangle.2.circlepath",
                             colorScheme: colorScheme,
                             brand: .neutral,

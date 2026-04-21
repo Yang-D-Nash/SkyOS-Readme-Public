@@ -92,18 +92,18 @@ struct ContactFormView: View {
 
     private var readinessDetail: String {
         if canOrder {
-            return "Direkt in den Warenkorb"
+            return "Bereit für Warenkorb"
         }
         if authManager.userSession == nil {
-            return "Einloggen und im App-Flow bleiben"
+            return "Login nötig"
         }
         if !storeIsOpen {
-            return "Der Drop ist gerade geschlossen"
+            return "Drop zu"
         }
         if !item.available {
-            return "Dieses Produkt ist aktuell offline"
+            return "Offline"
         }
-        return "Bitte Variante vervollstaendigen"
+        return "Variante wählen"
     }
     
     private func addToCart() {
@@ -114,7 +114,7 @@ struct ContactFormView: View {
             quantity: selectedQuantity,
             resolvedVariant: resolvedVariant
         )
-        toastMessage = "Artikel erfolgreich zum Warenkorb hinzugefügt"
+        toastMessage = "Im Warenkorb"
         toastStyle = .success
         showToast = true
         alertType = nil
@@ -137,21 +137,21 @@ struct ContactFormView: View {
                     colorScheme: colorScheme,
                     readinessTitle: readinessTitle,
                     readinessDetail: readinessDetail,
-                    accountTitle: authManager.userSession != nil ? "Aktiv" : "Login noetig",
-                    accountDetail: authManager.userSession != nil ? "Checkout bleibt in der App" : "Danach bleibt der Bestellweg direkt im Flow",
+                    accountTitle: authManager.userSession != nil ? "Aktiv" : "Login",
+                    accountDetail: authManager.userSession != nil ? "Checkout in-app" : "Dann bestellen",
                     selectionTitle: selectionSummary,
                     selectionDetail: optionSummary
                 )
 
                 if let story = item.description.trimmedNonEmpty {
-                    ContactSectionCard(title: "Drop Story", colorScheme: colorScheme) {
+                    ContactSectionCard(title: "Story", colorScheme: colorScheme) {
                         Text(story)
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                         HStack(spacing: 10) {
-                            ContactBadge(text: storeIsOpen ? "Store live" : "Store pausiert", colorScheme: colorScheme)
-                            ContactBadge(text: item.available ? "Produkt sichtbar" : "Aktuell offline", colorScheme: colorScheme)
+                            ContactBadge(text: storeIsOpen ? "Live" : "Pause", colorScheme: colorScheme)
+                            ContactBadge(text: item.available ? "Sichtbar" : "Offline", colorScheme: colorScheme)
                         }
                     }
                 }
@@ -273,25 +273,25 @@ struct ContactFormView: View {
 
                 if authManager.userSession == nil {
                     ContactSectionCard(title: "Hinweis", colorScheme: colorScheme) {
-                        Text("Zum Hinzufügen in den Warenkorb brauchst du ein Konto. Danach bleibt der Flow direkt in der App.")
+                        Text("Warenkorb = Konto nötig. Alles in-app.")
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 } else if !storeIsOpen {
                     ContactSectionCard(title: "Store pausiert", colorScheme: colorScheme) {
-                        Text("Der Merch Store ist aktuell geschlossen. Produkte bleiben sichtbar, neue Kaeufe sind voruebergehend pausiert.")
+                        Text("Store zu — sichtbar, kein Kauf.")
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 } else if !item.available {
                     ContactSectionCard(title: "Nicht verfuegbar", colorScheme: colorScheme) {
-                        Text("Dieses Produkt ist aktuell nicht kaufbar. Sobald der Drop wieder live ist, kannst du es direkt bestellen.")
+                        Text("Nicht kaufbar — bei Live-Drop wieder.")
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 } else if !item.variants.isEmpty && resolvedVariant == nil {
                     ContactSectionCard(title: "Variante fehlt", colorScheme: colorScheme) {
-                        Text("Diese Auswahl ist aktuell nicht verfuegbar. Bitte pruefe Größe und Farbe noch einmal.")
+                        Text("Variante nicht verfügbar — Größe/Farbe prüfen.")
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -343,9 +343,9 @@ struct ContactFormView: View {
         }
         .alert(item: $alertType) { _ in
             Alert(
-                title: Text("Artikel in Warenkorb legen"),
-                message: Text("Der Artikel wird deinem Warenkorb hinzugefügt."),
-                primaryButton: .default(Text("Einverstanden"), action: addToCart),
+                title: Text("Warenkorb"),
+                message: Text("Artikel hinzufügen?"),
+                primaryButton: .default(Text("OK"), action: addToCart),
                 secondaryButton: .cancel()
             )
         }
@@ -376,13 +376,13 @@ struct ContactFormView: View {
 
     private var orderButtonTitle: String {
         if authManager.userSession == nil {
-            return "Account erforderlich"
+            return "Konto nötig"
         }
         if !storeIsOpen {
-            return "Store aktuell geschlossen"
+            return "Store zu"
         }
         if !item.available {
-            return "Aktuell nicht verfuegbar"
+            return "Nicht verfügbar"
         }
         return String(format: "In Warenkorb · EUR %.2f", item.price)
     }
@@ -427,7 +427,7 @@ private struct ContactHeroCard: View {
             HStack(spacing: 10) {
                 ContactBadge(text: String(format: "EUR %.2f", price), colorScheme: colorScheme)
                 ContactBadge(text: isLoggedIn ? "Konto aktiv" : "Login noetig", colorScheme: colorScheme)
-                ContactBadge(text: storeIsOpen && isAvailable ? "Ready to order" : "Drop check", colorScheme: colorScheme)
+                ContactBadge(text: storeIsOpen && isAvailable ? "OK" : "Check", colorScheme: colorScheme)
             }
 
             HStack(alignment: .top, spacing: 16) {
@@ -442,7 +442,7 @@ private struct ContactHeroCard: View {
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Waehle Variante, Menge und Checkout in einem kompakten In-App-Flow, der direkt kommuniziert und nicht aus der App herausfuehrt.")
+                    Text("Variante · Menge — alles in-app.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -488,11 +488,11 @@ private struct ContactReadinessStrip: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Bestell-Ueberblick")
+            Text("Überblick")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Die wichtigsten Signale liegen vor dem Formular, damit der Flow schnell lesbar bleibt.")
+            Text("Kurz vor dem Formular.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

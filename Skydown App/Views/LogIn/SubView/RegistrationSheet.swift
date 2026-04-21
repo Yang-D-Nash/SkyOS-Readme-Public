@@ -49,7 +49,7 @@ struct RegistrationSheet: View {
                         .listRowBackground(AppColors.primaryBackground(for: colorScheme))
 
                     Toggle(isOn: $viewModel.acceptedTerms) {
-                        Text(localized("auth.register.legal.terms", "I accept the Terms and Conditions (AGB)."))
+                        Text(localized("auth.register.legal.terms", "I accept the Terms (AGB)."))
                     }
                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
@@ -61,7 +61,7 @@ struct RegistrationSheet: View {
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
                     Toggle(isOn: $viewModel.aiConsentEnabled) {
-                        Text(localized("auth.register.legal.ai", "Enable AI for my account (can be changed later in Settings)."))
+                        Text(localized("auth.register.legal.ai", "Enable AI (change anytime in Settings)."))
                     }
                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
@@ -120,12 +120,12 @@ struct RegistrationSheet: View {
                     .disabled(viewModel.isLoading)
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
-                    Text(localized("auth.register.google_hint", "Your account is created automatically on first Google login."))
+                    Text(localized("auth.register.google_hint", "Google: account on first sign-in."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .listRowBackground(AppColors.primaryBackground(for: colorScheme))
 
-                    Text(localized("auth.register.username_hint", "If you enter a username above, it is used for your profile."))
+                    Text(localized("auth.register.username_hint", "Username above → your profile."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .listRowBackground(AppColors.primaryBackground(for: colorScheme))

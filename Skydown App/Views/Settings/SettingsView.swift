@@ -428,6 +428,7 @@ struct SettingsView: View {
                                 .buttonStyle(.borderedProminent)
                                 .skydownInteractiveFeedback()
                                 .tint(AppColors.accent(for: effectiveColorScheme))
+                                .accessibilityIdentifier("settings.open_profile_editor")
 
                                 if canUseAISelfPaySubscription {
                                     NativeAISubscriptionStatusCard(
@@ -467,6 +468,7 @@ struct SettingsView: View {
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .skydownInteractiveFeedback()
+                                    .accessibilityIdentifier("settings.logout")
 
                                     Button {
                                         Task {
@@ -481,6 +483,7 @@ struct SettingsView: View {
                                     }
                                     .buttonStyle(.bordered)
                                     .skydownInteractiveFeedback()
+                                    .accessibilityIdentifier("settings.switch_account")
 
                                     Button(role: .destructive) {
                                         activeAlert = .deleteAccount
@@ -494,7 +497,7 @@ struct SettingsView: View {
                             }
                         } else {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Melde dich an oder registriere dich, um Bestellungen und persoenliche Bereiche freizuschalten.")
+                                Text("Anmelden für Bestellungen & Profil.")
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -507,6 +510,7 @@ struct SettingsView: View {
                                 .buttonStyle(.borderedProminent)
                                 .skydownInteractiveFeedback()
                                 .tint(AppColors.accent(for: effectiveColorScheme))
+                                .accessibilityIdentifier("settings.open_login")
 
                                 Button {
                                     presentSheet(.registration)
@@ -517,6 +521,7 @@ struct SettingsView: View {
                                 .buttonStyle(.bordered)
                                 .skydownInteractiveFeedback()
                                 .tint(AppColors.accentMystic(for: effectiveColorScheme))
+                                .accessibilityIdentifier("settings.open_registration")
                             }
                         }
                     }
@@ -554,7 +559,7 @@ struct SettingsView: View {
                                 ),
                                 subtitle: AppLocalized.text(
                                     "settings.notifications.subtitle",
-                                    fallback: "Push updates for important app actions."
+                                    fallback: "Push for important actions."
                                 ),
                                 isOn: notificationsToggleBinding
                             )
@@ -647,7 +652,7 @@ struct SettingsView: View {
                                         .font(.headline)
                                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                                    Text("Diese Module steuern AGB, Datenschutz und Nutzungsbedingungen appweit. So kannst du rechtliche Texte ohne App-Release pflegen.")
+                                    Text("AGB, Datenschutz, Nutzungsbedingungen — ohne Release pflegen.")
                                         .font(.footnote)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1126,7 +1131,7 @@ struct SettingsView: View {
     private var adminWorkspaceSectionCard: some View {
         SettingsSectionCard(title: "Owner", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isOwnerUser ? "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand und Nutzerrollen laufen damit bewusst ueber eine zentrale Hand." : "Die Systembereiche sind nur fuer das feste Owner-Konto aktiv.")
+                Text(isOwnerUser ? "Systemsteuerung (Owner-only)." : "Owner-only Systemsteuerung.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1142,6 +1147,7 @@ struct SettingsView: View {
                     onOpenHeaders: { presentSheet(.adminWorkspace(.headers)) },
                     onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
                 )
+                .accessibilityIdentifier("settings.owner.command_center")
 
                 Button {
                     presentSheet(.orders)
@@ -1152,12 +1158,14 @@ struct SettingsView: View {
                 .buttonStyle(.bordered)
                 .skydownInteractiveFeedback()
                 .disabled(!isOwnerUser)
+                .accessibilityIdentifier("settings.owner.open_orders")
 
                 if !isOwnerUser {
                     SettingsLockedHintCard(
                         colorScheme: effectiveColorScheme,
-                        text: "Owner-Bereiche sind fuer dieses Konto gesperrt. Melde dich mit dem Owner-Konto an, um Rollen und System-Workspaces zu bearbeiten."
+                        text: "Owner-only. Melde dich als Owner an."
                     )
+                    .accessibilityIdentifier("settings.owner.locked_hint")
                 }
 
                 if isOwnerUser {
@@ -1170,11 +1178,13 @@ struct SettingsView: View {
                             ) {
                                 presentSheet(.adminWorkspace(section))
                             }
+                            .accessibilityIdentifier("settings.owner.workspace.\(section.accessibilityKey)")
                         }
                     }
                 }
             }
         }
+        .accessibilityIdentifier("settings.owner.section")
     }
 
     @ViewBuilder
@@ -1229,7 +1239,7 @@ struct SettingsView: View {
             switch section {
             case .users:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Hier steuerst du, welche Konten normaler User, Subadmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.")
+                    Text("Rollen, KI an/aus, Tageslimits — Bot, Visuals, Agent pro Konto.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1247,7 +1257,7 @@ struct SettingsView: View {
                     }
 
                     if adminUserManagementStore.users.isEmpty {
-                        Text("Sobald weitere Konten in der App registriert sind, erscheinen sie hier direkt zur Rollen- und KI-Verwaltung.")
+                        Text("Neue Konten erscheinen hier.")
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                     } else {
@@ -1267,7 +1277,7 @@ struct SettingsView: View {
 
             case .artists:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Hier bekommen 22-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.")
+                    Text("Artist-Seiten: Owner vergibt Editoren.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1298,7 +1308,7 @@ struct SettingsView: View {
 
             case .headers:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Diese Hero-Bereiche laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt die Bilder automatisch ab, damit Schrift und Badges lesbar bleiben. Fuer alle vier Bereiche kannst du Bild, Titel und kurze Positionierung pflegen.")
+                    Text("Hero unter Home, Music, Shop, Video — Bilder werden für Lesbarkeit abgedunkelt.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1308,7 +1318,7 @@ struct SettingsView: View {
                         SettingsBadge(text: "CRUD bereit", colorScheme: effectiveColorScheme)
                     }
 
-                    Text("Bilder und Texte kannst du neu setzen, ersetzen oder entfernen. Live gehen die Aenderungen erst, wenn du unten auf `Header speichern` tippst.")
+                    Text("Live erst nach „Header speichern“.")
                         .font(.footnote.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1478,7 +1488,7 @@ struct SettingsView: View {
                         minHeight: 96
                     )
 
-                    Text("Leere Felder lassen den jeweiligen Screen wieder auf den nativen Farbverlauf zurueckfallen.")
+                    Text("Leer = System-Gradient.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1493,7 +1503,7 @@ struct SettingsView: View {
 
             case .shopify:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Fuer den Merch-Katalog braucht die App die Store-Domain, optional einen Storefront Access Token und deine aktivierten Collections. Danach laedt der Shop direkt aus Shopify.")
+                    Text("Domain, Token, Collections — dann lädt Shopify.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1586,7 +1596,7 @@ struct SettingsView: View {
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                     }
 
-                    Text("Mehrere Collections kannst du oben antippen oder hier manuell per Komma oder Zeilenumbruch pflegen. Leer bedeutet: gesamter veroeffentlichter Store.")
+                    Text("Antippen oder Handles. Leer = ganzer Store.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1621,7 +1631,7 @@ struct SettingsView: View {
 
             case .payments:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("PayPal und Bankueberweisung laufen als manueller Owner-Handoff. Stripe ist als sicherer Live-Checkout aktiv, und Klarna laeuft live ueber Stripe, sobald es im Stripe-Dashboard freigeschaltet und serverseitig konfiguriert ist.")
+                    Text("PayPal/Bank: manuell. Stripe live. Klarna über Stripe, wenn aktiv.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1726,7 +1736,7 @@ struct SettingsView: View {
 
             case .commerce:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.")
+                    Text("Versand & Steuer für Checkout. Store-Schalter = harte Freigabe.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1869,7 +1879,7 @@ struct SettingsView: View {
                         )
                     )
 
-                    Text("Lokal auf diesem Admin-Geraet gespeichert. Drive-Link und Referenzhinweise helfen der KI bei Benennung und Stilrichtung; echtes Drive-Sync folgt spaeter.")
+                    Text("Lokal. Link + Hinweise für KI. Sync später.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1931,7 +1941,7 @@ struct SettingsView: View {
 
             case .automation:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Die App bleibt normal ueber Firebase eingeloggt. Du hinterlegst hier deinen persoenlichen n8n-Workflow fuer Agent-Aktionen, inklusive optionalem Knowledge-Kontext.")
+                    Text("Firebase-Login bleibt. Hier: n8n-Webhook + optional Knowledge.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2045,7 +2055,7 @@ struct SettingsView: View {
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    Text("Wenn aktiv, sendet der Agent deinen lokalen Manus API Key pro Anfrage. Der Key wird nur in deinem iOS Keychain gespeichert.")
+                    Text("Aktiv = Key pro Anfrage — nur Keychain.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2069,7 +2079,7 @@ struct SettingsView: View {
                         placeholder: "sk-..."
                     )
 
-                    Text("Du kannst den Key jederzeit ersetzen oder entfernen. Ohne lokalen Key nutzt der Agent wieder das Backend-Setup.")
+                    Text("Key ersetzen oder löschen — ohne Key: Backend.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2094,7 +2104,7 @@ struct SettingsView: View {
 
             case .aiPrompts:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore unter `adminConfig/aiPromptSettings` und gelten serverseitig ohne App-Release. Ueber die Asset-Bibliothek kannst du z. B. einen MEGA-, Drive- oder Moodboard-Link global mitgeben.")
+                    Text("Bot / Visual / Agent — `adminConfig/aiPromptSettings`. Optional: Asset-Link global.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2176,7 +2186,7 @@ struct SettingsView: View {
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    Text("Hier steuerst du, ob der Agent ueber Gemini oder Manus laeuft und welche serverseitigen Tagesgrenzen aktiv sind.")
+                    Text("Agent: Gemini oder Manus — Server-Limits.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2223,7 +2233,7 @@ struct SettingsView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    Text("Der API-Key bleibt aus Sicherheitsgruenden in Firebase Functions Secret `MANUS_API_KEY` und wird nicht in der App gespeichert.")
+                    Text("Secret nur in Functions — nicht in der App.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -3766,7 +3776,7 @@ private struct StripeBackendSecretsCard: View {
                 )
             }
 
-            Text("Die Werte werden nie wieder ausgelesen oder in Firestore gespeichert. Leere Felder lassen bestehende Secrets unveraendert.")
+            Text("Nur beim Speichern — nicht in Firestore. Leer = unverändert.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -3819,7 +3829,7 @@ private struct NativeAISubscriptionStatusCard: View {
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Creator und Studio laufen hier direkt ueber den App Store. Dein Konto bleibt danach in der App synchron.")
+                    Text("Creator / Studio über App Store — Konto synchron.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -3906,11 +3916,11 @@ private struct NativeAISubscriptionStatusCard: View {
                     }
                 }
             } else if isStorefrontReady {
-                Text("StoreKit ist aktiv, aber fuer dieses Build wurden noch keine KI-Produkte geladen.")
+                Text("StoreKit aktiv — keine KI-Produkte in diesem Build.")
                     .font(.footnote)
                     .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
             } else {
-                Text("Die nativen Creator- und Studio-Abos werden gerade vorbereitet. Sobald Produkt-IDs und Apple-App-ID live sind, kannst du hier direkt kaufen.")
+                Text("Abos in Vorbereitung — IDs folgen.")
                     .font(.footnote)
                     .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
             }
@@ -3992,7 +4002,7 @@ private struct AISubscriptionPricingCard: View {
                 }
             }
 
-            Text("Hier pflegst du Stripe-Preise fuer Webhooks und Web-Fallbacks sowie die nativen Produkt-IDs fuer StoreKit und spaeter Play Billing. Fuer den iOS-Rollout muessen Price-IDs, iOS-Produkt-IDs und die Apple App ID gesetzt sein.")
+            Text("Stripe-Preise + native Produkt-IDs (iOS / später Android). iOS: Price-IDs, Produkt-IDs, App-ID.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -4193,7 +4203,7 @@ private struct SettingsHeroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Konto, Anzeige und Support sind auf iOS jetzt nicht mehr im Standard-Form-Look versteckt, sondern klar nach Aufgaben gruppiert.")
+                Text("Konto, Anzeige, Support — gruppiert, nicht versteckt.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -4676,6 +4686,29 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
 
     var id: String { rawValue }
 
+    var accessibilityKey: String {
+        switch self {
+        case .payments:
+            return "payments"
+        case .users:
+            return "users"
+        case .artists:
+            return "artists"
+        case .headers:
+            return "headers"
+        case .shopify:
+            return "shopify"
+        case .commerce:
+            return "commerce"
+        case .visuals:
+            return "visuals"
+        case .automation:
+            return "automation"
+        case .aiPrompts:
+            return "aiPrompts"
+        }
+    }
+
     var iconName: String {
         switch self {
         case .payments:
@@ -4966,7 +4999,7 @@ private struct SettingsArtistPageCard: View {
             }
 
             if users.isEmpty {
-                Text("Sobald weitere Konten registriert sind, kannst du hier Editoren fuer diese Artist-Seite zuweisen.")
+                Text("Mehr Konten = Editoren hier.")
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else {
@@ -5186,15 +5219,15 @@ private struct SettingsAdminUserCard: View {
                 .skydownTactileAction()
 
                 if user.isPlatformOwner {
-                    Text("Das Owner-Konto ist fest an nash.lioncorna@gmail.com gebunden und bleibt immer Owner.")
+                    Text("Owner fest: nash.lioncorna@gmail.com")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else if isCurrentUser {
-                    Text("Dein eigenes Konto bleibt vor versehentlichen Rollenwechseln geschuetzt. Limits kannst du hier trotzdem anpassen.")
+                    Text("Eigenes Konto: Rolle geschützt. Limits anpassbar.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else if !canAssignOwnerRoleToUser {
-                    Text("Owner ist nur fuer das feste Hauptkonto moeglich. Fuer KI-Zugang nutze bitte Admin und aktiviere die KI-Freigabe.")
+                    Text("Owner nur Hauptkonto. KI: Admin + Freigabe.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -5212,7 +5245,7 @@ private struct SettingsAdminUserCard: View {
             SettingsToggleCard(
                 colorScheme: colorScheme,
                 title: "KI fuer dieses Konto aktiv",
-                subtitle: "Wenn aus, sind Bot, Visuals und Agent fuer dieses Konto gesperrt.",
+                subtitle: "Aus = Bot, Visuals, Agent gesperrt.",
                 isOn: $aiAccessEnabled
             )
 
@@ -5308,7 +5341,7 @@ private struct SettingsAdminUserCard: View {
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else if hasPendingChanges {
-                Text("Ungespeicherte Aenderungen. Erst nach dem Speichern werden Claims und Limits live uebernommen.")
+                Text("Ungespeichert — Speichern für Live-Claims & Limits.")
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else if saveSuccessCount > 0 {
@@ -5440,7 +5473,7 @@ private struct SettingsAdminUserCard: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Dieses Konto bleibt der zentrale Root-Zugang. Shopify, Zahlungen, Rollen, KI-Defaults und Recovery laufen nur hier.")
+            Text("Root: Shopify, Zahlungen, Rollen, KI — nur hier.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }

@@ -27,9 +27,9 @@ enum MusicExperienceBrand {
     var heroSubtitle: String {
         switch self {
         case .skydown:
-            return "Artists, Tracks, Spotify."
+            return "Katalog · Previews · Spotify"
         case .zweizwei:
-            return "Releases, Tracks, Beats."
+            return "Releases · Tracks · Beats"
         }
     }
 
@@ -65,7 +65,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return nil
         case .zweizwei:
-            return "Recording, Mix, Master."
+            return "Record · Mix · Master"
         }
     }
 
@@ -163,9 +163,9 @@ struct MusicView: View {
 
     private var spotifyStatusText: String {
         if viewModel.isSpotifyConnected {
-            return "Spotify ist verbunden. Du kannst Previews testen oder den Spotify Player direkt in der App oeffnen."
+            return "Spotify verbunden — Player optional."
         }
-        return "Previews laufen direkt in der App. Spotify ist optional, falls du kompatible Tracks zusaetzlich im In-App-Player oeffnen willst."
+        return "Previews in-app. Spotify optional."
     }
 
     private var tracksStatusText: String {
@@ -384,7 +384,7 @@ struct MusicView: View {
 
             RadialGradient(
                 colors: [
-                    AppColors.spotify(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.08),
+                    AppColors.spotify(for: colorScheme).opacity(colorScheme == .dark ? 0.09 : 0.08),
                     Color.clear
                 ],
                 center: .topTrailing,
@@ -394,7 +394,7 @@ struct MusicView: View {
 
             RadialGradient(
                 colors: [
-                    AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.06),
+                    AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.07 : 0.06),
                     Color.clear
                 ],
                 center: .bottomLeading,
@@ -404,9 +404,9 @@ struct MusicView: View {
 
             LinearGradient(
                 colors: [
-                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.10),
+                    Color.white.opacity(colorScheme == .dark ? 0.035 : 0.10),
                     Color.clear,
-                    Color.black.opacity(colorScheme == .dark ? 0.05 : 0.02)
+                    Color.black.opacity(colorScheme == .dark ? 0.03 : 0.02)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -483,7 +483,7 @@ struct MusicView: View {
             eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
             title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? brand.heroTitle,
             subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? brand.heroSubtitle,
-            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) und alle Artists direkt im Katalog.",
+            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) · Katalog",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
             accent: AppColors.spotify(for: colorScheme),
             secondaryAccent: AppColors.accent(for: colorScheme),
@@ -676,7 +676,7 @@ struct MusicView: View {
                 Text("Quick Access")
                     .font(.headline)
 
-                Text("Die wichtigsten Wege bleiben direkt auf der Music-Seite sichtbar.")
+                Text("Kurzwege · immer sichtbar.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1375,6 +1375,7 @@ struct MusicView: View {
                 }
                 .buttonStyle(.plain)
                 .skydownTactileAction()
+                .accessibilityIdentifier("music.artist.open_page.\(artist)")
             }
         }
         .padding(18)

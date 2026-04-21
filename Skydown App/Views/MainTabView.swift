@@ -506,8 +506,8 @@ private struct ZweizweiTabView: View {
                                 colorScheme: colorScheme,
                                 eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
                                 title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
-                                subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Releases, Artists und Studio an einem Ort.",
-                                detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Hoer rein, entdecke Artists und spring direkt zu Beats oder Recording.",
+                                subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Ein Hub · drei Wege.",
+                                detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Katalog, Beats, Studio.",
                                 backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
                                 accent: AppColors.spotify(for: colorScheme),
                                 secondaryAccent: AppColors.accent(for: colorScheme),
@@ -536,17 +536,17 @@ private struct ZweizweiTabView: View {
                                 HStack(spacing: 12) {
                                     MusicHubStatusCard(
                                         title: "Catalog",
-                                        value: "Artists, Tracks, Pages",
+                                        value: "Artists · Tracks · Pages",
                                         accent: AppColors.spotify(for: colorScheme)
                                     )
                                     MusicHubStatusCard(
                                         title: "Beat Hub",
-                                        value: "Schnell den Vibe finden",
+                                        value: "Library · Vibe",
                                         accent: AppColors.accent(for: colorScheme)
                                     )
                                     MusicHubStatusCard(
                                         title: "Studio",
-                                        value: "Recording, Mix, Master",
+                                        value: "Record · Mix · Master",
                                         accent: AppColors.accentMystic(for: colorScheme)
                                     )
                                 }
@@ -557,8 +557,8 @@ private struct ZweizweiTabView: View {
                                     ShellActionCard(
                                         eyebrow: "Catalog",
                                         title: "Songs & Artists",
-                                        subtitle: "Starte mit JANNO und finde direkt alle Artists, Songs und Pages.",
-                                        detail: "Das ist der schnellste Weg in den Music-Katalog mit Preview, Spotify und Artist-Pages.",
+                                        subtitle: "JANNO · Katalog.",
+                                        detail: "Previews, Spotify, Pages.",
                                         accent: AppColors.spotify(for: colorScheme),
                                         systemImage: "waveform.circle.fill",
                                         badges: ["Tracks", "Spotify", "Pages"],
@@ -575,8 +575,8 @@ private struct ZweizweiTabView: View {
                                         ShellActionCard(
                                             eyebrow: "Beat Hub",
                                             title: "Beat Library",
-                                            subtitle: "Beats anhoeren und schnell den richtigen Vibe finden.",
-                                            detail: "Direkt in Beat-Playback, Auswahl und Upload-nahe Workflows springen.",
+                                            subtitle: "Playback · Auswahl.",
+                                            detail: "Vibe finden, ohne Umwege.",
                                             accent: AppColors.accent(for: colorScheme),
                                             systemImage: "speaker.wave.3.fill",
                                             badges: ["Playback", "Selection", "Flow"]
@@ -589,8 +589,8 @@ private struct ZweizweiTabView: View {
                                         ShellActionCard(
                                             eyebrow: "Studio",
                                             title: "Studio Services",
-                                            subtitle: "Recording, Mixing und Mastering direkt anfragen.",
-                                            detail: "Die Services bleiben auf einen Blick erreichbar, ohne den Music-Flow zu verlassen.",
+                                            subtitle: "Anfragen · buchen.",
+                                            detail: "Gleicher Flow wie Music.",
                                             accent: AppColors.accentMystic(for: colorScheme),
                                             systemImage: "sparkles",
                                             badges: ["Record", "Mix", "Master"]
@@ -606,8 +606,8 @@ private struct ZweizweiTabView: View {
                                     ShellActionCard(
                                         eyebrow: "Catalog",
                                         title: "Songs & Artists",
-                                        subtitle: "Starte mit JANNO und finde direkt alle Artists, Songs und Pages.",
-                                        detail: "Das ist der schnellste Weg in den Music-Katalog mit Preview, Spotify und Artist-Pages.",
+                                        subtitle: "JANNO · Katalog.",
+                                        detail: "Previews, Spotify, Pages.",
                                         accent: AppColors.spotify(for: colorScheme),
                                         systemImage: "waveform.circle.fill",
                                         badges: ["Tracks", "Spotify", "Pages"],
@@ -623,8 +623,8 @@ private struct ZweizweiTabView: View {
                                     ShellActionCard(
                                         eyebrow: "Beat Hub",
                                         title: "Beat Library",
-                                        subtitle: "Beats anhoeren und schnell den richtigen Vibe finden.",
-                                        detail: "Direkt in Beat-Playback, Auswahl und Upload-nahe Workflows springen.",
+                                        subtitle: "Playback · Auswahl.",
+                                        detail: "Vibe finden, ohne Umwege.",
                                         accent: AppColors.accent(for: colorScheme),
                                         systemImage: "speaker.wave.3.fill",
                                         badges: ["Playback", "Selection", "Flow"]
@@ -637,8 +637,8 @@ private struct ZweizweiTabView: View {
                                     ShellActionCard(
                                         eyebrow: "Studio",
                                         title: "Studio Services",
-                                        subtitle: "Recording, Mixing und Mastering direkt anfragen.",
-                                        detail: "Die Services bleiben auf einen Blick erreichbar, ohne den Music-Flow zu verlassen.",
+                                        subtitle: "Anfragen · buchen.",
+                                        detail: "Gleicher Flow wie Music.",
                                         accent: AppColors.accentMystic(for: colorScheme),
                                         systemImage: "sparkles",
                                         badges: ["Record", "Mix", "Master"]
@@ -761,7 +761,7 @@ private struct ShellActionCard: View {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        accent.opacity(colorScheme == .dark ? 0.24 : 0.18),
+                                        accent.opacity(colorScheme == .dark ? 0.14 : 0.18),
                                         AppColors.cardBackground(for: colorScheme)
                                     ],
                                     startPoint: .topLeading,
@@ -820,13 +820,13 @@ private struct ShellActionCard: View {
                 }
             }
             .padding(SkydownLayout.heroPadding)
-            .frame(maxWidth: .infinity, minHeight: 210, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 168, alignment: .leading)
             .skydownPanelSurface(
                 colorScheme: colorScheme,
                 accent: accent,
                 cornerRadius: SkydownLayout.heroCornerRadius,
-                shadowRadius: 14,
-                shadowYOffset: 8
+                shadowRadius: 10,
+                shadowYOffset: 5
             )
         }
         .accessibilityIdentifier(accessibilityID ?? title)
