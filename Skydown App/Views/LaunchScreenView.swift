@@ -268,7 +268,7 @@ private struct LaunchLandingView: View {
                                     accent: AppColors.spotify(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Immer Zurueck",
+                                    title: "Immer Zurück",
                                     value: "Navigation bleibt klar und frei.",
                                     accent: AppColors.accentMystic(for: hubColorScheme)
                                 )
@@ -286,7 +286,7 @@ private struct LaunchLandingView: View {
                                     accent: AppColors.spotify(for: hubColorScheme)
                                 )
                                 LaunchLandingSignalCard(
-                                    title: "Immer Zurueck",
+                                    title: "Immer Zurück",
                                     value: "Navigation bleibt klar und frei.",
                                     accent: AppColors.accentMystic(for: hubColorScheme)
                                 )

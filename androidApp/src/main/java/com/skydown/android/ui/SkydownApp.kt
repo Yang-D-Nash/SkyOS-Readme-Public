@@ -1077,7 +1077,7 @@ private fun LaunchLandingScreen(
                                     modifier = Modifier.weight(1f),
                                 )
                                 HubSignalCard(
-                                    title = "Immer Zurueck",
+                                    title = "Immer Zurück",
                                     value = "Navigation bleibt klar und frei.",
                                     accentColor = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.weight(1f),
@@ -1097,7 +1097,7 @@ private fun LaunchLandingScreen(
                                     accentColor = SpotifyGreen,
                                 )
                                 HubSignalCard(
-                                    title = "Immer Zurueck",
+                                    title = "Immer Zurück",
                                     value = "Navigation bleibt klar und frei.",
                                     accentColor = MaterialTheme.colorScheme.tertiary,
                                 )
@@ -1319,7 +1319,7 @@ private fun ZweizweiMusicLaneScreen(
                             IconButton(onClick = onBackToLanding) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Zurueck",
+                                    contentDescription = "Zurück",
                                 )
                             }
                         }
