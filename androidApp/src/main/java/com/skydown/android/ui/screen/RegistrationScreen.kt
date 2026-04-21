@@ -383,7 +383,7 @@ private fun RegistrationLegalDocumentSheet(
             }
 
             items(document.sections) { section ->
-                SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(18.dp)) {
+                SkydownCard {
                     Text(
                         text = section.title,
                         style = MaterialTheme.typography.titleMedium,

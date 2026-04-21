@@ -9,7 +9,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -37,11 +36,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,7 +50,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.skydown.android.R
-import com.skydown.android.ui.theme.DexBlueDeep
+import com.skydown.android.ui.theme.SkydownCompactHeroTitleTextStyle
+import com.skydown.android.ui.theme.SkydownEditorialCaptionTextStyle
+import com.skydown.android.ui.theme.SkydownHeroEyebrowTextStyle
+import com.skydown.android.ui.theme.SkydownHeroSubtitleTextStyle
+import com.skydown.android.ui.theme.SkydownHeroTitleTextStyle
+import com.skydown.android.ui.theme.skydownAccentHighlight
+import com.skydown.android.ui.theme.skydownCardBackground
+import com.skydown.android.ui.theme.skydownCinematicShadow
+import com.skydown.android.ui.theme.skydownDeepInk
+import com.skydown.android.ui.theme.skydownIsDarkPalette
+import com.skydown.android.ui.theme.skydownLuminanceLift
+import com.skydown.android.ui.theme.skydownSecondaryBackground
+import com.skydown.android.ui.theme.skydownSecondaryText
+import com.skydown.android.ui.theme.skydownText
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.semantics.Role
 
@@ -88,115 +102,139 @@ fun BrandHeroCard(
     compactVisualDensity: Boolean = false,
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
-    val imageShape = RoundedCornerShape(if (compactVisualDensity) 20.dp else 22.dp)
-    val imageAspectRatio = if (compactVisualDensity) 2.72f else 2.32f
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
-    val titleColor = if (hasBackgroundImage) Color.White else MaterialTheme.colorScheme.onSurface
-    val subtitleColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.86f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f)
-    val detailColor = if (hasBackgroundImage) Color.White.copy(alpha = 0.88f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-    val outerImageHorizontalPadding = if (compactVisualDensity) 7.dp else 9.dp
-    val outerImageVerticalPadding = if (compactVisualDensity) 5.dp else 7.dp
-    val contentHorizontalPadding = if (compactVisualDensity) 14.dp else 16.dp
-    val contentVerticalPadding = if (compactVisualDensity) 12.dp else 14.dp
-    val contentSpacing = if (compactVisualDensity) 6.dp else 8.dp
-    val titleStyle = if (compactVisualDensity) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall
-    val subtitleStyle = if (compactVisualDensity) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodySmall
-    val detailStyle = if (compactVisualDensity) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium
-    val isDarkPalette = MaterialTheme.colorScheme.background.luminance() < 0.36f
+    val titleColor = if (hasBackgroundImage) Color.White else colorScheme.skydownText()
+    val subtitleColor = if (hasBackgroundImage) {
+        Color.White.copy(alpha = 0.84f)
+    } else {
+        colorScheme.skydownSecondaryText().copy(alpha = 0.96f)
+    }
+    val detailColor = if (hasBackgroundImage) {
+        Color.White.copy(alpha = 0.86f)
+    } else {
+        colorScheme.skydownText().copy(alpha = 0.86f)
+    }
+    val contentHorizontalPadding = if (compactVisualDensity) 16.dp else SkydownUiTokens.heroPadding
+    val contentVerticalPadding = if (compactVisualDensity) 16.dp else SkydownUiTokens.heroPadding + 1.dp
+    val contentSpacing = 14.dp
+    val eyebrowStyle = SkydownHeroEyebrowTextStyle
+    val titleStyle = if (compactVisualDensity) SkydownCompactHeroTitleTextStyle else SkydownHeroTitleTextStyle
+    val subtitleStyle = SkydownHeroSubtitleTextStyle
+    val detailStyle = SkydownEditorialCaptionTextStyle
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = if (compactVisualDensity) 12.dp else 16.dp,
+                elevation = if (compactVisualDensity) 15.dp else 18.dp,
                 shape = shape,
-                ambientColor = accent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
-                spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.14f else 0.18f),
+                ambientColor = secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.07f),
+                spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.14f),
             )
             .clip(shape)
-            .background(
-                Brush.linearGradient(
+            .drawWithContent {
+                val baseBrush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDarkPalette) 0.20f else 0.10f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = if (isDarkPalette) 0.998f else 0.995f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) 0.60f else 0.64f),
-                        accent.copy(alpha = if (isDarkPalette) 0.046f else 0.072f),
-                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.028f else 0.046f),
-                        Color.Black.copy(alpha = if (isDarkPalette) 0.012f else 0.026f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.16f else 0.28f),
+                        colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.99f else 0.975f),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.36f else 0.28f),
+                        accent.copy(alpha = 0.05f),
+                        secondaryAccent.copy(alpha = 0.04f),
+                        Color.Black.copy(alpha = if (isDarkPalette) 0.015f else 0.010f),
                     ),
-                ),
-            )
+                    start = Offset(size.width * 0.08f, 0f),
+                    end = Offset(size.width, size.height),
+                )
+                val upperBloom = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDarkPalette) 0.07f else 0.14f),
+                        accent.copy(alpha = if (isDarkPalette) 0.08f else 0.10f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(size.width * 0.16f, size.height * 0.12f),
+                    radius = size.width * 0.94f,
+                )
+                val lowerMist = Brush.radialGradient(
+                    colors = listOf(
+                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.06f else 0.08f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(size.width * 0.86f, size.height * 0.84f),
+                    radius = size.width * 1.08f,
+                )
+
+                drawRect(baseBrush)
+                drawRect(lowerMist)
+                drawRect(upperBloom, blendMode = BlendMode.Screen)
+                drawContent()
+            }
             .border(
-                width = 1.dp,
+                width = 0.9.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDarkPalette) 0.34f else 0.24f),
-                        MaterialTheme.colorScheme.outline.copy(alpha = if (isDarkPalette) 0.32f else 0.28f),
-                        accent.copy(alpha = if (isDarkPalette) 0.10f else 0.16f),
-                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.06f else 0.10f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.18f else 0.24f),
+                        accent.copy(alpha = 0.12f),
+                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
                     ),
                 ),
                 shape = shape,
             )
-            .skydownSheen(accent = accent, alpha = if (isDarkPalette) 0.034f else 0.032f),
+            .skydownSheen(
+                accent = MaterialTheme.colorScheme.tertiary,
+                alpha = if (isDarkPalette) 0.034f else 0.032f,
+            ),
     ) {
         if (hasBackgroundImage) {
-            BoxWithConstraints(
+            AsyncImage(
+                model = backgroundImageUrl,
+                contentDescription = null,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = outerImageHorizontalPadding, vertical = outerImageVerticalPadding),
-            ) {
-                val imageFrameHeight = maxWidth / imageAspectRatio
+                    .matchParentSize()
+                    .clip(shape),
+                contentScale = ContentScale.Crop,
+            )
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(imageFrameHeight)
-                        .clip(imageShape),
-                ) {
-                    AsyncImage(
-                        model = backgroundImageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = if (isDarkPalette) 0.14f else 0.24f)),
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = if (isDarkPalette) 0.10f else 0.05f),
-                                        Color.Transparent,
-                                        Color.Black.copy(alpha = if (isDarkPalette) 0.24f else 0.40f),
-                                    ),
-                                ),
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.10f),
+                                Color.Black.copy(alpha = 0.08f),
+                                accent.copy(alpha = if (isDarkPalette) 0.08f else 0.07f),
+                                secondaryAccent.copy(alpha = if (isDarkPalette) 0.06f else 0.05f),
                             ),
-                    )
+                            start = Offset.Zero,
+                            end = Offset.Infinite,
+                        ),
+                    ),
+            )
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        accent.copy(alpha = if (isDarkPalette) 0.09f else 0.14f),
-                                        Color.Transparent,
-                                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.07f else 0.10f),
-                                    ),
-                                ),
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = if (isDarkPalette) 0.10f else 0.08f)),
+            )
+
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkPalette) 0.08f else 0.14f),
+                                accent.copy(alpha = if (isDarkPalette) 0.08f else 0.10f),
+                                Color.Transparent,
                             ),
-                    )
-                }
-            }
+                            center = Offset.Zero,
+                            radius = 980f,
+                        ),
+                    ),
+            )
         }
 
         Column(
@@ -207,40 +245,58 @@ fun BrandHeroCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(if (compactVisualDensity) 88.dp else 102.dp)
-                        .blur(if (compactVisualDensity) 24.dp else 30.dp)
-                        .background(accent.copy(alpha = if (isDarkPalette) 0.04f else 0.06f), CircleShape),
+                        .size(if (compactVisualDensity) 68.dp else 84.dp)
+                        .background(accent.copy(alpha = if (isDarkPalette) 0.03f else 0.05f), CircleShape)
+                        .blur(if (compactVisualDensity) 16.dp else 20.dp),
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .size(if (compactVisualDensity) 64.dp else 76.dp)
-                        .blur(if (compactVisualDensity) 18.dp else 24.dp)
-                        .background(secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.06f), CircleShape),
+                        .size(if (compactVisualDensity) 50.dp else 58.dp)
+                        .background(secondaryAccent.copy(alpha = if (isDarkPalette) 0.03f else 0.05f), CircleShape)
+                        .blur(if (compactVisualDensity) 12.dp else 16.dp),
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 12.dp else 14.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 6.dp else 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 7.dp else 8.dp),
                     ) {
-                        Text(
-                            text = eyebrow.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = accent,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = eyebrow.uppercase(),
+                                style = eyebrowStyle,
+                                color = accent,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(if (compactVisualDensity) 40.dp else 46.dp)
+                                    .height(3.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = if (isDarkPalette) 0.34f else 0.80f),
+                                                accent.copy(alpha = 0.86f),
+                                                secondaryAccent.copy(alpha = 0.30f),
+                                            ),
+                                        ),
+                                        shape = RoundedCornerShape(999.dp),
+                                    ),
+                            )
+                        }
                         Text(
                             text = title,
                             style = titleStyle,
                             color = titleColor,
-                            fontWeight = FontWeight.Black,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -248,7 +304,7 @@ fun BrandHeroCard(
                             text = subtitle,
                             style = subtitleStyle,
                             color = subtitleColor,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (!detail.isNullOrBlank()) {
@@ -256,8 +312,7 @@ fun BrandHeroCard(
                                 text = detail,
                                 style = detailStyle,
                                 color = detailColor,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
@@ -268,9 +323,9 @@ fun BrandHeroCard(
                             modifier = Modifier
                                 .width(
                                     if (compactVisualDensity) {
-                                        if (marks.size == 1) 82.dp else 72.dp
+                                        if (marks.size == 1) 104.dp else 88.dp
                                     } else {
-                                        if (marks.size == 1) 90.dp else 78.dp
+                                        if (marks.size == 1) 118.dp else 96.dp
                                     },
                                 ),
                             verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 6.dp else 8.dp),
@@ -287,7 +342,9 @@ fun BrandHeroCard(
                 }
             }
 
-            footer()
+            Column(modifier = Modifier.padding(top = 4.dp)) {
+                footer()
+            }
         }
     }
 }
@@ -301,52 +358,37 @@ fun BrandHeroMetricCard(
     icon: ImageVector? = null,
     isActive: Boolean = true,
 ) {
+    val resolvedAccent = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.045f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.995f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
-                        accent.copy(alpha = if (isActive) 0.11f else 0.055f),
-                    ),
-                ),
+            .skydownPanelSurface(
+                accent = resolvedAccent,
+                cornerRadius = 18.dp,
+                shadowRadius = 10.dp,
+                shadowYOffset = 5.dp,
             )
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.14f),
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
-                        accent.copy(alpha = if (isActive) 0.20f else 0.10f),
-                    ),
-                ),
-                shape = RoundedCornerShape(22.dp),
-            )
-            .padding(horizontal = 13.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 11.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (icon != null) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clip(CircleShape)
-                        .background(accent.copy(alpha = if (isActive) 0.18f else 0.10f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(resolvedAccent.copy(alpha = if (isActive) 0.14f else 0.08f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                    modifier = Modifier.size(12.dp),
+                )
+            }
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
@@ -369,7 +411,7 @@ fun BrandHeroMetricCard(
 
         Text(
             text = value,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isActive) 0.96f else 0.72f),
             fontWeight = FontWeight.Bold,
             maxLines = 2,
@@ -389,46 +431,37 @@ fun BrandSectionBanner(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                accent.copy(alpha = 0.14f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f),
-                            ),
-                        ),
+                    .skydownPanelSurface(
+                        accent = accent,
+                        cornerRadius = 14.dp,
+                        shadowRadius = 8.dp,
+                        shadowYOffset = 4.dp,
                     )
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.24f),
-                        shape = RoundedCornerShape(18.dp),
-                    )
-                    .padding(10.dp),
+                    .padding(8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accent,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
             )
@@ -444,21 +477,8 @@ fun BrandSectionBanner(
         tag?.takeIf { it.isNotBlank() }?.let { label ->
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                                accent.copy(alpha = 0.10f),
-                            ),
-                        ),
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = accent.copy(alpha = 0.18f),
-                        shape = RoundedCornerShape(999.dp),
-                    )
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .skydownCapsuleSurface(accent = accent)
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
             ) {
                 Text(
                     text = label,
@@ -499,32 +519,12 @@ fun BrandStatusChip(
     }
 
     if (onClick != null) {
-        val backgroundBrush = if (isActive) {
-            Brush.linearGradient(
-                colors = listOf(
-                    accent.copy(alpha = 0.18f),
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
-                ),
-            )
-        } else {
-            Brush.linearGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                    DexBlueDeep.copy(alpha = 0.08f),
-                ),
-            )
-        }
-
         Row(
             modifier = chipModifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(backgroundBrush)
-                .border(
-                    width = 1.dp,
-                    color = if (isActive) accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                    shape = RoundedCornerShape(999.dp),
+                .skydownCapsuleSurface(
+                    accent = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
                 )
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 13.dp, vertical = 9.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -542,41 +542,55 @@ fun BrandStatusChip(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = 0.82f),
-                modifier = Modifier.size(14.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(contentColor.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = contentColor.copy(alpha = 0.82f),
+                    modifier = Modifier.size(11.dp),
+                )
+            }
         }
     } else {
         Row(
-            modifier = chipModifier.padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = chipModifier.padding(vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = contentColor.copy(alpha = 0.88f),
-                    modifier = Modifier.size(15.dp),
+                    tint = contentColor.copy(alpha = 0.82f),
+                    modifier = Modifier.size(14.dp),
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
+                        .width(14.dp)
+                        .height(2.5.dp)
                         .background(
-                            color = contentColor.copy(alpha = if (isActive) 0.76f else 0.42f),
-                            shape = CircleShape,
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    contentColor.copy(alpha = if (isActive) 0.84f else 0.46f),
+                                    contentColor.copy(alpha = 0.08f),
+                                ),
+                            ),
+                            shape = RoundedCornerShape(999.dp),
                         ),
                 )
             }
             Text(
                 text = text,
-                color = contentColor.copy(alpha = if (isActive) 0.92f else 0.74f),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
+                color = contentColor.copy(alpha = if (isActive) 0.88f else 0.68f),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }
@@ -602,7 +616,7 @@ fun BrandActionButton(
     } else {
         PaddingValues(horizontal = 18.dp, vertical = 14.dp)
     }
-    val filledContentColor = if (accent.perceivedBrightness() < 0.58f) Color.White else DexBlueDeep
+    val filledContentColor = if (accent.perceivedBrightness() < 0.58f) Color.White else MaterialTheme.colorScheme.skydownDeepInk()
     val iconTint = if (filled) filledContentColor else accent
     val filledBrush = Brush.linearGradient(
         colors = listOf(
@@ -796,6 +810,8 @@ fun BrandPill(
                     style = MaterialTheme.typography.labelSmall,
                     color = tint,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Box(
                     modifier = Modifier
@@ -815,24 +831,31 @@ fun BrandPill(
         }
     } else {
         Row(
-            modifier = Modifier.padding(vertical = 2.dp),
+            modifier = Modifier.padding(vertical = 1.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .width(12.dp)
-                    .height(4.dp)
+                    .width(14.dp)
+                    .height(2.5.dp)
                     .background(
-                        color = tint.copy(alpha = 0.72f),
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                tint.copy(alpha = 0.82f),
+                                tint.copy(alpha = 0.08f),
+                            ),
+                        ),
                         shape = RoundedCornerShape(999.dp),
                     ),
             )
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelMedium,
-                color = tint.copy(alpha = 0.92f),
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.labelSmall,
+                color = tint.copy(alpha = 0.90f),
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -844,52 +867,64 @@ private fun BrandArtworkTile(
     accent: Color,
     isFeatured: Boolean,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(if (isFeatured) 90.dp else 72.dp)
+            .height(if (isFeatured) 124.dp else 98.dp)
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
+                ambientColor = accent.copy(alpha = if (isDarkPalette) 0.16f else 0.08f),
+                spotColor = accent.copy(alpha = if (isDarkPalette) 0.16f else 0.08f),
+            )
             .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.08f),
-                        accent.copy(alpha = 0.16f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
-                        Color.Black.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.08f else 0.40f),
+                        accent.copy(alpha = if (isDarkPalette) 0.20f else 0.10f),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.86f else 0.98f),
+                        Color.Black.copy(alpha = if (isDarkPalette) 0.24f else 0.04f),
                     ),
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
                 ),
             )
             .border(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.14f),
-                        accent.copy(alpha = 0.22f),
+                        accent.copy(alpha = 0.26f),
+                        Color.White.copy(alpha = if (isDarkPalette) 0.10f else 0.24f),
                     ),
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
                 ),
                 shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(if (isFeatured) 11.dp else 10.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Image(
                 painter = painterResource(id = mark.drawableRes),
                 contentDescription = mark.label,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isFeatured) 42.dp else 30.dp)
+                    .height(if (isFeatured) 76.dp else 52.dp)
                     .clip(RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)),
                 contentScale = ContentScale.Fit,
             )
 
             Text(
                 text = mark.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.84f),
-                fontWeight = FontWeight.Bold,
+                style = if (isFeatured) SkydownEditorialCaptionTextStyle else MaterialTheme.typography.labelSmall,
+                color = colorScheme.skydownText().copy(alpha = 0.88f),
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

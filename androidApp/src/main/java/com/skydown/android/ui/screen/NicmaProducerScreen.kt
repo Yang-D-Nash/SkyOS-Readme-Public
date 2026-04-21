@@ -171,7 +171,7 @@ private fun NicmaHeroCard(
 
 @Composable
 private fun NicmaPriceListCard() {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Preisliste")
         Column(
             modifier = Modifier.padding(top = 12.dp),
@@ -229,7 +229,7 @@ private fun NicmaContactCard(
     youtubeUrl: String?,
     onOpenLink: (String) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Links")
         Text(
             text = "Direkter Kontakt und oeffentliche Plattformen fuer NICMA.",

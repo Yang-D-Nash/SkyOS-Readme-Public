@@ -1,5 +1,6 @@
 package com.skydown.android.ui.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -51,6 +53,7 @@ import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.theme.SkydownPanelTitleTextStyle
 
 private enum class AiHubMode {
     Bot,
@@ -166,7 +169,7 @@ fun AiHubScreen(
                         compactVisualDensity = compactVisualDensity,
                         modifier = Modifier.padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
-                            top = SkydownUiTokens.screenTopPadding + 2.dp,
+                            top = 8.dp,
                             end = SkydownUiTokens.screenHorizontalPadding,
                             bottom = 8.dp,
                         )
@@ -213,14 +216,19 @@ private fun AiHubLoginCard(
     onOpenLogin: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     SkydownCard(
-        modifier = modifier,
+        modifier = modifier.border(
+            width = 1.dp,
+            color = accent.copy(alpha = 0.14f),
+            shape = shape,
+        ),
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = SkydownPanelTitleTextStyle,
         )
         Text(
             text = message,
@@ -231,14 +239,14 @@ private fun AiHubLoginCard(
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiHubBadge(text = "Bot", isAgent = false)
-            AiHubBadge(text = "Agent", isAgent = true)
-            AiHubBadge(text = "Visuals", isAgent = false)
+            AiHubBadge(text = "Bot", accent = MaterialTheme.colorScheme.primary)
+            AiHubBadge(text = "Agent", accent = MaterialTheme.colorScheme.tertiary)
+            AiHubBadge(text = "Visuals", accent = MaterialTheme.colorScheme.secondary)
         }
         BrandActionButton(
             text = "Jetzt anmelden",
             onClick = onOpenLogin,
-            accent = MaterialTheme.colorScheme.primary,
+            accent = accent,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
@@ -252,14 +260,19 @@ private fun AiHubRestrictedCard(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = MaterialTheme.colorScheme.tertiary
+    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     SkydownCard(
-        modifier = modifier,
+        modifier = modifier.border(
+            width = 1.dp,
+            color = accent.copy(alpha = 0.14f),
+            shape = shape,
+        ),
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
             text = "KI derzeit gesperrt",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = SkydownPanelTitleTextStyle,
         )
         Text(
             text = message,
@@ -270,15 +283,14 @@ private fun AiHubRestrictedCard(
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiHubBadge(text = "Bot", isAgent = false)
-            AiHubBadge(text = "Agent", isAgent = true)
-            AiHubBadge(text = "Visuals", isAgent = false)
+            AiHubBadge(text = "Bot", accent = MaterialTheme.colorScheme.primary)
+            AiHubBadge(text = "Agent", accent = MaterialTheme.colorScheme.secondary)
+            AiHubBadge(text = "Visuals", accent = MaterialTheme.colorScheme.tertiary)
         }
         BrandActionButton(
             text = "Einstellungen",
             onClick = onOpenSettings,
-            accent = MaterialTheme.colorScheme.tertiary,
-            filled = false,
+            accent = accent,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
@@ -295,13 +307,18 @@ private fun AiHubCompactHeader(
     compactVisualDensity: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val shellShape = RoundedCornerShape(if (compactVisualDensity) 22.dp else 26.dp)
+    val shellShape = RoundedCornerShape(18.dp)
+    val accent = if (mode == AiHubMode.Agent) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
 
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(if (compactVisualDensity) 7.dp else 9.dp),
+        contentPadding = PaddingValues(8.dp),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shellShape)
@@ -309,9 +326,9 @@ private fun AiHubCompactHeader(
                     Brush.linearGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0.16f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+                            accent.copy(alpha = 0.12f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
                         ),
                     ),
                 )
@@ -320,69 +337,35 @@ private fun AiHubCompactHeader(
                     brush = Brush.linearGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0.30f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.22f),
+                            accent.copy(alpha = 0.24f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
                         ),
                     ),
                     shape = shellShape,
                 )
-                .padding(if (compactVisualDensity) 8.dp else 10.dp),
-            verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 8.dp else 10.dp),
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Sky Intelligence",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "Bot, Agent und Workflows in einem Raum.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                AiHubBadge(
-                    text = if (showsWorkflowWorkspace) "Workflow" else if (mode == AiHubMode.Agent) "Agent" else "Bot",
-                    isAgent = mode == AiHubMode.Agent || showsWorkflowWorkspace,
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AiHubModeButton(
-                    mode = AiHubMode.Bot,
-                    isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
-                    onClick = { onSelectMode(AiHubMode.Bot) },
-                    compactVisualDensity = compactVisualDensity,
-                    modifier = Modifier.weight(1f),
-                )
-                AiHubModeButton(
-                    mode = AiHubMode.Agent,
-                    isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
-                    onClick = { onSelectMode(AiHubMode.Agent) },
-                    compactVisualDensity = compactVisualDensity,
-                    modifier = Modifier.weight(1f),
-                )
-
-                BrandActionButton(
-                    text = if (showsWorkflowWorkspace) "KI" else "Workflow",
-                    onClick = onToggleWorkflow,
-                    accent = MaterialTheme.colorScheme.secondary,
-                    filled = showsWorkflowWorkspace,
-                    compact = true,
-                    modifier = Modifier.widthIn(min = 112.dp),
-                )
-            }
+            AiHubModeButton(
+                mode = AiHubMode.Bot,
+                isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
+                onClick = { onSelectMode(AiHubMode.Bot) },
+                compactVisualDensity = compactVisualDensity,
+                modifier = Modifier.weight(1f),
+            )
+            AiHubModeButton(
+                mode = AiHubMode.Agent,
+                isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
+                onClick = { onSelectMode(AiHubMode.Agent) },
+                compactVisualDensity = compactVisualDensity,
+                modifier = Modifier.weight(1f),
+            )
+            AiHubWorkflowButton(
+                showsWorkflowWorkspace = showsWorkflowWorkspace,
+                onClick = onToggleWorkflow,
+                compactVisualDensity = compactVisualDensity,
+            )
         }
     }
 }
@@ -393,17 +376,22 @@ private fun WorkflowWorkspaceCard(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = MaterialTheme.colorScheme.secondary
+    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     SkydownCard(
-        modifier = modifier,
+        modifier = modifier.border(
+            width = 1.dp,
+            color = accent.copy(alpha = 0.14f),
+            shape = shape,
+        ),
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
             text = "Workflow Cockpit",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = SkydownPanelTitleTextStyle,
         )
         Text(
-            text = "Vom Briefing zur Aktion, ohne die App zu verlassen.",
+            text = "Verbinde Agent, Kontext und Aktionen so, dass auch Laien sofort wissen, was passiert.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -415,17 +403,17 @@ private fun WorkflowWorkspaceCard(
             WorkflowSignalRow(
                 index = "01",
                 title = "Briefing",
-                body = "Aus Idee wird Plan.",
+                body = "Der Agent macht aus einer Idee einen klaren Plan.",
             )
             WorkflowSignalRow(
                 index = "02",
                 title = "Aktion",
-                body = "n8n startet mit Kontext.",
+                body = "Optional wird dein n8n-Workflow mit User-Kontext gestartet.",
             )
             WorkflowSignalRow(
                 index = "03",
                 title = "Rueckweg",
-                body = "Zurueck in SkyOs.",
+                body = "Du bleibst in der App und kannst direkt weiterarbeiten.",
             )
         }
 
@@ -433,15 +421,15 @@ private fun WorkflowWorkspaceCard(
             modifier = Modifier.padding(top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiHubBadge(text = "n8n", isAgent = false)
-            AiHubBadge(text = "Agent", isAgent = true)
-            AiHubBadge(text = "Kontext", isAgent = false)
+            AiHubBadge(text = "n8n", accent = MaterialTheme.colorScheme.secondary)
+            AiHubBadge(text = "Agent", accent = MaterialTheme.colorScheme.primary)
+            AiHubBadge(text = "Kontext", accent = MaterialTheme.colorScheme.tertiary)
         }
 
         BrandActionButton(
             text = "Workflow einrichten",
             onClick = onOpenSettings,
-            accent = MaterialTheme.colorScheme.primary,
+            accent = accent,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
@@ -449,7 +437,7 @@ private fun WorkflowWorkspaceCard(
         BrandActionButton(
             text = "Zur KI zurueck",
             onClick = onClose,
-            accent = MaterialTheme.colorScheme.tertiary,
+            accent = MaterialTheme.colorScheme.primary,
             filled = false,
             modifier = Modifier
                 .fillMaxWidth()
@@ -472,14 +460,14 @@ private fun WorkflowSignalRow(
             modifier = Modifier
                 .size(38.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = index,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -505,29 +493,105 @@ private fun AiHubModeButton(
     compactVisualDensity: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val isAgent = mode == AiHubMode.Agent
-    val accent = if (isAgent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    val icon = if (isAgent) Icons.Default.Bolt else Icons.Default.AutoAwesome
-    val label = if (isAgent) "Agent" else "Bot"
+    val accent = if (mode == AiHubMode.Agent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    val icon = if (mode == AiHubMode.Agent) Icons.Default.Bolt else Icons.Default.AutoAwesome
+    val label = if (mode == AiHubMode.Agent) "Agent" else "Bot"
+    val shape = RoundedCornerShape(16.dp)
+    val backgroundColor = if (isSelected) accent else MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
+    val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    val horizontalPadding = if (compactVisualDensity) 10.dp else 12.dp
 
-    BrandActionButton(
-        text = label,
-        onClick = onClick,
-        accent = accent,
-        icon = icon,
-        filled = isSelected,
-        compact = compactVisualDensity,
-        modifier = modifier,
-    )
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(backgroundColor)
+            .border(
+                width = 1.dp,
+                color = if (isSelected) {
+                    accent.copy(alpha = 0.28f)
+                } else {
+                    accent.copy(alpha = 0.14f)
+                },
+                shape = shape,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = horizontalPadding, vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isSelected) Color.White else accent,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = contentColor,
+            modifier = Modifier.padding(start = 6.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun AiHubWorkflowButton(
+    showsWorkflowWorkspace: Boolean,
+    onClick: () -> Unit,
+    compactVisualDensity: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val accent = MaterialTheme.colorScheme.secondary
+    val shape = RoundedCornerShape(16.dp)
+    val horizontalPadding = if (compactVisualDensity) 10.dp else 12.dp
+
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        accent.copy(alpha = 0.22f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.22f),
+                shape = shape,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = horizontalPadding, vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Icon(
+            imageVector = if (showsWorkflowWorkspace) Icons.Default.Close else Icons.Default.Bolt,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = if (showsWorkflowWorkspace) "Zur KI" else "Workflow",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(start = 6.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable
 private fun AiHubBadge(
     text: String,
-    isAgent: Boolean,
+    accent: Color,
 ) {
-    val accent = if (isAgent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))

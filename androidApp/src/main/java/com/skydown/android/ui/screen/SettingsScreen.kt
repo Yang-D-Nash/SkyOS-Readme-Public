@@ -2488,7 +2488,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                    SkydownCard {
                         SectionHeader("Konto")
                         if (uiState.isLoggedIn) {
                             Text(
@@ -2617,7 +2617,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                    SkydownCard {
                         SectionHeader("Owner")
                         Text(
                             text = if (uiState.isOwner) {
@@ -2698,7 +2698,7 @@ fun SettingsScreen(
 
                 if (uiState.isLoggedIn) {
                     item {
-                        SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                        SkydownCard {
                             SectionHeader("Mein Agent-Service")
                             Text(
                                 text = "Verbinde n8n, Agent-Skills und optional Manus fuer dein Konto.",
@@ -2771,7 +2771,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                    SkydownCard {
                         val notificationsEnabledToast = stringResource(R.string.settings_notifications_toast_enabled)
                         val notificationsEnableInSettingsToast = stringResource(R.string.settings_notifications_toast_enable_in_settings)
                         val notificationsManageInSettingsToast = stringResource(R.string.settings_notifications_toast_manage_in_settings)
@@ -2816,7 +2816,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                    SkydownCard {
                         SectionHeader("Anzeige")
                         Text(
                             text = "Aktuell: ${uiState.colorScheme.label}",
@@ -2835,7 +2835,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                    SkydownCard {
                         SectionHeader("App-Info")
                         Text(
                             text = "Version ${uiState.appVersion}",
@@ -3165,7 +3165,6 @@ private fun PaymentProviderAdminCard(
 ) {
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -3259,7 +3258,6 @@ private fun StripeBackendSecretsAdminCard(
 ) {
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -3367,7 +3365,6 @@ private fun BankTransferAdminCard(
 ) {
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -3564,7 +3561,7 @@ private fun ProfileEditorCard(
 private fun SettingsOverviewCard(
     uiState: SettingsUiState,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         Row(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top,
@@ -3834,7 +3831,7 @@ private fun SettingsLegalDocumentSheet(
             }
 
             items(document.sections) { section ->
-                SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                SkydownCard {
                     Text(
                         text = section.title,
                         style = MaterialTheme.typography.titleMedium,
@@ -3850,7 +3847,7 @@ private fun SettingsLegalDocumentSheet(
             }
 
             item {
-                SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                SkydownCard {
                     Text(
                         text = "Kontakt",
                         style = MaterialTheme.typography.titleMedium,
@@ -3985,31 +3982,50 @@ private fun SettingsBadge(
         modifier
     }
 
-    Row(
-        modifier = badgeModifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            text = text,
-            color = contentColor,
-            style = MaterialTheme.typography.labelLarge,
-        )
-        if (onClick != null) {
+    if (onClick != null) {
+        Row(
+            modifier = badgeModifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(backgroundColor)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = text,
+                color = contentColor,
+                style = MaterialTheme.typography.labelLarge,
+            )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
                 tint = contentColor.copy(alpha = 0.82f),
                 modifier = Modifier.size(14.dp),
+            )
+        }
+    } else {
+        Row(
+            modifier = modifier.padding(vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor.copy(alpha = if (isActive) 0.82f else 0.64f),
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = text,
+                color = contentColor.copy(alpha = if (isActive) 0.88f else 0.68f),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }
@@ -4344,7 +4360,6 @@ private fun AdminUserRoleGuideCard(
 ) {
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
     ) {
         Text(
             text = "Rollen im System",
@@ -4613,7 +4628,6 @@ private fun AdminManagedUserCard(
 
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

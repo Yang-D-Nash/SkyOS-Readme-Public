@@ -343,7 +343,7 @@ private fun BeatHubUploadCard(
 ) {
     val context = LocalContext.current
 
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Beat Upload")
         Text(
             text = "Nur Admins laden neue Beats oder ZIP-Sessions hoch. Audio-Dateien koennen danach direkt im Hub getestet und bei Bedarf verborgen werden.",
@@ -498,7 +498,7 @@ private fun BeatHubLibrarySection(
     onVisibilityToggle: (NicmaBeatHubItem) -> Unit,
     onDeleteBeat: (NicmaBeatHubItem) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Beat Library")
         Text(
             text = if (uiState.isAdmin) {

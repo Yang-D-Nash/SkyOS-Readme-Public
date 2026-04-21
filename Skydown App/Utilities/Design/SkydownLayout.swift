@@ -13,13 +13,13 @@ import UIKit
 enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 18
     static let screenTopPadding: CGFloat = 12
-    static let screenBottomPadding: CGFloat = 18
+    static let screenBottomPadding: CGFloat = 16
     static let sectionSpacing: CGFloat = 16
     static let cardPadding: CGFloat = 16
-    static let heroPadding: CGFloat = 20
-    static let cardCornerRadius: CGFloat = 26
-    static let heroCornerRadius: CGFloat = 30
-    static let buttonCornerRadius: CGFloat = 20
+    static let heroPadding: CGFloat = 18
+    static let cardCornerRadius: CGFloat = 28
+    static let heroCornerRadius: CGFloat = 34
+    static let buttonCornerRadius: CGFloat = 22
 }
 
 enum SkydownMotion {
@@ -370,8 +370,6 @@ private struct SkydownLuminousSweepModifier: ViewModifier {
     let cornerRadius: CGFloat
     let accent: Color
     let alpha: CGFloat
-    let duration: Double
-    @State private var travel: CGFloat = -1.08
 
     func body(content: Content) -> some View {
         content
@@ -392,7 +390,7 @@ private struct SkydownLuminousSweepModifier: ViewModifier {
                     )
                     .frame(width: max(width * 0.28, 78), height: height * 1.8)
                     .rotationEffect(.degrees(18))
-                    .offset(x: travel * width, y: -height * 0.18)
+                    .offset(x: width * 0.22, y: -height * 0.18)
                     .blur(radius: 10)
                     .blendMode(.screen)
                     .mask(
@@ -403,12 +401,6 @@ private struct SkydownLuminousSweepModifier: ViewModifier {
                     )
                 }
                 .allowsHitTesting(false)
-            }
-            .task {
-                guard travel < 0 else { return }
-                withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
-                    travel = 1.18
-                }
             }
     }
 }
@@ -455,16 +447,16 @@ private struct SkydownTabBarAppearanceView: UIViewRepresentable {
         appearance.configureWithTransparentBackground()
         appearance.shadowColor = UIColor(
             colorScheme == .dark
-                ? Color.white.opacity(0.02)
-                : Color.black.opacity(0.05)
+                ? AppColors.luminanceLift(for: colorScheme).opacity(0.04)
+                : AppColors.cinematicShadow(for: colorScheme).opacity(0.05)
         )
         appearance.backgroundEffect = UIBlurEffect(
-            style: colorScheme == .dark ? .systemUltraThinMaterialDark : .systemThinMaterialLight
+            style: colorScheme == .dark ? .systemThinMaterialDark : .systemMaterialLight
         )
         appearance.backgroundColor = UIColor(
             colorScheme == .dark
-                ? AppColors.cardBackground(for: colorScheme).opacity(0.42)
-                : Color.white.opacity(0.76)
+                ? AppColors.cardBackground(for: colorScheme).opacity(0.48)
+                : AppColors.cardBackground(for: colorScheme).opacity(0.78)
         )
         appearance.selectionIndicatorImage = selectionIndicatorImage()
 
@@ -497,20 +489,40 @@ private struct SkydownTabBarAppearanceView: UIViewRepresentable {
     }
 
     private func selectionIndicatorImage() -> UIImage {
-        let size = CGSize(width: 82, height: 36)
+        let size = CGSize(width: 88, height: 40)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { _ in
             let rect = CGRect(origin: .zero, size: size).insetBy(dx: 3, dy: 3)
-            let path = UIBezierPath(roundedRect: rect, cornerRadius: 18)
-            UIColor(
-                accent
-                    .opacity(colorScheme == .dark ? 0.22 : 0.12)
-            ).setFill()
-            path.fill()
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: 20)
+            guard let context = UIGraphicsGetCurrentContext() else { return }
+            context.saveGState()
+            path.addClip()
+
+            let gradientColors = [
+                UIColor(AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.22)).cgColor,
+                UIColor(accent.opacity(colorScheme == .dark ? 0.24 : 0.16)).cgColor,
+                UIColor(AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.10)).cgColor,
+            ] as CFArray
+            let gradient = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: gradientColors,
+                locations: [0, 0.58, 1]
+            )
+
+            if let gradient {
+                context.drawLinearGradient(
+                    gradient,
+                    start: CGPoint(x: rect.minX, y: rect.minY),
+                    end: CGPoint(x: rect.maxX, y: rect.maxY),
+                    options: []
+                )
+            }
+
+            context.restoreGState()
 
             UIColor(
                 AppColors.luminanceLift(for: colorScheme)
-                    .opacity(colorScheme == .dark ? 0.18 : 0.14)
+                    .opacity(colorScheme == .dark ? 0.22 : 0.20)
             ).setStroke()
             path.lineWidth = 1
             path.stroke()
@@ -531,79 +543,85 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
     let shadowRadius: CGFloat
     let shadowYOffset: CGFloat
 
-    private var strokeColor: Color {
-        (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.10 : 0.11)
+    private var resolvedAccent: Color {
+        accent ?? AppColors.accent(for: colorScheme)
+    }
+
+    private var strokeGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.24),
+                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.12),
+                resolvedAccent.opacity(colorScheme == .dark ? 0.10 : 0.09),
+                AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.02 : 0.03)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     @ViewBuilder
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular.interactive(false), in: shape)
-                .background {
+        content
+            .background {
+                ZStack {
                     shape.fill(
                         LinearGradient(
                             colors: [
-                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.24 : 0.56),
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.58 : 0.88),
-                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.32 : 0.68),
-                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.07 : 0.05),
-                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.05 : 0.03)
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.26),
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.97 : 0.985),
+                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.42 : 0.58),
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.04),
+                                resolvedAccent.opacity(colorScheme == .dark ? 0.032 : 0.028)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
+
+                    shape.fill(
+                        RadialGradient(
+                            colors: [
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.20),
+                                resolvedAccent.opacity(colorScheme == .dark ? 0.05 : 0.06),
+                                .clear
+                            ],
+                            center: .topLeading,
+                            startRadius: 10,
+                            endRadius: cornerRadius * 7
+                        )
+                    )
+
+                    shape.fill(
+                        RadialGradient(
+                            colors: [
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.08),
+                                resolvedAccent.opacity(colorScheme == .dark ? 0.04 : 0.05),
+                                .clear
+                            ],
+                            center: UnitPoint(x: 0.88, y: 0.86),
+                            startRadius: 12,
+                            endRadius: cornerRadius * 8
+                        )
+                    )
                 }
-                .overlay {
-                    shape
-                        .stroke(strokeColor, lineWidth: 1)
-                }
-                .clipShape(shape)
-                .shadow(
-                    color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.46 : 0.28),
-                    radius: shadowRadius - 1,
-                    y: shadowYOffset
-                )
-        } else {
-            content
-                .background {
-                    shape
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            shape.fill(
-                                LinearGradient(
-                                    colors: [
-                                        AppColors.luminanceLift(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.20 : 0.54),
-                                        AppColors.cardBackground(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.82 : 0.92),
-                                        AppColors.secondaryBackground(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.36 : 0.70),
-                                        (accent ?? AppColors.accent(for: colorScheme))
-                                            .opacity(colorScheme == .dark ? 0.07 : 0.05),
-                                        AppColors.accentHighlight(for: colorScheme)
-                                            .opacity(colorScheme == .dark ? 0.05 : 0.03)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                        }
-                }
-                .overlay {
-                    shape
-                        .stroke(strokeColor, lineWidth: 1)
-                }
-                .clipShape(shape)
-                .shadow(
-                    color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.46 : 0.28),
-                    radius: shadowRadius - 1,
-                    y: shadowYOffset
-                )
-        }
+            }
+            .overlay {
+                shape
+                    .stroke(strokeGradient, lineWidth: 0.9)
+            }
+            .clipShape(shape)
+            .shadow(
+                color: resolvedAccent.opacity(colorScheme == .dark ? 0.04 : 0.035),
+                radius: max(shadowRadius - 7, 5),
+                y: max(shadowYOffset - 5, 2)
+            )
+            .shadow(
+                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.24 : 0.14),
+                radius: max(shadowRadius - 1, 8),
+                y: max(shadowYOffset, 4)
+            )
     }
 }
 
@@ -620,10 +638,10 @@ private struct SkydownCapsuleSurfaceModifier: ViewModifier {
 
         return LinearGradient(
             colors: [
-                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.52),
-                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.76 : 0.88),
-                resolvedAccent.opacity(colorScheme == .dark ? 0.07 : 0.07),
-                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.04)
+                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.32),
+                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.80 : 0.92),
+                resolvedAccent.opacity(colorScheme == .dark ? 0.05 : 0.05),
+                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.03)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -633,65 +651,55 @@ private struct SkydownCapsuleSurfaceModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         let shape = Capsule(style: .continuous)
-
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular.interactive(false), in: shape)
-                .background {
+        content
+            .background {
+                ZStack {
                     shape.fill(fillGradient)
-                }
-                .overlay {
-                    shape
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.36),
-                                    strokeColor,
-                                    (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.14 : 0.14)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
+                    shape.fill(
+                        RadialGradient(
+                            colors: [
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.14),
+                                .clear
+                            ],
+                            center: .topLeading,
+                            startRadius: 4,
+                            endRadius: 180
                         )
-                }
-                .clipShape(shape)
-                .shadow(
-                    color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.34 : 0.22),
-                    radius: 8,
-                    y: 4
-                )
-        } else {
-            content
-                .background {
-                    shape
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            shape.fill(fillGradient)
-                        }
-                }
-                .overlay {
-                    shape
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.36),
-                                    strokeColor,
-                                    (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.14 : 0.14)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
+                    )
+                    shape.fill(
+                        RadialGradient(
+                            colors: [
+                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.04 : 0.05),
+                                .clear
+                            ],
+                            center: UnitPoint(x: 0.92, y: 0.86),
+                            startRadius: 8,
+                            endRadius: 200
                         )
+                    )
                 }
-                .clipShape(shape)
-                .shadow(
-                    color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.34 : 0.22),
-                    radius: 8,
-                    y: 4
-                )
-        }
+            }
+            .overlay {
+                shape
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.22),
+                                strokeColor,
+                                (accent ?? AppColors.accent(for: colorScheme)).opacity(colorScheme == .dark ? 0.08 : 0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.9
+                    )
+            }
+            .clipShape(shape)
+            .shadow(
+                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.10),
+                radius: 7,
+                y: 3
+            )
     }
 }
 
@@ -766,12 +774,12 @@ extension View {
         alpha: CGFloat = 0.18,
         duration: Double = SkydownMotion.ambientLoopDuration
     ) -> some View {
-        modifier(
+        _ = duration
+        return modifier(
             SkydownLuminousSweepModifier(
                 cornerRadius: cornerRadius,
                 accent: accent,
-                alpha: alpha,
-                duration: duration
+                alpha: alpha
             )
         )
     }

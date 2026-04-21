@@ -1,6 +1,4 @@
 package com.skydown.android.ui.screen
-
-import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MusicNote
@@ -64,6 +63,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -84,7 +85,6 @@ import com.skydown.android.data.AppContainer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
@@ -103,11 +103,17 @@ import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.component.openTrackInSpotify
 import com.skydown.android.ui.model.MusicUiState
 import com.skydown.android.ui.model.MusicInstagramDestination
-import com.skydown.android.ui.theme.ArenaGold
-import com.skydown.android.ui.theme.DexBlueDeep
-import com.skydown.android.ui.theme.FieldMint
 import com.skydown.android.ui.theme.InstagramOrange
+import com.skydown.android.ui.theme.SkydownCardTitleTextStyle
+import com.skydown.android.ui.theme.SkydownEditorialCaptionTextStyle
 import com.skydown.android.ui.theme.SpotifyGreen
+import com.skydown.android.ui.theme.skydownAccent
+import com.skydown.android.ui.theme.skydownAccentHighlight
+import com.skydown.android.ui.theme.skydownAccentMystic
+import com.skydown.android.ui.theme.skydownCardBackground
+import com.skydown.android.ui.theme.skydownIsDarkPalette
+import com.skydown.android.ui.theme.skydownSecondaryBackground
+import com.skydown.android.ui.theme.skydownSpotify
 import com.skydown.android.ui.viewmodel.MusicViewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -149,7 +155,7 @@ fun MusicScreen(
     val artistSectionIndex = if (hasShortcutHub) 3 else 2
     val spotifyStatusSectionIndex = if (hasShortcutHub) 5 else 4
     val tracksSectionIndex = if (uiState.tracks.isNotEmpty()) {
-        if (hasShortcutHub) 7 else 6
+        if (hasShortcutHub) 6 else 5
     } else {
         spotifyStatusSectionIndex
     }
@@ -348,15 +354,14 @@ fun MusicScreen(
             }
         },
     ) { innerPadding ->
+        val colorScheme = MaterialTheme.colorScheme
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     skydownScreenBrush(
-                        primaryColor = SpotifyGreen,
-                        secondaryColor = ArenaGold,
-                        primaryAlpha = 0.075f,
-                        secondaryAlpha = 0.050f,
+                        primaryColor = colorScheme.skydownAccent(),
+                        secondaryColor = colorScheme.skydownSpotify(),
                     ),
                 ),
         ) {
@@ -386,6 +391,9 @@ fun MusicScreen(
                         MusicOverviewCard(
                             uiState = uiState,
                             compactVisualDensity = compactVisualDensity,
+                            onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
+                                { openArtistPage(uiState.selectedArtist) }
+                            },
                             onOpenArtistHub = {
                                 coroutineScope.launch {
                                     listState.animateScrollToItem(artistSectionIndex)
@@ -409,26 +417,20 @@ fun MusicScreen(
                             uiState = uiState,
                             selectedTrack = selectedTrack,
                             artistPage = selectedArtistPage,
-                            onOpenInstagram = {
-                                uiState.selectedArtistSocialProfile?.let { socialProfile ->
-                                    openExternalLink(context, socialProfile.instagramUrl)
-                                }
+                            isPreviewPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
+                            onPlayPreview = {
+                                selectedTrack?.let(viewModel::togglePreview)
                             },
-                            onConnect = {
-                                viewModel.clearSpotifyError()
-                                openExternalIntent(
+                            onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
+                                { openArtistPage(uiState.selectedArtist) }
+                            },
+                            onOpenSpotify = {
+                                openTrackInSpotify(
                                     context = context,
-                                    intent = Intent(Intent.ACTION_VIEW, SpotifyAuthManager.buildAuthorizationUri()),
-                                    missingMessage = "Spotify konnte nicht gestartet werden.",
+                                    spotifyArtistId = selectedTrack?.spotifyArtistId,
+                                    spotifyTrackId = selectedTrack?.spotifyTrackId,
+                                    externalUrl = selectedTrack?.externalUrl,
                                 )
-                            },
-                            onDisconnect = {
-                                player.stop()
-                                player.clearMediaItems()
-                                viewModel.disconnectSpotify()
-                            },
-                            onOpenArtistPage = {
-                                onOpenArtistPage?.invoke(uiState.selectedArtist)
                             },
                         )
                     }
@@ -494,23 +496,6 @@ fun MusicScreen(
 
                     if (uiState.tracks.isNotEmpty()) {
                         item {
-                            MusicPlayerCard(
-                                track = selectedTrack,
-                                isPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
-                                onPlayToggle = {
-                                    selectedTrack?.let { viewModel.togglePreview(it) }
-                                },
-                                onOpenSpotify = {
-                                    openTrackInSpotify(
-                                        context = context,
-                                        spotifyTrackId = selectedTrack?.spotifyTrackId,
-                                        externalUrl = selectedTrack?.externalUrl,
-                                    )
-                                },
-                            )
-                        }
-
-                        item {
                             BrandSectionBanner(
                                 title = "Tracks",
                                 subtitle = "${uiState.tracks.size} Tracks im aktuellen Artist-Set.",
@@ -542,7 +527,7 @@ private fun MusicInstagramHubCard(
     destinations: List<MusicInstagramDestination>,
     onOpenLink: (String) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         BrandSectionBanner(
             title = "Instagram",
             subtitle = "Artist-Links und direkte Wege in den Social Feed.",
@@ -612,40 +597,137 @@ private fun MusicShortcutHubCard(
     onOpenStudio: (() -> Unit)?,
     onOpenBeatHub: (() -> Unit)?,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val colorScheme = MaterialTheme.colorScheme
+    val beatAccent = colorScheme.skydownAccent()
+    val studioAccent = colorScheme.skydownAccentMystic()
+    SkydownCard {
         BrandSectionBanner(
-            title = "Quick Links",
-            subtitle = "Direkt zu Studio und Beats.",
-            accent = ArenaGold,
+            title = "Quick Access",
+            subtitle = "Die wichtigsten Wege bleiben direkt auf der Music-Seite sichtbar.",
+            accent = beatAccent,
             icon = Icons.Default.AutoAwesome,
             tag = "LINKS",
         )
 
-        Column(
+        BoxWithConstraints(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            onOpenStudio?.let { openStudio ->
-                BrandActionButton(
-                    text = "Studio",
-                    onClick = openStudio,
-                    accent = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Default.AutoAwesome,
-                )
-            }
+            val stackTiles = maxWidth < 420.dp || onOpenStudio == null || onOpenBeatHub == null
 
-            onOpenBeatHub?.let { openBeatHub ->
-                BrandActionButton(
-                    text = "Beat Hub",
-                    onClick = openBeatHub,
-                    accent = ArenaGold,
+            if (stackTiles) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    onOpenBeatHub?.let { openBeatHub ->
+                        MusicQuickAccessTile(
+                            title = "Beat Hub",
+                            subtitle = "Playback, Auswahl, Vibe",
+                            accent = beatAccent,
+                            icon = Icons.Default.GraphicEq,
+                            onClick = openBeatHub,
+                        )
+                    }
+
+                    onOpenStudio?.let { openStudio ->
+                        MusicQuickAccessTile(
+                            title = "Studio",
+                            subtitle = "Record, Mix, Master",
+                            accent = studioAccent,
+                            icon = Icons.Default.AutoAwesome,
+                            onClick = openStudio,
+                        )
+                    }
+                }
+            } else {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Default.GraphicEq,
-                    filled = false,
-                )
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    MusicQuickAccessTile(
+                        title = "Beat Hub",
+                        subtitle = "Playback, Auswahl, Vibe",
+                        accent = beatAccent,
+                        icon = Icons.Default.GraphicEq,
+                        onClick = onOpenBeatHub,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    MusicQuickAccessTile(
+                        title = "Studio",
+                        subtitle = "Record, Mix, Master",
+                        accent = studioAccent,
+                        icon = Icons.Default.AutoAwesome,
+                        onClick = onOpenStudio,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun MusicQuickAccessTile(
+    title: String,
+    subtitle: String,
+    accent: Color,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                musicSurfaceBrush(
+                    primaryAccent = accent,
+                    secondaryAccent = SpotifyGreen,
+                ),
+            )
+            .border(
+                width = 1.dp,
+                color = musicSurfaceBorderColor(accent),
+                shape = RoundedCornerShape(20.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(accent.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        }
+
+        Icon(
+            imageVector = Icons.Default.ArrowOutward,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
 }
 
@@ -663,7 +745,7 @@ private fun MusicPlayerCard(
     val hasSpotifySearch = !track.externalUrl.isNullOrBlank() && !hasDirectSpotifyTrack && !hasSpotifyArtistLink
     val hasPreview = !track.previewUrl.isNullOrBlank()
 
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         val playerAccent = if (!track.spotifyTrackId.isNullOrBlank()) SpotifyGreen else MaterialTheme.colorScheme.primary
 
         BrandSectionBanner(
@@ -882,6 +964,7 @@ private fun MusicPlayerCard(
 private fun MusicOverviewCard(
     uiState: MusicUiState,
     compactVisualDensity: Boolean,
+    onOpenArtistPage: (() -> Unit)?,
     onOpenArtistHub: () -> Unit,
     onOpenTracks: () -> Unit,
     onOpenSpotifyStatus: () -> Unit,
@@ -889,16 +972,19 @@ private fun MusicOverviewCard(
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     val socialProfile = uiState.selectedArtistSocialProfile
     val trackLabel = musicTrackLabel(uiState)
+    val colorScheme = MaterialTheme.colorScheme
+    val beatAccent = colorScheme.skydownAccent()
+    val statusAccent = colorScheme.skydownAccentMystic()
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SKY OS" },
+        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
         subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Artists, Releases und Spotify im SkyOs Sound-Flow." },
         detail = screenHeaderSettings.musicHubDetail.ifBlank {
-            "${uiState.selectedArtist} im Fokus. $trackLabel und ${uiState.availableArtists.size} Artists live."
+            "${uiState.selectedArtist} und alle Artists direkt im Katalog."
         },
         backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
         accent = SpotifyGreen,
-        secondaryAccent = ArenaGold,
+        secondaryAccent = beatAccent,
         marks = listOf(BrandArtwork.Zweizwei),
         compactVisualDensity = compactVisualDensity,
     ) {
@@ -913,18 +999,20 @@ private fun MusicOverviewCard(
                     onClick = onOpenArtistHub,
                 )
                 BrandPill(
-                    text = "${uiState.availableArtists.size} Artists",
-                    tint = ArenaGold,
-                    onClick = onOpenArtistHub,
-                )
-                BrandPill(
                     text = trackLabel,
-                    tint = ArenaGold,
+                    tint = beatAccent,
                     onClick = onOpenTracks,
                 )
+                onOpenArtistPage?.let { openArtistPage ->
+                    BrandPill(
+                        text = "Artist Page",
+                        tint = beatAccent,
+                        onClick = openArtistPage,
+                    )
+                }
                 BrandPill(
-                    text = if (uiState.isSpotifyConnected) "Spotify live" else "Spotify standby",
-                    tint = if (uiState.isSpotifyConnected) FieldMint else MaterialTheme.colorScheme.secondary,
+                    text = if (uiState.isSpotifyConnected) "Spotify live" else "Preview ready",
+                    tint = statusAccent,
                     onClick = onOpenSpotifyStatus,
                 )
             }
@@ -948,7 +1036,7 @@ private fun MusicOverviewCard(
                             label = "Tracks",
                             value = trackLabel,
                             icon = Icons.Default.GraphicEq,
-                            accent = ArenaGold,
+                            accent = beatAccent,
                             isActive = uiState.isLoading || uiState.tracks.isNotEmpty(),
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -956,7 +1044,7 @@ private fun MusicOverviewCard(
                             label = "Status",
                             value = musicHeroStatusValue(uiState),
                             icon = Icons.Default.Sync,
-                            accent = FieldMint,
+                            accent = statusAccent,
                             isActive = uiState.currentPreviewUrl != null || uiState.isSpotifyConnected || uiState.isLoading,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -978,7 +1066,7 @@ private fun MusicOverviewCard(
                             label = "Tracks",
                             value = trackLabel,
                             icon = Icons.Default.GraphicEq,
-                            accent = ArenaGold,
+                            accent = beatAccent,
                             isActive = uiState.isLoading || uiState.tracks.isNotEmpty(),
                             modifier = Modifier.weight(1f),
                         )
@@ -986,7 +1074,7 @@ private fun MusicOverviewCard(
                             label = "Status",
                             value = musicHeroStatusValue(uiState),
                             icon = Icons.Default.Sync,
-                            accent = FieldMint,
+                            accent = statusAccent,
                             isActive = uiState.currentPreviewUrl != null || uiState.isSpotifyConnected || uiState.isLoading,
                             modifier = Modifier.weight(1f),
                         )
@@ -1039,74 +1127,44 @@ private fun musicTrackLabel(uiState: MusicUiState): String {
 private fun MusicStageBackdrop(
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier) {
-        MusicBackdropHalo(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 12.dp, start = 14.dp),
-            size = 170.dp,
-            tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.12f),
-        )
-        MusicBackdropHalo(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 26.dp, end = 8.dp),
-            size = 220.dp,
-            tint = SpotifyGreen.copy(alpha = 0.14f),
-        )
-        MusicBackdropHalo(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 0.dp, bottom = 64.dp),
-            size = 210.dp,
-            tint = ArenaGold.copy(alpha = 0.12f),
-        )
-        MusicBackdropHalo(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 10.dp, bottom = 110.dp),
-            size = 240.dp,
-            tint = FieldMint.copy(alpha = 0.10f),
-        )
-    }
-}
-
-@Composable
-private fun MusicBackdropHalo(
-    modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp,
-    tint: Color,
-) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
     Box(
-        modifier = modifier.size(size),
-        contentAlignment = Alignment.Center,
-    ) {
-        listOf(1f, 0.72f, 0.46f).forEachIndexed { index, scale ->
-            Box(
-                modifier = Modifier
-                    .size(size * scale)
-                    .border(
-                        width = 1.dp,
-                        color = tint.copy(alpha = 0.20f - (index * 0.04f)),
-                        shape = CircleShape,
+        modifier = modifier.drawWithContent {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        colorScheme.skydownSpotify().copy(alpha = if (isDarkPalette) 0.18f else 0.08f),
+                        Color.Transparent,
                     ),
-            )
-        }
-        Box(
-            modifier = Modifier
-                .size(size * 0.16f)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            tint.copy(alpha = 0.28f),
-                            tint.copy(alpha = 0.08f),
-                            Color.Transparent,
-                        ),
-                    ),
-                    shape = CircleShape,
+                    center = Offset(size.width, 0f),
+                    radius = 320.dp.toPx(),
                 ),
-        )
-    }
+            )
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.14f else 0.06f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(0f, size.height),
+                    radius = 300.dp.toPx(),
+                ),
+            )
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDarkPalette) 0.05f else 0.10f),
+                        Color.Transparent,
+                        Color.Black.copy(alpha = if (isDarkPalette) 0.05f else 0.02f),
+                    ),
+                    startY = 0f,
+                    endY = size.height,
+                ),
+            )
+            drawContent()
+        },
+    )
 }
 
 @Composable
@@ -1114,32 +1172,34 @@ private fun MusicSpotlightDeckCard(
     uiState: MusicUiState,
     selectedTrack: com.skydown.shared.model.Track?,
     artistPage: com.skydown.android.data.ArtistPageUi,
-    onOpenInstagram: () -> Unit,
-    onConnect: () -> Unit,
-    onDisconnect: () -> Unit,
-    onOpenArtistPage: () -> Unit,
+    isPreviewPlaying: Boolean,
+    onPlayPreview: () -> Unit,
+    onOpenArtistPage: (() -> Unit)?,
+    onOpenSpotify: () -> Unit,
 ) {
-    val socialProfile = uiState.selectedArtistSocialProfile
     val trackLabel = musicTrackLabel(uiState)
     val heroImage = artistPage.heroImageURL ?: selectedTrack?.artworkUrl100
-    val spotlightSubtitle = if (socialProfile != null) {
-        "${uiState.selectedArtist} ist im Fokus. Socials, Artist-Page und Spotify liegen direkt in Reichweite."
-    } else {
-        "${uiState.selectedArtist} ist im Fokus. Die Stage bleibt offen fuer Artist-Page und Spotify."
+    val colorScheme = MaterialTheme.colorScheme
+    val accentFallback = colorScheme.skydownAccent()
+    val statusAccent = colorScheme.skydownAccentMystic()
+    val hasPreview = !selectedTrack?.previewUrl.isNullOrBlank()
+    val hasSpotifyTrack = selectedTrack != null &&
+        musicScreenResolvedSpotifyTrackId(selectedTrack.spotifyTrackId, selectedTrack.externalUrl) != null
+    val hasSpotifyArtistLink = selectedTrack != null &&
+        musicScreenResolvedSpotifyArtistId(selectedTrack.spotifyArtistId, selectedTrack.externalUrl) != null &&
+        !hasSpotifyTrack
+    val hasSpotifySearch = selectedTrack?.externalUrl?.isNotBlank() == true &&
+        !hasSpotifyTrack &&
+        !hasSpotifyArtistLink
+    val spotlightStatus = when {
+        uiState.isSpotifyConnected -> "Spotify live"
+        hasPreview -> "Preview ready"
+        else -> "Ready"
     }
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
-        BrandSectionBanner(
-            title = "Artist Hub",
-            subtitle = spotlightSubtitle,
-            accent = SpotifyGreen,
-            icon = Icons.Default.AutoAwesome,
-            tag = "SPOTLIGHT",
-        )
-
+    SkydownCard {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 14.dp),
         ) {
             val stackHero = maxWidth < 380.dp
 
@@ -1147,7 +1207,7 @@ private fun MusicSpotlightDeckCard(
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     MusicSpotlightArtwork(
                         imageUrl = heroImage,
-                        accent = if (uiState.isSpotifyConnected) SpotifyGreen else ArenaGold,
+                        accent = if (uiState.isSpotifyConnected) SpotifyGreen else accentFallback,
                         frameSize = 110.dp,
                         modifier = Modifier.size(110.dp),
                     )
@@ -1155,20 +1215,47 @@ private fun MusicSpotlightDeckCard(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "ARTIST DECK",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SpotifyGreen,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            if (uiState.isSpotifyConnected) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                ) {
+                                    Text(
+                                        text = "Live",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                        }
                         Text(
-                            text = uiState.selectedArtist,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Black,
+                            text = selectedTrack?.trackName ?: uiState.selectedArtist,
+                            style = SkydownCardTitleTextStyle,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = artistPage.tagline ?: socialProfile?.handle ?: "SkyOs Artist Hub",
+                            text = artistPage.tagline ?: selectedTrack?.artistName ?: uiState.selectedArtist,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                         )
                         Text(
-                            text = artistPage.bio ?: selectedTrack?.trackName?.let { "Aktueller Fokus: $it" }
-                                ?: "Die Stage bleibt bereit fuer Releases, Clips und Social Touchpoints.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = artistPage.bio
+                                ?: "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Hub.",
+                            style = SkydownEditorialCaptionTextStyle,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis,
@@ -1183,7 +1270,7 @@ private fun MusicSpotlightDeckCard(
                 ) {
                     MusicSpotlightArtwork(
                         imageUrl = heroImage,
-                        accent = if (uiState.isSpotifyConnected) SpotifyGreen else ArenaGold,
+                        accent = if (uiState.isSpotifyConnected) SpotifyGreen else accentFallback,
                         frameSize = 110.dp,
                         modifier = Modifier.size(110.dp),
                     )
@@ -1192,20 +1279,47 @@ private fun MusicSpotlightDeckCard(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "ARTIST DECK",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SpotifyGreen,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            if (uiState.isSpotifyConnected) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                ) {
+                                    Text(
+                                        text = "Live",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                        }
                         Text(
-                            text = uiState.selectedArtist,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Black,
+                            text = selectedTrack?.trackName ?: uiState.selectedArtist,
+                            style = SkydownCardTitleTextStyle,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = artistPage.tagline ?: socialProfile?.handle ?: "SkyOs Artist Hub",
+                            text = artistPage.tagline ?: selectedTrack?.artistName ?: uiState.selectedArtist,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                         )
                         Text(
-                            text = artistPage.bio ?: selectedTrack?.trackName?.let { "Aktueller Fokus: $it" }
-                                ?: "Die Stage bleibt bereit fuer Releases, Clips und Social Touchpoints.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = artistPage.bio
+                                ?: "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Hub.",
+                            style = SkydownEditorialCaptionTextStyle,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis,
@@ -1213,20 +1327,6 @@ private fun MusicSpotlightDeckCard(
                     }
                 }
             }
-        }
-
-        Row(
-            modifier = Modifier
-                .padding(top = 14.dp)
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            BrandPill(text = uiState.selectedArtist, tint = SpotifyGreen)
-            BrandPill(text = trackLabel, tint = ArenaGold)
-            BrandPill(
-                text = if (uiState.isSpotifyConnected) "Hub live" else "Hub standby",
-                tint = if (uiState.isSpotifyConnected) FieldMint else MaterialTheme.colorScheme.secondary,
-            )
         }
 
         BoxWithConstraints(
@@ -1239,25 +1339,21 @@ private fun MusicSpotlightDeckCard(
             if (stackMetrics) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     MusicDeckMetricCard(
-                        label = "Lead Track",
-                        value = selectedTrack?.trackName ?: "Kein Track",
+                        label = "Track",
+                        value = trackLabel,
                         accent = SpotifyGreen,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     MusicDeckMetricCard(
-                        label = "Links",
-                        value = buildString {
-                            append(if (socialProfile != null) "IG" else "Feed")
-                            append(" / ")
-                            append(if (!artistPage.spotifyURL.isNullOrBlank()) "Spotify" else "Page")
-                        },
-                        accent = ArenaGold,
+                        label = "Artist",
+                        value = uiState.selectedArtist,
+                        accent = accentFallback,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     MusicDeckMetricCard(
                         label = "Status",
-                        value = musicHeroStatusValue(uiState),
-                        accent = FieldMint,
+                        value = spotlightStatus,
+                        accent = statusAccent,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -1267,101 +1363,114 @@ private fun MusicSpotlightDeckCard(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     MusicDeckMetricCard(
-                        label = "Lead Track",
-                        value = selectedTrack?.trackName ?: "Kein Track",
+                        label = "Track",
+                        value = trackLabel,
                         accent = SpotifyGreen,
                         modifier = Modifier.weight(1f),
                     )
                     MusicDeckMetricCard(
-                        label = "Links",
-                        value = buildString {
-                            append(if (socialProfile != null) "IG" else "Feed")
-                            append(" / ")
-                            append(if (!artistPage.spotifyURL.isNullOrBlank()) "Spotify" else "Page")
-                        },
-                        accent = ArenaGold,
+                        label = "Artist",
+                        value = uiState.selectedArtist,
+                        accent = accentFallback,
                         modifier = Modifier.weight(1f),
                     )
                     MusicDeckMetricCard(
                         label = "Status",
-                        value = musicHeroStatusValue(uiState),
-                        accent = FieldMint,
+                        value = spotlightStatus,
+                        accent = statusAccent,
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
         }
 
-        Column(
+        Text(
+            text = if (!selectedTrack?.collectionName.isNullOrBlank()) {
+                "Aktuell aus ${selectedTrack.collectionName.orEmpty()}. Preview, Spotify und Artist-Page bleiben direkt in Reichweite."
+            } else {
+                "Preview, Spotify und Artist-Page bleiben direkt in Reichweite, ohne aus dem Music-Flow zu springen."
+            },
+            style = SkydownEditorialCaptionTextStyle,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            socialProfile?.let {
-                BrandActionButton(
-                    text = it.handle,
-                    onClick = onOpenInstagram,
-                    accent = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Default.CameraAlt,
-                    filled = false,
-                )
-            }
+        )
 
-            BoxWithConstraints {
+        if (hasPreview || onOpenArtistPage != null) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+            ) {
                 val stackButtons = maxWidth < 360.dp
 
                 if (stackButtons) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        BrandActionButton(
-                            text = if (uiState.isSpotifyConnected) "Spotify trennen" else "Spotify verbinden",
-                            onClick = if (uiState.isSpotifyConnected) onDisconnect else onConnect,
-                            accent = SpotifyGreen,
-                            modifier = Modifier.fillMaxWidth(),
-                            icon = if (uiState.isSpotifyConnected) {
-                                Icons.AutoMirrored.Filled.Logout
-                            } else {
-                                Icons.Default.MusicNote
-                            },
-                            filled = !uiState.isSpotifyConnected,
-                        )
+                        if (hasPreview) {
+                            BrandActionButton(
+                                text = if (isPreviewPlaying) "Preview stoppen" else "Preview starten",
+                                onClick = onPlayPreview,
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxWidth(),
+                                icon = if (isPreviewPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
+                            )
+                        }
 
-                        BrandActionButton(
-                            text = "Artist Page",
-                            onClick = onOpenArtistPage,
-                            accent = ArenaGold,
-                            modifier = Modifier.fillMaxWidth(),
-                            icon = Icons.Default.AutoAwesome,
-                            filled = false,
-                        )
+                        onOpenArtistPage?.let { openArtistPage ->
+                            BrandActionButton(
+                                text = "Artist Page",
+                                onClick = openArtistPage,
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxWidth(),
+                                icon = Icons.Default.AutoAwesome,
+                                filled = false,
+                            )
+                        }
                     }
                 } else {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        BrandActionButton(
-                            text = if (uiState.isSpotifyConnected) "Spotify trennen" else "Spotify verbinden",
-                            onClick = if (uiState.isSpotifyConnected) onDisconnect else onConnect,
-                            accent = SpotifyGreen,
-                            modifier = Modifier.weight(1f),
-                            icon = if (uiState.isSpotifyConnected) {
-                                Icons.AutoMirrored.Filled.Logout
-                            } else {
-                                Icons.Default.MusicNote
-                            },
-                            filled = !uiState.isSpotifyConnected,
-                        )
+                        if (hasPreview) {
+                            BrandActionButton(
+                                text = if (isPreviewPlaying) "Preview stoppen" else "Preview starten",
+                                onClick = onPlayPreview,
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                                icon = if (isPreviewPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
+                            )
+                        }
 
-                        BrandActionButton(
-                            text = "Artist Page",
-                            onClick = onOpenArtistPage,
-                            accent = ArenaGold,
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.AutoAwesome,
-                            filled = false,
-                        )
+                        onOpenArtistPage?.let { openArtistPage ->
+                            BrandActionButton(
+                                text = "Artist Page",
+                                onClick = openArtistPage,
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.AutoAwesome,
+                                filled = false,
+                            )
+                        }
                     }
                 }
             }
+        }
+
+        if (hasSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) {
+            BrandActionButton(
+                text = when {
+                    hasSpotifyTrack -> "Spotify Player"
+                    hasSpotifyArtistLink -> "Spotify Artist"
+                    else -> "Spotify Suche"
+                },
+                onClick = onOpenSpotify,
+                accent = SpotifyGreen,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                icon = if (hasSpotifyTrack) Icons.Default.MusicNote else Icons.Default.ArrowOutward,
+                filled = false,
+            )
         }
     }
 }
@@ -1369,22 +1478,24 @@ private fun MusicSpotlightDeckCard(
 @Composable
 private fun musicSurfaceBrush(
     primaryAccent: Color,
-    secondaryAccent: Color = ArenaGold,
+    secondaryAccent: Color? = null,
 ): Brush {
-    val isDarkPalette = MaterialTheme.colorScheme.background.luminance() < 0.36f
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val resolvedSecondaryAccent = secondaryAccent ?: colorScheme.skydownAccentHighlight()
     return Brush.linearGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.surface.copy(alpha = if (isDarkPalette) 0.98f else 0.995f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) 0.78f else 0.64f),
+            colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.98f else 0.995f),
+            colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.78f else 0.64f),
             primaryAccent.copy(alpha = if (isDarkPalette) 0.16f else 0.10f),
-            secondaryAccent.copy(alpha = if (isDarkPalette) 0.10f else 0.06f),
+            resolvedSecondaryAccent.copy(alpha = if (isDarkPalette) 0.10f else 0.06f),
         ),
     )
 }
 
 @Composable
 private fun musicSurfaceBorderColor(accent: Color): Color {
-    val isDarkPalette = MaterialTheme.colorScheme.background.luminance() < 0.36f
+    val isDarkPalette = MaterialTheme.colorScheme.skydownIsDarkPalette()
     return accent.copy(alpha = if (isDarkPalette) 0.22f else 0.14f)
 }
 
@@ -1395,6 +1506,7 @@ private fun MusicSpotlightArtwork(
     modifier: Modifier = Modifier,
     frameSize: androidx.compose.ui.unit.Dp = 110.dp,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
@@ -1418,7 +1530,7 @@ private fun MusicSpotlightArtwork(
                 .background(
                     musicSurfaceBrush(
                         primaryAccent = accent,
-                        secondaryAccent = ArenaGold,
+                        secondaryAccent = colorScheme.skydownAccentHighlight(),
                     ),
                 )
                 .border(
@@ -1500,6 +1612,8 @@ private fun ArtistPagerCard(
     val safeArtists = artists.ifEmpty { listOf(selectedArtist) }
     val initialPage = safeArtists.indexOf(selectedArtist).takeIf { it >= 0 } ?: 0
     val pagerState = rememberPagerState(initialPage = initialPage) { safeArtists.size }
+    val colorScheme = MaterialTheme.colorScheme
+    val artistAccent = colorScheme.skydownAccentHighlight()
 
     LaunchedEffect(selectedArtist, safeArtists) {
         val targetPage = safeArtists.indexOf(selectedArtist).takeIf { it >= 0 } ?: 0
@@ -1516,11 +1630,11 @@ private fun ArtistPagerCard(
         }
     }
 
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         BrandSectionBanner(
             title = "Artists",
             subtitle = "Alle Artists sind direkt anwaehlbar. Nutze die Schnellwahl oder swipe unten durch den Showcase.",
-            accent = ArenaGold,
+            accent = artistAccent,
             icon = Icons.Default.AutoAwesome,
             tag = "ARTISTS",
         )
@@ -1581,13 +1695,13 @@ private fun ArtistPagerCard(
                     .clip(RoundedCornerShape(24.dp))
                     .background(
                         musicSurfaceBrush(
-                            primaryAccent = ArenaGold,
+                            primaryAccent = artistAccent,
                             secondaryAccent = SpotifyGreen,
                         ),
                     )
                     .border(
                         width = 1.dp,
-                        color = musicSurfaceBorderColor(ArenaGold),
+                        color = musicSurfaceBorderColor(artistAccent),
                         shape = RoundedCornerShape(24.dp),
                     )
                     .padding(14.dp),
@@ -1600,7 +1714,7 @@ private fun ArtistPagerCard(
                         .clip(RoundedCornerShape(20.dp))
                         .background(
                             musicSurfaceBrush(
-                                primaryAccent = ArenaGold,
+                                primaryAccent = artistAccent,
                                 secondaryAccent = SpotifyGreen,
                             ),
                         ),
@@ -1660,13 +1774,13 @@ private fun ArtistPagerCard(
                                 .align(Alignment.TopEnd)
                                 .padding(14.dp)
                                 .clip(CircleShape)
-                                .background(ArenaGold)
+                                .background(artistAccent)
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text(
                                 text = "Live",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = DexBlueDeep,
+                                color = colorScheme.onTertiary,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
@@ -1679,7 +1793,7 @@ private fun ArtistPagerCard(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        BrandPill(text = "Artist Hub", tint = ArenaGold)
+                        BrandPill(text = "Artist Hub", tint = artistAccent)
                         BrandPill(
                             text = if (!page.spotifyURL.isNullOrBlank()) "Spotify" else "Direct",
                             tint = SpotifyGreen,
@@ -1703,7 +1817,7 @@ private fun ArtistPagerCard(
                             MusicDeckMetricCard(
                                 label = "Tag",
                                 value = page.tagline ?: "Artist ready",
-                                accent = ArenaGold,
+                                accent = artistAccent,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             MusicDeckMetricCard(
@@ -1724,7 +1838,7 @@ private fun ArtistPagerCard(
                             MusicDeckMetricCard(
                                 label = "Tag",
                                 value = page.tagline ?: "Artist ready",
-                                accent = ArenaGold,
+                                accent = artistAccent,
                                 modifier = Modifier.weight(1f),
                             )
                             MusicDeckMetricCard(
@@ -1819,6 +1933,9 @@ private fun ArtistMapSection(
     artistPagesByName: Map<String, com.skydown.android.data.ArtistPageUi>,
     onArtistSelected: (String) -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val artistAccent = colorScheme.skydownAccent()
+    val connectedAccent = colorScheme.skydownAccentHighlight()
     val liveCount = artists.count { artist ->
         (artistPagesByName[artist] ?: ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, artist)).hasCustomPresentation
     }
@@ -1848,7 +1965,7 @@ private fun ArtistMapSection(
                     ArtistMetricCard(
                         title = "Artists",
                         value = artists.size.toString(),
-                        accent = MaterialTheme.colorScheme.primary,
+                        accent = artistAccent,
                         modifier = Modifier.weight(1f),
                     )
                     ArtistMetricCard(
@@ -1860,7 +1977,7 @@ private fun ArtistMapSection(
                     ArtistMetricCard(
                         title = "Connected",
                         value = connectedCount.toString(),
-                        accent = ArenaGold,
+                        accent = connectedAccent,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1869,7 +1986,7 @@ private fun ArtistMapSection(
                     ArtistMetricCard(
                         title = "Artists",
                         value = artists.size.toString(),
-                        accent = MaterialTheme.colorScheme.primary,
+                        accent = artistAccent,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     ArtistMetricCard(
@@ -1881,7 +1998,7 @@ private fun ArtistMapSection(
                     ArtistMetricCard(
                         title = "Connected",
                         value = connectedCount.toString(),
-                        accent = ArenaGold,
+                        accent = connectedAccent,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -1919,13 +2036,14 @@ private fun ArtistMetricCard(
     accent: Color,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
             .background(
                 musicSurfaceBrush(
                     primaryAccent = accent,
-                    secondaryAccent = MaterialTheme.colorScheme.primary,
+                    secondaryAccent = colorScheme.skydownAccent(),
                 ),
             )
             .border(
@@ -1958,7 +2076,8 @@ private fun ArtistSignalTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accent = if (isSelected) SpotifyGreen else ArenaGold
+    val colorScheme = MaterialTheme.colorScheme
+    val accent = if (isSelected) SpotifyGreen else colorScheme.skydownAccentHighlight()
     val statusLabel = when {
         isSelected -> "Im Fokus"
         page.hasCustomPresentation -> "Live"
@@ -1971,7 +2090,7 @@ private fun ArtistSignalTile(
             .background(
                 musicSurfaceBrush(
                     primaryAccent = accent,
-                    secondaryAccent = MaterialTheme.colorScheme.primary,
+                    secondaryAccent = colorScheme.skydownAccent(),
                 ),
             )
             .border(
@@ -2046,19 +2165,21 @@ private fun ArtistOverviewRow(
     onSelect: () -> Unit,
     onOpenArtistPage: (() -> Unit)?,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val accent = colorScheme.skydownAccent()
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(
                 musicSurfaceBrush(
-                    primaryAccent = MaterialTheme.colorScheme.primary,
+                    primaryAccent = accent,
                     secondaryAccent = SpotifyGreen,
                 ),
             )
             .border(
                 width = 1.dp,
-                color = musicSurfaceBorderColor(MaterialTheme.colorScheme.primary),
+                color = musicSurfaceBorderColor(accent),
                 shape = RoundedCornerShape(20.dp),
             )
             .padding(14.dp),
@@ -2093,7 +2214,7 @@ private fun ArtistOverviewRow(
             if (isSelected) {
                 BrandPill(text = "Im Fokus", tint = SpotifyGreen)
             } else if (page.hasCustomPresentation) {
-                BrandPill(text = "Live", tint = ArenaGold)
+                BrandPill(text = "Live", tint = colorScheme.skydownAccentHighlight())
             }
         }
 
@@ -2182,7 +2303,7 @@ private fun musicScreenResolvedSpotifyArtistId(
 private fun SpotifyConnectCard(
     onConnect: () -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         BrandSectionBanner(
             title = "Spotify",
             subtitle = "Previews laufen direkt in der App. Mit Spotify kannst du kompatible Tracks zusaetzlich im In-App-Player oeffnen.",
@@ -2210,10 +2331,11 @@ private fun MusicStatusCard(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val statusAccent = if (loading) MaterialTheme.colorScheme.skydownAccentMystic() else SpotifyGreen
+    SkydownCard {
         BrandSectionBanner(
             title = title,
-            accent = if (loading) FieldMint else SpotifyGreen,
+            accent = statusAccent,
             icon = if (loading) Icons.Default.Sync else Icons.Default.MusicNote,
             tag = "STATUS",
         )
@@ -2246,7 +2368,7 @@ private fun MusicStatusCard(
             BrandActionButton(
                 text = actionLabel,
                 onClick = onAction,
-                accent = if (loading) FieldMint else SpotifyGreen,
+                accent = statusAccent,
                 modifier = Modifier.fillMaxWidth(),
                 icon = if (loading) Icons.Default.Sync else Icons.Default.Refresh,
                 filled = false,

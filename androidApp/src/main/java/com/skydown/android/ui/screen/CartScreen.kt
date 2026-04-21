@@ -249,7 +249,7 @@ fun CartScreen(
                         }
                     } else {
                         item {
-                            SkydownCard(contentPadding = PaddingValues(18.dp)) {
+                            SkydownCard {
                                 SectionHeader("Checkout pausiert")
                                 Text(
                                     text = "Der Merchandise-Store ist gerade pausiert. Deine Auswahl bleibt sichtbar, aber neue Bestellungen werden erst wieder freigeschaltet, sobald der Store geoeffnet ist.",
@@ -561,7 +561,7 @@ private fun PaymentMethodAvailabilityCard(
     bankTransferEnabled: Boolean,
     isCheckoutAvailable: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Zahlungsarten")
         if (!isCheckoutAvailable) {
             Text(
@@ -608,7 +608,7 @@ private fun PricingSummaryCard(
     shippingNote: String,
     companyName: String,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Bestellsumme")
         PaymentInfoLine("Zwischensumme", "EUR ${formatCurrency(summary.subtotal)}")
         PaymentInfoLine("Versandzone", summary.zoneLabel)
@@ -646,7 +646,7 @@ private fun PaymentMethodSelectionCard(
     selectedMethod: String,
     onSelect: (String) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Zahlart waehlen")
         Text(
             text = "Waehle die Zahlart fuer diese Bestellung.",
@@ -722,7 +722,7 @@ private fun CheckoutPulseCard(
     totalTitle: String,
     totalDetail: String,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Checkout Pulse")
         Row(
             modifier = Modifier
@@ -792,7 +792,7 @@ private fun PaymentMethodDetailCard(
     selectedMethod: String,
     settings: com.skydown.android.data.PaymentMethodsSettings,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         SectionHeader("Zahlungsinfo")
 
         when (selectedMethod) {

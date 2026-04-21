@@ -550,7 +550,7 @@ private fun ShopMessageCard(
     accent: Color = SpotifyGreen,
     tag: String? = null,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         BrandSectionBanner(
             title = title,
             accent = accent,
@@ -571,7 +571,7 @@ private fun LoginSection(
     errorMessage: String,
     onOpenLogin: () -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    SkydownCard {
         BrandSectionBanner(
             title = "Login",
             subtitle = "Melde dich an, um Checkout und Account-Funktionen zu nutzen.",
@@ -718,7 +718,6 @@ private fun ShopCollabSidebar(
 ) {
     SkydownCard(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -774,7 +773,7 @@ private fun ShopCollabQuickGrid(
     selectedLaneId: String,
     onSelect: (ShopCollabLane) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(16.dp)) {
+    SkydownCard {
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -915,7 +914,6 @@ private fun ShopCollabSelectionCard(
 
     SkydownCard(
         modifier = Modifier.height(176.dp),
-        contentPadding = PaddingValues(16.dp),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),

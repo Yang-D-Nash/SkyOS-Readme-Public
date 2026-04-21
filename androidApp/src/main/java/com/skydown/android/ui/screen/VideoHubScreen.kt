@@ -118,16 +118,18 @@ import com.skydown.android.ui.model.ProducedWithArtist
 import com.skydown.android.ui.model.VideoEquipmentItem
 import com.skydown.android.ui.model.SelectedVideoFile
 import com.skydown.android.ui.model.VideoHubItem
-import com.skydown.android.ui.theme.ArenaGold
-import com.skydown.android.ui.theme.ArenaRed
-import com.skydown.android.ui.theme.DexBlue
-import com.skydown.android.ui.theme.DexBlueDeep
-import com.skydown.android.ui.theme.FieldMint
 import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.InstagramPink
 import com.skydown.android.ui.theme.InstagramPurple
 import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.theme.YouTubeRed
+import com.skydown.android.ui.theme.skydownAccent
+import com.skydown.android.ui.theme.skydownAccentHighlight
+import com.skydown.android.ui.theme.skydownAccentMystic
+import com.skydown.android.ui.theme.skydownCardBackground
+import com.skydown.android.ui.theme.skydownCinematicShadow
+import com.skydown.android.ui.theme.skydownSecondaryBackground
+import com.skydown.android.ui.theme.skydownYoutube
 import com.skydown.android.ui.viewmodel.VideoHubViewModel
 import coil3.compose.AsyncImage
 import java.text.SimpleDateFormat
@@ -285,6 +287,10 @@ fun VideoHubScreen(
             localFeedbackMessage = null
         }
     }
+    val colorScheme = MaterialTheme.colorScheme
+    val videoAccent = colorScheme.skydownAccent()
+    val videoMysticAccent = colorScheme.skydownAccentMystic()
+    val videoYoutubeAccent = colorScheme.skydownYoutube()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -294,7 +300,7 @@ fun VideoHubScreen(
                     SkydownTopBarTitle(
                         title = "Video",
                         subtitle = "Clips, Videos, Kollabos.",
-                        accent = ArenaGold,
+                        accent = videoMysticAccent,
                     )
                 },
                 actions = {
@@ -370,10 +376,8 @@ fun VideoHubScreen(
                 .dismissKeyboardOnTap(onDismissKeyboard = dismissKeyboard)
                 .background(
                     skydownScreenBrush(
-                        primaryColor = DexBlue,
-                        secondaryColor = ArenaGold,
-                        primaryAlpha = 0.085f,
-                        secondaryAlpha = 0.055f,
+                        primaryColor = videoAccent,
+                        secondaryColor = videoYoutubeAccent,
                     ),
                 ),
         ) {
@@ -681,6 +685,10 @@ private fun VideoHubHeroCard(
     onOpenCollaborations: () -> Unit,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+    val colorScheme = MaterialTheme.colorScheme
+    val coreAccent = colorScheme.skydownAccent()
+    val mysticAccent = colorScheme.skydownAccentMystic()
+    val highlightAccent = colorScheme.skydownAccentHighlight()
     BrandHeroCard(
         eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
@@ -693,24 +701,24 @@ private fun VideoHubHeroCard(
             }
         },
         backgroundImageUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null },
-        accent = ArenaGold,
-        secondaryAccent = ArenaRed,
+        accent = mysticAccent,
+        secondaryAccent = highlightAccent,
         marks = listOf(BrandArtwork.Skydown),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(
                 text = "$videoCount Clips",
-                tint = ArenaGold,
+                tint = mysticAccent,
                 onClick = onOpenVideos,
             )
             BrandPill(
                 text = "Equipment",
-                tint = FieldMint,
+                tint = coreAccent,
                 onClick = onOpenEquipment,
             )
             BrandPill(
                 text = "$collabCount Collabs",
-                tint = ArenaRed,
+                tint = highlightAccent,
                 onClick = onOpenCollaborations,
             )
         }
@@ -722,7 +730,7 @@ private fun VideoHubHeroCard(
                 label = "Reels",
                 value = videoCount.toString(),
                 icon = Icons.Default.Movie,
-                accent = ArenaGold,
+                accent = coreAccent,
                 isActive = videoCount > 0,
                 modifier = Modifier.weight(1f),
             )
@@ -730,7 +738,7 @@ private fun VideoHubHeroCard(
                 label = "Collabs",
                 value = collabCount.toString(),
                 icon = Icons.Default.Sync,
-                accent = FieldMint,
+                accent = mysticAccent,
                 isActive = collabCount > 0,
                 modifier = Modifier.weight(1f),
             )
@@ -738,7 +746,7 @@ private fun VideoHubHeroCard(
                 label = if (isAdmin) "Mode" else "Access",
                 value = if (isAdmin) "Admin" else "Public",
                 icon = Icons.Default.Sync,
-                accent = FieldMint,
+                accent = highlightAccent,
                 isActive = isAdmin || collabCount > 0 || videoCount > 0,
                 modifier = Modifier.weight(1f),
             )
@@ -750,11 +758,12 @@ private fun VideoHubHeroCard(
 private fun VideoAdminToolsCard(
     onOpenEditor: () -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val accent = MaterialTheme.colorScheme.skydownAccentMystic()
+    SkydownCard {
         BrandSectionBanner(
             title = "Video Admin",
             subtitle = "Equipment, Featured Collabs und Format-Hinweise in einem Editor.",
-            accent = MaterialTheme.colorScheme.primary,
+            accent = accent,
             icon = Icons.Default.Home,
             tag = "ADMIN",
         )
@@ -762,7 +771,7 @@ private fun VideoAdminToolsCard(
         BrandActionButton(
             text = "Editor oeffnen",
             onClick = onOpenEditor,
-            accent = MaterialTheme.colorScheme.primary,
+            accent = accent,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
@@ -817,6 +826,7 @@ private fun VideoControlDeckCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -824,9 +834,9 @@ private fun VideoControlDeckCard(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.98f),
                         accent.copy(alpha = 0.10f),
-                        DexBlue.copy(alpha = 0.06f),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = 0.34f),
                     ),
                 ),
             )
@@ -852,12 +862,13 @@ private fun VideoControlDeckCard(
 
 @Composable
 private fun VideoFormatCard() {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val accent = MaterialTheme.colorScheme.skydownAccent()
+    SkydownCard {
         VideoHubSectionBanner(
             title = "Format Check",
             subtitle = "Saubere Uploads halten den Hub schnell und klar.",
             icon = Icons.Default.CheckCircle,
-            accent = ArenaGold,
+            accent = accent,
             tag = "FORMAT",
         )
         Text(
@@ -888,12 +899,13 @@ private fun VideoCollaborationsCard(
     items: List<ProducedWithArtist>,
     onOpenLink: (String) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val accent = MaterialTheme.colorScheme.skydownAccentMystic()
+    SkydownCard {
         VideoHubSectionBanner(
             title = "Featured Collabs",
             subtitle = "Artists und Creatives hinter dem visuellen Vibe.",
             icon = Icons.Default.Sync,
-            accent = FieldMint,
+            accent = accent,
             tag = "CREW",
         )
         Text(
@@ -931,12 +943,13 @@ private fun VideoEquipmentCard(
     items: List<VideoEquipmentItem>,
     onSelectItem: (VideoEquipmentItem) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val accent = MaterialTheme.colorScheme.skydownAccent()
+    SkydownCard {
         VideoHubSectionBanner(
             title = "Equipment & Software",
             subtitle = "Visual Stack fuer Shoot, Edit und Finish.",
             icon = Icons.Default.CameraAlt,
-            accent = DexBlue,
+            accent = accent,
             tag = "STACK",
         )
         Text(
@@ -975,6 +988,8 @@ private fun VideoEquipmentRow(
     onClick: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val colorScheme = MaterialTheme.colorScheme
+    val accent = colorScheme.skydownAccent()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -982,15 +997,15 @@ private fun VideoEquipmentRow(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        DexBlue.copy(alpha = 0.10f),
-                        ArenaGold.copy(alpha = 0.08f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.96f),
+                        accent.copy(alpha = 0.10f),
+                        colorScheme.skydownAccentHighlight().copy(alpha = 0.08f),
                     ),
                 ),
             )
             .border(
                 width = 1.dp,
-                color = DexBlue.copy(alpha = 0.18f),
+                color = accent.copy(alpha = 0.18f),
                 shape = RoundedCornerShape(18.dp),
             )
             .let { baseModifier ->
@@ -1014,7 +1029,7 @@ private fun VideoEquipmentRow(
         verticalAlignment = Alignment.Top,
     ) {
         BrandPreviewFrame(
-            accent = DexBlue,
+            accent = accent,
             modifier = Modifier
                 .size(76.dp),
         ) {
@@ -1101,7 +1116,7 @@ private fun VideoEquipmentDetailSheet(
 
             if (!item.imageUrl.isNullOrBlank()) {
                 BrandPreviewFrame(
-                    accent = DexBlue,
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(210.dp),
@@ -1159,12 +1174,16 @@ private fun VideoPublicConfigEditorCard(
     onRemoveCollaboration: (String) -> Unit,
     onSave: () -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val colorScheme = MaterialTheme.colorScheme
+    val adminAccent = colorScheme.skydownAccentHighlight()
+    val equipmentAccent = colorScheme.skydownAccent()
+    val collabAccent = colorScheme.skydownAccentMystic()
+    SkydownCard {
         VideoHubSectionBanner(
             title = "Admin Control",
             subtitle = "Owner und Video-Admins steuern hier Equipment, Links und Featured Collabs.",
             icon = Icons.Default.Sync,
-            accent = ArenaRed,
+            accent = adminAccent,
             tag = "ADMIN",
         )
         Text(
@@ -1193,7 +1212,7 @@ private fun VideoPublicConfigEditorCard(
             title = "Equipment Library",
             subtitle = "Kameras, Tools und Software fuer den visuellen Workflow.",
             icon = Icons.Default.CameraAlt,
-            accent = DexBlue,
+            accent = equipmentAccent,
             tag = "STACK",
             modifier = Modifier.padding(top = 18.dp),
         ) {
@@ -1208,15 +1227,15 @@ private fun VideoPublicConfigEditorCard(
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                                        DexBlue.copy(alpha = 0.10f),
-                                        ArenaGold.copy(alpha = 0.06f),
+                                        colorScheme.skydownCardBackground().copy(alpha = 0.98f),
+                                        equipmentAccent.copy(alpha = 0.10f),
+                                        colorScheme.skydownAccentHighlight().copy(alpha = 0.06f),
                                     ),
                                 ),
                             )
                             .border(
                                 width = 1.dp,
-                                color = DexBlue.copy(alpha = 0.18f),
+                                color = equipmentAccent.copy(alpha = 0.18f),
                                 shape = RoundedCornerShape(18.dp),
                             )
                             .padding(14.dp),
@@ -1272,7 +1291,7 @@ private fun VideoPublicConfigEditorCard(
             title = "Collab Profiles",
             subtitle = "Rollen, Highlights, Vibes und Links fuer das Featured-Netzwerk.",
             icon = Icons.Default.CheckCircle,
-            accent = FieldMint,
+            accent = collabAccent,
             tag = "CREW",
             modifier = Modifier.padding(top = 18.dp),
         ) {
@@ -1287,15 +1306,15 @@ private fun VideoPublicConfigEditorCard(
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                                        FieldMint.copy(alpha = 0.10f),
-                                        ArenaGold.copy(alpha = 0.06f),
+                                        colorScheme.skydownCardBackground().copy(alpha = 0.98f),
+                                        collabAccent.copy(alpha = 0.10f),
+                                        colorScheme.skydownAccentHighlight().copy(alpha = 0.06f),
                                     ),
                                 ),
                             )
                             .border(
                                 width = 1.dp,
-                                color = FieldMint.copy(alpha = 0.18f),
+                                color = collabAccent.copy(alpha = 0.18f),
                                 shape = RoundedCornerShape(18.dp),
                             )
                             .padding(14.dp),
@@ -1404,6 +1423,9 @@ private fun ProducedWithArtistRow(
     artist: com.skydown.android.ui.model.ProducedWithArtist,
     onOpenLink: (String) -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val collabAccent = colorScheme.skydownAccentMystic()
+    val highlightAccent = colorScheme.skydownAccentHighlight()
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1412,15 +1434,15 @@ private fun ProducedWithArtistRow(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                        FieldMint.copy(alpha = 0.16f),
-                        ArenaGold.copy(alpha = 0.10f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.98f),
+                        collabAccent.copy(alpha = 0.16f),
+                        highlightAccent.copy(alpha = 0.10f),
                     ),
                 ),
             )
             .border(
                 width = 1.dp,
-                color = FieldMint.copy(alpha = 0.22f),
+                color = collabAccent.copy(alpha = 0.22f),
                 shape = RoundedCornerShape(18.dp),
             ),
     ) {
@@ -1430,8 +1452,8 @@ private fun ProducedWithArtistRow(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            FieldMint,
-                            DexBlue,
+                            collabAccent,
+                            colorScheme.skydownAccent(),
                         ),
                     ),
                 ),
@@ -1497,7 +1519,7 @@ private fun ProducedWithArtistRow(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(ArenaGold.copy(alpha = 0.22f))
+                        .background(highlightAccent.copy(alpha = 0.22f))
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
                     Text(
@@ -1514,14 +1536,14 @@ private fun ProducedWithArtistRow(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .background(FieldMint.copy(alpha = 0.82f))
+                            .background(collabAccent.copy(alpha = 0.82f))
                             .padding(horizontal = 8.dp, vertical = 5.dp),
                     ) {
                         Text(
                             text = artist.vibe,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = DexBlueDeep,
+                            color = colorScheme.onSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1592,7 +1614,7 @@ private fun ProducedWithArtistRow(
                         gradient = Brush.linearGradient(
                             colors = listOf(
                                 YouTubeRed,
-                                ArenaRed.copy(alpha = 0.82f),
+                                MaterialTheme.colorScheme.skydownYoutube().copy(alpha = 0.82f),
                             ),
                         ),
                         onClick = { onOpenLink(youtubeUrl) },
@@ -1648,12 +1670,15 @@ private fun VideoUploadCard(
     onUpload: () -> Unit,
     onAddExternalVideo: () -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val colorScheme = MaterialTheme.colorScheme
+    val uploadAccent = colorScheme.skydownAccentHighlight()
+    val pickerAccent = colorScheme.skydownAccent()
+    SkydownCard {
         VideoHubSectionBanner(
             title = "Video Upload",
             subtitle = "Admin-only Bereich fuer neue Clips und externe Videoquellen.",
             icon = Icons.Default.Movie,
-            accent = ArenaRed,
+            accent = uploadAccent,
             tag = "UPLOAD",
         )
         Text(
@@ -1709,7 +1734,7 @@ private fun VideoUploadCard(
         BrandActionButton(
             text = "Videos auswaehlen",
             onClick = onPickFiles,
-            accent = DexBlue,
+            accent = pickerAccent,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
@@ -1747,15 +1772,15 @@ private fun VideoUploadCard(
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                                        DexBlue.copy(alpha = 0.10f),
-                                        ArenaGold.copy(alpha = 0.08f),
+                                        colorScheme.skydownCardBackground().copy(alpha = 0.96f),
+                                        pickerAccent.copy(alpha = 0.10f),
+                                        colorScheme.skydownAccentHighlight().copy(alpha = 0.08f),
                                     ),
                                 ),
                             )
                             .border(
                                 width = 1.dp,
-                                color = DexBlue.copy(alpha = 0.18f),
+                                color = pickerAccent.copy(alpha = 0.18f),
                                 shape = RoundedCornerShape(16.dp),
                             )
                             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -1798,7 +1823,7 @@ private fun VideoUploadCard(
         BrandActionButton(
             text = if (uiState.isUploading) "Upload laeuft ..." else "Videos hochladen",
             onClick = onUpload,
-            accent = ArenaRed,
+            accent = uploadAccent,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
@@ -1810,7 +1835,7 @@ private fun VideoUploadCard(
         BrandActionButton(
             text = "Externes Video freigeben",
             onClick = onAddExternalVideo,
-            accent = ArenaGold,
+            accent = colorScheme.skydownAccent(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
@@ -1828,12 +1853,14 @@ private fun VideoPlayerCard(
     onOpenOriginal: (VideoHubItem) -> Unit,
     onOpenReel: (() -> Unit)?,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val colorScheme = MaterialTheme.colorScheme
+    val playerAccent = colorScheme.skydownAccentMystic()
+    SkydownCard {
         VideoHubSectionBanner(
             title = "Now Playing",
             subtitle = "Das aktive Video bleibt gross, fokussiert und direkt abspielbar.",
             icon = Icons.Default.Movie,
-            accent = ArenaRed,
+            accent = playerAccent,
             tag = "LIVE",
         )
 
@@ -1973,7 +2000,7 @@ private fun VideoPlayerCard(
             BrandActionButton(
                 text = video.directOpenActionLabel,
                 onClick = { onOpenOriginal(video) },
-                accent = if (video.supportsInlinePlayback) ArenaRed else videoHubProviderAccent(video),
+                accent = if (video.supportsInlinePlayback) playerAccent else videoHubProviderAccent(video),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("video.hub.player.original.open")
@@ -1986,7 +2013,7 @@ private fun VideoPlayerCard(
                 BrandActionButton(
                     text = videoHubInlineActionLabel(video),
                     onClick = openReel,
-                    accent = ArenaRed,
+                    accent = playerAccent,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
@@ -2007,12 +2034,13 @@ private fun VideoLibraryCard(
     onToggleHomeFeatured: (VideoHubItem) -> Unit,
     onDeleteVideo: (VideoHubItem) -> Unit,
 ) {
-    SkydownCard(contentPadding = PaddingValues(18.dp)) {
+    val libraryAccent = MaterialTheme.colorScheme.skydownAccent()
+    SkydownCard {
         VideoHubSectionBanner(
             title = "Video Library",
             subtitle = "Alle Clips im Hub, klar getrennt nach Fokus und Status.",
             icon = Icons.Default.Movie,
-            accent = DexBlue,
+            accent = libraryAccent,
             tag = "LIBRARY",
         )
         Text(
@@ -2085,6 +2113,10 @@ private fun VideoLibraryOverviewSection(
     videos: List<VideoHubItem>,
     selectedVideoId: String?,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val clipsAccent = colorScheme.skydownAccent()
+    val directAccent = colorScheme.skydownAccentMystic()
+    val homeAccent = colorScheme.skydownAccentHighlight()
     val featuredCount = videos.count { it.isHomeFeatured }
     val directCount = videos.count { it.opensOriginalInApp || it.supportsInlinePlayback }
     val focusVideo = videos.firstOrNull { it.id == selectedVideoId } ?: videos.firstOrNull()
@@ -2112,19 +2144,19 @@ private fun VideoLibraryOverviewSection(
                     VideoLibraryMetricCard(
                         title = "Clips",
                         value = videos.size.toString(),
-                        accent = DexBlue,
+                        accent = clipsAccent,
                         modifier = Modifier.weight(1f),
                     )
                     VideoLibraryMetricCard(
                         title = "Direct",
                         value = directCount.toString(),
-                        accent = ArenaRed,
+                        accent = directAccent,
                         modifier = Modifier.weight(1f),
                     )
                     VideoLibraryMetricCard(
                         title = "Home",
                         value = featuredCount.toString(),
-                        accent = ArenaGold,
+                        accent = homeAccent,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -2133,19 +2165,19 @@ private fun VideoLibraryOverviewSection(
                     VideoLibraryMetricCard(
                         title = "Clips",
                         value = videos.size.toString(),
-                        accent = DexBlue,
+                        accent = clipsAccent,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     VideoLibraryMetricCard(
                         title = "Direct",
                         value = directCount.toString(),
-                        accent = ArenaRed,
+                        accent = directAccent,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     VideoLibraryMetricCard(
                         title = "Home",
                         value = featuredCount.toString(),
-                        accent = ArenaGold,
+                        accent = homeAccent,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -2246,6 +2278,8 @@ private fun VideoLibraryRow(
     onToggleHomeFeatured: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val providerAccent = videoHubProviderAccent(video)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2254,21 +2288,21 @@ private fun VideoLibraryRow(
                 Brush.linearGradient(
                     colors = if (isSelected) {
                         listOf(
-                            DexBlue.copy(alpha = 0.18f),
-                            ArenaGold.copy(alpha = 0.12f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                            colorScheme.skydownAccent().copy(alpha = 0.18f),
+                            colorScheme.skydownAccentHighlight().copy(alpha = 0.12f),
+                            colorScheme.skydownCardBackground().copy(alpha = 0.96f),
                         )
                     } else {
                         listOf(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
+                            colorScheme.skydownCardBackground().copy(alpha = 0.96f),
+                            colorScheme.skydownSecondaryBackground().copy(alpha = 0.56f),
                         )
                     },
                 ),
             )
             .border(
                 width = 1.dp,
-                color = if (isSelected) ArenaGold.copy(alpha = 0.28f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                color = if (isSelected) colorScheme.skydownAccentHighlight().copy(alpha = 0.28f) else colorScheme.outline.copy(alpha = 0.10f),
                 shape = RoundedCornerShape(20.dp),
             )
             .padding(horizontal = 14.dp, vertical = 14.dp),
@@ -2279,7 +2313,7 @@ private fun VideoLibraryRow(
             verticalAlignment = Alignment.Top,
         ) {
             BrandPreviewFrame(
-                accent = videoHubProviderAccent(video),
+                accent = providerAccent,
                 modifier = Modifier
                     .size(64.dp),
             ) {
@@ -2289,8 +2323,8 @@ private fun VideoLibraryRow(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    videoHubProviderAccent(video).copy(alpha = 0.88f),
-                                    DexBlueDeep.copy(alpha = 0.76f),
+                                    providerAccent.copy(alpha = 0.88f),
+                                    colorScheme.skydownCinematicShadow().copy(alpha = 0.76f),
                                 ),
                             ),
                         ),
@@ -2741,12 +2775,13 @@ private fun VideoReelViewerDialog(
     }
 }
 
+@Composable
 private fun videoHubProviderAccent(video: VideoHubItem): Color {
     return when {
-        video.usesEmbeddedPreview -> YouTubeRed
-        video.providerBadge.equals("Drive", ignoreCase = true) -> FieldMint
-        video.providerBadge.equals("MEGA", ignoreCase = true) -> ArenaRed
-        else -> DexBlue
+        video.usesEmbeddedPreview -> MaterialTheme.colorScheme.skydownYoutube()
+        video.providerBadge.equals("Drive", ignoreCase = true) -> MaterialTheme.colorScheme.skydownAccent()
+        video.providerBadge.equals("MEGA", ignoreCase = true) -> MaterialTheme.colorScheme.skydownAccentHighlight()
+        else -> MaterialTheme.colorScheme.skydownAccentMystic()
     }
 }
 
@@ -2835,7 +2870,7 @@ private fun VideoPill(
 ) {
     BrandStatusChip(
         text = text,
-        accent = ArenaGold,
+        accent = MaterialTheme.colorScheme.skydownAccentHighlight(),
         isActive = isActive,
         onClick = onClick,
     )

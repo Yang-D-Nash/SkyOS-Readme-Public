@@ -53,21 +53,17 @@ struct ToastView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    style.secondaryColor.opacity(0.96),
-                                    Color.black.opacity(0.82),
-                                    style.color.opacity(0.26)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            style.secondaryColor.opacity(0.98),
+                            Color.black.opacity(0.84),
+                            style.color.opacity(0.24)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         }
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 999, style: .continuous)
@@ -86,7 +82,7 @@ struct ToastView: View {
             Circle()
                 .fill(style.color.opacity(0.22))
                 .frame(width: 84, height: 84)
-                .blur(radius: 22)
+                .blur(radius: 16)
                 .offset(x: 12, y: -14)
         }
         .overlay(alignment: .bottomLeading) {

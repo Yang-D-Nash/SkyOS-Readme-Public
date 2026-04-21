@@ -67,6 +67,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -109,15 +110,18 @@ import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.FeaturedBeatHighlight
 import com.skydown.android.ui.model.FeaturedVideoHighlight
 import com.skydown.android.ui.model.HomeUiState
-import com.skydown.android.ui.theme.ArenaGold
-import com.skydown.android.ui.theme.ArenaRed
-import com.skydown.android.ui.theme.DexBlue
-import com.skydown.android.ui.theme.DexBlueDeep
-import com.skydown.android.ui.theme.FieldMint
 import com.skydown.android.ui.theme.InstagramOrange
 import com.skydown.android.ui.theme.InstagramPink
 import com.skydown.android.ui.theme.InstagramPurple
 import com.skydown.android.ui.theme.SpotifyGreen
+import com.skydown.android.ui.theme.skydownAccent
+import com.skydown.android.ui.theme.skydownAccentHighlight
+import com.skydown.android.ui.theme.skydownAccentMystic
+import com.skydown.android.ui.theme.skydownCardBackground
+import com.skydown.android.ui.theme.skydownCinematicShadow
+import com.skydown.android.ui.theme.skydownIsDarkPalette
+import com.skydown.android.ui.theme.skydownSecondaryBackground
+import com.skydown.android.ui.theme.skydownSpotify
 import com.skydown.android.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -233,6 +237,11 @@ fun HomeScreen(
     }
 
     val activeSignalCount = homeTrackedSignalCount(uiState)
+    val colorScheme = MaterialTheme.colorScheme
+    val homeAccent = colorScheme.skydownAccent()
+    val homeMysticAccent = colorScheme.skydownAccentMystic()
+    val homeHighlightAccent = colorScheme.skydownAccentHighlight()
+    val homeSpotifyAccent = colorScheme.skydownSpotify()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -242,7 +251,7 @@ fun HomeScreen(
                 title = {
                     SkydownTopBarTitle(
                         "SkyOs",
-                        accent = ArenaGold,
+                        accent = homeAccent,
                     )
                 },
                 actions = {
@@ -289,10 +298,8 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(
                     skydownScreenBrush(
-                        primaryColor = DexBlue,
-                        secondaryColor = ArenaRed,
-                        primaryAlpha = 0.095f,
-                        secondaryAlpha = 0.060f,
+                        primaryColor = homeAccent,
+                        secondaryColor = homeSpotifyAccent,
                     ),
                 ),
         ) {
@@ -318,14 +325,14 @@ fun HomeScreen(
                             subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren SkyOs-Flow." },
                             detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount von $homeSignalTotal Bereichen sind gerade live." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
-                            accent = ArenaGold,
-                            secondaryAccent = ArenaRed,
+                            accent = homeAccent,
+                            secondaryAccent = homeMysticAccent,
                             marks = listOf(BrandArtwork.Combined),
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 BrandPill(
-                                    text = "SkyOs",
-                                    tint = ArenaGold,
+                                    text = if (uiState.featuredTrack == null) "Track laedt" else "Track live",
+                                    tint = homeSpotifyAccent,
                                     onClick = {
                                         coroutineScope.launch {
                                             listState.animateScrollToItem(1)
@@ -333,8 +340,8 @@ fun HomeScreen(
                                     },
                                 )
                                 BrandPill(
-                                    text = "$activeSignalCount/$homeSignalTotal Live",
-                                    tint = FieldMint,
+                                    text = if (uiState.featuredBeat == null) "Beat laedt" else "Beat live",
+                                    tint = homeMysticAccent,
                                     onClick = {
                                         coroutineScope.launch {
                                             listState.animateScrollToItem(2)
@@ -342,8 +349,8 @@ fun HomeScreen(
                                     },
                                 )
                                 BrandPill(
-                                    text = "Live Focus",
-                                    tint = ArenaRed,
+                                    text = if (uiState.featuredVideo == null) "Video laedt" else "Video live",
+                                    tint = homeHighlightAccent,
                                     onClick = {
                                         coroutineScope.launch {
                                             listState.animateScrollToItem(3)
@@ -510,6 +517,10 @@ private fun HomeHeroStatusRow(
     uiState: HomeUiState,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val beatAccent = colorScheme.skydownAccentMystic()
+    val videoAccent = colorScheme.skydownAccentHighlight()
+
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -526,14 +537,14 @@ private fun HomeHeroStatusRow(
                     label = "Beats",
                     value = uiState.featuredBeat?.title ?: "Neue Auswahl",
                     icon = Icons.Default.GraphicEq,
-                    accent = ArenaGold,
+                    accent = beatAccent,
                     isActive = uiState.featuredBeat != null,
                 )
                 HomeHeroStatusCard(
                     label = "Video",
                     value = uiState.featuredVideo?.title ?: "Neuer Clip",
                     icon = Icons.Default.Movie,
-                    accent = ArenaRed,
+                    accent = videoAccent,
                     isActive = uiState.featuredVideo != null,
                 )
             }
@@ -553,7 +564,7 @@ private fun HomeHeroStatusRow(
                     label = "Beats",
                     value = uiState.featuredBeat?.title ?: "Neue Auswahl",
                     icon = Icons.Default.GraphicEq,
-                    accent = ArenaGold,
+                    accent = beatAccent,
                     isActive = uiState.featuredBeat != null,
                     modifier = Modifier.weight(1f),
                 )
@@ -561,7 +572,7 @@ private fun HomeHeroStatusRow(
                     label = "Video",
                     value = uiState.featuredVideo?.title ?: "Neuer Clip",
                     icon = Icons.Default.Movie,
-                    accent = ArenaRed,
+                    accent = videoAccent,
                     isActive = uiState.featuredVideo != null,
                     modifier = Modifier.weight(1f),
                 )
@@ -593,34 +604,32 @@ private fun HomeHeroStatusCard(
 private fun HomeMapBackdrop(
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
     Box(modifier = modifier) {
         HomeBackdropHalo(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 82.dp, y = (-38).dp),
-            size = 220.dp,
-            tint = ArenaGold.copy(alpha = 0.08f),
+                .align(Alignment.Center)
+                .offset(x = 168.dp, y = (-138).dp),
+            size = 280.dp,
+            tint = colorScheme.skydownSpotify(),
+            opacity = if (isDarkPalette) 0.09f else 0.07f,
         )
         HomeBackdropHalo(
             modifier = Modifier
-                .align(Alignment.CenterStart)
-                .offset(x = (-94).dp, y = 96.dp),
-            size = 210.dp,
-            tint = DexBlue.copy(alpha = 0.08f),
+                .align(Alignment.Center)
+                .offset(x = (-172).dp, y = 210.dp),
+            size = 240.dp,
+            tint = colorScheme.skydownAccentMystic(),
+            opacity = if (isDarkPalette) 0.10f else 0.08f,
         )
         HomeBackdropHalo(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = 92.dp, y = 156.dp),
-            size = 250.dp,
-            tint = ArenaRed.copy(alpha = 0.07f),
-        )
-        HomeBackdropHalo(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = (-88).dp, y = 146.dp),
-            size = 180.dp,
-            tint = FieldMint.copy(alpha = 0.06f),
+                .align(Alignment.Center)
+                .offset(x = 154.dp, y = 498.dp),
+            size = 320.dp,
+            tint = colorScheme.skydownAccentHighlight(),
+            opacity = if (isDarkPalette) 0.08f else 0.06f,
         )
     }
 }
@@ -630,6 +639,7 @@ private fun HomeBackdropHalo(
     modifier: Modifier = Modifier,
     size: androidx.compose.ui.unit.Dp,
     tint: Color,
+    opacity: Float,
 ) {
     Box(
         modifier = modifier.size(size),
@@ -639,41 +649,22 @@ private fun HomeBackdropHalo(
             modifier = Modifier
                 .size(size)
                 .background(
-                    color = tint.copy(alpha = 0.18f),
+                    color = tint.copy(alpha = opacity),
                     shape = CircleShape,
-                ),
+                )
+                .blur(34.dp),
         )
-        Box(
-            modifier = Modifier
-                .width(size * 0.56f)
-                .height(1.dp)
-                .background(tint.copy(alpha = 0.16f)),
-        )
-        Box(
-            modifier = Modifier
-                .width(1.dp)
-                .height(size * 0.56f)
-                .background(tint.copy(alpha = 0.16f)),
-        )
-        listOf(0.78f, 0.56f, 0.34f).forEachIndexed { index, scale ->
+        listOf(1f, 0.78f, 0.56f).forEachIndexed { index, scale ->
             Box(
                 modifier = Modifier
                     .size(size * scale)
                     .border(
                         width = 1.dp,
-                        color = tint.copy(alpha = 0.16f - (index * 0.03f)),
+                        color = tint.copy(alpha = opacity - (index * 0.02f)),
                         shape = CircleShape,
                     ),
             )
         }
-        Box(
-            modifier = Modifier
-                .size(size * 0.10f)
-                .background(
-                    color = tint.copy(alpha = 0.18f),
-                    shape = CircleShape,
-                ),
-        )
     }
 }
 
@@ -681,6 +672,7 @@ private fun HomeBackdropHalo(
 private fun HomeFieldGuideCard(
     uiState: HomeUiState,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val signals = listOf(
         HomeRadarSignal(
             title = "Musik",
@@ -693,14 +685,14 @@ private fun HomeFieldGuideCard(
             title = "Beats",
             subtitle = uiState.featuredBeat?.title ?: "Neue Beats folgen",
             icon = Icons.Default.GraphicEq,
-            accent = MaterialTheme.colorScheme.secondary,
+            accent = colorScheme.skydownAccentMystic(),
             isActive = uiState.featuredBeat != null,
         ),
         HomeRadarSignal(
             title = "Videos",
             subtitle = uiState.featuredVideo?.title ?: "Neuer Clip folgt",
             icon = Icons.Default.Movie,
-            accent = InstagramOrange,
+            accent = colorScheme.skydownAccentHighlight(),
             isActive = uiState.featuredVideo != null,
         ),
     )
@@ -716,7 +708,7 @@ private fun HomeFieldGuideCard(
             title = "Live Uebersicht",
             subtitle = "Aktive Bereiche, aktuelle Updates und der schnellste Weg durch den Hub.",
             icon = Icons.Default.Radar,
-            accent = ArenaGold,
+            accent = colorScheme.skydownAccentMystic(),
             tag = "LIVE",
         )
 
@@ -797,6 +789,7 @@ private fun HomeDexStatusRow(
     scanLabel: String,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -804,19 +797,19 @@ private fun HomeDexStatusRow(
         HomeDexStatusCard(
             label = "Bereiche",
             value = "$activeSignals/$homeSignalTotal",
-            accent = ArenaGold,
+            accent = colorScheme.skydownAccent(),
             modifier = Modifier.weight(1f),
         )
         HomeDexStatusCard(
             label = "Status",
             value = scanLabel,
-            accent = ArenaRed,
+            accent = colorScheme.skydownAccentMystic(),
             modifier = Modifier.weight(1f),
         )
         HomeDexStatusCard(
             label = "Refresh",
             value = "Pull",
-            accent = DexBlue,
+            accent = colorScheme.skydownAccentHighlight(),
             modifier = Modifier.weight(1f),
         )
     }
@@ -829,15 +822,16 @@ private fun HomeDexStatusCard(
     accent: Color,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.96f),
                         accent.copy(alpha = 0.12f),
-                        DexBlue.copy(alpha = 0.06f),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = 0.36f),
                     ),
                 ),
             )
@@ -908,15 +902,16 @@ private fun HomeRouteCard(
     signal: HomeRadarSignal,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        DexBlueDeep.copy(alpha = 0.94f),
-                        signal.accent.copy(alpha = if (signal.isActive) 0.24f else 0.12f),
-                        ArenaGold.copy(alpha = if (signal.isActive) 0.14f else 0.08f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.98f),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = 0.68f),
+                        signal.accent.copy(alpha = if (signal.isActive) 0.16f else 0.06f),
                     ),
                 ),
             )
@@ -936,7 +931,7 @@ private fun HomeRouteCard(
             Text(
                 text = routeLabel,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.74f),
+                color = colorScheme.onSurface.copy(alpha = 0.68f),
                 fontWeight = FontWeight.SemiBold,
             )
 
@@ -992,13 +987,13 @@ private fun HomeRouteCard(
                 Text(
                     text = signal.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = colorScheme.onSurface,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = signal.subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.72f),
+                    color = colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
         }
@@ -1018,6 +1013,7 @@ private fun HomeSignalMeter(
     totalSignals: Int,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1033,13 +1029,13 @@ private fun HomeSignalMeter(
                         Brush.linearGradient(
                             colors = if (isActive) {
                                 listOf(
-                                    ArenaGold.copy(alpha = 0.92f),
-                                    ArenaRed.copy(alpha = 0.86f),
+                                    colorScheme.skydownAccentHighlight().copy(alpha = 0.92f),
+                                    colorScheme.skydownAccentMystic().copy(alpha = 0.86f),
                                 )
                             } else {
                                 listOf(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f),
-                                    DexBlue.copy(alpha = 0.12f),
+                                    colorScheme.skydownSecondaryBackground().copy(alpha = 0.70f),
+                                    colorScheme.skydownAccent().copy(alpha = 0.12f),
                                 )
                             },
                         ),
@@ -1047,7 +1043,7 @@ private fun HomeSignalMeter(
                     .border(
                         width = 1.dp,
                         color = if (isActive) {
-                            ArenaGold.copy(alpha = 0.36f)
+                            colorScheme.skydownAccentHighlight().copy(alpha = 0.36f)
                         } else {
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
                         },
@@ -1063,17 +1059,18 @@ private fun HomeRadarSurface(
     signals: List<HomeRadarSignal>,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(28.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        DexBlue.copy(alpha = 0.22f),
-                        ArenaRed.copy(alpha = 0.12f),
-                        ArenaGold.copy(alpha = 0.12f),
-                        Color.Black.copy(alpha = 0.22f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.98f),
+                        colorScheme.skydownAccent().copy(alpha = 0.12f),
+                        colorScheme.skydownAccentMystic().copy(alpha = 0.10f),
+                        colorScheme.skydownAccentHighlight().copy(alpha = 0.08f),
+                        colorScheme.skydownCinematicShadow().copy(alpha = 0.06f),
                     ),
                 ),
             )
@@ -1081,8 +1078,8 @@ private fun HomeRadarSurface(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        ArenaGold.copy(alpha = 0.32f),
-                        ArenaRed.copy(alpha = 0.20f),
+                        colorScheme.skydownAccentHighlight().copy(alpha = 0.32f),
+                        colorScheme.skydownAccentMystic().copy(alpha = 0.20f),
                         MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
                     ),
                 ),
@@ -1096,8 +1093,8 @@ private fun HomeRadarSurface(
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            ArenaGold.copy(alpha = 0.16f),
-                            DexBlue.copy(alpha = 0.12f),
+                            colorScheme.skydownAccent().copy(alpha = 0.16f),
+                            colorScheme.skydownAccentMystic().copy(alpha = 0.12f),
                             Color.Transparent,
                         ),
                     ),
@@ -1110,7 +1107,7 @@ private fun HomeRadarSurface(
                     .size(ringSize)
                     .border(
                         width = 1.dp,
-                        color = ArenaGold.copy(alpha = 0.24f - (index * 0.04f)),
+                        color = colorScheme.skydownAccentHighlight().copy(alpha = 0.24f - (index * 0.04f)),
                         shape = CircleShape,
                     ),
             )
@@ -1122,8 +1119,8 @@ private fun HomeRadarSurface(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            ArenaRed.copy(alpha = 0.92f),
-                            ArenaGold.copy(alpha = 0.82f),
+                            colorScheme.skydownAccentMystic().copy(alpha = 0.92f),
+                            colorScheme.skydownAccentHighlight().copy(alpha = 0.82f),
                         ),
                     ),
                 )
@@ -1174,6 +1171,7 @@ private fun HomeRadarNode(
     signal: HomeRadarSignal,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1187,7 +1185,7 @@ private fun HomeRadarNode(
                     Brush.linearGradient(
                         colors = listOf(
                             signal.accent.copy(alpha = if (signal.isActive) 0.92f else 0.22f),
-                            ArenaGold.copy(alpha = if (signal.isActive) 0.40f else 0.08f),
+                            colorScheme.skydownAccentHighlight().copy(alpha = if (signal.isActive) 0.40f else 0.08f),
                             signal.accent.copy(alpha = if (signal.isActive) 0.34f else 0.10f),
                         ),
                     ),
@@ -1219,6 +1217,7 @@ private fun HomeRadarNode(
 private fun HomeRadarSignalRow(
     signal: HomeRadarSignal,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1226,8 +1225,8 @@ private fun HomeRadarSignalRow(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        DexBlue.copy(alpha = 0.06f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.96f),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = 0.36f),
                         signal.accent.copy(alpha = if (signal.isActive) 0.16f else 0.06f),
                     ),
                 ),
@@ -1733,12 +1732,13 @@ private fun HomeStoryCard(
     onOpenNicma: () -> Unit,
 ) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
             title = "Quick Links",
             subtitle = "Die wichtigsten Wege zu Beats, Studio und Kontakt.",
             icon = Icons.Default.AutoAwesome,
-            accent = ArenaRed,
+            accent = colorScheme.skydownAccent(),
             tag = "LINKS",
         )
 
@@ -1764,7 +1764,7 @@ private fun HomeStoryCard(
             HomeLaneSection(
                 title = "Music Links",
                 subtitle = "Releases, Beats und Studio.",
-                accent = ArenaGold,
+                accent = colorScheme.skydownSpotify(),
             ) {
                 homeZweizweiSocialLinks.forEach { link ->
                     HomeStoryLinkButton(
@@ -1792,7 +1792,7 @@ private fun HomeStoryCard(
             HomeLaneSection(
                 title = "Video Links",
                 subtitle = "Clips & Mail.",
-                accent = InstagramOrange,
+                accent = colorScheme.skydownAccentHighlight(),
             ) {
                 HomeStoryLinkButton(
                     title = "Instagram",
@@ -1837,24 +1837,25 @@ private fun HomeStoryLinkButton(
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val colorScheme = MaterialTheme.colorScheme
     val brandGradient = when (brand) {
         HomeStoryBrand.Neutral -> Brush.linearGradient(
             colors = listOf(
-                MaterialTheme.colorScheme.surface.copy(alpha = 0.99f),
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f),
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
+                colorScheme.skydownCardBackground().copy(alpha = 0.99f),
+                colorScheme.skydownSecondaryBackground().copy(alpha = 0.76f),
+                colorScheme.skydownAccent().copy(alpha = 0.04f),
             ),
         )
         HomeStoryBrand.Core -> Brush.linearGradient(
             colors = listOf(
-                DexBlueDeep.copy(alpha = 0.96f),
-                ArenaRed.copy(alpha = 0.72f),
-                ArenaGold.copy(alpha = 0.54f),
+                colorScheme.skydownCinematicShadow().copy(alpha = 0.96f),
+                colorScheme.skydownAccentMystic().copy(alpha = 0.72f),
+                colorScheme.skydownAccentHighlight().copy(alpha = 0.54f),
             ),
         )
         HomeStoryBrand.Instagram -> Brush.linearGradient(
             colors = listOf(
-                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                colorScheme.skydownCardBackground().copy(alpha = 0.98f),
                 InstagramPurple.copy(alpha = 0.16f),
                 InstagramPink.copy(alpha = 0.13f),
                 InstagramOrange.copy(alpha = 0.10f),
@@ -1862,21 +1863,21 @@ private fun HomeStoryLinkButton(
         )
     }
     val iconTint = when (brand) {
-        HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.primary
+        HomeStoryBrand.Neutral -> colorScheme.skydownAccent()
         HomeStoryBrand.Core -> Color.White
         HomeStoryBrand.Instagram -> Color.White
     }
     val iconBackground = when (brand) {
         HomeStoryBrand.Neutral -> Brush.linearGradient(
             colors = listOf(
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                colorScheme.skydownAccent().copy(alpha = 0.10f),
+                colorScheme.skydownAccent().copy(alpha = 0.10f),
             ),
         )
         HomeStoryBrand.Core -> Brush.linearGradient(
             colors = listOf(
-                ArenaRed,
-                ArenaGold,
+                colorScheme.skydownAccentMystic(),
+                colorScheme.skydownAccentHighlight(),
             ),
         )
         HomeStoryBrand.Instagram -> Brush.linearGradient(
@@ -1888,8 +1889,8 @@ private fun HomeStoryLinkButton(
         )
     }
     val borderColor = when (brand) {
-        HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-        HomeStoryBrand.Core -> ArenaGold.copy(alpha = 0.32f)
+        HomeStoryBrand.Neutral -> colorScheme.skydownAccent().copy(alpha = 0.08f)
+        HomeStoryBrand.Core -> colorScheme.skydownAccentHighlight().copy(alpha = 0.32f)
         HomeStoryBrand.Instagram -> InstagramPink.copy(alpha = 0.22f)
     }
     val titleColor = when (brand) {
@@ -1976,6 +1977,7 @@ private fun HomeLaneSection(
     accent: Color = MaterialTheme.colorScheme.primary,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1983,9 +1985,9 @@ private fun HomeLaneSection(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                        colorScheme.skydownCardBackground().copy(alpha = 0.86f),
                         accent.copy(alpha = 0.08f),
-                        DexBlue.copy(alpha = 0.05f),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = 0.34f),
                     ),
                 ),
             )

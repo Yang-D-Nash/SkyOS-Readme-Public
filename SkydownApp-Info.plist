@@ -49,7 +49,6 @@
 	<string>Skydown benötigt Zugriff auf deine Fotomediathek, damit Admins Merch-Bilder auswählen und hochladen können.</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Awergy-Regular.otf</string>
 		<string>Syne-Regular.ttf</string>
 		<string>Syne-Medium.ttf</string>
 		<string>Syne-SemiBold.ttf</string>

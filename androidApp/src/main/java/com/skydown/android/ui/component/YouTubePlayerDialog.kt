@@ -43,7 +43,6 @@ fun YouTubePlayerDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(18.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

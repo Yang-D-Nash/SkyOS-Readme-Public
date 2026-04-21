@@ -16,6 +16,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -44,6 +47,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayCircleFilled
@@ -53,9 +57,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
@@ -78,10 +79,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -117,8 +122,10 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownLuminousSweep
+import com.skydown.android.ui.component.skydownPanelSurface
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownSelectionFeedback
+import com.skydown.android.ui.component.skydownCapsuleSurface
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.screen.AiHubScreen
@@ -137,7 +144,22 @@ import com.skydown.android.ui.screen.SettingsScreen
 import com.skydown.android.ui.screen.ShopScreen
 import com.skydown.android.ui.screen.VideoHubScreen
 import com.skydown.android.ui.theme.BackgroundDark
+import com.skydown.android.ui.theme.SkydownBodyCaptionTextStyle
+import com.skydown.android.ui.theme.SkydownCardTitleTextStyle
+import com.skydown.android.ui.theme.SkydownEditorialCaptionTextStyle
+import com.skydown.android.ui.theme.SkydownHeroEyebrowTextStyle
+import com.skydown.android.ui.theme.SkydownSectionTitleTextStyle
 import com.skydown.android.ui.theme.SpotifyGreen
+import com.skydown.android.ui.theme.skydownAccent
+import com.skydown.android.ui.theme.skydownAccentHighlight
+import com.skydown.android.ui.theme.skydownAccentMystic
+import com.skydown.android.ui.theme.skydownCardBackground
+import com.skydown.android.ui.theme.skydownCinematicShadow
+import com.skydown.android.ui.theme.skydownIsDarkPalette
+import com.skydown.android.ui.theme.skydownLuminanceLift
+import com.skydown.android.ui.theme.skydownSecondaryBackground
+import com.skydown.android.ui.theme.skydownText
+import com.skydown.android.ui.theme.skydownYoutube
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -262,19 +284,19 @@ fun SkydownApp(
 
     CompositionLocalProvider(LocalSessionUser provides currentUser) {
         val destinations = buildList {
-            add(BottomDestination("shop", stringResource(R.string.tabs_merch), MaterialTheme.colorScheme.tertiary) { _ ->
+            add(BottomDestination("shop", stringResource(R.string.tabs_merch), MaterialTheme.colorScheme.skydownAccentHighlight()) { _ ->
                 Icon(Icons.Default.ShoppingBag, contentDescription = null)
             })
             add(BottomDestination("music", stringResource(R.string.tabs_music), SpotifyGreen) { _ ->
                 Icon(Icons.Default.GraphicEq, contentDescription = null)
             })
-            add(BottomDestination("home", stringResource(R.string.tabs_home), MaterialTheme.colorScheme.primary) { _ ->
+            add(BottomDestination("home", stringResource(R.string.tabs_home), MaterialTheme.colorScheme.skydownAccent()) { _ ->
                 Icon(Icons.Default.Home, contentDescription = null)
             })
-            add(BottomDestination("video", stringResource(R.string.tabs_videos), Color(0xFFFF6E74)) { _ ->
+            add(BottomDestination("video", stringResource(R.string.tabs_videos), MaterialTheme.colorScheme.skydownYoutube()) { _ ->
                 Icon(Icons.Default.PlayCircleFilled, contentDescription = null)
             })
-            add(BottomDestination("ai", stringResource(R.string.tabs_tools), MaterialTheme.colorScheme.secondary) { _ ->
+            add(BottomDestination("ai", stringResource(R.string.tabs_tools), MaterialTheme.colorScheme.skydownAccentMystic()) { _ ->
                 Icon(Icons.Default.AutoAwesome, contentDescription = null)
             })
         }
@@ -493,20 +515,26 @@ private fun SkydownFloatingBottomDock(
     onDestinationClick: (BottomDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
     val selectedAccentTarget = destinations.firstOrNull { isSelected(it) }?.accent
-        ?: MaterialTheme.colorScheme.primary
+        ?: colorScheme.skydownAccent()
     val selectedAccent by animateColorAsState(
         targetValue = selectedAccentTarget,
         animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
         label = "bottomDockAccent",
     )
     val dockBorder by animateColorAsState(
-        targetValue = lerp(Color.White.copy(alpha = 0.14f), selectedAccent.copy(alpha = 0.34f), 0.42f),
+        targetValue = lerp(
+            Color.White.copy(alpha = if (isDarkPalette) 0.09f else 0.18f),
+            selectedAccent.copy(alpha = if (isDarkPalette) 0.14f else 0.11f),
+            0.28f,
+        ),
         animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
         label = "bottomDockBorder",
     )
     val dockGlow by animateColorAsState(
-        targetValue = selectedAccent.copy(alpha = 0.18f),
+        targetValue = selectedAccent.copy(alpha = if (isDarkPalette) 0.075f else 0.055f),
         animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
         label = "bottomDockGlow",
     )
@@ -516,20 +544,20 @@ private fun SkydownFloatingBottomDock(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = if (isCompactLayout) 10.dp else 18.dp)
-            .padding(top = 6.dp, bottom = 14.dp),
+            .padding(horizontal = if (isCompactLayout) 16.dp else 22.dp)
+            .padding(top = 4.dp, bottom = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
             modifier = Modifier
-                .widthIn(max = if (isCompactLayout) 438.dp else 572.dp)
-                .fillMaxWidth(if (isCompactLayout) 0.965f else 0.84f),
+                .widthIn(max = if (isCompactLayout) 420.dp else 540.dp)
+                .fillMaxWidth(if (isCompactLayout) 0.88f else 0.74f),
             shape = dockShape,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.46f),
+            color = colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.46f else 0.76f),
             tonalElevation = 0.dp,
-            shadowElevation = if (isCompactLayout) 18.dp else 22.dp,
+            shadowElevation = if (isCompactLayout) 8.dp else 10.dp,
             border = BorderStroke(
-                width = 1.dp,
+                width = 0.6.dp,
                 color = dockBorder,
             ),
         ) {
@@ -538,33 +566,35 @@ private fun SkydownFloatingBottomDock(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = 0.13f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.46f),
-                                selectedAccent.copy(alpha = 0.12f),
-                                dockGlow.copy(alpha = 0.44f),
+                                colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.08f else 0.20f),
+                                colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.84f else 0.82f),
+                                colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.18f else 0.20f),
+                                selectedAccent.copy(alpha = if (isDarkPalette) 0.045f else 0.035f),
+                                dockGlow.copy(alpha = if (isDarkPalette) 0.13f else 0.09f),
                             ),
                         ),
                     )
                     .skydownLuminousSweep(
                         shape = dockShape,
                         accent = selectedAccent,
-                        alpha = 0.16f,
+                        alpha = 0.08f,
                     ),
             ) {
-                NavigationBar(
+                Row(
                     modifier = Modifier
-                        .height(if (isCompactLayout) 82.dp else 88.dp)
+                        .height(if (isCompactLayout) 62.dp else 66.dp)
+                        .fillMaxWidth()
                         .padding(
-                            horizontal = if (isCompactLayout) 4.dp else 8.dp,
-                            vertical = 6.dp,
+                            horizontal = if (isCompactLayout) 5.dp else 8.dp,
+                            vertical = 4.dp,
                         ),
-                    windowInsets = WindowInsets(0, 0, 0, 0),
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     destinations.forEach { destination ->
                         val selected = isSelected(destination)
+                        val itemShape = RoundedCornerShape(22.dp)
+                        val itemInteractionSource = remember(destination.route) { MutableInteractionSource() }
                         val iconScale by animateFloatAsState(
                             targetValue = if (selected) 1f else 0.94f,
                             animationSpec = spring(dampingRatio = 0.84f, stiffness = 620f),
@@ -583,11 +613,68 @@ private fun SkydownFloatingBottomDock(
                             ),
                             label = "bottomNavLabelAlpha_${destination.route}",
                         )
+                        val selectedBorderAlpha by animateFloatAsState(
+                            targetValue = if (selected) {
+                                if (isDarkPalette) 0.22f else 0.20f
+                            } else {
+                                0f
+                            },
+                            animationSpec = tween(
+                                durationMillis = 220,
+                                easing = FastOutSlowInEasing,
+                            ),
+                            label = "bottomNavBorderAlpha_${destination.route}",
+                        )
 
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { onDestinationClick(destination) },
-                            icon = {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(horizontal = 1.dp, vertical = 4.dp)
+                                .clip(itemShape)
+                                .background(
+                                    if (selected) {
+                                        Brush.linearGradient(
+                                            colors = listOf(
+                                                colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.11f else 0.18f),
+                                                selectedAccent.copy(alpha = if (isDarkPalette) 0.18f else 0.12f),
+                                                colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.08f else 0.06f),
+                                            ),
+                                        )
+                                    } else {
+                                        Brush.linearGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color.Transparent,
+                                            ),
+                                        )
+                                    },
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selected) {
+                                        Color.White.copy(alpha = selectedBorderAlpha)
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                    shape = itemShape,
+                                )
+                                .skydownPressable(
+                                    interactionSource = itemInteractionSource,
+                                    pressedScale = 0.988f,
+                                )
+                                .clickable(
+                                    interactionSource = itemInteractionSource,
+                                    indication = null,
+                                ) {
+                                    onDestinationClick(destination)
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
@@ -599,26 +686,21 @@ private fun SkydownFloatingBottomDock(
                                 ) {
                                     destination.icon(selected)
                                 }
-                            },
-                            label = {
                                 Text(
                                     modifier = Modifier.alpha(labelAlpha),
                                     text = destination.label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = if (selected) {
+                                        selectedAccent.copy(alpha = if (isDarkPalette) 0.98f else 0.90f)
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+                                    },
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
-                            },
-                            alwaysShowLabel = true,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onSurface,
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                indicatorColor = selectedAccent.copy(alpha = 0.18f),
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
-                            ),
-                        )
+                            }
+                        }
                     }
                 }
             }
@@ -920,19 +1002,12 @@ private fun LaunchLandingScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            androidx.compose.ui.graphics.Color.Black,
-                            androidx.compose.ui.graphics.Color(0xFF030810),
-                            androidx.compose.ui.graphics.Color(0xFF071222),
-                            androidx.compose.ui.graphics.Color(0xFF163761).copy(alpha = 0.62f),
-                            androidx.compose.ui.graphics.Color(0xFF123055).copy(alpha = 0.44f),
-                            androidx.compose.ui.graphics.Color(0xFF06101D),
-                            androidx.compose.ui.graphics.Color.Black,
-                        ),
-                    ),
+            .background(
+                skydownScreenBrush(
+                    primaryAlpha = 0.074f,
+                    secondaryAlpha = 0.058f,
                 ),
+            ),
     ) {
         val isWideLayout = maxWidth >= 900.dp
         val isThreeColumnLayout = maxWidth >= 1180.dp
@@ -945,27 +1020,41 @@ private fun LaunchLandingScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 48.dp)
-                .offset(x = 28.dp)
-                .width(if (isThreeColumnLayout) 320.dp else 220.dp)
-                .height(if (isThreeColumnLayout) 320.dp else 220.dp)
+                .padding(top = 36.dp)
+                .offset(x = 22.dp)
+                .width(if (isThreeColumnLayout) 280.dp else 180.dp)
+                .height(if (isThreeColumnLayout) 280.dp else 180.dp)
                 .background(
-                    androidx.compose.ui.graphics.Color(0xFF4B83CF).copy(alpha = 0.18f),
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f),
+                            Color.Transparent,
+                        ),
+                    ),
                     RoundedCornerShape(999.dp),
-                ),
+                )
+                .blur(if (isThreeColumnLayout) 36.dp else 28.dp),
         )
 
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(bottom = 56.dp)
-                .offset(x = (-36).dp)
-                .width(if (isWideLayout) 260.dp else 200.dp)
-                .height(if (isWideLayout) 260.dp else 200.dp)
+                .padding(bottom = 52.dp)
+                .offset(x = (-28).dp)
+                .width(if (isWideLayout) 220.dp else 168.dp)
+                .height(if (isWideLayout) 220.dp else 168.dp)
                 .background(
-                    androidx.compose.ui.graphics.Color(0xFF9CBDE8).copy(alpha = 0.10f),
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+                            Color.Transparent,
+                        ),
+                    ),
                     RoundedCornerShape(999.dp),
-                ),
+                )
+                .blur(if (isWideLayout) 34.dp else 26.dp),
         )
 
         LazyColumn(
@@ -973,8 +1062,8 @@ private fun LaunchLandingScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
                 Box(
@@ -988,9 +1077,9 @@ private fun LaunchLandingScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BrandPill(text = "Sky OS", tint = MaterialTheme.colorScheme.primary)
-                            BrandPill(text = "One Flow", tint = MaterialTheme.colorScheme.tertiary)
-                            BrandPill(text = "Direct", tint = SpotifyGreen)
+                            LaunchLandingMetaPill(text = "Sky OS", accent = MaterialTheme.colorScheme.primary)
+                            LaunchLandingMetaPill(text = "One Flow", accent = MaterialTheme.colorScheme.tertiary)
+                            LaunchLandingMetaPill(text = "Direct", accent = SpotifyGreen)
                         }
 
                         BrandHeroCard(
@@ -1002,6 +1091,7 @@ private fun LaunchLandingScreen(
                             accent = MaterialTheme.colorScheme.primary,
                             secondaryAccent = MaterialTheme.colorScheme.secondary,
                             marks = listOf(BrandArtwork.Combined),
+                            compactVisualDensity = !isWideLayout,
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1199,6 +1289,7 @@ private fun LaunchLandingChoiceCard(
     artwork: BrandArtwork,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compactVisualDensity: Boolean = true,
 ) {
     HubEntryCard(
         eyebrow = eyebrow,
@@ -1210,6 +1301,7 @@ private fun LaunchLandingChoiceCard(
         icon = icon,
         artwork = artwork,
         onClick = onClick,
+        compactVisualDensity = compactVisualDensity,
         modifier = modifier,
     )
 }
@@ -1238,10 +1330,10 @@ private fun ZweizweiMusicLaneScreen(
     var selectedArtistPage by rememberSaveable { mutableStateOf<String?>(null) }
     var artistPageReturnDestination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hubHorizontalPadding = if (useCompactHubVisuals) 16.dp else 18.dp
-    val hubTopPadding = if (useCompactHubVisuals) 14.dp else 22.dp
-    val hubBottomPadding = if (useCompactHubVisuals) 24.dp else 30.dp
-    val hubSectionSpacing = if (useCompactHubVisuals) 10.dp else 14.dp
+    val hubHorizontalPadding = if (useCompactHubVisuals) 15.dp else 16.dp
+    val hubTopPadding = if (useCompactHubVisuals) 12.dp else 18.dp
+    val hubBottomPadding = if (useCompactHubVisuals) 18.dp else 24.dp
+    val hubSectionSpacing = if (useCompactHubVisuals) 9.dp else 11.dp
     val useCompactHubHero = useCompactHubVisuals
 
     Box(
@@ -1596,74 +1688,94 @@ private fun HubEntryCard(
     artwork: BrandArtwork? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val cardShape = RoundedCornerShape(if (compactVisualDensity) 22.dp else 28.dp)
-    val haloSize = if (compactVisualDensity) 82.dp else 120.dp
-    val accentBarHeight = if (compactVisualDensity) 54.dp else 72.dp
-    val contentHorizontalPadding = if (compactVisualDensity) 14.dp else 18.dp
-    val contentVerticalPadding = if (compactVisualDensity) 14.dp else 18.dp
-    val contentSpacing = if (compactVisualDensity) 10.dp else 16.dp
-    val headerSpacing = if (compactVisualDensity) 8.dp else 12.dp
-    val titleStyle = if (compactVisualDensity) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall
-    val subtitleStyle = if (compactVisualDensity) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium
-    val arrowContainerSize = if (compactVisualDensity) 28.dp else 36.dp
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val cardShape = RoundedCornerShape(if (compactVisualDensity) 26.dp else 28.dp)
+    val iconTileShape = RoundedCornerShape(18.dp)
+    val iconTileSize = if (compactVisualDensity) 56.dp else 60.dp
 
     Surface(
         shape = cardShape,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        tonalElevation = 10.dp,
-        shadowElevation = 14.dp,
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.24f)),
+        color = Color.Transparent,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = null,
         onClick = onClick,
         interactionSource = interactionSource,
-        modifier = modifier.skydownPressable(interactionSource),
+        modifier = modifier
+            .skydownPressable(interactionSource)
+            .skydownPanelSurface(
+                accent = accentColor,
+                cornerRadius = if (compactVisualDensity) 26.dp else 28.dp,
+                shadowRadius = if (compactVisualDensity) 13.dp else 16.dp,
+                shadowYOffset = if (compactVisualDensity) 7.dp else 9.dp,
+            ),
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = if (compactVisualDensity) 208.dp else 218.dp)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.06f else 0.12f),
+                            accentColor.copy(alpha = if (isDarkPalette) 0.080f else 0.055f),
+                            colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.10f else 0.20f),
+                            colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.20f else 0.04f),
+                        ),
+                        start = Offset.Zero,
+                        end = Offset.Infinite,
+                    ),
+                ),
         ) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .size(haloSize)
-                    .offset(
-                        x = if (compactVisualDensity) 12.dp else 18.dp,
-                        y = if (compactVisualDensity) (-12).dp else (-18).dp,
-                    )
-                    .background(
-                        accentColor.copy(alpha = 0.10f),
-                        RoundedCornerShape(999.dp),
-                    ),
+                    .size(if (compactVisualDensity) 116.dp else 132.dp)
+                    .offset(x = 24.dp, y = (-24).dp)
+                    .background(accentColor.copy(alpha = if (isDarkPalette) 0.16f else 0.10f), RoundedCornerShape(999.dp))
+                    .blur(34.dp),
             )
 
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 10.dp)
-                    .width(4.dp)
-                    .height(accentBarHeight)
-                    .background(accentColor, RoundedCornerShape(999.dp)),
+                    .align(Alignment.TopStart)
+                    .padding(start = 22.dp, top = 20.dp)
+                    .width(74.dp)
+                    .height(3.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.26f else 0.34f),
+                                accentColor.copy(alpha = 0.70f),
+                                accentColor.copy(alpha = 0.06f),
+                            ),
+                        ),
+                        RoundedCornerShape(999.dp),
+                    ),
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = contentHorizontalPadding, vertical = contentVerticalPadding),
-                verticalArrangement = Arrangement.spacedBy(contentSpacing),
+                    .padding(
+                        horizontal = if (compactVisualDensity) 18.dp else 22.dp,
+                        vertical = if (compactVisualDensity) 19.dp else 22.dp,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 14.dp else 16.dp),
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(headerSpacing),
+                    horizontalArrangement = Arrangement.spacedBy(13.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(if (compactVisualDensity) 44.dp else 52.dp)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        accentColor.copy(alpha = 0.22f),
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                                    ),
-                                ),
-                                RoundedCornerShape(if (compactVisualDensity) 14.dp else 18.dp),
+                            .size(iconTileSize)
+                            .skydownPanelSurface(
+                                accent = accentColor,
+                                cornerRadius = 18.dp,
+                                shadowRadius = 7.dp,
+                                shadowYOffset = 3.dp,
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -1672,52 +1784,44 @@ private fun HubEntryCard(
                                 painter = painterResource(id = artwork.drawableRes),
                                 contentDescription = null,
                                 modifier = Modifier
-                                    .size(if (compactVisualDensity) 26.dp else 34.dp)
-                                    .padding(4.dp),
+                                    .size(iconTileSize)
+                                    .padding(9.dp),
                                 contentScale = ContentScale.Fit,
-                            )
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = accentColor,
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .size(if (compactVisualDensity) 12.dp else 15.dp),
                             )
                         } else {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
                                 tint = accentColor,
+                                modifier = Modifier.size(26.dp),
                             )
                         }
                     }
 
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 4.dp else 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         if (!eyebrow.isNullOrBlank()) {
                             Text(
                                 text = eyebrow.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = accentColor,
-                                fontWeight = FontWeight.SemiBold,
+                                style = SkydownHeroEyebrowTextStyle,
+                                color = accentColor.copy(alpha = 0.92f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
                         Text(
                             text = title,
-                            style = titleStyle,
-                            fontWeight = FontWeight.Black,
+                            style = SkydownSectionTitleTextStyle,
+                            color = Color.White,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = subtitle,
-                            style = subtitleStyle,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                            style = SkydownEditorialCaptionTextStyle,
+                            color = Color.White.copy(alpha = 0.82f),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1725,20 +1829,17 @@ private fun HubEntryCard(
 
                     Box(
                         modifier = Modifier
-                            .size(arrowContainerSize)
-                            .background(
-                                accentColor.copy(alpha = 0.12f),
-                                RoundedCornerShape(999.dp),
-                            ),
+                            .size(if (compactVisualDensity) 38.dp else 40.dp)
+                            .skydownCapsuleSurface(accent = accentColor),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            imageVector = Icons.Default.ArrowOutward,
                             contentDescription = null,
-                            tint = accentColor,
+                            tint = Color.White.copy(alpha = 0.82f),
                             modifier = Modifier
                                 .alpha(0.92f)
-                                .size(if (compactVisualDensity) 14.dp else 18.dp),
+                                .size(if (compactVisualDensity) 17.dp else 18.dp),
                         )
                     }
                 }
@@ -1746,19 +1847,37 @@ private fun HubEntryCard(
                 if (!detail.isNullOrBlank()) {
                     Text(
                         text = detail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
-                        maxLines = if (compactVisualDensity) 2 else 3,
+                        style = SkydownEditorialCaptionTextStyle,
+                        color = Color.White.copy(alpha = 0.74f),
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
 
                 if (chips.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 6.dp else 8.dp)) {
-                        chips.take(if (compactVisualDensity) 2 else 3).forEach { chip ->
-                            BrandPill(text = chip, tint = accentColor)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        chips.take(3).forEach { chip ->
+                            LaunchLandingBadge(text = chip, accent = accentColor)
                         }
                     }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Direkt in $title",
+                        style = SkydownBodyCaptionTextStyle,
+                        color = Color.White.copy(alpha = 0.94f),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    LaunchLandingActionPill(
+                        text = "Open",
+                        accent = accentColor,
+                    )
                 }
             }
         }
@@ -1773,56 +1892,133 @@ private fun HubSignalCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
-    if (onClick != null) {
-        Surface(
-            modifier = modifier,
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
-            tonalElevation = 6.dp,
-            onClick = onClick,
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val interactionSource = remember(onClick) { MutableInteractionSource() }
+    val signalModifier = modifier
+        .skydownPanelSurface(
+            accent = accentColor,
+            cornerRadius = 22.dp,
+            shadowRadius = 10.dp,
+            shadowYOffset = 5.dp,
+        )
+        .then(
+            if (onClick != null) {
+                Modifier
+                    .skydownPressable(interactionSource)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick,
+                    )
+            } else {
+                Modifier
+            },
+        )
+
+    Box(
+        modifier = signalModifier.background(
+            Brush.linearGradient(
+                colors = listOf(
+                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.06f else 0.15f),
+                    accentColor.copy(alpha = if (isDarkPalette) 0.08f else 0.055f),
+                    colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.12f else 0.02f),
+                ),
+            ),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = title.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accentColor,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.84f),
-                )
-            }
+            Text(
+                text = title.uppercase(),
+                style = SkydownHeroEyebrowTextStyle,
+                color = accentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Text(
+                text = value,
+                style = SkydownEditorialCaptionTextStyle,
+                color = colorScheme.skydownText().copy(alpha = 0.86f),
+            )
         }
-    } else {
-        Surface(
-            modifier = modifier,
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
-            tonalElevation = 6.dp,
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = title.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accentColor,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.84f),
-                )
-            }
-        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 12.dp, start = 16.dp)
+                .width(52.dp)
+                .height(3.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            accentColor.copy(alpha = 0.90f),
+                            accentColor.copy(alpha = 0.08f),
+                        ),
+                    ),
+                    RoundedCornerShape(999.dp),
+                ),
+        )
+    }
+}
+
+@Composable
+private fun LaunchLandingMetaPill(
+    text: String,
+    accent: Color,
+) {
+    Text(
+        text = text,
+        style = SkydownEditorialCaptionTextStyle,
+        color = Color.White.copy(alpha = 0.90f),
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier
+            .skydownCapsuleSurface(accent = accent)
+            .padding(horizontal = 13.dp, vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun LaunchLandingBadge(
+    text: String,
+    accent: Color,
+) {
+    Text(
+        text = text,
+        style = SkydownBodyCaptionTextStyle,
+        color = accent,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier
+            .skydownCapsuleSurface(accent = accent)
+            .padding(horizontal = 11.dp, vertical = 7.dp),
+    )
+}
+
+@Composable
+private fun LaunchLandingActionPill(
+    text: String,
+    accent: Color,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .skydownCapsuleSurface(accent = accent)
+            .padding(horizontal = 13.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = text,
+            style = SkydownBodyCaptionTextStyle,
+            color = Color.White.copy(alpha = 0.94f),
+            fontWeight = FontWeight.Bold,
+        )
+        Icon(
+            imageVector = Icons.Default.ArrowOutward,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.94f),
+            modifier = Modifier.size(14.dp),
+        )
     }
 }

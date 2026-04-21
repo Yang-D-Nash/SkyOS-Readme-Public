@@ -34,7 +34,6 @@ enum BrandMark: String, Identifiable {
 }
 
 struct BrandHeroSurface<Footer: View>: View {
-    @State private var sheenTravel: CGFloat = -1.2
     let colorScheme: ColorScheme
     let eyebrow: String
     let title: String
@@ -76,34 +75,52 @@ struct BrandHeroSurface<Footer: View>: View {
         let subtitleColor = hasBackgroundImage ? Color.white.opacity(0.84) : AppColors.secondaryText(for: colorScheme).opacity(0.96)
         let detailColor = hasBackgroundImage ? Color.white.opacity(0.86) : AppColors.text(for: colorScheme).opacity(0.86)
 
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(eyebrow.uppercased())
-                        .font(AppTypography.heroEyebrow)
-                        .tracking(2.1)
-                        .foregroundColor(accent)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(eyebrow.uppercased())
+                            .font(AppTypography.heroEyebrow)
+                            .tracking(2.4)
+                            .foregroundColor(accent)
+
+                        Capsule(style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(colorScheme == .dark ? 0.28 : 0.72),
+                                        accent.opacity(0.78),
+                                        secondaryAccent.opacity(0.32)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: 46, height: 3)
+                    }
 
                     Text(title)
                         .font(AppTypography.heroTitle)
                         .lineSpacing(2)
                         .foregroundColor(titleColor)
+                        .multilineTextAlignment(.leading)
 
                     Text(subtitle)
-                        .font(AppTypography.editorialBody)
-                        .lineSpacing(2)
+                        .font(AppTypography.heroSubtitle)
+                        .lineSpacing(3)
                         .foregroundColor(subtitleColor)
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
                             .font(AppTypography.editorialCaption)
-                            .tracking(0.3)
+                            .tracking(0.42)
                             .foregroundColor(detailColor)
+                            .padding(.top, 1)
                     }
                 }
 
                 if !marks.isEmpty {
-                    VStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         ForEach(marks.prefix(2)) { mark in
                             BrandMarkTile(
                                 mark: mark,
@@ -113,13 +130,15 @@ struct BrandHeroSurface<Footer: View>: View {
                             )
                         }
                     }
-                    .frame(width: marks.count == 1 ? 126 : 104)
+                    .frame(width: marks.count == 1 ? 118 : 96)
                 }
             }
 
             footer
+                .padding(.top, 4)
         }
-        .padding(SkydownLayout.heroPadding)
+        .padding(.horizontal, SkydownLayout.heroPadding)
+        .padding(.vertical, SkydownLayout.heroPadding + 1)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             let heroShape = RoundedRectangle(
@@ -132,14 +151,42 @@ struct BrandHeroSurface<Footer: View>: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.44),
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.99 : 0.96),
-                                accent.opacity(colorScheme == .dark ? 0.07 : 0.07),
-                                secondaryAccent.opacity(colorScheme == .dark ? 0.05 : 0.05),
-                                Color.black.opacity(colorScheme == .dark ? 0.02 : 0.015)
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.28),
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.99 : 0.975),
+                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.36 : 0.28),
+                                accent.opacity(colorScheme == .dark ? 0.05 : 0.05),
+                                secondaryAccent.opacity(colorScheme == .dark ? 0.04 : 0.04),
+                                Color.black.opacity(colorScheme == .dark ? 0.015 : 0.010)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
+                        )
+                    )
+
+                heroShape
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.08 : 0.18),
+                                accent.opacity(colorScheme == .dark ? 0.08 : 0.10),
+                                .clear
+                            ],
+                            center: .topLeading,
+                            startRadius: 10,
+                            endRadius: 320
+                        )
+                    )
+
+                heroShape
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                secondaryAccent.opacity(colorScheme == .dark ? 0.08 : 0.10),
+                                .clear
+                            ],
+                            center: UnitPoint(x: 0.88, y: 0.84),
+                            startRadius: 16,
+                            endRadius: 340
                         )
                     )
 
@@ -162,10 +209,10 @@ struct BrandHeroSurface<Footer: View>: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.14 : 0.12),
-                                    Color.black.opacity(colorScheme == .dark ? 0.12 : 0.12),
-                                    accent.opacity(colorScheme == .dark ? 0.10 : 0.08),
-                                    secondaryAccent.opacity(colorScheme == .dark ? 0.07 : 0.06)
+                                    Color.white.opacity(colorScheme == .dark ? 0.10 : 0.10),
+                                    Color.black.opacity(colorScheme == .dark ? 0.08 : 0.08),
+                                    accent.opacity(colorScheme == .dark ? 0.08 : 0.07),
+                                    secondaryAccent.opacity(colorScheme == .dark ? 0.06 : 0.05)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -173,20 +220,34 @@ struct BrandHeroSurface<Footer: View>: View {
                         )
 
                     heroShape
-                        .fill(Color.black.opacity(colorScheme == .dark ? 0.14 : 0.12))
+                        .fill(Color.black.opacity(colorScheme == .dark ? 0.10 : 0.08))
+
+                    heroShape
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.14),
+                                    accent.opacity(colorScheme == .dark ? 0.08 : 0.10),
+                                    .clear
+                                ],
+                                center: .topLeading,
+                                startRadius: 8,
+                                endRadius: 280
+                            )
+                        )
                 }
 
                 Circle()
-                    .fill(accent.opacity(colorScheme == .dark ? 0.12 : 0.06))
-                    .frame(width: 220, height: 220)
-                    .blur(radius: 54)
-                    .offset(x: 136, y: -82)
+                    .fill(accent.opacity(colorScheme == .dark ? 0.10 : 0.05))
+                    .frame(width: 260, height: 260)
+                    .blur(radius: 44)
+                    .offset(x: 142, y: -88)
 
                 Circle()
-                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.10 : 0.06))
-                    .frame(width: 176, height: 176)
-                    .blur(radius: 48)
-                    .offset(x: -118, y: 108)
+                    .fill(secondaryAccent.opacity(colorScheme == .dark ? 0.08 : 0.05))
+                    .frame(width: 210, height: 210)
+                    .blur(radius: 40)
+                    .offset(x: -124, y: 112)
             }
         }
         .skydownPanelSurface(
@@ -208,8 +269,8 @@ struct BrandHeroSurface<Footer: View>: View {
                 LinearGradient(
                         colors: [
                             Color.white.opacity(0),
-                            Color.white.opacity(colorScheme == .dark ? 0.14 : 0.18),
-                            accent.opacity(colorScheme == .dark ? 0.10 : 0.12),
+                            Color.white.opacity(colorScheme == .dark ? 0.10 : 0.14),
+                            accent.opacity(colorScheme == .dark ? 0.08 : 0.09),
                             Color.white.opacity(0)
                         ],
                     startPoint: .topLeading,
@@ -217,7 +278,7 @@ struct BrandHeroSurface<Footer: View>: View {
                 )
                 .frame(width: max(width * 0.34, 120), height: height * 1.7)
                 .rotationEffect(.degrees(16))
-                .offset(x: sheenTravel * width, y: -height * 0.16)
+                .offset(x: width * 0.34, y: -height * 0.16)
                 .blur(radius: 7)
                 .blendMode(.screen)
                 .mask(shape)
@@ -256,12 +317,6 @@ struct BrandHeroSurface<Footer: View>: View {
                 .padding(.top, 14)
                 .padding(.leading, 18)
                 .opacity(0.92)
-        }
-        .onAppear {
-            guard sheenTravel < 0 else { return }
-            withAnimation(.linear(duration: 4.4).repeatForever(autoreverses: false)) {
-                sheenTravel = 1.24
-            }
         }
     }
 }
@@ -343,12 +398,12 @@ private struct BrandMarkTile: View {
     let isFeatured: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Image(mark.imageName)
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .frame(height: isFeatured ? 88 : 58)
+                .frame(height: isFeatured ? 76 : 52)
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
 
             Text(mark.label)
@@ -357,7 +412,7 @@ private struct BrandMarkTile: View {
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.88))
                 .lineLimit(1)
         }
-        .padding(isFeatured ? 13 : 11)
+        .padding(isFeatured ? 11 : 10)
         .background(
             RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .fill(
