@@ -6,6 +6,9 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
+private const val defaultInvoiceCompanyName = "Skydown OS"
+private const val legacyInvoiceCompanyName = "Skydown"
+
 data class CommerceShippingSettings(
     val domesticCost: Double = 4.90,
     val euCost: Double = 6.90,
@@ -15,7 +18,7 @@ data class CommerceShippingSettings(
 )
 
 data class CommerceInvoiceSettings(
-    val companyName: String = "Skydown",
+    val companyName: String = defaultInvoiceCompanyName,
     val companyAddress: String = "",
     val taxNumber: String = "",
     val vatId: String = "",
@@ -71,7 +74,7 @@ private fun Map<String, Any>.toCommerceSettings(): CommerceSettings {
             shippingNotes = shipping["shippingNotes"] as? String ?: "",
         ),
         invoice = CommerceInvoiceSettings(
-            companyName = invoice["companyName"] as? String ?: "Skydown",
+            companyName = normalizeInvoiceCompanyName(invoice["companyName"] as? String),
             companyAddress = invoice["companyAddress"] as? String ?: "",
             taxNumber = invoice["taxNumber"] as? String ?: "",
             vatId = invoice["vatId"] as? String ?: "",
@@ -102,6 +105,15 @@ private fun CommerceSettings.toMap(): Map<String, Any> {
         ),
         "updatedAt" to FieldValue.serverTimestamp(),
     )
+}
+
+private fun normalizeInvoiceCompanyName(value: String?): String {
+    val trimmed = value?.trim().orEmpty()
+    return when {
+        trimmed.isEmpty() -> defaultInvoiceCompanyName
+        trimmed == legacyInvoiceCompanyName -> defaultInvoiceCompanyName
+        else -> trimmed
+    }
 }
 
 private fun Any?.asDouble(fallback: Double): Double {

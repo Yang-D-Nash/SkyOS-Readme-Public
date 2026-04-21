@@ -740,7 +740,7 @@ private struct PricingSummaryCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            Text("Rechnung und Rueckmeldung laufen ueber \(companyName.takeIfNotBlank() ?? "Skydown").")
+            Text("Rechnung und Rueckmeldung laufen ueber \(companyName.takeIfNotBlank() ?? "Skydown OS").")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }

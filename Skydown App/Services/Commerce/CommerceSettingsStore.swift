@@ -1,6 +1,9 @@
 import Foundation
 import FirebaseFirestore
 
+private let defaultInvoiceCompanyName = "Skydown OS"
+private let legacyInvoiceCompanyName = "Skydown"
+
 struct CommerceShippingSettings: Equatable {
     var domesticCost: Double = 4.90
     var euCost: Double = 6.90
@@ -10,7 +13,7 @@ struct CommerceShippingSettings: Equatable {
 }
 
 struct CommerceInvoiceSettings: Equatable {
-    var companyName: String = "Skydown"
+    var companyName: String = defaultInvoiceCompanyName
     var companyAddress: String = ""
     var taxNumber: String = ""
     var vatId: String = ""
@@ -77,7 +80,7 @@ final class FirestoreCommerceSettingsService: CommerceSettingsServicing {
                 shippingNotes: shipping["shippingNotes"] as? String ?? ""
             ),
             invoice: CommerceInvoiceSettings(
-                companyName: invoice["companyName"] as? String ?? "Skydown",
+                companyName: normalizeInvoiceCompanyName(invoice["companyName"] as? String),
                 companyAddress: invoice["companyAddress"] as? String ?? "",
                 taxNumber: invoice["taxNumber"] as? String ?? "",
                 vatId: invoice["vatId"] as? String ?? "",
@@ -118,6 +121,16 @@ final class FirestoreCommerceSettingsService: CommerceSettingsServicing {
             return Double(text) ?? fallback
         default:
             return fallback
+        }
+    }
+
+    private static func normalizeInvoiceCompanyName(_ value: String?) -> String {
+        let trimmed = value?.trimmed ?? ""
+        switch trimmed {
+        case "", legacyInvoiceCompanyName:
+            return defaultInvoiceCompanyName
+        default:
+            return trimmed
         }
     }
 }

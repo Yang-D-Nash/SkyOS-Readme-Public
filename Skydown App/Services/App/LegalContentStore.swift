@@ -1,13 +1,23 @@
 import Foundation
 import FirebaseFirestore
 
+private let defaultLegalBrandName = "SkyOs"
+private let defaultLegalOperatorName = "Skydown OS"
+private let defaultLegalRightsHolderName = "Skydown OS"
+private let legacyLegalOperatorName = "Skydown"
+private let legacyLegalRightsHolderName = "Skydown"
+private let defaultLegalSupportEmail = "skydownent@gmail.com"
+private let defaultLegalLastUpdatedLabel = "20. April 2026"
+private let defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown OS, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private let legacyLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+
 struct LegalContentSettings: Codable, Equatable {
-    var brandName: String = "SkyOs"
-    var operatorName: String = "Skydown"
-    var rightsHolderName: String = "Skydown"
-    var supportEmail: String = "skydownent@gmail.com"
-    var lastUpdatedLabel: String = "20. April 2026"
-    var imprintReference: String = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+    var brandName: String = defaultLegalBrandName
+    var operatorName: String = defaultLegalOperatorName
+    var rightsHolderName: String = defaultLegalRightsHolderName
+    var supportEmail: String = defaultLegalSupportEmail
+    var lastUpdatedLabel: String = defaultLegalLastUpdatedLabel
+    var imprintReference: String = defaultLegalImprintReference
     var masterNumberMeaning: String = """
     Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen.
     """
@@ -128,11 +138,11 @@ final class FirestoreLegalContentService: LegalContentServicing {
     private static func decode(_ data: [String: Any]) -> LegalContentSettings {
         LegalContentSettings(
             brandName: data["brandName"] as? String ?? LegalContentSettings.default.brandName,
-            operatorName: data["operatorName"] as? String ?? LegalContentSettings.default.operatorName,
-            rightsHolderName: data["rightsHolderName"] as? String ?? LegalContentSettings.default.rightsHolderName,
+            operatorName: normalizeLegalOperatorName(data["operatorName"] as? String),
+            rightsHolderName: normalizeLegalRightsHolderName(data["rightsHolderName"] as? String),
             supportEmail: data["supportEmail"] as? String ?? LegalContentSettings.default.supportEmail,
             lastUpdatedLabel: data["lastUpdatedLabel"] as? String ?? LegalContentSettings.default.lastUpdatedLabel,
-            imprintReference: data["imprintReference"] as? String ?? LegalContentSettings.default.imprintReference,
+            imprintReference: normalizeLegalImprintReference(data["imprintReference"] as? String),
             masterNumberMeaning: data["masterNumberMeaning"] as? String ?? LegalContentSettings.default.masterNumberMeaning,
             brandManifesto: data["brandManifesto"] as? String ?? LegalContentSettings.default.brandManifesto,
             symbolicNumericCode: data["symbolicNumericCode"] as? String ?? LegalContentSettings.default.symbolicNumericCode,
@@ -156,6 +166,36 @@ final class FirestoreLegalContentService: LegalContentServicing {
             "symbolicCodeExplanation": settings.resolvedSymbolicCodeExplanation,
             "updatedAt": FieldValue.serverTimestamp()
         ]
+    }
+
+    private static func normalizeLegalOperatorName(_ value: String?) -> String {
+        let trimmed = value?.legalTrimmed ?? ""
+        switch trimmed {
+        case "", legacyLegalOperatorName:
+            return defaultLegalOperatorName
+        default:
+            return trimmed
+        }
+    }
+
+    private static func normalizeLegalRightsHolderName(_ value: String?) -> String {
+        let trimmed = value?.legalTrimmed ?? ""
+        switch trimmed {
+        case "", legacyLegalRightsHolderName:
+            return defaultLegalRightsHolderName
+        default:
+            return trimmed
+        }
+    }
+
+    private static func normalizeLegalImprintReference(_ value: String?) -> String {
+        let trimmed = value?.legalTrimmed ?? ""
+        switch trimmed {
+        case "", legacyLegalImprintReference:
+            return defaultLegalImprintReference
+        default:
+            return trimmed
+        }
     }
 }
 

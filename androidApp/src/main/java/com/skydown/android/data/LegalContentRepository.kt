@@ -10,11 +10,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
 private const val defaultLegalBrandName = "SkyOs"
-private const val defaultLegalOperatorName = "Skydown"
-private const val defaultLegalRightsHolderName = "Skydown"
+private const val defaultLegalOperatorName = "Skydown OS"
+private const val defaultLegalRightsHolderName = "Skydown OS"
+private const val legacyLegalOperatorName = "Skydown"
+private const val legacyLegalRightsHolderName = "Skydown"
 private const val defaultLegalSupportEmail = "skydownent@gmail.com"
 private const val defaultLegalLastUpdatedLabel = "20. April 2026"
-private const val defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private const val defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown OS, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private const val legacyLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
 private const val defaultMasterNumberMeaning = "Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen."
 private const val defaultBrandManifesto = "Dort, wo der Himmel faellt, beginnt unser Denken.\nWas zerbricht, offenbart Tiefe - nicht Verlust.\nWir hoeren auf das, was nicht laut ist: Wandel, Stille, Sinn.\nUnser Handeln wurzelt im Inneren, wo Klarheit entsteht.\nNicht im Machen liegt unsere Kraft, sondern im Verstehen.\nDenn wir glauben: Der Himmel faellt nicht auf uns - er oeffnet sich in uns."
 private const val defaultSymbolicNumericCode = "1337-514-731"
@@ -105,11 +108,11 @@ class LegalContentRepository(
 private fun Map<String, Any>.toLegalContentSettings(): LegalContentSettings {
     return LegalContentSettings(
         brandName = this["brandName"] as? String ?: defaultLegalBrandName,
-        operatorName = this["operatorName"] as? String ?: defaultLegalOperatorName,
-        rightsHolderName = this["rightsHolderName"] as? String ?: defaultLegalRightsHolderName,
+        operatorName = normalizeLegalOperatorName(this["operatorName"] as? String),
+        rightsHolderName = normalizeLegalRightsHolderName(this["rightsHolderName"] as? String),
         supportEmail = this["supportEmail"] as? String ?: defaultLegalSupportEmail,
         lastUpdatedLabel = this["lastUpdatedLabel"] as? String ?: defaultLegalLastUpdatedLabel,
-        imprintReference = this["imprintReference"] as? String ?: defaultLegalImprintReference,
+        imprintReference = normalizeLegalImprintReference(this["imprintReference"] as? String),
         masterNumberMeaning = this["masterNumberMeaning"] as? String ?: defaultMasterNumberMeaning,
         brandManifesto = this["brandManifesto"] as? String ?: defaultBrandManifesto,
         symbolicNumericCode = this["symbolicNumericCode"] as? String ?: defaultSymbolicNumericCode,
@@ -133,4 +136,31 @@ private fun LegalContentSettings.toMap(): Map<String, Any> {
         "symbolicCodeExplanation" to resolvedSymbolicCodeExplanation,
         "updatedAt" to FieldValue.serverTimestamp(),
     )
+}
+
+private fun normalizeLegalOperatorName(value: String?): String {
+    val trimmed = value?.trim().orEmpty()
+    return when {
+        trimmed.isEmpty() -> defaultLegalOperatorName
+        trimmed == legacyLegalOperatorName -> defaultLegalOperatorName
+        else -> trimmed
+    }
+}
+
+private fun normalizeLegalRightsHolderName(value: String?): String {
+    val trimmed = value?.trim().orEmpty()
+    return when {
+        trimmed.isEmpty() -> defaultLegalRightsHolderName
+        trimmed == legacyLegalRightsHolderName -> defaultLegalRightsHolderName
+        else -> trimmed
+    }
+}
+
+private fun normalizeLegalImprintReference(value: String?): String {
+    val trimmed = value?.trim().orEmpty()
+    return when {
+        trimmed.isEmpty() -> defaultLegalImprintReference
+        trimmed == legacyLegalImprintReference -> defaultLegalImprintReference
+        else -> trimmed
+    }
 }

@@ -633,7 +633,7 @@ private fun PricingSummaryCard(
             )
         }
         Text(
-            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Skydown" }}.",
+            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Skydown OS" }}.",
             modifier = Modifier.padding(top = 10.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
