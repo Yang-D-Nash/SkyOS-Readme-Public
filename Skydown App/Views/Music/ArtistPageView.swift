@@ -23,6 +23,7 @@ struct ArtistPageView: View {
     @State private var instagramURLDraft = ""
     @State private var spotifyURLDraft = ""
     @State private var youtubeURLDraft = ""
+    @State private var studioPriceListDraft = ""
     @State private var isSaving = false
     @State private var toastMessage = ""
     @State private var showToast = false
@@ -70,6 +71,7 @@ struct ArtistPageView: View {
             instagramURL: instagramURLDraft.trimmedNilIfEmpty,
             spotifyURL: spotifyURLDraft.trimmedNilIfEmpty,
             youtubeURL: youtubeURLDraft.trimmedNilIfEmpty,
+            studioPriceList: parseStudioPriceItems(from: studioPriceListDraft),
             editorUids: page.editorUids,
             createdAt: page.createdAt,
             updatedAt: page.updatedAt,
@@ -1087,6 +1089,15 @@ struct ArtistPageView: View {
                 placeholder: "https://youtube.com/...",
                 colorScheme: colorScheme
             )
+
+            if brand == .nicma {
+                ArtistPageMultilineInput(
+                    title: "Studio-Preisliste",
+                    text: $studioPriceListDraft,
+                    placeholder: "Je Zeile: Titel | Detail | Preis",
+                    colorScheme: colorScheme
+                )
+            }
         }
         .padding(SkydownLayout.cardPadding)
         .skydownPanelSurface(
@@ -1156,6 +1167,9 @@ struct ArtistPageView: View {
         instagramURLDraft = page.instagramURL ?? ""
         spotifyURLDraft = page.spotifyURL ?? ""
         youtubeURLDraft = page.youtubeURL ?? ""
+        studioPriceListDraft = page.studioPriceList
+            .map { "\($0.title) | \($0.detail) | \($0.price)" }
+            .joined(separator: "\n")
     }
 
     private func savePage() async {
@@ -1176,6 +1190,7 @@ struct ArtistPageView: View {
                 instagramURL: instagramURLDraft.trimmedNilIfEmpty,
                 spotifyURL: spotifyURLDraft.trimmedNilIfEmpty,
                 youtubeURL: youtubeURLDraft.trimmedNilIfEmpty,
+                studioPriceList: parseStudioPriceItems(from: studioPriceListDraft),
                 editorUids: page.editorUids,
                 createdAt: page.createdAt,
                 updatedAt: .now,
@@ -1222,6 +1237,22 @@ struct ArtistPageView: View {
         showToast = true
     }
 
+}
+
+private func parseStudioPriceItems(from rawValue: String) -> [StudioPriceItem] {
+    rawValue
+        .split(whereSeparator: \.isNewline)
+        .compactMap { line -> StudioPriceItem? in
+            let parts = line
+                .split(separator: "|", omittingEmptySubsequences: false)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            guard parts.count >= 3 else { return nil }
+            let title = parts[0]
+            let detail = parts[1]
+            let price = parts.dropFirst(2).joined(separator: " | ")
+            guard !title.isEmpty, !detail.isEmpty, !price.isEmpty else { return nil }
+            return StudioPriceItem(title: title, detail: detail, price: price)
+        }
 }
 
 private struct ArtistSessionSignalCard: View {

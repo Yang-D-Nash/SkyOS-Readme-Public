@@ -29,6 +29,7 @@ struct ArtistPage: Identifiable, Equatable {
     var instagramURL: String?
     var spotifyURL: String?
     var youtubeURL: String?
+    var studioPriceList: [StudioPriceItem]
     var editorUids: [String]
     var createdAt: Date
     var updatedAt: Date
@@ -41,7 +42,14 @@ struct ArtistPage: Identifiable, Equatable {
     var hasCustomPresentation: Bool {
         [tagline, bio, profileImageURL, heroImageURL, heroVideoURL, instagramURL, spotifyURL, youtubeURL]
             .contains { ($0?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) }
+        || !studioPriceList.isEmpty
     }
+}
+
+struct StudioPriceItem: Equatable {
+    var title: String
+    var detail: String
+    var price: String
 }
 
 func artistPageSlug(from artistName: String) -> String {
@@ -80,6 +88,7 @@ extension ArtistPage {
             instagramURL: nil,
             spotifyURL: nil,
             youtubeURL: nil,
+            studioPriceList: [],
             editorUids: [],
             createdAt: timestamp,
             updatedAt: timestamp,

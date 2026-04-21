@@ -733,6 +733,7 @@ service cloud.firestore {
         "instagramURL",
         "spotifyURL",
         "youtubeURL",
+        "studioPriceList",
         "editorUids",
         "createdAt",
         "updatedAt"
@@ -749,10 +750,25 @@ service cloud.firestore {
       && optionalMapShortUrl(request.resource.data, "instagramURL")
       && optionalMapShortUrl(request.resource.data, "spotifyURL")
       && optionalMapShortUrl(request.resource.data, "youtubeURL")
+      && optionalStudioPriceList(request.resource.data, "studioPriceList")
       && request.resource.data.editorUids is list
       && request.resource.data.editorUids.size() <= 12
       && request.resource.data.createdAt is timestamp
       && request.resource.data.updatedAt is timestamp;
+    }
+
+    function optionalStudioPriceList(data, key) {
+      return !data.keys().hasAny([key]) || (
+        data[key] is list
+        && data[key].size() <= 24
+        && data[key].all(item,
+          item is map
+          && item.keys().hasOnly(["title", "detail", "price"])
+          && requiredString(item.title, 1, 80)
+          && requiredString(item.detail, 1, 140)
+          && requiredString(item.price, 1, 60)
+        )
+      );
     }
 
     match /system/runtimeConfig {

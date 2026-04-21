@@ -5030,6 +5030,7 @@ private struct SettingsArtistPageCard: View {
                         instagramURL: page.instagramURL,
                         spotifyURL: page.spotifyURL,
                         youtubeURL: page.youtubeURL,
+                        studioPriceList: page.studioPriceList,
                         editorUids: Array(selectedEditorUids).sorted(),
                         createdAt: page.createdAt,
                         updatedAt: .now,

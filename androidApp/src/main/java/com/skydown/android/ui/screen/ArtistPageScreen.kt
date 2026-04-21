@@ -68,6 +68,7 @@ import com.skydown.android.data.AppContainer
 import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
+import com.skydown.android.data.StudioPriceItemUi
 import com.skydown.android.data.mediaAttributionContext
 import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.BrandArtwork
@@ -143,6 +144,11 @@ fun ArtistPageScreen(
     var instagramDraft by rememberSaveable(page.slug) { mutableStateOf(page.instagramURL.orEmpty()) }
     var spotifyDraft by rememberSaveable(page.slug) { mutableStateOf(page.spotifyURL.orEmpty()) }
     var youtubeDraft by rememberSaveable(page.slug) { mutableStateOf(page.youtubeURL.orEmpty()) }
+    var studioPriceListDraft by rememberSaveable(page.slug) {
+        mutableStateOf(
+            page.studioPriceList.joinToString("\n") { "${it.title} | ${it.detail} | ${it.price}" }
+        )
+    }
     var isSaving by rememberSaveable { mutableStateOf(false) }
     var tracks by remember(page.slug) { mutableStateOf<List<Track>>(emptyList()) }
     var isLoadingTracks by remember(page.slug) { mutableStateOf(true) }
@@ -173,6 +179,7 @@ fun ArtistPageScreen(
         instagramDraft,
         spotifyDraft,
         youtubeDraft,
+        studioPriceListDraft,
     ) {
         if (!isEditing) {
             page
@@ -186,6 +193,7 @@ fun ArtistPageScreen(
                 instagramURL = instagramDraft.trimmedOrNull(),
                 spotifyURL = spotifyDraft.trimmedOrNull(),
                 youtubeURL = youtubeDraft.trimmedOrNull(),
+                studioPriceList = parseStudioPriceItems(studioPriceListDraft),
                 isPlaceholder = false,
             )
         }
@@ -222,6 +230,7 @@ fun ArtistPageScreen(
         instagramDraft = page.instagramURL.orEmpty()
         spotifyDraft = page.spotifyURL.orEmpty()
         youtubeDraft = page.youtubeURL.orEmpty()
+        studioPriceListDraft = page.studioPriceList.joinToString("\n") { "${it.title} | ${it.detail} | ${it.price}" }
     }
 
     fun beginEditing() {
@@ -674,6 +683,14 @@ fun ArtistPageScreen(
                                 ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
                                 ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
                                 ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
+                                if (brand == ArtistPageBrand.Nicma) {
+                                    ArtistPageInput(
+                                        title = "Studio-Preisliste (Titel | Detail | Preis)",
+                                        value = studioPriceListDraft,
+                                        onValueChange = { studioPriceListDraft = it },
+                                        singleLine = false,
+                                    )
+                                }
                             }
                         }
                     }
@@ -1564,4 +1581,18 @@ private fun ArtistPageInput(
 private fun String?.trimmedOrNull(): String? {
     val trimmed = this?.trim().orEmpty()
     return trimmed.ifBlank { null }
+}
+
+private fun parseStudioPriceItems(rawValue: String): List<StudioPriceItemUi> {
+    return rawValue
+        .lines()
+        .mapNotNull { line ->
+            val parts = line.split("|").map { it.trim() }
+            if (parts.size < 3) return@mapNotNull null
+            val title = parts[0]
+            val detail = parts[1]
+            val price = parts.drop(2).joinToString(" | ").trim()
+            if (title.isBlank() || detail.isBlank() || price.isBlank()) return@mapNotNull null
+            StudioPriceItemUi(title = title, detail = detail, price = price)
+        }
 }

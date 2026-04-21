@@ -37,6 +37,7 @@ data class ArtistPageUi(
     val instagramURL: String? = null,
     val spotifyURL: String? = null,
     val youtubeURL: String? = null,
+    val studioPriceList: List<StudioPriceItemUi> = emptyList(),
     val editorUids: List<String> = emptyList(),
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
     val updatedAtEpochMillis: Long = System.currentTimeMillis(),
@@ -52,8 +53,15 @@ data class ArtistPageUi(
             instagramURL,
             spotifyURL,
             youtubeURL,
+            if (studioPriceList.isEmpty()) null else "studio-prices",
         ).any { !it.isNullOrBlank() }
 }
+
+data class StudioPriceItemUi(
+    val title: String,
+    val detail: String,
+    val price: String,
+)
 
 private fun artistPageSlug(artistName: String): String {
     val normalized = artistName
@@ -139,6 +147,17 @@ object ArtistPagesStore {
                     "instagramURL" to page.instagramURL.trimmedOrNull(),
                     "spotifyURL" to page.spotifyURL.trimmedOrNull(),
                     "youtubeURL" to page.youtubeURL.trimmedOrNull(),
+                    "studioPriceList" to page.studioPriceList
+                        .mapNotNull { item ->
+                            val title = item.title.trimmedOrNull() ?: return@mapNotNull null
+                            val detail = item.detail.trimmedOrNull() ?: return@mapNotNull null
+                            val price = item.price.trimmedOrNull() ?: return@mapNotNull null
+                            mapOf(
+                                "title" to title,
+                                "detail" to detail,
+                                "price" to price,
+                            )
+                        },
                     "editorUids" to page.editorUids
                         .mapNotNull { it.trimmedOrNull() }
                         .distinct()
@@ -179,6 +198,14 @@ object ArtistPagesStore {
                         instagramURL = document.getString("instagramURL")?.trimmedOrNull(),
                         spotifyURL = document.getString("spotifyURL")?.trimmedOrNull(),
                         youtubeURL = document.getString("youtubeURL")?.trimmedOrNull(),
+                        studioPriceList = ((document.get("studioPriceList") as? List<*>) ?: emptyList<Any>())
+                            .mapNotNull { entry ->
+                                val map = entry as? Map<*, *> ?: return@mapNotNull null
+                                val title = (map["title"] as? String)?.trimmedOrNull() ?: return@mapNotNull null
+                                val detail = (map["detail"] as? String)?.trimmedOrNull() ?: return@mapNotNull null
+                                val price = (map["price"] as? String)?.trimmedOrNull() ?: return@mapNotNull null
+                                StudioPriceItemUi(title = title, detail = detail, price = price)
+                            },
                         editorUids = (document.get("editorUids") as? List<*>)?.mapNotNull { (it as? String)?.trimmedOrNull() }.orEmpty(),
                         createdAtEpochMillis = document.getTimestamp("createdAt")?.toDate()?.time ?: System.currentTimeMillis(),
                         updatedAtEpochMillis = document.getTimestamp("updatedAt")?.toDate()?.time ?: System.currentTimeMillis(),

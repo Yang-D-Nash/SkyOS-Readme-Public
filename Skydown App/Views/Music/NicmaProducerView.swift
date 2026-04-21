@@ -70,6 +70,15 @@ struct NicmaProducerView: View {
         return links
     }
 
+    private var resolvedPriceList: [NicmaProducerPackage] {
+        if !page.studioPriceList.isEmpty {
+            return page.studioPriceList.map {
+                NicmaProducerPackage(title: $0.title, detail: $0.detail, price: $0.price)
+            }
+        }
+        return nicmaProducerPackages
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -146,7 +155,7 @@ struct NicmaProducerView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            ForEach(nicmaProducerPackages) { package in
+            ForEach(resolvedPriceList) { package in
                 NicmaProducerPriceCard(
                     package: package,
                     colorScheme: colorScheme

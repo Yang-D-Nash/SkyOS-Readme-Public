@@ -47,6 +47,19 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
             "instagramURL": page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? NSNull(),
             "spotifyURL": page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? NSNull(),
             "youtubeURL": page.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? NSNull(),
+            "studioPriceList": page.studioPriceList
+                .map { item in
+                    [
+                        "title": item.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                        "detail": item.detail.trimmingCharacters(in: .whitespacesAndNewlines),
+                        "price": item.price.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ]
+                }
+                .filter { entry in
+                    ((entry["title"] as? String)?.isEmpty == false)
+                    && ((entry["detail"] as? String)?.isEmpty == false)
+                    && ((entry["price"] as? String)?.isEmpty == false)
+                },
             "editorUids": Array(Set(page.editorUids.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })).sorted(),
             "createdAt": Timestamp(date: page.createdAt),
             "updatedAt": FieldValue.serverTimestamp()
@@ -71,6 +84,17 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
         let editorUids = (data["editorUids"] as? [String] ?? [])
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+        let studioPriceList = (data["studioPriceList"] as? [[String: Any]] ?? [])
+            .compactMap { entry -> StudioPriceItem? in
+                guard
+                    let title = (entry["title"] as? String)?.trimmedNilIfEmpty,
+                    let detail = (entry["detail"] as? String)?.trimmedNilIfEmpty,
+                    let price = (entry["price"] as? String)?.trimmedNilIfEmpty
+                else {
+                    return nil
+                }
+                return StudioPriceItem(title: title, detail: detail, price: price)
+            }
 
         return ArtistPage(
             id: artistPageDocumentID(brand: brand, artistName: artistName),
@@ -84,6 +108,7 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
             instagramURL: (data["instagramURL"] as? String)?.trimmedNilIfEmpty,
             spotifyURL: (data["spotifyURL"] as? String)?.trimmedNilIfEmpty,
             youtubeURL: (data["youtubeURL"] as? String)?.trimmedNilIfEmpty,
+            studioPriceList: studioPriceList,
             editorUids: editorUids,
             createdAt: createdAt,
             updatedAt: updatedAt,

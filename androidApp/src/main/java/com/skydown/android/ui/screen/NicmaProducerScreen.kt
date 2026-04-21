@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.data.ArtistPagesStore
+import com.skydown.android.data.StudioPriceItemUi
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.LocalSessionUser
@@ -129,7 +130,7 @@ fun NicmaProducerScreen(
                 }
 
                 item {
-                    NicmaPriceListCard()
+                    NicmaPriceListCard(priceList = resolvedNicmaProducerPackages(page.studioPriceList))
                 }
 
                 item {
@@ -170,14 +171,14 @@ private fun NicmaHeroCard(
 }
 
 @Composable
-private fun NicmaPriceListCard() {
+private fun NicmaPriceListCard(priceList: List<NicmaProducerPackage>) {
     SkydownCard {
         SectionHeader("Preisliste")
         Column(
             modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            nicmaProducerPackages.forEach { packageItem ->
+            priceList.forEach { packageItem ->
                 NicmaPriceRow(packageItem)
             }
         }
@@ -305,3 +306,8 @@ private val nicmaProducerPackages = listOf(
     NicmaProducerPackage("Track Recording inkl. Mix / Master", "Kompletter Recording-Flow", "250 €"),
     NicmaProducerPackage("8h Studio Zeit + Engineer", "zzgl. Nachbearbeitung", "400 € + Nachbearbeitung"),
 )
+
+private fun resolvedNicmaProducerPackages(customPriceList: List<StudioPriceItemUi>): List<NicmaProducerPackage> {
+    if (customPriceList.isEmpty()) return nicmaProducerPackages
+    return customPriceList.map { NicmaProducerPackage(it.title, it.detail, it.price) }
+}
