@@ -315,9 +315,9 @@ fun SkydownApp(
             val startRoute = selectedEntryRoute ?: "home"
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
-            val showFloatingDock = currentDestination?.route != "ai" && !WindowInsets.isImeVisible
+            val showFloatingDock = skydownShouldShowDock()
             val floatingDockContentPadding = if (showFloatingDock) {
-                if (isCompactLayout) 106.dp else 116.dp
+                skydownDockOverlayPadding(isCompactLayout)
             } else {
                 0.dp
             }
@@ -523,7 +523,10 @@ private fun SkydownFloatingBottomDock(
         ?: colorScheme.skydownAccent()
     val selectedAccent by animateColorAsState(
         targetValue = selectedAccentTarget,
-        animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
+        animationSpec = tween(
+            durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
+            easing = FastOutSlowInEasing,
+        ),
         label = "bottomDockAccent",
     )
     val dockBorder by animateColorAsState(
@@ -532,12 +535,18 @@ private fun SkydownFloatingBottomDock(
             selectedAccent.copy(alpha = if (isDarkPalette) 0.14f else 0.11f),
             0.28f,
         ),
-        animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
+        animationSpec = tween(
+            durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
+            easing = FastOutSlowInEasing,
+        ),
         label = "bottomDockBorder",
     )
     val dockGlow by animateColorAsState(
         targetValue = selectedAccent.copy(alpha = if (isDarkPalette) 0.075f else 0.055f),
-        animationSpec = tween(durationMillis = 340, easing = FastOutSlowInEasing),
+        animationSpec = tween(
+            durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
+            easing = FastOutSlowInEasing,
+        ),
         label = "bottomDockGlow",
     )
     val dockShape = RoundedCornerShape(if (isCompactLayout) 28.dp else 32.dp)
@@ -547,7 +556,7 @@ private fun SkydownFloatingBottomDock(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = if (isCompactLayout) 16.dp else 22.dp)
-            .padding(top = 4.dp, bottom = 8.dp),
+            .padding(top = 4.dp, bottom = skydownDockBottomSpacing()),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
@@ -555,7 +564,7 @@ private fun SkydownFloatingBottomDock(
                 .widthIn(max = if (isCompactLayout) 420.dp else 540.dp)
                 .fillMaxWidth(if (isCompactLayout) 0.88f else 0.74f),
             shape = dockShape,
-            color = colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.46f else 0.76f),
+            color = colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.40f else 0.68f),
             tonalElevation = 0.dp,
             shadowElevation = if (isCompactLayout) 8.dp else 10.dp,
             border = BorderStroke(
@@ -565,21 +574,52 @@ private fun SkydownFloatingBottomDock(
         ) {
             Box(
                 modifier = Modifier
+                    .clip(dockShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkPalette) 0.12f else 0.20f),
+                                Color.Transparent,
+                            ),
+                            center = Offset.Zero,
+                            radius = 900f,
+                        ),
+                    )
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkPalette) 0.16f else 0.24f),
+                                Color.Transparent,
+                                Color.Transparent,
+                            ),
+                        ),
+                    )
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.08f else 0.20f),
-                                colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.84f else 0.82f),
-                                colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.18f else 0.20f),
-                                selectedAccent.copy(alpha = if (isDarkPalette) 0.045f else 0.035f),
-                                dockGlow.copy(alpha = if (isDarkPalette) 0.13f else 0.09f),
+                                colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.11f else 0.24f),
+                                colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.76f else 0.78f),
+                                colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.22f else 0.24f),
+                                selectedAccent.copy(alpha = if (isDarkPalette) 0.06f else 0.045f),
+                                dockGlow.copy(alpha = if (isDarkPalette) 0.16f else 0.11f),
                             ),
                         ),
+                    )
+                    .border(
+                        width = 0.8.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkPalette) 0.22f else 0.30f),
+                                selectedAccent.copy(alpha = if (isDarkPalette) 0.16f else 0.12f),
+                                Color.White.copy(alpha = if (isDarkPalette) 0.10f else 0.16f),
+                            ),
+                        ),
+                        shape = dockShape,
                     )
                     .skydownLuminousSweep(
                         shape = dockShape,
                         accent = selectedAccent,
-                        alpha = 0.08f,
+                        alpha = if (isDarkPalette) 0.09f else 0.07f,
                     ),
             ) {
                 Row(
@@ -599,18 +639,24 @@ private fun SkydownFloatingBottomDock(
                         val itemInteractionSource = remember(destination.route) { MutableInteractionSource() }
                         val iconScale by animateFloatAsState(
                             targetValue = if (selected) 1f else 0.94f,
-                            animationSpec = spring(dampingRatio = 0.84f, stiffness = 620f),
+                            animationSpec = spring(
+                                dampingRatio = SkydownMotionTokens.premiumDockIconDampingRatio,
+                                stiffness = SkydownMotionTokens.premiumDockIconStiffness,
+                            ),
                             label = "bottomNavIconScale_${destination.route}",
                         )
                         val iconLift by animateFloatAsState(
                             targetValue = if (selected) -1f else 0f,
-                            animationSpec = spring(dampingRatio = 0.86f, stiffness = 680f),
+                            animationSpec = spring(
+                                dampingRatio = SkydownMotionTokens.premiumDockLiftDampingRatio,
+                                stiffness = SkydownMotionTokens.premiumDockLiftStiffness,
+                            ),
                             label = "bottomNavIconLift_${destination.route}",
                         )
                         val labelAlpha by animateFloatAsState(
                             targetValue = if (selected) 0.98f else 0.72f,
                             animationSpec = tween(
-                                durationMillis = 220,
+                                durationMillis = SkydownMotionTokens.premiumLabelTransitionMillis,
                                 easing = FastOutSlowInEasing,
                             ),
                             label = "bottomNavLabelAlpha_${destination.route}",
@@ -622,7 +668,7 @@ private fun SkydownFloatingBottomDock(
                                 0f
                             },
                             animationSpec = tween(
-                                durationMillis = 220,
+                                durationMillis = SkydownMotionTokens.premiumLabelTransitionMillis,
                                 easing = FastOutSlowInEasing,
                             ),
                             label = "bottomNavBorderAlpha_${destination.route}",
@@ -822,6 +868,14 @@ private data class BottomDestination(
 private val skydownPrimaryRoutes = listOf("shop", "music", "home", "video", "ai")
 private val skydownOverlayRoutes = setOf("cart", "settings", "profile")
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun skydownShouldShowDock(): Boolean = !WindowInsets.isImeVisible
+
+private fun skydownDockOverlayPadding(isCompactLayout: Boolean) = if (isCompactLayout) 28.dp else 32.dp
+
+private fun skydownDockBottomSpacing() = 8.dp
+
 private fun skydownPrimaryRouteIndex(route: String?): Int = skydownPrimaryRoutes.indexOf(route)
 
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransition(): EnterTransition {
@@ -839,8 +893,8 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
             }
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 180,
-                    delayMillis = 16,
+                    durationMillis = 210,
+                    delayMillis = 18,
                     easing = LinearOutSlowInEasing,
                 ),
             ) + slideIntoContainer(
@@ -849,15 +903,15 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
                     durationMillis = SkydownMotionTokens.primaryEnterDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                initialOffset = { fullSize -> (fullSize * 0.045f).toInt() },
+                initialOffset = { fullSize -> (fullSize * 0.038f).toInt() },
             )
         }
 
         targetRoute in skydownOverlayRoutes -> {
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 180,
-                    delayMillis = 12,
+                    durationMillis = 200,
+                    delayMillis = 14,
                     easing = LinearOutSlowInEasing,
                 ),
             ) + slideIntoContainer(
@@ -866,15 +920,15 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
                     durationMillis = SkydownMotionTokens.overlayEnterDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                initialOffset = { fullSize -> (fullSize * 0.07f).toInt() },
+                initialOffset = { fullSize -> (fullSize * 0.055f).toInt() },
             )
         }
 
         else -> {
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 170,
-                    delayMillis = 12,
+                    durationMillis = 190,
+                    delayMillis = 10,
                     easing = LinearOutSlowInEasing,
                 ),
             )
@@ -897,7 +951,7 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
             }
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 140,
+                    durationMillis = 160,
                     easing = FastOutSlowInEasing,
                 ),
             ) + slideOutOfContainer(
@@ -906,14 +960,14 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
                     durationMillis = SkydownMotionTokens.primaryExitDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                targetOffset = { fullSize -> (fullSize * 0.03f).toInt() },
+                targetOffset = { fullSize -> (fullSize * 0.026f).toInt() },
             )
         }
 
         targetRoute in skydownOverlayRoutes -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 130,
+                    durationMillis = 140,
                     easing = FastOutSlowInEasing,
                 ),
             )
@@ -922,7 +976,7 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
         initialRoute in skydownOverlayRoutes -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 140,
+                    durationMillis = 155,
                     easing = FastOutSlowInEasing,
                 ),
             ) + slideOutOfContainer(
@@ -931,14 +985,14 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
                     durationMillis = SkydownMotionTokens.overlayExitDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                targetOffset = { fullSize -> (fullSize * 0.06f).toInt() },
+                targetOffset = { fullSize -> (fullSize * 0.05f).toInt() },
             )
         }
 
         else -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 120,
+                    durationMillis = 130,
                     easing = FastOutSlowInEasing,
                 ),
             )

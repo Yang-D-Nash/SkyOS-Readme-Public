@@ -163,7 +163,7 @@ fun AiScreen(
                     title = {
                         SkydownTopBarTitle(
                             title = "Atelier",
-                            subtitle = "Private Text- und Visual Direction.",
+                            subtitle = "Text und Visuals.",
                         )
                     },
                     colors = skydownTopBarColors(),
@@ -338,8 +338,8 @@ private fun AiCommandHeroCard(
     BrandHeroCard(
         eyebrow = "SKY OS",
         title = "KI Atelier",
-        subtitle = "Text, Visuals und Konzepte im privaten Sky-Flow.",
-        detail = "Persoenlicher Bot. Kontext bleibt exklusiv pro Konto verbunden.",
+        subtitle = "Text. Visuals. Ideen.",
+        detail = "Dein kreativer Flow.",
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Combined),
@@ -548,7 +548,7 @@ private fun QuickPromptCard(
     SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
         BrandSectionBanner(
             title = "Prompt Library",
-            subtitle = "Kuratiert fuer schnelle, markentaugliche Starts.",
+            subtitle = "Schnelle Starts.",
             accent = MaterialTheme.colorScheme.primary,
             tag = "Text",
         )
@@ -582,7 +582,7 @@ private fun VisualPromptCard(
     ) {
         BrandSectionBanner(
             title = "Visual Deck",
-            subtitle = "Sofort cineastische Startpunkte fuer Artwork und Story Frames.",
+            subtitle = "Visual Starts.",
             accent = MaterialTheme.colorScheme.tertiary,
             tag = "Visual",
         )
@@ -595,7 +595,7 @@ private fun VisualPromptCard(
                 AiPromptActionCard(
                     eyebrow = "SHOT",
                     text = prompt.label,
-                    detail = "Tap fuer cineastischen Start",
+                    detail = "Direkt starten",
                     accent = MaterialTheme.colorScheme.tertiary,
                     compactLayout = compactLayout,
                     modifier = Modifier.testTag("ai.visual.prompt.button"),
@@ -774,7 +774,7 @@ fun AiMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "Atelier komponiert gerade...",
+                        text = "Atelier denkt...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -892,6 +892,11 @@ private fun AiComposerBar(
         compactLayout -> 6.dp
         else -> 8.dp
     }
+    val dockClearancePadding = when {
+        embeddedInTools && compactLayout -> 72.dp
+        embeddedInTools -> 76.dp
+        else -> 0.dp
+    }
     val cardVerticalPadding = when {
         embeddedInTools -> 4.dp
         compactLayout -> 8.dp
@@ -913,8 +918,10 @@ private fun AiComposerBar(
                     .only(WindowInsetsSides.Bottom),
             )
             .padding(
-                horizontal = if (compactLayout) 8.dp else 10.dp,
-                vertical = outerVerticalPadding,
+                start = if (compactLayout) 8.dp else 10.dp,
+                top = outerVerticalPadding,
+                end = if (compactLayout) 8.dp else 10.dp,
+                bottom = outerVerticalPadding + dockClearancePadding,
             ),
         contentAlignment = Alignment.TopCenter,
     ) {

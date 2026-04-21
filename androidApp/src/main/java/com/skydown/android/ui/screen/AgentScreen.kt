@@ -281,17 +281,17 @@ private fun AgentEmptyStateHeader() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Wobei soll ich dich strukturieren?",
+            text = "Was bauen wir als naechstes?",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Starte mit einer Idee. Der Agent macht daraus Plan, To-dos und naechste Schritte.",
+            text = "Eine Idee reicht. Der Agent macht den Rest klar.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
         Text(
-            text = "Verlauf bleibt pro Konto verbunden.",
+            text = "Flow bleibt verbunden.",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
         )
@@ -336,7 +336,7 @@ private fun AgentOverviewCard(
                     color = MaterialTheme.colorScheme.tertiary,
                 )
                 Text(
-                    text = "Fuer Briefings, Release-Plaene, Shotlists und naechste Schritte. Gleicher Flow wie im Bot, nur strukturierter.",
+                    text = "Fuer Plan, Struktur und Execution.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -482,7 +482,7 @@ private fun AgentMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "SkyOS Agent plant gerade...",
+                        text = "Agent denkt...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -552,6 +552,11 @@ private fun AgentComposerBar(
         compactLayout -> 6.dp
         else -> 8.dp
     }
+    val dockClearancePadding = when {
+        embeddedInTools && compactLayout -> 72.dp
+        embeddedInTools -> 76.dp
+        else -> 0.dp
+    }
     val cardVerticalPadding = when {
         embeddedInTools -> 4.dp
         compactLayout -> 8.dp
@@ -573,8 +578,10 @@ private fun AgentComposerBar(
                     .only(WindowInsetsSides.Bottom),
             )
             .padding(
-                horizontal = if (compactLayout) 8.dp else 10.dp,
-                vertical = outerVerticalPadding,
+                start = if (compactLayout) 8.dp else 10.dp,
+                top = outerVerticalPadding,
+                end = if (compactLayout) 8.dp else 10.dp,
+                bottom = outerVerticalPadding + dockClearancePadding,
             ),
     ) {
         SkydownCard(

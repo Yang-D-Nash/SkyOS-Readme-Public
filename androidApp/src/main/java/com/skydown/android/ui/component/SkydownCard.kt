@@ -211,17 +211,26 @@ fun Modifier.skydownPressable(
     var emittedPressHaptic by remember(interactionSource) { mutableStateOf(false) }
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = 760f),
+        animationSpec = spring(
+            dampingRatio = SkydownMotionTokens.premiumPressDampingRatio,
+            stiffness = SkydownMotionTokens.premiumPressStiffness,
+        ),
         label = "skydownPressScale",
     )
     val animatedAlpha by animateFloatAsState(
         targetValue = if (isPressed) 0.975f else 1f,
-        animationSpec = spring(dampingRatio = 0.88f, stiffness = 780f),
+        animationSpec = spring(
+            dampingRatio = SkydownMotionTokens.premiumPressAlphaDampingRatio,
+            stiffness = SkydownMotionTokens.premiumPressAlphaStiffness,
+        ),
         label = "skydownPressAlpha",
     )
     val animatedTranslationY by animateFloatAsState(
         targetValue = if (isPressed) 0.7f else 0f,
-        animationSpec = spring(dampingRatio = 0.90f, stiffness = 820f),
+        animationSpec = spring(
+            dampingRatio = SkydownMotionTokens.premiumPressLiftDampingRatio,
+            stiffness = SkydownMotionTokens.premiumPressLiftStiffness,
+        ),
         label = "skydownPressTranslationY",
     )
 

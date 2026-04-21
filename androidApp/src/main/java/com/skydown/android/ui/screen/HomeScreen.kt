@@ -55,7 +55,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -72,7 +71,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
@@ -169,7 +167,6 @@ fun HomeScreen(
         return
     }
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val context = LocalContext.current
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     var inAppOriginalVideoUrl by rememberSaveable { mutableStateOf<String?>(null) }
@@ -248,7 +245,6 @@ fun HomeScreen(
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
@@ -293,7 +289,6 @@ fun HomeScreen(
                     }
                 },
                 colors = skydownTopBarColors(),
-                scrollBehavior = scrollBehavior,
             )
         },
     ) { innerPadding ->
@@ -321,8 +316,8 @@ fun HomeScreen(
                         BrandHeroCard(
                             eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY OS" },
                             title = screenHeaderSettings.homeTitle.ifBlank { "Home" },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren SkyOS-Flow." },
-                            detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount von $homeSignalTotal Bereichen sind gerade live." },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music. Video. Shop." },
+                            detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount / $homeSignalTotal live" },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                             accent = homeAccent,
                             secondaryAccent = homeMysticAccent,

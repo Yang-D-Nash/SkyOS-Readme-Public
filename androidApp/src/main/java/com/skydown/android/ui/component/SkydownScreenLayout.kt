@@ -102,13 +102,13 @@ fun skydownScreenBrush(
 @Composable
 fun skydownTopBarColors(): TopAppBarColors {
     val colorScheme = MaterialTheme.colorScheme
-    val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val iconColor = colorScheme.onSurface.copy(alpha = 0.92f)
     return TopAppBarDefaults.topAppBarColors(
         containerColor = Color.Transparent,
-        scrolledContainerColor = colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.78f else 0.88f),
-        navigationIconContentColor = colorScheme.onSurface,
+        scrolledContainerColor = Color.Transparent,
+        navigationIconContentColor = iconColor,
         titleContentColor = colorScheme.onSurface,
-        actionIconContentColor = colorScheme.onSurface,
+        actionIconContentColor = iconColor,
     )
 }
 

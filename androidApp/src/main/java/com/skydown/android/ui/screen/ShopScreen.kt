@@ -45,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,7 +59,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -111,7 +109,6 @@ fun ShopScreen(
     viewModel: ShopViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val collabLanes = remember(uiState.items) { buildShopCollabLanes(uiState.items) }
     var selectedCollabLaneId by rememberSaveable { mutableStateOf(ShopCollabLane.ALL_ID) }
     val filteredItems = remember(uiState.items, selectedCollabLaneId) {
@@ -155,14 +152,13 @@ fun ShopScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
                         "Shop",
-                        "Produkte direkt in der App.",
+                        "SkyOS Store.",
                         accent = SpotifyGreen,
                     )
                 },
@@ -184,7 +180,6 @@ fun ShopScreen(
                     }
                 },
                 colors = skydownTopBarColors(),
-                scrollBehavior = scrollBehavior,
             )
         },
     ) { innerPadding ->
@@ -239,7 +234,7 @@ fun ShopScreen(
                     item {
                         ShopMessageCard(
                             title = "Merch Store pausiert",
-                            body = "Produkte bleiben sichtbar, aber neue Kaeufe sind gerade geschlossen. Sobald du den Store wieder oeffnest, kann direkt wieder bestellt werden.",
+                            body = "Produkte bleiben sichtbar. Checkout ist kurz pausiert.",
                             icon = Icons.Default.Close,
                             accent = MaterialTheme.colorScheme.secondary,
                             tag = "PAUSE",
@@ -253,19 +248,19 @@ fun ShopScreen(
                         ShopMessageCard(
                             title = when {
                                 isSyncing -> "Shop wird geladen"
-                                else -> "Noch keine Shopify-Produkte"
+                                else -> "Noch keine Pieces"
                             },
                             body = if (uiState.isAdmin) {
                                 if (isSyncing) {
-                                    "Der Katalog wird gerade direkt aus Shopify neu aufgebaut."
+                                    "Der Store wird aktualisiert."
                                 } else {
-                                    "Wenn Firestore leer ist, versucht die App den Shopify-Katalog jetzt automatisch neu zu laden."
+                                    "Sobald neue Pieces live sind, erscheinen sie hier."
                                 }
                             } else {
                                 if (isSyncing) {
-                                    "Produkte, Verfuegbarkeit und Bilder werden gerade synchronisiert."
+                                    "Neue Pieces werden geladen."
                                 } else {
-                                    "Sobald neuer Merch live ist, taucht er hier direkt als Card auf."
+                                    "Sobald neue Pieces live sind, erscheinen sie hier."
                                 }
                             },
                             icon = if (isSyncing) Icons.Default.Sync else Icons.Default.ShoppingBag,
@@ -405,14 +400,14 @@ private fun ShopOverviewCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.shopTitle.ifBlank { "Merch" },
-        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Pieces und Checkout direkt im SkyOS Store." },
+        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops und Pieces." },
         detail = screenHeaderSettings.shopDetail.ifBlank {
             if (uiState.isCatalogLoading) {
-                "Produkte und Verfuegbarkeit werden synchronisiert."
+                "Store wird aktualisiert."
             } else if (uiState.isStoreOpen) {
-                "Bestellungen direkt aus dem Merch Hub."
+                "Checkout ist live."
             } else {
-                "Checkout ist gerade pausiert."
+                "Checkout ist pausiert."
             }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
@@ -503,7 +498,7 @@ private fun ShopAdminControlsCard(
     SkydownCard(contentPadding = PaddingValues(14.dp)) {
         BrandSectionBanner(
             title = "Store Control",
-            subtitle = "Shopify liefert Produkte. Hier steuerst du Sichtbarkeit und Sync getrennt vom Header.",
+            subtitle = "Store Status und Refresh.",
             accent = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.Sync,
             tag = "ADMIN",
@@ -530,7 +525,7 @@ private fun ShopAdminControlsCard(
             )
 
             BrandActionButton(
-                text = if (uiState.isSyncingCatalog) "Katalog laedt..." else "Shopify syncen",
+                text = if (uiState.isSyncingCatalog) "Store laedt..." else "Store aktualisieren",
                 onClick = onSyncShopify,
                 accent = SpotifyGreen,
                 modifier = Modifier.weight(1f),

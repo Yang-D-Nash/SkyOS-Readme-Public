@@ -26,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,7 +75,7 @@ fun AiHubScreen(
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
     val compactVisualDensity = rememberUsesCompactVisualDensity()
-    val workspaceMaxWidth = if (compactVisualDensity) 620.dp else Dp.Unspecified
+    val workspaceMaxWidth = Dp.Unspecified
     val currentUser = LocalSessionUser.current
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
@@ -93,7 +92,7 @@ fun AiHubScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Atelier",
-                        subtitle = "KI, Agenten, Workflows.",
+                        subtitle = "Create.",
                         accent = MaterialTheme.colorScheme.tertiary,
                     )
                 },
@@ -130,9 +129,9 @@ fun AiHubScreen(
                 if (currentUser == null) {
                     AiHubLoginCard(
                         title = if (aiAccessMode == AiAccessMode.AdminOnly) {
-                            "KI nur fuer freigegebene Konten"
+                            "Atelier freigeschaltet"
                         } else {
-                            "KI nur mit Konto"
+                            "Mit Konto starten"
                         },
                         message = AppFeatureFlagsStore.accessDeniedMessage(
                             user = currentUser,
@@ -209,13 +208,8 @@ private fun AiHubLoginCard(
     modifier: Modifier = Modifier,
 ) {
     val accent = MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     SkydownCard(
-        modifier = modifier.border(
-            width = 1.dp,
-            color = accent.copy(alpha = 0.14f),
-            shape = shape,
-        ),
+        modifier = modifier,
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
@@ -227,21 +221,13 @@ private fun AiHubLoginCard(
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
-        Row(
-            modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            AiHubBadge(text = "Bot", accent = MaterialTheme.colorScheme.primary)
-            AiHubBadge(text = "Agent", accent = MaterialTheme.colorScheme.tertiary)
-            AiHubBadge(text = "Visuals", accent = MaterialTheme.colorScheme.secondary)
-        }
         BrandActionButton(
-            text = "Jetzt anmelden",
+            text = "Anmelden",
             onClick = onOpenLogin,
             accent = accent,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 12.dp),
         )
     }
 }
@@ -253,17 +239,12 @@ private fun AiHubRestrictedCard(
     modifier: Modifier = Modifier,
 ) {
     val accent = MaterialTheme.colorScheme.tertiary
-    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     SkydownCard(
-        modifier = modifier.border(
-            width = 1.dp,
-            color = accent.copy(alpha = 0.14f),
-            shape = shape,
-        ),
+        modifier = modifier,
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "KI derzeit gesperrt",
+            text = "Atelier aktuell gesperrt",
             style = SkydownPanelTitleTextStyle,
         )
         Text(
@@ -271,21 +252,13 @@ private fun AiHubRestrictedCard(
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
-        Row(
-            modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            AiHubBadge(text = "Bot", accent = MaterialTheme.colorScheme.primary)
-            AiHubBadge(text = "Agent", accent = MaterialTheme.colorScheme.secondary)
-            AiHubBadge(text = "Visuals", accent = MaterialTheme.colorScheme.tertiary)
-        }
         BrandActionButton(
             text = "Einstellungen",
             onClick = onOpenSettings,
             accent = accent,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 12.dp),
         )
     }
 }
@@ -306,59 +279,53 @@ private fun AiHubCompactHeader(
         MaterialTheme.colorScheme.primary
     }
 
-    SkydownCard(
-        modifier = modifier,
-        contentPadding = PaddingValues(8.dp),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shellShape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.11f),
+                        accent.copy(alpha = 0.08f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.56f),
+                    ),
+                ),
+            )
+            .border(
+                width = 0.8.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.22f),
+                        accent.copy(alpha = 0.15f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                    ),
+                ),
+                shape = shellShape,
+            )
+            .padding(7.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shellShape)
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.16f),
-                            accent.copy(alpha = 0.12f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
-                        ),
-                    ),
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.30f),
-                            accent.copy(alpha = 0.24f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
-                        ),
-                    ),
-                    shape = shellShape,
-                )
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AiHubModeButton(
-                mode = AiHubMode.Bot,
-                isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
-                onClick = { onSelectMode(AiHubMode.Bot) },
-                compactVisualDensity = compactVisualDensity,
-                modifier = Modifier.weight(1f),
-            )
-            AiHubModeButton(
-                mode = AiHubMode.Agent,
-                isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
-                onClick = { onSelectMode(AiHubMode.Agent) },
-                compactVisualDensity = compactVisualDensity,
-                modifier = Modifier.weight(1f),
-            )
-            AiHubWorkflowButton(
-                showsWorkflowWorkspace = showsWorkflowWorkspace,
-                onClick = onToggleWorkflow,
-                compactVisualDensity = compactVisualDensity,
-            )
-        }
+        AiHubModeButton(
+            mode = AiHubMode.Bot,
+            isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
+            onClick = { onSelectMode(AiHubMode.Bot) },
+            compactVisualDensity = compactVisualDensity,
+            modifier = Modifier.weight(1f),
+        )
+        AiHubModeButton(
+            mode = AiHubMode.Agent,
+            isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
+            onClick = { onSelectMode(AiHubMode.Agent) },
+            compactVisualDensity = compactVisualDensity,
+            modifier = Modifier.weight(1f),
+        )
+        AiHubWorkflowButton(
+            showsWorkflowWorkspace = showsWorkflowWorkspace,
+            onClick = onToggleWorkflow,
+            compactVisualDensity = compactVisualDensity,
+        )
     }
 }
 
@@ -369,21 +336,16 @@ private fun WorkflowWorkspaceCard(
     modifier: Modifier = Modifier,
 ) {
     val accent = MaterialTheme.colorScheme.secondary
-    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     SkydownCard(
-        modifier = modifier.border(
-            width = 1.dp,
-            color = accent.copy(alpha = 0.14f),
-            shape = shape,
-        ),
+        modifier = modifier,
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "Workflow Cockpit",
+            text = "Workflow",
             style = SkydownPanelTitleTextStyle,
         )
         Text(
-            text = "Verbinde Agent, Kontext und Aktionen so, dass auch Laien sofort wissen, was passiert.",
+            text = "Planen, ausfuehren, weitergehen.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -400,12 +362,12 @@ private fun WorkflowWorkspaceCard(
             WorkflowSignalRow(
                 index = "02",
                 title = "Aktion",
-                body = "Optional wird dein n8n-Workflow mit User-Kontext gestartet.",
+                body = "Workflow starten.",
             )
             WorkflowSignalRow(
                 index = "03",
-                title = "Rueckweg",
-                body = "Du bleibst in der App und kannst direkt weiterarbeiten.",
+                title = "Weiter",
+                body = "Zurueck ins Atelier.",
             )
         }
 
@@ -419,12 +381,12 @@ private fun WorkflowWorkspaceCard(
         }
 
         BrandActionButton(
-            text = "Workflow einrichten",
+            text = "Workflow Setup",
             onClick = onOpenSettings,
             accent = accent,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 12.dp),
         )
         BrandActionButton(
             text = "Zur KI zurueck",
