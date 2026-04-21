@@ -164,32 +164,6 @@ struct MerchandiseCollabSidebar: View {
     }
 }
 
-struct MerchandiseCollabRail: View {
-    let lanes: [MerchandiseCollabLane]
-    let selectedLaneID: String
-    let colorScheme: ColorScheme
-    let onSelect: (MerchandiseCollabLane) -> Void
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ForEach(lanes) { lane in
-                    MerchandiseCollabSidebarButton(
-                        lane: lane,
-                        isSelected: lane.id == selectedLaneID,
-                        colorScheme: colorScheme,
-                        compact: true
-                    ) {
-                        onSelect(lane)
-                    }
-                    .frame(width: 214)
-                }
-            }
-            .padding(.horizontal, 1)
-        }
-    }
-}
-
 struct MerchandiseCollabQuickGrid: View {
     let lanes: [MerchandiseCollabLane]
     let selectedLaneID: String

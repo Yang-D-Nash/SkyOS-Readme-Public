@@ -1347,52 +1347,6 @@ struct VideoEquipmentCard: View {
     }
 }
 
-struct VideoYouTubeCard: View {
-    let colorScheme: ColorScheme
-    let items: [SkydownYouTubeVideoItem]
-    let onPlayItem: (SkydownYouTubeVideoItem) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("YouTube")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Videos & Making-ofs.")
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            if items.isEmpty {
-                Text("Noch nichts hinterlegt.")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .padding(.top, 4)
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(items) { item in
-                        VideoYouTubeRow(
-                            item: item,
-                            colorScheme: colorScheme
-                        ) {
-                            onPlayItem(item)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
-        )
-    }
-}
-
 private struct VideoHubQuickActionDock: View {
     let colorScheme: ColorScheme
     let isUploadOpen: Bool

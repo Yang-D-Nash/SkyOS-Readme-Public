@@ -2,19 +2,22 @@ package com.skydown.android
 
 import android.Manifest
 import android.media.AudioManager
+import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.skydown.android.data.AppearancePreferences
@@ -27,7 +30,6 @@ import com.skydown.android.data.CheckoutRedirectStore
 import com.skydown.android.data.NotificationPermissionCoordinator
 import com.skydown.android.data.AppSessionStore
 import com.skydown.android.data.SpotifyAuthManager
-import com.skydown.android.data.WorkflowAutomationPreferences
 import com.skydown.android.ui.SkydownApp
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.android.ui.theme.SkydownTheme
@@ -53,6 +55,7 @@ class MainActivity : ComponentActivity() {
         NotificationPermissionCoordinator.markPrompted(this)
     }
 
+    @OptIn(ExperimentalLayoutApi::class)
     @UnstableApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,7 +79,10 @@ class MainActivity : ComponentActivity() {
                 useMockVideoHubForUiTest ||
                 useMockAiVisualForUiTest ||
                 uiTestUser != null
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+        )
         AppearancePreferences.initialize(applicationContext)
         AppFeatureFlagsStore.configureUiTestOverrides(
             aiEnabled = if (useMockAiVisualForUiTest || uiTestUser != null) true else null,
@@ -115,7 +121,7 @@ class MainActivity : ComponentActivity() {
             SkydownTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
+                    color = Color.Transparent,
                 ) {
                     SkydownApp(
                         startRouteOverride = startRouteForUiTest,
