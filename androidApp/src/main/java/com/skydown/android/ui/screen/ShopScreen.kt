@@ -778,32 +778,24 @@ private fun ShopCollabQuickGrid(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BrandSectionBanner(
-                title = "Direktwahl",
-                subtitle = "Neben dem Swipe kannst du jede Collection direkt antippen.",
+                title = "Direktliste",
+                subtitle = "Swipe oben, Liste hier: jede Collection bleibt direkt erreichbar.",
                 accent = MaterialTheme.colorScheme.primary,
                 icon = Icons.Default.ShoppingBag,
-                tag = "GRID",
+                tag = "LIST",
             )
 
-            lanes.chunked(2).forEach { rowLanes ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    rowLanes.forEach { lane ->
-                        ShopCollabSidebarButton(
-                            lane = lane,
-                            isSelected = lane.id == selectedLaneId,
-                            compact = true,
-                            onTap = { onSelect(lane) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-
-                    if (rowLanes.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                lanes.forEach { lane ->
+                    ShopCollabSidebarButton(
+                        lane = lane,
+                        isSelected = lane.id == selectedLaneId,
+                        compact = true,
+                        onTap = { onSelect(lane) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }

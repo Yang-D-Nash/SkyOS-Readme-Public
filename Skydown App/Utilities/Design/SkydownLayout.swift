@@ -11,15 +11,15 @@ import UIKit
 #endif
 
 enum SkydownLayout {
-    static let screenHorizontalPadding: CGFloat = 18
+    static let screenHorizontalPadding: CGFloat = 16
     static let screenTopPadding: CGFloat = 12
     static let screenBottomPadding: CGFloat = 16
-    static let sectionSpacing: CGFloat = 16
-    static let cardPadding: CGFloat = 16
-    static let heroPadding: CGFloat = 18
-    static let cardCornerRadius: CGFloat = 28
-    static let heroCornerRadius: CGFloat = 34
-    static let buttonCornerRadius: CGFloat = 22
+    static let sectionSpacing: CGFloat = 14
+    static let cardPadding: CGFloat = 14
+    static let heroPadding: CGFloat = 17
+    static let cardCornerRadius: CGFloat = 24
+    static let heroCornerRadius: CGFloat = 30
+    static let buttonCornerRadius: CGFloat = 18
 }
 
 enum SkydownMotion {
@@ -569,11 +569,11 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                     shape.fill(
                         LinearGradient(
                             colors: [
-                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.26),
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.97 : 0.985),
-                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.42 : 0.58),
-                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.04),
-                                resolvedAccent.opacity(colorScheme == .dark ? 0.032 : 0.028)
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.16),
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.97 : 0.99),
+                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.28 : 0.40),
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.024 : 0.024),
+                                resolvedAccent.opacity(colorScheme == .dark ? 0.018 : 0.016)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -583,8 +583,8 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                     shape.fill(
                         RadialGradient(
                             colors: [
-                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.20),
-                                resolvedAccent.opacity(colorScheme == .dark ? 0.05 : 0.06),
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.05 : 0.12),
+                                resolvedAccent.opacity(colorScheme == .dark ? 0.028 : 0.034),
                                 .clear
                             ],
                             center: .topLeading,
@@ -596,8 +596,8 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
                     shape.fill(
                         RadialGradient(
                             colors: [
-                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.08),
-                                resolvedAccent.opacity(colorScheme == .dark ? 0.04 : 0.05),
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.036 : 0.05),
+                                resolvedAccent.opacity(colorScheme == .dark ? 0.024 : 0.03),
                                 .clear
                             ],
                             center: UnitPoint(x: 0.88, y: 0.86),
@@ -613,14 +613,14 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
             }
             .clipShape(shape)
             .shadow(
-                color: resolvedAccent.opacity(colorScheme == .dark ? 0.04 : 0.035),
+                color: resolvedAccent.opacity(colorScheme == .dark ? 0.024 : 0.020),
                 radius: max(shadowRadius - 7, 5),
                 y: max(shadowYOffset - 5, 2)
             )
             .shadow(
-                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.24 : 0.14),
-                radius: max(shadowRadius - 1, 8),
-                y: max(shadowYOffset, 4)
+                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.09),
+                radius: max(shadowRadius - 4, 6),
+                y: max(shadowYOffset - 2, 3)
             )
     }
 }

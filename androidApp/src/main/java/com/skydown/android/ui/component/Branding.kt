@@ -50,6 +50,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.skydown.android.R
+import com.skydown.android.ui.theme.SkydownBodyCaptionTextStyle
+import com.skydown.android.ui.theme.SkydownCardTitleTextStyle
 import com.skydown.android.ui.theme.SkydownCompactHeroTitleTextStyle
 import com.skydown.android.ui.theme.SkydownEditorialCaptionTextStyle
 import com.skydown.android.ui.theme.SkydownHeroEyebrowTextStyle
@@ -448,7 +450,7 @@ fun BrandSectionBanner(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
@@ -456,9 +458,9 @@ fun BrandSectionBanner(
                 modifier = Modifier
                     .skydownPanelSurface(
                         accent = accent,
-                        cornerRadius = 14.dp,
-                        shadowRadius = 8.dp,
-                        shadowYOffset = 4.dp,
+                        cornerRadius = 15.dp,
+                        shadowRadius = 6.dp,
+                        shadowYOffset = 3.dp,
                     )
                     .padding(8.dp),
                 contentAlignment = Alignment.Center,
@@ -467,26 +469,30 @@ fun BrandSectionBanner(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accent,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(15.dp),
                 )
             }
         }
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
+                style = SkydownCardTitleTextStyle,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             subtitle?.takeIf { it.isNotBlank() }?.let { copy ->
                 Text(
                     text = copy,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = SkydownBodyCaptionTextStyle,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

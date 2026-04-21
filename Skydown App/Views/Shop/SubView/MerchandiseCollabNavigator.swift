@@ -196,24 +196,19 @@ struct MerchandiseCollabQuickGrid: View {
     let colorScheme: ColorScheme
     let onSelect: (MerchandiseCollabLane) -> Void
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 5) {
-                Text("Direktwahl")
+                Text("Direktliste")
                     .font(AppTypography.sectionHeadline)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Neben dem Swipe kannst du jede Collection direkt antippen.")
+                Text("Swipe oben, Liste hier: jede Collection bleibt direkt erreichbar.")
                     .font(AppTypography.bodyCaption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 ForEach(lanes) { lane in
                     MerchandiseCollabSidebarButton(
                         lane: lane,

@@ -229,17 +229,17 @@ struct AppColors {
 
         return LinearGradient(
             colors: [
-                luminanceLift.opacity(colorScheme == .dark ? 0.12 : 0.72),
+                luminanceLift.opacity(colorScheme == .dark ? 0.08 : 0.52),
                 topSky,
-                pearlWash.opacity(colorScheme == .dark ? 0.10 : 0.22),
+                pearlWash.opacity(colorScheme == .dark ? 0.07 : 0.16),
                 midSky,
-                surfaceWash.opacity(colorScheme == .dark ? 0.16 : 0.30),
+                surfaceWash.opacity(colorScheme == .dark ? 0.12 : 0.22),
                 horizonGlow,
-                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.035),
-                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.032),
-                secondary.opacity(colorScheme == .dark ? 0.05 : 0.024),
-                depthShadow.opacity(colorScheme == .dark ? 0.82 : 0.80),
-                cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.042),
+                accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.024),
+                accent(for: colorScheme).opacity(colorScheme == .dark ? 0.05 : 0.022),
+                secondary.opacity(colorScheme == .dark ? 0.032 : 0.016),
+                depthShadow.opacity(colorScheme == .dark ? 0.62 : 0.60),
+                cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.055 : 0.030),
                 primaryBackground(for: colorScheme)
             ],
             startPoint: .topLeading,

@@ -75,32 +75,32 @@ fun Modifier.skydownPanelSurface(
     shadow(
         elevation = 5.dp,
         shape = shape,
-        ambientColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.030f else 0.026f),
-        spotColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.030f else 0.026f),
+        ambientColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.020f else 0.016f),
+        spotColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.020f else 0.016f),
     )
         .shadow(
             elevation = shadowRadius,
             shape = shape,
-            ambientColor = colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.17f else 0.095f),
-            spotColor = colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.17f else 0.095f),
+            ambientColor = colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.12f else 0.065f),
+            spotColor = colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.12f else 0.065f),
         )
         .clip(shape)
         .drawWithContent {
             val baseBrush = Brush.linearGradient(
                 colors = listOf(
-                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.14f else 0.26f),
-                    colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.955f else 0.975f),
-                    colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.34f else 0.48f),
-                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.026f else 0.032f),
-                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.022f else 0.020f),
+                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.08f else 0.16f),
+                    colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.965f else 0.990f),
+                    colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.25f else 0.38f),
+                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.016f else 0.020f),
+                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.014f else 0.012f),
                 ),
                 start = Offset(size.width * 0.06f, 0f),
                 end = Offset(size.width, size.height),
             )
             val upperBloom = Brush.radialGradient(
                 colors = listOf(
-                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.08f else 0.20f),
-                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.036f else 0.045f),
+                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.05f else 0.12f),
+                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.022f else 0.028f),
                     Color.Transparent,
                 ),
                 center = Offset(size.width * 0.16f, size.height * 0.12f),
@@ -108,8 +108,8 @@ fun Modifier.skydownPanelSurface(
             )
             val lowerMist = Brush.radialGradient(
                 colors = listOf(
-                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.06f else 0.08f),
-                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.030f else 0.038f),
+                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.034f else 0.048f),
+                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.018f else 0.026f),
                     Color.Transparent,
                 ),
                 center = Offset(size.width * 0.88f, size.height * 0.86f),
@@ -125,9 +125,9 @@ fun Modifier.skydownPanelSurface(
             width = 0.9.dp,
             brush = Brush.linearGradient(
                 colors = listOf(
-                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.16f else 0.24f),
-                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.045f else 0.08f),
-                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.070f else 0.060f),
+                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.10f else 0.18f),
+                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.030f else 0.054f),
+                    resolvedAccent.copy(alpha = if (isDarkPalette) 0.050f else 0.042f),
                     colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.014f else 0.020f),
                 ),
             ),
@@ -135,7 +135,7 @@ fun Modifier.skydownPanelSurface(
         )
         .skydownSheen(
             accent = resolvedAccent,
-            alpha = if (isDarkPalette) 0.016f else 0.014f,
+            alpha = if (isDarkPalette) 0.010f else 0.009f,
         )
 }
 

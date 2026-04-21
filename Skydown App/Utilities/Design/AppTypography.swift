@@ -73,6 +73,19 @@ enum AppTypography {
         case semibold
         case bold
 
+        var displayWeight: DisplayWeight {
+            switch self {
+            case .regular:
+                return .regular
+            case .medium:
+                return .medium
+            case .semibold:
+                return .semibold
+            case .bold:
+                return .bold
+            }
+        }
+
         var uiKitWeight: UIFont.Weight {
             switch self {
             case .regular:
@@ -123,7 +136,7 @@ enum AppTypography {
     }
 
     static var heroTitle: Font {
-        brushFont(size: 40, relativeTo: .largeTitle)
+        brushFont(size: 38, relativeTo: .largeTitle)
     }
 
     static var heroSubtitle: Font {
@@ -131,7 +144,7 @@ enum AppTypography {
     }
 
     static var sectionTitle: Font {
-        brushFont(size: 28, relativeTo: .title2)
+        displayFont(size: 26, relativeTo: .title2, weight: .bold)
     }
 
     static var sectionHeadline: Font {
@@ -139,7 +152,7 @@ enum AppTypography {
     }
 
     static var cardTitle: Font {
-        brushFont(size: 23, relativeTo: .title3)
+        displayFont(size: 20, relativeTo: .title3, weight: .semibold)
     }
 
     static var body: Font {
@@ -156,6 +169,14 @@ enum AppTypography {
 
     static var metricLabel: Font {
         interfaceFont(size: 16.2, relativeTo: .headline, weight: .semibold)
+    }
+
+    static var listTitle: Font {
+        interfaceFont(size: 16.2, relativeTo: .headline, weight: .semibold)
+    }
+
+    static var listMeta: Font {
+        interfaceFont(size: 12.8, relativeTo: .caption, weight: .medium)
     }
 
     static var editorialBody: Font {
@@ -202,7 +223,12 @@ enum AppTypography {
         relativeTo textStyle: Font.TextStyle,
         weight: InterfaceWeight = .regular
     ) -> Font {
-        .system(size: size, weight: weight.swiftUIWeight, design: .default)
+        let displayWeight = weight.displayWeight
+        if UIFont(name: displayWeight.postScriptName, size: size) != nil {
+            return .custom(displayWeight.postScriptName, size: size, relativeTo: textStyle)
+        }
+
+        return .system(size: size, weight: weight.swiftUIWeight, design: .default)
     }
 
     private static func interfaceUIFont(
@@ -210,6 +236,11 @@ enum AppTypography {
         textStyle: UIFont.TextStyle,
         weight: InterfaceWeight = .regular
     ) -> UIFont {
+        let displayWeight = weight.displayWeight
+        if let font = UIFont(name: displayWeight.postScriptName, size: size) {
+            return UIFontMetrics(forTextStyle: textStyle).scaledFont(for: font)
+        }
+
         let baseFont = UIFont.systemFont(ofSize: size, weight: weight.uiKitWeight)
         return UIFontMetrics(forTextStyle: textStyle).scaledFont(for: baseFont)
     }

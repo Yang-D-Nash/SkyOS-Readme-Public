@@ -78,9 +78,9 @@ fun TrackRow(
         targetValue = if (isPlaying) {
             MaterialTheme.colorScheme.primaryContainer
         } else if (isSelected) {
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.82f)
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f)
         } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
         },
         label = "track_container",
     )
@@ -105,14 +105,14 @@ fun TrackRow(
             .animateContentSize()
             .testTag("music.track.row")
             .clickable(onClick = onSelectTrack),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(22.dp),
         color = containerColor,
         contentColor = contentColor,
-        tonalElevation = if (isPlaying) 4.dp else 0.dp,
-        shadowElevation = if (isPlaying) 6.dp else 0.dp,
+        tonalElevation = if (isPlaying) 2.dp else 0.dp,
+        shadowElevation = if (isPlaying) 3.dp else 0.dp,
         border = BorderStroke(1.dp, borderColor),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(13.dp)) {
             Row(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -121,8 +121,8 @@ fun TrackRow(
                     model = track.artworkUrl100,
                     contentDescription = track.trackName,
                     modifier = Modifier
-                        .size(78.dp)
-                        .clip(RoundedCornerShape(18.dp))
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
                     contentScale = ContentScale.Crop,
                 )
@@ -134,7 +134,7 @@ fun TrackRow(
                     track.artistName?.takeIf { it.isNotBlank() }?.let {
                         Text(
                             text = it.uppercase(),
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelMedium,
                             color = if (isPlaying) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {

@@ -20,6 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.skydown.android.ui.theme.SkydownBodyCaptionTextStyle
+import com.skydown.android.ui.theme.SkydownHeroEyebrowTextStyle
+import com.skydown.android.ui.theme.SkydownPanelTitleTextStyle
 import com.skydown.android.ui.theme.skydownAccentHighlight
 import com.skydown.android.ui.theme.skydownCardBackground
 import com.skydown.android.ui.theme.skydownCinematicShadow
@@ -27,18 +30,20 @@ import com.skydown.android.ui.theme.skydownIsDarkPalette
 import com.skydown.android.ui.theme.skydownLuminanceLift
 import com.skydown.android.ui.theme.skydownPrimaryBackground
 import com.skydown.android.ui.theme.skydownSecondaryBackground
+import com.skydown.android.ui.theme.skydownSecondaryText
+import com.skydown.android.ui.theme.skydownText
 
 object SkydownUiTokens {
-    val screenHorizontalPadding = 18.dp
+    val screenHorizontalPadding = 16.dp
     val screenTopPadding = 14.dp
     val screenBottomPadding = 22.dp
-    val cardPadding = 16.dp
-    val heroPadding = 18.dp
-    val cardCornerRadius = 28.dp
-    val heroCornerRadius = 34.dp
-    val buttonCornerRadius = 22.dp
-    val screenSectionSpacing = 18.dp
-    val compactScreenSectionSpacing = 14.dp
+    val cardPadding = 14.dp
+    val heroPadding = 17.dp
+    val cardCornerRadius = 24.dp
+    val heroCornerRadius = 30.dp
+    val buttonCornerRadius = 18.dp
+    val screenSectionSpacing = 16.dp
+    val compactScreenSectionSpacing = 12.dp
 }
 
 fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingValues(
@@ -78,17 +83,17 @@ fun skydownScreenBrush(
 
     return Brush.verticalGradient(
         colors = listOf(
-            luminanceLift.copy(alpha = if (isDarkPalette) 0.12f else 0.72f),
+            luminanceLift.copy(alpha = if (isDarkPalette) 0.08f else 0.52f),
             topSky,
-            pearlWash.copy(alpha = if (isDarkPalette) 0.10f else 0.22f),
+            pearlWash.copy(alpha = if (isDarkPalette) 0.07f else 0.16f),
             midSky,
-            surfaceWash.copy(alpha = if (isDarkPalette) 0.16f else 0.30f),
+            surfaceWash.copy(alpha = if (isDarkPalette) 0.12f else 0.22f),
             horizonGlow,
-            accentHighlight.copy(alpha = if (isDarkPalette) 0.06f else 0.035f),
-            primaryColor.copy(alpha = if (isDarkPalette) maxOf(primaryAlpha, 0.080f) else primaryAlpha),
-            secondaryColor.copy(alpha = if (isDarkPalette) maxOf(secondaryAlpha, 0.050f) else secondaryAlpha),
-            cinematicShadow.copy(alpha = if (isDarkPalette) 0.070f else 0.036f),
-            cinematicShadow.copy(alpha = if (isDarkPalette) 0.08f else 0.042f),
+            accentHighlight.copy(alpha = if (isDarkPalette) 0.04f else 0.024f),
+            primaryColor.copy(alpha = if (isDarkPalette) maxOf(primaryAlpha, 0.050f) else primaryAlpha * 0.70f),
+            secondaryColor.copy(alpha = if (isDarkPalette) maxOf(secondaryAlpha, 0.032f) else secondaryAlpha * 0.68f),
+            cinematicShadow.copy(alpha = if (isDarkPalette) 0.050f else 0.026f),
+            cinematicShadow.copy(alpha = if (isDarkPalette) 0.055f else 0.030f),
             background,
         ),
     )
@@ -115,12 +120,13 @@ fun SkydownTopBarTitle(
     metaLabel: String? = null,
 ) {
     val compactLayout = rememberIsCompactAppLayout()
+    val colorScheme = MaterialTheme.colorScheme
     val resolvedMetaLabel = metaLabel?.takeIf { it.isNotBlank() && !compactLayout }
     val resolvedSubtitle = subtitle?.takeIf { it.isNotBlank() && !compactLayout }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(
-            if (resolvedMetaLabel != null || resolvedSubtitle != null) 3.dp else 0.dp,
+            if (resolvedMetaLabel != null || resolvedSubtitle != null) 4.dp else 0.dp,
         ),
     ) {
         if (resolvedMetaLabel != null) {
@@ -135,7 +141,7 @@ fun SkydownTopBarTitle(
                 )
                 Text(
                     text = resolvedMetaLabel.uppercase(),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = SkydownHeroEyebrowTextStyle,
                     color = accent.copy(alpha = 0.92f),
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -146,8 +152,9 @@ fun SkydownTopBarTitle(
 
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge,
+            style = SkydownPanelTitleTextStyle,
             fontWeight = FontWeight.SemiBold,
+            color = colorScheme.skydownText(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -155,8 +162,8 @@ fun SkydownTopBarTitle(
         if (resolvedSubtitle != null) {
             Text(
                 text = resolvedSubtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                style = SkydownBodyCaptionTextStyle,
+                color = colorScheme.skydownSecondaryText().copy(alpha = 0.82f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

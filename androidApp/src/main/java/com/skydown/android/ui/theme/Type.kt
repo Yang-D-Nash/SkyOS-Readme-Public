@@ -36,8 +36,8 @@ val SkydownHeroEyebrowTextStyle = TextStyle(
 val SkydownHeroTitleTextStyle = TextStyle(
     fontFamily = AwergyDisplayFontFamily,
     fontWeight = FontWeight.Normal,
-    fontSize = 40.sp,
-    lineHeight = 42.sp,
+    fontSize = 38.sp,
+    lineHeight = 40.sp,
     letterSpacing = 0.sp,
     platformStyle = TightPlatformStyle,
 )
@@ -79,20 +79,20 @@ val SkydownBodyCaptionTextStyle = TextStyle(
 )
 
 val SkydownCardTitleTextStyle = TextStyle(
-    fontFamily = AwergyDisplayFontFamily,
-    fontWeight = FontWeight.Normal,
-    fontSize = 23.sp,
-    lineHeight = 26.sp,
-    letterSpacing = 0.sp,
+    fontFamily = SyneTitleFontFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 20.sp,
+    lineHeight = 25.sp,
+    letterSpacing = (-0.10).sp,
     platformStyle = TightPlatformStyle,
 )
 
 val SkydownSectionTitleTextStyle = TextStyle(
-    fontFamily = AwergyDisplayFontFamily,
-    fontWeight = FontWeight.Normal,
-    fontSize = 28.sp,
-    lineHeight = 31.sp,
-    letterSpacing = 0.sp,
+    fontFamily = SyneTitleFontFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 26.sp,
+    lineHeight = 30.sp,
+    letterSpacing = (-0.18).sp,
     platformStyle = TightPlatformStyle,
 )
 

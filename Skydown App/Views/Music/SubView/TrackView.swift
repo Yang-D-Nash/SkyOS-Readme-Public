@@ -33,21 +33,21 @@ struct TrackView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 78, height: 78)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(width: 78, height: 78)
+                        .frame(width: 64, height: 64)
                 }
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
                 )
 
@@ -55,7 +55,7 @@ struct TrackView: View {
                     HStack(alignment: .center, spacing: 8) {
                         if let artist = track.artistName, !artist.isEmpty {
                             Text(artist.uppercased())
-                                .font(.caption.weight(.bold))
+                                .font(AppTypography.listMeta)
                                 .foregroundColor(AppColors.accent(for: colorScheme))
                                 .lineLimit(1)
                         }
@@ -72,20 +72,20 @@ struct TrackView: View {
                     }
 
                     Text(track.trackName)
-                        .font(.headline.weight(.semibold))
+                        .font(AppTypography.listTitle)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .lineLimit(2)
 
                     if let artist = track.artistName, !artist.isEmpty {
                         Text("Von \(artist)")
-                            .font(.subheadline)
+                            .font(AppTypography.bodyCaption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             .lineLimit(1)
                     }
 
                     if let album = track.collectionName, !album.isEmpty {
                         Text(album)
-                            .font(.subheadline)
+                            .font(AppTypography.bodyCaption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             .lineLimit(1)
                     }
@@ -115,7 +115,7 @@ struct TrackView: View {
                             isPlaying ? "Preview stoppen" : "Preview abspielen",
                             systemImage: isPlaying ? "pause.fill" : "play.fill"
                         )
-                        .font(.subheadline.weight(.semibold))
+                        .font(AppTypography.buttonLabel)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(AppColors.accent(for: colorScheme))
@@ -130,7 +130,7 @@ struct TrackView: View {
                         showSpotifyPlayer = true
                     } label: {
                             Label("In App", systemImage: "music.note.tv")
-                                .font(.subheadline.weight(.semibold))
+                                .font(AppTypography.buttonLabel)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
                                 .background(AppColors.spotifySurface(for: colorScheme))
@@ -149,7 +149,7 @@ struct TrackView: View {
                         }
                     } label: {
                         Label(hasSpotifyArtistLink ? "Artist" : "Spotify", systemImage: "arrow.up.forward.square")
-                            .font(.subheadline.weight(.semibold))
+                            .font(AppTypography.buttonLabel)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(AppColors.spotifySurface(for: colorScheme))
@@ -163,26 +163,14 @@ struct TrackView: View {
                 }
             }
         }
-        .padding(16)
+        .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(
-                    isSelected
-                    ? AppColors.accent(for: colorScheme).opacity(0.28)
-                    : AppColors.accent(for: colorScheme).opacity(0.12),
-                    lineWidth: 1
-                )
-        )
-        .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.06),
-            radius: 12,
-            x: 0,
-            y: 8
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: isSelected ? AppColors.accent(for: colorScheme) : AppColors.accentMystic(for: colorScheme),
+            cornerRadius: 22,
+            shadowRadius: 9,
+            shadowYOffset: 5
         )
         .onTapGesture(perform: onSelect)
         .sheet(isPresented: $showSpotifyPlayer) {

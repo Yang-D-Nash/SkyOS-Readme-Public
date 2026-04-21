@@ -148,7 +148,6 @@ import com.skydown.android.ui.theme.SkydownBodyCaptionTextStyle
 import com.skydown.android.ui.theme.SkydownCardTitleTextStyle
 import com.skydown.android.ui.theme.SkydownEditorialCaptionTextStyle
 import com.skydown.android.ui.theme.SkydownHeroEyebrowTextStyle
-import com.skydown.android.ui.theme.SkydownSectionTitleTextStyle
 import com.skydown.android.ui.theme.SpotifyGreen
 import com.skydown.android.ui.theme.skydownAccent
 import com.skydown.android.ui.theme.skydownAccentHighlight
@@ -158,6 +157,7 @@ import com.skydown.android.ui.theme.skydownCinematicShadow
 import com.skydown.android.ui.theme.skydownIsDarkPalette
 import com.skydown.android.ui.theme.skydownLuminanceLift
 import com.skydown.android.ui.theme.skydownSecondaryBackground
+import com.skydown.android.ui.theme.skydownSecondaryText
 import com.skydown.android.ui.theme.skydownText
 import com.skydown.android.ui.theme.skydownYoutube
 import com.google.firebase.auth.FirebaseAuth
@@ -1653,6 +1653,21 @@ private fun HubEntryCard(
     val cardShape = RoundedCornerShape(if (compactVisualDensity) 26.dp else 28.dp)
     val iconTileShape = RoundedCornerShape(18.dp)
     val iconTileSize = if (compactVisualDensity) 56.dp else 60.dp
+    val primaryContentColor = if (isDarkPalette) {
+        Color.White.copy(alpha = 0.94f)
+    } else {
+        colorScheme.skydownText().copy(alpha = 0.94f)
+    }
+    val secondaryContentColor = if (isDarkPalette) {
+        Color.White.copy(alpha = 0.78f)
+    } else {
+        colorScheme.skydownSecondaryText().copy(alpha = 0.92f)
+    }
+    val subtleContentColor = if (isDarkPalette) {
+        Color.White.copy(alpha = 0.68f)
+    } else {
+        colorScheme.skydownSecondaryText().copy(alpha = 0.82f)
+    }
 
     Surface(
         shape = cardShape,
@@ -1674,14 +1689,14 @@ private fun HubEntryCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = if (compactVisualDensity) 208.dp else 218.dp)
+                .heightIn(min = if (compactVisualDensity) 194.dp else 204.dp)
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.06f else 0.12f),
-                            accentColor.copy(alpha = if (isDarkPalette) 0.080f else 0.055f),
-                            colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.10f else 0.20f),
-                            colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.20f else 0.04f),
+                            colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.055f else 0.16f),
+                            accentColor.copy(alpha = if (isDarkPalette) 0.074f else 0.052f),
+                            colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.13f else 0.28f),
+                            colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.18f else 0.026f),
                         ),
                         start = Offset.Zero,
                         end = Offset.Infinite,
@@ -1773,15 +1788,15 @@ private fun HubEntryCard(
                         }
                         Text(
                             text = title,
-                            style = SkydownSectionTitleTextStyle,
-                            color = Color.White,
+                            style = SkydownCardTitleTextStyle,
+                            color = primaryContentColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = subtitle,
                             style = SkydownEditorialCaptionTextStyle,
-                            color = Color.White.copy(alpha = 0.82f),
+                            color = secondaryContentColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1796,7 +1811,7 @@ private fun HubEntryCard(
                         Icon(
                             imageVector = Icons.Default.ArrowOutward,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.82f),
+                            tint = primaryContentColor.copy(alpha = 0.84f),
                             modifier = Modifier
                                 .alpha(0.92f)
                                 .size(if (compactVisualDensity) 17.dp else 18.dp),
@@ -1808,7 +1823,7 @@ private fun HubEntryCard(
                     Text(
                         text = detail,
                         style = SkydownEditorialCaptionTextStyle,
-                        color = Color.White.copy(alpha = 0.74f),
+                        color = subtleContentColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -1829,7 +1844,7 @@ private fun HubEntryCard(
                     Text(
                         text = "Direkt in $title",
                         style = SkydownBodyCaptionTextStyle,
-                        color = Color.White.copy(alpha = 0.94f),
+                        color = primaryContentColor,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
@@ -1929,10 +1944,18 @@ private fun LaunchLandingMetaPill(
     text: String,
     accent: Color,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val contentColor = if (isDarkPalette) {
+        Color.White.copy(alpha = 0.90f)
+    } else {
+        colorScheme.skydownText().copy(alpha = 0.88f)
+    }
+
     Text(
         text = text,
         style = SkydownEditorialCaptionTextStyle,
-        color = Color.White.copy(alpha = 0.90f),
+        color = contentColor,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .skydownCapsuleSurface(accent = accent)
@@ -1961,6 +1984,14 @@ private fun LaunchLandingActionPill(
     text: String,
     accent: Color,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val contentColor = if (isDarkPalette) {
+        Color.White.copy(alpha = 0.94f)
+    } else {
+        colorScheme.skydownText().copy(alpha = 0.88f)
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1971,13 +2002,13 @@ private fun LaunchLandingActionPill(
         Text(
             text = text,
             style = SkydownBodyCaptionTextStyle,
-            color = Color.White.copy(alpha = 0.94f),
+            color = contentColor,
             fontWeight = FontWeight.Bold,
         )
         Icon(
             imageVector = Icons.Default.ArrowOutward,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.94f),
+            tint = contentColor,
             modifier = Modifier.size(14.dp),
         )
     }

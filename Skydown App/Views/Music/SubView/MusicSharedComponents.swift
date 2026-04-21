@@ -11,8 +11,13 @@ import UIKit
 struct MusicBadge: View {
     let text: String
     let isAccent: Bool
+    var accentOverride: Color? = nil
     var onTap: (() -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedAccent: Color {
+        accentOverride ?? AppColors.accent(for: colorScheme)
+    }
 
     var body: some View {
         Group {
@@ -26,7 +31,7 @@ struct MusicBadge: View {
                 SkydownMetaLabel(
                     text: text,
                     tint: isAccent
-                    ? AppColors.accent(for: colorScheme)
+                    ? resolvedAccent
                     : AppColors.secondaryText(for: colorScheme)
                 )
             }
@@ -46,12 +51,12 @@ struct MusicBadge: View {
         .padding(.vertical, 6)
         .background(
             isAccent
-            ? AppColors.accent(for: colorScheme).opacity(0.15)
+            ? resolvedAccent.opacity(colorScheme == .dark ? 0.13 : 0.10)
             : AppColors.secondaryBackground(for: colorScheme)
         )
         .foregroundColor(
             isAccent
-            ? AppColors.accent(for: colorScheme)
+            ? resolvedAccent
             : AppColors.secondaryText(for: colorScheme)
         )
         .clipShape(Capsule())
@@ -62,66 +67,15 @@ struct NicmaProducerSpotlightCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("NICMA MUSIC")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Producer-Seite mit Preisliste fuer Mixing, Mastering und Recording.")
-                        .font(.subheadline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
-                        .frame(width: 54, height: 54)
-
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.title3)
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                }
-            }
-
-            HStack(spacing: 8) {
-                MusicBadge(text: "Mixing", isAccent: true)
-                MusicBadge(text: "Mastering", isAccent: false)
-                MusicBadge(text: "Studio Services", isAccent: false)
-            }
-
-            HStack {
-                Text("Preise & Services oeffnen")
-                    .font(.headline)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
-
-                Spacer()
-
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.title3)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    AppColors.cardBackground(for: colorScheme),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        MusicSpotlightSurface(
+            colorScheme: colorScheme,
+            title: "NICMA MUSIC",
+            subtitle: "Producer-Seite mit Preisliste fuer Mixing, Mastering und Recording.",
+            iconName: "waveform.path.ecg",
+            accent: AppColors.accentMystic(for: colorScheme),
+            badges: ["Mixing", "Mastering", "Studio Services"],
+            actionTitle: "Preise & Services oeffnen"
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -129,66 +83,15 @@ struct BeatHubSpotlightCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Beat Hub")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Eigener Bereich fuer Beat-Uploads, oeffentliche Hubsounds und Admin-Freigaben.")
-                        .font(.subheadline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accent(for: colorScheme).opacity(0.16))
-                        .frame(width: 54, height: 54)
-
-                    Image(systemName: "speaker.wave.3.fill")
-                        .font(.title3)
-                        .foregroundColor(AppColors.accent(for: colorScheme))
-                }
-            }
-
-            HStack(spacing: 8) {
-                MusicBadge(text: "Upload", isAccent: true)
-                MusicBadge(text: "Listen", isAccent: false)
-                MusicBadge(text: "Admin Review", isAccent: false)
-            }
-
-            HStack {
-                Text("Beat Hub oeffnen")
-                    .font(.headline)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
-
-                Spacer()
-
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.title3)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    AppColors.cardBackground(for: colorScheme),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        MusicSpotlightSurface(
+            colorScheme: colorScheme,
+            title: "Beat Hub",
+            subtitle: "Eigener Bereich fuer Beat-Uploads, oeffentliche Hubsounds und Admin-Freigaben.",
+            iconName: "speaker.wave.3.fill",
+            accent: AppColors.accent(for: colorScheme),
+            badges: ["Upload", "Listen", "Admin Review"],
+            actionTitle: "Beat Hub oeffnen"
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -196,66 +99,100 @@ struct VideoHubSpotlightCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Videography")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
+        MusicSpotlightSurface(
+            colorScheme: colorScheme,
+            title: "Videography",
+            subtitle: "Eigener Bereich fuer SkyOS Videos mit Playback, Admin-Uploads und klaren Format-Hinweisen.",
+            iconName: "video.fill",
+            accent: AppColors.accentMystic(for: colorScheme),
+            badges: ["Playback", "Admin Upload", "MP4 / MOV / M4V"],
+            actionTitle: "Videography oeffnen"
+        )
+    }
+}
 
-                    Text("Eigener Bereich fuer SkyOS Videos mit Playback, Admin-Uploads und klaren Format-Hinweisen.")
-                        .font(.subheadline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
+private struct MusicSpotlightSurface: View {
+    let colorScheme: ColorScheme
+    let title: String
+    let subtitle: String
+    let iconName: String
+    let accent: Color
+    let badges: [String]
+    let actionTitle: String
 
-                Spacer()
-
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
-                        .frame(width: 54, height: 54)
+                    RoundedRectangle(cornerRadius: 17, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.18),
+                                    accent.opacity(colorScheme == .dark ? 0.13 : 0.09),
+                                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.42 : 0.62)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
 
-                    Image(systemName: "video.fill")
-                        .font(.title3)
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    Image(systemName: iconName)
+                        .font(.body.weight(.bold))
+                        .foregroundColor(accent)
+                }
+                .frame(width: 48, height: 48)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(AppTypography.cardTitle)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(1)
+
+                    Text(subtitle)
+                        .font(AppTypography.bodyCaption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
             HStack(spacing: 8) {
-                MusicBadge(text: "Playback", isAccent: true)
-                MusicBadge(text: "Admin Upload", isAccent: false)
-                MusicBadge(text: "MP4 / MOV / M4V", isAccent: false)
+                ForEach(badges.indices, id: \.self) { index in
+                    MusicBadge(
+                        text: badges[index],
+                        isAccent: index == 0,
+                        accentOverride: accent
+                    )
+                }
             }
+            .lineLimit(1)
 
-            HStack {
-                Text("Videography oeffnen")
-                    .font(.headline)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
+            HStack(spacing: 8) {
+                Text(actionTitle)
+                    .font(AppTypography.buttonLabel)
+                    .foregroundColor(accent)
 
-                Spacer()
+                Spacer(minLength: 8)
 
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.title3)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
+                Image(systemName: "arrow.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(accent)
+                    .padding(9)
+                    .skydownCapsuleSurface(colorScheme: colorScheme, accent: accent)
             }
+            .padding(.top, 1)
         }
-        .padding(18)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    AppColors.cardBackground(for: colorScheme),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: accent,
+            cornerRadius: 22,
+            shadowRadius: 10,
+            shadowYOffset: 5
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .skydownLuminousSweep(cornerRadius: 22, accent: accent, alpha: 0.045)
     }
 }
 

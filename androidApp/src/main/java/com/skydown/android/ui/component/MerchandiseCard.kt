@@ -14,15 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.rememberScrollState
@@ -43,6 +41,7 @@ import com.skydown.android.ui.theme.YouTubeDeepRed
 import com.skydown.android.ui.theme.YouTubeRedContainer
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.hasCuratedMerchCategory
+import com.skydown.shared.model.merchCategorySubtitle
 import com.skydown.shared.model.merchCategoryTitle
 import java.util.Locale
 
@@ -68,29 +67,32 @@ fun MerchandiseCard(
             ?.let { listOf(it) + item.imageUrls.filterNot { url -> url == it } }
             ?: item.imageUrls
     }
-    val pagerState = rememberPagerState(pageCount = { displayImageUrls.size.coerceAtLeast(1) })
+    val safeImageUrls = displayImageUrls.ifEmpty { listOf("") }
+    val pagerState = rememberPagerState(pageCount = { safeImageUrls.size })
 
     SkydownCard(
         modifier = modifier.testTag("shop.merch.row"),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onTap(item) },
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(360.dp)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .width(116.dp)
+                    .height(136.dp)
+                    .clip(RoundedCornerShape(18.dp)),
             ) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
                 ) { page ->
                     AsyncImage(
-                        model = displayImageUrls.getOrNull(page),
+                        model = safeImageUrls.getOrNull(page),
                         contentDescription = item.name,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
@@ -103,19 +105,44 @@ fun MerchandiseCard(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    accentColor.copy(alpha = 0.08f),
-                                    accentContainer.copy(alpha = 0.18f),
-                                    Color.Black.copy(alpha = 0.86f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.34f),
                                 ),
                             ),
                         ),
                 )
 
+                if (safeImageUrls.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        repeat(safeImageUrls.size) { index ->
+                            Box(
+                                modifier = Modifier
+                                    .size(if (pagerState.currentPage == index) 9.dp else 6.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (pagerState.currentPage == index) {
+                                            Color.White
+                                        } else {
+                                            Color.White.copy(alpha = 0.40f)
+                                        },
+                                    ),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
                 Row(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(14.dp)
-                        .horizontalScroll(rememberScrollState()),
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     MerchStatePill(
@@ -132,9 +159,9 @@ fun MerchandiseCard(
                             accentContainer = accentContainer,
                         )
                     }
-                    if (displayImageUrls.drop(1).isNotEmpty()) {
+                    if (safeImageUrls.size > 1) {
                         MerchStatePill(
-                            text = "${displayImageUrls.size} Bilder",
+                            text = "${safeImageUrls.size} Bilder",
                             isAccent = false,
                             accentColor = accentColor,
                             accentContainer = accentContainer,
@@ -150,77 +177,52 @@ fun MerchandiseCard(
                     }
                 }
 
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Text(
-                        text = "EUR ${String.format(Locale.US, "%.2f", item.price)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.94f),
-                    )
-                }
-
-                if (displayImageUrls.drop(1).isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(18.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        repeat(displayImageUrls.size) { index ->
-                            Box(
-                                modifier = Modifier
-                                    .size(if (pagerState.currentPage == index) 9.dp else 8.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (pagerState.currentPage == index) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.35f)
-                                        },
-                                    ),
-                            )
-                        }
-                    }
-                }
-            }
-
-            Text(
-                text = item.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 14.dp),
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
                 Text(
-                    text = "Details",
+                    text = item.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "EUR ${String.format(Locale.US, "%.2f", item.price)}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                Text(
-                    text = if (item.available) "Ansehen" else "Produkt",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = accentColor,
-                )
+
+                if (item.description.isNotBlank()) {
+                    Text(
+                        text = item.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (item.hasCuratedMerchCategory) item.merchCategorySubtitle else "House line",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = if (item.available) "Details >" else "Produkt >",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accentColor,
+                    )
+                }
             }
         }
     }
@@ -234,27 +236,27 @@ private fun MerchStatePill(
     accentContainer: Color,
 ) {
     val backgroundColor = if (isAccent) {
-        accentContainer.copy(alpha = 0.96f)
+        accentContainer.copy(alpha = 0.78f)
     } else {
-        Color.Black.copy(alpha = 0.52f)
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f)
     }
     val contentColor = if (isAccent) {
         accentColor.copy(alpha = 0.98f)
     } else {
-        Color.White.copy(alpha = 0.88f)
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
     }
 
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(backgroundColor)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             color = contentColor,
         )
     }
