@@ -282,7 +282,7 @@ private func sortUsers(lhs: User, rhs: User) -> Bool {
 private func sanitizedManagedUsername(_ username: String?, fallbackEmail: String) -> String {
     normalizedManagedString(username)
         ?? normalizedManagedString(fallbackEmail.split(separator: "@").first.map(String.init))
-        ?? "SkyOs User"
+        ?? "SkyOS User"
 }
 
 private func normalizedManagedString(_ value: String?) -> String? {

@@ -125,7 +125,7 @@ final class FirebaseUserProfileService: UserProfileServicing {
         let previousAvatarPath = userSnapshot.data()?["profileImagePath"] as? String
         let username = (userSnapshot.data()?["username"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             .nilIfBlank
-            ?? "SkyOs User"
+            ?? "SkyOS User"
         let profileSnapshot = try await firestore.collection("userProfiles").document(userId).getDocument()
         let createdAt = (profileSnapshot.data()?["createdAt"] as? Timestamp) ?? now
 
@@ -360,7 +360,7 @@ final class FirebaseUserProfileService: UserProfileServicing {
             ?? storedProfileUsername
             ?? authDisplayName
             ?? emailUsername
-            ?? "SkyOs User"
+            ?? "SkyOS User"
         let registrationDateEpochMillis = (storedUserData["registrationDateEpochMillis"] as? NSNumber)?.int64Value
             ?? authUser.metadata.creationDate.map { Int64($0.timeIntervalSince1970 * 1000) }
             ?? Int64(Date().timeIntervalSince1970 * 1000)

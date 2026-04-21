@@ -1,4 +1,6 @@
+import AVFoundation
 import SwiftUI
+import UIKit
 
 struct ArtistPageView: View {
     @ObservedObject private var authManager: AuthManager
@@ -17,6 +19,7 @@ struct ArtistPageView: View {
     @State private var bioDraft = ""
     @State private var profileImageURLDraft = ""
     @State private var heroImageURLDraft = ""
+    @State private var heroVideoURLDraft = ""
     @State private var instagramURLDraft = ""
     @State private var spotifyURLDraft = ""
     @State private var youtubeURLDraft = ""
@@ -28,6 +31,12 @@ struct ArtistPageView: View {
     @State private var activePresentedSheet: ArtistPagePresentedSheet?
     @State private var queuedPresentedSheet: ArtistPagePresentedSheet?
     @State private var activeImageUploadTarget: ArtistPageEditableImageTarget?
+    @State private var isUploadingHeroVideo = false
+    @State private var editingBaseProfileImageURL = ""
+    @State private var editingBaseHeroImageURL = ""
+    @State private var editingBaseHeroVideoURL = ""
+    @State private var temporaryUploadedAssetURLs: [String] = []
+    @State private var heroVideoPlayer = AVPlayer()
     private let editableImageUploadService = EditableImageAssetUploadService()
 
     init(
@@ -44,6 +53,28 @@ struct ArtistPageView: View {
 
     private var page: ArtistPage {
         store.page(for: brand, artistName: artistName)
+    }
+
+    private var displayPage: ArtistPage {
+        guard isEditing else { return page }
+
+        return ArtistPage(
+            id: page.id,
+            brand: page.brand,
+            artistName: page.artistName,
+            tagline: taglineDraft.trimmedNilIfEmpty,
+            bio: bioDraft.trimmedNilIfEmpty,
+            profileImageURL: profileImageURLDraft.trimmedNilIfEmpty,
+            heroImageURL: heroImageURLDraft.trimmedNilIfEmpty,
+            heroVideoURL: heroVideoURLDraft.trimmedNilIfEmpty,
+            instagramURL: instagramURLDraft.trimmedNilIfEmpty,
+            spotifyURL: spotifyURLDraft.trimmedNilIfEmpty,
+            youtubeURL: youtubeURLDraft.trimmedNilIfEmpty,
+            editorUids: page.editorUids,
+            createdAt: page.createdAt,
+            updatedAt: page.updatedAt,
+            isPlaceholder: false
+        )
     }
 
     private var canEdit: Bool {
@@ -71,7 +102,7 @@ struct ArtistPageView: View {
     }
 
     private var artistStateLabel: String {
-        page.hasCustomPresentation ? "Live" : "Draft"
+        displayPage.hasCustomPresentation ? "Live" : "Draft"
     }
 
     private var artistSoundLabel: String {
@@ -83,6 +114,28 @@ struct ArtistPageView: View {
 
     private var artistReachLabel: String {
         linkCount == 0 ? "Offline" : "\(linkCount) Links"
+    }
+
+    private var artistAccent: Color {
+        switch brand {
+        case .zweizwei:
+            return AppColors.spotify(for: colorScheme)
+        case .skydown:
+            return AppColors.accent(for: colorScheme)
+        case .nicma:
+            return AppColors.accentHighlight(for: colorScheme)
+        }
+    }
+
+    private var artistSecondaryAccent: Color {
+        switch brand {
+        case .zweizwei:
+            return AppColors.accent(for: colorScheme)
+        case .skydown:
+            return AppColors.accentMystic(for: colorScheme)
+        case .nicma:
+            return AppColors.accent(for: colorScheme)
+        }
     }
 
     var body: some View {
@@ -103,7 +156,7 @@ struct ArtistPageView: View {
                 .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle(page.artistName)
+            .navigationTitle(displayPage.artistName)
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -115,15 +168,23 @@ struct ArtistPageView: View {
 
                 if canEdit {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(isEditing ? "Fertig" : "Bearbeiten") {
-                            if isEditing {
-                                Task { await savePage() }
-                            } else {
-                                syncDrafts()
-                                isEditing = true
+                        if isEditing {
+                            HStack(spacing: 10) {
+                                Button("Abbrechen") {
+                                    discardEditing()
+                                }
+                                .disabled(isSaving || isUploadingHeroVideo || activeImageUploadTarget != nil)
+
+                                Button(isSaving ? "Speichert..." : "Speichern") {
+                                    Task { await savePage() }
+                                }
+                                .disabled(isSaving || isUploadingHeroVideo || activeImageUploadTarget != nil)
+                            }
+                        } else {
+                            Button("Bearbeiten") {
+                                beginEditing()
                             }
                         }
-                        .disabled(isSaving)
                     }
                 }
             }
@@ -135,6 +196,7 @@ struct ArtistPageView: View {
         )
         .onAppear {
             syncDrafts()
+            configureHeroVideoPlayer(for: displayPage.heroVideoURL)
         }
         .task(id: artistName) {
             await tracksViewModel.loadTracks(for: artistName)
@@ -143,6 +205,9 @@ struct ArtistPageView: View {
             if !isEditing {
                 syncDrafts()
             }
+        }
+        .onChange(of: displayPage.heroVideoURL) { _, newValue in
+            configureHeroVideoPlayer(for: newValue)
         }
         .onChange(of: tracksViewModel.tracks.map(\.trackId)) { _, _ in
             let tracks = tracksViewModel.tracks
@@ -163,6 +228,10 @@ struct ArtistPageView: View {
                 SingleImagePicker { provider in
                     handleEditableImageProvider(provider, for: target)
                 }
+            case .editableVideo:
+                SingleVideoPicker { url in
+                    handleEditableVideoFile(url)
+                }
             }
         }
         .onChange(of: activePresentedSheet) { _, sheet in
@@ -174,6 +243,16 @@ struct ArtistPageView: View {
         }
         .onDisappear {
             audioManager.stop()
+            heroVideoPlayer.pause()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: .AVPlayerItemDidPlayToEndTime,
+                object: heroVideoPlayer.currentItem
+            )
+        ) { _ in
+            heroVideoPlayer.seek(to: .zero)
+            heroVideoPlayer.play()
         }
     }
 
@@ -185,6 +264,38 @@ struct ArtistPageView: View {
         }
 
         activePresentedSheet = sheet
+    }
+
+    private func beginEditing() {
+        editingBaseProfileImageURL = page.profileImageURL ?? ""
+        editingBaseHeroImageURL = page.heroImageURL ?? ""
+        editingBaseHeroVideoURL = page.heroVideoURL ?? ""
+        temporaryUploadedAssetURLs.removeAll()
+        syncDrafts()
+        isEditing = true
+    }
+
+    private func discardEditing() {
+        let cleanupURLs = temporaryUploadedAssetURLs
+        temporaryUploadedAssetURLs.removeAll()
+        syncDrafts()
+        isEditing = false
+        isUploadingHeroVideo = false
+
+        guard !cleanupURLs.isEmpty else {
+            showToast("Aenderungen verworfen.", style: .info)
+            return
+        }
+
+        Task {
+            for url in cleanupURLs {
+                try? await editableImageUploadService.deleteAsset(at: url)
+            }
+
+            await MainActor.run {
+                showToast("Aenderungen verworfen.", style: .info)
+            }
+        }
     }
 
     private func handleEditableImageProvider(
@@ -206,10 +317,8 @@ struct ArtistPageView: View {
                 defer { try? FileManager.default.removeItem(at: temporaryFileURL) }
                 let data = try await PickedImageUploadPreparation.normalizedJPEGData(fromTemporaryFileURL: temporaryFileURL)
                 let url = try await editableImageUploadService.uploadImageData(data)
-                if previousURL != url {
-                    try? await editableImageUploadService.deleteImage(at: previousURL)
-                }
                 await MainActor.run {
+                    registerTemporaryAsset(previousURL: previousURL, newURL: url)
                     switch target {
                     case .profile:
                         profileImageURLDraft = url
@@ -226,6 +335,48 @@ struct ArtistPageView: View {
 
             await MainActor.run {
                 activeImageUploadTarget = nil
+            }
+        }
+    }
+
+    private func handleEditableVideoFile(_ temporaryFileURL: URL?) {
+        activePresentedSheet = nil
+
+        guard let temporaryFileURL else {
+            return
+        }
+
+        Task {
+            await MainActor.run {
+                isUploadingHeroVideo = true
+            }
+
+            do {
+                let fileName = temporaryFileURL.lastPathComponent
+                let mimeType = (try? temporaryFileURL.resourceValues(forKeys: [.contentTypeKey]).contentType?.preferredMIMEType)
+                    ?? "video/mp4"
+                let previousURL = heroVideoURLDraft
+                let url = try await editableImageUploadService.uploadVideoFile(
+                    from: temporaryFileURL,
+                    fileName: fileName,
+                    mimeType: mimeType
+                )
+
+                await MainActor.run {
+                    registerTemporaryAsset(previousURL: previousURL, newURL: url)
+                    heroVideoURLDraft = url
+                    showToast("Hero-Video hochgeladen und uebernommen.", style: .success)
+                }
+            } catch {
+                await MainActor.run {
+                    showToast("Hero-Video konnte nicht hochgeladen werden: \(error.localizedDescription)", style: .error)
+                }
+            }
+
+            try? FileManager.default.removeItem(at: temporaryFileURL)
+
+            await MainActor.run {
+                isUploadingHeroVideo = false
             }
         }
     }
@@ -248,18 +399,64 @@ struct ArtistPageView: View {
             heroImageURLDraft = ""
         }
 
-        Task {
-            do {
-                try await editableImageUploadService.deleteImage(at: previousURL)
-                await MainActor.run {
-                    showToast("Bild entfernt.", style: .success)
-                }
-            } catch {
-                await MainActor.run {
-                    showToast("Bild wurde entfernt. Alter Upload konnte nicht geloescht werden: \(error.localizedDescription)", style: .error)
-                }
+        if temporaryUploadedAssetURLs.contains(previousURL) {
+            temporaryUploadedAssetURLs.removeAll { $0 == previousURL }
+            Task {
+                try? await editableImageUploadService.deleteAsset(at: previousURL)
             }
         }
+
+        showToast("Bild entfernt.", style: .success)
+    }
+
+    private func removeHeroVideo() {
+        let previousURL = heroVideoURLDraft
+        heroVideoURLDraft = ""
+
+        if temporaryUploadedAssetURLs.contains(previousURL) {
+            temporaryUploadedAssetURLs.removeAll { $0 == previousURL }
+            Task {
+                try? await editableImageUploadService.deleteAsset(at: previousURL)
+            }
+        }
+
+        showToast("Hero-Video entfernt.", style: .success)
+    }
+
+    private func registerTemporaryAsset(previousURL: String, newURL: String) {
+        guard !newURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        if previousURL != newURL {
+            temporaryUploadedAssetURLs.removeAll { url in
+                if url == previousURL {
+                    Task {
+                        try? await editableImageUploadService.deleteAsset(at: previousURL)
+                    }
+                    return true
+                }
+                return false
+            }
+        }
+
+        if !temporaryUploadedAssetURLs.contains(newURL) {
+            temporaryUploadedAssetURLs.append(newURL)
+        }
+    }
+
+    private func configureHeroVideoPlayer(for urlString: String?) {
+        let trimmedURL = urlString?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard let url = URL(string: trimmedURL), !trimmedURL.isEmpty else {
+            heroVideoPlayer.pause()
+            heroVideoPlayer.replaceCurrentItem(with: nil)
+            return
+        }
+
+        let currentURL = (heroVideoPlayer.currentItem?.asset as? AVURLAsset)?.url
+        if currentURL != url {
+            heroVideoPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+        }
+        heroVideoPlayer.isMuted = true
+        heroVideoPlayer.play()
     }
 
     private var heroCard: some View {
@@ -287,7 +484,7 @@ struct ArtistPageView: View {
                             background: .white.opacity(0.14)
                         )
 
-                        if page.hasCustomPresentation {
+                        if displayPage.hasCustomPresentation {
                             ArtistHeroTag(
                                 text: "Live",
                                 background: AppColors.spotify(for: colorScheme).opacity(0.84)
@@ -308,28 +505,30 @@ struct ArtistPageView: View {
 
                     HStack(alignment: .bottom, spacing: 16) {
                         ArtistPageAvatar(
-                            imageURL: page.profileImageURL,
-                            fallbackText: page.artistName,
+                            imageURL: displayPage.profileImageURL,
+                            fallbackText: displayPage.artistName,
                             size: 96,
                             colorScheme: colorScheme
                         )
                         .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(page.artistName)
+                            Text(displayPage.artistName)
                                 .font(.system(size: 30, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
                                 .shadow(color: .black.opacity(0.28), radius: 14, y: 6)
 
-                            Text(page.tagline ?? "\(brand.displayTitle) Profil")
+                            Text(displayPage.tagline ?? "\(brand.displayTitle) Profil")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(.white.opacity(0.86))
                                 .lineLimit(2)
+                                .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
 
                             if let latestReleaseText {
                                 Text("Neuester Release: \(latestReleaseText)")
                                     .font(.caption.weight(.bold))
                                     .foregroundColor(.white.opacity(0.76))
+                                    .shadow(color: .black.opacity(0.16), radius: 6, y: 2)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -339,9 +538,11 @@ struct ArtistPageView: View {
             }
 
             VStack(alignment: .leading, spacing: 14) {
-                Text(page.bio ?? "Noch keine Artist-Seite hinterlegt. Owner oder zugewiesene Editoren koennen hier eine repraesentative Kurzbeschreibung anlegen.")
+                Text(displayPage.bio ?? "Noch keine Artist-Seite hinterlegt. Owner oder zugewiesene Editoren koennen hier eine repraesentative Kurzbeschreibung anlegen.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                artistHeroMotionStage
 
                 artistSessionDeck
 
@@ -351,9 +552,9 @@ struct ArtistPageView: View {
                     artistCTAButtons
                 }
 
-                if !page.editorUids.isEmpty {
+                if !displayPage.editorUids.isEmpty {
                     ArtistPageBadge(
-                        text: "\(page.editorUids.count) Editor\(page.editorUids.count == 1 ? "" : "en")",
+                        text: "\(displayPage.editorUids.count) Editor\(displayPage.editorUids.count == 1 ? "" : "en")",
                         colorScheme: colorScheme
                     )
                 }
@@ -371,7 +572,7 @@ struct ArtistPageView: View {
 
     private var heroVisual: some View {
         ZStack {
-            if let heroImageURL = page.heroImageURL, let url = URL(string: heroImageURL) {
+            if let heroImageURL = displayPage.heroImageURL, let url = URL(string: heroImageURL) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -383,6 +584,98 @@ struct ArtistPageView: View {
                 fallbackHero
             }
         }
+    }
+
+    private var artistHeroMotionStage: some View {
+        let hasHeroVideo = displayPage.heroVideoURL?.trimmedNilIfEmpty != nil
+        let hasHeroImage = displayPage.heroImageURL?.trimmedNilIfEmpty != nil
+
+        return ZStack(alignment: .bottomLeading) {
+            Group {
+                if hasHeroVideo {
+                    ArtistHeroVideoSurface(player: heroVideoPlayer)
+                } else if let heroImageURL = displayPage.heroImageURL?.trimmedNilIfEmpty, let url = URL(string: heroImageURL) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        fallbackHero
+                    }
+                } else {
+                    fallbackHero
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.06),
+                        Color.clear,
+                        Color.black.opacity(0.72)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    ArtistHeroTag(
+                        text: hasHeroVideo ? "Motion Stage" : hasHeroImage ? "Hero Frame" : "Motion Ready",
+                        background: .white.opacity(0.16)
+                    )
+
+                    ArtistHeroTag(
+                        text: hasHeroVideo ? "Muted Loop" : "Upload Ready",
+                        background: (hasHeroVideo ? artistSecondaryAccent : artistAccent).opacity(0.88)
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(
+                        hasHeroVideo
+                            ? "\(displayPage.artistName) bleibt sofort in Bewegung."
+                            : hasHeroImage
+                                ? "Mit Video wird diese Stage noch cineastischer."
+                                : "Ein kurzes Hero-Video gibt der Seite sofort mehr Buehnenwirkung."
+                    )
+                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .lineSpacing(2)
+                    .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.32), radius: 16, y: 7)
+
+                    Text(
+                        hasHeroVideo
+                            ? "Die Artist-Seite startet mit mehr Erinnerung, Rhythmus und echtem Show-Gefuehl."
+                            : "Das Video laeuft hier direkt ab und macht den Einstieg markanter als ein statisches Bild."
+                    )
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.white.opacity(0.84))
+                    .lineSpacing(2)
+                    .shadow(color: .black.opacity(0.20), radius: 10, y: 4)
+                }
+            }
+            .padding(18)
+        }
+        .frame(height: 210)
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.18),
+                            (hasHeroVideo ? artistSecondaryAccent : artistAccent).opacity(0.26)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: .black.opacity(0.10), radius: 24, y: 14)
     }
 
     private var fallbackHero: some View {
@@ -403,7 +696,7 @@ struct ArtistPageView: View {
                 ArtistSessionSignalCard(
                     title: "Status",
                     value: artistStateLabel,
-                    detail: page.hasCustomPresentation ? "Profil live" : "Noch nicht live",
+                    detail: displayPage.hasCustomPresentation ? "Profil live" : "Noch nicht live",
                     accent: AppColors.accentHighlight(for: colorScheme),
                     colorScheme: colorScheme
                 )
@@ -434,8 +727,8 @@ struct ArtistPageView: View {
                 Button {
                     if link.kind == .youtube {
                         presentSheet(.youTube(SkydownYouTubeVideoItem(
-                            id: "artist-\(page.slug)-hero-youtube",
-                            title: page.artistName,
+                            id: "artist-\(displayPage.slug)-hero-youtube",
+                            title: displayPage.artistName,
                             subtitle: "Videos & Releases",
                             urlString: link.url
                         )))
@@ -502,11 +795,18 @@ struct ArtistPageView: View {
 
     private var spotlightCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Spotlight")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            ArtistSectionBanner(
+                title: "Spotlight",
+                subtitle: spotlightTrack == nil
+                    ? "Profil und Richtung stehen, der musikalische Fokus folgt."
+                    : "Der schnellste Einstieg in Sound, Haltung und aktuellen Vibe.",
+                icon: "sparkles",
+                colorScheme: colorScheme,
+                accent: artistAccent,
+                tag: spotlightTrack == nil ? "PROFILE" : "LIVE"
+            )
 
-            Text(page.tagline ?? "\(page.artistName) auf \(brand.displayTitle) entdecken.")
+            Text(displayPage.tagline ?? "\(displayPage.artistName) auf \(brand.displayTitle) entdecken.")
                 .font(.title3.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -551,15 +851,30 @@ struct ArtistPageView: View {
                             .font(.headline.weight(.bold))
                             .foregroundColor(AppColors.text(for: colorScheme))
 
-                        Text(spotlightTrack.collectionName ?? page.artistName)
+                        Text(spotlightTrack.collectionName ?? displayPage.artistName)
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
+                        
                         Text("Direkt unten mit Vorschau oder Spotify weiterhoeren.")
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(AppColors.secondaryBackground(for: colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(artistAccent.opacity(0.14), lineWidth: 1)
+                )
+            } else {
+                ArtistSupportMessage(
+                    message: displayPage.bio ?? "Noch kein Fokus-Track hinterlegt. Sobald erste Songs oder Links live sind, bekommt dieser Artist hier seinen staerksten Einstiegspunkt.",
+                    colorScheme: colorScheme,
+                    accent: artistAccent
+                )
             }
         }
         .padding(SkydownLayout.cardPadding)
@@ -572,25 +887,38 @@ struct ArtistPageView: View {
 
     private var topTracksCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Top Songs")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            ArtistSectionBanner(
+                title: "Top Songs",
+                subtitle: tracksViewModel.isLoading
+                    ? "Die Song-Liste wird gerade aus dem Feed geladen."
+                    : topTracks.isEmpty
+                        ? "Sobald Songs im Feed sind, tauchen sie hier direkt auf."
+                        : "Preview, Auswahl und Spotify greifen direkt aus der Liste.",
+                icon: "waveform",
+                colorScheme: colorScheme,
+                accent: AppColors.spotify(for: colorScheme),
+                tag: tracksViewModel.isLoading ? "SYNC" : topTracks.isEmpty ? "EMPTY" : "\(topTracks.count) LIVE"
+            )
 
             if tracksViewModel.isLoading {
-                ProgressView("Songs werden geladen ...")
+                ArtistSupportMessage(
+                    message: "Songs werden geladen ...",
+                    colorScheme: colorScheme,
+                    accent: AppColors.spotify(for: colorScheme)
+                )
             } else if let errorMessage = tracksViewModel.errorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                ArtistSupportMessage(
+                    message: errorMessage,
+                    colorScheme: colorScheme,
+                    accent: AppColors.youtube(for: colorScheme)
+                )
             } else if topTracks.isEmpty {
-                Text("Fuer \(page.artistName) sind gerade noch keine Songs hinterlegt.")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                ArtistSupportMessage(
+                    message: "Fuer \(displayPage.artistName) sind gerade noch keine Songs hinterlegt.",
+                    colorScheme: colorScheme,
+                    accent: AppColors.accentMystic(for: colorScheme)
+                )
             } else {
-                Text("Direkt mit Preview oder Spotify Player in den Sound rein.")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
                 ForEach(topTracks) { track in
                     TrackView(
                         track: track,
@@ -612,21 +940,28 @@ struct ArtistPageView: View {
 
     private var linksCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Links")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+            ArtistSectionBanner(
+                title: "Connect",
+                subtitle: "Direkt raus aus der App auf die aktiven Plattformen des Artists.",
+                icon: "arrow.up.forward.square",
+                colorScheme: colorScheme,
+                accent: artistSecondaryAccent,
+                tag: socialLinks.isEmpty ? "OFFLINE" : "\(socialLinks.count) LIVE"
+            )
 
             if socialLinks.isEmpty {
-                Text("Noch keine Links hinterlegt.")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                ArtistSupportMessage(
+                    message: "Noch keine Links hinterlegt. Sobald Instagram, Spotify oder YouTube gesetzt sind, entsteht hier die direkte Artist-Tuer nach draussen.",
+                    colorScheme: colorScheme,
+                    accent: artistSecondaryAccent
+                )
             } else {
                 ForEach(socialLinks) { link in
                     Button {
                         if link.kind == .youtube {
                             presentSheet(.youTube(SkydownYouTubeVideoItem(
-                                id: "artist-\(page.slug)-links-youtube",
-                                title: page.artistName,
+                                id: "artist-\(displayPage.slug)-links-youtube",
+                                title: displayPage.artistName,
                                 subtitle: link.subtitle,
                                 urlString: link.url
                             )))
@@ -679,13 +1014,14 @@ struct ArtistPageView: View {
 
     private var editorCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Artist-Seite bearbeiten")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Bilder und Links kannst du hier neu anlegen, ersetzen oder entfernen. Live wird die Artist-Seite erst, wenn du oben auf `Fertig` tippst.")
-                .font(.footnote.weight(.medium))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            ArtistSectionBanner(
+                title: "Artist Page bearbeiten",
+                subtitle: "Media, Copy und Links bleiben lokal in der Vorschau, bis du speicherst.",
+                icon: "slider.horizontal.3",
+                colorScheme: colorScheme,
+                accent: artistSecondaryAccent,
+                tag: "ADMIN"
+            )
 
             ArtistPageInputField(
                 title: "Kurzzeile",
@@ -721,6 +1057,16 @@ struct ArtistPageView: View {
                 onRemoveImage: { removeEditableImage(for: .hero) }
             )
 
+            EditableVideoField(
+                title: "Hero-Video",
+                videoURL: $heroVideoURLDraft,
+                colorScheme: colorScheme,
+                isUploading: isUploadingHeroVideo,
+                uploadStatusText: "Hero-Video wird als Motion-Stage vorbereitet.",
+                onPickVideo: { presentSheet(.editableVideo) },
+                onRemoveVideo: removeHeroVideo
+            )
+
             ArtistPageInputField(
                 title: "Instagram",
                 text: $instagramURLDraft,
@@ -753,12 +1099,12 @@ struct ArtistPageView: View {
     private var socialLinks: [ArtistPageSocialLink] {
         var links: [ArtistPageSocialLink] = []
 
-        if let instagramURL = page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines), !instagramURL.isEmpty {
+        if let instagramURL = displayPage.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines), !instagramURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
                     kind: .instagram,
                     title: "Instagram",
-                    subtitle: page.artistName,
+                    subtitle: displayPage.artistName,
                     url: instagramURL,
                     systemImage: "camera.fill",
                     tint: AppColors.instagramStart(for: colorScheme),
@@ -768,7 +1114,7 @@ struct ArtistPageView: View {
             )
         }
 
-        if let spotifyURL = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !spotifyURL.isEmpty {
+        if let spotifyURL = displayPage.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !spotifyURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
                     kind: .spotify,
@@ -783,7 +1129,7 @@ struct ArtistPageView: View {
             )
         }
 
-        if let youtubeURL = page.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines), !youtubeURL.isEmpty {
+        if let youtubeURL = displayPage.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines), !youtubeURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
                     kind: .youtube,
@@ -806,6 +1152,7 @@ struct ArtistPageView: View {
         bioDraft = page.bio ?? ""
         profileImageURLDraft = page.profileImageURL ?? ""
         heroImageURLDraft = page.heroImageURL ?? ""
+        heroVideoURLDraft = page.heroVideoURL ?? ""
         instagramURLDraft = page.instagramURL ?? ""
         spotifyURLDraft = page.spotifyURL ?? ""
         youtubeURLDraft = page.youtubeURL ?? ""
@@ -817,24 +1164,51 @@ struct ArtistPageView: View {
         defer { isSaving = false }
 
         do {
-            try await store.save(
-                ArtistPage(
-                    id: page.slug,
-                    brand: page.brand,
-                    artistName: page.artistName,
-                    tagline: taglineDraft.trimmedNilIfEmpty,
-                    bio: bioDraft.trimmedNilIfEmpty,
-                    profileImageURL: profileImageURLDraft.trimmedNilIfEmpty,
-                    heroImageURL: heroImageURLDraft.trimmedNilIfEmpty,
-                    instagramURL: instagramURLDraft.trimmedNilIfEmpty,
-                    spotifyURL: spotifyURLDraft.trimmedNilIfEmpty,
-                    youtubeURL: youtubeURLDraft.trimmedNilIfEmpty,
-                    editorUids: page.editorUids,
-                    createdAt: page.createdAt,
-                    updatedAt: .now,
-                    isPlaceholder: false
-                )
+            let updatedPage = ArtistPage(
+                id: page.slug,
+                brand: page.brand,
+                artistName: page.artistName,
+                tagline: taglineDraft.trimmedNilIfEmpty,
+                bio: bioDraft.trimmedNilIfEmpty,
+                profileImageURL: profileImageURLDraft.trimmedNilIfEmpty,
+                heroImageURL: heroImageURLDraft.trimmedNilIfEmpty,
+                heroVideoURL: heroVideoURLDraft.trimmedNilIfEmpty,
+                instagramURL: instagramURLDraft.trimmedNilIfEmpty,
+                spotifyURL: spotifyURLDraft.trimmedNilIfEmpty,
+                youtubeURL: youtubeURLDraft.trimmedNilIfEmpty,
+                editorUids: page.editorUids,
+                createdAt: page.createdAt,
+                updatedAt: .now,
+                isPlaceholder: false
             )
+
+            try await store.save(updatedPage)
+
+            let savedAssetURLs = Set([
+                updatedPage.profileImageURL,
+                updatedPage.heroImageURL,
+                updatedPage.heroVideoURL
+            ].compactMap { $0?.trimmedNilIfEmpty })
+
+            let cleanupURLs = Set(
+                [
+                    editingBaseProfileImageURL.trimmedNilIfEmpty,
+                    editingBaseHeroImageURL.trimmedNilIfEmpty,
+                    editingBaseHeroVideoURL.trimmedNilIfEmpty
+                ]
+                .compactMap { $0 }
+                .filter { !savedAssetURLs.contains($0) }
+                + temporaryUploadedAssetURLs.filter { !savedAssetURLs.contains($0) }
+            )
+
+            for url in cleanupURLs {
+                try? await editableImageUploadService.deleteAsset(at: url)
+            }
+
+            temporaryUploadedAssetURLs.removeAll()
+            editingBaseProfileImageURL = updatedPage.profileImageURL ?? ""
+            editingBaseHeroImageURL = updatedPage.heroImageURL ?? ""
+            editingBaseHeroVideoURL = updatedPage.heroVideoURL ?? ""
             isEditing = false
             showToast("Artist-Seite gespeichert.", style: .success)
         } catch {
@@ -897,6 +1271,7 @@ private enum ArtistPageEditableImageTarget: String, Identifiable, Equatable {
 private enum ArtistPagePresentedSheet: Identifiable, Equatable {
     case youTube(SkydownYouTubeVideoItem)
     case editableImage(ArtistPageEditableImageTarget)
+    case editableVideo
 
     var id: String {
         switch self {
@@ -904,6 +1279,8 @@ private enum ArtistPagePresentedSheet: Identifiable, Equatable {
             return "youtube-\(item.id)"
         case .editableImage(let target):
             return "editable-image-\(target.rawValue)"
+        case .editableVideo:
+            return "editable-video"
         }
     }
 }
@@ -973,6 +1350,88 @@ private struct ArtistPageBadge: View {
     }
 }
 
+private struct ArtistSectionBanner: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let colorScheme: ColorScheme
+    let accent: Color
+    let tag: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(accent.opacity(colorScheme == .dark ? 0.20 : 0.14))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(accent)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.title3.weight(.black))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                Text(subtitle)
+                    .font(.footnote.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineSpacing(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            SkydownMetaLabel(
+                text: tag,
+                tint: accent
+            )
+        }
+    }
+}
+
+private struct ArtistSupportMessage: View {
+    let message: String
+    let colorScheme: ColorScheme
+    let accent: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(accent.opacity(colorScheme == .dark ? 0.24 : 0.16))
+                .frame(width: 34, height: 34)
+                .overlay(
+                    Image(systemName: "sparkles")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(accent)
+                )
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("In Arbeit")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(accent)
+                    .tracking(0.5)
+
+                Text(message)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineSpacing(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(accent.opacity(0.18), lineWidth: 1)
+        )
+    }
+}
+
 private struct ArtistHeroTag: View {
     let text: String
     let background: Color
@@ -984,6 +1443,31 @@ private struct ArtistHeroTag: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .background(background, in: Capsule())
+    }
+}
+
+private struct ArtistHeroVideoSurface: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> ArtistHeroVideoPlayerView {
+        let view = ArtistHeroVideoPlayerView()
+        view.playerLayer.videoGravity = .resizeAspectFill
+        view.playerLayer.player = player
+        return view
+    }
+
+    func updateUIView(_ uiView: ArtistHeroVideoPlayerView, context: Context) {
+        uiView.playerLayer.player = player
+    }
+}
+
+private final class ArtistHeroVideoPlayerView: UIView {
+    override class var layerClass: AnyClass {
+        AVPlayerLayer.self
+    }
+
+    var playerLayer: AVPlayerLayer {
+        layer as! AVPlayerLayer
     }
 }
 

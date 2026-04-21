@@ -837,8 +837,8 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
             }
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 280,
-                    delayMillis = 60,
+                    durationMillis = 180,
+                    delayMillis = 16,
                     easing = LinearOutSlowInEasing,
                 ),
             ) + slideIntoContainer(
@@ -847,21 +847,15 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
                     durationMillis = SkydownMotionTokens.primaryEnterDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                initialOffset = { fullSize -> (fullSize * 0.07f).toInt() },
-            ) + scaleIn(
-                initialScale = 0.989f,
-                animationSpec = tween(
-                    durationMillis = SkydownMotionTokens.primaryEnterDurationMillis,
-                    easing = FastOutSlowInEasing,
-                ),
+                initialOffset = { fullSize -> (fullSize * 0.045f).toInt() },
             )
         }
 
         targetRoute in skydownOverlayRoutes -> {
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 240,
-                    delayMillis = 40,
+                    durationMillis = 180,
+                    delayMillis = 12,
                     easing = LinearOutSlowInEasing,
                 ),
             ) + slideIntoContainer(
@@ -870,28 +864,16 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
                     durationMillis = SkydownMotionTokens.overlayEnterDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                initialOffset = { fullSize -> (fullSize * 0.10f).toInt() },
-            ) + scaleIn(
-                initialScale = 0.986f,
-                animationSpec = tween(
-                    durationMillis = SkydownMotionTokens.overlayEnterDurationMillis,
-                    easing = FastOutSlowInEasing,
-                ),
+                initialOffset = { fullSize -> (fullSize * 0.07f).toInt() },
             )
         }
 
         else -> {
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 220,
-                    delayMillis = 50,
+                    durationMillis = 170,
+                    delayMillis = 12,
                     easing = LinearOutSlowInEasing,
-                ),
-            ) + scaleIn(
-                initialScale = 0.994f,
-                animationSpec = tween(
-                    durationMillis = 320,
-                    easing = FastOutSlowInEasing,
                 ),
             )
         }
@@ -913,7 +895,7 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
             }
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 180,
+                    durationMillis = 140,
                     easing = FastOutSlowInEasing,
                 ),
             ) + slideOutOfContainer(
@@ -922,26 +904,14 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
                     durationMillis = SkydownMotionTokens.primaryExitDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                targetOffset = { fullSize -> (fullSize * 0.04f).toInt() },
-            ) + scaleOut(
-                targetScale = 0.994f,
-                animationSpec = tween(
-                    durationMillis = 280,
-                    easing = FastOutSlowInEasing,
-                ),
+                targetOffset = { fullSize -> (fullSize * 0.03f).toInt() },
             )
         }
 
         targetRoute in skydownOverlayRoutes -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 160,
-                    easing = FastOutSlowInEasing,
-                ),
-            ) + scaleOut(
-                targetScale = 0.994f,
-                animationSpec = tween(
-                    durationMillis = 220,
+                    durationMillis = 130,
                     easing = FastOutSlowInEasing,
                 ),
             )
@@ -950,7 +920,7 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
         initialRoute in skydownOverlayRoutes -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 180,
+                    durationMillis = 140,
                     easing = FastOutSlowInEasing,
                 ),
             ) + slideOutOfContainer(
@@ -959,26 +929,14 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
                     durationMillis = SkydownMotionTokens.overlayExitDurationMillis,
                     easing = FastOutSlowInEasing,
                 ),
-                targetOffset = { fullSize -> (fullSize * 0.08f).toInt() },
-            ) + scaleOut(
-                targetScale = 0.990f,
-                animationSpec = tween(
-                    durationMillis = SkydownMotionTokens.overlayExitDurationMillis,
-                    easing = FastOutSlowInEasing,
-                ),
+                targetOffset = { fullSize -> (fullSize * 0.06f).toInt() },
             )
         }
 
         else -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 140,
-                    easing = FastOutSlowInEasing,
-                ),
-            ) + scaleOut(
-                targetScale = 0.994f,
-                animationSpec = tween(
-                    durationMillis = 220,
+                    durationMillis = 120,
                     easing = FastOutSlowInEasing,
                 ),
             )
@@ -1083,8 +1041,8 @@ private fun LaunchLandingScreen(
                         }
 
                         BrandHeroCard(
-                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SkyOs Home" },
-                            title = screenHeaderSettings.homeTitle.ifBlank { "SkyOs" },
+                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SkyOS Home" },
+                            title = screenHeaderSettings.homeTitle.ifBlank { "SkyOS" },
                             subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Alles fuehlt sich wie eine einzige App an." },
                             detail = screenHeaderSettings.homeDetail.ifBlank { "Music, Video, Merch und Tools in einem Flow." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },

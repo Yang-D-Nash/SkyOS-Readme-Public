@@ -221,8 +221,8 @@ private struct LaunchLandingView: View {
 
                         BrandHeroSurface(
                             colorScheme: hubColorScheme,
-                            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOs Home",
-                            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOs",
+                            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS Home",
+                            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
                             subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles fuehlt sich wie eine einzige App an.",
                             detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Waehle deinen ersten Move. Music, Video, Merch und Tools bleiben danach in einem klaren Flow verbunden.",
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,

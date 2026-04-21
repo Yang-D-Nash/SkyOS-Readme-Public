@@ -12,7 +12,7 @@
 "agent.queue.toast.queued" = "Guardado sin conexion. Se enviara automaticamente cuando estes online.";
 "agent.queue.toast.sent" = "La solicitud en cola se envio correctamente.";
 "agent.automation.triggered" = "Flujo n8n iniciado.";
-"auth.login.welcome" = "Bienvenido a SkyOs";
+"auth.login.welcome" = "Bienvenido a SkyOS";
 "auth.login.subtitle" = "Inicia sesion para acceder a tu cuenta y herramientas de creador.";
 "auth.login.title" = "Iniciar sesion";
 "auth.email" = "Correo";

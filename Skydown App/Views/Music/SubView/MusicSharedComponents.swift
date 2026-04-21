@@ -203,7 +203,7 @@ struct VideoHubSpotlightCard: View {
                         .font(.title2.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Eigener Bereich fuer SkyOs Videos mit Playback, Admin-Uploads und klaren Format-Hinweisen.")
+                    Text("Eigener Bereich fuer SkyOS Videos mit Playback, Admin-Uploads und klaren Format-Hinweisen.")
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -552,7 +552,7 @@ let zweizweiInstagramDestination = MusicInstagramDestination(
     title: "22 Music",
     handle: "@zweizwei_music",
     urlString: "https://www.instagram.com/zweizwei_music/",
-    helper: "SkyOs Universe"
+    helper: "SkyOS Universe"
 )
 
 let skydownMusicInstagramDestination = MusicInstagramDestination(

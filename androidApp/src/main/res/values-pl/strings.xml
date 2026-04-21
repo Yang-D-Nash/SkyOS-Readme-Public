@@ -22,7 +22,7 @@
 
     <string name="auth_close">Zamknij</string>
     <string name="auth_login_title">Zaloguj sie</string>
-    <string name="auth_login_welcome">Witamy w SkyOs</string>
+    <string name="auth_login_welcome">Witamy w SkyOS</string>
     <string name="auth_login_subtitle">Zaloguj sie, aby uzyskac dostep do konta i narzedzi tworczych.</string>
     <string name="auth_login_badge_account">Konto</string>
     <string name="auth_login_badge_google">Google</string>

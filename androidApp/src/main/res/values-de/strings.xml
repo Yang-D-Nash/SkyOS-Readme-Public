@@ -22,7 +22,7 @@
 
     <string name="auth_close">Schlie&#x00DF;en</string>
     <string name="auth_login_title">Anmelden</string>
-    <string name="auth_login_welcome">Willkommen bei SkyOs</string>
+    <string name="auth_login_welcome">Willkommen bei SkyOS</string>
     <string name="auth_login_subtitle">Melde dich an, um auf dein Konto und Creator-Tools zuzugreifen.</string>
     <string name="auth_login_badge_account">Konto</string>
     <string name="auth_login_badge_google">Google</string>

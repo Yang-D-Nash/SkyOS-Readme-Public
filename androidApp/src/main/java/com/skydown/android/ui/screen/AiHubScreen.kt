@@ -50,7 +50,9 @@ import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
 import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
+import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.theme.SkydownPanelTitleTextStyle
@@ -81,6 +83,7 @@ fun AiHubScreen(
         user = currentUser,
         accessMode = aiAccessMode,
     )
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -115,12 +118,14 @@ fun AiHubScreen(
                         primaryAlpha = 0.060f,
                         secondaryAlpha = 0.038f,
                     ),
-                )
-                .padding(innerPadding),
+                ),
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(skydownContentPadding(innerPadding)),
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
                 if (currentUser == null) {
                     AiHubLoginCard(
@@ -134,11 +139,7 @@ fun AiHubScreen(
                             accessMode = aiAccessMode,
                         ),
                         onOpenLogin = onOpenLogin,
-                        modifier = Modifier.padding(
-                            start = SkydownUiTokens.screenHorizontalPadding,
-                            end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 8.dp,
-                        )
+                        modifier = Modifier
                             .widthIn(max = workspaceMaxWidth)
                             .fillMaxWidth(),
                     )
@@ -149,11 +150,7 @@ fun AiHubScreen(
                             accessMode = aiAccessMode,
                         ),
                         onOpenSettings = onOpenSettings,
-                        modifier = Modifier.padding(
-                            start = SkydownUiTokens.screenHorizontalPadding,
-                            end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 8.dp,
-                        )
+                        modifier = Modifier
                             .widthIn(max = workspaceMaxWidth)
                             .fillMaxWidth(),
                     )
@@ -167,12 +164,7 @@ fun AiHubScreen(
                         },
                         onToggleWorkflow = onToggleWorkflow,
                         compactVisualDensity = compactVisualDensity,
-                        modifier = Modifier.padding(
-                            start = SkydownUiTokens.screenHorizontalPadding,
-                            top = 8.dp,
-                            end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = 8.dp,
-                        )
+                        modifier = Modifier
                             .widthIn(max = workspaceMaxWidth)
                             .fillMaxWidth(),
                     )
@@ -193,7 +185,7 @@ fun AiHubScreen(
                                 WorkflowWorkspaceCard(
                                     onOpenSettings = onOpenAutomationSettings,
                                     onClose = onHideWorkflow,
-                                    modifier = Modifier.padding(horizontal = SkydownUiTokens.screenHorizontalPadding),
+                                    modifier = Modifier,
                                 )
                             } else {
                                 when (mode) {

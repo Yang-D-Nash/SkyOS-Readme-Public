@@ -12,7 +12,7 @@
 "agent.queue.toast.queued" = "Salvo offline. Envio automatico quando voce estiver online.";
 "agent.queue.toast.sent" = "Solicitacao da fila enviada com sucesso.";
 "agent.automation.triggered" = "Workflow n8n iniciado.";
-"auth.login.welcome" = "Bem-vindo ao SkyOs";
+"auth.login.welcome" = "Bem-vindo ao SkyOS";
 "auth.login.subtitle" = "Entre para acessar sua conta e ferramentas de criador.";
 "auth.login.title" = "Entrar";
 "auth.email" = "E-mail";

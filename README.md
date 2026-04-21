@@ -1,10 +1,10 @@
-# SkyOs
+# SkyOS
 
-| 22 | SkyOs | Skydown |
+| 22 | SkyOS | Skydown |
 | --- | --- | --- |
-| ![22 Logo](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) | ![SkyOs](<Skydown App/Assets.xcassets/SkydownX22BrandLogo.imageset/skydown-x22-logo.png>) | ![Skydown](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
+| ![22 Logo](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) | ![SkyOS](<Skydown App/Assets.xcassets/SkydownX22BrandLogo.imageset/skydown-x22-logo.png>) | ![Skydown](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
 
-SkyOs ist die aktuelle Produkt- und Erlebnis-Schicht des `Skydown x 22` Universums.
+SkyOS ist die aktuelle Produkt- und Erlebnis-Schicht des `Skydown x 22` Universums.
 Es verbindet Content, Commerce, KI, Profile und Workflow-Automation so, dass sich alles wie ein einziges System anfuehlt statt wie lose verbundene Features.
 
 Stand: `Release Candidate` fuer produktive Tests, Release-Haertung und System-Veredelung.
@@ -14,7 +14,7 @@ Zuletzt aktualisiert: `20. April 2026`
 
 ## 1) Produktbild
 
-SkyOs ist kein normaler App-Baukasten, sondern ein `Creator Operating System`.
+SkyOS ist kein normaler App-Baukasten, sondern ein `Creator Operating System`.
 Das Ziel ist ein Produkt, das:
 
 - klar fuehrt statt zu ueberladen
@@ -34,9 +34,9 @@ Systembereiche:
 
 ---
 
-## 2) SkyOs Experience Principles
+## 2) SkyOS Experience Principles
 
-SkyOs soll sich wie ein zusammenhaengendes Produkt anfuehlen. Deshalb gelten diese Regeln systemweit:
+SkyOS soll sich wie ein zusammenhaengendes Produkt anfuehlen. Deshalb gelten diese Regeln systemweit:
 
 ### Hierarchie vor Spektakel
 
@@ -77,7 +77,7 @@ SkyOs soll sich wie ein zusammenhaengendes Produkt anfuehlen. Deshalb gelten die
 
 ## 3) Leitplanken und Referenzen
 
-SkyOs richtet sich bewusst nach langlebigen Standards statt nach kurzfristigen Trends.
+SkyOS richtet sich bewusst nach langlebigen Standards statt nach kurzfristigen Trends.
 
 - `Apple Human Interface Guidelines`: klare visuelle Hierarchie, Inhaltsfokus, kontrollierte Tiefe
 - `Material 3`: Rollen fuer Farben, Komponenten und Motion statt dekorativem Wildwuchs
@@ -99,7 +99,7 @@ Externe Referenzen:
 
 ### Produkt
 
-- `SkyOs` ist der Produktname und die Betriebssystem-Metapher innerhalb der App.
+- `SkyOS` ist der Produktname und die Betriebssystem-Metapher innerhalb der App.
 
 ### Betreiber
 
@@ -126,7 +126,7 @@ Fester Owner:
 
 ## 5) KI, Agent und Workflow
 
-SkyOs verbindet moderne KI-Nutzung mit kontrollierter Systemlogik.
+SkyOS verbindet moderne KI-Nutzung mit kontrollierter Systemlogik.
 
 - `Bot`: schnelle Text- und Visual-Unterstuetzung
 - `Agent`: auf Umsetzung, Struktur und naechste Schritte ausgerichtet
@@ -148,7 +148,7 @@ Grundsatz:
 
 ## 6) Commerce, Vertrauen und Release
 
-SkyOs vereint Inspiration und Transaktion. Deshalb werden visuelle Qualitaet und betriebliche Zuverlaessigkeit gemeinsam gedacht.
+SkyOS vereint Inspiration und Transaktion. Deshalb werden visuelle Qualitaet und betriebliche Zuverlaessigkeit gemeinsam gedacht.
 
 - Shopify / Checkout / Fulfillment muessen Ende-zu-Ende testbar sein
 - Rollen und Rechte muessen serverseitig konsistent greifen
@@ -183,7 +183,7 @@ In-App Dokumente:
 
 ## 8) Kurzform
 
-SkyOs soll sich nicht wie eine Ansammlung guter Screens anfuehlen.
+SkyOS soll sich nicht wie eine Ansammlung guter Screens anfuehlen.
 Es soll sich wie ein erinnerbares System anfuehlen:
 
 - emotional stark

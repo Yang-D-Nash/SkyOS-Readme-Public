@@ -326,12 +326,12 @@ private fun AgentOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "SkyOs Agent",
+                    text = "SkyOS Agent",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = if (isEnabled) "SkyOs Agent aktiv" else "SkyOs Agent pausiert",
+                    text = if (isEnabled) "SkyOS Agent aktiv" else "SkyOS Agent pausiert",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
@@ -368,7 +368,7 @@ private fun AgentDisabledCard() {
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "SkyOs Agent pausiert",
+                    text = "SkyOS Agent pausiert",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -465,7 +465,7 @@ private fun AgentMessageBubble(
                 ),
         ) {
             Text(
-                text = if (isUser) "Du" else "SkyOs Agent",
+                text = if (isUser) "Du" else "SkyOS Agent",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
@@ -482,7 +482,7 @@ private fun AgentMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "SkyOs Agent plant gerade...",
+                        text = "SkyOS Agent plant gerade...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -506,7 +506,7 @@ private fun AgentMessageBubble(
                     ) {
                         Button(
                             onClick = {
-                                copyAiText(context, "SkyOs Agent", message.text)
+                                copyAiText(context, "SkyOS Agent", message.text)
                                 onFeedback("Antwort kopiert.", ToastType.Success)
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
@@ -516,7 +516,7 @@ private fun AgentMessageBubble(
 
                         OutlinedButton(
                             onClick = {
-                                shareAiText(context, "SkyOs Agent", message.text)
+                                shareAiText(context, "SkyOS Agent", message.text)
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {

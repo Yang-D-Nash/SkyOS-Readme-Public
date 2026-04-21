@@ -921,7 +921,7 @@ final class FirebaseAuthService: AuthServicing {
         let candidate = username?.trimmedNilIfEmpty
             ?? authUserDisplayName?.trimmedNilIfEmpty
             ?? fallbackEmail.split(separator: "@").first.map(String.init)?.trimmedNilIfEmpty
-            ?? "SkyOs User"
+            ?? "SkyOS User"
         let trimmedCandidate = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmedCandidate.count <= 32 {

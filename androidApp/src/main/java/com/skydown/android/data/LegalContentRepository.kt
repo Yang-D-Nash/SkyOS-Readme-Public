@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
-private const val defaultLegalBrandName = "SkyOs"
+private const val defaultLegalBrandName = "SkyOS"
 private const val defaultLegalOperatorName = "Skydown OS"
 private const val defaultLegalRightsHolderName = "Skydown OS"
 private const val legacyLegalOperatorName = "Skydown"

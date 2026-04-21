@@ -21,7 +21,7 @@ struct LoginView: View {
             VStack(spacing: 20) {
                 Spacer()
                 VStack(spacing: 5) {
-                    Text(localized("auth.login.welcome", "Welcome to SkyOs"))
+                    Text(localized("auth.login.welcome", "Welcome to SkyOS"))
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.text(for: colorScheme))

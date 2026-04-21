@@ -52,6 +52,8 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
+import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.data.CheckoutRedirectStore
 import com.skydown.android.data.ShippingService
@@ -99,6 +101,7 @@ fun CartScreen(
     val checkoutPaymentDetail = paymentRouteDetail(uiState.selectedPaymentMethod.ifBlank { "Rueckkontakt" })
     val checkoutTotalTitle = if (pricing.total > 0) "EUR ${formatCurrency(pricing.total)}" else "Leer"
     val checkoutTotalDetail = if (pricing.total > 0) "${pricing.zoneLabel} inkl. Versand" else "Warenkorb aktuell leer"
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         if (uiState.errorMessage != null || uiState.successMessage != null) {
@@ -163,13 +166,8 @@ fun CartScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = skydownContentPadding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
                 item {
                     CartOverviewCard(
@@ -1051,9 +1049,9 @@ private fun openOrderEmail(
         state.shippingCountry.trim().ifBlank { "Deutschland" },
     ).filter { it.isNotBlank() }.joinToString("\n")
     val body = """
-        Hallo SkyOs-Team,
+        Hallo SkyOS-Team,
 
-        es wurde eine neue Bestellung in SkyOs vorbereitet.
+        es wurde eine neue Bestellung in SkyOS vorbereitet.
 
         Name: ${state.name.ifBlank { "Nicht angegeben" }}
         E-Mail: ${state.email.ifBlank { "Nicht angegeben" }}

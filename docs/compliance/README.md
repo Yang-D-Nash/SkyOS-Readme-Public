@@ -1,6 +1,6 @@
-# SkyOs / Skydown DSGVO + Compliance Kit
+# SkyOS / Skydown DSGVO + Compliance Kit
 
-Dieses Verzeichnis ist das operative Compliance-Paket fuer `SkyOs` als Produkt und `Skydown` als Betreiber.
+Dieses Verzeichnis ist das operative Compliance-Paket fuer `SkyOS` als Produkt und `Skydown` als Betreiber.
 Es ist fuer Release, Betrieb, Teamarbeit, Audit-Vorbereitung und juristische Endpruefung gedacht.
 
 Wichtig:
@@ -14,7 +14,7 @@ Zuletzt aktualisiert: `20. April 2026`
 
 ## Produkt- und Betreiberlogik
 
-- `SkyOs` = Produktname und Nutzeroberflaeche
+- `SkyOS` = Produktname und Nutzeroberflaeche
 - `Skydown` = Betreiber, organisatorische Verantwortung und Support
 - `22` = Marken- und Kreativwelt innerhalb des Oekosystems
 

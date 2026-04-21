@@ -67,7 +67,7 @@ class SettingsViewModel : ViewModel() {
                     ?: user?.email
                         ?.substringBefore("@")
                         ?.takeIf { it.isNotBlank() }
-                    ?: if (user != null) "SkyOs User" else ""
+                    ?: if (user != null) "SkyOS User" else ""
 
                 _uiState.update {
                     it.copy(

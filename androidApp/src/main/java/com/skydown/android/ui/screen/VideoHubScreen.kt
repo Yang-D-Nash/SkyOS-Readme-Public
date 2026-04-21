@@ -109,6 +109,7 @@ import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.dismissKeyboardOnTap
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
 import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownContentPadding
@@ -291,6 +292,7 @@ fun VideoHubScreen(
     val videoAccent = colorScheme.skydownAccent()
     val videoMysticAccent = colorScheme.skydownAccentMystic()
     val videoYoutubeAccent = colorScheme.skydownYoutube()
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -387,7 +389,7 @@ fun VideoHubScreen(
                     .testTag("video.hub.root"),
                 state = listState,
                 contentPadding = skydownContentPadding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
                 item {
                     VideoHubHeroCard(
@@ -692,7 +694,7 @@ private fun VideoHubHeroCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Clips, eigene Videos und Collabs im visuellen SkyOs-Flow." },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Clips, eigene Videos und Collabs im visuellen SkyOS-Flow." },
         detail = screenHeaderSettings.videoHubDetail.ifBlank {
             if (isAdmin) {
                 "$videoCount Clips und $collabCount Collabs live."
@@ -2741,9 +2743,9 @@ private fun VideoReelViewerDialog(
                         text = videos
                             .getOrNull(pagerState.currentPage)
                             ?.let { video ->
-                                if (video.usesEmbeddedPreview) "SkyOs Preview" else "SkyOs Reel"
+                                if (video.usesEmbeddedPreview) "SkyOS Preview" else "SkyOS Reel"
                             }
-                            ?: "SkyOs Video",
+                            ?: "SkyOS Video",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary,

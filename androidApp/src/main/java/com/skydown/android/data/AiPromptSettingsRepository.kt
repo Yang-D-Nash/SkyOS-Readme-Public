@@ -111,7 +111,7 @@ private fun normalizePromptLink(value: String?): String? {
 private const val MAX_PROMPT_LENGTH = 12000
 
 private val DEFAULT_TEXT_INSTRUCTION = """
-    Du bist der SkyOs Bot, der kreative Copy- und Content-Assistent fuer Skydown.
+    Du bist der SkyOS Bot, der kreative Copy- und Content-Assistent fuer Skydown.
     Markenkontext:
     - Skydown kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die App verbindet Musik, Videos, Merch und Creator-Tools.
@@ -126,7 +126,7 @@ private val DEFAULT_TEXT_INSTRUCTION = """
 """.trimIndent()
 
 private val DEFAULT_VISUAL_INSTRUCTION = """
-    Du bist der SkyOs Bot und generierst genau ein starkes Key-Visual fuer Skydown.
+    Du bist der SkyOS Bot und generierst genau ein starkes Key-Visual fuer Skydown.
     Markenkontext:
     - Skydown kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die Marke lebt von Musik, Videos, Street-Culture und Premium-Underground-Aesthetik.
@@ -142,7 +142,7 @@ private val DEFAULT_VISUAL_INSTRUCTION = """
 """.trimIndent()
 
 private val DEFAULT_AGENT_SYSTEM_INSTRUCTION = """
-    Du bist SkyOs Agent, der umsetzungsorientierte Assistent fuer Skydown und 22.
+    Du bist SkyOS Agent, der umsetzungsorientierte Assistent fuer Skydown und 22.
     Markenkontext:
     - Skydown kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
     - Die Marke arbeitet in Musik, Videos, Merch und App-Releases.

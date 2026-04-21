@@ -28,7 +28,7 @@ enum BrandMark: String, Identifiable {
         case .zweizwei:
             return "22"
         case .skydownX22:
-            return "SkyOs"
+            return "SkyOS"
         }
     }
 }
@@ -74,6 +74,8 @@ struct BrandHeroSurface<Footer: View>: View {
         let titleColor = hasBackgroundImage ? Color.white : AppColors.text(for: colorScheme)
         let subtitleColor = hasBackgroundImage ? Color.white.opacity(0.84) : AppColors.secondaryText(for: colorScheme).opacity(0.96)
         let detailColor = hasBackgroundImage ? Color.white.opacity(0.86) : AppColors.text(for: colorScheme).opacity(0.86)
+        let titleShadowColor = hasBackgroundImage ? Color.black.opacity(colorScheme == .dark ? 0.32 : 0.24) : .clear
+        let subtitleShadowColor = hasBackgroundImage ? Color.black.opacity(colorScheme == .dark ? 0.28 : 0.18) : .clear
 
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
@@ -83,6 +85,7 @@ struct BrandHeroSurface<Footer: View>: View {
                             .font(AppTypography.heroEyebrow)
                             .tracking(2.4)
                             .foregroundColor(accent)
+                            .shadow(color: titleShadowColor.opacity(0.75), radius: 8, y: 3)
 
                         Capsule(style: .continuous)
                             .fill(
@@ -104,11 +107,13 @@ struct BrandHeroSurface<Footer: View>: View {
                         .lineSpacing(2)
                         .foregroundColor(titleColor)
                         .multilineTextAlignment(.leading)
+                        .shadow(color: titleShadowColor, radius: 14, y: 6)
 
                     Text(subtitle)
                         .font(AppTypography.heroSubtitle)
                         .lineSpacing(3)
                         .foregroundColor(subtitleColor)
+                        .shadow(color: subtitleShadowColor, radius: 10, y: 4)
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
@@ -116,6 +121,7 @@ struct BrandHeroSurface<Footer: View>: View {
                             .tracking(0.42)
                             .foregroundColor(detailColor)
                             .padding(.top, 1)
+                            .shadow(color: subtitleShadowColor.opacity(0.82), radius: 8, y: 3)
                     }
                 }
 

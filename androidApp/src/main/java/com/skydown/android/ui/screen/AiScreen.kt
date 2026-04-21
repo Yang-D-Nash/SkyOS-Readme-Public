@@ -524,7 +524,7 @@ private fun AiDisabledCard() {
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "SkyOs Bot pausiert",
+                    text = "SkyOS Bot pausiert",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -822,7 +822,7 @@ fun AiMessageBubble(
                                 text = "Kopieren",
                                 accent = MaterialTheme.colorScheme.primary,
                                 onClick = {
-                                    copyAiText(context, "SkyOs Bot", message.text)
+                                    copyAiText(context, "SkyOS Bot", message.text)
                                     onFeedback("Antwort kopiert.", ToastType.Success)
                                 },
                             )
@@ -833,7 +833,7 @@ fun AiMessageBubble(
                                 text = "Teilen",
                                 accent = MaterialTheme.colorScheme.secondary,
                                 onClick = {
-                                    shareAiText(context, "SkyOs Bot", message.text)
+                                    shareAiText(context, "SkyOS Bot", message.text)
                                     onFeedback("Share-Sheet geoeffnet.", ToastType.Info)
                                 },
                             )

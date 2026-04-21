@@ -4,12 +4,13 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,9 +20,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MusicNote
@@ -32,13 +34,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -53,12 +53,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.skydown.android.data.AppContainer
@@ -66,14 +69,25 @@ import com.skydown.android.data.ArtistPageBrand
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.data.mediaAttributionContext
-import com.skydown.android.ui.component.SectionHeader
+import com.skydown.android.ui.component.BrandActionButton
+import com.skydown.android.ui.component.BrandArtwork
+import com.skydown.android.ui.component.BrandHeroCard
+import com.skydown.android.ui.component.BrandHeroMetricCard
+import com.skydown.android.ui.component.BrandPreviewFrame
+import com.skydown.android.ui.component.BrandSectionBanner
+import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.EditableImageFieldCard
+import com.skydown.android.ui.component.EditableVideoFieldCard
 import com.skydown.android.ui.component.LocalSessionUser
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.TrackRow
 import com.skydown.android.ui.component.YouTubePlayerDialog
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
+import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
+import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.VideoYouTubeItem
@@ -82,6 +96,7 @@ import com.skydown.android.ui.theme.SpotifyGreen
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.skydown.shared.model.Track
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -104,16 +119,27 @@ fun ArtistPageScreen(
             playWhenReady = true
         }
     }
+    val heroVideoPlayer = remember(mediaContext) {
+        ExoPlayer.Builder(mediaContext).build().apply {
+            playWhenReady = true
+            repeatMode = Player.REPEAT_MODE_ONE
+            volume = 0f
+        }
+    }
     val page = remember(pages, artistName, brand) {
         ArtistPagesStore.pageFor(brand = brand, artistName = artistName)
     }
     val canEdit = ArtistPagesStore.canEdit(page, currentUser)
+    val compactVisualDensity = rememberUsesCompactVisualDensity()
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
+    val visualStyle = artistPageVisualStyle(brand)
 
     var isEditing by rememberSaveable(page.slug) { mutableStateOf(false) }
     var taglineDraft by rememberSaveable(page.slug) { mutableStateOf(page.tagline.orEmpty()) }
     var bioDraft by rememberSaveable(page.slug) { mutableStateOf(page.bio.orEmpty()) }
     var profileImageDraft by rememberSaveable(page.slug) { mutableStateOf(page.profileImageURL.orEmpty()) }
     var heroImageDraft by rememberSaveable(page.slug) { mutableStateOf(page.heroImageURL.orEmpty()) }
+    var heroVideoDraft by rememberSaveable(page.slug) { mutableStateOf(page.heroVideoURL.orEmpty()) }
     var instagramDraft by rememberSaveable(page.slug) { mutableStateOf(page.instagramURL.orEmpty()) }
     var spotifyDraft by rememberSaveable(page.slug) { mutableStateOf(page.spotifyURL.orEmpty()) }
     var youtubeDraft by rememberSaveable(page.slug) { mutableStateOf(page.youtubeURL.orEmpty()) }
@@ -127,11 +153,43 @@ fun ArtistPageScreen(
     var selectedYouTubeItem by remember(page.slug) { mutableStateOf<VideoYouTubeItem?>(null) }
     var pendingImageTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
     var activeImageUploadTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
+    var isUploadingHeroVideo by remember(page.slug) { mutableStateOf(false) }
     var feedbackMessage by remember(page.slug) { mutableStateOf<String?>(null) }
     var feedbackType by remember(page.slug) { mutableStateOf(ToastType.Info) }
     var editingBaseProfileImageUrl by rememberSaveable(page.slug) { mutableStateOf(page.profileImageURL.orEmpty()) }
     var editingBaseHeroImageUrl by rememberSaveable(page.slug) { mutableStateOf(page.heroImageURL.orEmpty()) }
-    val temporaryUploadedImageUrls = remember(page.slug) { mutableStateListOf<String>() }
+    var editingBaseHeroVideoUrl by rememberSaveable(page.slug) { mutableStateOf(page.heroVideoURL.orEmpty()) }
+    val temporaryUploadedAssetUrls = remember(page.slug) { mutableStateListOf<String>() }
+    val isUploadingAsset = activeImageUploadTarget != null || isUploadingHeroVideo
+
+    val displayPage = remember(
+        page,
+        isEditing,
+        taglineDraft,
+        bioDraft,
+        profileImageDraft,
+        heroImageDraft,
+        heroVideoDraft,
+        instagramDraft,
+        spotifyDraft,
+        youtubeDraft,
+    ) {
+        if (!isEditing) {
+            page
+        } else {
+            page.copy(
+                tagline = taglineDraft.trimmedOrNull(),
+                bio = bioDraft.trimmedOrNull(),
+                profileImageURL = profileImageDraft.trimmedOrNull(),
+                heroImageURL = heroImageDraft.trimmedOrNull(),
+                heroVideoURL = heroVideoDraft.trimmedOrNull(),
+                instagramURL = instagramDraft.trimmedOrNull(),
+                spotifyURL = spotifyDraft.trimmedOrNull(),
+                youtubeURL = youtubeDraft.trimmedOrNull(),
+                isPlaceholder = false,
+            )
+        }
+    }
 
     val spotlightTrack = remember(tracks, selectedTrackId) {
         tracks.firstOrNull { it.trackId == selectedTrackId } ?: tracks.firstOrNull()
@@ -160,6 +218,7 @@ fun ArtistPageScreen(
         bioDraft = page.bio.orEmpty()
         profileImageDraft = page.profileImageURL.orEmpty()
         heroImageDraft = page.heroImageURL.orEmpty()
+        heroVideoDraft = page.heroVideoURL.orEmpty()
         instagramDraft = page.instagramURL.orEmpty()
         spotifyDraft = page.spotifyURL.orEmpty()
         youtubeDraft = page.youtubeURL.orEmpty()
@@ -168,24 +227,27 @@ fun ArtistPageScreen(
     fun beginEditing() {
         editingBaseProfileImageUrl = page.profileImageURL.orEmpty()
         editingBaseHeroImageUrl = page.heroImageURL.orEmpty()
-        temporaryUploadedImageUrls.clear()
+        editingBaseHeroVideoUrl = page.heroVideoURL.orEmpty()
+        temporaryUploadedAssetUrls.clear()
         resetDraftsFromPage()
         pendingImageTarget = null
         activeImageUploadTarget = null
+        isUploadingHeroVideo = false
         isEditing = true
     }
 
     fun discardEditing() {
-        val cleanupUrls = temporaryUploadedImageUrls.toList()
-        temporaryUploadedImageUrls.clear()
+        val cleanupUrls = temporaryUploadedAssetUrls.toList()
+        temporaryUploadedAssetUrls.clear()
         resetDraftsFromPage()
         pendingImageTarget = null
         activeImageUploadTarget = null
+        isUploadingHeroVideo = false
         isEditing = false
         if (cleanupUrls.isNotEmpty()) {
             coroutineScope.launch {
-                cleanupUrls.forEach { imageUrl ->
-                    runCatching { editableImageAssetRepository.deleteImageAsset(imageUrl) }
+                cleanupUrls.forEach { assetUrl ->
+                    runCatching { editableImageAssetRepository.deleteAsset(assetUrl) }
                 }
             }
         }
@@ -209,14 +271,14 @@ fun ArtistPageScreen(
                     val uploadedImage = result.getOrNull()
                     if (uploadedImage != null) {
                         if (previousImageUrl.isNotBlank() && previousImageUrl != uploadedImage.downloadUrl) {
-                            val removedTemporaryImage = temporaryUploadedImageUrls.remove(previousImageUrl)
+                            val removedTemporaryImage = temporaryUploadedAssetUrls.remove(previousImageUrl)
                             if (removedTemporaryImage) {
-                                editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                editableImageAssetRepository.deleteAsset(previousImageUrl)
                             }
                         }
                         applyEditableImageUrl(target, uploadedImage.downloadUrl)
-                        if (!temporaryUploadedImageUrls.contains(uploadedImage.downloadUrl)) {
-                            temporaryUploadedImageUrls.add(uploadedImage.downloadUrl)
+                        if (!temporaryUploadedAssetUrls.contains(uploadedImage.downloadUrl)) {
+                            temporaryUploadedAssetUrls.add(uploadedImage.downloadUrl)
                         }
                     }
                     feedbackMessage = "Bild hochgeladen und uebernommen."
@@ -234,6 +296,44 @@ fun ArtistPageScreen(
         }
     }
 
+    val videoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            isUploadingHeroVideo = true
+            coroutineScope.launch {
+                val previousVideoUrl = heroVideoDraft
+                val result = editableImageAssetRepository.uploadVideoAsset(
+                    uri = uri,
+                    context = context,
+                )
+                if (result.isSuccess) {
+                    val uploadedVideo = result.getOrNull()
+                    if (uploadedVideo != null) {
+                        if (previousVideoUrl.isNotBlank() && previousVideoUrl != uploadedVideo.downloadUrl) {
+                            val removedTemporaryVideo = temporaryUploadedAssetUrls.remove(previousVideoUrl)
+                            if (removedTemporaryVideo) {
+                                editableImageAssetRepository.deleteAsset(previousVideoUrl)
+                            }
+                        }
+                        heroVideoDraft = uploadedVideo.downloadUrl
+                        if (!temporaryUploadedAssetUrls.contains(uploadedVideo.downloadUrl)) {
+                            temporaryUploadedAssetUrls.add(uploadedVideo.downloadUrl)
+                        }
+                    }
+                    feedbackMessage = "Hero-Video hochgeladen und als Motion-Stage gesetzt."
+                    feedbackType = ToastType.Success
+                } else {
+                    feedbackMessage = result.exceptionOrNull()?.message ?: "Hero-Video konnte nicht hochgeladen werden."
+                    feedbackType = ToastType.Error
+                }
+                isUploadingHeroVideo = false
+            }
+        } else {
+            isUploadingHeroVideo = false
+        }
+    }
+
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -248,6 +348,12 @@ fun ArtistPageScreen(
         onDispose {
             player.removeListener(listener)
             player.release()
+        }
+    }
+
+    DisposableEffect(heroVideoPlayer) {
+        onDispose {
+            heroVideoPlayer.release()
         }
     }
 
@@ -289,6 +395,18 @@ fun ArtistPageScreen(
         }
     }
 
+    LaunchedEffect(displayPage.heroVideoURL) {
+        val heroVideoUrl = displayPage.heroVideoURL
+        if (heroVideoUrl.isNullOrBlank()) {
+            heroVideoPlayer.stop()
+            heroVideoPlayer.clearMediaItems()
+        } else {
+            heroVideoPlayer.setMediaItem(MediaItem.fromUri(heroVideoUrl))
+            heroVideoPlayer.prepare()
+            heroVideoPlayer.play()
+        }
+    }
+
     LaunchedEffect(feedbackMessage) {
         if (!feedbackMessage.isNullOrBlank()) {
             delay(3000)
@@ -299,7 +417,13 @@ fun ArtistPageScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(page.artistName) },
+                title = {
+                    SkydownTopBarTitle(
+                        title = page.artistName,
+                        subtitle = "${brand.displayTitle} Artist Page",
+                        accent = visualStyle.accent,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurueck")
@@ -310,7 +434,7 @@ fun ArtistPageScreen(
                         if (isEditing) {
                             TextButton(
                                 onClick = ::discardEditing,
-                                enabled = !isSaving && activeImageUploadTarget == null,
+                                enabled = !isSaving && !isUploadingAsset,
                             ) {
                                 Text("Abbrechen")
                             }
@@ -318,43 +442,42 @@ fun ArtistPageScreen(
                                 onClick = {
                                     coroutineScope.launch {
                                         isSaving = true
-                                        val updatedPage = page.copy(
-                                            tagline = taglineDraft.trimmedOrNull(),
-                                            bio = bioDraft.trimmedOrNull(),
-                                            profileImageURL = profileImageDraft.trimmedOrNull(),
-                                            heroImageURL = heroImageDraft.trimmedOrNull(),
-                                            instagramURL = instagramDraft.trimmedOrNull(),
-                                            spotifyURL = spotifyDraft.trimmedOrNull(),
-                                            youtubeURL = youtubeDraft.trimmedOrNull(),
+                                        val updatedPage = displayPage.copy(
                                             updatedAtEpochMillis = System.currentTimeMillis(),
                                             isPlaceholder = false,
                                         )
-                                        val savedImageUrls = setOfNotNull(
+                                        val savedAssetUrls = setOfNotNull(
                                             updatedPage.profileImageURL?.trimmedOrNull(),
                                             updatedPage.heroImageURL?.trimmedOrNull(),
+                                            updatedPage.heroVideoURL?.trimmedOrNull(),
                                         )
                                         val cleanupUrls = buildSet {
                                             editingBaseProfileImageUrl.trimmedOrNull()
-                                                ?.takeIf { it !in savedImageUrls }
+                                                ?.takeIf { it !in savedAssetUrls }
                                                 ?.let(::add)
                                             editingBaseHeroImageUrl.trimmedOrNull()
-                                                ?.takeIf { it !in savedImageUrls }
+                                                ?.takeIf { it !in savedAssetUrls }
                                                 ?.let(::add)
-                                            temporaryUploadedImageUrls
-                                                .filter { it !in savedImageUrls }
+                                            editingBaseHeroVideoUrl.trimmedOrNull()
+                                                ?.takeIf { it !in savedAssetUrls }
+                                                ?.let(::add)
+                                            temporaryUploadedAssetUrls
+                                                .filter { it !in savedAssetUrls }
                                                 .forEach(::add)
                                         }
                                         val result = ArtistPagesStore.save(updatedPage)
                                         isSaving = false
                                         if (result.isSuccess) {
-                                            cleanupUrls.forEach { imageUrl ->
-                                                runCatching { editableImageAssetRepository.deleteImageAsset(imageUrl) }
+                                            cleanupUrls.forEach { assetUrl ->
+                                                runCatching { editableImageAssetRepository.deleteAsset(assetUrl) }
                                             }
-                                            temporaryUploadedImageUrls.clear()
+                                            temporaryUploadedAssetUrls.clear()
                                             editingBaseProfileImageUrl = updatedPage.profileImageURL.orEmpty()
                                             editingBaseHeroImageUrl = updatedPage.heroImageURL.orEmpty()
+                                            editingBaseHeroVideoUrl = updatedPage.heroVideoURL.orEmpty()
                                             pendingImageTarget = null
                                             activeImageUploadTarget = null
+                                            isUploadingHeroVideo = false
                                             isEditing = false
                                             feedbackMessage = "Artist-Seite gespeichert."
                                             feedbackType = ToastType.Success
@@ -365,7 +488,7 @@ fun ArtistPageScreen(
                                         }
                                     }
                                 },
-                                enabled = !isSaving && activeImageUploadTarget == null,
+                                enabled = !isSaving && !isUploadingAsset,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
                                     contentColor = MaterialTheme.colorScheme.onSurface,
@@ -396,123 +519,162 @@ fun ArtistPageScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(skydownScreenBrush())
+                .background(
+                    skydownScreenBrush(
+                        primaryColor = visualStyle.accent,
+                        secondaryColor = visualStyle.secondaryAccent,
+                    ),
+                )
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                    .padding(horizontal = 0.dp),
+                contentPadding = skydownContentPadding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
-                ArtistPageHeroCard(
-                    page = page,
-                    brand = brand,
-                    trackCount = tracks.size,
-                    latestReleaseText = latestReleaseText,
-                    onOpenYouTube = { item -> selectedYouTubeItem = item },
-                )
-                ArtistPageSpotlightCard(
-                    page = page,
-                    trackCount = tracks.size,
-                    latestReleaseText = latestReleaseText,
-                    spotlightTrack = spotlightTrack,
-                    linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() },
-                )
-                ArtistPageTracksCard(
-                    artistName = page.artistName,
-                    tracks = tracks.take(5),
-                    isLoading = isLoadingTracks,
-                    errorMessage = tracksError,
-                    selectedTrackId = selectedTrackId,
-                    currentlyPlayingId = currentlyPlayingId,
-                    onSelectTrack = { selectedTrackId = it },
-                    onPlayToggle = { track ->
-                        if (currentlyPlayingId == track.trackId) {
-                            currentlyPlayingId = null
-                            currentPreviewUrl = null
-                        } else {
-                            selectedTrackId = track.trackId
-                            currentlyPlayingId = track.trackId
-                            currentPreviewUrl = track.previewUrl
-                        }
-                    },
-                )
-                ArtistPageLinksCard(
-                    page = page,
-                    onOpenYouTube = { item -> selectedYouTubeItem = item },
-                )
+                item {
+                    ArtistPageHeroCard(
+                        page = displayPage,
+                        brand = brand,
+                        trackCount = tracks.size,
+                        latestReleaseText = latestReleaseText,
+                        onOpenYouTube = { item -> selectedYouTubeItem = item },
+                        visualStyle = visualStyle,
+                        compactVisualDensity = compactVisualDensity,
+                        heroVideoPlayer = heroVideoPlayer,
+                    )
+                }
+                item {
+                    ArtistPageSpotlightCard(
+                        page = displayPage,
+                        trackCount = tracks.size,
+                        latestReleaseText = latestReleaseText,
+                        spotlightTrack = spotlightTrack,
+                        linkCount = listOf(displayPage.instagramURL, displayPage.spotifyURL, displayPage.youtubeURL).count { !it.isNullOrBlank() },
+                        visualStyle = visualStyle,
+                    )
+                }
+                item {
+                    ArtistPageTracksCard(
+                        artistName = page.artistName,
+                        tracks = tracks.take(5),
+                        isLoading = isLoadingTracks,
+                        errorMessage = tracksError,
+                        selectedTrackId = selectedTrackId,
+                        currentlyPlayingId = currentlyPlayingId,
+                        onSelectTrack = { selectedTrackId = it },
+                        onPlayToggle = { track ->
+                            if (currentlyPlayingId == track.trackId) {
+                                currentlyPlayingId = null
+                                currentPreviewUrl = null
+                            } else {
+                                selectedTrackId = track.trackId
+                                currentlyPlayingId = track.trackId
+                                currentPreviewUrl = track.previewUrl
+                            }
+                        },
+                    )
+                }
+                item {
+                    ArtistPageLinksCard(
+                        page = displayPage,
+                        onOpenYouTube = { item -> selectedYouTubeItem = item },
+                        visualStyle = visualStyle,
+                    )
+                }
 
                 if (canEdit && isEditing) {
-                    SkydownCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(
-                                text = "Artist-Seite bearbeiten",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = "Bilder und Links kannst du hier neu anlegen, ersetzen oder entfernen. Live wird die Seite erst nach `Speichern`.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
+                    item {
+                        SkydownCard {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                BrandSectionBanner(
+                                    title = "Artist Page bearbeiten",
+                                    subtitle = "Bilder und Links werden erst nach `Speichern` live uebernommen.",
+                                    accent = visualStyle.secondaryAccent,
+                                    icon = Icons.Default.AutoAwesome,
+                                    tag = "ADMIN",
+                                )
 
-                            ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
-                            ArtistPageInput(title = "Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
-                            EditableImageFieldCard(
-                                title = "Profilbild",
-                                imageUrl = profileImageDraft,
-                                isUploading = activeImageUploadTarget == ArtistPageImageTarget.Profile,
-                                enabled = !isSaving && activeImageUploadTarget == null,
-                                uploadStatusText = "Profilbild wird fuer die Artist-Seite uebernommen.",
-                                onPickImage = {
-                                    pendingImageTarget = ArtistPageImageTarget.Profile
-                                    imagePicker.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                    )
-                                },
-                                onImageUrlChange = { profileImageDraft = it },
-                                onRemoveImage = {
-                                    val previousImageUrl = profileImageDraft
-                                    profileImageDraft = ""
-                                    if (temporaryUploadedImageUrls.remove(previousImageUrl)) {
-                                        coroutineScope.launch {
-                                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
+                                ArtistPageInput(title = "Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
+                                EditableImageFieldCard(
+                                    title = "Profilbild",
+                                    imageUrl = profileImageDraft,
+                                    isUploading = activeImageUploadTarget == ArtistPageImageTarget.Profile,
+                                    enabled = !isSaving && !isUploadingAsset,
+                                    uploadStatusText = "Profilbild wird fuer die Artist-Seite uebernommen.",
+                                    onPickImage = {
+                                        pendingImageTarget = ArtistPageImageTarget.Profile
+                                        imagePicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                        )
+                                    },
+                                    onImageUrlChange = { profileImageDraft = it },
+                                    onRemoveImage = {
+                                        val previousImageUrl = profileImageDraft
+                                        profileImageDraft = ""
+                                        if (temporaryUploadedAssetUrls.remove(previousImageUrl)) {
+                                            coroutineScope.launch {
+                                                editableImageAssetRepository.deleteAsset(previousImageUrl)
+                                            }
                                         }
-                                    }
-                                    feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
-                                    feedbackType = ToastType.Info
-                                },
-                            )
-                            EditableImageFieldCard(
-                                title = "Hero-Bild",
-                                imageUrl = heroImageDraft,
-                                isUploading = activeImageUploadTarget == ArtistPageImageTarget.Hero,
-                                enabled = !isSaving && activeImageUploadTarget == null,
-                                uploadStatusText = "Hero-Bild wird fuer die Artist-Seite uebernommen.",
-                                onPickImage = {
-                                    pendingImageTarget = ArtistPageImageTarget.Hero
-                                    imagePicker.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                    )
-                                },
-                                onImageUrlChange = { heroImageDraft = it },
-                                onRemoveImage = {
-                                    val previousImageUrl = heroImageDraft
-                                    heroImageDraft = ""
-                                    if (temporaryUploadedImageUrls.remove(previousImageUrl)) {
-                                        coroutineScope.launch {
-                                            editableImageAssetRepository.deleteImageAsset(previousImageUrl)
+                                        feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                        feedbackType = ToastType.Info
+                                    },
+                                )
+                                EditableImageFieldCard(
+                                    title = "Hero-Bild",
+                                    imageUrl = heroImageDraft,
+                                    isUploading = activeImageUploadTarget == ArtistPageImageTarget.Hero,
+                                    enabled = !isSaving && !isUploadingAsset,
+                                    uploadStatusText = "Hero-Bild wird fuer die Artist-Seite uebernommen.",
+                                    onPickImage = {
+                                        pendingImageTarget = ArtistPageImageTarget.Hero
+                                        imagePicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                        )
+                                    },
+                                    onImageUrlChange = { heroImageDraft = it },
+                                    onRemoveImage = {
+                                        val previousImageUrl = heroImageDraft
+                                        heroImageDraft = ""
+                                        if (temporaryUploadedAssetUrls.remove(previousImageUrl)) {
+                                            coroutineScope.launch {
+                                                editableImageAssetRepository.deleteAsset(previousImageUrl)
+                                            }
                                         }
-                                    }
-                                    feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
-                                    feedbackType = ToastType.Info
-                                },
-                            )
-                            ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
-                            ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
-                            ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
+                                        feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                        feedbackType = ToastType.Info
+                                    },
+                                )
+                                EditableVideoFieldCard(
+                                    title = "Hero-Video",
+                                    videoUrl = heroVideoDraft,
+                                    isUploading = isUploadingHeroVideo,
+                                    enabled = !isSaving && !isUploadingAsset,
+                                    uploadStatusText = "Hero-Video wird als Motion-Stage vorbereitet.",
+                                    onPickVideo = {
+                                        videoPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
+                                        )
+                                    },
+                                    onRemoveVideo = {
+                                        val previousVideoUrl = heroVideoDraft
+                                        heroVideoDraft = ""
+                                        if (temporaryUploadedAssetUrls.remove(previousVideoUrl)) {
+                                            coroutineScope.launch {
+                                                editableImageAssetRepository.deleteAsset(previousVideoUrl)
+                                            }
+                                        }
+                                        feedbackMessage = "Hero-Video entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                        feedbackType = ToastType.Info
+                                    },
+                                )
+                                ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
+                                ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
+                                ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
+                            }
                         }
                     }
                 }
@@ -549,201 +711,72 @@ private fun ArtistPageHeroCard(
     trackCount: Int,
     latestReleaseText: String?,
     onOpenYouTube: (VideoYouTubeItem) -> Unit,
+    visualStyle: ArtistPageVisualStyle,
+    compactVisualDensity: Boolean,
+    heroVideoPlayer: ExoPlayer,
 ) {
     val linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() }
-
-    SkydownCard(contentPadding = PaddingValues(0.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(286.dp)
-                .clip(RoundedCornerShape(24.dp)),
-        ) {
-            if (!page.heroImageURL.isNullOrBlank()) {
-                AsyncImage(
-                    model = page.heroImageURL,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    SpotifyGreen.copy(alpha = 0.88f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                                ),
-                            ),
-                        ),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.18f),
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.84f),
-                            ),
-                        ),
-                    ),
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ArtistHeroTag(text = brand.displayTitle, background = Color.White.copy(alpha = 0.14f))
-                    if (page.hasCustomPresentation) {
-                        ArtistHeroTag(text = "Live", background = SpotifyGreen.copy(alpha = 0.84f))
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    if (trackCount > 0) {
-                        ArtistHeroTag(text = "$trackCount Songs", background = Color.Black.copy(alpha = 0.32f))
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (!page.profileImageURL.isNullOrBlank()) {
-                            AsyncImage(
-                                model = page.profileImageURL,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                            )
-                        } else {
-                            Text(
-                                text = page.artistName.take(1).uppercase(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            text = page.artistName,
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                        )
-                        Text(
-                            text = page.tagline ?: "${brand.displayTitle} Profil",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.84f),
-                        )
-                        latestReleaseText?.let {
-                            Text(
-                                text = "Neuester Release: $it",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.76f),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Text(
-                text = page.bio ?: "Noch keine Artist-Seite hinterlegt. Owner oder zugewiesene Editoren koennen hier eine repraesentative Kurzbeschreibung anlegen.",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-            )
-
+    BrandHeroCard(
+        eyebrow = visualStyle.eyebrow,
+        title = page.artistName,
+        subtitle = page.tagline ?: "${brand.displayTitle} Artist-Profil mit klarer Stage, Sound und Links.",
+        detail = page.bio ?: "Noch keine Artist-Story hinterlegt. Mit Bild, Bio und Links wird aus dem Profil eine echte Artist-Stage.",
+        backgroundImageUrl = page.heroImageURL?.takeIf { it.isNotBlank() },
+        accent = visualStyle.accent,
+        secondaryAccent = visualStyle.secondaryAccent,
+        marks = visualStyle.marks,
+        compactVisualDensity = compactVisualDensity,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ArtistSessionSignalCard(
-                    title = "Status",
-                    value = if (page.hasCustomPresentation) "Live" else "Draft",
-                    detail = if (page.hasCustomPresentation) "Profil live" else "Noch nicht live",
-                    accent = MaterialTheme.colorScheme.primary,
+                BrandStatusChip(
+                    text = if (page.hasCustomPresentation) "Stage live" else "Stage draft",
+                    accent = visualStyle.accent,
+                    icon = Icons.Default.AutoAwesome,
+                    isActive = page.hasCustomPresentation,
                 )
-                ArtistSessionSignalCard(
-                    title = "Listen",
-                    value = if (trackCount > 0) "$trackCount Songs" else "Leer",
-                    detail = if (trackCount > 0) "Direkt im Sound drin" else "Noch keine Songs live",
+                BrandStatusChip(
+                    text = artistTrackCountLabel(trackCount),
                     accent = SpotifyGreen,
+                    icon = Icons.Default.GraphicEq,
+                    isActive = trackCount > 0,
                 )
-                ArtistSessionSignalCard(
-                    title = "Reach",
-                    value = if (linkCount > 0) "$linkCount Links" else "Offline",
-                    detail = if (linkCount > 0) "Instagram, Spotify, YouTube" else "Noch keine Weiterleitung",
-                    accent = MaterialTheme.colorScheme.secondary,
-                )
-            }
-
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                ArtistMetricCard(
-                    title = "Artist",
-                    value = brand.displayTitle,
-                    modifier = Modifier.width(136.dp),
-                )
-                if (trackCount > 0) {
-                    ArtistMetricCard(
-                        title = "Songs",
-                        value = "$trackCount",
-                        modifier = Modifier.width(136.dp),
-                    )
-                }
                 latestReleaseText?.let {
-                    ArtistMetricCard(
-                        title = "Neuester Release",
-                        value = it,
-                        modifier = Modifier.width(148.dp),
+                    BrandStatusChip(
+                        text = it,
+                        accent = visualStyle.secondaryAccent,
+                        icon = Icons.Default.PlayCircleFilled,
                     )
                 }
                 if (linkCount > 0) {
-                    ArtistMetricCard(
-                        title = "Links",
-                        value = "$linkCount",
-                        modifier = Modifier.width(136.dp),
+                    BrandStatusChip(
+                        text = artistLinkCountLabel(linkCount),
+                        accent = MaterialTheme.colorScheme.secondary,
+                        icon = Icons.AutoMirrored.Filled.OpenInNew,
                     )
                 }
             }
+
+            ArtistPageHeroMotionStage(
+                page = page,
+                visualStyle = visualStyle,
+                heroVideoPlayer = heroVideoPlayer,
+            )
+
+            ArtistPagePresenceGrid(
+                page = page,
+                trackCount = trackCount,
+                linkCount = linkCount,
+                visualStyle = visualStyle,
+            )
 
             ArtistPageHeroQuickLinks(
                 page = page,
                 onOpenYouTube = onOpenYouTube,
             )
-
-            if (page.editorUids.isNotEmpty()) {
-                ArtistEditorBadge(count = page.editorUids.size)
-            }
         }
     }
 }
@@ -752,22 +785,25 @@ private fun ArtistPageHeroCard(
 private fun ArtistPageLinksCard(
     page: ArtistPageUi,
     onOpenYouTube: (VideoYouTubeItem) -> Unit,
+    visualStyle: ArtistPageVisualStyle,
 ) {
     val context = LocalContext.current
     val links = rememberArtistLinks(page)
 
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "Links",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+            BrandSectionBanner(
+                title = "Connect",
+                subtitle = "Direkt raus aus der App auf die aktiven Plattformen des Artists.",
+                accent = visualStyle.secondaryAccent,
+                icon = Icons.AutoMirrored.Filled.OpenInNew,
+                tag = if (links.isEmpty()) "OFFLINE" else "${links.size} LIVE",
             )
 
             if (links.isEmpty()) {
-                Text(
-                    text = "Noch keine Links hinterlegt.",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                ArtistPageSupportMessage(
+                    message = "Noch keine Links hinterlegt. Sobald Instagram, Spotify oder YouTube gesetzt sind, entsteht hier die direkte Artist-Tuer nach draussen.",
+                    accent = visualStyle.secondaryAccent,
                 )
             } else {
                 links.forEach { link ->
@@ -835,7 +871,8 @@ private fun ArtistPageHeroQuickLinks(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         links.forEach { link ->
-            Button(
+            BrandActionButton(
+                text = link.title,
                 onClick = {
                     if (link.kind == ArtistPageLinkKind.YouTube) {
                         onOpenYouTube(
@@ -850,21 +887,12 @@ private fun ArtistPageHeroQuickLinks(
                         openExternalLink(context, link.url)
                     }
                 },
-                modifier = Modifier.width(154.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = link.backgroundColor,
-                    contentColor = link.foregroundColor,
-                ),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-            ) {
-                Icon(link.icon, contentDescription = null, tint = link.accentColor)
-                Text(
-                    text = link.title,
-                    modifier = Modifier.padding(start = 8.dp),
-                    maxLines = 1,
-                )
-            }
+                accent = link.accentColor,
+                modifier = Modifier.width(156.dp),
+                icon = link.icon,
+                compact = true,
+                filled = link.kind != ArtistPageLinkKind.YouTube,
+            )
         }
     }
 }
@@ -876,26 +904,61 @@ private fun ArtistPageSpotlightCard(
     latestReleaseText: String?,
     spotlightTrack: Track?,
     linkCount: Int,
+    visualStyle: ArtistPageVisualStyle,
 ) {
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeader("Spotlight")
+            BrandSectionBanner(
+                title = "Spotlight",
+                subtitle = if (spotlightTrack != null) {
+                    "Der schnellste Einstieg in Sound, Haltung und aktuellen Vibe."
+                } else {
+                    "Profil und Richtung stehen, der musikalische Fokus folgt."
+                },
+                accent = visualStyle.accent,
+                icon = Icons.Default.AutoAwesome,
+                tag = if (spotlightTrack != null) "LIVE" else "PROFILE",
+            )
             Text(
                 text = page.tagline ?: "${page.artistName} entdecken.",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ArtistPill(text = "$trackCount Songs")
-                latestReleaseText?.let { ArtistPill(text = it) }
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ArtistPill(
+                    text = page.brand.displayTitle,
+                    accent = visualStyle.accent,
+                )
+                ArtistPill(
+                    text = artistTrackCountLabel(trackCount),
+                    accent = SpotifyGreen,
+                    isActive = trackCount > 0,
+                )
+                latestReleaseText?.let {
+                    ArtistPill(
+                        text = it,
+                        accent = visualStyle.secondaryAccent,
+                    )
+                }
                 if (linkCount > 0) {
-                    ArtistPill(text = "$linkCount Links")
+                    ArtistPill(
+                        text = artistLinkCountLabel(linkCount),
+                        accent = MaterialTheme.colorScheme.secondary,
+                    )
                 }
             }
 
             spotlightTrack?.let { track ->
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.74f))
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
@@ -932,7 +995,10 @@ private fun ArtistPageSpotlightCard(
                         )
                     }
                 }
-            }
+            } ?: ArtistPageSupportMessage(
+                message = page.bio ?: "Noch kein Fokus-Track hinterlegt. Sobald erste Songs oder Links live sind, bekommt dieser Artist hier seinen staerksten Einstiegspunkt.",
+                accent = visualStyle.secondaryAccent,
+            )
         }
     }
 }
@@ -950,36 +1016,47 @@ private fun ArtistPageTracksCard(
 ) {
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeader("Top Songs")
+            BrandSectionBanner(
+                title = "Top Songs",
+                subtitle = when {
+                    isLoading -> "Die Song-Liste wird gerade aus dem Feed geladen."
+                    !errorMessage.isNullOrBlank() -> "Der Feed braucht gerade einen zweiten Versuch."
+                    tracks.isEmpty() -> "Sobald Songs im Feed sind, tauchen sie hier direkt auf."
+                    else -> "Preview, Auswahl und Spotify greifen direkt aus der Liste."
+                },
+                accent = SpotifyGreen,
+                icon = Icons.Default.GraphicEq,
+                tag = when {
+                    isLoading -> "SYNC"
+                    !errorMessage.isNullOrBlank() -> "CHECK"
+                    tracks.isEmpty() -> "EMPTY"
+                    else -> "${tracks.size} LIVE"
+                },
+            )
 
             when {
                 isLoading -> {
-                    Text(
-                        text = "Songs werden geladen ...",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    ArtistPageSupportMessage(
+                        message = "Songs werden geladen ...",
+                        accent = SpotifyGreen,
                     )
                 }
 
                 !errorMessage.isNullOrBlank() -> {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    ArtistPageSupportMessage(
+                        message = errorMessage.orEmpty(),
+                        accent = MaterialTheme.colorScheme.error,
                     )
                 }
 
                 tracks.isEmpty() -> {
-                    Text(
-                        text = "Fuer $artistName sind gerade noch keine Songs hinterlegt.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    ArtistPageSupportMessage(
+                        message = "Fuer $artistName sind gerade noch keine Songs hinterlegt.",
+                        accent = MaterialTheme.colorScheme.secondary,
                     )
                 }
 
                 else -> {
-                    Text(
-                        text = "Direkt mit Preview oder Spotify Player in den Sound rein.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    )
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         tracks.forEach { track ->
                             TrackRow(
@@ -998,99 +1075,388 @@ private fun ArtistPageTracksCard(
 }
 
 @Composable
-private fun ArtistPill(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        color = MaterialTheme.colorScheme.onSurface,
-        style = MaterialTheme.typography.labelMedium,
-    )
-}
-
-@Composable
-private fun ArtistHeroTag(
+private fun ArtistPill(
     text: String,
-    background: Color,
+    accent: Color,
+    isActive: Boolean = true,
 ) {
     Text(
         text = text,
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(background)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        color = Color.White,
+            .background(
+                if (isActive) {
+                    accent.copy(alpha = 0.14f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+            )
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        color = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
     )
 }
 
 @Composable
-private fun ArtistMetricCard(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier,
+private fun ArtistPageHeroMotionStage(
+    page: ArtistPageUi,
+    visualStyle: ArtistPageVisualStyle,
+    heroVideoPlayer: ExoPlayer,
 ) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 12.dp, vertical = 11.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+    val hasHeroVideo = !page.heroVideoURL.isNullOrBlank()
+    val hasHeroImage = !page.heroImageURL.isNullOrBlank()
+    val titleShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.32f),
+        offset = Offset(0f, 8f),
+        blurRadius = 22f,
+    )
+    val bodyShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.24f),
+        offset = Offset(0f, 4f),
+        blurRadius = 16f,
+    )
+
+    BrandPreviewFrame(
+        accent = if (hasHeroVideo) visualStyle.secondaryAccent else visualStyle.accent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(212.dp),
     ) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+        when {
+            hasHeroVideo -> {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { playerContext ->
+                        PlayerView(playerContext).apply {
+                            useController = false
+                            player = heroVideoPlayer
+                        }
+                    },
+                    update = { view ->
+                        view.player = heroVideoPlayer
+                    },
+                )
+            }
+
+            hasHeroImage -> {
+                AsyncImage(
+                    model = page.heroImageURL,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.32f),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayCircleFilled,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.82f),
+                        modifier = Modifier.size(42.dp),
+                    )
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.10f),
+                            Color.Black.copy(alpha = 0.16f),
+                            Color.Black.copy(alpha = 0.72f),
+                        ),
+                    ),
+                ),
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-        )
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = if (hasHeroVideo) "Motion Stage" else if (hasHeroImage) "Hero Frame" else "Motion Space",
+                style = MaterialTheme.typography.labelLarge.copy(shadow = bodyShadow),
+                color = Color.White.copy(alpha = 0.90f),
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = when {
+                    hasHeroVideo -> "${page.artistName} bleibt direkt in Bewegung und gibt der Seite mehr Erinnerung."
+                    hasHeroImage -> "Ein Hero-Video kann diesen Frame noch cineastischer und lebendiger machen."
+                    else -> "Mit einem kurzen Hero-Video bekommt der Artist sofort eine viel staerkere Buehnenwirkung."
+                },
+                style = MaterialTheme.typography.titleMedium.copy(shadow = titleShadow),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ArtistPill(
+                text = if (hasHeroVideo) "Autoplay muted" else "Motion ready",
+                accent = Color.White,
+            )
+            if (hasHeroVideo) {
+                ArtistPill(
+                    text = "Hero video",
+                    accent = visualStyle.secondaryAccent,
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun ArtistSessionSignalCard(
-    title: String,
-    value: String,
-    detail: String,
+private fun ArtistPagePresenceGrid(
+    page: ArtistPageUi,
+    trackCount: Int,
+    linkCount: Int,
+    visualStyle: ArtistPageVisualStyle,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val stacked = maxWidth < 448.dp
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ArtistPagePresenceSummary(
+                page = page,
+                trackCount = trackCount,
+                linkCount = linkCount,
+                visualStyle = visualStyle,
+            )
+
+            if (stacked) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BrandHeroMetricCard(
+                        label = "Status",
+                        value = if (page.hasCustomPresentation) "Live" else "Draft",
+                        accent = visualStyle.accent,
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Default.AutoAwesome,
+                        isActive = page.hasCustomPresentation,
+                    )
+                    BrandHeroMetricCard(
+                        label = "Catalog",
+                        value = artistTrackCountLabel(trackCount),
+                        accent = SpotifyGreen,
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Default.GraphicEq,
+                        isActive = trackCount > 0,
+                    )
+                    BrandHeroMetricCard(
+                        label = "Reach",
+                        value = if (linkCount > 0) artistLinkCountLabel(linkCount) else "No links",
+                        accent = visualStyle.secondaryAccent,
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.AutoMirrored.Filled.OpenInNew,
+                        isActive = linkCount > 0,
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    BrandHeroMetricCard(
+                        label = "Status",
+                        value = if (page.hasCustomPresentation) "Live" else "Draft",
+                        accent = visualStyle.accent,
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.AutoAwesome,
+                        isActive = page.hasCustomPresentation,
+                    )
+                    BrandHeroMetricCard(
+                        label = "Catalog",
+                        value = artistTrackCountLabel(trackCount),
+                        accent = SpotifyGreen,
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.GraphicEq,
+                        isActive = trackCount > 0,
+                    )
+                    BrandHeroMetricCard(
+                        label = "Reach",
+                        value = if (linkCount > 0) artistLinkCountLabel(linkCount) else "No links",
+                        accent = visualStyle.secondaryAccent,
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.AutoMirrored.Filled.OpenInNew,
+                        isActive = linkCount > 0,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArtistPagePresenceSummary(
+    page: ArtistPageUi,
+    trackCount: Int,
+    linkCount: Int,
+    visualStyle: ArtistPageVisualStyle,
+) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val hasBackgroundMedia = !page.heroImageURL.isNullOrBlank() || !page.heroVideoURL.isNullOrBlank()
+    val summaryText = when {
+        !page.bio.isNullOrBlank() -> page.bio.orEmpty()
+        trackCount > 0 && linkCount > 0 ->
+            "Songs, Plattformen und Artist-Identity greifen hier in einer gemeinsamen Stage zusammen."
+        trackCount > 0 ->
+            "Der Katalog steht bereit und kann direkt ueber Songs und Preview erlebt werden."
+        else ->
+            "Mit Bild, Bio und Links bekommt dieser Artist eine klare, markentaugliche Startflaeche."
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ArtistPageProfileMedallion(
+            page = page,
+            accent = visualStyle.accent,
+        )
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = if (page.editorUids.isNotEmpty()) {
+                    "Artist Presence • ${page.editorUids.size} Editoren"
+                } else {
+                    "Artist Presence"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = if (hasBackgroundMedia) {
+                    Color.White.copy(alpha = 0.94f)
+                } else {
+                    visualStyle.accent
+                },
+            )
+            Text(
+                text = summaryText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (hasBackgroundMedia) {
+                    Color.White.copy(alpha = 0.84f)
+                } else {
+                    onSurface.copy(alpha = 0.76f)
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArtistPageProfileMedallion(
+    page: ArtistPageUi,
+    accent: Color,
+    size: androidx.compose.ui.unit.Dp = 72.dp,
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(accent.copy(alpha = 0.16f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!page.profileImageURL.isNullOrBlank()) {
+            AsyncImage(
+                model = page.profileImageURL,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Text(
+                text = page.artistName.take(1).uppercase(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = accent,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArtistPageSupportMessage(
+    message: String,
     accent: Color,
 ) {
-    Column(
+    Text(
+        text = message,
         modifier = Modifier
-            .width(136.dp)
+            .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f))
-            .padding(horizontal = 12.dp, vertical = 11.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            .background(accent.copy(alpha = 0.10f))
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+    )
+}
+
+private data class ArtistPageVisualStyle(
+    val eyebrow: String,
+    val accent: Color,
+    val secondaryAccent: Color,
+    val marks: List<BrandArtwork>,
+)
+
+@Composable
+private fun artistPageVisualStyle(brand: ArtistPageBrand): ArtistPageVisualStyle {
+    val colorScheme = MaterialTheme.colorScheme
+    return when (brand) {
+        ArtistPageBrand.Zweizwei -> ArtistPageVisualStyle(
+            eyebrow = "22 ARTIST",
+            accent = SpotifyGreen,
+            secondaryAccent = colorScheme.primary,
+            marks = listOf(BrandArtwork.Zweizwei),
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+        ArtistPageBrand.Skydown -> ArtistPageVisualStyle(
+            eyebrow = "SKYDOWN ARTIST",
+            accent = colorScheme.primary,
+            secondaryAccent = colorScheme.tertiary,
+            marks = listOf(BrandArtwork.Skydown),
         )
-        Text(
-            text = detail,
-            style = MaterialTheme.typography.bodySmall,
-            color = accent.copy(alpha = 0.86f),
-            maxLines = 1,
+        ArtistPageBrand.Nicma -> ArtistPageVisualStyle(
+            eyebrow = "NICMA PRODUCER",
+            accent = colorScheme.tertiary,
+            secondaryAccent = colorScheme.primary,
+            marks = emptyList(),
         )
     }
+}
+
+private fun artistTrackCountLabel(trackCount: Int): String = when {
+    trackCount <= 0 -> "No songs"
+    trackCount == 1 -> "1 Song"
+    else -> "$trackCount Songs"
+}
+
+private fun artistLinkCountLabel(linkCount: Int): String = when {
+    linkCount <= 0 -> "No links"
+    linkCount == 1 -> "1 Link"
+    else -> "$linkCount Links"
 }
 
 private data class ArtistPageLinkUi(

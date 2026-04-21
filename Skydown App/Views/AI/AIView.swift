@@ -239,7 +239,7 @@ private struct AIHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("SkyOs Bot")
+                Text("SkyOS Bot")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -305,7 +305,7 @@ private struct AIDisabledCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("SkyOs Bot pausiert")
+                    Text("SkyOS Bot pausiert")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -435,7 +435,7 @@ private struct AIMessageBubble: View {
             if isUser { Spacer(minLength: 48) }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(isUser ? "Du" : "SkyOs Bot")
+                Text(isUser ? "Du" : "SkyOS Bot")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accent(for: colorScheme))
 
@@ -444,7 +444,7 @@ private struct AIMessageBubble: View {
                         ProgressView()
                             .tint(AppColors.accent(for: colorScheme))
 
-                        Text("SkyOs Bot antwortet gerade...")
+                        Text("SkyOS Bot antwortet gerade...")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }

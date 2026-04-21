@@ -1,7 +1,9 @@
 package com.skydown.android.data
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
@@ -49,6 +51,50 @@ class EditableImageAssetRepository(
         )
     }
 
+    suspend fun uploadVideoAsset(
+        uri: Uri,
+        context: Context,
+    ): Result<EditableImageAssetUploadResult> = runCatching {
+        val userId = auth.currentUser?.uid ?: error("Bitte zuerst anmelden.")
+        val selectedFile = context.contentResolver.resolveSelectedVideoAsset(uri)
+        val slot = requestUploadSlot(
+            userId = userId,
+            kind = "asset",
+            mimeType = selectedFile.mimeType,
+            fileExtension = selectedFile.fileName.substringAfterLast('.', "mp4"),
+            byteSize = selectedFile.fileSizeBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+        )
+
+        val reference = storage.reference.child(slot.storagePath)
+        val metadata = StorageMetadata.Builder()
+            .setContentType(selectedFile.mimeType)
+            .setCustomMetadata("uploadSlotId", slot.slotId)
+            .setCustomMetadata("ownerUid", userId)
+            .setCustomMetadata("originalFilename", selectedFile.fileName)
+            .build()
+
+        val stagedFile = context.stagePickerFileForUpload(
+            sourceUri = uri,
+            fileName = selectedFile.fileName,
+        )
+
+        try {
+            reference.putStagedFile(
+                stagedFile = stagedFile,
+                metadata = metadata,
+            )
+        } catch (error: Exception) {
+            throw error.toReadableStorageUploadError(selectedFile.fileName)
+        } finally {
+            stagedFile.delete()
+        }
+
+        EditableImageAssetUploadResult(
+            downloadUrl = reference.awaitStableDownloadUrl(),
+            storagePath = slot.storagePath,
+        )
+    }
+
     suspend fun deleteImageAsset(
         imageUrl: String,
     ): Result<Unit> = runCatching {
@@ -72,6 +118,8 @@ class EditableImageAssetRepository(
             throw error
         }
     }
+
+    suspend fun deleteAsset(assetUrl: String): Result<Unit> = deleteImageAsset(assetUrl)
 
     private suspend fun requestUploadSlot(
         userId: String,
@@ -110,3 +158,51 @@ private data class AssetUploadSlot(
     val slotId: String,
     val storagePath: String,
 )
+
+private data class SelectedVideoAsset(
+    val fileName: String,
+    val fileSizeBytes: Long,
+    val mimeType: String,
+)
+
+private fun ContentResolver.resolveSelectedVideoAsset(uri: Uri): SelectedVideoAsset {
+    var fileName = "artist-hero-video.mp4"
+    var fileSizeBytes = 0L
+
+    query(
+        uri,
+        arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
+        null,
+        null,
+        null,
+    )?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+        if (cursor.moveToFirst()) {
+            if (nameIndex >= 0) {
+                fileName = cursor.getString(nameIndex) ?: fileName
+            }
+            if (sizeIndex >= 0) {
+                fileSizeBytes = cursor.getLong(sizeIndex)
+            }
+        }
+    }
+
+    val mimeType = getType(uri).orEmpty().ifBlank {
+        when {
+            fileName.lowercase().endsWith(".mov") -> "video/quicktime"
+            fileName.lowercase().endsWith(".m4v") -> "video/x-m4v"
+            else -> "video/mp4"
+        }
+    }
+
+    if (!mimeType.startsWith("video/")) {
+        error("Bitte waehle eine gueltige Videodatei aus.")
+    }
+
+    return SelectedVideoAsset(
+        fileName = fileName,
+        fileSizeBytes = fileSizeBytes,
+        mimeType = mimeType,
+    )
+}

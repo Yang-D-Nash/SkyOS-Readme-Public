@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">SkyOs</string>
+    <string name="app_name" translatable="false">SkyOS</string>
     <string name="attribution_core" translatable="false">Core app interactions</string>
     <string name="attribution_media" translatable="false">Media playback and video</string>
     <string name="attribution_auth" translatable="false">Authentication and sign-in</string>
@@ -29,7 +29,7 @@
 
     <string name="auth_close">Close</string>
     <string name="auth_login_title">Sign in</string>
-    <string name="auth_login_welcome">Welcome to SkyOs</string>
+    <string name="auth_login_welcome">Welcome to SkyOS</string>
     <string name="auth_login_subtitle">Sign in to access your account and creator tools.</string>
     <string name="auth_login_badge_account">Account</string>
     <string name="auth_login_badge_google">Google</string>

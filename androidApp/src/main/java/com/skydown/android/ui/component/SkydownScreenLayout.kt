@@ -30,13 +30,15 @@ import com.skydown.android.ui.theme.skydownSecondaryBackground
 
 object SkydownUiTokens {
     val screenHorizontalPadding = 18.dp
-    val screenTopPadding = 12.dp
-    val screenBottomPadding = 16.dp
+    val screenTopPadding = 14.dp
+    val screenBottomPadding = 22.dp
     val cardPadding = 16.dp
     val heroPadding = 18.dp
     val cardCornerRadius = 28.dp
     val heroCornerRadius = 34.dp
     val buttonCornerRadius = 22.dp
+    val screenSectionSpacing = 18.dp
+    val compactScreenSectionSpacing = 14.dp
 }
 
 fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingValues(
@@ -45,6 +47,14 @@ fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingV
     end = SkydownUiTokens.screenHorizontalPadding,
     bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
 )
+
+@Composable
+fun rememberSkydownScreenSectionSpacing() =
+    if (rememberUsesCompactVisualDensity()) {
+        SkydownUiTokens.compactScreenSectionSpacing
+    } else {
+        SkydownUiTokens.screenSectionSpacing
+    }
 
 @Composable
 fun skydownScreenBrush(
@@ -102,12 +112,18 @@ fun SkydownTopBarTitle(
     title: String,
     subtitle: String? = null,
     accent: Color = MaterialTheme.colorScheme.primary,
+    metaLabel: String? = null,
 ) {
     val compactLayout = rememberIsCompactAppLayout()
-    val showSystemMeta = title.equals("SkyOs", ignoreCase = true) && !compactLayout
+    val resolvedMetaLabel = metaLabel?.takeIf { it.isNotBlank() && !compactLayout }
+    val resolvedSubtitle = subtitle?.takeIf { it.isNotBlank() && !compactLayout }
 
-    Column(verticalArrangement = Arrangement.spacedBy(if (showSystemMeta) 3.dp else 0.dp)) {
-        if (showSystemMeta) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(
+            if (resolvedMetaLabel != null || resolvedSubtitle != null) 3.dp else 0.dp,
+        ),
+    ) {
+        if (resolvedMetaLabel != null) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -118,7 +134,7 @@ fun SkydownTopBarTitle(
                         .background(accent.copy(alpha = 0.90f), CircleShape),
                 )
                 Text(
-                    text = "SYSTEM",
+                    text = resolvedMetaLabel.uppercase(),
                     style = MaterialTheme.typography.labelMedium,
                     color = accent.copy(alpha = 0.92f),
                     fontWeight = FontWeight.SemiBold,
@@ -136,9 +152,9 @@ fun SkydownTopBarTitle(
             overflow = TextOverflow.Ellipsis,
         )
 
-        if (showSystemMeta && !subtitle.isNullOrBlank()) {
+        if (resolvedSubtitle != null) {
             Text(
-                text = subtitle,
+                text = resolvedSubtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 maxLines = 1,

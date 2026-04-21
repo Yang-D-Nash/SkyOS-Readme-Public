@@ -60,7 +60,7 @@ enum LegalTextTemplateFactory {
         Die in der App verfuegbaren KI-Funktionen sind als Assistenzfunktionen vorgesehen. KI-Ausgaben koennen unvollstaendig, fehlerhaft oder unpassend sein und muessen vor einer verbindlichen Nutzung geprueft werden. Bitte geben Sie keine geheimen, vertraulichen oder unnoetig sensiblen Daten Dritter ein.
 
         8. Workflow Automation und Webhook-Dienste
-        Wenn Workflow-Automationen aktiviert sind, koennen serverseitig gepruefte Daten an den konfigurierten Workflow-Endpunkt, zum Beispiel n8n, uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. SkyOs verfolgt dabei das Prinzip persoenlicher Konfigurationen pro Konto, um Rechte, Verantwortung und Kosten sauber zu trennen.
+        Wenn Workflow-Automationen aktiviert sind, koennen serverseitig gepruefte Daten an den konfigurierten Workflow-Endpunkt, zum Beispiel n8n, uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. SkyOS verfolgt dabei das Prinzip persoenlicher Konfigurationen pro Konto, um Rechte, Verantwortung und Kosten sauber zu trennen.
 
         9. Empfaenger und Drittstaatentransfers
         Daten koennen an technische und operative Empfaenger uebermittelt werden, soweit dies fuer die App erforderlich ist, etwa an Hosting-, Speicher-, Authentifizierungs-, Sicherheits-, Zahlungs-, Fulfillment-, Support-, KI- oder Workflow-Dienstleister.
@@ -194,7 +194,7 @@ enum LegalTextTemplateFactory {
         let symbolicCodeExplanation = settings.resolvedSymbolicCodeExplanation
 
         return """
-        README / SkyOs Guide fuer \(brand)
+        README / SkyOS Guide fuer \(brand)
 
         Zuletzt aktualisiert: \(updatedAt)
 
@@ -219,7 +219,7 @@ enum LegalTextTemplateFactory {
         - Agent dient fuer umsetzungsorientierte Aufgaben statt nur Chat-Antworten
         - Optional kannst du eigene Workflow-Dienste (z. B. n8n/Webhook) hinterlegen
         - Je nach Setup koennen externe Services und eigene API-Kosten entstehen
-        - SkyOs trennt persoenliche Workflow-Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten klar bleiben
+        - SkyOS trennt persoenliche Workflow-Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten klar bleiben
 
         5. Kostenkontrolle
         - Kontingente, Hard Caps und globale Tageslimits begrenzen das Risiko

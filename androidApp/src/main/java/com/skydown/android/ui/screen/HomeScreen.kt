@@ -67,8 +67,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -102,9 +102,12 @@ import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.ExternalVideoWebPlayer
 import com.skydown.android.ui.component.OriginalVideoViewerDialog
 import com.skydown.android.ui.component.SkydownCard
+import com.skydown.android.ui.component.SkydownMotionTokens
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
 import com.skydown.android.ui.component.skydownPressable
+import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.FeaturedBeatHighlight
@@ -242,6 +245,7 @@ fun HomeScreen(
     val homeMysticAccent = colorScheme.skydownAccentMystic()
     val homeHighlightAccent = colorScheme.skydownAccentHighlight()
     val homeSpotifyAccent = colorScheme.skydownSpotify()
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -250,7 +254,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        "SkyOs",
+                        "SkyOS",
                         accent = homeAccent,
                     )
                 },
@@ -309,20 +313,15 @@ fun HomeScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
-                contentPadding = PaddingValues(
-                    start = SkydownUiTokens.screenHorizontalPadding,
-                    top = innerPadding.calculateTopPadding() + 4.dp,
-                    end = SkydownUiTokens.screenHorizontalPadding,
-                    bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = skydownContentPadding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
                 item {
                     HomeAnimatedItem(order = 0) {
                         BrandHeroCard(
                             eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY OS" },
                             title = screenHeaderSettings.homeTitle.ifBlank { "Home" },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren SkyOs-Flow." },
+                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Music, Merch und Video in einem klaren SkyOS-Flow." },
                             detail = screenHeaderSettings.homeDetail.ifBlank { "$activeSignalCount von $homeSignalTotal Bereichen sind gerade live." },
                             backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                             accent = homeAccent,
@@ -500,13 +499,13 @@ private fun HomeAnimatedItem(
     var visible by remember(order) { mutableStateOf(false) }
 
     LaunchedEffect(order) {
-        delay(order * 18L)
+        delay(order.coerceAtMost(4) * SkydownMotionTokens.staggerStepMillis.toLong())
         visible = true
     }
 
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 6 }),
+        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 12 }),
     ) {
         content()
     }
@@ -611,7 +610,7 @@ private fun HomeMapBackdrop(
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(x = 168.dp, y = (-138).dp),
-            size = 280.dp,
+            haloSize = 280.dp,
             tint = colorScheme.skydownSpotify(),
             opacity = if (isDarkPalette) 0.09f else 0.07f,
         )
@@ -619,7 +618,7 @@ private fun HomeMapBackdrop(
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(x = (-172).dp, y = 210.dp),
-            size = 240.dp,
+            haloSize = 240.dp,
             tint = colorScheme.skydownAccentMystic(),
             opacity = if (isDarkPalette) 0.10f else 0.08f,
         )
@@ -627,7 +626,7 @@ private fun HomeMapBackdrop(
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(x = 154.dp, y = 498.dp),
-            size = 320.dp,
+            haloSize = 320.dp,
             tint = colorScheme.skydownAccentHighlight(),
             opacity = if (isDarkPalette) 0.08f else 0.06f,
         )
@@ -637,27 +636,36 @@ private fun HomeMapBackdrop(
 @Composable
 private fun HomeBackdropHalo(
     modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp,
+    haloSize: androidx.compose.ui.unit.Dp,
     tint: Color,
     opacity: Float,
 ) {
     Box(
-        modifier = modifier.size(size),
+        modifier = modifier.size(haloSize),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .size(size)
-                .background(
-                    color = tint.copy(alpha = opacity),
-                    shape = CircleShape,
-                )
-                .blur(34.dp),
+                .size(haloSize)
+                .clip(CircleShape)
+                .drawWithCache {
+                    val haloBrush = Brush.radialGradient(
+                        colors = listOf(
+                            tint.copy(alpha = opacity),
+                            tint.copy(alpha = opacity * 0.38f),
+                            Color.Transparent,
+                        ),
+                        radius = minOf(size.width, size.height) * 0.5f,
+                    )
+                    onDrawBehind {
+                        drawCircle(brush = haloBrush)
+                    }
+                },
         )
         listOf(1f, 0.78f, 0.56f).forEachIndexed { index, scale ->
             Box(
                 modifier = Modifier
-                    .size(size * scale)
+                    .size(haloSize * scale)
                     .border(
                         width = 1.dp,
                         color = tint.copy(alpha = opacity - (index * 0.02f)),

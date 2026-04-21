@@ -96,6 +96,7 @@ import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.TrackRow
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
 import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
@@ -152,6 +153,7 @@ fun MusicScreen(
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
     val hasShortcutHub = onOpenBeatHub != null || onOpenStudio != null
     val compactVisualDensity = rememberUsesCompactVisualDensity()
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
     val artistSectionIndex = if (hasShortcutHub) 3 else 2
     val spotifyStatusSectionIndex = if (hasShortcutHub) 5 else 4
     val tracksSectionIndex = if (uiState.tracks.isNotEmpty()) {
@@ -379,13 +381,8 @@ fun MusicScreen(
                         .widthIn(max = contentMaxWidth)
                         .testTag("music.screen.root"),
                     state = listState,
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        top = innerPadding.calculateTopPadding() + 10.dp,
-                        end = 16.dp,
-                        bottom = innerPadding.calculateBottomPadding() + 10.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = skydownContentPadding(innerPadding),
+                    verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
                     item {
                         MusicOverviewCard(
@@ -978,7 +975,7 @@ private fun MusicOverviewCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Artists, Releases und Spotify im SkyOs Sound-Flow." },
+        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Artists, Releases und Spotify im SkyOS Sound-Flow." },
         detail = screenHeaderSettings.musicHubDetail.ifBlank {
             "${uiState.selectedArtist} und alle Artists direkt im Katalog."
         },

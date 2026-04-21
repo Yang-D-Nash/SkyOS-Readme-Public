@@ -1210,7 +1210,7 @@ private struct VideoReelViewer: View {
 
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("SkyOs Video")
+                        Text("SkyOS Video")
                             .font(.headline.weight(.bold))
                             .foregroundColor(.white)
 

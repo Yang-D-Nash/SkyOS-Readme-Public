@@ -13,12 +13,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 
 object SkydownMotionTokens {
-    const val primaryEnterDurationMillis = 460
-    const val primaryExitDurationMillis = 300
-    const val overlayEnterDurationMillis = 380
-    const val overlayExitDurationMillis = 260
-    const val statusEnterDurationMillis = 320
-    const val statusExitDurationMillis = 220
+    const val primaryEnterDurationMillis = 320
+    const val primaryExitDurationMillis = 220
+    const val overlayEnterDurationMillis = 280
+    const val overlayExitDurationMillis = 200
+    const val statusEnterDurationMillis = 260
+    const val statusExitDurationMillis = 180
+    const val staggerStepMillis = 12
 }
 
 @Composable

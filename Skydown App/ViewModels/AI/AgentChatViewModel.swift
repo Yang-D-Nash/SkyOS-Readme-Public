@@ -571,11 +571,11 @@ final class AgentChatViewModel: ObservableObject {
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
             case .notFound, .unimplemented:
-                return "Der SkyOs Agent ist fuer diesen Bereich gerade noch nicht verfuegbar."
+                return "Der SkyOS Agent ist fuer diesen Bereich gerade noch nicht verfuegbar."
             case .unavailable:
-                return "Der SkyOs Agent ist gerade nicht erreichbar."
+                return "Der SkyOS Agent ist gerade nicht erreichbar."
             case .deadlineExceeded:
-                return "Der SkyOs Agent hat zu lange fuer die Antwort gebraucht."
+                return "Der SkyOS Agent hat zu lange fuer die Antwort gebraucht."
             case .resourceExhausted:
                 return nsError.localizedDescription.isEmpty ? "Dein heutiges Agent-Limit ist erreicht." : nsError.localizedDescription
             case .invalidArgument:
@@ -600,6 +600,6 @@ final class AgentChatViewModel: ObservableObject {
             return nsError.localizedDescription
         }
 
-        return "Der SkyOs Agent konnte gerade nicht antworten."
+        return "Der SkyOS Agent konnte gerade nicht antworten."
     }
 }

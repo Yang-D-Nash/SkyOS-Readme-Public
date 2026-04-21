@@ -107,6 +107,7 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
@@ -261,6 +262,7 @@ fun SettingsScreen(
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
     var stripeAccountHintDraft by rememberSaveable { mutableStateOf("") }
     var stripeSecretKeyDraft by rememberSaveable { mutableStateOf("") }
     var stripeWebhookSecretDraft by rememberSaveable { mutableStateOf("") }
@@ -835,7 +837,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     label = { Text("Home Eyebrow") },
-                    placeholder = { Text("z. B. Willkommen bei SkyOs") },
+                    placeholder = { Text("z. B. Willkommen bei SkyOS") },
                     singleLine = true,
                 )
 
@@ -1355,7 +1357,7 @@ fun SettingsScreen(
                         uiState.paymentMethods.stripe.enabled,
                     accountHint = stripeAccountHintDraft,
                     accountHintLabel = "Stripe Konto / Workspace",
-                    accountHintPlaceholder = "z. B. SkyOs Merch Workspace",
+                    accountHintPlaceholder = "z. B. SkyOS Merch Workspace",
                     onAccountHintChange = { stripeAccountHintDraft = it },
                     onSaveConnection = { viewModel.connectStripe(stripeAccountHintDraft) },
                     onDisconnect = if (uiState.paymentMethods.stripe.connected) {
@@ -1736,7 +1738,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 10.dp),
                     label = { Text("Auth Header Name") },
-                    placeholder = { Text("z. B. X-SkyOs-Automation-Key") },
+                    placeholder = { Text("z. B. X-SkyOS-Automation-Key") },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -2481,7 +2483,7 @@ fun SettingsScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = skydownContentPadding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
                 item {
                     SettingsOverviewCard(uiState = uiState)
@@ -2938,7 +2940,7 @@ fun SettingsScreen(
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
                                 label = { Text("Brandname") },
-                                placeholder = { Text("z. B. SkyOs") },
+                                placeholder = { Text("z. B. SkyOS") },
                                 singleLine = true,
                             )
 
@@ -3571,7 +3573,7 @@ private fun SettingsOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = if (uiState.isLoggedIn) uiState.username else "SkyOs Einstellungen",
+                    text = if (uiState.isLoggedIn) uiState.username else "SkyOS Einstellungen",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -5159,7 +5161,7 @@ private fun openSupportEmail(
         "Support-Anfrage"
     }
     val body = """
-        Hallo SkyOs-Team,
+        Hallo SkyOS-Team,
 
         ich habe folgende Anfrage:
 

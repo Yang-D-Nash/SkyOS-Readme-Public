@@ -146,7 +146,7 @@ struct HomeView: View {
                     }
                     .ignoresSafeArea()
             }
-            .navigationTitle("SkyOs")
+            .navigationTitle("SkyOS")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -642,8 +642,8 @@ private struct HomeHeroIntroCard: View {
 
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOs Home",
-            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOs",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS Home",
+            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
             subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Alles direkt im Blick.",
             detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Musik, Video, Merch, Tools.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,

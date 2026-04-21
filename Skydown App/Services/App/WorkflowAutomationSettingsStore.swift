@@ -6,10 +6,10 @@ struct WorkflowAutomationSettings: Equatable {
     var provider: String = "n8n"
     var isEnabled: Bool = false
     var sendsUserContext: Bool = true
-    var workflowName: String = "SkyOs Automation"
+    var workflowName: String = "SkyOS Automation"
     var baseURL: String = ""
     var webhookPath: String = ""
-    var authHeaderName: String = "X-SkyOs-Automation-Key"
+    var authHeaderName: String = "X-SkyOS-Automation-Key"
     var authHeaderValue: String = ""
     var knowledgeContext: String = ""
 
@@ -125,7 +125,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
             provider: (data["provider"] as? String)?.trimmedNonEmpty ?? "n8n",
             isEnabled: data["isEnabled"] as? Bool ?? false,
             sendsUserContext: data["sendsUserContext"] as? Bool ?? true,
-            workflowName: (data["workflowName"] as? String)?.trimmedNonEmpty ?? "SkyOs Automation",
+            workflowName: (data["workflowName"] as? String)?.trimmedNonEmpty ?? "SkyOS Automation",
             baseURL: normalizeAutomationBaseURL(data["baseURL"] as? String) ?? "",
             webhookPath: normalizeAutomationWebhookPath(data["webhookPath"] as? String) ?? "",
             authHeaderName: (data["authHeaderName"] as? String)?.trimmed ?? "",
@@ -139,7 +139,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
             "provider": "n8n",
             "isEnabled": settings.isEnabled,
             "sendsUserContext": settings.sendsUserContext,
-            "workflowName": settings.workflowName.trimmedNonEmpty ?? "SkyOs Automation",
+            "workflowName": settings.workflowName.trimmedNonEmpty ?? "SkyOS Automation",
             "baseURL": normalizeAutomationBaseURL(settings.baseURL) ?? "",
             "webhookPath": normalizeAutomationWebhookPath(settings.webhookPath) ?? "",
             "authHeaderName": settings.authHeaderName.trimmed,

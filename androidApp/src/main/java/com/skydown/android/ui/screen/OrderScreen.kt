@@ -39,6 +39,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
+import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.viewmodel.OrderViewModel
 import com.skydown.shared.model.Order
@@ -56,6 +58,7 @@ fun OrderScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val completedOrders = uiState.orders.count { it.isCompleted }
+    val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         if (uiState.errorMessage != null || uiState.successMessage != null) {
@@ -110,13 +113,8 @@ fun OrderScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + com.skydown.android.ui.component.SkydownUiTokens.screenTopPadding,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 28.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = skydownContentPadding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
                 item {
                     OrdersOverviewCard(

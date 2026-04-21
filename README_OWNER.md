@@ -1,7 +1,7 @@
-# SkyOs Owner Guide
+# SkyOS Owner Guide
 
-Dieses Handbuch beschreibt den Betrieb von SkyOs aus Owner-Sicht.
-SkyOs ist die Produkt- und Steuerungsschicht des `Skydown x 22` Universums und verbindet Experience, Rollen, KI, Workflows, Commerce, Sicherheit und Release-Governance.
+Dieses Handbuch beschreibt den Betrieb von SkyOS aus Owner-Sicht.
+SkyOS ist die Produkt- und Steuerungsschicht des `Skydown x 22` Universums und verbindet Experience, Rollen, KI, Workflows, Commerce, Sicherheit und Release-Governance.
 
 Zuletzt aktualisiert: `20. April 2026`
 
@@ -33,7 +33,7 @@ Rechtlich Verantwortlicher und Betreiber:
 
 ## 2) Produktlogik Owner
 
-SkyOs ist als System gedacht.
+SkyOS ist als System gedacht.
 Deshalb gilt fuer Owner-Entscheidungen:
 
 - Klarheit vor Feature-Dichte
@@ -82,7 +82,7 @@ Empfohlener Ablauf:
 
 ## 4) KI Governance
 
-SkyOs trennt zwischen Produktwert und Kostenkontrolle.
+SkyOS trennt zwischen Produktwert und Kostenkontrolle.
 
 ### Pro Konto steuerbar
 
@@ -120,7 +120,7 @@ Empfehlung:
 
 ## 5) Workflow Automation Governance
 
-SkyOs nutzt persoenliche Workflow-Konfigurationen je Konto.
+SkyOS nutzt persoenliche Workflow-Konfigurationen je Konto.
 
 - `adminConfig/automationN8n_<uid>`
 - optional `adminConfig/agentProfile_<uid>`

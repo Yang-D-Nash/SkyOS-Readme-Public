@@ -405,7 +405,7 @@ private fun ShopOverviewCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.shopTitle.ifBlank { "Merch" },
-        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Pieces und Checkout direkt im SkyOs Store." },
+        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops, Pieces und Checkout direkt im SkyOS Store." },
         detail = screenHeaderSettings.shopDetail.ifBlank {
             if (uiState.isCatalogLoading) {
                 "Produkte und Verfuegbarkeit werden synchronisiert."

@@ -39,7 +39,7 @@ fun SettingsLegalDocumentType.resolve(
 
     return when (this) {
         SettingsLegalDocumentType.ReadmeGuide -> SettingsLegalDocument(
-            title = "README / SkyOs Guide",
+            title = "README / SkyOS Guide",
             updatedAt = lastUpdatedLabel,
             introduction = "Dieser Guide hilft dir beim schnellen Einstieg in $brandName als zusammenhaengendes Creator Operating System. Du findest hier die wichtigsten Flows fuer Rollen, KI, Agenten, Workflows, Content und Support.",
             sections = listOf(
@@ -57,7 +57,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "4. Agent und Workflow-Trigger",
-                    body = "Der Agent ist fuer umsetzungsorientierte Aufgaben gedacht und kann optional eigene Workflow-Services (z. B. n8n/Webhook) triggern. Bei externen Services koennen je nach Setup eigene API-Kosten entstehen. SkyOs trennt persoenliche Workflow-Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten klar bleiben.",
+                    body = "Der Agent ist fuer umsetzungsorientierte Aufgaben gedacht und kann optional eigene Workflow-Services (z. B. n8n/Webhook) triggern. Bei externen Services koennen je nach Setup eigene API-Kosten entstehen. SkyOS trennt persoenliche Workflow-Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten klar bleiben.",
                 ),
                 SettingsLegalSection(
                     title = "5. Kostenkontrolle",
@@ -101,7 +101,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "5. KI, Workflow und Drittanbieter",
-                    body = "KI-Funktionen sind Assistenzfunktionen. Je nach Nutzung koennen Prompts, Uploads und Ausgaben an eingebundene KI- oder Workflow-Dienste uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. SkyOs trennt persoenliche Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten nachvollziehbar bleiben. KI-Ausgaben muessen vor verbindlicher Nutzung geprueft werden.",
+                    body = "KI-Funktionen sind Assistenzfunktionen. Je nach Nutzung koennen Prompts, Uploads und Ausgaben an eingebundene KI- oder Workflow-Dienste uebermittelt werden. Bei BYOS-Setups mit n8n oder Manus verwaltet der Nutzer seinen externen Dienstzugang eigenverantwortlich. SkyOS trennt persoenliche Konfigurationen pro Konto, damit Verantwortung, Rechte und Kosten nachvollziehbar bleiben. KI-Ausgaben muessen vor verbindlicher Nutzung geprueft werden.",
                 ),
                 SettingsLegalSection(
                     title = "6. Rechte der Nutzer",

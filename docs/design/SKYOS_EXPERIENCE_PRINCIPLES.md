@@ -1,15 +1,15 @@
-# SkyOs Experience Principles
+# SkyOS Experience Principles
 
 Zuletzt aktualisiert: `20. April 2026`
 
-Dieses Dokument beschreibt die Erlebnis- und Systemregeln fuer SkyOs.
+Dieses Dokument beschreibt die Erlebnis- und Systemregeln fuer SkyOS.
 Es ist kein Moodboard, sondern die gemeinsame Arbeitsgrundlage fuer Design, Produkt, Entwicklung, Review und Release.
 
 ---
 
 ## 1) Ziel
 
-SkyOs soll sich wie ein `zusammenhaengendes Creator Operating System` anfuehlen.
+SkyOS soll sich wie ein `zusammenhaengendes Creator Operating System` anfuehlen.
 Nicht wie:
 
 - mehrere zusammengesteckte Screens
@@ -26,7 +26,7 @@ Sondern wie:
 
 ## 2) Offizielle Leitplanken
 
-SkyOs orientiert sich an langlebigen Standards:
+SkyOS orientiert sich an langlebigen Standards:
 
 ### Apple Human Interface Guidelines
 
@@ -109,7 +109,7 @@ Deshalb sind Home, Uebergaenge, Feedback, Vollbildmodi und Rueckwege besonders w
 
 ---
 
-## 4) SkyOs Gestaltungsregeln
+## 4) SkyOS Gestaltungsregeln
 
 ### 4.1 Hierarchie
 
@@ -159,7 +159,7 @@ Jede relevante Interaktion braucht mindestens eines davon:
 
 ---
 
-## 5) Was SkyOs vermeiden soll
+## 5) Was SkyOS vermeiden soll
 
 - ueberladene Hero-Flaechen
 - zu viele gleich starke CTA-Ebenen
@@ -181,13 +181,13 @@ Ein Screen gilt erst dann als release-reif, wenn:
 - Rueckwege klar sind
 - Feedback konsistent ist
 - die Sprache kurz und hochwertig wirkt
-- der Screen wie Teil von SkyOs aussieht, nicht wie ein Fremdmodul
+- der Screen wie Teil von SkyOS aussieht, nicht wie ein Fremdmodul
 
 ---
 
 ## 7) Arbeitsmodus fuer weitere Veredelung
 
-Wir veredeln SkyOs in dieser Reihenfolge:
+Wir veredeln SkyOS in dieser Reihenfolge:
 
 1. gemeinsame Design-Tokens und Interaktionsmuster
 2. Home als System-Einstieg

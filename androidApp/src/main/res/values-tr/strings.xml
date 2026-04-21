@@ -22,7 +22,7 @@
 
     <string name="auth_close">Kapat</string>
     <string name="auth_login_title">Giris yap</string>
-    <string name="auth_login_welcome">SkyOs\'a hos geldin</string>
+    <string name="auth_login_welcome">SkyOS\'a hos geldin</string>
     <string name="auth_login_subtitle">Hesabina ve uretici araclarina erismek icin giris yap.</string>
     <string name="auth_login_badge_account">Hesap</string>
     <string name="auth_login_badge_google">Google</string>

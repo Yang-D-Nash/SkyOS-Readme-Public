@@ -85,7 +85,7 @@ enum class BrandArtwork(
     ),
     Combined(
         drawableRes = R.drawable.skydown_x22_brand_logo,
-        label = "SkyOs",
+        label = "SkyOS",
     ),
 }
 
@@ -124,6 +124,15 @@ fun BrandHeroCard(
     val subtitleStyle = SkydownHeroSubtitleTextStyle
     val detailStyle = SkydownEditorialCaptionTextStyle
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val heroTextShadow = if (hasBackgroundImage) {
+        androidx.compose.ui.graphics.Shadow(
+            color = Color.Black.copy(alpha = if (isDarkPalette) 0.34f else 0.28f),
+            offset = Offset(0f, 8f),
+            blurRadius = 22f,
+        )
+    } else {
+        null
+    }
 
     Box(
         modifier = Modifier
@@ -272,7 +281,7 @@ fun BrandHeroCard(
                         ) {
                             Text(
                                 text = eyebrow.uppercase(),
-                                style = eyebrowStyle,
+                                style = if (heroTextShadow != null) eyebrowStyle.copy(shadow = heroTextShadow) else eyebrowStyle,
                                 color = accent,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -295,14 +304,18 @@ fun BrandHeroCard(
                         }
                         Text(
                             text = title,
-                            style = titleStyle,
+                            style = if (heroTextShadow != null) titleStyle.copy(shadow = heroTextShadow) else titleStyle,
                             color = titleColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = subtitle,
-                            style = subtitleStyle,
+                            style = if (heroTextShadow != null) {
+                                subtitleStyle.copy(shadow = heroTextShadow.copy(blurRadius = 18f, offset = Offset(0f, 6f)))
+                            } else {
+                                subtitleStyle
+                            },
                             color = subtitleColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -310,7 +323,11 @@ fun BrandHeroCard(
                         if (!detail.isNullOrBlank()) {
                             Text(
                                 text = detail,
-                                style = detailStyle,
+                                style = if (heroTextShadow != null) {
+                                    detailStyle.copy(shadow = heroTextShadow.copy(blurRadius = 16f, offset = Offset(0f, 5f)))
+                                } else {
+                                    detailStyle
+                                },
                                 color = detailColor,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,

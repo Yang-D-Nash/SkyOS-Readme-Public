@@ -655,7 +655,7 @@ struct SettingsView: View {
                                         title: "Brandname",
                                         text: $legalBrandNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. SkyOs"
+                                        placeholder: "z. B. SkyOS"
                                     )
 
                                     SettingsInputField(
@@ -1332,7 +1332,7 @@ struct SettingsView: View {
                         title: "Home Eyebrow",
                         text: $homeHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Willkommen bei SkyOs"
+                        placeholder: "z. B. Willkommen bei SkyOS"
                     )
 
                     SettingsInputField(
@@ -1631,7 +1631,7 @@ struct SettingsView: View {
                         statusText: paymentMethodSettingsStore.settings.stripe.connected ? "Verbunden" : "Nicht verbunden",
                         checkoutVisible: paymentMethodSettingsStore.settings.stripe.connected && paymentMethodSettingsStore.settings.stripe.enabled,
                         accountHintTitle: "Stripe Konto / Workspace",
-                        accountHintPlaceholder: "z. B. SkyOs Merch Workspace",
+                        accountHintPlaceholder: "z. B. SkyOS Merch Workspace",
                         accountHint: $stripeAccountHintDraft,
                         actionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Verbindung aktualisieren" : "Mit Stripe verbinden",
                         secondaryActionTitle: paymentMethodSettingsStore.settings.stripe.connected ? "Trennen" : nil,
@@ -1965,7 +1965,7 @@ struct SettingsView: View {
                         title: "Auth Header Name",
                         text: $automationAuthHeaderNameDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. X-SkyOs-Automation-Key",
+                        placeholder: "z. B. X-SkyOS-Automation-Key",
                         keyboardType: .asciiCapable
                     )
 
@@ -2391,7 +2391,7 @@ struct SettingsView: View {
         let email = preferredSupportSenderEmail?.takeIfNotBlank() ?? "Nicht verfuegbar"
 
         return """
-        Hallo SkyOs-Team,
+        Hallo SkyOS-Team,
 
         ich habe folgende Anfrage:
 
@@ -4188,7 +4188,7 @@ private struct SettingsHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(username ?? "SkyOs Einstellungen")
+                Text(username ?? "SkyOS Einstellungen")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -5026,6 +5026,7 @@ private struct SettingsArtistPageCard: View {
                         bio: page.bio,
                         profileImageURL: page.profileImageURL,
                         heroImageURL: page.heroImageURL,
+                        heroVideoURL: page.heroVideoURL,
                         instagramURL: page.instagramURL,
                         spotifyURL: page.spotifyURL,
                         youtubeURL: page.youtubeURL,

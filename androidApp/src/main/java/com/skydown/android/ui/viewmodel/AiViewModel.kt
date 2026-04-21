@@ -88,7 +88,7 @@ class AiViewModel : ViewModel() {
         }
         if (!_uiState.value.isAiEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der SkyOs Bot ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der SkyOS Bot ist gerade deaktiviert.")
             }
             return
         }
@@ -175,7 +175,7 @@ class AiViewModel : ViewModel() {
         }
         if (!_uiState.value.isAiEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der SkyOs Bot ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der SkyOS Bot ist gerade deaktiviert.")
             }
             return
         }
@@ -361,11 +361,11 @@ class AiViewModel : ViewModel() {
         is FirebaseFunctionsException -> when (error.code) {
             FirebaseFunctionsException.Code.NOT_FOUND,
             FirebaseFunctionsException.Code.UNIMPLEMENTED,
-            -> "Der SkyOs Bot ist fuer diese Funktion gerade noch nicht verfuegbar."
+            -> "Der SkyOS Bot ist fuer diese Funktion gerade noch nicht verfuegbar."
             FirebaseFunctionsException.Code.UNAVAILABLE ->
-                "Der SkyOs Bot ist gerade nicht erreichbar."
+                "Der SkyOS Bot ist gerade nicht erreichbar."
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
-                "Der SkyOs Bot hat zu lange fuer die Antwort gebraucht."
+                "Der SkyOS Bot hat zu lange fuer die Antwort gebraucht."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges KI-Limit ist erreicht."
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
@@ -388,14 +388,14 @@ class AiViewModel : ViewModel() {
                         ?: "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
                 }
             else ->
-                "Der SkyOs Bot ist gerade nicht verfuegbar."
+                "Der SkyOS Bot ist gerade nicht verfuegbar."
         }
         else -> {
             val message = error.message?.takeIf { it.isNotBlank() }
             if (message?.contains("server responded with an error", ignoreCase = true) == true) {
                 "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
             } else {
-                message ?: "Der SkyOs Bot ist gerade nicht verfuegbar."
+                message ?: "Der SkyOS Bot ist gerade nicht verfuegbar."
             }
         }
     }

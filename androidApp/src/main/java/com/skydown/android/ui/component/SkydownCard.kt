@@ -204,24 +204,24 @@ fun Modifier.skydownCapsuleSurface(
 @Stable
 fun Modifier.skydownPressable(
     interactionSource: MutableInteractionSource,
-    pressedScale: Float = 0.985f,
+    pressedScale: Float = 0.99f,
 ): Modifier = composed {
     val isPressed by interactionSource.collectIsPressedAsState()
     val view = LocalView.current
     var emittedPressHaptic by remember(interactionSource) { mutableStateOf(false) }
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
-        animationSpec = spring(dampingRatio = 0.72f, stiffness = 560f),
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 760f),
         label = "skydownPressScale",
     )
     val animatedAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = 620f),
+        targetValue = if (isPressed) 0.975f else 1f,
+        animationSpec = spring(dampingRatio = 0.88f, stiffness = 780f),
         label = "skydownPressAlpha",
     )
     val animatedTranslationY by animateFloatAsState(
-        targetValue = if (isPressed) 1.4f else 0f,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = 620f),
+        targetValue = if (isPressed) 0.7f else 0f,
+        animationSpec = spring(dampingRatio = 0.90f, stiffness = 820f),
         label = "skydownPressTranslationY",
     )
 

@@ -99,7 +99,7 @@ class UserProfileRepository(
         val now = com.google.firebase.Timestamp.now()
         val userSnapshot = firestore.collection("users").document(userId).get().await()
         val previousAvatarPath = userSnapshot.data?.get("profileImagePath") as? String
-        val username = (userSnapshot.data?.get("username") as? String)?.takeIf { it.isNotBlank() } ?: "SkyOs User"
+        val username = (userSnapshot.data?.get("username") as? String)?.takeIf { it.isNotBlank() } ?: "SkyOS User"
         val profileSnapshot = firestore.collection("userProfiles").document(userId).get().await()
         val createdAt = profileSnapshot.data?.get("createdAt") ?: now
         firestore.collection("users")
@@ -257,7 +257,7 @@ class UserProfileRepository(
             ?: (profileSnapshot.data?.get("username") as? String)?.trim()?.takeIf { it.isNotEmpty() }
             ?: authUser.displayName?.trim()?.takeIf { it.isNotEmpty() }
             ?: email.substringBefore("@").trim().takeIf { it.isNotEmpty() }
-            ?: "SkyOs User"
+            ?: "SkyOS User"
         val registrationDateEpochMillis = (userData["registrationDateEpochMillis"] as? Number)?.toLong()
             ?: authUser.metadata?.creationTimestamp
             ?: System.currentTimeMillis()

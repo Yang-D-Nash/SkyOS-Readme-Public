@@ -8,7 +8,13 @@ import UniformTypeIdentifiers
 
 protocol EditableImageAssetUploading {
     func uploadImageData(_ data: Data) async throws -> String
+    func uploadVideoFile(
+        from fileURL: URL,
+        fileName: String,
+        mimeType: String?
+    ) async throws -> String
     func deleteImage(at imageURL: String) async throws
+    func deleteAsset(at assetURL: String) async throws
 }
 
 final class EditableImageAssetUploadService: EditableImageAssetUploading {
@@ -49,8 +55,53 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
         return try await reference.awaitStableDownloadURL().absoluteString
     }
 
+    func uploadVideoFile(
+        from fileURL: URL,
+        fileName: String,
+        mimeType: String?
+    ) async throws -> String {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw NSError(
+                domain: "EditableImageAssetUploadService",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "Bitte zuerst anmelden."]
+            )
+        }
+
+        let fileInfo = detectVideoFileInfo(fileURL: fileURL, fallbackMimeType: mimeType)
+        let slot = try await requestUploadSlot(
+            kind: "asset",
+            userId: userId,
+            mimeType: fileInfo.mimeType,
+            fileExtension: fileInfo.fileExtension,
+            byteSize: fileInfo.byteSize
+        )
+        let reference = storage.reference().child(slot.storagePath)
+        let metadata = StorageMetadata()
+        metadata.contentType = fileInfo.mimeType
+        metadata.customMetadata = slot.metadata.merging(
+            ["originalFilename": fileName],
+            uniquingKeysWith: { _, new in new }
+        )
+
+        let stagedURL = try stageSecurityScopedAssetFile(
+            from: fileURL,
+            fileName: fileName
+        )
+        defer {
+            try? FileManager.default.removeItem(at: stagedURL)
+        }
+
+        try await putFile(stagedURL, to: reference, metadata: metadata)
+        return try await reference.awaitStableDownloadURL().absoluteString
+    }
+
     func deleteImage(at imageURL: String) async throws {
-        let trimmedURL = imageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        try await deleteAsset(at: imageURL)
+    }
+
+    func deleteAsset(at assetURL: String) async throws {
+        let trimmedURL = assetURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedURL.isEmpty else { return }
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
@@ -140,6 +191,22 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
         }
     }
 
+    private func putFile(
+        _ fileURL: URL,
+        to reference: StorageReference,
+        metadata: StorageMetadata
+    ) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            reference.putFile(from: fileURL, metadata: metadata) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
+    }
+
     private func ownedAssetReferenceIfPossible(
         for imageURL: String,
         userId: String
@@ -162,21 +229,41 @@ final class EditableImageAssetUploadService: EditableImageAssetUploading {
     private func detectFileInfo(from data: Data) -> EditableImageAssetFileInfo {
         if data.count >= 8,
            data.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
-            return EditableImageAssetFileInfo(mimeType: "image/png", fileExtension: "png")
+            return EditableImageAssetFileInfo(mimeType: "image/png", fileExtension: "png", byteSize: data.count)
         }
 
         if data.count >= 12,
            data.prefix(4).elementsEqual("RIFF".utf8),
            data.dropFirst(8).prefix(4).elementsEqual("WEBP".utf8) {
-            return EditableImageAssetFileInfo(mimeType: "image/webp", fileExtension: "webp")
+            return EditableImageAssetFileInfo(mimeType: "image/webp", fileExtension: "webp", byteSize: data.count)
         }
 
         if data.count >= 2,
            data.starts(with: [0xFF, 0xD8]) {
-            return EditableImageAssetFileInfo(mimeType: "image/jpeg", fileExtension: "jpg")
+            return EditableImageAssetFileInfo(mimeType: "image/jpeg", fileExtension: "jpg", byteSize: data.count)
         }
 
-        return EditableImageAssetFileInfo(mimeType: "image/jpeg", fileExtension: "jpg")
+        return EditableImageAssetFileInfo(mimeType: "image/jpeg", fileExtension: "jpg", byteSize: data.count)
+    }
+
+    private func detectVideoFileInfo(
+        fileURL: URL,
+        fallbackMimeType: String?
+    ) -> EditableImageAssetFileInfo {
+        let resourceValues = try? fileURL.resourceValues(forKeys: [.contentTypeKey, .fileSizeKey])
+        let contentType = resourceValues?.contentType ?? UTType(filenameExtension: fileURL.pathExtension)
+        let mimeType = fallbackMimeType?.trimmedNilIfEmpty
+            ?? contentType?.preferredMIMEType
+            ?? "video/mp4"
+        let fileExtension = contentType?.preferredFilenameExtension
+            ?? fileURL.pathExtension.trimmedNilIfEmpty
+            ?? "mp4"
+        let byteSize = resourceValues?.fileSize ?? ((try? Data(contentsOf: fileURL, options: [.mappedIfSafe]).count) ?? 0)
+        return EditableImageAssetFileInfo(
+            mimeType: mimeType,
+            fileExtension: fileExtension,
+            byteSize: byteSize
+        )
     }
 }
 
@@ -189,6 +276,7 @@ private struct EditableImageAssetUploadSlot {
 private struct EditableImageAssetFileInfo {
     let mimeType: String
     let fileExtension: String
+    let byteSize: Int
 }
 
 enum PickedImageUploadPreparation {
@@ -427,5 +515,47 @@ enum PickedImageUploadPreparation {
                 }
             }
         }
+    }
+}
+
+private func stageSecurityScopedAssetFile(
+    from sourceURL: URL,
+    fileName: String
+) throws -> URL {
+    let hasAccess = sourceURL.startAccessingSecurityScopedResource()
+    defer {
+        if hasAccess {
+            sourceURL.stopAccessingSecurityScopedResource()
+        }
+    }
+
+    let stagingDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("asset-upload-staging", isDirectory: true)
+    try FileManager.default.createDirectory(
+        at: stagingDirectory,
+        withIntermediateDirectories: true
+    )
+
+    let fileExtension = (fileName as NSString).pathExtension
+    let stagedURL = if fileExtension.isEmpty {
+        stagingDirectory.appendingPathComponent(UUID().uuidString)
+    } else {
+        stagingDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(fileExtension)
+    }
+
+    if FileManager.default.fileExists(atPath: stagedURL.path) {
+        try FileManager.default.removeItem(at: stagedURL)
+    }
+
+    try FileManager.default.copyItem(at: sourceURL, to: stagedURL)
+    return stagedURL
+}
+
+private extension String {
+    var trimmedNilIfEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

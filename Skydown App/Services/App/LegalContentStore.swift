@@ -1,7 +1,7 @@
 import Foundation
 import FirebaseFirestore
 
-private let defaultLegalBrandName = "SkyOs"
+private let defaultLegalBrandName = "SkyOS"
 private let defaultLegalOperatorName = "Skydown OS"
 private let defaultLegalRightsHolderName = "Skydown OS"
 private let legacyLegalOperatorName = "Skydown"

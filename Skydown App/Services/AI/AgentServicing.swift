@@ -36,7 +36,7 @@ enum AgentServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "Der SkyOs Agent hat keine Antwort geliefert."
+            return "Der SkyOS Agent hat keine Antwort geliefert."
         }
     }
 }

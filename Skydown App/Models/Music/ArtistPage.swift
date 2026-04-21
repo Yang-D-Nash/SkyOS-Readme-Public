@@ -25,6 +25,7 @@ struct ArtistPage: Identifiable, Equatable {
     var bio: String?
     var profileImageURL: String?
     var heroImageURL: String?
+    var heroVideoURL: String?
     var instagramURL: String?
     var spotifyURL: String?
     var youtubeURL: String?
@@ -38,7 +39,7 @@ struct ArtistPage: Identifiable, Equatable {
     }
 
     var hasCustomPresentation: Bool {
-        [tagline, bio, profileImageURL, heroImageURL, instagramURL, spotifyURL, youtubeURL]
+        [tagline, bio, profileImageURL, heroImageURL, heroVideoURL, instagramURL, spotifyURL, youtubeURL]
             .contains { ($0?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) }
     }
 }
@@ -75,6 +76,7 @@ extension ArtistPage {
             bio: nil,
             profileImageURL: nil,
             heroImageURL: nil,
+            heroVideoURL: nil,
             instagramURL: nil,
             spotifyURL: nil,
             youtubeURL: nil,

@@ -1,15 +1,15 @@
-# SkyOs User Guide
+# SkyOS User Guide
 
-Dieses Handbuch erklaert SkyOs aus Nutzer-Sicht.
-SkyOs ist die Produktwelt von `Skydown x 22` und verbindet Music, Video, Merch, Profile, KI und Workflows in einem einzigen System.
+Dieses Handbuch erklaert SkyOS aus Nutzer-Sicht.
+SkyOS ist die Produktwelt von `Skydown x 22` und verbindet Music, Video, Merch, Profile, KI und Workflows in einem einzigen System.
 
 Zuletzt aktualisiert: `20. April 2026`
 
 ---
 
-## 1) Was ist SkyOs?
+## 1) Was ist SkyOS?
 
-SkyOs ist kein einzelnes Tool, sondern eine zusammenhaengende Produktwelt.
+SkyOS ist kein einzelnes Tool, sondern eine zusammenhaengende Produktwelt.
 Du bekommst in einer App:
 
 - `Home` fuer Orientierung und Einstieg
@@ -35,7 +35,7 @@ Alles soll sich wie ein System anfuehlen, nicht wie mehrere getrennte Apps.
 
 ---
 
-## 3) Wie du SkyOs sinnvoll nutzt
+## 3) Wie du SkyOS sinnvoll nutzt
 
 ### Home
 
@@ -57,7 +57,7 @@ Nutze AI fuer:
 ### Music / Video / Shop
 
 Diese Bereiche sind keine Inseln.
-Sie greifen in SkyOs zusammen:
+Sie greifen in SkyOS zusammen:
 
 - entdecken
 - ansehen / anhoeren
@@ -167,7 +167,7 @@ Betreiber:
 
 ## 8) Grundregel fuer starke Ergebnisse
 
-SkyOs funktioniert am besten, wenn du klar formulierst:
+SkyOS funktioniert am besten, wenn du klar formulierst:
 
 - Ziel
 - Stil
@@ -176,4 +176,4 @@ SkyOs funktioniert am besten, wenn du klar formulierst:
 - Tiefe
 
 Kurz:
-Je klarer du fuehrst, desto staerker kann SkyOs antworten.
+Je klarer du fuehrst, desto staerker kann SkyOS antworten.
