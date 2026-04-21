@@ -757,7 +757,7 @@ final class FirebaseAuthService: AuthServicing {
         do {
             try await syncSessionClaims(for: authUser)
         } catch {
-            print("Dev Hinweis: Session Claims konnten nicht synchronisiert werden: \(error.localizedDescription)")
+            skydownDebugLog("Dev Hinweis: Session Claims konnten nicht synchronisiert werden: \(error.localizedDescription)")
         }
     }
 
@@ -824,7 +824,7 @@ final class FirebaseAuthService: AuthServicing {
                 registrationConsent: registrationConsent
             )
         } catch {
-            print("Dev Hinweis: Benutzerdokument konnte nicht synchronisiert werden: \(error.localizedDescription)")
+            skydownDebugLog("Dev Hinweis: Benutzerdokument konnte nicht synchronisiert werden: \(error.localizedDescription)")
         }
     }
 

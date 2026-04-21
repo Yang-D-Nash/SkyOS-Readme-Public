@@ -42,7 +42,7 @@ class LoginViewModel: ObservableObject {
             isAuthenticated = true
             showUserToast("Anmeldung erfolgreich!", style: .success)
         } catch {
-            print("Dev Fehler beim Anmelden: \(error.localizedDescription)")
+            skydownDebugLog("Dev Fehler beim Anmelden: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
             isAuthenticated = false
             showUserToast("Fehler beim Anmelden: \(error.localizedDescription)", style: .error)
@@ -60,7 +60,7 @@ class LoginViewModel: ObservableObject {
             isAuthenticated = true
             showUserToast("Google-Anmeldung erfolgreich!", style: .success)
         } catch {
-            print("Dev Fehler bei Google-Anmeldung: \(error.localizedDescription)")
+            skydownDebugLog("Dev Fehler bei Google-Anmeldung: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
             isAuthenticated = false
             showUserToast("Fehler bei Google-Anmeldung: \(error.localizedDescription)", style: .error)

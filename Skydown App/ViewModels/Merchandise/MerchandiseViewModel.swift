@@ -86,7 +86,7 @@ final class MerchandiseViewModel: ObservableObject {
                         return
                     }
 
-                    print("Dev Fehler fetchData:", error.localizedDescription)
+                    skydownDebugLog("Dev Fehler fetchData:", error.localizedDescription)
                     self.showUserToast("Fehler beim Laden der Artikel: \(error.localizedDescription)", style: .error)
                     self.merchandiseItems = []
                     self.allItems = []

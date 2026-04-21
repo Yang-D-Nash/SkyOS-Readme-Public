@@ -168,7 +168,7 @@ class CartViewModel: ObservableObject {
             showUserToast("Bestellung erfolgreich abgeschickt!", style: .success)
             return true
         } catch {
-            print("Dev Fehler submitCartAsOrder:", error.localizedDescription)
+            skydownDebugLog("Dev Fehler submitCartAsOrder:", error.localizedDescription)
             showUserToast("Fehler beim Absenden der Bestellung.", style: .error)
             return false
         }
@@ -268,7 +268,7 @@ class CartViewModel: ObservableObject {
             showUserToast("Checkout geoeffnet. Zahlung jetzt sicher abschliessen.", style: .success)
             return session
         } catch {
-            print("Dev Fehler startHostedCheckout:", error.localizedDescription)
+            skydownDebugLog("Dev Fehler startHostedCheckout:", error.localizedDescription)
             showUserToast("Stripe Checkout konnte nicht gestartet werden.", style: .error)
             return nil
         }

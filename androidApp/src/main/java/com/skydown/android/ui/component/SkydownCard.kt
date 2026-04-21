@@ -30,8 +30,8 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import com.skydown.android.ui.theme.skydownAccentHighlight
@@ -246,7 +246,7 @@ fun Modifier.skydownPressable(
 fun Modifier.skydownSheen(
     accent: Color = Color.White,
     alpha: Float = 0.16f,
-): Modifier = composed {
+): Modifier =
     drawWithContent {
         drawContent()
 
@@ -270,4 +270,3 @@ fun Modifier.skydownSheen(
             blendMode = BlendMode.Screen,
         )
     }
-}

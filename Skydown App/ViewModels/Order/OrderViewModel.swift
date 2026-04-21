@@ -37,7 +37,7 @@ class OrderViewModel: ObservableObject {
             case .success(let orders):
                 self.orders = orders
             case .failure(let error):
-                print("Dev Fehler fetchOrders:", error.localizedDescription)
+                skydownDebugLog("Dev Fehler fetchOrders:", error.localizedDescription)
                 self.showUserToast("Fehler beim Laden: \(error.localizedDescription)", style: .error)
                 self.orders = []
             }
@@ -52,7 +52,7 @@ class OrderViewModel: ObservableObject {
             let msg = order.isCompleted ? "Markiert als offen" : "Markiert als erledigt"
             showUserToast(msg, style: .success)
         } catch {
-            print("Dev Fehler toggleCompleted:", error.localizedDescription)
+            skydownDebugLog("Dev Fehler toggleCompleted:", error.localizedDescription)
             let msg = "Update fehlgeschlagen: \(error.localizedDescription)"
             errorMessage = msg
             showUserToast(msg, style: .error)
@@ -66,7 +66,7 @@ class OrderViewModel: ObservableObject {
             try await orderService.deleteOrder(orderID: id)
             showUserToast("Bestellung gelöscht", style: .success)
         } catch {
-            print("Dev Fehler deleteOrder:", error.localizedDescription)
+            skydownDebugLog("Dev Fehler deleteOrder:", error.localizedDescription)
             let msg = "Löschen fehlgeschlagen: \(error.localizedDescription)"
             errorMessage = msg
             showUserToast(msg, style: .error)

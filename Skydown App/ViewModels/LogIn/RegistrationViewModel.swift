@@ -80,7 +80,7 @@ class RegistrationViewModel: ObservableObject {
             isLoading = false
             return true
         } catch {
-            print("Dev Fehler bei Registrierung oder Firestore: \(error.localizedDescription)")
+            skydownDebugLog("Dev Fehler bei Registrierung oder Firestore: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
             showUserToast("Fehler bei der Registrierung: \(error.localizedDescription)", style: .error)
             isLoading = false
@@ -112,7 +112,7 @@ class RegistrationViewModel: ObservableObject {
             isLoading = false
             return true
         } catch {
-            print("Dev Fehler bei Google-Anmeldung: \(error.localizedDescription)")
+            skydownDebugLog("Dev Fehler bei Google-Anmeldung: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
             showUserToast("Fehler bei Google-Anmeldung: \(error.localizedDescription)", style: .error)
             isLoading = false

@@ -162,7 +162,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 lastError = nil
                 break
             } catch let error as SpotifyHTTPError where error.statusCode == 400 && index < searchQueries.count - 1 {
-                print("Spotify Search Retry:", error.statusCode, error.payload)
+                skydownDebugLog("Spotify Search Retry:", error.statusCode, error.payload)
                 lastError = error
                 continue
             } catch {
@@ -534,7 +534,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         let state = UUID().uuidString
         let authURL = try authorizationURL(codeChallenge: challenge, state: state)
         authorizationURLString = authURL.absoluteString
-        print("Spotify Authorize URL:", authURL.absoluteString)
+        skydownDebugLog("Spotify Authorize URL:", authURL.absoluteString)
 
         let callbackURL = try await startAuthenticationSession(url: authURL)
         guard let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false) else {
@@ -1116,7 +1116,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         let (data, urlResponse) = try await session.data(for: request)
         if let httpResponse = urlResponse as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
             let payload = String(data: data, encoding: .utf8) ?? "<empty>"
-            print("Spotify Search Error:", httpResponse.statusCode, payload)
+            skydownDebugLog("Spotify Search Error:", httpResponse.statusCode, payload)
             throw SpotifyHTTPError(statusCode: httpResponse.statusCode, payload: payload)
         }
 
@@ -1178,7 +1178,7 @@ private struct SpotifyTokenKeychainStore {
         case errSecItemNotFound:
             return nil
         default:
-            print("Spotify Keychain Load Error:", status)
+            skydownDebugLog("Spotify Keychain Load Error:", status)
             return nil
         }
     }
@@ -1195,7 +1195,7 @@ private struct SpotifyTokenKeychainStore {
         }
 
         guard addStatus == errSecDuplicateItem else {
-            print("Spotify Keychain Save Error:", addStatus)
+            skydownDebugLog("Spotify Keychain Save Error:", addStatus)
             return false
         }
 
@@ -1205,7 +1205,7 @@ private struct SpotifyTokenKeychainStore {
         ]
         let updateStatus = SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
         if updateStatus != errSecSuccess {
-            print("Spotify Keychain Update Error:", updateStatus)
+            skydownDebugLog("Spotify Keychain Update Error:", updateStatus)
             return false
         }
 
@@ -1215,7 +1215,7 @@ private struct SpotifyTokenKeychainStore {
     func deleteToken() {
         let status = SecItemDelete(baseQuery as CFDictionary)
         if status != errSecSuccess && status != errSecItemNotFound {
-            print("Spotify Keychain Delete Error:", status)
+            skydownDebugLog("Spotify Keychain Delete Error:", status)
         }
     }
 

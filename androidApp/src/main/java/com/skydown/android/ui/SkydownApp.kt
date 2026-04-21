@@ -339,10 +339,12 @@ fun SkydownApp(
                 modifier = Modifier.skydownSelectionFeedback(
                     trigger = currentDestination?.route ?: startRoute,
                 ),
-            ) { _ ->
+                contentWindowInsets = WindowInsets(0.dp),
+            ) { innerPadding ->
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(innerPadding)
                         .background(skydownScreenBrush()),
                 ) {
                     NavHost(
@@ -1615,8 +1617,8 @@ private fun LaunchLandingButton(
     accentColor: androidx.compose.ui.graphics.Color,
     icon: ImageVector,
     onClick: () -> Unit,
-    compactVisualDensity: Boolean = false,
     modifier: Modifier = Modifier,
+    compactVisualDensity: Boolean = false,
 ) {
     HubEntryCard(
         title = title,
@@ -1638,8 +1640,8 @@ private fun HubEntryCard(
     accentColor: androidx.compose.ui.graphics.Color,
     icon: ImageVector,
     onClick: () -> Unit,
-    compactVisualDensity: Boolean = false,
     modifier: Modifier = Modifier,
+    compactVisualDensity: Boolean = false,
     detail: String? = null,
     chips: List<String> = emptyList(),
     eyebrow: String? = null,

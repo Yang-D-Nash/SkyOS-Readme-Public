@@ -12,6 +12,13 @@ import AVKit
 import GoogleSignIn
 import UIKit
 
+func skydownDebugLog(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+    #if DEBUG
+    let message = items.map { String(describing: $0) }.joined(separator: separator)
+    print(message, terminator: terminator)
+    #endif
+}
+
 final class SkydownApplicationDelegate: NSObject, UIApplicationDelegate {}
 
 @main

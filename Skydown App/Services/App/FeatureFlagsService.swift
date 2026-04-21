@@ -40,7 +40,7 @@ final class FeatureFlagsService: ObservableObject {
         do {
             _ = try await remoteConfig.fetchAndActivate()
         } catch {
-            print("Remote Config konnte nicht aktualisiert werden: \(error.localizedDescription)")
+            skydownDebugLog("Remote Config konnte nicht aktualisiert werden: \(error.localizedDescription)")
         }
 
         applyRemoteConfig()

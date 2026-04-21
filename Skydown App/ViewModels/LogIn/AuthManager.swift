@@ -37,7 +37,7 @@ class AuthManager: ObservableObject {
             userSession = nil
             sessionCache.clear()
         } catch {
-            print("Fehler beim Abmelden: \(error.localizedDescription)")
+            skydownDebugLog("Fehler beim Abmelden: \(error.localizedDescription)")
         }
     }
 
@@ -54,7 +54,7 @@ class AuthManager: ObservableObject {
             sessionCache.store(userSession)
             return userSession
         } catch {
-            print("Fehler beim Laden des Profils: \(error.localizedDescription)")
+            skydownDebugLog("Fehler beim Laden des Profils: \(error.localizedDescription)")
             return userSession
         }
     }

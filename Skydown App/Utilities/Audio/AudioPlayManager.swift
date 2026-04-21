@@ -46,7 +46,7 @@ class AudioPlayerManager: ObservableObject {
             try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
         } catch {
-            print("Dev Fehler AudioSession:", error.localizedDescription)
+            skydownDebugLog("Dev Fehler AudioSession:", error.localizedDescription)
         }
     }
 

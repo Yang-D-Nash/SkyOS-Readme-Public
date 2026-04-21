@@ -466,7 +466,7 @@ final class BeatPlaybackManager: ObservableObject {
             try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
         } catch {
-            print("Dev Fehler Beat AudioSession:", error.localizedDescription)
+            skydownDebugLog("Dev Fehler Beat AudioSession:", error.localizedDescription)
         }
     }
 

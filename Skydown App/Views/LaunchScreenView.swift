@@ -34,7 +34,7 @@ struct LaunchScreenView: View {
             if let url = Bundle.main.url(forResource: "Intro Launch", withExtension: "mp4") {
                 player = AVPlayer(url: url)
             } else {
-                print("Video 'Intro Launch.mp4' nicht gefunden!")
+                skydownDebugLog("Video 'Intro Launch.mp4' nicht gefunden!")
                 transitionToLanding()
             }
         }
@@ -99,7 +99,7 @@ struct LaunchScreenView: View {
             try session.setCategory(.playback, mode: .moviePlayback, options: [])
             try session.setActive(true)
         } catch {
-            print("Audio-Session fuer Intro konnte nicht aktiviert werden: \(error.localizedDescription)")
+            skydownDebugLog("Audio-Session fuer Intro konnte nicht aktiviert werden: \(error.localizedDescription)")
         }
     }
 
@@ -107,7 +107,7 @@ struct LaunchScreenView: View {
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
         } catch {
-            print("Audio-Session fuer Intro konnte nicht deaktiviert werden: \(error.localizedDescription)")
+            skydownDebugLog("Audio-Session fuer Intro konnte nicht deaktiviert werden: \(error.localizedDescription)")
         }
     }
 

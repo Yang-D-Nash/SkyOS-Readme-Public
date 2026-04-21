@@ -2,7 +2,6 @@ package com.skydown.android.ui.component
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -27,7 +26,7 @@ fun Modifier.skydownLuminousSweep(
     shape: Shape,
     accent: Color = Color.White,
     alpha: Float = 0.18f,
-): Modifier = composed {
+): Modifier =
     graphicsLayer {
         clip = true
         this.shape = shape
@@ -54,4 +53,3 @@ fun Modifier.skydownLuminousSweep(
             blendMode = BlendMode.Screen,
         )
     }
-}

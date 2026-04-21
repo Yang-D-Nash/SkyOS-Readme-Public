@@ -343,11 +343,13 @@ class AndroidAuthRepository(
             updates["aiConsentSource"] = "android_legacy_sync"
         }
 
-        if (registrationConsent.isValidRegistrationConsent()) {
-            updates.putAll(consentPayload(registrationConsent!!))
-            updates["aiAccessEnabled"] = registrationConsent.aiConsentEnabled
-            updates["aiConsentGiven"] = registrationConsent.aiConsentEnabled
-        }
+        registrationConsent
+            ?.takeIf { it.isValidRegistrationConsent() }
+            ?.let { consent ->
+                updates.putAll(consentPayload(consent))
+                updates["aiAccessEnabled"] = consent.aiConsentEnabled
+                updates["aiConsentGiven"] = consent.aiConsentEnabled
+            }
 
         if (data["aiTextRequestsPerDay"] !is Number || resolvedRole == UserRole.Owner) {
             updates["aiTextRequestsPerDay"] = quotaPlan.aiTextRequestsPerDay
