@@ -730,6 +730,7 @@ service cloud.firestore {
         "bio",
         "profileImageURL",
         "heroImageURL",
+        "heroVideoURL",
         "instagramURL",
         "spotifyURL",
         "youtubeURL",
@@ -747,6 +748,7 @@ service cloud.firestore {
       && optionalMapString(request.resource.data, "bio", 600)
       && optionalMapShortUrl(request.resource.data, "profileImageURL")
       && optionalMapShortUrl(request.resource.data, "heroImageURL")
+      && optionalMapShortUrl(request.resource.data, "heroVideoURL")
       && optionalMapShortUrl(request.resource.data, "instagramURL")
       && optionalMapShortUrl(request.resource.data, "spotifyURL")
       && optionalMapShortUrl(request.resource.data, "youtubeURL")
