@@ -8,19 +8,21 @@ import kotlinx.coroutines.tasks.await
 
 enum class AiRuntimeAgentProvider(val rawValue: String) {
     Gemini("gemini"),
+    Grok("grok"),
     Manus("manus"),
     ;
 
     val displayTitle: String
         get() = when (this) {
             Gemini -> "Gemini"
+            Grok -> "Grok"
             Manus -> "Manus"
         }
 
     companion object {
         fun resolve(rawValue: String?): AiRuntimeAgentProvider {
             val normalized = rawValue?.trim()?.lowercase().orEmpty()
-            return entries.firstOrNull { it.rawValue == normalized } ?: Gemini
+            return entries.firstOrNull { it.rawValue == normalized } ?: Grok
         }
     }
 }
@@ -59,7 +61,7 @@ data class AiRuntimeManusSettings(
 
 data class AiRuntimeSettings(
     val costGuardEnabled: Boolean = true,
-    val agentProvider: AiRuntimeAgentProvider = AiRuntimeAgentProvider.Gemini,
+    val agentProvider: AiRuntimeAgentProvider = AiRuntimeAgentProvider.Grok,
     val fallbackAgentProvider: AiRuntimeAgentProvider = AiRuntimeAgentProvider.Gemini,
     val hardDailyCaps: AiRuntimeKindLimits = AiRuntimeKindLimits.hardDefaults,
     val globalDailyCaps: AiRuntimeKindLimits = AiRuntimeKindLimits.globalDefaults,

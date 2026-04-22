@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,9 +42,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -54,6 +57,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +73,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -91,12 +96,18 @@ import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.model.BotInteractionPhase
 import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
 import com.skydown.android.ui.model.AiTextMode
 import com.skydown.android.ui.model.AiVisualPrompt
 import com.skydown.android.ui.viewmodel.AiViewModel
+import com.skydown.android.data.AiMembershipCoordinator
+import com.skydown.android.data.AiMembershipUiState
+import com.skydown.android.data.AppContainer
+import com.skydown.android.data.MembershipOpenReason
+import com.skydown.android.R
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,6 +125,9 @@ fun AiScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+    val membershipCoordinator = remember(context) { AiMembershipCoordinator(context.applicationContext) }
+    val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
 
@@ -122,6 +136,7 @@ fun AiScreen(
         keyboardController?.hide()
         Unit
     }
+    var hasAutoUpgradePrompted by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.isAiEnabled && uiState.messages.isNotEmpty()) {
@@ -147,6 +162,13 @@ fun AiScreen(
         }
     }
 
+    LaunchedEffect(uiState.usageSnapshot?.warningLevel) {
+        if (!hasAutoUpgradePrompted && uiState.usageSnapshot?.warningLevel == "critical") {
+            hasAutoUpgradePrompted = true
+            membershipCoordinator.openMembership(MembershipOpenReason.CriticalUsage, surface = "ai_chat")
+        }
+    }
+
     Scaffold(
         modifier = if (showTopBar) {
             Modifier
@@ -162,8 +184,8 @@ fun AiScreen(
                 TopAppBar(
                     title = {
                         SkydownTopBarTitle(
-                            title = "Atelier",
-                            subtitle = "Text und Visuals.",
+                            title = stringResource(R.string.ai_topbar_title),
+                            subtitle = stringResource(R.string.ai_topbar_subtitle),
                         )
                     },
                     colors = skydownTopBarColors(),
@@ -179,7 +201,7 @@ fun AiScreen(
                     draft = uiState.draft,
                     composerMode = uiState.composerMode,
                     textMode = uiState.textMode,
-                    isSending = uiState.isSending,
+                    botPhase = uiState.botPhase,
                     compactLayout = compactLayout,
                     contentMaxWidth = contentMaxWidth,
                     embeddedInTools = !showTopBar,
@@ -232,6 +254,16 @@ fun AiScreen(
                         verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
                     ) {
                         AiCommandHeroCard(compactVisualDensity = compactLayout)
+                        AiRevenueUsageCard(
+                            usage = uiState.usageSnapshot,
+                            planLabel = uiState.planLabel,
+                            onOpenMembership = {
+                                if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
+                                    membershipCoordinator.trackUpgradeAfterDeny(surface = "ai_empty")
+                                }
+                                membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_empty")
+                            },
+                        )
                         AiSessionStrip(
                             composerMode = uiState.composerMode,
                             textMode = uiState.textMode,
@@ -285,6 +317,19 @@ fun AiScreen(
                             }
                         } else {
                             item {
+                                AiRevenueUsageCard(
+                                    usage = uiState.usageSnapshot,
+                                    planLabel = uiState.planLabel,
+                                    onOpenMembership = {
+                                        if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
+                                            membershipCoordinator.trackUpgradeAfterDeny(surface = "ai_chat")
+                                        }
+                                        membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_chat")
+                                    },
+                                )
+                            }
+
+                            item {
                                 AiOverviewCard(isEnabled = true)
                             }
 
@@ -328,6 +373,234 @@ fun AiScreen(
                     }),
             )
         }
+
+        if (membershipState.isOpen) {
+            AiMembershipSheet(
+                state = membershipState,
+                onDismiss = { membershipCoordinator.closeMembership() },
+                onToggleAnnual = { membershipCoordinator.setAnnualOption(it) },
+                onUpgradePro = {
+                    val activity = context as? android.app.Activity ?: return@AiMembershipSheet
+                    membershipCoordinator.purchaseSelectedPlan(activity, "Pro") {
+                        AppContainer.refreshCurrentUser()
+                    }
+                },
+                onUpgradeCreator = {
+                    val activity = context as? android.app.Activity ?: return@AiMembershipSheet
+                    membershipCoordinator.purchaseSelectedPlan(activity, "Creator") {
+                        AppContainer.refreshCurrentUser()
+                    }
+                },
+                onRestore = {
+                    membershipCoordinator.restore { AppContainer.refreshCurrentUser() }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiRevenueUsageCard(
+    usage: com.skydown.android.data.AiUsageSnapshot?,
+    planLabel: String,
+    onOpenMembership: () -> Unit,
+) {
+    SkydownCard(
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        modifier = Modifier.clickable(onClick = onOpenMembership),
+    ) {
+        Text(
+            text = stringResource(R.string.ai_membership_title_short),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+        Text(
+            text = if (usage == null) "${stringResource(R.string.membership_current_plan)}: $planLabel · ${stringResource(R.string.ai_membership_tiers)}" else "${stringResource(R.string.membership_current_plan)}: $planLabel",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        if (usage == null) {
+            Text(
+                text = stringResource(R.string.ai_membership_caption),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            return@SkydownCard
+        }
+
+        val used = (usage.limitForKind - usage.remainingForKind).coerceAtLeast(0)
+        val progress = if (usage.limitForKind > 0) {
+            used.toFloat() / usage.limitForKind.toFloat()
+        } else {
+            0f
+        }.coerceIn(0f, 1f)
+
+        LinearUsageBar(
+            progress = progress,
+            isCritical = usage.warningLevel == "critical",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+        Text(
+            text = "${usage.remainingForKind}/${usage.limitForKind} ${stringResource(R.string.ai_available)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        if (usage.warningLevel != "ok") {
+            Text(
+                text = if (usage.warningLevel == "critical") {
+                    stringResource(R.string.ai_warning_critical)
+                } else {
+                    stringResource(R.string.ai_warning_high)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+            )
+        }
+        if (usage.userFacingReason.isNotBlank()) {
+            Text(
+                text = usage.userFacingReason,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (usage.lowerCostOption.isNotBlank()) {
+            Text(
+                text = usage.lowerCostOption,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        if (usage.retryAfterSeconds > 0) {
+            Text(
+                text = "${stringResource(R.string.ai_retry_in)} ${usage.retryAfterSeconds}s.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier
+                    .padding(top = 3.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+            )
+        }
+        if (usage.suggestedUpgrade.isNotBlank()) {
+            Text(
+                text = "${stringResource(R.string.ai_next_step)}: ${usage.suggestedUpgrade.uppercase()}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (usage.resetHint.isNotBlank()) {
+            Text(
+                text = usage.resetHint,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AiMembershipSheet(
+    state: AiMembershipUiState,
+    onDismiss: () -> Unit,
+    onToggleAnnual: (Boolean) -> Unit,
+    onUpgradePro: () -> Unit,
+    onUpgradeCreator: () -> Unit,
+    onRestore: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(stringResource(R.string.ai_membership_sheet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+            Text(stringResource(R.string.ai_membership_sheet_subtitle), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Ausloeser: ${state.reason.name.lowercase()}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            )
+            Text(stringResource(R.string.ai_membership_free_detail), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.ai_membership_pro_detail), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.ai_membership_creator_detail), style = MaterialTheme.typography.labelMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.membership_annual_option), style = MaterialTheme.typography.labelMedium)
+                androidx.compose.material3.Switch(
+                    checked = state.selectedAnnual,
+                    onCheckedChange = onToggleAnnual,
+                )
+            }
+            if (state.annualDiscountCopy.isNotBlank()) {
+                Text(state.annualDiscountCopy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+            }
+            BrandActionButton(
+                text = stringResource(R.string.membership_pro_activate),
+                onClick = onUpgradePro,
+                accent = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.fillMaxWidth(),
+                isLoading = state.isPurchasing,
+            )
+            BrandActionButton(
+                text = stringResource(R.string.membership_creator_activate),
+                onClick = onUpgradeCreator,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                isLoading = state.isPurchasing,
+            )
+            OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.membership_restore))
+            }
+            androidx.compose.material3.OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.membership_decide_later))
+            }
+            if (state.successMessage.isNotBlank()) {
+                Text(state.successMessage, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
+            }
+            if (state.errorMessage.isNotBlank()) {
+                Text(state.errorMessage, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
+}
+
+@Composable
+private fun LinearUsageBar(
+    progress: Float,
+    isCritical: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(8.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(progress)
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (isCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
+        )
     }
 }
 
@@ -335,20 +608,47 @@ fun AiScreen(
 private fun AiCommandHeroCard(
     compactVisualDensity: Boolean,
 ) {
-    BrandHeroCard(
-        eyebrow = "SKY OS",
-        title = "KI Atelier",
-        subtitle = "Text. Visuals. Ideen.",
-        detail = "Dein kreativer Flow.",
-        accent = MaterialTheme.colorScheme.primary,
-        secondaryAccent = MaterialTheme.colorScheme.tertiary,
-        marks = listOf(BrandArtwork.Combined),
-        compactVisualDensity = compactVisualDensity,
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                shape = shape,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 8.dp else 10.dp),
     ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = "KI Atelier",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+        }
+        Text(
+            text = "Text. Visuals. Ideen. Dein kreativer Flow.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BrandPill(text = "Private", tint = MaterialTheme.colorScheme.primary)
-            BrandPill(text = "Visual", tint = MaterialTheme.colorScheme.tertiary)
-            BrandPill(text = "Memory", tint = MaterialTheme.colorScheme.secondary)
+            BrandStatusChip(text = "Private", accent = MaterialTheme.colorScheme.primary, isActive = true)
+            BrandStatusChip(text = "Visual", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
+            BrandStatusChip(text = "Memory", accent = MaterialTheme.colorScheme.secondary, isActive = true)
         }
     }
 }
@@ -363,7 +663,7 @@ private fun AiOverviewCard(
             subtitle = "Text, Visuals und Stilentscheidungen laufen in einer privaten Session.",
             accent = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.AutoAwesome,
-            tag = if (isEnabled) "Owner Mode" else "Standby",
+            tag = if (isEnabled) "Owner Mode" else "Ruhend",
         )
         Row(
             modifier = Modifier.padding(top = 12.dp),
@@ -503,39 +803,48 @@ private fun AiSessionSignalCard(
 
 @Composable
 private fun AiDisabledCard() {
-    SkydownCard {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                shape = shape,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "SkyOS Bot pausiert",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Voruebergehend nicht verfuegbar",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = "SkyOS Bot pausiert",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            BrandStatusChip(
+                text = "Ruhend",
+                accent = MaterialTheme.colorScheme.primary,
+                isActive = true,
+            )
         }
-
+        Text(
+            text = "Rest der App bleibt nutzbar — der Bot folgt, sobald er wieder verfuegbar ist.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
     }
 }
 
@@ -545,15 +854,30 @@ private fun QuickPromptCard(
     onPromptSelected: (String) -> Unit,
     compactLayout: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
-        BrandSectionBanner(
-            title = "Prompt Library",
-            subtitle = "Schnelle Starts.",
-            accent = MaterialTheme.colorScheme.primary,
-            tag = "Text",
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandStatusChip(
+                text = "Text",
+                accent = MaterialTheme.colorScheme.primary,
+                isActive = true,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Prompt Library",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Schnelle Starts.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+        }
         LazyRow(
-            modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
@@ -576,18 +900,33 @@ private fun VisualPromptCard(
     onPromptSelected: (String) -> Unit,
     compactLayout: Boolean,
 ) {
-    SkydownCard(
+    Column(
         modifier = Modifier.testTag("ai.visual.prompt.card"),
-        contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
     ) {
-        BrandSectionBanner(
-            title = "Visual Deck",
-            subtitle = "Visual Starts.",
-            accent = MaterialTheme.colorScheme.tertiary,
-            tag = "Visual",
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandStatusChip(
+                text = "Visual",
+                accent = MaterialTheme.colorScheme.tertiary,
+                isActive = true,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Visual Deck",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Visual Starts.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+        }
         LazyRow(
-            modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
@@ -870,7 +1209,7 @@ private fun AiComposerBar(
     draft: String,
     composerMode: AiComposerMode,
     textMode: AiTextMode,
-    isSending: Boolean,
+    botPhase: BotInteractionPhase,
     compactLayout: Boolean,
     contentMaxWidth: Dp,
     embeddedInTools: Boolean,
@@ -936,6 +1275,16 @@ private fun AiComposerBar(
                     vertical = cardVerticalPadding,
                 ),
             ) {
+                botPhase.composerStatusLabel?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -965,7 +1314,7 @@ private fun AiComposerBar(
                         icon = Icons.Default.Refresh,
                         filled = false,
                         compact = true,
-                        enabled = !isSending,
+                        enabled = !botPhase.isBusy,
                         modifier = Modifier.widthIn(min = if (embeddedInTools) 88.dp else 96.dp),
                     )
                 }
@@ -1047,15 +1396,14 @@ private fun AiComposerBar(
                         isActive = true,
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        BrandActionButton(
-                            text = "Ausblenden",
-                            onClick = onDismissKeyboard,
-                            accent = MaterialTheme.colorScheme.secondary,
-                            icon = Icons.Default.KeyboardArrowDown,
-                            filled = false,
-                            compact = true,
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onDismissKeyboard) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Keyboard",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                        }
                         BrandActionButton(
                             text = if (composerMode == AiComposerMode.Text) "Senden" else "Rendern",
                             onClick = {
@@ -1066,8 +1414,8 @@ private fun AiComposerBar(
                             icon = Icons.AutoMirrored.Filled.Send,
                             filled = true,
                             compact = true,
-                            enabled = draft.isNotBlank() && !isSending,
-                            isLoading = isSending,
+                            enabled = draft.isNotBlank() && !botPhase.isBusy,
+                            isLoading = botPhase.isBusy,
                         )
                     }
                 }

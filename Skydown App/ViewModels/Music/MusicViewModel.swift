@@ -35,10 +35,10 @@ class MusicViewModel: ObservableObject {
         do {
             try await musicService.connect()
             isSpotifyConnected = musicService.isConnected
-            showUserToast("Spotify verbunden", style: .success)
+            showUserToast("Spotify ist bereit. Du kannst nahtlos weiterhoeren.", style: .success)
         } catch {
             showUserToast(
-                "Spotify konnte gerade nicht verbunden werden. Previews laufen weiter, wenn sie verfuegbar sind.",
+                "Spotify ist gerade nicht erreichbar. In-App-Previews bleiben aktiv, sobald verfuegbar.",
                 style: .info
             )
         }
@@ -48,7 +48,7 @@ class MusicViewModel: ObservableObject {
     func disconnectSpotify() {
         musicService.disconnect()
         isSpotifyConnected = false
-        showUserToast("Spotify getrennt, Katalog bleibt aktiv", style: .info)
+        showUserToast("Spotify wurde pausiert. Dein Music-Flow bleibt aktiv.", style: .info)
     }
 
     func fetchTracks(for artist: String) async {
@@ -60,13 +60,13 @@ class MusicViewModel: ObservableObject {
             tracks = filteredTracks
 
             if filteredTracks.isEmpty {
-                showUserToast("Keine Songs für \(artist) gefunden", style: .error)
+                showUserToast("Fuer \(artist) sind gerade noch keine Tracks im Fokus.", style: .info)
             } else {
-                showUserToast("Songs erfolgreich geladen", style: .success)
+                showUserToast("Tracks sind bereit.", style: .success)
             }
 
         } catch {
-            showUserToast("Tracks konnten gerade nicht geladen werden.", style: .error)
+            showUserToast("Tracks sind gerade nicht erreichbar. Versuche es in einem Moment erneut.", style: .error)
             tracks = []
         }
 

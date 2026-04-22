@@ -631,13 +631,13 @@ fun BrandActionButton(
     compact: Boolean = false,
     isLoading: Boolean = false,
 ) {
-    val shape = RoundedCornerShape(if (compact) 17.dp else 20.dp)
+    val shape = RoundedCornerShape(if (compact) 15.dp else 18.dp)
     val interactionSource = remember { MutableInteractionSource() }
     val buttonEnabled = enabled && !isLoading
     val contentPadding = if (compact) {
-        PaddingValues(horizontal = 15.dp, vertical = 10.dp)
+        PaddingValues(horizontal = 14.dp, vertical = 9.dp)
     } else {
-        PaddingValues(horizontal = 18.dp, vertical = 14.dp)
+        PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     }
     val filledContentColor = if (accent.perceivedBrightness() < 0.58f) Color.White else MaterialTheme.colorScheme.skydownDeepInk()
     val iconTint = if (filled) filledContentColor else accent
@@ -666,7 +666,7 @@ fun BrandActionButton(
         Button(
             onClick = onClick,
             modifier = modifier
-                .heightIn(min = if (compact) 42.dp else 50.dp)
+                .heightIn(min = if (compact) 40.dp else 46.dp)
                 .shadow(
                     elevation = if (enabled) 10.dp else 0.dp,
                     shape = shape,
@@ -719,7 +719,7 @@ fun BrandActionButton(
         OutlinedButton(
             onClick = onClick,
             modifier = modifier
-                .heightIn(min = if (compact) 42.dp else 50.dp)
+                .heightIn(min = if (compact) 40.dp else 46.dp)
                 .clip(shape)
                 .background(outlineBrush)
                 .border(

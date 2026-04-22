@@ -26,6 +26,7 @@ function sanitizeRuntimeConfig(data = {}) {
     registrationsEnabled: data.registrationsEnabled !== false,
     userWritesEnabled: data.userWritesEnabled !== false,
     appCheckMode,
+    appCheckAiSoftFailEnabled: data.appCheckAiSoftFailEnabled !== false,
     budgetLockdownEnabled: data.budgetLockdownEnabled === true,
     lastLockdownReason: typeof data.lastLockdownReason === "string" ? data.lastLockdownReason : "",
   };

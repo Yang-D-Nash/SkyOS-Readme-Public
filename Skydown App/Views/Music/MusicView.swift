@@ -98,6 +98,7 @@ enum MusicExperienceBrand {
 }
 
 private enum MusicSectionAnchor: String {
+    case spotlight
     case artists
     case tracks
     case spotify
@@ -163,9 +164,9 @@ struct MusicView: View {
 
     private var spotifyStatusText: String {
         if viewModel.isSpotifyConnected {
-            return "Spotify verbunden — Player optional."
+            return "Spotify ist bereit, wenn du nahtlos weiterhoeren willst."
         }
-        return "Previews in-app. Spotify optional."
+        return "In-App-Previews laufen ruhig weiter. Spotify bleibt optional."
     }
 
     private var tracksStatusText: String {
@@ -174,6 +175,22 @@ struct MusicView: View {
 
     private var selectedTrack: Track? {
         viewModel.tracks.first { $0.trackId == selectedTrackID } ?? viewModel.tracks.first
+    }
+
+    private var selectedTrackQueuePosition: Int? {
+        guard let selectedTrackID,
+              let index = viewModel.tracks.firstIndex(where: { $0.trackId == selectedTrackID }) else {
+            return nil
+        }
+        return index + 1
+    }
+
+    private var queueStatusText: String {
+        guard !viewModel.tracks.isEmpty else { return "Queue wird vorbereitet" }
+        if let position = selectedTrackQueuePosition {
+            return "Queue \(position)/\(viewModel.tracks.count)"
+        }
+        return "Queue \(viewModel.tracks.count) Titel"
     }
 
     private var selectedArtistPage: ArtistPage {
@@ -202,6 +219,11 @@ struct MusicView: View {
                                         scrollProxy.scrollTo(MusicSectionAnchor.artists.rawValue, anchor: .top)
                                     }
                                 },
+                                onOpenSpotlight: {
+                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                        scrollProxy.scrollTo(MusicSectionAnchor.spotlight.rawValue, anchor: .top)
+                                    }
+                                },
                                 onOpenTracks: {
                                     withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
                                         scrollProxy.scrollTo(MusicSectionAnchor.tracks.rawValue, anchor: .top)
@@ -214,36 +236,37 @@ struct MusicView: View {
                                 }
                             )
                             spotlightCard
+                                .id(MusicSectionAnchor.spotlight.rawValue)
 
                             if layout.prefersTwoColumn {
                                 HStack(alignment: .top, spacing: layout.sectionSpacing) {
                                     VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                                        shortcutHubCard
                                         artistsCard
                                             .id(MusicSectionAnchor.artists.rawValue)
                                         instagramCard
+                                        shortcutHubCard
                                     }
                                     .frame(maxWidth: .infinity, alignment: .topLeading)
 
                                     VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                                        spotifyCard
-                                            .id(MusicSectionAnchor.spotify.rawValue)
                                         musicPlayerCard
                                         tracksCard
                                             .id(MusicSectionAnchor.tracks.rawValue)
+                                        spotifyCard
+                                            .id(MusicSectionAnchor.spotify.rawValue)
                                     }
                                     .frame(maxWidth: .infinity, alignment: .topLeading)
                                 }
                             } else {
-                                shortcutHubCard
+                                musicPlayerCard
+                                tracksCard
+                                    .id(MusicSectionAnchor.tracks.rawValue)
                                 artistsCard
                                     .id(MusicSectionAnchor.artists.rawValue)
                                 instagramCard
                                 spotifyCard
                                     .id(MusicSectionAnchor.spotify.rawValue)
-                                musicPlayerCard
-                                tracksCard
-                                    .id(MusicSectionAnchor.tracks.rawValue)
+                                shortcutHubCard
                             }
                         }
                         .frame(maxWidth: contentWidth, alignment: .leading)
@@ -475,6 +498,7 @@ struct MusicView: View {
 
     private func heroCard(
         onOpenArtistHub: @escaping () -> Void,
+        onOpenSpotlight: @escaping () -> Void,
         onOpenTracks: @escaping () -> Void,
         onOpenSpotifyStatus: @escaping () -> Void
     ) -> some View {
@@ -482,30 +506,62 @@ struct MusicView: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
             title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? brand.heroTitle,
-            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? brand.heroSubtitle,
-            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) · Katalog",
+            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Atmosphaere, Artist-Fokus und Premium Listening in einem ruhigen Flow.",
+            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) im Fokus · Featured Drop · direkte Wiedergabe",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
             accent: AppColors.spotify(for: colorScheme),
             secondaryAccent: AppColors.accent(for: colorScheme),
             marks: brand == .zweizwei ? [.zweizwei] : [.skydown]
         ) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    MusicBadge(text: selectedArtist, isAccent: true, onTap: onOpenArtistHub)
-                    MusicBadge(text: tracksStatusText, isAccent: false, onTap: onOpenTracks)
-                    if brand.showsArtistPages {
-                        MusicBadge(text: "Artist Pages", isAccent: false, onTap: {
-                            presentSheet(.artistPage)
-                        })
+            VStack(alignment: .leading, spacing: 10) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        MusicBadge(text: selectedArtist, isAccent: true, onTap: onOpenArtistHub)
+                        MusicBadge(text: "Featured Drop", isAccent: false, onTap: onOpenSpotlight)
+                        MusicBadge(text: tracksStatusText, isAccent: false, onTap: onOpenTracks)
+                        if brand.showsArtistPages {
+                            MusicBadge(text: "Artist Pages", isAccent: false, onTap: {
+                                presentSheet(.artistPage)
+                            })
+                        }
+                        MusicBadge(
+                            text: viewModel.isSpotifyConnected ? "Spotify live" : "Preview ready",
+                            isAccent: false,
+                            onTap: onOpenSpotifyStatus
+                        )
                     }
-                    MusicBadge(
-                        text: viewModel.isSpotifyConnected ? "Spotify live" : "Preview ready",
-                        isAccent: false,
-                        onTap: onOpenSpotifyStatus
-                    )
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        musicListeningModeChip(title: "Focus", accent: AppColors.spotify(for: colorScheme), onTap: onOpenSpotlight)
+                        musicListeningModeChip(title: "Discovery", accent: AppColors.accent(for: colorScheme), onTap: onOpenTracks)
+                        musicListeningModeChip(title: "Artist Hub", accent: AppColors.accentHighlight(for: colorScheme), onTap: onOpenArtistHub)
+                        musicListeningModeChip(title: "Live Link", accent: AppColors.accentMystic(for: colorScheme), onTap: onOpenSpotifyStatus)
+                    }
                 }
             }
         }
+    }
+
+    private func musicListeningModeChip(title: String, accent: Color, onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundColor(accent)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(accent.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(accent.opacity(colorScheme == .dark ? 0.36 : 0.24), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 
     @ViewBuilder
@@ -634,10 +690,12 @@ struct MusicView: View {
         if let selectedTrack {
             if selectedTrack.previewUrl != nil {
                 Button {
-                    audioManager.playPreview(for: selectedTrack)
+                    withAnimation(.easeInOut(duration: 0.20)) {
+                        audioManager.playPreview(for: selectedTrack)
+                    }
                 } label: {
                     Label(
-                        audioManager.currentlyPlayingId == selectedTrack.trackId ? "Preview stoppen" : "Preview starten",
+                            audioManager.currentlyPlayingId == selectedTrack.trackId ? "Preview pausieren" : "Preview anhoeren",
                         systemImage: audioManager.currentlyPlayingId == selectedTrack.trackId ? "pause.fill" : "play.fill"
                     )
                     .font(.subheadline.weight(.semibold))
@@ -647,6 +705,7 @@ struct MusicView: View {
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .skydownTactileAction()
             }
 
             if brand.showsArtistPages {
@@ -665,6 +724,7 @@ struct MusicView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .skydownTactileAction()
             }
         }
     }
@@ -676,7 +736,7 @@ struct MusicView: View {
                 Text("Quick Access")
                     .font(.headline)
 
-                Text("Kurzwege · immer sichtbar.")
+                Text("Optionaler Schnellzugriff fuer Studio und Beat Hub.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -737,7 +797,7 @@ struct MusicView: View {
                     .skydownTactileAction()
                 }
             }
-            .padding(SkydownLayout.cardPadding)
+            .padding(max(14, SkydownLayout.cardPadding - 4))
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 musicCardBackground(
@@ -981,31 +1041,24 @@ struct MusicView: View {
     }
 
     private func artistMetricCard(title: String, value: String, accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(accent)
 
             Text(value)
-                .font(.title3.weight(.black))
+                .font(.headline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
         }
-        .padding(14)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            musicCardBackground(
-                accent: accent,
-                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
-                cornerRadius: 18
-            )
-        )
+        .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            musicCardStroke(
-                accent: accent,
-                secondaryAccent: AppColors.accentHighlight(for: colorScheme),
-                cornerRadius: 18
-            )
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(accent.opacity(0.22), lineWidth: 1)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     private func artistSignalTile(for artist: String) -> some View {
@@ -1017,11 +1070,11 @@ struct MusicView: View {
         return Button {
             selectedArtist = artist
         } label: {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(artist)
-                            .font(.headline.weight(.bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundColor(AppColors.text(for: colorScheme))
                             .lineLimit(1)
 
@@ -1057,29 +1110,25 @@ struct MusicView: View {
                 }
 
                 Text(isSelected ? "Aktuell im Fokus" : "Tippen zum Fokussieren")
-                    .font(.footnote.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundColor(
                         isSelected
                         ? AppColors.spotify(for: colorScheme)
                         : AppColors.secondaryText(for: colorScheme)
                     )
             }
-            .padding(16)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                musicCardBackground(
-                    accent: isSelected ? AppColors.spotify(for: colorScheme) : AppColors.accentHighlight(for: colorScheme),
-                    secondaryAccent: AppColors.accent(for: colorScheme),
-                    cornerRadius: 20
-                )
-            )
+            .background(AppColors.secondaryBackground(for: colorScheme))
             .overlay(
-                musicCardStroke(
-                    accent: isSelected ? AppColors.spotify(for: colorScheme) : AppColors.accentHighlight(for: colorScheme),
-                    secondaryAccent: AppColors.accent(for: colorScheme),
-                    cornerRadius: 20
-                )
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        (isSelected ? AppColors.spotify(for: colorScheme) : AppColors.accent(for: colorScheme)).opacity(0.24),
+                        lineWidth: 1
+                    )
             )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
@@ -1399,7 +1448,7 @@ struct MusicView: View {
             Text("Spotify")
                 .font(.headline)
 
-            Text(spotifyStatusText)
+            Text("Externer Handover bleibt optional und ruhig im Hintergrund. \(spotifyStatusText)")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1443,7 +1492,7 @@ struct MusicView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
         }
-        .padding(SkydownLayout.cardPadding)
+        .padding(max(14, SkydownLayout.cardPadding - 4))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             musicCardBackground(
@@ -1476,6 +1525,10 @@ struct MusicView: View {
             Text("Tracks")
                 .font(.headline)
 
+            Text(queueStatusText)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
             tracksContent
         }
         .padding(SkydownLayout.cardPadding)
@@ -1498,8 +1551,28 @@ struct MusicView: View {
     private var musicPlayerCard: some View {
         if let selectedTrack {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Song Player")
+                Text("Now Listening")
                     .font(.headline)
+
+                HStack(spacing: 8) {
+                    Text(audioManager.currentlyPlayingId == selectedTrack.trackId ? "Live Preview" : "Bereit")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.20 : 0.12))
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.36 : 0.24), lineWidth: 1)
+                        )
+                    Text(queueStatusText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(1)
+                }
 
                 HStack(alignment: .top, spacing: 14) {
                     AsyncImage(url: URL(string: selectedTrack.artworkUrl100 ?? "")) { image in
@@ -1533,10 +1606,12 @@ struct MusicView: View {
                 HStack(spacing: 10) {
                     if selectedTrack.previewUrl != nil {
                         Button {
-                            audioManager.playPreview(for: selectedTrack)
+                            withAnimation(.easeInOut(duration: 0.20)) {
+                                audioManager.playPreview(for: selectedTrack)
+                            }
                         } label: {
                             Label(
-                                audioManager.currentlyPlayingId == selectedTrack.trackId ? "Preview stoppen" : "Preview starten",
+                                audioManager.currentlyPlayingId == selectedTrack.trackId ? "Preview pausieren" : "Preview anhoeren",
                                 systemImage: audioManager.currentlyPlayingId == selectedTrack.trackId ? "pause.fill" : "play.fill"
                             )
                             .font(.subheadline.weight(.semibold))
@@ -1552,7 +1627,7 @@ struct MusicView: View {
                         Button {
                             presentSheet(.spotifyPlayer)
                         } label: {
-                            Label("Spotify Player", systemImage: "music.note.tv")
+                            Label("In Spotify weiter", systemImage: "music.note.tv")
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -1564,10 +1639,11 @@ struct MusicView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
+                        .skydownTactileAction()
                     } else if let externalURL = selectedTrack.externalURL, let url = URL(string: externalURL) {
                         Link(destination: url) {
                             Label(
-                                resolvedMusicViewSpotifyArtistID(selectedTrack) != nil ? "Spotify Artist" : "Spotify Suche",
+                                resolvedMusicViewSpotifyArtistID(selectedTrack) != nil ? "Zum Spotify Artist" : "In Spotify suchen",
                                 systemImage: "arrow.up.forward.square"
                             )
                                 .font(.subheadline.weight(.semibold))
@@ -1598,16 +1674,18 @@ struct MusicView: View {
                     secondaryAccent: AppColors.spotify(for: colorScheme)
                 )
             )
+            .animation(.easeInOut(duration: 0.22), value: audioManager.currentlyPlayingId)
+            .animation(.easeInOut(duration: 0.22), value: selectedTrackID)
         }
     }
 
     @ViewBuilder
     private var tracksContent: some View {
         if viewModel.isLoadingTracks {
-            ProgressView("Lade Songs...")
+            ProgressView("Tracks werden ruhig vorbereitet...")
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else if viewModel.tracks.isEmpty {
-                Text("Noch keine Songs fuer \(selectedArtist).")
+                Text("Fuer \(selectedArtist) ist gerade noch kein Track live. Versuche es in einem Moment erneut.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         } else {

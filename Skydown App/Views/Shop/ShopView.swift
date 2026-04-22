@@ -7,278 +7,9 @@
 
 // swiftlint:disable file_length
 
-import AVKit
 import SwiftUI
 
-private enum HomeSectionAnchor: String {
-    case release
-    case beat
-    case video
-}
-
-struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
-    @StateObject private var beatPlaybackManager = BeatPlaybackManager()
-    @StateObject private var audioPlayerManager = AudioPlayerManager()
-    @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
-    @State private var activePresentedSheet: HomePresentedSheet?
-    @State private var queuedPresentedSheet: HomePresentedSheet?
-    @State private var videoHubLaunchTarget: HomeVideoHubLaunchTarget?
-    @State private var originalVideoViewerTarget: HomeOriginalVideoViewerTarget?
-    @State private var hasLoadedInitialHomeContent = false
-    @Environment(\.colorScheme) private var colorScheme
-    let onOpenCart: () -> Void
-    let onOpenProfile: () -> Void
-    let onOpenSettings: () -> Void
-    let onOpenWorkflow: (() -> Void)?
-
-    init(
-        onOpenCart: @escaping () -> Void = {},
-        onOpenProfile: @escaping () -> Void = {},
-        onOpenSettings: @escaping () -> Void = {},
-        onOpenWorkflow: (() -> Void)? = nil
-    ) {
-        self.onOpenCart = onOpenCart
-        self.onOpenProfile = onOpenProfile
-        self.onOpenSettings = onOpenSettings
-        self.onOpenWorkflow = onOpenWorkflow
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                        HomeHeroIntroCard(
-                            viewModel: viewModel,
-                            colorScheme: colorScheme,
-                            onOpenTrack: {
-                                withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
-                                    proxy.scrollTo(HomeSectionAnchor.release.rawValue, anchor: .top)
-                                }
-                            },
-                            onOpenBeat: {
-                                withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
-                                    proxy.scrollTo(HomeSectionAnchor.beat.rawValue, anchor: .top)
-                                }
-                            },
-                            onOpenVideo: {
-                                withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
-                                    proxy.scrollTo(HomeSectionAnchor.video.rawValue, anchor: .top)
-                                }
-                            }
-                        )
-                            .homeReveal(0)
-                        HomeFieldGuideCard(
-                            viewModel: viewModel,
-                            colorScheme: colorScheme
-                        )
-                        .homeReveal(1)
-                        HomeLatestReleaseCard(
-                            viewModel: viewModel,
-                            playbackManager: audioPlayerManager,
-                            colorScheme: colorScheme
-                        ) { track in
-                            beatPlaybackManager.stop()
-                            videoPlaybackManager.stop()
-                            audioPlayerManager.playPreview(for: track)
-                        }
-                        .id(HomeSectionAnchor.release.rawValue)
-                        .homeReveal(2)
-                        HomeLatestBeatCard(
-                            viewModel: viewModel,
-                            playbackManager: beatPlaybackManager,
-                            colorScheme: colorScheme
-                        ) { beat in
-                            audioPlayerManager.stop()
-                            videoPlaybackManager.stop()
-                            beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
-                        }
-                        .id(HomeSectionAnchor.beat.rawValue)
-                        .homeReveal(3)
-                        HomeLatestVideoCard(
-                            viewModel: viewModel,
-                            playbackManager: videoPlaybackManager,
-                            colorScheme: colorScheme
-                        ) { video in
-                            beatPlaybackManager.stop()
-                            audioPlayerManager.stop()
-                            videoPlaybackManager.stop()
-                            videoHubLaunchTarget = HomeVideoHubLaunchTarget(videoID: video.id)
-                        } onOpenOriginal: { video in
-                            openOriginalVideo(video)
-                        }
-                        .id(HomeSectionAnchor.video.rawValue)
-                        .homeReveal(4)
-                        HomeStoryCard(
-                            colorScheme: colorScheme,
-                            onOpenBeatHub: {
-                                beatPlaybackManager.stop()
-                                audioPlayerManager.stop()
-                                videoPlaybackManager.stop()
-                                presentSheet(.beatHub)
-                            },
-                            onOpenNicma: {
-                                beatPlaybackManager.stop()
-                                audioPlayerManager.stop()
-                                videoPlaybackManager.stop()
-                                presentSheet(.nicmaProducer)
-                            }
-                        )
-                        .homeReveal(5)
-                    }
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, SkydownLayout.screenTopPadding * 0.5)
-                    .padding(.bottom, SkydownLayout.screenBottomPadding)
-                }
-            }
-            .scrollIndicators(.hidden)
-            .refreshable {
-                viewModel.refresh()
-            }
-            .background {
-                AppColors.screenGradient(
-                    for: colorScheme,
-                    secondaryAccent: AppColors.spotify(for: colorScheme)
-                )
-                    .overlay {
-                        HomeMapBackdrop(colorScheme: colorScheme)
-                    }
-                    .ignoresSafeArea()
-            }
-            .navigationTitle("SkyOS")
-            .navigationBarTitleDisplayMode(.inline)
-            .skydownNavigationChrome(colorScheme: colorScheme)
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if let onOpenWorkflow {
-                        Button(action: onOpenWorkflow) {
-                            Image(systemName: "arrow.triangle.branch")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .padding(10)
-                                .background(
-                                    Circle()
-                                        .fill(
-                                            AppColors.accentHighlight(for: colorScheme)
-                                                .opacity(colorScheme == .dark ? 0.18 : 0.20)
-                                        )
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
-                                )
-                        }
-                        .skydownTactileAction()
-                        .accessibilityLabel("Automationen oeffnen")
-                    }
-
-                    AppSessionToolbarActions(
-                        onOpenCart: onOpenCart,
-                        onOpenProfile: onOpenProfile,
-                        onOpenSettings: onOpenSettings
-                    )
-                }
-            }
-            .task {
-                guard !hasLoadedInitialHomeContent else { return }
-                hasLoadedInitialHomeContent = true
-                viewModel.refresh()
-            }
-            .onDisappear {
-                beatPlaybackManager.stop()
-                audioPlayerManager.stop()
-                videoPlaybackManager.stop()
-            }
-        }
-        .sheet(item: $activePresentedSheet) { sheet in
-            NavigationStack {
-                switch sheet {
-                case .beatHub:
-                    BeatHubView {
-                        activePresentedSheet = nil
-                    }
-                case .nicmaProducer:
-                    NicmaProducerView {
-                        activePresentedSheet = nil
-                    }
-                }
-            }
-        }
-        .fullScreenCover(item: $originalVideoViewerTarget) { target in
-            SkydownOriginalVideoDestinationView(
-                urlString: target.urlString,
-                title: target.title
-            )
-        }
-        .fullScreenCover(item: $videoHubLaunchTarget) { target in
-            NavigationStack {
-                VideoHubView(
-                    onBack: { videoHubLaunchTarget = nil },
-                    initialSelectedVideoID: target.videoID,
-                    autoplayInitialSelection: true
-                )
-            }
-        }
-        .onChange(of: activePresentedSheet) { _, sheet in
-            guard sheet == nil, let queuedPresentedSheet else { return }
-            self.queuedPresentedSheet = nil
-            DispatchQueue.main.async {
-                activePresentedSheet = queuedPresentedSheet
-            }
-        }
-    }
-
-    private func presentSheet(_ sheet: HomePresentedSheet) {
-        guard activePresentedSheet == nil else {
-            queuedPresentedSheet = sheet
-            activePresentedSheet = nil
-            return
-        }
-
-        activePresentedSheet = sheet
-    }
-
-    private func openOriginalVideo(_ video: FeaturedHomeVideo) {
-        let urlString = {
-            let primary = video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !primary.isEmpty {
-                return primary
-            }
-
-            return video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        }()
-        guard !urlString.isEmpty, let url = URL(string: urlString) else { return }
-
-        beatPlaybackManager.stop()
-        audioPlayerManager.stop()
-        videoPlaybackManager.stop()
-
-        activePresentedSheet = nil
-        originalVideoViewerTarget = HomeOriginalVideoViewerTarget(
-            urlString: url.absoluteString,
-            title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
-        )
-    }
-}
-
-private enum HomePresentedSheet: String, Identifiable, Equatable {
-    case beatHub
-    case nicmaProducer
-
-    var id: String { rawValue }
-}
-
-private struct HomeOriginalVideoViewerTarget: Identifiable {
-    let id = UUID()
-    let urlString: String
-    let title: String
-}
-
-private struct HomeVideoHubLaunchTarget: Identifiable {
-    let id = UUID()
-    let videoID: String
-}
+// Home view moved to Views/Home/*.
 
 struct ShopView: View {
     @ObservedObject private var authManager: AuthManager
@@ -350,6 +81,25 @@ struct ShopView: View {
         return resolvedCount
     }
 
+    private var featuredDropItem: MerchandiseItem? {
+        viewModel.merchandiseItems.first(where: { $0.featured && $0.available })
+        ?? viewModel.merchandiseItems.first(where: { $0.available })
+        ?? viewModel.merchandiseItems.first
+    }
+
+    private var editorialPickItems: [MerchandiseItem] {
+        let sorted = viewModel.merchandiseItems.sorted { lhs, rhs in
+            if lhs.featured != rhs.featured {
+                return lhs.featured && !rhs.featured
+            }
+            if lhs.sortOrder != rhs.sortOrder {
+                return lhs.sortOrder < rhs.sortOrder
+            }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+        return Array(sorted.prefix(5))
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { proxy in
@@ -392,13 +142,26 @@ struct ShopView: View {
                                     } : nil
                                 )
 
-                                if let errorMessage = viewModel.errorMessage, !isAdmin {
+                                if !editorialPickItems.isEmpty {
+                                    ShopLandingCuratedModule(
+                                        colorScheme: colorScheme,
+                                        featuredItem: featuredDropItem,
+                                        editorialPicks: editorialPickItems,
+                                        onOpenItem: { item in
+                                            selectedItem = item
+                                        }
+                                    )
+                                }
+
+                                if let errorMessage = viewModel.errorMessage {
                                     ShopInfoCard(
                                         colorScheme: colorScheme,
-                                        title: "Login",
+                                        title: "Shop nicht erreichbar",
                                         message: errorMessage,
-                                        actionTitle: "Anmelden",
-                                        action: onOpenLogin
+                                        actionTitle: "Erneut laden",
+                                        action: {
+                                            viewModel.fetchData()
+                                        }
                                     )
                                 }
 
@@ -410,7 +173,7 @@ struct ShopView: View {
                                     )
                                 }
 
-                                if viewModel.merchandiseItems.isEmpty {
+                                if viewModel.merchandiseItems.isEmpty, viewModel.errorMessage == nil {
                                     ShopInfoCard(
                                         colorScheme: colorScheme,
                                         title: viewModel.isSyncingCatalog ? "Shopify laedt" : "Noch kein Merch",
@@ -449,12 +212,14 @@ struct ShopView: View {
                                                     }
                                                 )
                                             } else {
-                                                ForEach(filteredMerchandiseItems) { item in
-                                                    MerchandiseRowView(
-                                                        item: item,
-                                                        environmentColorScheme: colorScheme
-                                                    ) {
-                                                        selectedItem = $0
+                                                LazyVStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                                    ForEach(filteredMerchandiseItems) { item in
+                                                        MerchandiseRowView(
+                                                            item: item,
+                                                            environmentColorScheme: colorScheme
+                                                        ) {
+                                                            selectedItem = $0
+                                                        }
                                                     }
                                                 }
                                             }
@@ -492,12 +257,14 @@ struct ShopView: View {
                                             }
                                         )
                                     } else {
-                                        ForEach(filteredMerchandiseItems) { item in
-                                            MerchandiseRowView(
-                                                item: item,
-                                                environmentColorScheme: colorScheme
-                                            ) {
-                                                selectedItem = $0
+                                        LazyVStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                                            ForEach(filteredMerchandiseItems) { item in
+                                                MerchandiseRowView(
+                                                    item: item,
+                                                    environmentColorScheme: colorScheme
+                                                ) {
+                                                    selectedItem = $0
+                                                }
                                             }
                                         }
                                     }
@@ -549,9 +316,10 @@ struct ShopView: View {
                 }
                 .sheet(item: $selectedItem) { item in
                     NavigationStack {
-                        ContactFormView(
+                        MerchandiseDetailView(
                             item: item,
-                            storeIsOpen: viewModel.isStoreOpen || isAdmin
+                            storeIsOpen: viewModel.isStoreOpen || isAdmin,
+                            onOpenCart: onOpenCart
                         )
                             .background(AppColors.primaryBackground(for: colorScheme))
                     }
@@ -566,1455 +334,9 @@ struct ShopView: View {
     }
 }
 
-private struct HomeMapBackdrop: View {
-    let colorScheme: ColorScheme
+// Home components moved to Views/Home/*.
 
-    var body: some View {
-        ZStack {
-            HomeBackdropHalo(
-                tint: AppColors.spotify(for: colorScheme),
-                size: 280,
-                opacity: colorScheme == .dark ? 0.09 : 0.07
-            )
-            .offset(x: 168, y: -138)
-
-            HomeBackdropHalo(
-                tint: AppColors.accentMystic(for: colorScheme),
-                size: 240,
-                opacity: colorScheme == .dark ? 0.10 : 0.08
-            )
-            .offset(x: -172, y: 210)
-
-            HomeBackdropHalo(
-                tint: AppColors.accentHighlight(for: colorScheme),
-                size: 320,
-                opacity: colorScheme == .dark ? 0.08 : 0.06
-            )
-            .offset(x: 154, y: 498)
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-private struct HomeBackdropHalo: View {
-    let tint: Color
-    let size: CGFloat
-    let opacity: Double
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(tint.opacity(opacity))
-                .frame(width: size, height: size)
-                .blur(radius: 34)
-
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .stroke(
-                        tint.opacity(opacity - Double(index) * 0.02),
-                        lineWidth: 1
-                    )
-                    .frame(
-                        width: size * (1 - CGFloat(index) * 0.22),
-                        height: size * (1 - CGFloat(index) * 0.22)
-                    )
-            }
-        }
-    }
-}
-
-private struct HomeHeroIntroCard: View {
-    @ObservedObject var viewModel: HomeViewModel
-    let colorScheme: ColorScheme
-    let onOpenTrack: () -> Void
-    let onOpenBeat: () -> Void
-    let onOpenVideo: () -> Void
-    @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
-
-    var body: some View {
-        let availableSignals = [
-            viewModel.featuredTrack != nil,
-            viewModel.featuredBeat != nil,
-            viewModel.featuredVideo != nil
-        ]
-        .filter { $0 }
-        .count
-
-        BrandHeroSurface(
-            colorScheme: colorScheme,
-            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS Home",
-            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
-            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Eine Oberfläche.",
-            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Music · Video · Merch · Tools",
-            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
-            accent: AppColors.accent(for: colorScheme),
-            secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: [.skydownX22]
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    BrandHeroPill(
-                        text: viewModel.featuredTrack == nil ? "Track laedt" : "Track live",
-                        colorScheme: colorScheme,
-                        tint: AppColors.spotify(for: colorScheme),
-                        onTap: onOpenTrack
-                    )
-                    BrandHeroPill(
-                        text: viewModel.featuredBeat == nil ? "Beat laedt" : "Beat live",
-                        colorScheme: colorScheme,
-                        tint: AppColors.accentMystic(for: colorScheme),
-                        onTap: onOpenBeat
-                    )
-                    BrandHeroPill(
-                        text: viewModel.featuredVideo == nil ? "Video laedt" : "Video live",
-                        colorScheme: colorScheme,
-                        tint: AppColors.accentHighlight(for: colorScheme),
-                        onTap: onOpenVideo
-                    )
-                }
-
-                Text(
-                    availableSignals > 0
-                        ? "\(availableSignals) live."
-                        : "Feed aktiv."
-                )
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.82))
-            }
-        }
-    }
-}
-
-private struct HomeFieldGuideCard: View {
-    @ObservedObject var viewModel: HomeViewModel
-    let colorScheme: ColorScheme
-
-    private var signals: [HomeRadarSignal] {
-        [
-            HomeRadarSignal(
-                title: "Music",
-                subtitle: viewModel.featuredTrack?.trackName ?? "Lädt…",
-                icon: "music.note",
-                accent: AppColors.spotify(for: colorScheme),
-                isActive: viewModel.featuredTrack != nil
-            ),
-            HomeRadarSignal(
-                title: "Beat",
-                subtitle: viewModel.featuredBeat?.title ?? "Lädt…",
-                icon: "waveform",
-                accent: AppColors.accentMystic(for: colorScheme),
-                isActive: viewModel.featuredBeat != nil
-            ),
-            HomeRadarSignal(
-                title: "Visual",
-                subtitle: viewModel.featuredVideo?.title ?? "Lädt…",
-                icon: "video.fill",
-                accent: AppColors.accentHighlight(for: colorScheme),
-                isActive: viewModel.featuredVideo != nil
-            )
-        ]
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(
-                title: "Live",
-                subtitle: "Music · Beats · Visuals",
-                icon: "scope",
-                colorScheme: colorScheme,
-                accent: AppColors.accentMystic(for: colorScheme)
-            )
-
-            Text("Alles sichtbar.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            HomeRadarSurface(
-                signals: signals,
-                colorScheme: colorScheme
-            )
-            .frame(height: 240)
-
-            VStack(spacing: 10) {
-                ForEach(signals) { signal in
-                    HomeRadarSignalRow(
-                        signal: signal,
-                        colorScheme: colorScheme
-                    )
-                }
-            }
-
-            Text("Live aktualisiert.")
-                .font(.caption)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-        }
-        .padding(SkydownLayout.cardPadding)
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: AppColors.accentMystic(for: colorScheme),
-            cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 9,
-            shadowYOffset: 4
-        )
-    }
-}
-
-private struct HomeSectionBanner: View {
-    let title: String
-    let subtitle: String
-    let icon: String
-    let colorScheme: ColorScheme
-    let accent: Color
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                accent.opacity(colorScheme == .dark ? 0.14 : 0.18),
-                                accent.opacity(colorScheme == .dark ? 0.08 : 0.08),
-                                AppColors.secondaryBackground(for: colorScheme).opacity(0.68)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accent.opacity(0.26), lineWidth: 1)
-
-                Image(systemName: icon)
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(accent)
-            }
-            .frame(width: 48, height: 48)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(AppTypography.sectionHeadline)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text(subtitle)
-                    .font(AppTypography.bodyCaption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-
-            Spacer()
-        }
-    }
-}
-
-private struct HomeSignalBadge: View {
-    let text: String
-    let icon: String
-    let colorScheme: ColorScheme
-    let accent: Color
-    let isActive: Bool
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption2.weight(.bold))
-
-            Text(text)
-                .font(AppTypography.bodyCaption)
-                .lineLimit(1)
-        }
-        .foregroundColor(isActive ? accent : AppColors.secondaryText(for: colorScheme))
-        .padding(.vertical, 2)
-    }
-}
-
-private struct HomeRadarSignal: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let icon: String
-    let accent: Color
-    let isActive: Bool
-}
-
-private struct HomeRadarSurface: View {
-    let signals: [HomeRadarSignal]
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-            let outerRing = size * 0.78
-            let middleRing = size * 0.56
-            let innerRing = size * 0.34
-
-            ZStack {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.995),
-                                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.12),
-                                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08),
-                                Color.black.opacity(colorScheme == .dark ? 0.26 : 0.06)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
-
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.14),
-                                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.08),
-                                Color.clear
-                            ],
-                            center: .center,
-                            startRadius: 18,
-                            endRadius: outerRing * 0.62
-                        )
-                    )
-                    .frame(width: outerRing, height: outerRing)
-
-                ForEach([outerRing, middleRing, innerRing], id: \.self) { ring in
-                    Circle()
-                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                        .frame(width: ring, height: ring)
-                }
-
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColors.accent(for: colorScheme).opacity(0.88),
-                                AppColors.accentMystic(for: colorScheme).opacity(0.78)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 60, height: 60)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                    )
-
-                Image(systemName: "sparkles")
-                    .font(.title3.weight(.bold))
-                    .foregroundColor(.white)
-
-                if let first = signals[safe: 0] {
-                    HomeRadarNode(signal: first, colorScheme: colorScheme)
-                        .offset(y: -76)
-                }
-
-                if let second = signals[safe: 1] {
-                    HomeRadarNode(signal: second, colorScheme: colorScheme)
-                        .offset(x: -82, y: 32)
-                }
-
-                if let third = signals[safe: 2] {
-                    HomeRadarNode(signal: third, colorScheme: colorScheme)
-                        .offset(x: 86, y: 78)
-                }
-            }
-        }
-    }
-}
-
-private struct HomeRadarNode: View {
-    let signal: HomeRadarSignal
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            signal.accent.opacity(signal.isActive ? 0.92 : 0.24),
-                            signal.accent.opacity(signal.isActive ? 0.42 : 0.10)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(
-                    width: signal.isActive ? 54 : 48,
-                    height: signal.isActive ? 54 : 48
-                )
-                .overlay(
-                    Circle()
-                        .stroke(signal.accent.opacity(signal.isActive ? 0.46 : 0.18), lineWidth: 1)
-                )
-                .overlay {
-                    Image(systemName: signal.icon)
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(signal.isActive ? .white : signal.accent)
-                }
-
-            Text(signal.title)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-        }
-    }
-}
-
-private struct HomeRadarSignalRow: View {
-    let signal: HomeRadarSignal
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(signal.accent.opacity(signal.isActive ? 1 : 0.32))
-                .frame(width: 12, height: 12)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(signal.title)
-                    .font(AppTypography.buttonLabel)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text(signal.subtitle)
-                    .font(AppTypography.bodyCaption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            HomeSignalBadge(
-                text: signal.isActive ? "LIVE" : "SYNC",
-                icon: signal.isActive ? "checkmark.circle.fill" : "arrow.clockwise",
-                colorScheme: colorScheme,
-                accent: signal.accent,
-                isActive: signal.isActive
-            )
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.995),
-                            signal.accent.opacity(signal.isActive ? 0.16 : 0.06)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(signal.accent.opacity(signal.isActive ? 0.20 : 0.10), lineWidth: 1)
-        )
-    }
-}
-
-private struct HomeLatestReleaseCard: View {
-    @ObservedObject var viewModel: HomeViewModel
-    @ObservedObject var playbackManager: AudioPlayerManager
-    let colorScheme: ColorScheme
-    let onPreviewToggle: (Track) -> Void
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(
-                title: "Music Update",
-                subtitle: "Neuester Release direkt im Hub.",
-                icon: "music.note",
-                colorScheme: colorScheme,
-                accent: AppColors.spotify(for: colorScheme)
-            )
-
-            if let track = viewModel.featuredTrack {
-                let hasPreview = !(track.previewUrl?.isEmpty ?? true)
-                let hasSpotifyTarget = homeSpotifyTargetURL(for: track) != nil
-
-                HStack(spacing: 14) {
-                    AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 22)
-                            .fill(AppColors.secondaryBackground(for: colorScheme))
-                    }
-                    .frame(width: 82, height: 82)
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(track.trackName)
-                            .font(.headline)
-                            .foregroundColor(AppColors.text(for: colorScheme))
-
-                        Text(track.artistName ?? "22")
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                        Text(homeReleaseLine(for: track))
-                            .font(.caption)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    }
-
-                    Spacer()
-                }
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        HomeSignalBadge(
-                            text: track.artistName ?? "22",
-                            icon: "person.fill",
-                            colorScheme: colorScheme,
-                            accent: AppColors.accent(for: colorScheme),
-                            isActive: true
-                        )
-                        HomeSignalBadge(
-                            text: hasPreview ? "Preview" : "Nur extern",
-                            icon: hasPreview ? "play.fill" : "info.circle.fill",
-                            colorScheme: colorScheme,
-                            accent: AppColors.spotify(for: colorScheme),
-                            isActive: hasPreview
-                        )
-                        if hasSpotifyTarget {
-                            HomeSignalBadge(
-                                text: "Spotify",
-                                icon: "music.note",
-                                colorScheme: colorScheme,
-                                accent: AppColors.spotify(for: colorScheme),
-                                isActive: true
-                            )
-                        }
-                    }
-                }
-
-                Text(hasPreview ? "Vorschau direkt hier in der App." : (hasSpotifyTarget ? "Direkt bei Spotify weiterhoeren." : "Der neueste Track ist hier fuer dich hinterlegt."))
-                    .font(.caption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                VStack(spacing: 10) {
-                    if hasPreview {
-                        HomeActionButton(
-                            title: playbackManager.currentlyPlayingId == track.trackId ? "Stop" : "Play",
-                            icon: playbackManager.currentlyPlayingId == track.trackId ? "stop.fill" : "play.fill",
-                            colorScheme: colorScheme,
-                            isPrimary: playbackManager.currentlyPlayingId == track.trackId
-                        ) {
-                            onPreviewToggle(track)
-                        }
-                    }
-
-                    if let spotifyURL = homeSpotifyTargetURL(for: track) {
-                        HomeActionButton(
-                            title: homeSpotifyActionTitle(for: track),
-                            icon: "music.note",
-                            colorScheme: colorScheme,
-                            brand: .spotify,
-                            isPrimary: false
-                        ) {
-                            openURL(spotifyURL)
-                        }
-                    }
-                }
-            } else {
-                Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-        }
-        .padding(SkydownLayout.cardPadding)
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: AppColors.accent(for: colorScheme),
-            cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 9,
-            shadowYOffset: 4
-        )
-    }
-
-    private func homeReleaseLine(for track: Track) -> String {
-        let collection = track.collectionName ?? "Spotify Release"
-        if let releaseDate = track.releaseDate, !releaseDate.isEmpty {
-            return "\(collection) • \(releaseDate)"
-        }
-        return collection
-    }
-}
-
-private struct HomeLatestBeatCard: View {
-    @ObservedObject var viewModel: HomeViewModel
-    @ObservedObject var playbackManager: BeatPlaybackManager
-    let colorScheme: ColorScheme
-    let onPlayToggle: (FeaturedHomeBeat) -> Void
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(
-                title: "Beat Update",
-                subtitle: "Studio-Update fuer den naechsten Drop.",
-                icon: "waveform",
-                colorScheme: colorScheme,
-                accent: AppColors.accentMystic(for: colorScheme)
-            )
-
-            if let beat = viewModel.featuredBeat {
-                HStack(alignment: .top, spacing: 14) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 22)
-                            .fill(AppColors.secondaryBackground(for: colorScheme))
-                            .frame(width: 82, height: 82)
-
-                        Image(systemName: "waveform.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(AppColors.accent(for: colorScheme))
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(beat.title)
-                            .font(.headline)
-                            .foregroundColor(AppColors.text(for: colorScheme))
-
-                        Text(beat.artistName)
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                        if !beat.notes.isEmpty {
-                            Text(beat.notes)
-                                .font(.caption)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        }
-                    }
-
-                    Spacer()
-                }
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        HomeSignalBadge(
-                            text: beat.artistName,
-                            icon: "person.fill",
-                            colorScheme: colorScheme,
-                            accent: AppColors.accentMystic(for: colorScheme),
-                            isActive: true
-                        )
-                        HomeSignalBadge(
-                            text: beat.isPlayable ? "Abspielbar" : "Extern",
-                            icon: beat.isPlayable ? "play.fill" : "globe",
-                            colorScheme: colorScheme,
-                            accent: AppColors.accentMystic(for: colorScheme),
-                            isActive: beat.isPlayable
-                        )
-                    }
-                }
-
-                if beat.isPlayable, !beat.downloadURL.isEmpty {
-                    HomeActionButton(
-                        title: playbackManager.currentBeatID == beat.id ? "Stoppen" : "Abspielen",
-                        icon: playbackManager.currentBeatID == beat.id ? "stop.fill" : "play.fill",
-                        colorScheme: colorScheme,
-                        isPrimary: playbackManager.currentBeatID == beat.id
-                    ) {
-                        onPlayToggle(beat)
-                    }
-                } else if let beatURL = URL(string: beat.openURLString), !beat.openURLString.isEmpty {
-                    HomeActionButton(
-                        title: beat.provider.originalVideoActionTitle,
-                        icon: "arrow.up.forward.square",
-                        colorScheme: colorScheme,
-                        isPrimary: false
-                    ) {
-                        openURL(beatURL)
-                    }
-                }
-            } else {
-                Text(viewModel.homeBeatMessage ?? "Neuer Beat erscheint hier.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-        }
-        .padding(SkydownLayout.cardPadding)
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: AppColors.accent(for: colorScheme),
-            cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 9,
-            shadowYOffset: 4
-        )
-    }
-}
-
-private struct HomeLatestVideoCard: View {
-    @ObservedObject var viewModel: HomeViewModel
-    @ObservedObject var playbackManager: HomeInlineVideoPlaybackManager
-    let colorScheme: ColorScheme
-    let onOpenVideoHub: (FeaturedHomeVideo) -> Void
-    let onOpenOriginal: (FeaturedHomeVideo) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(
-                title: "Visual Update",
-                subtitle: "Naechster Clip direkt im Fokus.",
-                icon: "video.fill",
-                colorScheme: colorScheme,
-                accent: AppColors.accentHighlight(for: colorScheme)
-            )
-
-            if let video = viewModel.featuredVideo {
-                HStack(alignment: .top, spacing: 14) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 22)
-                            .fill(AppColors.secondaryBackground(for: colorScheme))
-                            .frame(width: 82, height: 82)
-
-                        Image(systemName: "video.fill")
-                            .font(.title2)
-                            .foregroundColor(AppColors.accent(for: colorScheme))
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(video.title)
-                            .font(.headline)
-                            .foregroundColor(AppColors.text(for: colorScheme))
-
-                        Text(video.projectName)
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                        if !video.notes.isEmpty {
-                            Text(video.notes)
-                                .font(.caption)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        }
-                    }
-
-                    Spacer()
-                }
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        HomeSignalBadge(
-                            text: video.projectName,
-                            icon: "video.fill",
-                            colorScheme: colorScheme,
-                            accent: AppColors.accentHighlight(for: colorScheme),
-                            isActive: true
-                        )
-                        HomeSignalBadge(
-                            text: video.supportsInlinePlayback ? "Direkt" : "Original",
-                            icon: video.supportsInlinePlayback ? "play.rectangle.fill" : "globe",
-                            colorScheme: colorScheme,
-                            accent: AppColors.accentHighlight(for: colorScheme),
-                            isActive: video.supportsInlinePlayback
-                        )
-                    }
-                }
-
-                Text(
-                    (
-                        !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || !video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    )
-                    ? "Vorschau hier. Ein Tap oeffnet den Clip direkt."
-                    : "Vorschau hier. Falls kein Direktziel verfuegbar ist, geht es ueber den VideoHub weiter."
-                )
-                    .font(.caption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                if video.usesEmbeddedPreview {
-                    ExternalVideoEmbedSurface(urlString: video.embedURL)
-                        .frame(height: 220)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                        )
-                } else if !video.downloadURL.isEmpty {
-                    VideoPlayer(player: playbackManager.player)
-                        .frame(height: 220)
-                        .allowsHitTesting(false)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                        )
-                        .onAppear {
-                            playbackManager.prepare(video: video)
-                        }
-                        .onChange(of: video.id) { _, _ in
-                            playbackManager.prepare(video: video)
-                        }
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(AppColors.secondaryBackground(for: colorScheme))
-
-                        VStack(spacing: 10) {
-                            Image(systemName: "arrow.up.forward.square")
-                                .font(.title2.weight(.bold))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-
-                            Text(video.originalDestinationDescription)
-                                .font(.footnote.weight(.semibold))
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                                .padding(.horizontal, 18)
-                        }
-                    }
-                    .frame(height: 220)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                    )
-                }
-
-                if !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    || !video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    HomeActionButton(
-                        title: video.supportsInlinePlayback ? "Video direkt oeffnen" : video.provider.originalVideoActionTitle,
-                        icon: video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square",
-                        colorScheme: colorScheme,
-                        isPrimary: true
-                    ) {
-                        onOpenOriginal(video)
-                    }
-                } else if video.supportsInlinePlayback {
-                    HomeActionButton(
-                        title: "Im Video ansehen",
-                        icon: "rectangle.portrait.and.arrow.right",
-                        colorScheme: colorScheme,
-                        isPrimary: true
-                    ) {
-                        onOpenVideoHub(video)
-                    }
-                }
-            } else {
-                Text(viewModel.homeVideoMessage ?? "Neues Video erscheint hier.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-        }
-        .padding(SkydownLayout.cardPadding)
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: AppColors.accent(for: colorScheme),
-            cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 9,
-            shadowYOffset: 4
-        )
-    }
-}
-
-private struct HomeStoryCard: View {
-    let colorScheme: ColorScheme
-    let onOpenBeatHub: () -> Void
-    let onOpenNicma: () -> Void
-    @Environment(\.openURL) private var openURL
-
-    private let contactEmailURL = URL(string: "mailto:skydownent@gmail.com?subject=Skydown%20Videography%20Kontakt")
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(
-                title: "Shortcuts",
-                subtitle: "Music · Studio · Kontakt",
-                icon: "sparkles",
-                colorScheme: colorScheme,
-                accent: AppColors.accent(for: colorScheme)
-            )
-
-            Text("Direkt weiter — ohne Umwege.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            VStack(spacing: 12) {
-                HomeActionButton(
-                    title: "Yang D. Nash",
-                    icon: "person.crop.circle.fill",
-                    colorScheme: colorScheme,
-                    brand: .instagram,
-                    isPrimary: false
-                ) {
-                    if let url = artistInstagramDestinations["Yang D. Nash"]?.url {
-                        openURL(url)
-                    }
-                }
-
-                HomeLaneSection(
-                    title: "Music",
-                    subtitle: "Releases · Beats · Studio",
-                    colorScheme: colorScheme
-                ) {
-                    ForEach(homeZweizweiInstagramDestinations) { destination in
-                        HomeActionButton(
-                            title: destination.title,
-                            subtitle: nil,
-                            icon: destination.id == zweizweiInstagramDestination.id ? "music.note.list" : "person.crop.circle",
-                            colorScheme: colorScheme,
-                            brand: .instagram,
-                            isPrimary: false
-                        ) {
-                            if let url = destination.url {
-                                openURL(url)
-                            }
-                        }
-                    }
-
-                        HomeActionButton(
-                            title: "Beats",
-                            icon: "waveform",
-                            colorScheme: colorScheme,
-                            isPrimary: false
-                        ) {
-                            onOpenBeatHub()
-                        }
-
-                        HomeActionButton(
-                            title: "Studio",
-                            icon: "slider.horizontal.3",
-                            colorScheme: colorScheme,
-                            isPrimary: false
-                        ) {
-                            onOpenNicma()
-                        }
-                }
-
-                HomeLaneSection(
-                    title: "Video",
-                    subtitle: "Clips & Mail.",
-                    colorScheme: colorScheme
-                ) {
-                    HomeActionButton(
-                        title: "Instagram",
-                        icon: "camera.fill",
-                        colorScheme: colorScheme,
-                        brand: .instagram,
-                        isPrimary: false
-                    ) {
-                        if let url = skydownMusicInstagramDestination.url {
-                            openURL(url)
-                        }
-                    }
-
-                    HomeActionButton(
-                        title: "E-Mail",
-                        icon: "envelope.fill",
-                        colorScheme: colorScheme,
-                        isPrimary: false
-                    ) {
-                        if let contactEmailURL {
-                            openURL(contactEmailURL)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(SkydownLayout.cardPadding)
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: AppColors.accent(for: colorScheme),
-            cornerRadius: SkydownLayout.cardCornerRadius,
-            shadowRadius: 9,
-            shadowYOffset: 4
-        )
-    }
-}
-
-private struct HomeLaneSection<Content: View>: View {
-    let title: String
-    let subtitle: String
-    let colorScheme: ColorScheme
-    let content: Content
-
-    init(
-        title: String,
-        subtitle: String,
-        colorScheme: ColorScheme,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.colorScheme = colorScheme
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(AppTypography.sectionHeadline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text(subtitle)
-                .font(AppTypography.bodyCaption)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            VStack(spacing: 10) {
-                content
-            }
-        }
-        .padding(SkydownLayout.cardPadding - 2)
-        .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius + 2, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.99),
-                            AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.54),
-                            AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.05)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: AppColors.accent(for: colorScheme),
-            cornerRadius: SkydownLayout.buttonCornerRadius + 2,
-            shadowRadius: 8,
-            shadowYOffset: 4
-        )
-    }
-}
-
-private let homeFeaturedArtists = [
-    "22 Music",
-    "JANNO",
-    "ThaDude",
-    "MAVE",
-    "TANGAJOE007",
-    "Toprack941"
-]
-
-private let homeZweizweiInstagramDestinations: [MusicInstagramDestination] = [
-    zweizweiInstagramDestination,
-    MusicInstagramDestination(
-        id: "artist_janno_home",
-        title: "JANNO",
-        handle: "@janno_official_",
-        urlString: "https://www.instagram.com/janno_official_/",
-        helper: "22 Artist"
-    ),
-    MusicInstagramDestination(
-        id: "artist_thadude_home",
-        title: "ThaDude",
-        handle: "@thadude_offizielle",
-        urlString: "https://www.instagram.com/thadude_offizielle/",
-        helper: "22 Artist"
-    ),
-    MusicInstagramDestination(
-        id: "artist_mave_home",
-        title: "MAVE",
-        handle: "@mave__official",
-        urlString: "https://www.instagram.com/mave__official/",
-        helper: "22 Artist"
-    ),
-    MusicInstagramDestination(
-        id: "artist_tangajoe_home",
-        title: "TANGAJOE007",
-        handle: "@tangajoe007",
-        urlString: "https://www.instagram.com/tangajoe007/",
-        helper: "22 Artist"
-    )
-]
-
-private func homeMusicArtist(for track: Track) -> String {
-    guard let artistName = track.artistName, !artistName.isEmpty else {
-        return homeFeaturedArtists.first ?? "Yang D. Nash"
-    }
-
-    let normalizedArtist = homeNormalizeArtistName(artistName)
-    return homeFeaturedArtists.first { candidate in
-        let normalizedCandidate = homeNormalizeArtistName(candidate)
-        return normalizedArtist == normalizedCandidate ||
-            normalizedArtist.contains(normalizedCandidate) ||
-            normalizedCandidate.contains(normalizedArtist)
-    } ?? artistName
-}
-
-private func homeNormalizeArtistName(_ value: String) -> String {
-    value
-        .lowercased()
-        .replacingOccurrences(of: "[^a-z0-9]+", with: "", options: .regularExpression)
-}
-
-private struct HomeRevealModifier: ViewModifier {
-    let order: Int
-    @State private var isVisible = false
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(isVisible ? 1 : 0)
-            .offset(y: isVisible ? 0 : 18)
-            .scaleEffect(isVisible ? 1 : 0.985)
-            .animation(
-                .spring(response: 0.52, dampingFraction: 0.88)
-                .delay(Double(order) * 0.05),
-                value: isVisible
-            )
-            .onAppear {
-                isVisible = true
-            }
-    }
-}
-
-private extension View {
-    func homeReveal(_ order: Int) -> some View {
-        modifier(HomeRevealModifier(order: order))
-    }
-}
-
-private extension Array {
-    subscript(safe index: Int) -> Element? {
-        guard indices.contains(index) else { return nil }
-        return self[index]
-    }
-}
-
-private func homeSpotifyTargetURL(for track: Track) -> URL? {
-    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
-        return URL(string: "https://open.spotify.com/track/\(spotifyTrackID)")
-    }
-
-    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
-        return URL(string: "https://open.spotify.com/artist/\(spotifyArtistID)")
-    }
-
-    if let externalURL = track.externalURL,
-       let url = URL(string: externalURL) {
-        return url
-    }
-
-    return nil
-}
-
-private func homeSpotifyActionTitle(for track: Track) -> String {
-    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
-        return "Song auf Spotify"
-    }
-
-    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
-        return "Artist auf Spotify"
-    }
-
-    if let externalURL = track.externalURL, externalURL.contains("/artist/") {
-        return "Artist auf Spotify"
-    }
-
-    return "Auf Spotify ansehen"
-}
-
-private extension FeaturedHomeBeat {
-    var asBeatHubItem: NicmaBeatHubItem {
-        NicmaBeatHubItem(
-            id: id,
-            title: title,
-            artistName: artistName,
-            fileName: title,
-            downloadURL: downloadURL,
-            externalURL: externalURL,
-            notes: notes,
-            uploaderName: artistName,
-            uploaderEmail: "",
-            uploaderID: "",
-            mimeType: "audio/mpeg",
-            storagePath: "",
-            isPublic: true,
-            sourceProvider: sourceProvider,
-            sourceFileID: "",
-            createdAt: .now
-        )
-    }
-}
-
-private enum HomeActionBrand {
-    case neutral
-    case spotify
-    case instagram
-    case youtube
-}
-
-private struct HomeActionButton: View {
-    let title: String
-    let subtitle: String?
-    let icon: String?
-    let colorScheme: ColorScheme
-    let brand: HomeActionBrand
-    let isPrimary: Bool
-    let action: () -> Void
-
-    init(
-        title: String,
-        subtitle: String? = nil,
-        icon: String? = nil,
-        colorScheme: ColorScheme,
-        brand: HomeActionBrand = .neutral,
-        isPrimary: Bool,
-        action: @escaping () -> Void
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.icon = icon
-        self.colorScheme = colorScheme
-        self.brand = brand
-        self.isPrimary = isPrimary
-        self.action = action
-    }
-
-    var body: some View {
-        Button(action: action) {
-            HStack(alignment: .top, spacing: 10) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.footnote.weight(.bold))
-                        .foregroundColor(iconTint)
-                        .frame(width: 18, height: 18)
-                        .padding(8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(iconBackground)
-                        )
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(AppTypography.buttonLabel)
-
-                    if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(AppTypography.bodyCaption)
-                            .foregroundColor(
-                                isPrimary
-                                    ? Color.white.opacity(0.82)
-                                    : AppColors.secondaryText(for: colorScheme)
-                            )
-                            .multilineTextAlignment(.leading)
-                    }
-                }
-
-                Spacer()
-            }
-            .foregroundColor(isPrimary ? .white : AppColors.text(for: colorScheme))
-            .padding(.horizontal, 13)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(buttonFill)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        isPrimary
-                        ? Color.white.opacity(colorScheme == .dark ? 0.12 : 0.08)
-                        : shadowTint.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                        lineWidth: 1
-                    )
-            )
-            .shadow(
-                color: shadowTint.opacity(isPrimary ? 0.12 : 0.08),
-                radius: isPrimary ? 10 : 8,
-                y: isPrimary ? 5 : 4
-            )
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
-    }
-
-    private var iconTint: Color {
-        if isPrimary {
-            return .white
-        }
-
-        switch brand {
-        case .neutral:
-            return AppColors.accent(for: colorScheme)
-        case .spotify:
-            return AppColors.spotify(for: colorScheme)
-        case .instagram:
-            return AppColors.instagramEnd(for: colorScheme)
-        case .youtube:
-            return AppColors.youtube(for: colorScheme)
-        }
-    }
-
-    private var iconBackground: LinearGradient {
-        if isPrimary {
-            return LinearGradient(
-                colors: [
-                    Color.white.opacity(0.18),
-                    Color.white.opacity(0.08)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-
-        if brand != .neutral {
-            return LinearGradient(
-                colors: brandedColors.map { $0.opacity(colorScheme == .dark ? 0.22 : 0.14) },
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-
-        return LinearGradient(
-            colors: [
-                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.11),
-                AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.07)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    private var shadowTint: Color {
-        if isPrimary {
-            return AppColors.accent(for: colorScheme)
-        }
-
-        switch brand {
-        case .neutral:
-            return AppColors.accent(for: colorScheme)
-        case .spotify:
-            return AppColors.spotify(for: colorScheme)
-        case .instagram:
-            return AppColors.instagramStart(for: colorScheme)
-        case .youtube:
-            return AppColors.youtube(for: colorScheme)
-        }
-    }
-
-    private var buttonFill: LinearGradient {
-        if isPrimary {
-            return LinearGradient(
-                colors: [
-                    Color(red: 8/255, green: 22/255, blue: 38/255).opacity(colorScheme == .dark ? 0.96 : 0.92),
-                    AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.56 : 0.48),
-                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.18)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-
-        if brand != .neutral {
-            return LinearGradient(
-                colors: [
-                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.995),
-                    brandedColors.first?.opacity(colorScheme == .dark ? 0.26 : 0.14) ?? AppColors.cardBackground(for: colorScheme),
-                    brandedColors.last?.opacity(colorScheme == .dark ? 0.18 : 0.09) ?? AppColors.secondaryBackground(for: colorScheme)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-
-        return LinearGradient(
-            colors: [
-                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.98 : 0.99),
-                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.74 : 0.68),
-                AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.025)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    private var brandedColors: [Color] {
-        switch brand {
-        case .neutral:
-            return [AppColors.accent(for: colorScheme), AppColors.accentMystic(for: colorScheme)]
-        case .spotify:
-            return [AppColors.spotify(for: colorScheme), AppColors.spotify(for: colorScheme)]
-        case .instagram:
-            return [AppColors.instagramStart(for: colorScheme), AppColors.instagramEnd(for: colorScheme)]
-        case .youtube:
-            return [AppColors.youtube(for: colorScheme), AppColors.youtubeDeep(for: colorScheme)]
-        }
-    }
-}
-
-final class HomeInlineVideoPlaybackManager: ObservableObject {
-    @Published var currentVideoID: String?
-    @Published var isPlaying = false
-    let player = AVPlayer()
-    private var playbackObserver: NSObjectProtocol?
-
-    deinit {
-        clearPlaybackObserver()
-        player.pause()
-        player.replaceCurrentItem(with: nil)
-    }
-
-    func prepare(video: FeaturedHomeVideo?) {
-        guard let video,
-              let url = URL(string: video.downloadURL), !video.downloadURL.isEmpty else {
-            stop()
-            player.replaceCurrentItem(with: nil)
-            currentVideoID = nil
-            return
-        }
-
-        guard currentVideoID != video.id || player.currentItem == nil else { return }
-
-        clearPlaybackObserver()
-        player.pause()
-        player.replaceCurrentItem(with: AVPlayerItem(url: url))
-        currentVideoID = video.id
-        isPlaying = false
-        observePlaybackFinished()
-    }
-
-    func togglePlayback(for video: FeaturedHomeVideo) {
-        prepare(video: video)
-
-        guard currentVideoID == video.id else { return }
-
-        if isPlaying {
-            stop()
-        } else {
-            player.play()
-            isPlaying = true
-        }
-    }
-
-    func stop() {
-        player.pause()
-        player.seek(to: .zero)
-        isPlaying = false
-    }
-
-    private func observePlaybackFinished() {
-        clearPlaybackObserver()
-        guard let currentItem = player.currentItem else { return }
-
-        playbackObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: currentItem,
-            queue: .main
-        ) { [weak self] _ in
-            self?.player.seek(to: .zero)
-            self?.player.pause()
-            self?.isPlaying = false
-        }
-    }
-
-    private func clearPlaybackObserver() {
-        if let playbackObserver {
-            NotificationCenter.default.removeObserver(playbackObserver)
-            self.playbackObserver = nil
-        }
-    }
-}
+// Remaining Home media components moved to Views/Home/HomeMediaCluster.swift.
 
 private struct ShopHeroCard: View {
     let colorScheme: ColorScheme
@@ -2101,32 +423,176 @@ private struct ShopInfoCard: View {
     var action: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(title)
-                .font(AppTypography.sectionHeadline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "info.circle.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
+                Text("Info")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accent(for: colorScheme).opacity(0.11))
+                    )
+            }
 
             Text(message)
-                .font(AppTypography.body)
+                .font(.caption.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if let actionTitle, let action {
-                Button(action: action) {
-                    Text(actionTitle)
-                        .font(AppTypography.buttonLabel)
-                        .frame(maxWidth: .infinity)
+                HStack {
+                    Spacer(minLength: 0)
+                    Button(action: action) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.caption2.weight(.bold))
+                            Text(actionTitle)
+                                .font(.caption.weight(.bold))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(AppColors.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.11))
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(AppColors.accent(for: colorScheme).opacity(0.22), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .skydownInteractiveFeedback()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accent(for: colorScheme))
             }
         }
-        .padding(SkydownLayout.cardPadding)
-        .background(AppColors.cardBackground(for: colorScheme))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .animation(SkydownMotion.statusTransition, value: message)
+    }
+}
+
+private struct ShopLandingCuratedModule: View {
+    let colorScheme: ColorScheme
+    let featuredItem: MerchandiseItem?
+    let editorialPicks: [MerchandiseItem]
+    let onOpenItem: (MerchandiseItem) -> Void
+
+    private let moodAreas = ["SkyOS Drops", "Studio Picks", "Tech Selects", "Limited Finds"]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Text("Today’s Selection")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                    )
+                Text("Kuratierte Picks")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
+            }
+
+            if let featuredItem {
+                Button {
+                    onOpenItem(featuredItem)
+                } label: {
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text("Featured Drop")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(AppColors.accent(for: colorScheme))
+                        Text(featuredItem.name)
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .multilineTextAlignment(.leading)
+                        Text("EUR \(featuredItem.price, specifier: "%.2f")")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 11)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .skydownInteractiveFeedback()
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(editorialPicks.enumerated()), id: \.offset) { _, item in
+                        Button {
+                            onOpenItem(item)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.name)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(AppColors.text(for: colorScheme))
+                                    .lineLimit(1)
+                                Text("EUR \(item.price, specifier: "%.2f")")
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
+                            .frame(width: 156, alignment: .leading)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.84))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .skydownInteractiveFeedback()
+                    }
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 7) {
+                    ForEach(moodAreas, id: \.self) { mood in
+                        Text(mood)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.11))
+                            )
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 

@@ -8,6 +8,100 @@
 import Foundation
 
 enum LegalTextTemplateFactory {
+    static func subscriptionTerms(using settings: LegalContentSettings) -> String {
+        let brand = settings.resolvedBrandName
+        let operatorName = settings.resolvedOperatorName
+        let supportEmail = settings.resolvedSupportEmail
+        let updatedAt = settings.resolvedLastUpdatedLabel
+
+        return """
+        Subscription Terms fuer \(brand)
+
+        Stand: \(updatedAt)
+
+        1. Plaene und Laufzeiten
+        Verfuegbare Plaene koennen monatlich und/oder jaehrlich angeboten werden. Konkrete Preise und Laufzeiten werden vor Kauf im Store klar angezeigt.
+
+        2. Abrechnung
+        Abrechnung und Verlangerung erfolgen ueber Apple App Store oder Google Play Store gemaess deren Store-Regeln.
+
+        3. Automatische Verlaengerung
+        Abos verlaengern sich automatisch, sofern sie nicht spaetestens vor Ende des laufenden Zeitraums im jeweiligen Store gekuendigt werden.
+
+        4. Kuendigung
+        Kuendigungen erfolgen ausschliesslich ueber den jeweiligen Store-Account des Nutzers (Apple/Google), nicht direkt in der App.
+
+        5. Restore
+        Bereits gekaufte Abos koennen ueber "Restore purchases" / "Wiederherstellen" erneut synchronisiert werden.
+
+        6. Preis- und Produktaenderungen
+        Preise und Planinhalte koennen angepasst werden. Massgeblich sind immer die Angaben im Store zum Kaufzeitpunkt.
+
+        7. Refunds
+        Rueckerstattungen richten sich nach den Erstattungsrichtlinien des jeweiligen Stores.
+
+        8. Kontakt
+        Betreiber: \(operatorName). Support: \(supportEmail)
+        """
+    }
+
+    static func aiUsageNotice(using settings: LegalContentSettings) -> String {
+        let brand = settings.resolvedBrandName
+        let supportEmail = settings.resolvedSupportEmail
+        let updatedAt = settings.resolvedLastUpdatedLabel
+
+        return """
+        AI Usage Notice fuer \(brand)
+
+        Stand: \(updatedAt)
+
+        1. Assistenz, keine Autoritaet
+        KI-Ausgaben dienen der Unterstuetzung und koennen fehlerhaft, unvollstaendig oder ungeeignet sein.
+
+        2. Verbindliche Pruefung
+        Nutzer pruefen alle KI-Ergebnisse vor der verbindlichen Nutzung eigenverantwortlich.
+
+        3. Keine Fachberatung
+        Die KI bietet keine Rechts-, Medizin-, Steuer-, Finanz- oder Sicherheitsberatung.
+
+        4. Missbrauch verboten
+        Verboten sind rechtswidrige Inhalte, Umgehung von Schutzmechanismen, Abuse, Täuschung, Rechteverletzungen und sonstige missbraeuchliche Nutzung.
+
+        5. Kontrollen und Limits
+        Zur Systemsicherheit und Kostenkontrolle koennen Limits, Sperren, Degradierungen oder Blockierungen aktiv sein.
+
+        6. Datenschutz
+        Prompts und Ausgaben koennen gemaess Datenschutztexten verarbeitet werden. Keine unnoetig sensiblen Daten eingeben.
+
+        7. Kontakt
+        Rueckfragen: \(supportEmail)
+        """
+    }
+
+    static func imprintInfo(using settings: LegalContentSettings) -> String {
+        let brand = settings.resolvedBrandName
+        let operatorName = settings.resolvedOperatorName
+        let rightsHolder = settings.resolvedRightsHolderName
+        let supportEmail = settings.resolvedSupportEmail
+        let updatedAt = settings.resolvedLastUpdatedLabel
+        let imprintReference = settings.resolvedImprintReference
+
+        return """
+        Impressum / Company Info fuer \(brand)
+
+        Stand: \(updatedAt)
+
+        Betreiber: \(operatorName)
+        Rechteinhaber: \(rightsHolder)
+        Kontakt: \(supportEmail)
+
+        \(imprintReference)
+
+        Hinweis:
+        Regionale Pflichtangaben koennen je nach Rechtsraum variieren und sind vor Launch rechtlich final zu pruefen.
+        """
+    }
+
     static func privacyPolicy(using settings: LegalContentSettings) -> String {
         let brand = settings.resolvedBrandName
         let operatorName = settings.resolvedOperatorName

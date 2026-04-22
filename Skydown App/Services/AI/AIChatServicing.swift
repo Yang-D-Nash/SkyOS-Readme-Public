@@ -4,6 +4,7 @@ import FirebaseFunctions
 struct AITextResponse {
     let text: String
     let historyRetentionDays: Int
+    let usage: AIUsageSnapshot?
 }
 
 struct AIGeneratedVisual {
@@ -11,6 +12,18 @@ struct AIGeneratedVisual {
     let imageData: Data
     let mimeType: String
     let historyRetentionDays: Int
+    let usage: AIUsageSnapshot?
+}
+
+struct AIUsageSnapshot {
+    let remainingForKind: Int
+    let limitForKind: Int
+    let warningLevel: String
+    let userFacingReason: String
+    let suggestedUpgrade: String
+    let resetHint: String
+    let retryAfterSeconds: Int
+    let lowerCostOption: String
 }
 
 protocol AIChatServicing {
@@ -56,7 +69,8 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
         return AITextResponse(
             text: reply,
             historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
-                ?? UserRole.user.defaultAIHistoryRetentionDays
+                ?? UserRole.user.defaultAIHistoryRetentionDays,
+            usage: Self.parseUsage(payload["usage"] as? [String: Any])
         )
     }
 
@@ -109,7 +123,23 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
             imageData: imageData,
             mimeType: (payload["mimeType"] as? String)?.trimmedNilIfEmpty ?? "image/png",
             historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
-                ?? UserRole.user.defaultAIHistoryRetentionDays
+                ?? UserRole.user.defaultAIHistoryRetentionDays,
+            usage: Self.parseUsage(payload["usage"] as? [String: Any])
+        )
+    }
+
+    private static func parseUsage(_ payload: [String: Any]?) -> AIUsageSnapshot? {
+        guard let payload else { return nil }
+        let hints = payload["guardrailHints"] as? [String: Any]
+        return AIUsageSnapshot(
+            remainingForKind: (payload["remainingForKind"] as? NSNumber)?.intValue ?? 0,
+            limitForKind: (payload["limitForKind"] as? NSNumber)?.intValue ?? 0,
+            warningLevel: (payload["warningLevel"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "ok",
+            userFacingReason: (hints?["userFacingReason"] as? String) ?? "",
+            suggestedUpgrade: (hints?["suggestedUpgrade"] as? String) ?? "",
+            resetHint: (hints?["resetHint"] as? String) ?? "",
+            retryAfterSeconds: (hints?["retryAfterSeconds"] as? NSNumber)?.intValue ?? 0,
+            lowerCostOption: (hints?["lowerCostOption"] as? String) ?? ""
         )
     }
 

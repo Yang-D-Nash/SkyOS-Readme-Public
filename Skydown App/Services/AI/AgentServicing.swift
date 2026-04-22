@@ -18,6 +18,20 @@ struct AgentChatResponse {
     let agentProvider: String
     let providerFallbackUsed: Bool
     let providerNotice: String
+    /// Firestore `users/{uid}/agentRuns/{id}` document id when the run was recorded server-side.
+    let agentRunId: String
+    let resultType: String
+    let results: [AgentResultEntry]
+    let usage: AIUsageSnapshot?
+}
+
+struct AgentResultEntry {
+    let type: String
+    let text: String
+    let workflowName: String
+    let status: String
+    let summary: String
+    let runId: String
 }
 
 protocol AgentChatServicing {
@@ -82,9 +96,22 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 automationAttempted: false,
                 automationMessage: "",
                 workflowName: "",
-                agentProvider: "gemini",
+                agentProvider: "",
                 providerFallbackUsed: false,
-                providerNotice: ""
+                providerNotice: "",
+                agentRunId: "",
+                resultType: "text",
+                results: [
+                    AgentResultEntry(
+                        type: "text",
+                        text: reply,
+                        workflowName: "",
+                        status: "",
+                        summary: "",
+                        runId: ""
+                    )
+                ],
+                usage: nil
             )
         }
 
@@ -99,13 +126,41 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 automationAttempted: payload["automationAttempted"] as? Bool ?? false,
                 automationMessage: (payload["automationMessage"] as? String) ?? "",
                 workflowName: (payload["workflowName"] as? String) ?? "",
-                agentProvider: (payload["agentProvider"] as? String) ?? "gemini",
+                agentProvider: (payload["agentProvider"] as? String) ?? "",
                 providerFallbackUsed: payload["providerFallbackUsed"] as? Bool ?? false,
-                providerNotice: (payload["providerNotice"] as? String) ?? ""
+                providerNotice: (payload["providerNotice"] as? String) ?? "",
+                agentRunId: (payload["agentRunId"] as? String) ?? "",
+                resultType: (payload["resultType"] as? String) ?? "text",
+                results: (payload["results"] as? [[String: Any]] ?? []).map { entry in
+                    AgentResultEntry(
+                        type: (entry["type"] as? String) ?? "text",
+                        text: (entry["text"] as? String) ?? "",
+                        workflowName: (entry["workflowName"] as? String) ?? "",
+                        status: (entry["status"] as? String) ?? "",
+                        summary: (entry["summary"] as? String) ?? "",
+                        runId: (entry["runId"] as? String) ?? ""
+                    )
+                },
+                usage: parseUsage(payload["usage"] as? [String: Any])
             )
         }
 
         throw AgentServiceError.invalidResponse
+    }
+
+    private func parseUsage(_ payload: [String: Any]?) -> AIUsageSnapshot? {
+        guard let payload else { return nil }
+        let hints = payload["guardrailHints"] as? [String: Any]
+        return AIUsageSnapshot(
+            remainingForKind: (payload["remainingForKind"] as? NSNumber)?.intValue ?? 0,
+            limitForKind: (payload["limitForKind"] as? NSNumber)?.intValue ?? 0,
+            warningLevel: (payload["warningLevel"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "ok",
+            userFacingReason: (hints?["userFacingReason"] as? String) ?? "",
+            suggestedUpgrade: (hints?["suggestedUpgrade"] as? String) ?? "",
+            resetHint: (hints?["resetHint"] as? String) ?? "",
+            retryAfterSeconds: (hints?["retryAfterSeconds"] as? NSNumber)?.intValue ?? 0,
+            lowerCostOption: (hints?["lowerCostOption"] as? String) ?? ""
+        )
     }
 
     private func ensureConnectivity() async throws {

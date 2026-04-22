@@ -11,31 +11,101 @@ struct OrderView: View {
     @StateObject private var viewModel = OrderViewModel()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("orders.postCheckoutHighlight") private var postCheckoutHighlight = ""
     @State private var orderToDelete: Order?
     @State private var showingDeleteAlert = false
+    private let sectionSpacing: CGFloat = 14
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: sectionSpacing) {
                     OrdersHeroCard(
                         colorScheme: colorScheme,
                         orderCount: viewModel.orders.count,
                         completedCount: viewModel.orders.filter { $0.isCompleted }.count
                     )
 
+                    if !postCheckoutHighlight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        OrdersPostCheckoutStrip(
+                            colorScheme: colorScheme,
+                            message: postCheckoutHighlight
+                        ) {
+                            postCheckoutHighlight = ""
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
                     if viewModel.isLoading {
-                        OrdersSectionCard(title: "Sync", colorScheme: colorScheme) {
-                            ProgressView("Laden…")
+                        OrdersInlineStatusStrip(
+                            colorScheme: colorScheme,
+                            icon: "arrow.triangle.2.circlepath.circle.fill",
+                            title: "Wird aktualisiert"
+                        ) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                ProgressView("Bestellungen werden geladen …")
+                                    .tint(AppColors.accent(for: colorScheme))
+
+                                Text("Deine Bestellungen werden sicher aktualisiert.")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                            }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    } else if let loadError = viewModel.errorMessage {
+                        OrdersInlineStatusStrip(
+                            colorScheme: colorScheme,
+                            icon: "exclamationmark.triangle.fill",
+                            title: "Bestellungen gerade nicht verfuegbar"
+                        ) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text(loadError)
+                                    .font(.body)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                Text("Support findest du in den Einstellungen.")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+
+                                Button {
+                                    viewModel.fetchOrders()
+                                } label: {
+                                    Text("Erneut laden")
+                                        .font(.subheadline.weight(.semibold))
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
                                 .tint(AppColors.accent(for: colorScheme))
+                            }
                         }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     } else if viewModel.orders.isEmpty {
-                        OrdersSectionCard(title: "Keine Bestellungen", colorScheme: colorScheme) {
-                            Text("Noch keine Orders — erscheinen als Karten.")
+                        OrdersInlineStatusStrip(
+                            colorScheme: colorScheme,
+                            icon: "shippingbox",
+                            title: "Noch keine Bestellung"
+                        ) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(
+                                    "Neue Bestellungen erscheinen hier automatisch mit aktuellem Status."
+                                )
+                                .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                .fixedSize(horizontal: false, vertical: true)
+
+                                Text("Zum Aktualisieren nach unten ziehen.")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+
+                                Text("Support findest du jederzeit in den Einstellungen.")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                            }
                         }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     } else {
-                        ForEach(viewModel.orders) { order in
+                        ForEach(Array(viewModel.orders.enumerated()), id: \.offset) { index, order in
                             OrdersOrderCard(
                                 order: order,
                                 colorScheme: colorScheme,
@@ -51,6 +121,8 @@ struct OrderView: View {
                                     showingDeleteAlert = true
                                 }
                             )
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            .animation(.easeInOut(duration: 0.2).delay(Double(index) * 0.01), value: viewModel.orders.count)
                         }
                     }
                 }
@@ -73,18 +145,22 @@ struct OrderView: View {
                     }
                 }
             }
-            .alert("Bestellung löschen?", isPresented: $showingDeleteAlert, actions: {
+            .alert("Bestellung entfernen?", isPresented: $showingDeleteAlert, actions: {
                 Button("Abbrechen", role: .cancel) {}
-                Button("Löschen", role: .destructive) {
+                Button("Entfernen", role: .destructive) {
                     if let order = orderToDelete {
                         Task { await viewModel.deleteOrder(order) }
                         orderToDelete = nil
                     }
                 }
             }, message: {
-                Text("Nicht rückgängig.")
+                Text("Diese Bestellung wird aus deiner Liste entfernt. Das kann nicht rueckgaengig gemacht werden.")
             })
         }
+        .animation(.easeInOut(duration: 0.22), value: viewModel.isLoading)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.errorMessage != nil)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.orders.isEmpty)
+        .animation(.easeInOut(duration: 0.22), value: viewModel.orders.count)
         .fancyToast(isPresented: $viewModel.showToast,
                     message: viewModel.toastMessage,
                     style: viewModel.toastStyle)
@@ -114,54 +190,34 @@ private struct OrdersHeroCard: View {
     let completedCount: Int
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Orders")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Status & Kontakt — prüfen, freigeben, erledigen.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
-                    .frame(width: 58, height: 58)
-
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: "shippingbox.fill")
-                    .font(.title2)
+                    .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                Text("Bestellungen")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
             }
-        }
-        .padding(20)
-        .background(
-            LinearGradient(
-                colors: [
-                    AppColors.cardBackground(for: colorScheme),
-                    AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 26)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 12, y: 5)
-        .overlay(alignment: .bottomLeading) {
-            HStack(spacing: 10) {
-                OrdersBadge(text: "\(orderCount) Orders", colorScheme: colorScheme)
+
+            Text("Status und Versand immer klar im Blick.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 8) {
+                OrdersBadge(text: orderCount == 1 ? "1 Bestellung" : "\(orderCount) Bestellungen", colorScheme: colorScheme)
                 OrdersBadge(text: "\(completedCount) erledigt", colorScheme: colorScheme)
                 OrdersBadge(text: "\(max(orderCount - completedCount, 0)) offen", colorScheme: colorScheme)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 18)
         }
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -171,20 +227,93 @@ private struct OrdersSectionCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             content
         }
-        .padding(18)
+        .padding(20)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
             RoundedRectangle(cornerRadius: 24)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+private struct OrdersInlineStatusStrip<Content: View>: View {
+    let colorScheme: ColorScheme
+    let icon: String
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+            }
+
+            content
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .animation(.easeInOut(duration: 0.2), value: title)
+    }
+}
+
+private struct OrdersPostCheckoutStrip: View {
+    let colorScheme: ColorScheme
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                Text("Nach dem Kauf")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Spacer(minLength: 0)
+                Button("Verstanden", action: onDismiss)
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.bordered)
+            }
+
+            Text(message)
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("Naechster Schritt: Neue Status erscheinen hier automatisch.")
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -195,6 +324,7 @@ private struct OrdersOrderCard: View {
     let onConfirmPayment: () -> Void
     let onToggleCompleted: () -> Void
     let onDelete: () -> Void
+    @State private var showTechnicalDetails = false
 
     private var title: String {
         if let customerName = order.customerName, !customerName.isEmpty {
@@ -235,7 +365,7 @@ private struct OrdersOrderCard: View {
     }
 
     private var paymentStatus: String? {
-        order.paymentStatus?.takeIfNotBlank()
+        order.paymentStatus?.takeIfNotBlank()?.asUserFacingOrderStatus
     }
 
     private var paymentReference: String? {
@@ -251,7 +381,7 @@ private struct OrdersOrderCard: View {
     }
 
     private var fulfillmentStatus: String? {
-        order.fulfillmentStatus?.takeIfNotBlank()
+        order.fulfillmentStatus?.takeIfNotBlank()?.asUserFacingOrderStatus
     }
 
     private var shopifyOrderName: String? {
@@ -263,11 +393,11 @@ private struct OrdersOrderCard: View {
     }
 
     private var shopifySyncStatus: String? {
-        order.shopifySyncStatus?.takeIfNotBlank()
+        order.shopifySyncStatus?.takeIfNotBlank()?.asUserFacingOrderStatus
     }
 
     private var stripeCheckoutStatus: String? {
-        order.stripeCheckoutStatus?.takeIfNotBlank()
+        order.stripeCheckoutStatus?.takeIfNotBlank()?.asUserFacingOrderStatus
     }
 
     private var stripeCheckoutSessionId: String? {
@@ -284,22 +414,33 @@ private struct OrdersOrderCard: View {
         }
     }
 
+    private var primaryStatusLabel: String {
+        if order.isCompleted { return "Abgeschlossen" }
+        if let fulfillmentStatus { return fulfillmentStatus }
+        if let paymentStatus { return paymentStatus }
+        return "In Bearbeitung"
+    }
+
+    private var progressDetail: String {
+        if order.isCompleted {
+            return "Bestellung abgeschlossen und dokumentiert."
+        }
+        if let fulfillmentStatus {
+            return "Versandstatus: \(fulfillmentStatus)."
+        }
+        if let paymentStatus {
+            return "Zahlstatus: \(paymentStatus)."
+        }
+        return "Wir halten dich hier ueber die naechsten Schritte auf dem Laufenden."
+    }
+
     var body: some View {
         OrdersSectionCard(title: title, colorScheme: colorScheme) {
             HStack {
-                OrdersBadge(
-                    text: order.isCompleted ? "Erledigt" : "Offen",
-                    colorScheme: colorScheme
-                )
-                OrdersBadge(
-                    text: "\(totalItems) Teile",
-                    colorScheme: colorScheme
-                )
-                if let paymentStatus {
-                    OrdersBadge(
-                        text: paymentStatus,
-                        colorScheme: colorScheme
-                    )
+                OrdersBadge(text: primaryStatusLabel, colorScheme: colorScheme)
+                OrdersBadge(text: "\(totalItems) Teile", colorScheme: colorScheme)
+                if let shippingZone {
+                    OrdersBadge(text: shippingZone, colorScheme: colorScheme)
                 }
                 Spacer()
                 Text(order.timestamp, style: .date)
@@ -307,164 +448,46 @@ private struct OrdersOrderCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                OrderMetaBlock(
-                    label: "Kontakt",
-                    value: contactEmail,
-                    colorScheme: colorScheme
-                )
+            OrdersInlineStatusStrip(
+                colorScheme: colorScheme,
+                icon: "clock.badge.checkmark.fill",
+                title: "Naechster Schritt"
+            ) {
+                Text(progressDetail)
+                    .font(.footnote.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-                if let whatsApp {
-                    OrderMetaBlock(
-                        label: "WhatsApp",
-                        value: whatsApp,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let shippingAddress {
-                    OrderMetaBlock(
-                        label: "Adresse",
-                        value: shippingAddress,
-                        colorScheme: colorScheme
-                    )
-                }
-
+            VStack(alignment: .leading, spacing: 8) {
+                OrderMetaBlock(label: "Kontakt", value: contactEmail, colorScheme: colorScheme)
                 if let paymentMethod {
-                    OrderMetaBlock(
-                        label: "Zahlart",
-                        value: paymentMethod,
-                        colorScheme: colorScheme
-                    )
+                    OrderMetaBlock(label: "Zahlart", value: paymentMethod, colorScheme: colorScheme)
                 }
-
-                if let paymentProvider {
-                    OrderMetaBlock(
-                        label: "Provider",
-                        value: paymentProvider,
-                        colorScheme: colorScheme
-                    )
-                }
-
                 if let paymentStatus {
-                    OrderMetaBlock(
-                        label: "Zahlstatus",
-                        value: paymentStatus,
-                        colorScheme: colorScheme
-                    )
+                    OrderMetaBlock(label: "Zahlstatus", value: paymentStatus, colorScheme: colorScheme)
                 }
-
-                if let paymentReference {
-                    OrderMetaBlock(
-                        label: "Zahlreferenz",
-                        value: paymentReference,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let shippingZone {
-                    OrderMetaBlock(
-                        label: "Versandzone",
-                        value: shippingZone,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let fulfillmentProvider {
-                    OrderMetaBlock(
-                        label: "Fulfillment",
-                        value: fulfillmentProvider,
-                        colorScheme: colorScheme
-                    )
-                }
-
                 if let fulfillmentStatus {
-                    OrderMetaBlock(
-                        label: "Fulfillment-Status",
-                        value: fulfillmentStatus,
-                        colorScheme: colorScheme
-                    )
+                    OrderMetaBlock(label: "Versandstatus", value: fulfillmentStatus, colorScheme: colorScheme)
                 }
-
-                if let shopifyOrderName {
-                    OrderMetaBlock(
-                        label: "Shopify Order",
-                        value: shopifyOrderName,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let shopifyOrderId {
-                    OrderMetaBlock(
-                        label: "Shopify ID",
-                        value: shopifyOrderId,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let shopifySyncStatus {
-                    OrderMetaBlock(
-                        label: "Shopify Sync",
-                        value: shopifySyncStatus,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let stripeCheckoutStatus {
-                    OrderMetaBlock(
-                        label: "Stripe Checkout",
-                        value: stripeCheckoutStatus,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let stripeCheckoutSessionId {
-                    OrderMetaBlock(
-                        label: "Stripe Session",
-                        value: stripeCheckoutSessionId,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let stripePaymentIntentId {
-                    OrderMetaBlock(
-                        label: "Stripe Payment",
-                        value: stripePaymentIntentId,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if order.userEmail != contactEmail {
-                    OrderMetaBlock(
-                        label: "Login-Mail",
-                        value: order.userEmail,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let message {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Nachricht")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                        Text(message)
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                if let shippingAddress {
+                    OrderMetaBlock(label: "Adresse", value: shippingAddress, colorScheme: colorScheme)
                 }
             }
+            .padding(12)
+            .background(AppColors.secondaryBackground(for: colorScheme))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
 
             VStack(spacing: 10) {
                 ForEach(order.items) { item in
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.name)
-                                .font(.headline)
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundColor(AppColors.text(for: colorScheme))
 
                             if let size = item.size, !size.isEmpty {
@@ -494,14 +517,18 @@ private struct OrdersOrderCard: View {
                             }
                         }
                     }
-                    .padding(14)
+                    .padding(12)
                     .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
 
             if order.subtotalAmount != nil || order.totalAmount != nil {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Bestellsumme")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -513,48 +540,177 @@ private struct OrdersOrderCard: View {
                         OrderMetaBlock(label: "Versand", value: String(format: "EUR %.2f", shippingAmount), colorScheme: colorScheme)
                     }
                     if let taxAmount = order.taxAmount, let taxRate = order.taxRate {
-                        OrderMetaBlock(label: "inkl. MwSt.", value: String(format: "EUR %.2f bei %.1f%%", taxAmount, taxRate), colorScheme: colorScheme)
+                        OrderMetaBlock(label: "MwSt. inkl.", value: String(format: "EUR %.2f bei %.1f%%", taxAmount, taxRate), colorScheme: colorScheme)
                     }
                     if let totalAmount = order.totalAmount {
                         OrderMetaBlock(label: "Gesamt", value: String(format: "EUR %.2f", totalAmount), colorScheme: colorScheme)
                     }
                 }
-                .padding(14)
+                .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
 
-            HStack(spacing: 10) {
-                if paymentStatus != "confirmed" {
-                    Button(action: onConfirmPayment) {
-                        Label(
-                            isConfirmingPayment ? "…" : "Zahlung OK",
-                            systemImage: "creditcard.and.123"
-                        )
-                        .frame(maxWidth: .infinity)
+            if hasTechnicalDetails {
+                DisclosureGroup(isExpanded: $showTechnicalDetails) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let paymentProvider {
+                            OrderMetaBlock(label: "Zahlanbieter", value: paymentProvider, colorScheme: colorScheme)
+                        }
+                        if let paymentReference {
+                            OrderMetaBlock(label: "Zahlreferenz", value: paymentReference, colorScheme: colorScheme)
+                        }
+                        if let fulfillmentProvider {
+                            OrderMetaBlock(label: "Versanddienst", value: fulfillmentProvider, colorScheme: colorScheme)
+                        }
+                        if let shopifyOrderName {
+                            OrderMetaBlock(label: "Shop-Bestellnummer", value: shopifyOrderName, colorScheme: colorScheme)
+                        }
+                        if let shopifyOrderId {
+                            OrderMetaBlock(label: "Shop-Referenz", value: shopifyOrderId, colorScheme: colorScheme)
+                        }
+                        if let shopifySyncStatus {
+                            OrderMetaBlock(label: "Shop-Synchronisierung", value: shopifySyncStatus, colorScheme: colorScheme)
+                        }
+                        if let stripeCheckoutStatus {
+                            OrderMetaBlock(label: "Checkout-Status", value: stripeCheckoutStatus, colorScheme: colorScheme)
+                        }
+                        if let stripeCheckoutSessionId {
+                            OrderMetaBlock(label: "Checkout-Referenz", value: stripeCheckoutSessionId, colorScheme: colorScheme)
+                        }
+                        if let stripePaymentIntentId {
+                            OrderMetaBlock(label: "Zahlungsreferenz", value: stripePaymentIntentId, colorScheme: colorScheme)
+                        }
+                        if let whatsApp {
+                            OrderMetaBlock(label: "WhatsApp", value: whatsApp, colorScheme: colorScheme)
+                        }
+                        if order.userEmail != contactEmail {
+                            OrderMetaBlock(label: "Kontomail", value: order.userEmail, colorScheme: colorScheme)
+                        }
+                        if let message {
+                            OrderMetaBlock(label: "Nachricht", value: message, colorScheme: colorScheme)
+                        }
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(isConfirmingPayment)
+                    .padding(12)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.top, 6)
+                } label: {
+                    Text("Details anzeigen")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
+                .padding(.horizontal, 4)
+                .tint(AppColors.accent(for: colorScheme))
+                .contentShape(Rectangle())
+                .accessibilityHint("Zeigt weitere Bestellinformationen")
+            }
 
+            VStack(alignment: .leading, spacing: 10) {
                 Button(action: onToggleCompleted) {
                     Label(
-                        order.isCompleted ? "Öffnen" : "Erledigt",
+                        order.isCompleted ? "Bestellung wieder oeffnen" : "Bestellung als erledigt markieren",
                         systemImage: order.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle.fill"
                     )
+                    .frame(minHeight: 44)
                     .frame(maxWidth: .infinity)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(AppColors.accent(for: colorScheme))
+                .controlSize(.large)
+                .accessibilityHint(order.isCompleted ? "Markiert die Bestellung wieder als offen" : "Markiert die Bestellung als abgeschlossen")
 
-                Button(role: .destructive, action: onDelete) {
-                    Label("Löschen", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        if !order.hasFinalPaymentStatus {
+                            Button(action: onConfirmPayment) {
+                                Label(
+                                isConfirmingPayment ? "Wird bestaetigt..." : "Zahlung als eingegangen markieren",
+                                    systemImage: "creditcard.and.123"
+                                )
+                                .frame(minHeight: 44)
+                                .frame(maxWidth: .infinity)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(isConfirmingPayment)
+                            .controlSize(.regular)
+                            .accessibilityHint("Bestaetigt den Zahlungseingang fuer diese Bestellung")
+                        }
+
+                        Button(action: onDelete) {
+                            Label("Aus Liste entfernen", systemImage: "trash")
+                                .frame(minHeight: 44)
+                                .frame(maxWidth: .infinity)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .contentShape(Rectangle())
+                        .accessibilityHint("Entfernt die Bestellung aus deiner Liste")
+                    }
+
+                    VStack(spacing: 8) {
+                        if !order.hasFinalPaymentStatus {
+                            Button(action: onConfirmPayment) {
+                                Label(
+                                    isConfirmingPayment ? "Wird bestaetigt..." : "Zahlung bestaetigen",
+                                    systemImage: "creditcard.and.123"
+                                )
+                                .frame(minHeight: 44)
+                                .frame(maxWidth: .infinity)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(isConfirmingPayment)
+                            .controlSize(.regular)
+                            .accessibilityHint("Bestaetigt den Zahlungseingang fuer diese Bestellung")
+                        }
+
+                        Button(action: onDelete) {
+                            Label("Aus Liste entfernen", systemImage: "trash")
+                                .frame(minHeight: 44)
+                                .frame(maxWidth: .infinity)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .contentShape(Rectangle())
+                        .accessibilityHint("Entfernt die Bestellung aus deiner Liste")
+                    }
                 }
-                .buttonStyle(.bordered)
             }
         }
+    }
+
+    private var hasTechnicalDetails: Bool {
+        paymentProvider != nil ||
+            paymentReference != nil ||
+            fulfillmentProvider != nil ||
+            shopifyOrderName != nil ||
+            shopifyOrderId != nil ||
+            shopifySyncStatus != nil ||
+            stripeCheckoutStatus != nil ||
+            stripeCheckoutSessionId != nil ||
+            stripePaymentIntentId != nil ||
+            whatsApp != nil ||
+            order.userEmail != contactEmail ||
+            message != nil
     }
 }
 
@@ -564,7 +720,7 @@ private struct OrderMetaBlock: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 10) {
             Text(label)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -576,9 +732,7 @@ private struct OrderMetaBlock: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .multilineTextAlignment(.trailing)
         }
-        .padding(14)
-        .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .padding(.vertical, 3)
     }
 }
 
@@ -591,6 +745,7 @@ private struct OrdersBadge: View {
             text: text,
             tint: AppColors.accent(for: colorScheme)
         )
+        .animation(.easeInOut(duration: 0.18), value: text)
     }
 }
 
@@ -598,5 +753,43 @@ private extension String {
     func takeIfNotBlank() -> String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    var asUserFacingOrderStatus: String {
+        switch lowercased() {
+        case "pending":
+            return "In Klärung"
+        case "open":
+            return "Offen"
+        case "confirmed":
+            return "Bestaetigt"
+        case "paid":
+            return "Bezahlt"
+        case "processing":
+            return "In Bearbeitung"
+        case "fulfilled":
+            return "Versendet"
+        case "unfulfilled":
+            return "Nicht versendet"
+        case "success", "succeeded":
+            return "Abgeschlossen"
+        case "failed":
+            return "Nicht erfolgreich"
+        case "expired":
+            return "Abgelaufen"
+        case "canceled", "cancelled":
+            return "Storniert"
+        default:
+            return replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+}
+
+private extension Order {
+    var hasFinalPaymentStatus: Bool {
+        guard let raw = paymentStatus?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !raw.isEmpty else {
+            return false
+        }
+        return ["confirmed", "paid", "success", "succeeded"].contains(raw)
     }
 }

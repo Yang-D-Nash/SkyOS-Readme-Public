@@ -76,4 +76,13 @@ data class HomeUiState(
     val homeTrackMessage: String? = null,
     val homeBeatMessage: String? = null,
     val homeVideoMessage: String? = null,
+    val aiUsageWarning: String? = null,
+    val creatorLimitZone: Boolean = false,
+    val agentRunning: Boolean = false,
+    val workflowWaiting: Boolean = false,
+    val commerceSignal: String? = null,
+    val syncPaused: Boolean = false,
+    val recoverableError: String? = null,
+    val newDataAvailable: Boolean = false,
+    val contentSignal: String? = null,
 )

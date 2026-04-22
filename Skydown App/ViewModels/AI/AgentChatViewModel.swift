@@ -7,22 +7,41 @@ enum AgentChatRole {
     case assistant
 }
 
+enum AgentResultType: String, Equatable {
+    case text
+    case workflow
+    case progress
+    case error
+}
+
+struct AgentWorkflowSummary: Equatable {
+    let workflowName: String
+    let statusText: String
+    let runID: String?
+}
+
 struct AgentChatMessage: Identifiable, Equatable {
     let id: UUID
     let role: AgentChatRole
     var text: String
     var isStreaming: Bool
+    var resultType: AgentResultType
+    var workflowSummary: AgentWorkflowSummary?
 
     init(
         id: UUID = UUID(),
         role: AgentChatRole,
         text: String,
-        isStreaming: Bool = false
+        isStreaming: Bool = false,
+        resultType: AgentResultType = .text,
+        workflowSummary: AgentWorkflowSummary? = nil
     ) {
         self.id = id
         self.role = role
         self.text = text
         self.isStreaming = isStreaming
+        self.resultType = resultType
+        self.workflowSummary = workflowSummary
     }
 }
 
@@ -108,18 +127,34 @@ enum AgentExecutionMode: String, CaseIterable, Identifiable {
 
 @MainActor
 final class AgentChatViewModel: ObservableObject {
+    struct RevenueUsageState {
+        let planTitle: String
+        let remaining: Int
+        let limit: Int
+        let warningLevel: String
+        let userFacingReason: String
+        let suggestedUpgrade: String
+        let resetHint: String
+        let retryAfterSeconds: Int
+        let lowerCostOption: String
+    }
+
     @Published var messages: [AgentChatMessage] = []
     @Published var draft = ""
     @Published var selectedMode: AgentExecutionMode = .release
     @Published var shouldTriggerAutomation = false
     @Published private(set) var canTriggerAutomation = false
-    @Published var isSending = false
+    /// Agent-only lifecycle (distinct from `BotInteractionPhase`).
+    @Published private(set) var phase: AgentInteractionPhase = .idle
     @Published var showToast = false
     @Published var toastMessage = ""
     @Published var toastStyle: ToastStyle = .info
-    @Published private(set) var lastAgentProvider: AIRuntimeAgentProvider = .gemini
+    @Published private(set) var lastAgentProvider: AIRuntimeAgentProvider = .grok
     @Published private(set) var lastProviderNotice: String = ""
     @Published private(set) var lastIntegrationIssue: String = ""
+    /// Latest `users/{uid}/agentRuns/{id}` id returned by `skydownAgent` (empty if not recorded).
+    @Published private(set) var lastAgentRunId: String = ""
+    @Published private(set) var revenueUsage: RevenueUsageState?
 
     var quickPrompts: [String] {
         selectedMode.quickPrompts
@@ -131,6 +166,7 @@ final class AgentChatViewModel: ObservableObject {
     private var currentUserKey: String?
     private var pendingRequests: [PendingAgentRequest] = []
     private var networkObserver: AnyCancellable?
+    private var currentPlanTitle: String = "Free"
 
     private struct PendingAgentRequest {
         let prompt: String
@@ -159,6 +195,15 @@ final class AgentChatViewModel: ObservableObject {
 
     func configureUser(user: User?) {
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
+        if let user {
+            switch user.resolvedQuotaPlan {
+            case .studio: currentPlanTitle = "Creator"
+            case .creator: currentPlanTitle = "Pro"
+            default: currentPlanTitle = "Free"
+            }
+        } else {
+            currentPlanTitle = "Free"
+        }
         historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
         canTriggerAutomation = user != nil
         ManusBYOSStore.shared.setUserMode(userID: user?.id)
@@ -176,13 +221,13 @@ final class AgentChatViewModel: ObservableObject {
 
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPrompt.isEmpty, !isSending else { return }
+        guard !trimmedPrompt.isEmpty, !phase.shouldBlockSend else { return }
         guard NetworkStatusMonitor.shared.isOnline else {
             queuePromptForRetry(trimmedPrompt)
             return
         }
 
-        isSending = true
+        phase = .processing
 
         var appendedAssistantID: UUID?
         let modeAtSend = selectedMode.rawValue
@@ -202,7 +247,8 @@ final class AgentChatViewModel: ObservableObject {
                         id: assistantID,
                         role: .assistant,
                         text: "",
-                        isStreaming: true
+                        isStreaming: true,
+                        resultType: .progress
                     )
                 )
                 draft = ""
@@ -215,12 +261,15 @@ final class AgentChatViewModel: ObservableObject {
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
                 updateProviderDiagnostics(from: result)
+                applyUsage(result.usage)
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 let replyText = augmentedReplyText(from: result)
                 updateAssistantMessage(
                     id: assistantID,
                     text: replyText,
-                    isStreaming: false
+                    isStreaming: false,
+                    resultType: (result.automationTriggered || result.automationAttempted) ? .workflow : .text,
+                    workflowSummary: buildWorkflowSummary(from: result)
                 )
                 historyStore.saveEntry(
                     userKey: currentUserKey,
@@ -232,7 +281,7 @@ final class AgentChatViewModel: ObservableObject {
                     lastIntegrationIssue = ""
                     showUserToast(
                         result.automationMessage.isEmpty
-                            ? AppLocalized.text("agent.automation.triggered", fallback: "n8n workflow started.")
+                            ? AppLocalized.text("agent.automation.triggered", fallback: "Automation wurde gestartet.")
                             : result.automationMessage,
                         style: .success
                     )
@@ -242,7 +291,7 @@ final class AgentChatViewModel: ObservableObject {
                 } else {
                     lastIntegrationIssue = ""
                 }
-                isSending = false
+                phase = pendingRequests.isEmpty ? .idle : .waitingReconnect
             } catch {
                 if let assistantID = appendedAssistantID, isOfflineError(error) {
                     pendingRequests.append(
@@ -260,22 +309,23 @@ final class AgentChatViewModel: ObservableObject {
                         id: assistantID,
                         text: AppLocalized.text(
                             "agent.queue.placeholder",
-                            fallback: "Queued: this request will send automatically when your connection is back."
+                            fallback: "Zwischengespeichert: Diese Anfrage wird automatisch gesendet, sobald deine Verbindung wieder da ist."
                         ),
-                        isStreaming: false
+                        isStreaming: false,
+                        resultType: .progress
                     )
-                    isSending = false
                     showUserToast(
                         AppLocalized.text(
                             "agent.queue.toast.queued",
-                            fallback: "Saved offline. Sending automatically once you are online."
+                            fallback: "Offline gespeichert. Wird automatisch gesendet, sobald du wieder online bist."
                         ),
                         style: .info
                     )
                     lastIntegrationIssue = AppLocalized.text(
                         "agent.offline.message",
-                        fallback: "You are offline. The agent will continue once your connection is back."
+                        fallback: "Du bist offline. Der Agent arbeitet weiter, sobald deine Verbindung wieder da ist."
                     )
+                    phase = .waitingReconnect
                     return
                 }
 
@@ -285,7 +335,8 @@ final class AgentChatViewModel: ObservableObject {
                     updateAssistantMessage(
                         id: assistantID,
                         text: message,
-                        isStreaming: false
+                        isStreaming: false,
+                        resultType: .error
                     )
                     historyStore.saveEntry(
                         userKey: currentUserKey,
@@ -294,8 +345,8 @@ final class AgentChatViewModel: ObservableObject {
                         response: message
                     )
                 }
-                isSending = false
                 showUserToast(message, style: .error)
+                phase = .idle
             }
         }
     }
@@ -305,6 +356,8 @@ final class AgentChatViewModel: ObservableObject {
         pendingRequests.removeAll()
         pendingQueueStore.clearEntries(for: currentUserKey)
         messages = []
+        phase = .idle
+        lastAgentRunId = ""
     }
 
     private func buildHistory(from messages: [AgentChatMessage]) -> [AgentHistoryTurn] {
@@ -348,13 +401,15 @@ final class AgentChatViewModel: ObservableObject {
                     role: .assistant,
                     text: AppLocalized.text(
                         "agent.queue.placeholder",
-                        fallback: "Queued: this request will send automatically when your connection is back."
-                    )
+                        fallback: "Zwischengespeichert: Diese Anfrage wird automatisch gesendet, sobald deine Verbindung wieder da ist."
+                    ),
+                    resultType: .progress
                 )
             ]
         }
 
         messages = restoredHistoryMessages + pendingMessages
+        phase = pendingRequests.isEmpty ? .idle : .waitingReconnect
     }
 
     private func normalizedUserKey(for userKey: String?) -> String? {
@@ -363,10 +418,18 @@ final class AgentChatViewModel: ObservableObject {
         return trimmed.lowercased()
     }
 
-    private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool) {
+    private func updateAssistantMessage(
+        id: UUID,
+        text: String,
+        isStreaming: Bool,
+        resultType: AgentResultType = .text,
+        workflowSummary: AgentWorkflowSummary? = nil
+    ) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].text = text
         messages[index].isStreaming = isStreaming
+        messages[index].resultType = resultType
+        messages[index].workflowSummary = workflowSummary
     }
 
     private func queuePromptForRetry(_ trimmedPrompt: String) {
@@ -383,9 +446,10 @@ final class AgentChatViewModel: ObservableObject {
                 role: .assistant,
                 text: AppLocalized.text(
                     "agent.queue.placeholder",
-                    fallback: "Queued: this request will send automatically when your connection is back."
+                    fallback: "Zwischengespeichert: Diese Anfrage wird automatisch gesendet, sobald deine Verbindung wieder da ist."
                 ),
-                isStreaming: false
+                isStreaming: false,
+                resultType: .progress
             )
         )
         draft = ""
@@ -405,20 +469,23 @@ final class AgentChatViewModel: ObservableObject {
         showUserToast(
             AppLocalized.text(
                 "agent.queue.toast.queued",
-                fallback: "Saved offline. Sending automatically once you are online."
+                fallback: "Offline gespeichert. Wird automatisch gesendet, sobald du wieder online bist."
             ),
             style: .info
         )
         lastIntegrationIssue = AppLocalized.text(
             "agent.offline.message",
-            fallback: "You are offline. The agent will continue once your connection is back."
+            fallback: "Du bist offline. Der Agent arbeitet weiter, sobald deine Verbindung wieder da ist."
         )
+        phase = .waitingReconnect
     }
 
     private func retryPendingRequestsIfNeeded() async {
-        guard !isSending, !pendingRequests.isEmpty else { return }
-        isSending = true
-        defer { isSending = false }
+        guard phase != .processing, !pendingRequests.isEmpty else { return }
+        phase = .processing
+        defer {
+            phase = pendingRequests.isEmpty ? .idle : .waitingReconnect
+        }
 
         while NetworkStatusMonitor.shared.isOnline, !pendingRequests.isEmpty {
             let request = pendingRequests.removeFirst()
@@ -431,12 +498,15 @@ final class AgentChatViewModel: ObservableObject {
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
                 updateProviderDiagnostics(from: result)
+                applyUsage(result.usage)
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 let replyText = augmentedReplyText(from: result)
                 updateAssistantMessage(
                     id: request.assistantMessageID,
                     text: replyText,
-                    isStreaming: false
+                    isStreaming: false,
+                    resultType: (result.automationTriggered || result.automationAttempted) ? .workflow : .text,
+                    workflowSummary: buildWorkflowSummary(from: result)
                 )
                 historyStore.saveEntry(
                     userKey: currentUserKey,
@@ -448,7 +518,7 @@ final class AgentChatViewModel: ObservableObject {
                     lastIntegrationIssue = ""
                     showUserToast(
                         result.automationMessage.isEmpty
-                            ? AppLocalized.text("agent.automation.triggered", fallback: "n8n workflow started.")
+                            ? AppLocalized.text("agent.automation.triggered", fallback: "Automation wurde gestartet.")
                             : result.automationMessage,
                         style: .success
                     )
@@ -460,7 +530,7 @@ final class AgentChatViewModel: ObservableObject {
                     showUserToast(
                         AppLocalized.text(
                             "agent.queue.toast.sent",
-                            fallback: "Queued request sent successfully."
+                            fallback: "Zwischengespeicherte Anfrage erfolgreich gesendet."
                         ),
                         style: .success
                     )
@@ -474,9 +544,10 @@ final class AgentChatViewModel: ObservableObject {
                         id: request.assistantMessageID,
                         text: AppLocalized.text(
                             "agent.queue.placeholder",
-                            fallback: "Queued: this request will send automatically when your connection is back."
+                            fallback: "Zwischengespeichert: Diese Anfrage wird automatisch gesendet, sobald deine Verbindung wieder da ist."
                         ),
-                        isStreaming: false
+                        isStreaming: false,
+                        resultType: .progress
                     )
                     break
                 }
@@ -486,7 +557,8 @@ final class AgentChatViewModel: ObservableObject {
                 updateAssistantMessage(
                     id: request.assistantMessageID,
                     text: message,
-                    isStreaming: false
+                    isStreaming: false,
+                    resultType: .error
                 )
                 historyStore.saveEntry(
                     userKey: currentUserKey,
@@ -528,19 +600,65 @@ final class AgentChatViewModel: ObservableObject {
         return "\(response.reply)\n\nn8n:\n\(suffix)"
     }
 
+    private func buildWorkflowSummary(from response: AgentChatResponse) -> AgentWorkflowSummary? {
+        let structuredWorkflow = response.results.first(where: { $0.type == "workflow" })
+        guard response.automationTriggered || response.automationAttempted || structuredWorkflow != nil else { return nil }
+        let workflowLabel = response.workflowName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedWorkflowLabel = (structuredWorkflow?.workflowName ?? workflowLabel)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty ? "n8n Workflow" : (structuredWorkflow?.workflowName ?? workflowLabel)
+        let statusText: String
+        if let structuredSummary = structuredWorkflow?.summary, !structuredSummary.isEmpty {
+            statusText = structuredSummary
+        } else if response.automationTriggered {
+            statusText = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
+            "Workflow wurde gestartet." :
+            response.automationMessage
+        } else {
+            statusText = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
+            "Workflow konnte nicht gestartet werden." :
+            response.automationMessage
+        }
+        let runId = (structuredWorkflow?.runId ?? response.agentRunId).trimmingCharacters(in: .whitespacesAndNewlines)
+        return AgentWorkflowSummary(
+            workflowName: resolvedWorkflowLabel,
+            statusText: statusText,
+            runID: runId.isEmpty ? nil : runId
+        )
+    }
+
     private func showUserToast(_ message: String, style: ToastStyle) {
         toastMessage = message
         toastStyle = style
         showToast = true
     }
 
+    func showToastMessage(_ message: String, style: ToastStyle) {
+        showUserToast(message, style: style)
+    }
+
+    private func applyUsage(_ usage: AIUsageSnapshot?) {
+        guard let usage else { return }
+        revenueUsage = RevenueUsageState(
+            planTitle: currentPlanTitle,
+            remaining: max(usage.remainingForKind, 0),
+            limit: max(usage.limitForKind, 0),
+            warningLevel: usage.warningLevel,
+            userFacingReason: usage.userFacingReason,
+            suggestedUpgrade: usage.suggestedUpgrade,
+            resetHint: usage.resetHint,
+            retryAfterSeconds: usage.retryAfterSeconds,
+            lowerCostOption: usage.lowerCostOption
+        )
+    }
+
     private func updateProviderDiagnostics(from response: AgentChatResponse) {
-        let resolvedProvider = AIRuntimeAgentProvider(
-            rawValue: response.agentProvider
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-        ) ?? .gemini
-        lastAgentProvider = resolvedProvider
+        let raw = response.agentProvider
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if !raw.isEmpty, let resolved = AIRuntimeAgentProvider(rawValue: raw) {
+            lastAgentProvider = resolved
+        }
 
         let trimmedNotice = response.providerNotice.trimmingCharacters(in: .whitespacesAndNewlines)
         if response.providerFallbackUsed || !trimmedNotice.isEmpty {
@@ -550,6 +668,9 @@ final class AgentChatViewModel: ObservableObject {
         } else {
             lastProviderNotice = ""
         }
+
+        let trimmedRun = response.agentRunId.trimmingCharacters(in: .whitespacesAndNewlines)
+        lastAgentRunId = trimmedRun
     }
 
     private func isOfflineError(_ error: Error) -> Bool {
@@ -563,7 +684,7 @@ final class AgentChatViewModel: ObservableObject {
         if isOfflineError(error) {
             return AppLocalized.text(
                 "agent.offline.message",
-                fallback: "You are offline. The agent will continue once your connection is back."
+                fallback: "Du bist offline. Der Agent setzt automatisch fort, sobald die Verbindung wieder da ist."
             )
         }
 
@@ -571,24 +692,22 @@ final class AgentChatViewModel: ObservableObject {
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
             case .notFound, .unimplemented:
-                return "Der SkyOS Agent ist fuer diesen Bereich gerade noch nicht verfuegbar."
+                return "Dieser Agent-Bereich wird gerade vorbereitet."
             case .unavailable:
-                return "Der SkyOS Agent ist gerade nicht erreichbar."
+                return "Der SkyOS Agent ist gerade kurz nicht erreichbar."
             case .deadlineExceeded:
-                return "Der SkyOS Agent hat zu lange fuer die Antwort gebraucht."
+                return "Die Agent-Antwort dauert gerade laenger als gewohnt."
             case .resourceExhausted:
-                return nsError.localizedDescription.isEmpty ? "Dein heutiges Agent-Limit ist erreicht." : nsError.localizedDescription
+                return "Dein heutiges Agent-Limit ist erreicht. Bitte spaeter erneut versuchen."
             case .invalidArgument:
-                return "Die Anfrage konnte so nicht verarbeitet werden."
+                return "Die Anfrage braucht noch etwas mehr Kontext."
             case .failedPrecondition:
                 if nsError.localizedDescription.localizedCaseInsensitiveContains("App Check") {
-                    return "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                    return "Der Sicherheitscheck laeuft noch. Bitte kurz erneut versuchen."
                 }
-                return nsError.localizedDescription.isEmpty
-                    ? "Der Agent ist noch nicht vollstaendig eingerichtet."
-                    : nsError.localizedDescription
+                return "Der Agent ist gerade noch nicht voll bereit. Bitte in einem Moment erneut versuchen."
             case .permissionDenied:
-                return nsError.localizedDescription.isEmpty ? "Der Agent ist fuer dein Konto gerade nicht freigeschaltet." : nsError.localizedDescription
+                return "Der Agent ist fuer dein Konto gerade nicht freigeschaltet."
             case .unauthenticated:
                 return "Bitte melde dich erneut an und versuch es noch einmal."
             default:
@@ -596,10 +715,6 @@ final class AgentChatViewModel: ObservableObject {
             }
         }
 
-        if !nsError.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return nsError.localizedDescription
-        }
-
-        return "Der SkyOS Agent konnte gerade nicht antworten."
+        return "Der SkyOS Agent ist gerade kurz pausiert. Bitte in einem Moment erneut versuchen."
     }
 }

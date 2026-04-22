@@ -57,14 +57,6 @@ struct VideoHubView: View {
         return viewModel.videos.firstIndex { $0.id == selectedVideo.id } ?? 0
     }
 
-    private var videoLibraryFeaturedCount: Int {
-        viewModel.videos.filter(\.isHomeFeatured).count
-    }
-
-    private var videoLibraryDirectCount: Int {
-        viewModel.videos.filter { $0.opensOriginalInApp || $0.supportsInlinePlayback }.count
-    }
-
     var body: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
@@ -284,7 +276,7 @@ struct VideoHubView: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if collaborationItems.isEmpty {
-                Text("Noch keine Featured Collabs hinterlegt.")
+                Text("Featured Collabs folgen. Der Bereich bleibt bereit und wird laufend ergaenzt.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
@@ -347,17 +339,19 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedVideoHubEyebrow ?? "Video",
             title: screenHeaderSettingsStore.settings.resolvedVideoHubTitle ?? "Video",
-            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Clips · Visuals · Collabs",
-            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Looks & Leute.",
+            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Visuals · Collabs · Cinematic Flow",
+            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Atmosphaerisch, klar und direkt spielbar.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.skydown]
         ) {
-            HStack(spacing: 8) {
-                MusicBadge(text: "Videos", isAccent: true, onTap: onOpenVideos)
-                MusicBadge(text: "Equipment", isAccent: false, onTap: onOpenEquipment)
-                MusicBadge(text: "Collabs", isAccent: false, onTap: onOpenCollaborations)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    MusicBadge(text: "Videos", isAccent: true, onTap: onOpenVideos)
+                    MusicBadge(text: "Equipment", isAccent: false, onTap: onOpenEquipment)
+                    MusicBadge(text: "Collabs", isAccent: false, onTap: onOpenCollaborations)
+                }
             }
         }
     }
@@ -637,25 +631,25 @@ struct VideoHubView: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 24))
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            MusicBadge(text: "Video", isAccent: true)
-                            MusicBadge(text: selectedVideo.projectName, isAccent: false)
-                            MusicBadge(text: selectedVideo.provider.badgeLabel, isAccent: false)
-                        }
-
+                    VStack(alignment: .leading, spacing: 5) {
                         Text(selectedVideo.title)
-                            .font(.title3.weight(.bold))
+                            .font(.title3.weight(.semibold))
                             .foregroundColor(.white)
+                            .lineLimit(2)
+
+                        Text("\(selectedVideo.projectName) · \(selectedVideo.provider.badgeLabel)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.78))
+                            .lineLimit(1)
 
                         if !selectedVideo.notes.isEmpty {
                             Text(selectedVideo.notes)
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.78))
-                                .lineLimit(3)
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.72))
+                                .lineLimit(2)
                         }
                     }
-                    .padding(18)
+                    .padding(16)
                 }
 
                 if let youTubeItem = selectedVideo.youTubeItem {
@@ -710,7 +704,7 @@ struct VideoHubView: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             } else {
-                Text("Noch kein Video ausgewaehlt. Sobald Uploads live sind, kannst du sie hier direkt abspielen.")
+                Text("Noch kein Fokus-Video aktiv. Waehle einen Clip aus der Library oder aktualisiere den Hub.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -733,17 +727,19 @@ struct VideoHubView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            if !viewModel.isLoadingVideos && !viewModel.videos.isEmpty {
-                videoLibraryPulse
-            }
-
             if viewModel.isLoadingVideos {
-                ProgressView("Videos werden geladen ...")
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Videos werden ruhig vorbereitet ...")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
             } else if viewModel.videos.isEmpty {
                 Text(
                     viewModel.isAdmin
-                    ? "Noch keine Videos im Hub. Neue Uploads tauchen hier sofort auf."
-                    : "Noch keine freigegebenen Videos. Sobald ein Clip live ist, kannst du ihn hier abspielen."
+                    ? "Noch keine Videos im Hub. Neue Uploads erscheinen hier automatisch."
+                    : "Aktuell sind noch keine Videos freigegeben. Bitte spaeter erneut pruefen."
                 )
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -792,103 +788,6 @@ struct VideoHubView: View {
         )
     }
 
-    private var videoLibraryPulse: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Video Pulse")
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Alle Clips auf einen Blick mit Fokus, Direktzugang und Home-Status, bevor du in die Library springst.")
-                .font(.footnote)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
-                    videoLibraryMetricCard(
-                        title: "Clips",
-                        value: "\(viewModel.videos.count)",
-                        accent: AppColors.accent(for: colorScheme)
-                    )
-                    videoLibraryMetricCard(
-                        title: "Direct",
-                        value: "\(videoLibraryDirectCount)",
-                        accent: AppColors.accentMystic(for: colorScheme)
-                    )
-                    videoLibraryMetricCard(
-                        title: "Home",
-                        value: "\(videoLibraryFeaturedCount)",
-                        accent: AppColors.youtube(for: colorScheme)
-                    )
-                }
-
-                VStack(spacing: 12) {
-                    videoLibraryMetricCard(
-                        title: "Clips",
-                        value: "\(viewModel.videos.count)",
-                        accent: AppColors.accent(for: colorScheme)
-                    )
-                    videoLibraryMetricCard(
-                        title: "Direct",
-                        value: "\(videoLibraryDirectCount)",
-                        accent: AppColors.accentMystic(for: colorScheme)
-                    )
-                    videoLibraryMetricCard(
-                        title: "Home",
-                        value: "\(videoLibraryFeaturedCount)",
-                        accent: AppColors.youtube(for: colorScheme)
-                    )
-                }
-            }
-
-            if let selectedVideo {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Im Fokus")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppColors.accent(for: colorScheme))
-
-                    Text(selectedVideo.title)
-                        .font(.headline.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("\(selectedVideo.projectName) • \(selectedVideo.directOpenActionTitle)")
-                        .font(.footnote.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(AppColors.secondaryBackground(for: colorScheme))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
-                )
-            }
-        }
-    }
-
-    private func videoLibraryMetricCard(title: String, value: String, accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(accent)
-
-            Text(value)
-                .font(.title3.weight(.black))
-                .foregroundColor(AppColors.text(for: colorScheme))
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(AppColors.secondaryBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(accent.opacity(0.18), lineWidth: 1)
-        )
-    }
 }
 
 struct VideoHubLibraryRow: View {
@@ -927,7 +826,7 @@ struct VideoHubLibraryRow: View {
             if video.supportsInlinePlayback {
                 return "Der Clip laeuft direkt als In-App-Reel mit schnellem Preview-Flow."
             }
-            return "Hier bleibt aktuell nur der externe Oeffnen-Flow."
+            return "Aktuell steht hier nur der externe Aufruf zur Verfuegung."
         }
 
         if video.opensOriginalInApp {
@@ -938,7 +837,7 @@ struct VideoHubLibraryRow: View {
         if video.supportsInlinePlayback {
             return "Ein Tap startet die direkte Videoansicht ohne weiteren Zwischenscreen."
         }
-        return "Dieses Video oeffnet aktuell ueber einen externen Link."
+        return "Dieses Video wird derzeit ueber einen externen Link geoeffnet."
     }
 
     private var routeAccent: Color {
@@ -952,6 +851,18 @@ struct VideoHubLibraryRow: View {
         case .firebaseStorage, .externalLink:
             return AppColors.accentMystic(for: colorScheme)
         }
+    }
+
+    private var libraryRowMetaLine: String {
+        let date = skydownVideoDateFormatter.string(from: video.createdAt)
+        var parts = [video.projectName, video.provider.badgeLabel, date]
+        if isAdmin {
+            parts.append(video.isPublic ? "Public" : "Private")
+            if video.isHomeFeatured {
+                parts.append("Home")
+            }
+        }
+        return parts.joined(separator: " · ")
     }
 
     var body: some View {
@@ -970,38 +881,29 @@ struct VideoHubLibraryRow: View {
                     Text(video.title)
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(2)
 
-                    Text("\(video.projectName) • \(skydownVideoDateFormatter.string(from: video.createdAt))")
+                    Text(libraryRowMetaLine)
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+
+                    if isAdmin, !video.fileName.isEmpty {
+                        Text(video.fileName)
+                            .font(.caption2)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                            .lineLimit(1)
+                    }
 
                     if !video.notes.isEmpty {
                         Text(video.notes)
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .lineLimit(2)
                     }
                 }
 
                 Spacer()
-            }
-
-            HStack(spacing: 8) {
-                MusicBadge(
-                    text: video.isPublic ? "Public" : "Private",
-                    isAccent: video.isPublic
-                )
-                MusicBadge(
-                    text: video.provider.badgeLabel,
-                    isAccent: false
-                )
-                if isAdmin && video.isHomeFeatured {
-                    MusicBadge(text: "Home", isAccent: true)
-                }
-                if isAdmin {
-                    MusicBadge(text: video.fileName, isAccent: false)
-                } else {
-                    MusicBadge(text: "Clip", isAccent: false)
-                }
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -1012,6 +914,7 @@ struct VideoHubLibraryRow: View {
                 Text(routeDetail)
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(2)
             }
 
             if isAdmin {
@@ -1092,6 +995,7 @@ private struct VideoReelViewer: View {
     @State private var currentIndex: Int
     @State private var player = AVPlayer()
     @State private var originalViewerTarget: VideoOriginalViewerTarget?
+    @State private var isTransitioning = false
 
     init(
         videos: [SkydownVideoHubItem],
@@ -1147,21 +1051,21 @@ private struct VideoReelViewer: View {
                                 endPoint: .bottom
                             )
 
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 6) {
                                 Text(video.projectName.uppercased())
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.white.opacity(0.72))
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundColor(.white.opacity(0.68))
 
                                 Text(video.title)
-                                    .font(.title2.weight(.bold))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(.white)
                                     .lineLimit(2)
 
                                 if !video.notes.isEmpty {
                                     Text(video.notes)
-                                        .font(.subheadline)
-                                        .foregroundColor(.white.opacity(0.78))
-                                        .lineLimit(4)
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.72))
+                                        .lineLimit(3)
                                 }
 
                                 if video.opensOriginalInApp {
@@ -1172,7 +1076,7 @@ private struct VideoReelViewer: View {
                                         )
                                     } label: {
                                         Label(video.directOpenActionTitle, systemImage: "arrow.up.forward.square")
-                                            .font(.subheadline.weight(.bold))
+                                            .font(.subheadline.weight(.semibold))
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 12)
                                     }
@@ -1181,8 +1085,8 @@ private struct VideoReelViewer: View {
                                     .foregroundColor(.black)
                                 }
                             }
-                            .padding(.horizontal, 22)
-                            .padding(.bottom, 34)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 30)
                             .padding(.trailing, 54)
                         }
                         .rotationEffect(.degrees(90))
@@ -1209,19 +1113,19 @@ private struct VideoReelViewer: View {
                 }
 
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("SkyOS Video")
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(.white)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.92))
 
                         Text("\(currentIndex + 1) von \(videos.count)")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.72))
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.70))
 
                         if videos.count > 1 {
                             Text("Vertikal wischen durch alle Clips")
                                 .font(.caption.weight(.medium))
-                                .foregroundColor(.white.opacity(0.62))
+                                .foregroundColor(.white.opacity(0.58))
                         }
                     }
 
@@ -1246,13 +1150,45 @@ private struct VideoReelViewer: View {
                 .padding(.horizontal, 20)
                 .padding(.top, max(proxy.safeAreaInsets.top, 12))
                 .zIndex(10)
+
+                if isTransitioning {
+                    VStack(spacing: 10) {
+                        ProgressView()
+                            .tint(.white)
+                        Text("Clip wird vorbereitet ...")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.86))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.black.opacity(0.46), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .transition(.opacity)
+                    .zIndex(12)
+                }
             }
         }
         .onAppear {
+            withAnimation(.easeInOut(duration: 0.16)) {
+                isTransitioning = true
+            }
             playCurrent()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isTransitioning = false
+                }
+            }
         }
         .onChange(of: currentIndex) { _, _ in
+            withAnimation(.easeInOut(duration: 0.14)) {
+                isTransitioning = true
+            }
             playCurrent()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isTransitioning = false
+                }
+            }
         }
         .onDisappear {
             player.pause()
@@ -1316,7 +1252,7 @@ struct VideoEquipmentCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if items.isEmpty {
-                Text("Noch kein Equipment hinterlegt.")
+                Text("Equipment wird aktuell vorbereitet und erscheint hier in Kuerze.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
@@ -1498,8 +1434,6 @@ struct VideoEquipmentDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    MusicBadge(text: "Visual Stack", isAccent: true)
-
                     Text(item.title)
                         .font(.title2.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -2470,9 +2404,9 @@ struct SkydownOriginalVideoDestinationView: View {
             } else {
                 NavigationStack {
                     ContentUnavailableView(
-                        "Link nicht verfuegbar",
+                        "Original aktuell nicht verfuegbar",
                         systemImage: "play.rectangle",
-                        description: Text("Das Original konnte nicht geladen werden.")
+                        description: Text("Das Original laesst sich gerade nicht laden. Bitte versuche es in einem Moment erneut.")
                     )
                     .navigationTitle(title.isEmpty ? "Original" : title)
                     .navigationBarTitleDisplayMode(.inline)

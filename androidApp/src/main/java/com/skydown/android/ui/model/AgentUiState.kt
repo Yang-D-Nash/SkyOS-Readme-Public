@@ -1,5 +1,8 @@
 package com.skydown.android.ui.model
 
+import com.skydown.android.data.AiRuntimeAgentProvider
+import com.skydown.android.data.AiUsageSnapshot
+
 enum class AgentExecutionMode(val rawValue: String, val title: String, val placeholder: String) {
     Release("release", "Release", "Zum Beispiel: Release-Plan fuer Freitag."),
     Briefing("briefing", "Briefing", "Zum Beispiel: Briefing fuer ein Video-Team."),
@@ -11,13 +14,18 @@ enum class AgentExecutionMode(val rawValue: String, val title: String, val place
 data class AgentUiState(
     val messages: List<AgentMessage> = emptyList(),
     val draft: String = "",
-    val isSending: Boolean = false,
+    val agentPhase: AgentInteractionPhase = AgentInteractionPhase.Idle,
     val isAgentEnabled: Boolean = true,
     val errorMessage: String? = null,
     val selectedMode: AgentExecutionMode = AgentExecutionMode.Release,
     val canTriggerAutomation: Boolean = false,
     val shouldTriggerAutomation: Boolean = false,
     val quickPrompts: List<String> = agentQuickPromptsFor(AgentExecutionMode.Release),
+    /** Last successful Agent response provider (from callable). */
+    val lastAgentProvider: AiRuntimeAgentProvider = AiRuntimeAgentProvider.Grok,
+    val lastProviderNotice: String = "",
+    val usageSnapshot: AiUsageSnapshot? = null,
+    val planLabel: String = "Free",
 )
 
 fun agentQuickPromptsFor(mode: AgentExecutionMode): List<String> = when (mode) {

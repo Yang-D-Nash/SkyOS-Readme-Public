@@ -13,12 +13,15 @@ struct AIPromptSettings: Equatable {
 
 enum AIRuntimeAgentProvider: String, CaseIterable, Equatable {
     case gemini
+    case grok
     case manus
 
     var displayTitle: String {
         switch self {
         case .gemini:
             return "Gemini"
+        case .grok:
+            return "Grok"
         case .manus:
             return "Manus"
         }
@@ -49,7 +52,7 @@ struct AIRuntimeManusSettings: Equatable {
 
 struct AIRuntimeSettings: Equatable {
     var costGuardEnabled: Bool = true
-    var agentProvider: AIRuntimeAgentProvider = .gemini
+    var agentProvider: AIRuntimeAgentProvider = .grok
     var fallbackAgentProvider: AIRuntimeAgentProvider = .gemini
     var hardDailyCaps: AIRuntimeKindLimits = .hardDefaults
     var globalDailyCaps: AIRuntimeKindLimits = .globalDefaults
@@ -186,7 +189,7 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
         let manusData = data["manus"] as? [String: Any] ?? [:]
         return AIRuntimeSettings(
             costGuardEnabled: data["costGuardEnabled"] as? Bool ?? true,
-            agentProvider: decodeProvider(data["agentProvider"], fallback: .gemini),
+            agentProvider: decodeProvider(data["agentProvider"], fallback: .grok),
             fallbackAgentProvider: decodeProvider(data["fallbackAgentProvider"], fallback: .gemini),
             hardDailyCaps: decodeLimits(
                 data["hardDailyCaps"],

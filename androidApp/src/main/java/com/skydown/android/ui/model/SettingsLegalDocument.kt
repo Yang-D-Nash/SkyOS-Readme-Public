@@ -7,6 +7,9 @@ enum class SettingsLegalDocumentType {
     PrivacyPolicy,
     TermsAndConditions,
     TermsOfService,
+    SubscriptionTerms,
+    AiUsageNotice,
+    ImprintInfo,
 }
 
 data class SettingsLegalDocument(
@@ -174,6 +177,78 @@ fun SettingsLegalDocumentType.resolve(
                 SettingsLegalSection(
                     title = "6. Recht und Kontakt",
                     body = "Betreiber und Vertragspartner ist $operatorName. Fragen koennen an $supportEmail gerichtet werden. Es gilt deutsches Recht, soweit keine zwingenden Verbraucherschutzvorschriften entgegenstehen.",
+                ),
+            ),
+            contactEmail = supportEmail,
+        )
+        SettingsLegalDocumentType.SubscriptionTerms -> SettingsLegalDocument(
+            title = "Subscription Terms",
+            updatedAt = lastUpdatedLabel,
+            introduction = "Diese Hinweise regeln Laufzeit, Verlaengerung, Kuendigung und Wiederherstellung von Mitgliedschaften innerhalb von $brandName.",
+            sections = listOf(
+                SettingsLegalSection(
+                    title = "1. Plaene und Laufzeiten",
+                    body = "Mitgliedschaften koennen je nach Angebot monatlich und/oder jaehrlich verfuegbar sein. Preise und Laufzeiten werden vor Kauf im jeweiligen Store angezeigt.",
+                ),
+                SettingsLegalSection(
+                    title = "2. Store-Abrechnung",
+                    body = "Abrechnung und Verlaengerung erfolgen ueber Apple App Store oder Google Play Store gemaess deren Bedingungen.",
+                ),
+                SettingsLegalSection(
+                    title = "3. Auto-Renew und Kuendigung",
+                    body = "Abos verlaengern sich automatisch, wenn sie nicht vor Ende des laufenden Zeitraums im jeweiligen Store gekuendigt werden.",
+                ),
+                SettingsLegalSection(
+                    title = "4. Restore und Refunds",
+                    body = "Bereits gekaufte Abos koennen ueber Restore synchronisiert werden. Erstattungen richten sich nach den Richtlinien des jeweiligen Stores.",
+                ),
+            ),
+            contactEmail = supportEmail,
+        )
+        SettingsLegalDocumentType.AiUsageNotice -> SettingsLegalDocument(
+            title = "AI Usage Notice",
+            updatedAt = lastUpdatedLabel,
+            introduction = "KI in $brandName ist Assistenz, nicht Autoritaet. Ergebnisse muessen vor verbindlicher Nutzung geprueft werden.",
+            sections = listOf(
+                SettingsLegalSection(
+                    title = "1. KI kann Fehler machen",
+                    body = "Ausgaben koennen unvollstaendig, veraltet oder ungeeignet sein. Nutzer tragen die Verantwortung fuer die finale Bewertung und Nutzung.",
+                ),
+                SettingsLegalSection(
+                    title = "2. Keine Fachberatung",
+                    body = "Es erfolgt keine Rechts-, Medizin-, Steuer-, Finanz- oder Sicherheitsberatung durch KI-Ausgaben.",
+                ),
+                SettingsLegalSection(
+                    title = "3. Missbrauch verboten",
+                    body = "Verboten sind rechtswidrige Nutzung, Umgehung von Schutzmechanismen, Rechteverletzungen, Abuse und tauschende oder schaedliche Inhalte.",
+                ),
+                SettingsLegalSection(
+                    title = "4. Limits und Schutz",
+                    body = "Zur Sicherheit und Kostenkontrolle koennen Limits, Blockierungen oder Degradierungen aktiv sein.",
+                ),
+            ),
+            contactEmail = supportEmail,
+        )
+        SettingsLegalDocumentType.ImprintInfo -> SettingsLegalDocument(
+            title = "Impressum / Company Info",
+            updatedAt = lastUpdatedLabel,
+            introduction = "Unternehmens- und Anbieterinformationen fuer $brandName.",
+            sections = listOf(
+                SettingsLegalSection(
+                    title = "1. Betreiber",
+                    body = operatorName,
+                ),
+                SettingsLegalSection(
+                    title = "2. Rechteinhaber",
+                    body = rightsHolderName,
+                ),
+                SettingsLegalSection(
+                    title = "3. Anbieterkennzeichnung",
+                    body = imprintReference,
+                ),
+                SettingsLegalSection(
+                    title = "4. Hinweis",
+                    body = "Regionale Pflichtangaben koennen je nach Rechtsraum variieren und sollten vor Launch rechtlich final geprueft werden.",
                 ),
             ),
             contactEmail = supportEmail,

@@ -778,6 +778,31 @@ service cloud.firestore {
       allow create, update, delete: if isOwner();
     }
 
+    match /systemMetrics/{metricId} {
+      allow read: if isOwner() || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /guardrails/{guardrailId} {
+      allow read: if isOwner() || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /aiUsageEvents/{eventId} {
+      allow read: if isOwner() || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /aiMembershipEvents/{eventId} {
+      allow read: if isOwner() || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /recommendationLifecycle/{id} {
+      allow read: if isOwner() || isAdmin();
+      allow create, update, delete: if false;
+    }
+
     match /uploadSlots/{slotId} {
       allow read, write: if false;
     }
@@ -812,6 +837,22 @@ service cloud.firestore {
 
     match /users/{uid}/aiUsage/{usageId} {
       allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /users/{uid}/entitlements/{entitlementId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /users/{uid}/entitlementEvents/{eventId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if false;
+    }
+
+    // Agent run summaries (metadata only; created by Cloud Functions Admin SDK)
+    match /users/{uid}/agentRuns/{runId} {
+      allow read: if isSelf(uid) || isAdmin();
       allow create, update, delete: if false;
     }
 

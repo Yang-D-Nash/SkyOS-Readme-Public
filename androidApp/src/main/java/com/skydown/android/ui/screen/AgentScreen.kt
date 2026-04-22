@@ -1,6 +1,8 @@
 package com.skydown.android.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
@@ -53,6 +56,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +67,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -70,7 +75,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.data.AiMembershipCoordinator
+import com.skydown.android.data.AiMembershipUiState
+import com.skydown.android.data.AppContainer
+import com.skydown.android.data.MembershipOpenReason
+import com.skydown.android.R
 import com.skydown.android.ui.component.SectionHeader
+import com.skydown.android.ui.component.BrandStatusChip
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.SkydownUiTokens
@@ -79,9 +90,11 @@ import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.rememberIsCompactAppLayout
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.model.AgentInteractionPhase
 import com.skydown.android.ui.model.AgentExecutionMode
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
+import com.skydown.android.ui.model.AgentResultType
 import com.skydown.android.ui.viewmodel.AgentViewModel
 import kotlinx.coroutines.delay
 
@@ -97,8 +110,12 @@ fun AgentScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+    val membershipCoordinator = remember(context) { AiMembershipCoordinator(context.applicationContext) }
+    val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
+    var hasAutoUpgradePrompted by rememberSaveable { mutableStateOf(false) }
     val dismissKeyboard: () -> Unit = {
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
@@ -128,6 +145,12 @@ fun AgentScreen(
             localFeedbackMessage = null
         }
     }
+    LaunchedEffect(uiState.usageSnapshot?.warningLevel) {
+        if (!hasAutoUpgradePrompted && uiState.usageSnapshot?.warningLevel == "critical") {
+            hasAutoUpgradePrompted = true
+            membershipCoordinator.openMembership(MembershipOpenReason.CriticalUsage, surface = "agent_chat")
+        }
+    }
 
     Scaffold(
         modifier = if (showTopBar) {
@@ -144,8 +167,8 @@ fun AgentScreen(
                 TopAppBar(
                     title = {
                         SkydownTopBarTitle(
-                            title = "Agent",
-                            subtitle = "Briefing, Plan, Aktion.",
+                            title = stringResource(R.string.agent_topbar_title),
+                            subtitle = stringResource(R.string.agent_topbar_subtitle),
                         )
                     },
                     colors = skydownTopBarColors(),
@@ -162,7 +185,7 @@ fun AgentScreen(
                     selectedMode = uiState.selectedMode,
                     canTriggerAutomation = uiState.canTriggerAutomation,
                     shouldTriggerAutomation = uiState.shouldTriggerAutomation,
-                    isSending = uiState.isSending,
+                    agentPhase = uiState.agentPhase,
                     compactLayout = compactLayout,
                     embeddedInTools = !showTopBar,
                     applyBottomSystemInset = showTopBar,
@@ -195,6 +218,8 @@ fun AgentScreen(
                 )
         ) {
             if (uiState.isAgentEnabled && uiState.messages.isEmpty()) {
+                val agentStatusLine = uiState.lastProviderNotice.trim().takeIf { it.isNotEmpty() }
+                    ?: "Agent · ${uiState.lastAgentProvider.displayTitle}"
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -206,7 +231,17 @@ fun AgentScreen(
                         ),
                     verticalArrangement = Arrangement.Bottom,
                 ) {
-                    AgentEmptyStateHeader()
+                    AgentEmptyStateHeader(statusLine = agentStatusLine)
+                    AgentRevenueUsageCard(
+                        usage = uiState.usageSnapshot,
+                        planLabel = uiState.planLabel,
+                        onOpenMembership = {
+                            if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
+                                membershipCoordinator.trackUpgradeAfterDeny(surface = "agent_empty")
+                            }
+                            membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "agent_empty")
+                        },
+                    )
                     AgentQuickPromptCard(
                         prompts = uiState.quickPrompts,
                         onPromptSelected = { prompt ->
@@ -242,6 +277,27 @@ fun AgentScreen(
                             AgentDisabledCard()
                         }
                     } else {
+                        item {
+                            AgentRevenueUsageCard(
+                                usage = uiState.usageSnapshot,
+                                planLabel = uiState.planLabel,
+                                onOpenMembership = {
+                                    if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
+                                        membershipCoordinator.trackUpgradeAfterDeny(surface = "agent_chat")
+                                    }
+                                    membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "agent_chat")
+                                },
+                            )
+                        }
+                        item {
+                            val line = uiState.lastProviderNotice.trim().takeIf { it.isNotEmpty() }
+                                ?: "Agent · ${uiState.lastAgentProvider.displayTitle}"
+                            Text(
+                                text = line,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
+                            )
+                        }
                         items(uiState.messages, key = { it.id }) { message ->
                             AgentMessageBubble(
                                 message = message,
@@ -272,26 +328,244 @@ fun AgentScreen(
                     }),
             )
         }
+        if (membershipState.isOpen) {
+            AiMembershipSheet(
+                state = membershipState,
+                onDismiss = { membershipCoordinator.closeMembership() },
+                onToggleAnnual = { membershipCoordinator.setAnnualOption(it) },
+                onUpgradePro = {
+                    val activity = context as? android.app.Activity ?: return@AiMembershipSheet
+                    membershipCoordinator.purchaseSelectedPlan(activity, "Pro") {
+                        AppContainer.refreshCurrentUser()
+                    }
+                },
+                onUpgradeCreator = {
+                    val activity = context as? android.app.Activity ?: return@AiMembershipSheet
+                    membershipCoordinator.purchaseSelectedPlan(activity, "Creator") {
+                        AppContainer.refreshCurrentUser()
+                    }
+                },
+                onRestore = {
+                    membershipCoordinator.restore { AppContainer.refreshCurrentUser() }
+                },
+            )
+        }
     }
 }
 
 @Composable
-private fun AgentEmptyStateHeader() {
+private fun AgentRevenueUsageCard(
+    usage: com.skydown.android.data.AiUsageSnapshot?,
+    planLabel: String,
+    onOpenMembership: () -> Unit,
+) {
+    SkydownCard(
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        modifier = Modifier.clickable(onClick = onOpenMembership),
+    ) {
+        Text(
+            text = stringResource(R.string.agent_membership_title_short),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+        Text(
+            text = if (usage == null) "${stringResource(R.string.membership_current_plan)}: $planLabel · ${stringResource(R.string.ai_membership_tiers)}" else "${stringResource(R.string.membership_current_plan)}: $planLabel",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        if (usage == null) {
+            Text(
+                text = stringResource(R.string.agent_membership_caption),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            return@SkydownCard
+        }
+        val used = (usage.limitForKind - usage.remainingForKind).coerceAtLeast(0)
+        val progress = if (usage.limitForKind > 0) {
+            used.toFloat() / usage.limitForKind.toFloat()
+        } else {
+            0f
+        }.coerceIn(0f, 1f)
+        LinearUsageBar(
+            progress = progress,
+            isCritical = usage.warningLevel == "critical",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+        Text(
+            text = "${usage.remainingForKind}/${usage.limitForKind} ${stringResource(R.string.ai_open)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        if (usage.warningLevel != "ok") {
+            Text(
+                text = if (usage.warningLevel == "critical") {
+                    stringResource(R.string.agent_warning_critical)
+                } else {
+                    stringResource(R.string.agent_warning_high)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+            )
+        }
+        if (usage.userFacingReason.isNotBlank()) {
+            Text(
+                text = usage.userFacingReason,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (usage.lowerCostOption.isNotBlank()) {
+            Text(
+                text = usage.lowerCostOption,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        if (usage.retryAfterSeconds > 0) {
+            Text(
+                text = "${stringResource(R.string.ai_retry_in)} ${usage.retryAfterSeconds}s.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier
+                    .padding(top = 3.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+            )
+        }
+        if (usage.suggestedUpgrade.isNotBlank()) {
+            Text(
+                text = "${stringResource(R.string.ai_upgrade_hint)}: ${usage.suggestedUpgrade.uppercase()}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (usage.resetHint.isNotBlank()) {
+            Text(
+                text = usage.resetHint,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LinearUsageBar(
+    progress: Float,
+    isCritical: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(8.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(progress)
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (isCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AiMembershipSheet(
+    state: AiMembershipUiState,
+    onDismiss: () -> Unit,
+    onToggleAnnual: (Boolean) -> Unit,
+    onUpgradePro: () -> Unit,
+    onUpgradeCreator: () -> Unit,
+    onRestore: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(stringResource(R.string.ai_membership_sheet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+            Text(stringResource(R.string.ai_membership_sheet_subtitle), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Ausloeser: ${state.reason.name.lowercase()}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            )
+            Text(stringResource(R.string.ai_membership_free_detail), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.ai_membership_pro_detail), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.ai_membership_creator_detail), style = MaterialTheme.typography.labelMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.membership_annual_option), style = MaterialTheme.typography.labelMedium)
+                androidx.compose.material3.Switch(
+                    checked = state.selectedAnnual,
+                    onCheckedChange = onToggleAnnual,
+                )
+            }
+            if (state.annualDiscountCopy.isNotBlank()) {
+                Text(state.annualDiscountCopy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+            }
+            Button(onClick = onUpgradePro, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.membership_pro_activate))
+            }
+            Button(onClick = onUpgradeCreator, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.membership_creator_activate))
+            }
+            OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.membership_restore))
+            }
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.membership_decide_later))
+            }
+            if (state.successMessage.isNotBlank()) {
+                Text(state.successMessage, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
+            }
+            if (state.errorMessage.isNotBlank()) {
+                Text(state.errorMessage, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
+}
+
+@Composable
+private fun AgentEmptyStateHeader(
+    statusLine: String,
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Was bauen wir als naechstes?",
+            text = stringResource(R.string.agent_empty_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Eine Idee reicht. Der Agent macht den Rest klar.",
+            text = stringResource(R.string.agent_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
         Text(
-            text = "Flow bleibt verbunden.",
+            text = statusLine,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
         )
@@ -336,7 +610,7 @@ private fun AgentOverviewCard(
                     color = MaterialTheme.colorScheme.tertiary,
                 )
                 Text(
-                    text = "Fuer Plan, Struktur und Execution.",
+                    text = "Fuer Plan, Struktur und sichere Umsetzung.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -347,39 +621,48 @@ private fun AgentOverviewCard(
 
 @Composable
 private fun AgentDisabledCard() {
-    SkydownCard {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
+                shape = shape,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "SkyOS Agent pausiert",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Voruebergehend nicht verfuegbar",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = stringResource(R.string.agent_paused_title),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            BrandStatusChip(
+                text = stringResource(R.string.common_status_idle),
+                accent = MaterialTheme.colorScheme.tertiary,
+                isActive = true,
+            )
         }
-
+        Text(
+            text = stringResource(R.string.agent_paused_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
     }
 }
 
@@ -389,10 +672,30 @@ private fun AgentQuickPromptCard(
     onPromptSelected: (String) -> Unit,
     compactLayout: Boolean,
 ) {
-    SkydownCard(contentPadding = PaddingValues(if (compactLayout) 12.dp else 14.dp)) {
-        SectionHeader("Direkt starten")
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandStatusChip(
+                text = "Agent",
+                accent = MaterialTheme.colorScheme.tertiary,
+                isActive = true,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Direkt starten",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Starte mit einer klaren Aufgabe und hole dir sofort Struktur.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+        }
         LazyRow(
-            modifier = Modifier.padding(top = if (compactLayout) 8.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
@@ -415,7 +718,6 @@ private fun AgentQuickPromptCard(
                 }
             }
         }
-
     }
 }
 
@@ -471,7 +773,7 @@ private fun AgentMessageBubble(
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
             )
 
-            if (message.isStreaming && message.text.isBlank()) {
+            if (message.resultType == AgentResultType.Progress || (message.isStreaming && message.text.isBlank())) {
                 Row(
                     modifier = Modifier.padding(top = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -482,12 +784,20 @@ private fun AgentMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "Agent denkt...",
+                        text = "SkyOS Agent strukturiert gerade die Antwort...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
                 }
             } else {
+                if (!isUser && message.workflowSummary != null) {
+                    AgentWorkflowResultCard(
+                        summary = message.workflowSummary,
+                        isError = message.resultType == AgentResultType.Error,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+
                 Text(
                     text = message.text,
                     style = MaterialTheme.typography.bodyMedium,
@@ -529,6 +839,55 @@ private fun AgentMessageBubble(
     }
 }
 
+@Composable
+private fun AgentWorkflowResultCard(
+    summary: com.skydown.android.ui.model.AgentWorkflowSummary?,
+    isError: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    if (summary == null) return
+    val accent = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f))
+            .border(1.dp, accent.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (isError) Icons.Default.Refresh else Icons.Default.Bolt,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = summary.workflowName,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Text(
+            text = summary.statusText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+        )
+        summary.runId?.takeIf { it.isNotBlank() }?.let { runId ->
+            Text(
+                text = "Run: $runId",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AgentComposerBar(
@@ -536,7 +895,7 @@ private fun AgentComposerBar(
     selectedMode: AgentExecutionMode,
     canTriggerAutomation: Boolean,
     shouldTriggerAutomation: Boolean,
-    isSending: Boolean,
+    agentPhase: AgentInteractionPhase,
     compactLayout: Boolean,
     embeddedInTools: Boolean,
     applyBottomSystemInset: Boolean,
@@ -590,6 +949,16 @@ private fun AgentComposerBar(
                 vertical = cardVerticalPadding,
             ),
         ) {
+            agentPhase.composerStatusLabel?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                )
+            }
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -678,7 +1047,7 @@ private fun AgentComposerBar(
 
                 IconButton(
                     onClick = onReset,
-                    enabled = !isSending,
+                    enabled = !agentPhase.shouldBlockComposerChrome,
                     modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
                 ) {
                     Icon(
@@ -692,7 +1061,7 @@ private fun AgentComposerBar(
                         onSend()
                         onDismissKeyboard()
                     },
-                    enabled = draft.isNotBlank() && !isSending,
+                    enabled = draft.isNotBlank() && !agentPhase.shouldBlockSend,
                     modifier = Modifier.size(40.dp),
                 ) {
                     Icon(

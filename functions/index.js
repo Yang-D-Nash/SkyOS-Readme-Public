@@ -64,6 +64,7 @@ const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const manusApiKey = defineSecret("MANUS_API_KEY");
+const xaiApiKey = defineSecret("XAI_API_KEY");
 const OWNER_EMAIL = "nash.lioncorna@gmail.com";
 const IOS_APP_BUNDLE_ID = "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
@@ -281,6 +282,14 @@ const AI_USAGE_KINDS = {
   agent: "agent",
 };
 
+const AI_FEATURE_CLASSES = {
+  text: "text",
+  image: "image",
+  agent: "agent",
+  workflow: "workflow",
+  videoFuture: "videoFuture",
+};
+
 const AI_ACCESS_MODES = {
   off: "off",
   adminOnly: "admin_only",
@@ -307,7 +316,11 @@ const AGENT_MODES = {
 const AI_AGENT_PROVIDERS = {
   gemini: "gemini",
   manus: "manus",
+  grok: "grok",
 };
+
+const XAI_CHAT_COMPLETIONS_URL = "https://api.x.ai/v1/chat/completions";
+const GROK_AGENT_MODEL = process.env.GROK_AGENT_MODEL || "grok-2-latest";
 const AI_SUBSCRIPTION_PLANS = Object.freeze([
   USER_QUOTA_PLANS.creator,
   USER_QUOTA_PLANS.studio,
@@ -321,12 +334,39 @@ const AI_RUNTIME_CONFIG_COLLECTION = "adminConfig";
 const AI_RUNTIME_CONFIG_DOCUMENT = "aiRuntime";
 const AI_USAGE_METRICS_COLLECTION = "systemMetrics";
 const AI_USAGE_METRICS_DOCUMENT_PREFIX = "aiUsageDaily_";
+const AI_USAGE_MONTHLY_METRICS_DOCUMENT_PREFIX = "aiUsageMonthly_";
+const AI_USAGE_EVENTS_COLLECTION = "aiUsageEvents";
+const AI_MEMBERSHIP_EVENTS_COLLECTION = "aiMembershipEvents";
+const AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION = "recommendationLifecycle";
+const AI_GUARDRAILS_COLLECTION = "guardrails";
+const AI_GUARDRAILS_DAILY_BURN_PREFIX = "aiDailyBurn_";
+const AI_ENTITLEMENTS_SUBCOLLECTION = "entitlements";
+const AI_ENTITLEMENT_DOCUMENT = "ai";
+const AI_ENTITLEMENT_EVENTS_SUBCOLLECTION = "entitlementEvents";
+const AI_MEMBERSHIP_EVENT_TYPES = Object.freeze([
+  "membership_open",
+  "membership_reason",
+  "plan_selected",
+  "annual_toggle_changed",
+  "purchase_started",
+  "purchase_success",
+  "purchase_cancelled",
+  "restore_success",
+  "upgrade_after_warning",
+  "upgrade_after_deny",
+]);
+const AI_MEMBERSHIP_RECOMMENDATION_STATUSES = Object.freeze([
+  "proposed",
+  "active",
+  "completed",
+  "rejected",
+]);
 const MANUS_API_BASE_URL = "https://api.manus.ai/v2";
 const ACCOUNT_DELETE_RECENT_AUTH_MAX_AGE_SECONDS = 5 * 60;
 
 const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
   costGuardEnabled: true,
-  agentProvider: AI_AGENT_PROVIDERS.gemini,
+  agentProvider: AI_AGENT_PROVIDERS.grok,
   fallbackAgentProvider: AI_AGENT_PROVIDERS.gemini,
   hardDailyCaps: {
     text: 120,
@@ -337,6 +377,67 @@ const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
     text: 1500,
     visual: 180,
     agent: 350,
+  },
+  costGuardrails: {
+    warningThresholdPercent: 70,
+    criticalThresholdPercent: 90,
+    hardStopPercent: 100,
+    dailyBurnCapMicros: 35_000_000,
+    enableDegradeMode: true,
+    suspiciousSpikeWindowSeconds: 30,
+    suspiciousSpikeRequestThreshold: 8,
+  },
+  planRouting: {
+    free: {
+      providers: ["google_vertex"],
+      maxEstimatedCostMicros: 80_000,
+      allowWorkflow: false,
+      degradeProvider: "google_vertex",
+      degradeModel: "gemini-2.5-flash-lite",
+    },
+    creator: {
+      providers: ["google_vertex", "grok"],
+      maxEstimatedCostMicros: 280_000,
+      allowWorkflow: false,
+      degradeProvider: "google_vertex",
+      degradeModel: "gemini-2.5-flash-lite",
+    },
+    studio: {
+      providers: ["google_vertex", "grok", "manus"],
+      maxEstimatedCostMicros: 900_000,
+      allowWorkflow: true,
+      degradeProvider: "grok",
+      degradeModel: GROK_AGENT_MODEL,
+    },
+  },
+  costEstimates: {
+    byFeatureClassMicros: {
+      text: 12_000,
+      image: 95_000,
+      agent: 110_000,
+      workflow: 260_000,
+      videoFuture: 750_000,
+    },
+    providerMultipliers: {
+      google_vertex: 100,
+      grok: 130,
+      manus: 170,
+    },
+    modelMultipliers: {
+      "gemini-2.5-flash-lite": 100,
+      "gemini-2.5-flash-image": 115,
+      "imagen-3.0-generate-002": 145,
+      "grok-2-latest": 140,
+    },
+  },
+  membershipHygiene: {
+    cooldownDaysCompleted: 10,
+    cooldownDaysRejected: 21,
+    cooldownDaysProposed: 7,
+    similarityStrictness: "balanced",
+    recurringPenalty: 0.18,
+    freshnessFloor: 0.2,
+    duplicateMergeWindowDays: 14,
   },
   manus: {
     isEnabled: false,
@@ -441,6 +542,200 @@ function normalizeAiSubscriptionStatus(value, fallback = "inactive") {
 
 function isAiSubscriptionStatusActive(value) {
   return AI_SUBSCRIPTION_ACTIVE_STATUSES.includes(normalizeAiSubscriptionStatus(value, ""));
+}
+
+function resolveLegacyAiEntitlement(userData = {}) {
+  const plan = normalizeAiSubscriptionPlan(userData.aiSubscriptionPlan);
+  const status = normalizeAiSubscriptionStatus(userData.aiSubscriptionStatus, "inactive");
+  const source = nonEmptyString(userData.aiSubscriptionSourcePlatform)?.toLowerCase() || "";
+  const provider = nonEmptyString(userData.aiSubscriptionProvider)?.toLowerCase() || "";
+  return {
+    plan,
+    status,
+    provider,
+    source,
+    productId: nonEmptyString(userData.aiSubscriptionProductId) || "",
+    periodStartEpochSeconds: Number(userData.aiSubscriptionActivatedAtEpochSeconds || 0) || 0,
+    periodEndEpochSeconds: Number(userData.aiSubscriptionCurrentPeriodEndEpochSeconds || 0) || 0,
+    environment: nonEmptyString(userData.aiSubscriptionStoreEnvironment)?.toLowerCase() || "",
+    originalTransactionId: nonEmptyString(userData.aiSubscriptionOriginalTransactionId) || "",
+    purchaseReference:
+      nonEmptyString(userData.aiSubscriptionTransactionId) ||
+      nonEmptyString(userData.aiSubscriptionStripeSubscriptionId) ||
+      "",
+    capabilities: resolveAiCapabilities({
+      plan,
+      status,
+      role: resolveUserRole(userData.role, userData.isAdmin === true, userData.email),
+    }),
+    updatedAtEpochMillis: Date.now(),
+    schemaVersion: 2,
+  };
+}
+
+function resolveAiCapabilities({plan, status, role = USER_ROLES.user} = {}) {
+  const normalizedStatus = normalizeAiSubscriptionStatus(status, "inactive");
+  const normalizedPlan = normalizeAiSubscriptionPlan(plan);
+  const isActive = isAiSubscriptionStatusActive(normalizedStatus);
+  const defaults = defaultAiLimitsForQuotaPlan(
+      normalizedPlan ||
+      (role === USER_ROLES.owner ? USER_QUOTA_PLANS.ownerUnlimited : USER_QUOTA_PLANS.free),
+  );
+  return {
+    botText: true,
+    botImage: isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
+    agentStandard: isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
+    workflowAutomation: isActive && normalizedPlan === USER_QUOTA_PLANS.studio,
+    premiumOutputs: isActive && normalizedPlan === USER_QUOTA_PLANS.studio,
+    textDailyLimit: defaults.text,
+    imageDailyLimit: defaults.visual,
+    agentDailyLimit: defaults.agent,
+  };
+}
+
+function resolveCanonicalAiEntitlement(data = {}) {
+  const plan = normalizeAiSubscriptionPlan(data.plan);
+  const status = normalizeAiSubscriptionStatus(data.status, "inactive");
+  const provider = nonEmptyString(data.provider)?.toLowerCase() || "";
+  const source = nonEmptyString(data.source || data.sourcePlatform)?.toLowerCase() || "";
+  const productId = nonEmptyString(data.productId) || "";
+  const periodStartEpochSeconds = Number(data.periodStartEpochSeconds || 0) || 0;
+  const periodEndEpochSeconds = Number(
+      data.periodEndEpochSeconds || data.currentPeriodEndEpochSeconds || 0,
+  ) || 0;
+  const environment = nonEmptyString(data.environment)?.toLowerCase() || "";
+  const originalTransactionId = nonEmptyString(data.originalTransactionId) || "";
+  const purchaseReference = nonEmptyString(data.purchaseReference) || "";
+  const schemaVersion = Number(data.schemaVersion || 2) || 2;
+  return {
+    plan,
+    status,
+    provider,
+    source,
+    productId,
+    periodStartEpochSeconds,
+    periodEndEpochSeconds,
+    capabilities: data.capabilities && typeof data.capabilities === "object" && !Array.isArray(data.capabilities) ?
+      data.capabilities :
+      resolveAiCapabilities({plan, status}),
+    environment,
+    originalTransactionId,
+    purchaseReference,
+    updatedAtEpochMillis: Number(data.updatedAtEpochMillis || Date.now()) || Date.now(),
+    version: Number(data.version || 1) || 1,
+    originEventId: nonEmptyString(data.originEventId) || "",
+    schemaVersion,
+  };
+}
+
+function entitlementPayloadFromState(state, {
+  originEventId = "",
+  version = 1,
+} = {}) {
+  const normalized = resolveCanonicalAiEntitlement(state || {});
+  return {
+    status: normalized.status,
+    plan: normalized.plan || admin.firestore.FieldValue.delete(),
+    provider: normalized.provider || admin.firestore.FieldValue.delete(),
+    source: normalized.source || admin.firestore.FieldValue.delete(),
+    productId: normalized.productId || admin.firestore.FieldValue.delete(),
+    periodStartEpochSeconds: normalized.periodStartEpochSeconds || admin.firestore.FieldValue.delete(),
+    periodEndEpochSeconds: normalized.periodEndEpochSeconds || admin.firestore.FieldValue.delete(),
+    capabilities: normalized.capabilities,
+    environment: normalized.environment || admin.firestore.FieldValue.delete(),
+    originalTransactionId: normalized.originalTransactionId || admin.firestore.FieldValue.delete(),
+    purchaseReference: normalized.purchaseReference || admin.firestore.FieldValue.delete(),
+    updatedAtEpochMillis: Number(normalized.updatedAtEpochMillis || Date.now()) || Date.now(),
+    originEventId: originEventId || normalized.originEventId || admin.firestore.FieldValue.delete(),
+    version: Number.isFinite(version) && version > 0 ? Math.floor(version) : 1,
+    schemaVersion: Number(normalized.schemaVersion || 2) || 2,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
+function normalizeEntitlementEventId(value) {
+  const raw = nonEmptyString(value)?.toLowerCase() || "";
+  return raw.replace(/[^a-z0-9_-]/g, "_").slice(0, 120);
+}
+
+async function loadCanonicalAiEntitlement(uid) {
+  const snapshot = await admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection(AI_ENTITLEMENTS_SUBCOLLECTION)
+      .doc(AI_ENTITLEMENT_DOCUMENT)
+      .get();
+  return snapshot.exists ? resolveCanonicalAiEntitlement(snapshot.data() || {}) : null;
+}
+
+async function saveCanonicalAiEntitlement(uid, state, {
+  originEventId = "",
+  eventType = "entitlement_sync",
+  eventSource = "functions",
+  externalEventId = "",
+  metadata = {},
+  rawRef = "",
+} = {}) {
+  const userRef = admin.firestore().collection("users").doc(uid);
+  const entitlementRef = userRef
+      .collection(AI_ENTITLEMENTS_SUBCOLLECTION)
+      .doc(AI_ENTITLEMENT_DOCUMENT);
+  const normalizedEventType = nonEmptyString(eventType)?.toLowerCase() || "entitlement_sync";
+  const normalizedEventSource = nonEmptyString(eventSource)?.toLowerCase() || "functions";
+  const dedupeId = normalizeEntitlementEventId(
+      nonEmptyString(externalEventId) ||
+      nonEmptyString(originEventId) ||
+      `${normalizedEventSource}_${normalizedEventType}_${Date.now()}`,
+  );
+  const eventRef = userRef.collection(AI_ENTITLEMENT_EVENTS_SUBCOLLECTION).doc(dedupeId);
+  const previousState = await loadCanonicalAiEntitlement(uid);
+  const payload = entitlementPayloadFromState(state, {
+    originEventId: originEventId || dedupeId,
+    version: 1,
+  });
+  const normalizedMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+  let wasDuplicate = false;
+  await admin.firestore().runTransaction(async (transaction) => {
+    const existingEvent = await transaction.get(eventRef);
+    if (existingEvent.exists) {
+      wasDuplicate = true;
+      return;
+    }
+    transaction.set(entitlementRef, payload, {merge: true});
+    transaction.set(eventRef, {
+      eventType: normalizedEventType,
+      source: normalizedEventSource,
+      provider: payload.provider || null,
+      externalEventId: nonEmptyString(externalEventId) || null,
+      productId: payload.productId || null,
+      previousState: previousState || null,
+      nextState: resolveCanonicalAiEntitlement(payload),
+      rawRef: nonEmptyString(rawRef) || null,
+      metadata: normalizedMetadata,
+      idempotencyKey: dedupeId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+  return {
+    eventId: dedupeId,
+    duplicated: wasDuplicate,
+  };
+}
+
+function applyEntitlementToUserData(userData = {}, entitlementState = null) {
+  if (!entitlementState) {
+    return userData;
+  }
+  return {
+    ...userData,
+    aiSubscriptionStatus: entitlementState.status || userData.aiSubscriptionStatus,
+    aiSubscriptionPlan: entitlementState.plan || userData.aiSubscriptionPlan,
+    aiSubscriptionProvider: entitlementState.provider || userData.aiSubscriptionProvider,
+    aiSubscriptionSourcePlatform: entitlementState.source || userData.aiSubscriptionSourcePlatform,
+    aiSubscriptionProductId: entitlementState.productId || userData.aiSubscriptionProductId,
+    aiSubscriptionCurrentPeriodEndEpochSeconds:
+      entitlementState.periodEndEpochSeconds || userData.aiSubscriptionCurrentPeriodEndEpochSeconds,
+  };
 }
 
 function resolveAiSubscriptionStatusFromCheckoutEvent(eventType) {
@@ -873,6 +1168,190 @@ function resolveAgentProvider(value, fallback = AI_AGENT_PROVIDERS.gemini) {
   return fallback;
 }
 
+function resolveAiCostGuardrails(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    warningThresholdPercent: clampIntegerSetting(
+        source.warningThresholdPercent,
+        DEFAULT_AI_RUNTIME_SETTINGS.costGuardrails.warningThresholdPercent,
+        10,
+        95,
+    ),
+    criticalThresholdPercent: clampIntegerSetting(
+        source.criticalThresholdPercent,
+        DEFAULT_AI_RUNTIME_SETTINGS.costGuardrails.criticalThresholdPercent,
+        20,
+        99,
+    ),
+    hardStopPercent: clampIntegerSetting(
+        source.hardStopPercent,
+        DEFAULT_AI_RUNTIME_SETTINGS.costGuardrails.hardStopPercent,
+        40,
+        100,
+    ),
+    dailyBurnCapMicros: clampIntegerSetting(
+        source.dailyBurnCapMicros,
+        DEFAULT_AI_RUNTIME_SETTINGS.costGuardrails.dailyBurnCapMicros,
+        100_000,
+        10_000_000_000,
+    ),
+    enableDegradeMode: source.enableDegradeMode !== false,
+    suspiciousSpikeWindowSeconds: clampIntegerSetting(
+        source.suspiciousSpikeWindowSeconds,
+        DEFAULT_AI_RUNTIME_SETTINGS.costGuardrails.suspiciousSpikeWindowSeconds,
+        5,
+        300,
+    ),
+    suspiciousSpikeRequestThreshold: clampIntegerSetting(
+        source.suspiciousSpikeRequestThreshold,
+        DEFAULT_AI_RUNTIME_SETTINGS.costGuardrails.suspiciousSpikeRequestThreshold,
+        3,
+        50,
+    ),
+  };
+}
+
+function resolveAiPlanRouting(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const resolveSinglePlan = (planKey) => {
+    const planRaw = source[planKey] && typeof source[planKey] === "object" && !Array.isArray(source[planKey]) ?
+      source[planKey] :
+      DEFAULT_AI_RUNTIME_SETTINGS.planRouting[planKey];
+    const providers = Array.isArray(planRaw.providers) ?
+      planRaw.providers.map((entry) => nonEmptyString(entry)?.toLowerCase()).filter(Boolean) :
+      DEFAULT_AI_RUNTIME_SETTINGS.planRouting[planKey].providers;
+    return {
+      providers: providers.length > 0 ? providers : DEFAULT_AI_RUNTIME_SETTINGS.planRouting[planKey].providers,
+      maxEstimatedCostMicros: clampIntegerSetting(
+          planRaw.maxEstimatedCostMicros,
+          DEFAULT_AI_RUNTIME_SETTINGS.planRouting[planKey].maxEstimatedCostMicros,
+          1_000,
+          20_000_000,
+      ),
+      allowWorkflow: planRaw.allowWorkflow === true || DEFAULT_AI_RUNTIME_SETTINGS.planRouting[planKey].allowWorkflow === true,
+      degradeProvider: nonEmptyString(planRaw.degradeProvider)?.toLowerCase() ||
+        DEFAULT_AI_RUNTIME_SETTINGS.planRouting[planKey].degradeProvider,
+      degradeModel: nonEmptyString(planRaw.degradeModel) ||
+        DEFAULT_AI_RUNTIME_SETTINGS.planRouting[planKey].degradeModel,
+    };
+  };
+  return {
+    free: resolveSinglePlan("free"),
+    creator: resolveSinglePlan("creator"),
+    studio: resolveSinglePlan("studio"),
+  };
+}
+
+function resolveAiCostEstimates(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const featureSource = source.byFeatureClassMicros &&
+    typeof source.byFeatureClassMicros === "object" &&
+    !Array.isArray(source.byFeatureClassMicros) ?
+      source.byFeatureClassMicros :
+      DEFAULT_AI_RUNTIME_SETTINGS.costEstimates.byFeatureClassMicros;
+  const providerSource = source.providerMultipliers &&
+    typeof source.providerMultipliers === "object" &&
+    !Array.isArray(source.providerMultipliers) ?
+      source.providerMultipliers :
+      DEFAULT_AI_RUNTIME_SETTINGS.costEstimates.providerMultipliers;
+  const modelSource = source.modelMultipliers &&
+    typeof source.modelMultipliers === "object" &&
+    !Array.isArray(source.modelMultipliers) ?
+      source.modelMultipliers :
+      DEFAULT_AI_RUNTIME_SETTINGS.costEstimates.modelMultipliers;
+
+  const normalizeMicrosMap = (input, fallback) => {
+    const result = {};
+    for (const [key, fallbackValue] of Object.entries(fallback)) {
+      result[key] = clampIntegerSetting(input[key], fallbackValue, 100, 50_000_000);
+    }
+    return result;
+  };
+  const normalizeMultiplierMap = (input, fallback) => {
+    const result = {};
+    for (const [key, fallbackValue] of Object.entries(fallback)) {
+      result[key] = clampIntegerSetting(input[key], fallbackValue, 10, 500);
+    }
+    return result;
+  };
+
+  return {
+    byFeatureClassMicros: normalizeMicrosMap(featureSource, DEFAULT_AI_RUNTIME_SETTINGS.costEstimates.byFeatureClassMicros),
+    providerMultipliers: normalizeMultiplierMap(providerSource, DEFAULT_AI_RUNTIME_SETTINGS.costEstimates.providerMultipliers),
+    modelMultipliers: normalizeMultiplierMap(modelSource, DEFAULT_AI_RUNTIME_SETTINGS.costEstimates.modelMultipliers),
+  };
+}
+
+function resolveMembershipHygieneSettings(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const strictness = nonEmptyString(source.similarityStrictness)?.toLowerCase();
+  const similarityStrictness = ["strict", "balanced", "loose"].includes(strictness) ?
+    strictness :
+    DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene.similarityStrictness;
+  return {
+    cooldownDaysCompleted: clampIntegerSetting(
+        source.cooldownDaysCompleted,
+        DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene.cooldownDaysCompleted,
+        1,
+        90,
+    ),
+    cooldownDaysRejected: clampIntegerSetting(
+        source.cooldownDaysRejected,
+        DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene.cooldownDaysRejected,
+        1,
+        120,
+    ),
+    cooldownDaysProposed: clampIntegerSetting(
+        source.cooldownDaysProposed,
+        DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene.cooldownDaysProposed,
+        1,
+        45,
+    ),
+    similarityStrictness,
+    recurringPenalty: Math.max(
+        0,
+        Math.min(
+            0.9,
+            Number.isFinite(Number(source.recurringPenalty)) ?
+              Number(source.recurringPenalty) :
+              DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene.recurringPenalty,
+        ),
+    ),
+    freshnessFloor: Math.max(
+        0.05,
+        Math.min(
+            0.9,
+            Number.isFinite(Number(source.freshnessFloor)) ?
+              Number(source.freshnessFloor) :
+              DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene.freshnessFloor,
+        ),
+    ),
+    duplicateMergeWindowDays: clampIntegerSetting(
+        source.duplicateMergeWindowDays,
+        DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene.duplicateMergeWindowDays,
+        1,
+        60,
+    ),
+  };
+}
+
+function membershipHygieneProfile(hygiene = {}) {
+  const strictness = nonEmptyString(hygiene.similarityStrictness)?.toLowerCase() || "balanced";
+  const totalCooldown =
+    (Number(hygiene.cooldownDaysCompleted) || 0) +
+    (Number(hygiene.cooldownDaysRejected) || 0) +
+    (Number(hygiene.cooldownDaysProposed) || 0);
+  const recurringPenalty = Number(hygiene.recurringPenalty) || 0;
+  const freshnessFloor = Number(hygiene.freshnessFloor) || 0;
+  if (strictness === "strict" || totalCooldown >= 34 || recurringPenalty >= 0.35 || freshnessFloor >= 0.4) {
+    return "conservative";
+  }
+  if (strictness === "loose" || totalCooldown <= 14 || recurringPenalty <= 0.1) {
+    return "aggressive";
+  }
+  return "balanced";
+}
+
 function resolveAiRuntimeSettings(data = {}) {
   const manusConfig = data.manus && typeof data.manus === "object" && !Array.isArray(data.manus) ? data.manus : {};
   const agentProvider = resolveAgentProvider(
@@ -902,6 +1381,10 @@ function resolveAiRuntimeSettings(data = {}) {
         1,
         100000,
     ),
+    costGuardrails: resolveAiCostGuardrails(data.costGuardrails),
+    planRouting: resolveAiPlanRouting(data.planRouting),
+    costEstimates: resolveAiCostEstimates(data.costEstimates),
+    membershipHygiene: resolveMembershipHygieneSettings(data.membershipHygiene),
     manus: {
       isEnabled: manusConfig.isEnabled === true,
       requestTimeoutMs: clampIntegerSetting(
@@ -979,12 +1462,34 @@ async function assertAiAccess(auth) {
     throw new HttpsError("unauthenticated", "Bitte melde dich an, um die KI zu nutzen.");
   }
 
-  const userData = await loadUserData(auth.uid);
+  let userData = await loadUserData(auth.uid);
+  if (!userData) {
+    // Repair missing bootstrap docs lazily so signed-in users are not blocked forever.
+    try {
+      const authUser = await admin.auth().getUser(auth.uid);
+      await ensureAuthUserBootstrapDocument(authUser);
+      userData = await loadUserData(auth.uid);
+    } catch (error) {
+      logger.warn("AI access bootstrap fallback failed.", {
+        uid: auth.uid,
+        error: error instanceof Error ? error.message : `${error}`,
+      });
+    }
+  }
   if (!userData) {
     throw new HttpsError("permission-denied", "Dein Konto ist noch nicht vollstaendig eingerichtet.");
   }
 
-  const profile = buildUserProfile(userData);
+  const canonicalEntitlement = await loadCanonicalAiEntitlement(auth.uid);
+  const entitlementState = canonicalEntitlement || resolveLegacyAiEntitlement(userData);
+  if (!canonicalEntitlement) {
+    await saveCanonicalAiEntitlement(auth.uid, entitlementState, {
+      eventType: "legacy_backfill",
+      eventSource: "assert_ai_access",
+    });
+  }
+  const effectiveUserData = applyEntitlementToUserData(userData, entitlementState);
+  const profile = buildUserProfile(effectiveUserData);
   const featureConfig = await loadAiFeatureConfig();
 
   if (!featureConfig.isEnabled || featureConfig.accessMode === AI_ACCESS_MODES.off) {
@@ -1000,7 +1505,7 @@ async function assertAiAccess(auth) {
     profile.aiLimits.quotaPlan !== USER_QUOTA_PLANS.internalTeam &&
     (
       !AI_SUBSCRIPTION_PLANS.includes(profile.aiLimits.quotaPlan) ||
-      !isAiSubscriptionStatusActive(userData.aiSubscriptionStatus)
+      !isAiSubscriptionStatusActive(effectiveUserData.aiSubscriptionStatus)
     )
   ) {
     throw new HttpsError(
@@ -1014,9 +1519,10 @@ async function assertAiAccess(auth) {
   }
 
   return {
-    userData,
+    userData: effectiveUserData,
     profile,
     featureConfig,
+    effectiveEntitlement: resolveCanonicalAiEntitlement(entitlementState),
   };
 }
 
@@ -1511,6 +2017,10 @@ function aiUsageDateKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function aiUsageMonthKey(dateKey = aiUsageDateKey()) {
+  return dateKey.slice(0, 7);
+}
+
 function aiUsageCounterField(kind) {
   switch (kind) {
     case AI_USAGE_KINDS.visual:
@@ -1563,27 +2073,1449 @@ function aiUsageMetricsDocumentId(dateKey) {
   return `${AI_USAGE_METRICS_DOCUMENT_PREFIX}${dateKey}`;
 }
 
-async function authorizeAiUsage({auth, kind}) {
+function aiUsageMonthlyMetricsDocumentId(monthKey) {
+  return `${AI_USAGE_MONTHLY_METRICS_DOCUMENT_PREFIX}${monthKey}`;
+}
+
+function aiDailyBurnDocumentId(dateKey) {
+  return `${AI_GUARDRAILS_DAILY_BURN_PREFIX}${dateKey}`;
+}
+
+function aiMetricKey(value, fallback = "unknown") {
+  const normalized = nonEmptyString(value)?.toLowerCase() || fallback;
+  return normalized.replace(/[^a-z0-9_-]/g, "_").slice(0, 48);
+}
+
+function resolveFeatureClass(kind, explicitFeatureClass = "") {
+  const normalized = nonEmptyString(explicitFeatureClass);
+  if (normalized && Object.values(AI_FEATURE_CLASSES).includes(normalized)) {
+    return normalized;
+  }
+  if (kind === AI_USAGE_KINDS.visual) {
+    return AI_FEATURE_CLASSES.image;
+  }
+  if (kind === AI_USAGE_KINDS.agent) {
+    return AI_FEATURE_CLASSES.agent;
+  }
+  return AI_FEATURE_CLASSES.text;
+}
+
+function resolvePlanRoutingPolicy(runtimeSettings, plan) {
+  const normalizedPlan = normalizeAiSubscriptionPlan(plan);
+  if (normalizedPlan === USER_QUOTA_PLANS.studio) {
+    return runtimeSettings.planRouting.studio;
+  }
+  if (normalizedPlan === USER_QUOTA_PLANS.creator) {
+    return runtimeSettings.planRouting.creator;
+  }
+  return runtimeSettings.planRouting.free;
+}
+
+function featureAllowedByCapability(capabilities, featureClass) {
+  const safe = capabilities && typeof capabilities === "object" && !Array.isArray(capabilities) ? capabilities : {};
+  switch (featureClass) {
+    case AI_FEATURE_CLASSES.image:
+      return safe.botImage !== false;
+    case AI_FEATURE_CLASSES.agent:
+      return safe.agentStandard !== false;
+    case AI_FEATURE_CLASSES.workflow:
+      return safe.workflowAutomation === true;
+    case AI_FEATURE_CLASSES.videoFuture:
+      return safe.premiumOutputs === true;
+    case AI_FEATURE_CLASSES.text:
+    default:
+      return safe.botText !== false;
+  }
+}
+
+function buildGuardrailHints({
+  denyReason = "",
+  remainingForKind = null,
+  limitForKind = null,
+  warningLevel = "ok",
+  allowDegrade = false,
+  plan = "",
+}) {
+  const normalizedPlan = normalizeAiSubscriptionPlan(plan);
+  const suggestedUpgrade = normalizedPlan === USER_QUOTA_PLANS.creator ?
+    "creator_power" :
+    normalizedPlan === USER_QUOTA_PLANS.studio ?
+      null :
+      "pro";
+  const resetHint = "Dein Tageskontingent wird um Mitternacht UTC aktualisiert.";
+  const retryAfter = denyReason === "suspicious_spike" ? 120 : 30;
+  let userFacingReason = "";
+  if (denyReason === "plan_feature_not_allowed") {
+    userFacingReason = "Dein aktueller Plan deckt diese Funktion noch nicht ab.";
+  } else if (denyReason === "plan_provider_not_allowed") {
+    userFacingReason = "Diese Modellklasse ist in deinem Plan nicht freigeschaltet.";
+  } else if (denyReason === "plan_cost_cap_exceeded") {
+    userFacingReason = "Diese Anfrage ist gerade zu rechenintensiv fuer dein Plan-Budget.";
+  } else if (denyReason === "daily_burn_cap_reached") {
+    userFacingReason = "SkyOS reduziert gerade Lastspitzen, um Stabilitaet und Fairness zu sichern.";
+  } else if (denyReason === "suspicious_spike") {
+    userFacingReason = "Wir sehen gerade ungewoehnlich viele Requests in kurzer Zeit.";
+  } else if (denyReason === "hard_limit_reached") {
+    userFacingReason = "Dein Tageslimit fuer diese Funktion ist erreicht.";
+  } else {
+    userFacingReason = "Diese Anfrage kann gerade nicht freigegeben werden.";
+  }
+  return {
+    userFacingReason,
+    retryAfterSeconds: retryAfter,
+    resetHint,
+    suggestedUpgrade,
+    lowerCostOption: allowDegrade ?
+      "Nutze den ruhigen Standardmodus fuer eine kostenleichtere Antwort." :
+      null,
+    warningLevel,
+    remainingForKind,
+    limitForKind,
+  };
+}
+
+function resolveEstimatedCostMicros({
+  runtimeSettings,
+  featureClass,
+  provider,
+  model,
+  requestWeight,
+  estimatedCostMicros,
+}) {
+  const explicit = Number(estimatedCostMicros);
+  if (Number.isFinite(explicit) && explicit >= 0) {
+    return Math.floor(explicit);
+  }
+  const estimates = runtimeSettings?.costEstimates || DEFAULT_AI_RUNTIME_SETTINGS.costEstimates;
+  const base = Number(estimates.byFeatureClassMicros?.[featureClass]) ||
+    Number(DEFAULT_AI_RUNTIME_SETTINGS.costEstimates.byFeatureClassMicros[featureClass]) ||
+    10000;
+  const providerKey = aiMetricKey(provider, "google_vertex");
+  const modelKey = aiMetricKey(model || "", "");
+  const providerMultiplier = Number(estimates.providerMultipliers?.[providerKey]) || 100;
+  const modelMultiplier = Number(estimates.modelMultipliers?.[modelKey]) || 100;
+  const weight = Number.isFinite(Number(requestWeight)) ? Math.max(1, Math.floor(Number(requestWeight))) : 1;
+  return Math.max(0, Math.floor(base * (providerMultiplier / 100) * (modelMultiplier / 100) * weight));
+}
+
+function buildUsageEventV2(payload = {}) {
+  const dateKey = nonEmptyString(payload.dateKey) || aiUsageDateKey();
+  const monthKey = nonEmptyString(payload.monthKey) || aiUsageMonthKey(dateKey);
+  const estimatedMicros = Number.isFinite(Number(payload.estimatedCostMicros)) ?
+    Math.max(0, Math.floor(Number(payload.estimatedCostMicros))) :
+    0;
+  const actualMicros = Number.isFinite(Number(payload.actualCostMicros)) ?
+    Math.max(0, Math.floor(Number(payload.actualCostMicros))) :
+    null;
+  const varianceMicros = actualMicros == null ? null : (actualMicros - estimatedMicros);
+  const varianceRatio = actualMicros == null || estimatedMicros <= 0 ?
+    null :
+    Number((actualMicros / estimatedMicros).toFixed(4));
+  return {
+    uid: nonEmptyString(payload.uid) || "",
+    plan: normalizeAiSubscriptionPlan(payload.plan) || USER_QUOTA_PLANS.free,
+    entitlementStatus: normalizeAiSubscriptionStatus(payload.entitlementStatus, "inactive"),
+    eventType: nonEmptyString(payload.eventType) || "ai_request",
+    featureClass: resolveFeatureClass(payload.kind, payload.featureClass),
+    provider: nonEmptyString(payload.provider) || "unknown",
+    model: nonEmptyString(payload.model) || "",
+    requestWeight: Number.isFinite(Number(payload.requestWeight)) ?
+      Math.max(1, Math.floor(Number(payload.requestWeight))) :
+      1,
+    estimatedCostMicros: estimatedMicros,
+    actualCostMicros: actualMicros,
+    costStatus: nonEmptyString(payload.costStatus) || (actualMicros == null ? "estimated" : "reconciled"),
+    reconciliationSource: nonEmptyString(payload.reconciliationSource) || "",
+    reconciledAt: payload.reconciledAt || null,
+    varianceMicros,
+    varianceRatio,
+    success: payload.success === true,
+    denied: payload.success === true ? false : true,
+    denyReason: nonEmptyString(payload.denyReason) || "",
+    sourceRoute: nonEmptyString(payload.sourceRoute) || "ai",
+    functionName: nonEmptyString(payload.functionName) || "unknown",
+    resultType: nonEmptyString(payload.resultType) || "text",
+    requestId: nonEmptyString(payload.requestId) || `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    dateKey,
+    monthKey,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAtEpochMillis: Date.now(),
+  };
+}
+
+async function recordUsageEventV2(payload = {}) {
+  const event = buildUsageEventV2(payload);
+  await admin.firestore()
+      .collection(AI_USAGE_EVENTS_COLLECTION)
+      .doc(event.requestId)
+      .set(event, {merge: true});
+  return event;
+}
+
+function parseDateKeyToEpochMillis(dateKey) {
+  const normalized = nonEmptyString(dateKey);
+  if (!normalized || !/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return 0;
+  }
+  const parsed = Date.parse(`${normalized}T00:00:00.000Z`);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function collectTopEntries(map, limit = 5) {
+  const source = map && typeof map === "object" && !Array.isArray(map) ? map : {};
+  return Object.entries(source)
+      .map(([key, value]) => ({key, value: Number(value) || 0}))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, limit);
+}
+
+function normalizeMembershipEventName(value) {
+  const normalized = nonEmptyString(value)?.toLowerCase() || "";
+  return AI_MEMBERSHIP_EVENT_TYPES.includes(normalized) ? normalized : "";
+}
+
+function normalizeMembershipSurface(value) {
+  return aiMetricKey(nonEmptyString(value) || "unknown_surface", "unknown_surface");
+}
+
+function normalizeMembershipReason(value) {
+  return aiMetricKey(nonEmptyString(value) || "unknown_reason", "unknown_reason");
+}
+
+function normalizeMembershipPlan(value) {
+  const normalized = normalizeAiSubscriptionPlan(value);
+  if (normalized) {
+    return normalized;
+  }
+  if (nonEmptyString(value)?.toLowerCase() === "pro") {
+    return USER_QUOTA_PLANS.creator;
+  }
+  if (nonEmptyString(value)?.toLowerCase() === "creator") {
+    return USER_QUOTA_PLANS.studio;
+  }
+  return USER_QUOTA_PLANS.free;
+}
+
+function asBoolean(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "yes") return true;
+    if (normalized === "false" || normalized === "0" || normalized === "no") return false;
+  }
+  if (typeof value === "number") {
+    return value > 0;
+  }
+  return fallback;
+}
+
+function rollingWindowRange(days) {
+  const normalizedDays = Math.max(1, Math.floor(Number(days) || 1));
+  const endMs = Date.now();
+  const startMs = endMs - (normalizedDays * 24 * 60 * 60 * 1000);
+  return {
+    days: normalizedDays,
+    startMs,
+    endMs,
+  };
+}
+
+function initMembershipCounters() {
+  return {
+    membershipOpens: 0,
+    purchaseSuccess: 0,
+    purchaseStarted: 0,
+    purchaseCancelled: 0,
+    restoreSuccess: 0,
+    upgradeAfterWarning: 0,
+    upgradeAfterDeny: 0,
+    byReasonOpen: {},
+    byReasonPurchase: {},
+    bySurfaceOpen: {},
+    bySurfacePurchase: {},
+    planMix: {},
+    annualPurchases: 0,
+    creatorPurchases: 0,
+    eventsByType: {},
+  };
+}
+
+function ingestMembershipEvent(counters, event) {
+  const type = normalizeMembershipEventName(event.eventName);
+  if (!type) return;
+  const reason = normalizeMembershipReason(event.reason);
+  const surface = normalizeMembershipSurface(event.surface);
+  const plan = normalizeMembershipPlan(event.plan || event.currentPlan);
+  const annual = asBoolean(event.annual, false);
+  counters.eventsByType[type] = (Number(counters.eventsByType[type]) || 0) + 1;
+
+  if (type === "membership_open") {
+    counters.membershipOpens += 1;
+    counters.byReasonOpen[reason] = (Number(counters.byReasonOpen[reason]) || 0) + 1;
+    counters.bySurfaceOpen[surface] = (Number(counters.bySurfaceOpen[surface]) || 0) + 1;
+  } else if (type === "purchase_started") {
+    counters.purchaseStarted += 1;
+  } else if (type === "purchase_success") {
+    counters.purchaseSuccess += 1;
+    counters.byReasonPurchase[reason] = (Number(counters.byReasonPurchase[reason]) || 0) + 1;
+    counters.bySurfacePurchase[surface] = (Number(counters.bySurfacePurchase[surface]) || 0) + 1;
+    const planKey = aiMetricKey(plan);
+    counters.planMix[planKey] = (Number(counters.planMix[planKey]) || 0) + 1;
+    if (annual) counters.annualPurchases += 1;
+    if (plan === USER_QUOTA_PLANS.studio) counters.creatorPurchases += 1;
+  } else if (type === "purchase_cancelled") {
+    counters.purchaseCancelled += 1;
+  } else if (type === "restore_success") {
+    counters.restoreSuccess += 1;
+  } else if (type === "upgrade_after_warning") {
+    counters.upgradeAfterWarning += 1;
+  } else if (type === "upgrade_after_deny") {
+    counters.upgradeAfterDeny += 1;
+  }
+}
+
+function mapCvrByDimension(openMap, purchaseMap) {
+  const keys = new Set([...Object.keys(openMap || {}), ...Object.keys(purchaseMap || {})]);
+  return Array.from(keys).sort().map((key) => {
+    const opens = Number(openMap[key]) || 0;
+    const purchases = Number(purchaseMap[key]) || 0;
+    return {
+      key,
+      opens,
+      purchases,
+      cvr: opens > 0 ? Number((purchases / opens).toFixed(4)) : 0,
+    };
+  });
+}
+
+function summarizeMembershipWindow(range, docs) {
+  const counters = initMembershipCounters();
+  for (const doc of docs) {
+    const data = doc.data() || {};
+    const createdAtMs = Number(data.createdAtEpochMillis || 0);
+    if (!Number.isFinite(createdAtMs) || createdAtMs < range.startMs || createdAtMs > range.endMs) {
+      continue;
+    }
+    ingestMembershipEvent(counters, data);
+  }
+  const opens = counters.membershipOpens;
+  const success = counters.purchaseSuccess;
+  const started = counters.purchaseStarted;
+  const warningEvents = counters.upgradeAfterWarning;
+  const denyEvents = counters.upgradeAfterDeny;
+  return {
+    rangeDays: range.days,
+    membershipOpens: opens,
+    purchaseSuccess: success,
+    cvr: opens > 0 ? Number((success / opens).toFixed(4)) : 0,
+    byReasonCvr: mapCvrByDimension(counters.byReasonOpen, counters.byReasonPurchase),
+    bySurfaceCvr: mapCvrByDimension(counters.bySurfaceOpen, counters.bySurfacePurchase),
+    planMix: counters.planMix,
+    annualShare: success > 0 ? Number((counters.annualPurchases / success).toFixed(4)) : 0,
+    creatorTakeRate: success > 0 ? Number((counters.creatorPurchases / success).toFixed(4)) : 0,
+    cancelRate: started > 0 ? Number((counters.purchaseCancelled / started).toFixed(4)) : 0,
+    restoreRate: opens > 0 ? Number((counters.restoreSuccess / opens).toFixed(4)) : 0,
+    purchaseStartedToSuccessDropoff: started > 0 ? Number((1 - (success / started)).toFixed(4)) : null,
+    upgradeAfterWarningCvr: warningEvents > 0 ? Number((success / warningEvents).toFixed(4)) : 0,
+    upgradeAfterDenyCvr: denyEvents > 0 ? Number((success / denyEvents).toFixed(4)) : 0,
+    rawCounts: {
+      purchaseStarted: started,
+      purchaseCancelled: counters.purchaseCancelled,
+      restoreSuccess: counters.restoreSuccess,
+      upgradeAfterWarning: warningEvents,
+      upgradeAfterDeny: denyEvents,
+      eventsByType: counters.eventsByType,
+    },
+  };
+}
+
+function utcDateKeyFromEpochMillis(epochMillis) {
+  const value = Number(epochMillis);
+  if (!Number.isFinite(value) || value <= 0) {
+    return "";
+  }
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function emptyMembershipDayPoint(dateKey) {
+  return {
+    dateKey,
+    opens: 0,
+    purchases: 0,
+    cvr: 0,
+    annualShare: 0,
+    creatorTakeRate: 0,
+    cancels: 0,
+    restores: 0,
+    upgradeAfterWarning: 0,
+    upgradeAfterDeny: 0,
+  };
+}
+
+function buildMembershipDailySeries(days, docs) {
+  const range = rollingWindowRange(days);
+  const map = {};
+  for (const doc of docs) {
+    const data = doc.data() || {};
+    const createdAtMs = Number(data.createdAtEpochMillis || 0);
+    if (!Number.isFinite(createdAtMs) || createdAtMs < range.startMs || createdAtMs > range.endMs) {
+      continue;
+    }
+    const dateKey = utcDateKeyFromEpochMillis(createdAtMs);
+    if (!dateKey) continue;
+    if (!map[dateKey]) {
+      map[dateKey] = {
+        dateKey,
+        opens: 0,
+        purchases: 0,
+        annualPurchases: 0,
+        creatorPurchases: 0,
+        cancels: 0,
+        restores: 0,
+        upgradeAfterWarning: 0,
+        upgradeAfterDeny: 0,
+      };
+    }
+    const eventName = normalizeMembershipEventName(data.eventName);
+    const plan = normalizeMembershipPlan(data.plan || data.currentPlan);
+    const annual = asBoolean(data.annual, false);
+    if (eventName === "membership_open") {
+      map[dateKey].opens += 1;
+    } else if (eventName === "purchase_success") {
+      map[dateKey].purchases += 1;
+      if (annual) map[dateKey].annualPurchases += 1;
+      if (plan === USER_QUOTA_PLANS.studio) map[dateKey].creatorPurchases += 1;
+    } else if (eventName === "purchase_cancelled") {
+      map[dateKey].cancels += 1;
+    } else if (eventName === "restore_success") {
+      map[dateKey].restores += 1;
+    } else if (eventName === "upgrade_after_warning") {
+      map[dateKey].upgradeAfterWarning += 1;
+    } else if (eventName === "upgrade_after_deny") {
+      map[dateKey].upgradeAfterDeny += 1;
+    }
+  }
+
+  const points = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const ts = Date.now() - (i * 24 * 60 * 60 * 1000);
+    const dateKey = utcDateKeyFromEpochMillis(ts);
+    const raw = map[dateKey] || null;
+    if (!raw) {
+      points.push(emptyMembershipDayPoint(dateKey));
+      continue;
+    }
+    const purchases = Number(raw.purchases) || 0;
+    const opens = Number(raw.opens) || 0;
+    points.push({
+      dateKey,
+      opens,
+      purchases,
+      cvr: opens > 0 ? Number((purchases / opens).toFixed(4)) : 0,
+      annualShare: purchases > 0 ? Number((raw.annualPurchases / purchases).toFixed(4)) : 0,
+      creatorTakeRate: purchases > 0 ? Number((raw.creatorPurchases / purchases).toFixed(4)) : 0,
+      cancels: Number(raw.cancels) || 0,
+      restores: Number(raw.restores) || 0,
+      upgradeAfterWarning: Number(raw.upgradeAfterWarning) || 0,
+      upgradeAfterDeny: Number(raw.upgradeAfterDeny) || 0,
+    });
+  }
+  return points;
+}
+
+function average(list) {
+  if (!Array.isArray(list) || list.length === 0) return 0;
+  const total = list.reduce((sum, value) => sum + (Number(value) || 0), 0);
+  return total / list.length;
+}
+
+function classifyTrend(points, key, neutralDelta = 0.01) {
+  if (!Array.isArray(points) || points.length < 4) return "flat";
+  const midpoint = Math.floor(points.length / 2);
+  const firstAvg = average(points.slice(0, midpoint).map((entry) => Number(entry[key]) || 0));
+  const secondAvg = average(points.slice(midpoint).map((entry) => Number(entry[key]) || 0));
+  const delta = secondAvg - firstAvg;
+  if (delta > neutralDelta) return "improving";
+  if (delta < -neutralDelta) return "declining";
+  return "flat";
+}
+
+function detectCancelSpikeDates(points) {
+  if (!Array.isArray(points) || points.length === 0) return [];
+  const values = points.map((entry) => Number(entry.cancels) || 0);
+  const baseline = average(values);
+  if (baseline <= 0) return [];
+  return points
+      .filter((entry) => (Number(entry.cancels) || 0) >= Math.max(3, baseline * 2))
+      .map((entry) => ({dateKey: entry.dateKey, cancels: Number(entry.cancels) || 0}));
+}
+
+function compareWindowSummary(current, previous) {
+  const safePreviousOpens = Math.max(Number(previous.membershipOpens) || 0, 1);
+  const safePreviousPurchases = Math.max(Number(previous.purchaseSuccess) || 0, 1);
+  return {
+    opensDeltaAbs: (Number(current.membershipOpens) || 0) - (Number(previous.membershipOpens) || 0),
+    opensDeltaRatio: Number((((Number(current.membershipOpens) || 0) - (Number(previous.membershipOpens) || 0)) / safePreviousOpens).toFixed(4)),
+    purchaseDeltaAbs: (Number(current.purchaseSuccess) || 0) - (Number(previous.purchaseSuccess) || 0),
+    purchaseDeltaRatio: Number((((Number(current.purchaseSuccess) || 0) - (Number(previous.purchaseSuccess) || 0)) / safePreviousPurchases).toFixed(4)),
+    cvrDelta: Number(((Number(current.cvr) || 0) - (Number(previous.cvr) || 0)).toFixed(4)),
+    annualShareDelta: Number(((Number(current.annualShare) || 0) - (Number(previous.annualShare) || 0)).toFixed(4)),
+    creatorTakeRateDelta: Number(((Number(current.creatorTakeRate) || 0) - (Number(previous.creatorTakeRate) || 0)).toFixed(4)),
+    cancelRateDelta: Number(((Number(current.cancelRate) || 0) - (Number(previous.cancelRate) || 0)).toFixed(4)),
+  };
+}
+
+function buildTimeseriesTrendSignals(series30, summary7, previousSummary7) {
+  const cvrTrend = classifyTrend(series30, "cvr", 0.005);
+  const creatorTrend = classifyTrend(series30, "creatorTakeRate", 0.01);
+  const annualTrend = classifyTrend(series30, "annualShare", 0.01);
+  const cancelSpikeDates = detectCancelSpikeDates(series30);
+  const opensTrend = classifyTrend(series30, "opens", 0.5);
+  const purchasesTrend = classifyTrend(series30, "purchases", 0.3);
+  const signals = {
+    cvr: cvrTrend,
+    creator: creatorTrend === "improving" ? "rising" : creatorTrend === "declining" ? "falling" : "flat",
+    annualMomentum: annualTrend,
+    cancelSpikeDates,
+    triggerFatigue: summary7.upgradeAfterWarningCvr < 0.2 &&
+      summary7.rawCounts.upgradeAfterWarning >= 6 ? "suspected" : "none",
+    opensRisingPurchasesFlat: opensTrend === "improving" &&
+      (purchasesTrend === "flat" || purchasesTrend === "declining"),
+    cvrWindowDirection: (Number(summary7.cvr) || 0) > (Number(previousSummary7.cvr) || 0) ? "improving" :
+      (Number(summary7.cvr) || 0) < (Number(previousSummary7.cvr) || 0) ? "declining" : "flat",
+  };
+  return signals;
+}
+
+function recommendationConfidence(base = 0.5, modifiers = []) {
+  let value = Number(base) || 0.5;
+  for (const modifier of modifiers) {
+    value += Number(modifier) || 0;
+  }
+  return Math.max(0.05, Math.min(0.99, Number(value.toFixed(2))));
+}
+
+function recommendationSeverityFromImpact(level = "medium") {
+  if (level === "high") return "high";
+  if (level === "low") return "low";
+  return "medium";
+}
+
+function pushRecommendation(list, payload) {
+  list.push({
+    id: payload.id,
+    title: payload.title,
+    summary: payload.summary,
+    recommendationType: payload.recommendationType,
+    confidenceScore: payload.confidenceScore,
+    severity: payload.severity,
+    likelyCause: payload.likelyCause,
+    suggestedAction: payload.suggestedAction,
+    supportingSignals: Array.isArray(payload.supportingSignals) ? payload.supportingSignals : [],
+    affectedPlans: Array.isArray(payload.affectedPlans) ? payload.affectedPlans : [],
+    affectedSurfaces: Array.isArray(payload.affectedSurfaces) ? payload.affectedSurfaces : [],
+    generatedAt: Date.now(),
+  });
+}
+
+function proposedLifecycleIdForRecommendation(recommendationId) {
+  return `proposed_${aiMetricKey(recommendationId, "recommendation")}`;
+}
+
+async function appendMembershipTimelineEvent({
+  recommendation,
+  generatedAtEpochMillis = Date.now(),
+}) {
+  const recommendationId = nonEmptyString(recommendation?.id);
+  if (!recommendationId) return null;
+  const lifecycleId = proposedLifecycleIdForRecommendation(recommendationId);
+  const ref = admin.firestore()
+      .collection(AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION)
+      .doc(lifecycleId);
+  const snapshot = await ref.get();
+  const existing = snapshot.data() || {};
+  const existingStatus = normalizeRecommendationStatus(existing.status, "proposed");
+  if (existingStatus === "active" || existingStatus === "completed" || existingStatus === "rejected") {
+    return {
+      lifecycleId,
+      status: existingStatus,
+      skipped: true,
+      reason: "lifecycle_already_progressed",
+    };
+  }
+
+  const expectedImpact = recommendation.expectedImpact && typeof recommendation.expectedImpact === "object" ?
+    recommendation.expectedImpact :
+    {
+      cvrRange: {min: 0, max: 0},
+      annualShareRange: {min: 0, max: 0},
+      creatorTakeRateRange: {min: 0, max: 0},
+      cancelReductionRange: {min: 0, max: 0},
+    };
+  const confidenceScore = Number.isFinite(Number(recommendation.confidenceScore)) ?
+    Math.max(0, Math.min(1, Number(recommendation.confidenceScore))) :
+    0;
+  const severity = nonEmptyString(recommendation.severity)?.toLowerCase() || "medium";
+  const recommendationType = aiMetricKey(nonEmptyString(recommendation.recommendationType) || "unknown");
+  const affectedPlans = Array.isArray(recommendation.affectedPlans) ?
+    recommendation.affectedPlans.map((entry) => normalizeMembershipPlan(entry)).filter(Boolean) :
+    [];
+  const affectedSurfaces = Array.isArray(recommendation.affectedSurfaces) ?
+    recommendation.affectedSurfaces.map((entry) => normalizeMembershipSurface(entry)).filter(Boolean) :
+    [];
+  const payload = {
+    recommendationId,
+    recommendationType,
+    startedAt: null,
+    startedAtEpochMillis: null,
+    completedAt: null,
+    completedAtEpochMillis: null,
+    status: "proposed",
+    expectedImpact,
+    actualImpact: null,
+    confidenceAtStart: confidenceScore,
+    simulationAccuracy: null,
+    notes: nonEmptyString(recommendation.summary) || "",
+    ownerAction: "recommendation_proposed",
+    generatedAt: generatedAtEpochMillis,
+    severity,
+    title: nonEmptyString(recommendation.title) || recommendationTitleFromId(recommendationId),
+    summary: nonEmptyString(recommendation.summary) || "",
+    affectedPlans,
+    affectedSurfaces,
+    idempotencyKey: `recommendation_proposed:${recommendationId}`,
+    proposalUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    proposalUpdatedAtEpochMillis: generatedAtEpochMillis,
+  };
+
+  await ref.set(payload, {merge: true});
+  return {
+    lifecycleId,
+    status: "proposed",
+    skipped: false,
+  };
+}
+
+async function appendProposedRecommendationsToTimeline(recommendations, generatedAtEpochMillis = Date.now()) {
+  const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
+  if (safeRecommendations.length === 0) return [];
+  const tasks = safeRecommendations.map((recommendation) => appendMembershipTimelineEvent({
+    recommendation,
+    generatedAtEpochMillis,
+  }));
+  return Promise.all(tasks);
+}
+
+function recommendationFingerprint(recommendation) {
+  const recommendationType = aiMetricKey(nonEmptyString(recommendation?.recommendationType) || "unknown");
+  const plans = Array.isArray(recommendation?.affectedPlans) ? recommendation.affectedPlans.map((entry) => aiMetricKey(entry)).sort().join(",") : "";
+  const surfaces = Array.isArray(recommendation?.affectedSurfaces) ? recommendation.affectedSurfaces.map((entry) => aiMetricKey(entry)).sort().join(",") : "";
+  return aiMetricKey(`${recommendationType}:${plans}:${surfaces}`, "unknown_fingerprint");
+}
+
+function lifecycleTimestamp(row) {
+  return Number(row?.completedAtEpochMillis) ||
+    Number(row?.startedAtEpochMillis) ||
+    Number(row?.proposalUpdatedAtEpochMillis) ||
+    Number(row?.generatedAt) ||
+    0;
+}
+
+function buildRecommendationLifecycleIndex(rows = []) {
+  const byRecommendationId = {};
+  const byFingerprint = {};
+  for (const row of rows) {
+    const recommendationId = nonEmptyString(row.recommendationId);
+    if (recommendationId) {
+      if (!byRecommendationId[recommendationId]) byRecommendationId[recommendationId] = [];
+      byRecommendationId[recommendationId].push(row);
+    }
+    const fingerprint = recommendationFingerprint({
+      recommendationType: row.recommendationType,
+      affectedPlans: row.affectedPlans || [],
+      affectedSurfaces: row.affectedSurfaces || [],
+    });
+    if (!byFingerprint[fingerprint]) byFingerprint[fingerprint] = [];
+    byFingerprint[fingerprint].push(row);
+  }
+  return {byRecommendationId, byFingerprint};
+}
+
+function applyRecommendationHygiene({
+  recommendations = [],
+  lifecycleRows = [],
+  hygieneConfig = DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene,
+  nowMs = Date.now(),
+}) {
+  const index = buildRecommendationLifecycleIndex(lifecycleRows);
+  const completedCooldownMs = Math.max(1, Number(hygieneConfig.cooldownDaysCompleted) || 10) * 24 * 60 * 60 * 1000;
+  const rejectedCooldownMs = Math.max(1, Number(hygieneConfig.cooldownDaysRejected) || 21) * 24 * 60 * 60 * 1000;
+  const openCooldownMs = Math.max(1, Number(hygieneConfig.cooldownDaysProposed) || 7) * 24 * 60 * 60 * 1000;
+  const duplicateMergeWindowMs = Math.max(1, Number(hygieneConfig.duplicateMergeWindowDays) || 14) * 24 * 60 * 60 * 1000;
+  const recurringPenalty = Math.max(0, Math.min(0.9, Number(hygieneConfig.recurringPenalty) || 0.18));
+  const freshnessFloor = Math.max(0.05, Math.min(0.9, Number(hygieneConfig.freshnessFloor) || 0.2));
+  const strictness = nonEmptyString(hygieneConfig.similarityStrictness)?.toLowerCase() || "balanced";
+  const strictDuplicate = strictness === "strict";
+  const looseDuplicate = strictness === "loose";
+
+  return recommendations.map((recommendation) => {
+    const recommendationId = nonEmptyString(recommendation.id) || "";
+    const fingerprint = recommendationFingerprint(recommendation);
+    const directRows = [...(index.byRecommendationId[recommendationId] || [])]
+        .sort((a, b) => lifecycleTimestamp(b) - lifecycleTimestamp(a));
+    const similarRows = [...(index.byFingerprint[fingerprint] || [])]
+        .sort((a, b) => lifecycleTimestamp(b) - lifecycleTimestamp(a));
+    const recurringCount = directRows.length;
+    const latestDirect = directRows[0] || null;
+    const latestSimilar = similarRows[0] || null;
+
+    let suppressed = false;
+    let duplicateOf = "";
+    let reason = "fresh";
+    let cooldownUntil = null;
+    let freshnessScore = 1;
+
+    if (latestDirect) {
+      const status = normalizeRecommendationStatus(latestDirect.status, "proposed");
+      const ts = lifecycleTimestamp(latestDirect);
+      if (status === "active" || status === "proposed") {
+        suppressed = true;
+        duplicateOf = nonEmptyString(latestDirect.recommendationId) || recommendationId;
+        reason = status === "active" ? "already_active" : "already_proposed";
+        cooldownUntil = ts > 0 ? ts + openCooldownMs : null;
+        freshnessScore = 0.08;
+      } else if (status === "completed" && ts > 0 && (nowMs - ts) < completedCooldownMs) {
+        suppressed = true;
+        duplicateOf = nonEmptyString(latestDirect.recommendationId) || recommendationId;
+        reason = "completed_recently";
+        cooldownUntil = ts + completedCooldownMs;
+        freshnessScore = 0.2;
+      } else if (status === "rejected" && ts > 0 && (nowMs - ts) < rejectedCooldownMs) {
+        suppressed = true;
+        duplicateOf = nonEmptyString(latestDirect.recommendationId) || recommendationId;
+        reason = "rejected_recently";
+        cooldownUntil = ts + rejectedCooldownMs;
+        freshnessScore = 0.12;
+      }
+    }
+
+    if (!suppressed && latestSimilar) {
+      const similarStatus = normalizeRecommendationStatus(latestSimilar.status, "proposed");
+      const ts = lifecycleTimestamp(latestSimilar);
+      const similarRecommendationId = nonEmptyString(latestSimilar.recommendationId) || "";
+      const insideMergeWindow = ts > 0 ? (nowMs - ts) <= duplicateMergeWindowMs : true;
+      if (insideMergeWindow &&
+        similarRecommendationId &&
+        similarRecommendationId !== recommendationId &&
+        (similarStatus === "active" || similarStatus === "proposed")) {
+        suppressed = true;
+        duplicateOf = similarRecommendationId;
+        reason = "duplicate_similar_open";
+        cooldownUntil = ts > 0 ? ts + openCooldownMs : null;
+        freshnessScore = 0.1;
+      } else if (!strictDuplicate && similarStatus === "completed" && ts > 0 && (nowMs - ts) < completedCooldownMs) {
+        reason = "similar_completed_recently";
+        cooldownUntil = ts + completedCooldownMs;
+        freshnessScore = looseDuplicate ? 0.6 : 0.45;
+      } else if (!strictDuplicate && similarStatus === "rejected" && ts > 0 && (nowMs - ts) < rejectedCooldownMs) {
+        reason = "similar_rejected_recently";
+        cooldownUntil = ts + rejectedCooldownMs;
+        freshnessScore = looseDuplicate ? 0.5 : 0.35;
+      }
+    }
+
+    if (recurringCount >= 3 && !suppressed) {
+      freshnessScore = Math.min(freshnessScore, 1 - recurringPenalty);
+      reason = reason === "fresh" ? "recurring_noise" : reason;
+    }
+    if (recurringCount >= 5 && !suppressed) {
+      freshnessScore = Math.min(freshnessScore, Math.max(0.15, 1 - (recurringPenalty * 2)));
+    }
+    if (suppressed) {
+      freshnessScore = Math.min(freshnessScore, 0.2);
+    }
+    freshnessScore = Math.max(freshnessFloor, freshnessScore);
+
+    const basePriority = Number(recommendation.priorityScore || 0);
+    const adjustedPriority = basePriority > 0 ?
+      Math.max(0, Math.round(basePriority * Math.max(freshnessFloor, freshnessScore))) :
+      basePriority;
+
+    return {
+      ...recommendation,
+      suppressed,
+      duplicateOf: duplicateOf || null,
+      recurringCount,
+      freshnessScore: Number(freshnessScore.toFixed(4)),
+      cooldownUntil,
+      reason,
+      priorityScore: adjustedPriority,
+    };
+  });
+}
+
+function buildMembershipTrendRecommendations({
+  summary7,
+  summary30,
+  previousSummary7,
+  previousSummary30,
+  trendSignals,
+  compareWindows,
+  alerts,
+  costOverlay,
+}) {
+  const recommendations = [];
+  const hasCvrDropAlert = alerts.some((entry) => entry.type === "cvr_drop");
+  const hasCancelSpikeAlert = alerts.some((entry) => entry.type === "purchase_cancel_spike");
+  const hasOpenNoPurchaseAlert = alerts.some((entry) => entry.type === "many_opens_no_purchases");
+
+  if (hasCvrDropAlert || trendSignals.cvr === "declining") {
+    pushRecommendation(recommendations, {
+      id: "trigger_tuning_cvr_decline",
+      title: "Trigger Timing fuer Upgrade-Hinweise feinjustieren",
+      summary: "CVR sinkt; Timing und Intensitaet der Upgrade-Einstiege sollten kontrolliert nachjustiert werden.",
+      recommendationType: "trigger_tuning",
+      confidenceScore: recommendationConfidence(0.62, [
+        hasCvrDropAlert ? 0.12 : 0,
+        (summary7.membershipOpens || 0) > 20 ? 0.06 : -0.05,
+      ]),
+      severity: recommendationSeverityFromImpact("high"),
+      likelyCause: "Upgrade-Einstiege greifen zu spaet oder in nicht optimalen Momenten.",
+      suggestedAction: "A/B-Test fuer warning/critical Trigger-Schwellen (z. B. 65/88 vs 70/90) auf in-context Surfaces; keine aggressiven Muster.",
+      supportingSignals: [
+        `7d CVR: ${summary7.cvr}`,
+        `vs previous 7d CVR delta: ${compareWindows.last7dVsPrevious7d.cvrDelta}`,
+        `Trend: ${trendSignals.cvr}`,
+      ],
+      affectedPlans: ["free", "pro", "creator"],
+      affectedSurfaces: ["ai_chat", "agent_chat", "ai_empty", "agent_empty"],
+    });
+  }
+
+  if ((summary30.creatorTakeRate || 0) < 0.2 || trendSignals.creator === "falling") {
+    pushRecommendation(recommendations, {
+      id: "plan_focus_creator_positioning",
+      title: "Creator Plan Positionierung schaerfen",
+      summary: "Creator Take Rate ist schwach oder fallend; Nutzen und Platzierung des Creator-Plans sollten gezielt verbessert werden.",
+      recommendationType: "plan_focus",
+      confidenceScore: recommendationConfidence(0.58, [
+        trendSignals.creator === "falling" ? 0.1 : 0,
+        (summary30.purchaseSuccess || 0) >= 15 ? 0.08 : -0.06,
+      ]),
+      severity: recommendationSeverityFromImpact("medium"),
+      likelyCause: "Creator Value wird nicht klar genug gegen Pro abgegrenzt.",
+      suggestedAction: "Creator-spezifische Capability-Proofs im Membership Sheet priorisieren (Workflow-Power, Priority, Premium Outputs), Reihenfolge/Highlight testen.",
+      supportingSignals: [
+        `30d creatorTakeRate: ${summary30.creatorTakeRate}`,
+        `creator trend: ${trendSignals.creator}`,
+        `30d purchases: ${summary30.purchaseSuccess}`,
+      ],
+      affectedPlans: ["creator"],
+      affectedSurfaces: ["ai_chat", "agent_chat"],
+    });
+  }
+
+  if ((summary30.annualShare || 0) < 0.35 || trendSignals.annualMomentum === "declining") {
+    pushRecommendation(recommendations, {
+      id: "annual_share_momentum_recovery",
+      title: "Annual Momentum mit klarer, ruhiger Kommunikation staerken",
+      summary: "Annual-Anteil ist zu niedrig oder sinkt; annual value communication und default presentation sollten ueberprueft werden.",
+      recommendationType: "plan_focus",
+      confidenceScore: recommendationConfidence(0.57, [
+        trendSignals.annualMomentum === "declining" ? 0.1 : 0,
+        (summary30.purchaseSuccess || 0) >= 12 ? 0.07 : -0.05,
+      ]),
+      severity: recommendationSeverityFromImpact("medium"),
+      likelyCause: "Jahresvorteil wird im Kaufmoment nicht stark genug wahrgenommen.",
+      suggestedAction: "Default annual toggle und annual benefit copy in Runtime Config testen; transparent und ohne Druck kommunizieren.",
+      supportingSignals: [
+        `30d annualShare: ${summary30.annualShare}`,
+        `annual trend: ${trendSignals.annualMomentum}`,
+        `30d vs previous30d annualShare delta: ${compareWindows.last30dVsPrevious30d.annualShareDelta}`,
+      ],
+      affectedPlans: ["pro", "creator"],
+      affectedSurfaces: ["ai_chat", "agent_chat"],
+    });
+  }
+
+  if (trendSignals.opensRisingPurchasesFlat || hasOpenNoPurchaseAlert) {
+    pushRecommendation(recommendations, {
+      id: "surface_priority_value_gap",
+      title: "Surface-Priorisierung nach tatsächlicher Conversion ausrichten",
+      summary: "Opens steigen, Purchases bleiben flach; Value-Kommunikation auf hochperformante In-Context-Surfaces fokussieren.",
+      recommendationType: "surface_prioritization",
+      confidenceScore: recommendationConfidence(0.61, [
+        trendSignals.opensRisingPurchasesFlat ? 0.1 : 0,
+        hasOpenNoPurchaseAlert ? 0.08 : 0,
+      ]),
+      severity: recommendationSeverityFromImpact("high"),
+      likelyCause: "Zu viele Opens kommen aus schwachen Kontexten mit geringer Kaufabsicht.",
+      suggestedAction: "Surface-CVR vergleichen und schwache Entry-Points entschlacken; AI/Agent in-context Flows priorisieren.",
+      supportingSignals: [
+        `opens rising but purchases flat: ${trendSignals.opensRisingPurchasesFlat}`,
+        `7d opens: ${summary7.membershipOpens}`,
+        `7d purchases: ${summary7.purchaseSuccess}`,
+      ],
+      affectedPlans: ["free", "pro"],
+      affectedSurfaces: ["settings", "ai_empty", "agent_empty", "ai_chat", "agent_chat"],
+    });
+  }
+
+  if (hasCancelSpikeAlert || (trendSignals.cancelSpikeDates || []).length > 0) {
+    pushRecommendation(recommendations, {
+      id: "messaging_cancel_trust_clarity",
+      title: "Billing-/Trust-Kommunikation rund um Kaufabbruch verbessern",
+      summary: "Cancel-Spitzen deuten auf Friktion oder Unsicherheit im Checkout-Moment hin.",
+      recommendationType: "messaging_hint",
+      confidenceScore: recommendationConfidence(0.6, [
+        hasCancelSpikeAlert ? 0.12 : 0,
+        (trendSignals.cancelSpikeDates || []).length > 0 ? 0.06 : 0,
+      ]),
+      severity: recommendationSeverityFromImpact("medium"),
+      likelyCause: "Preis-/Laufzeit-/Abrechnungsklarheit ist unmittelbar vor Kauf nicht eindeutig genug.",
+      suggestedAction: "Kurz vor CTA klare, ruhige Billing-FAQ-Microcopy testen (Abrechnung, Restore, Steuerung), ohne Countdown/Druck.",
+      supportingSignals: [
+        `7d cancelRate: ${summary7.cancelRate}`,
+        `cancel spikes: ${(trendSignals.cancelSpikeDates || []).map((entry) => entry.dateKey).join(", ") || "none"}`,
+      ],
+      affectedPlans: ["pro", "creator"],
+      affectedSurfaces: ["ai_chat", "agent_chat"],
+    });
+  }
+
+  if ((costOverlay?.freePlanLoadRatio || 0) > 0.55 && (summary30.creatorTakeRate || 0) < 0.25) {
+    pushRecommendation(recommendations, {
+      id: "revenue_hygiene_free_burn_vs_uptake",
+      title: "Free Load vs Paid Uptake aktiv monitoren",
+      summary: "Free-Load ist hoch bei schwacher Creator-Uptake; Conversion-Hebel sollten auf faire Value-Progression ausgerichtet werden.",
+      recommendationType: "revenue_hygiene",
+      confidenceScore: recommendationConfidence(0.64, [
+        (costOverlay?.freePlanLoadRatio || 0) > 0.65 ? 0.08 : 0,
+      ]),
+      severity: recommendationSeverityFromImpact("high"),
+      likelyCause: "Nutzer erhalten Value im Free-Flow, aber Upgrade-Nutzen wird zu wenig konkret.",
+      suggestedAction: "Upgrade-Framing entlang echter Capability-Spruenge staerken (nicht Limits-only), plus Free->Pro Fortschrittspfade klarer machen.",
+      supportingSignals: [
+        `freePlanLoadRatio: ${costOverlay?.freePlanLoadRatio || 0}`,
+        `30d creatorTakeRate: ${summary30.creatorTakeRate}`,
+        `burnByPlan.free: ${costOverlay?.burnByPlanMicros?.free || 0}`,
+      ],
+      affectedPlans: ["free", "pro", "creator"],
+      affectedSurfaces: ["ai_chat", "agent_chat", "ai_empty", "agent_empty"],
+    });
+  }
+
+  if (summary7.rawCounts.upgradeAfterDeny >= 8 && summary7.upgradeAfterDenyCvr < 0.15) {
+    pushRecommendation(recommendations, {
+      id: "trigger_fatigue_deny_path",
+      title: "Deny-Upgrade Pfad gegen Trigger Fatigue absichern",
+      summary: "Viele deny-getriggerte Upgrade-Momente mit niedriger Conversion deuten auf Framing-Fatigue.",
+      recommendationType: "messaging_hint",
+      confidenceScore: recommendationConfidence(0.59, [
+        summary7.rawCounts.upgradeAfterDeny >= 14 ? 0.1 : 0,
+      ]),
+      severity: recommendationSeverityFromImpact("medium"),
+      likelyCause: "Deny-Situation vermittelt zu wenig konkreten naechsten Schritt oder passenden Lower-Cost-Pfad.",
+      suggestedAction: "Deny-Copy und Calm Cards auf konkrete Outcome-Sprache pruefen (was gewinnt der Nutzer sofort), inkl. lower-cost alternative.",
+      supportingSignals: [
+        `7d upgradeAfterDeny count: ${summary7.rawCounts.upgradeAfterDeny}`,
+        `7d upgradeAfterDenyCvr: ${summary7.upgradeAfterDenyCvr}`,
+      ],
+      affectedPlans: ["free", "pro"],
+      affectedSurfaces: ["ai_chat", "agent_chat"],
+    });
+  }
+
+  return recommendations
+      .sort((a, b) => {
+        const sev = {high: 3, medium: 2, low: 1};
+        const sevDelta = (sev[b.severity] || 0) - (sev[a.severity] || 0);
+        if (sevDelta !== 0) return sevDelta;
+        return (Number(b.confidenceScore) || 0) - (Number(a.confidenceScore) || 0);
+      })
+      .slice(0, 12);
+}
+
+function parseHorizonDays(value) {
+  const numeric = Number(value);
+  if ([7, 14, 30].includes(numeric)) return numeric;
+  return 14;
+}
+
+function clampRange(range) {
+  const min = Number(range?.min) || 0;
+  const max = Number(range?.max) || 0;
+  const safeMin = Number(Math.max(-0.5, Math.min(1, min)).toFixed(4));
+  const safeMax = Number(Math.max(safeMin, Math.min(1, max)).toFixed(4));
+  return {min: safeMin, max: safeMax};
+}
+
+function complexityWeight(level) {
+  if (level === "low") return 1;
+  if (level === "medium") return 0.75;
+  return 0.5;
+}
+
+function riskWeight(level) {
+  if (level === "low") return 1;
+  if (level === "medium") return 0.7;
+  return 0.45;
+}
+
+function scoreImpactProjection(projection, confidenceScore, executionComplexity, riskLevel) {
+  const cvrImpact = Math.max(0, Number(projection?.cvrRange?.max) || 0);
+  const annualImpact = Math.max(0, Number(projection?.annualShareRange?.max) || 0);
+  const creatorImpact = Math.max(0, Number(projection?.creatorTakeRateRange?.max) || 0);
+  const cancelImpact = Math.max(0, Number(projection?.cancelReductionRange?.max) || 0);
+  const impactBlend = (cvrImpact * 0.4) + (annualImpact * 0.2) + (creatorImpact * 0.2) + (cancelImpact * 0.2);
+  const weighted = impactBlend *
+    (Number(confidenceScore) || 0.3) *
+    complexityWeight(executionComplexity) *
+    riskWeight(riskLevel);
+  return Math.max(0, Math.min(100, Math.round(weighted * 220)));
+}
+
+function simulateRecommendationImpact(recommendation, context = {}) {
+  const type = nonEmptyString(recommendation?.recommendationType) || "messaging_hint";
+  const confidence = Number(recommendation?.confidenceScore) || 0.35;
+  const lowDataPenalty = (Number(context?.eventCount) || 0) < 50 ? -0.12 : 0;
+  let executionComplexity = "medium";
+  let riskLevel = "medium";
+  let expectedTimeToSignalDays = 14;
+  let rollbackEase = "medium";
+  let projectedLift = {
+    cvrRange: {min: 0.005, max: 0.02},
+    annualShareRange: {min: 0.0, max: 0.015},
+    creatorTakeRateRange: {min: 0.0, max: 0.015},
+    cancelReductionRange: {min: 0.0, max: 0.02},
+  };
+  let rationale = "Moderater Hebel mit konservativer Wirkung im bestehenden Funnel.";
+  let suggestedExperimentDesign = "A/B-Test auf 14 Tage mit Holdout-Gruppe, Fokus auf CVR und Cancel-Rate.";
+
+  if (type === "trigger_tuning") {
+    executionComplexity = "low";
+    riskLevel = "low";
+    expectedTimeToSignalDays = 7;
+    rollbackEase = "high";
+    projectedLift = {
+      cvrRange: {min: 0.01, max: 0.035},
+      annualShareRange: {min: 0.0, max: 0.01},
+      creatorTakeRateRange: {min: 0.0, max: 0.012},
+      cancelReductionRange: {min: 0.0, max: 0.008},
+    };
+    rationale = "Trigger-Tuning greift direkt in Einstiegslogik und liefert meist schnell messbare Funnel-Effekte.";
+    suggestedExperimentDesign = "7-14 Tage Split-Test: aktuelle Schwellen vs. Variante (z. B. warning/critical +/- 3-5 Punkte), ohne UI-Pushiness.";
+  } else if (type === "plan_focus") {
+    executionComplexity = "medium";
+    riskLevel = "low";
+    expectedTimeToSignalDays = 14;
+    rollbackEase = "high";
+    projectedLift = {
+      cvrRange: {min: 0.005, max: 0.025},
+      annualShareRange: {min: 0.005, max: 0.03},
+      creatorTakeRateRange: {min: 0.005, max: 0.03},
+      cancelReductionRange: {min: 0.0, max: 0.006},
+    };
+    rationale = "Plan-Positionierung beeinflusst Mix und Annual/Creator-Uptake, meist mit mittelfristiger Signalzeit.";
+    suggestedExperimentDesign = "14-30 Tage Test mit zwei Plan-Sheet Varianten (Highlight/Order/Copy), Primärmetriken: annualShare + creatorTakeRate.";
+  } else if (type === "surface_prioritization") {
+    executionComplexity = "medium";
+    riskLevel = "medium";
+    expectedTimeToSignalDays = 14;
+    rollbackEase = "medium";
+    projectedLift = {
+      cvrRange: {min: 0.008, max: 0.03},
+      annualShareRange: {min: 0.0, max: 0.012},
+      creatorTakeRateRange: {min: 0.0, max: 0.015},
+      cancelReductionRange: {min: 0.0, max: 0.01},
+    };
+    rationale = "Bessere Surface-Allokation kann CVR heben, hat aber Abhaengigkeit von User-Flows und Traffic-Verteilung.";
+    suggestedExperimentDesign = "14 Tage Traffic-Rebalancing Test nach Surface-CVR; Safety-Limit fuer Open-Volume je Surface.";
+  } else if (type === "messaging_hint") {
+    executionComplexity = "low";
+    riskLevel = "low";
+    expectedTimeToSignalDays = 7;
+    rollbackEase = "high";
+    projectedLift = {
+      cvrRange: {min: 0.004, max: 0.018},
+      annualShareRange: {min: 0.0, max: 0.01},
+      creatorTakeRateRange: {min: 0.0, max: 0.012},
+      cancelReductionRange: {min: 0.005, max: 0.03},
+    };
+    rationale = "Messaging-Anpassungen sind schnell testbar und wirken haeufig auf Trust-/Cancel-Dynamik.";
+    suggestedExperimentDesign = "7-14 Tage Copy-Test (Control vs. Klarheitsversion), Fokus auf cancelRate und purchaseSuccess.";
+  } else if (type === "revenue_hygiene") {
+    executionComplexity = "high";
+    riskLevel = "medium";
+    expectedTimeToSignalDays = 30;
+    rollbackEase = "medium";
+    projectedLift = {
+      cvrRange: {min: 0.003, max: 0.02},
+      annualShareRange: {min: 0.002, max: 0.015},
+      creatorTakeRateRange: {min: 0.004, max: 0.02},
+      cancelReductionRange: {min: 0.0, max: 0.012},
+    };
+    rationale = "Revenue-Hygiene wirkt breiter auf Mix und Kostenbild, braucht aber laengere Messfenster.";
+    suggestedExperimentDesign = "30 Tage Guardrail + Positioning Experiment mit klaren Stop-Kriterien bei CVR-Rueckgang.";
+  }
+
+  const adjustedConfidence = recommendationConfidence(confidence, [lowDataPenalty]);
+  projectedLift = {
+    cvrRange: clampRange(projectedLift.cvrRange),
+    annualShareRange: clampRange(projectedLift.annualShareRange),
+    creatorTakeRateRange: clampRange(projectedLift.creatorTakeRateRange),
+    cancelReductionRange: clampRange(projectedLift.cancelReductionRange),
+  };
+
+  const priorityScore = scoreImpactProjection(
+      projectedLift,
+      adjustedConfidence,
+      executionComplexity,
+      riskLevel,
+  );
+
+  return {
+    recommendationId: recommendation.id || "",
+    projectedLift,
+    confidenceScore: adjustedConfidence,
+    executionComplexity,
+    riskLevel,
+    expectedTimeToSignalDays,
+    priorityScore,
+    rationale,
+    suggestedExperimentDesign,
+    rollbackEase,
+    generatedAt: Date.now(),
+  };
+}
+
+function normalizeRecommendationStatus(value, fallback = "proposed") {
+  const normalized = nonEmptyString(value)?.toLowerCase() || fallback;
+  return AI_MEMBERSHIP_RECOMMENDATION_STATUSES.includes(normalized) ? normalized : fallback;
+}
+
+function normalizeImpactRange(input, defaultMin = 0, defaultMax = 0) {
+  const min = Number(input?.min);
+  const max = Number(input?.max);
+  const safeMin = Number.isFinite(min) ? min : defaultMin;
+  const safeMax = Number.isFinite(max) ? max : defaultMax;
+  return clampRange({min: safeMin, max: safeMax});
+}
+
+function normalizeActualImpact(input = {}) {
+  return {
+    cvrDelta: Number.isFinite(Number(input.cvrDelta)) ? Number(input.cvrDelta) : 0,
+    annualDelta: Number.isFinite(Number(input.annualDelta)) ? Number(input.annualDelta) : 0,
+    creatorDelta: Number.isFinite(Number(input.creatorDelta)) ? Number(input.creatorDelta) : 0,
+    cancelDelta: Number.isFinite(Number(input.cancelDelta)) ? Number(input.cancelDelta) : 0,
+    observedWindowDays: Number.isFinite(Number(input.observedWindowDays)) ? Math.max(1, Math.floor(Number(input.observedWindowDays))) : 14,
+    success: input.success === true,
+    learnings: nonEmptyString(input.learnings) || "",
+  };
+}
+
+function simulationAccuracyFromExpectedActual(expectedImpact = {}, actualImpact = {}) {
+  const expectedMid = (Number(expectedImpact?.cvrRange?.min) + Number(expectedImpact?.cvrRange?.max)) / 2;
+  const expected = Number.isFinite(expectedMid) ? expectedMid : 0;
+  const actual = Number.isFinite(Number(actualImpact?.cvrDelta)) ? Number(actualImpact.cvrDelta) : 0;
+  const denominator = Math.max(0.005, Math.abs(expected));
+  const relativeError = Math.abs(actual - expected) / denominator;
+  const accuracy = Math.max(0, Math.min(1, 1 - relativeError));
+  return Number(accuracy.toFixed(4));
+}
+
+function summarizeLearningInsights(lifecycleDocs = []) {
+  const rows = lifecycleDocs.map((doc) => doc.data ? (doc.data() || {}) : {}).filter(Boolean);
+  const completed = rows.filter((row) => normalizeRecommendationStatus(row.status) === "completed");
+  const rejected = rows.filter((row) => normalizeRecommendationStatus(row.status) === "rejected");
+  const typeStats = {};
+  const surfaceStats = {};
+  let fastestTimeToSignalDays = null;
+  let confidenceCalibrationTotal = 0;
+  let confidenceCalibrationCount = 0;
+  let simulationAccuracyTotal = 0;
+  let simulationAccuracyCount = 0;
+  let lowRiskReliableTotal = 0;
+  let lowRiskReliableWins = 0;
+
+  for (const row of completed) {
+    const type = aiMetricKey(nonEmptyString(row.recommendationType) || "unknown");
+    const surfaces = Array.isArray(row.affectedSurfaces) ? row.affectedSurfaces : [];
+    const actualImpact = row.actualImpact || {};
+    const success = actualImpact.success === true;
+    const observedWindowDays = Number(actualImpact.observedWindowDays) || 0;
+    const confidenceAtStart = Number(row.confidenceAtStart);
+    const simulationAccuracy = Number(row.simulationAccuracy);
+    const riskLevel = nonEmptyString(row?.expectedImpact?.riskLevel || row.riskLevel) || "medium";
+
+    if (!typeStats[type]) {
+      typeStats[type] = {total: 0, wins: 0, averageAccuracy: 0, accuracyCount: 0};
+    }
+    typeStats[type].total += 1;
+    if (success) typeStats[type].wins += 1;
+    if (Number.isFinite(simulationAccuracy)) {
+      typeStats[type].averageAccuracy += simulationAccuracy;
+      typeStats[type].accuracyCount += 1;
+      simulationAccuracyTotal += simulationAccuracy;
+      simulationAccuracyCount += 1;
+    }
+
+    for (const surfaceRaw of surfaces) {
+      const surface = normalizeMembershipSurface(surfaceRaw);
+      if (!surfaceStats[surface]) {
+        surfaceStats[surface] = {total: 0, wins: 0};
+      }
+      surfaceStats[surface].total += 1;
+      if (success) surfaceStats[surface].wins += 1;
+    }
+
+    if (observedWindowDays > 0 && (fastestTimeToSignalDays == null || observedWindowDays < fastestTimeToSignalDays)) {
+      fastestTimeToSignalDays = observedWindowDays;
+    }
+
+    if (Number.isFinite(confidenceAtStart)) {
+      const expectedBinary = confidenceAtStart >= 0.5 ? 1 : 0;
+      const actualBinary = success ? 1 : 0;
+      confidenceCalibrationTotal += 1 - Math.abs(expectedBinary - actualBinary);
+      confidenceCalibrationCount += 1;
+    }
+
+    if (riskLevel === "low") {
+      lowRiskReliableTotal += 1;
+      if (success) lowRiskReliableWins += 1;
+    }
+  }
+
+  const recommendationTypePerformance = Object.entries(typeStats).map(([type, stats]) => ({
+    recommendationType: type,
+    total: stats.total,
+    successRate: stats.total > 0 ? Number((stats.wins / stats.total).toFixed(4)) : 0,
+    averageSimulationAccuracy: stats.accuracyCount > 0 ? Number((stats.averageAccuracy / stats.accuracyCount).toFixed(4)) : null,
+  })).sort((a, b) => b.successRate - a.successRate);
+
+  const overestimatedTypes = recommendationTypePerformance
+      .filter((entry) => Number(entry.averageSimulationAccuracy) < 0.45)
+      .map((entry) => entry.recommendationType);
+
+  const bestConvertingSurfaces = Object.entries(surfaceStats).map(([surface, stats]) => ({
+    surface,
+    total: stats.total,
+    successRate: stats.total > 0 ? Number((stats.wins / stats.total).toFixed(4)) : 0,
+  })).sort((a, b) => b.successRate - a.successRate);
+
+  return {
+    totalLifecycleRecords: rows.length,
+    completedExperiments: completed.length,
+    rejectedRecommendations: rejected.length,
+    recommendationTypePerformance,
+    overestimatedTypes,
+    bestConvertingSurfaces,
+    fastestTimeToSignalDays,
+    mostReliableLowRiskActions: lowRiskReliableTotal > 0 ? Number((lowRiskReliableWins / lowRiskReliableTotal).toFixed(4)) : null,
+    confidenceCalibrationScore: confidenceCalibrationCount > 0 ? Number((confidenceCalibrationTotal / confidenceCalibrationCount).toFixed(4)) : null,
+    simulationAccuracyTrend: simulationAccuracyCount > 0 ? Number((simulationAccuracyTotal / simulationAccuracyCount).toFixed(4)) : null,
+  };
+}
+
+function parseTimelineRange(value) {
+  const normalized = nonEmptyString(value)?.toLowerCase() || "30d";
+  if (normalized === "7d") return 7;
+  if (normalized === "30d") return 30;
+  if (normalized === "90d") return 90;
+  if (normalized === "all") return 3650;
+  return 30;
+}
+
+function normalizedStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => nonEmptyString(entry)?.toLowerCase()).filter(Boolean);
+}
+
+function recommendationTitleFromId(id) {
+  return (nonEmptyString(id) || "recommendation")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function buildLifecycleTimelineEntries(rows = []) {
+  return rows.map((row) => {
+    const status = normalizeRecommendationStatus(row.status);
+    const generatedAt = Number(row.generatedAt) || Number(row.startedAtEpochMillis) || Number(row.completedAtEpochMillis) || Date.now();
+    const recommendationId = nonEmptyString(row.recommendationId) || "";
+    const recommendationType = aiMetricKey(nonEmptyString(row.recommendationType) || "unknown");
+    const severity = nonEmptyString(row.severity)?.toLowerCase() || "medium";
+    const expectedImpact = row.expectedImpact || {};
+    const actualImpact = row.actualImpact || {};
+    const affectedPlans = Array.isArray(row.affectedPlans) ? row.affectedPlans.map((entry) => normalizeMembershipPlan(entry)) : [];
+    const affectedSurfaces = Array.isArray(row.affectedSurfaces) ? row.affectedSurfaces.map((entry) => normalizeMembershipSurface(entry)) : [];
+    const type = status === "rejected" ? "recommendation_rejected" :
+      status === "completed" ? "experiment_completed" :
+      status === "active" ? "experiment_started" :
+      "recommendation_proposed";
+    const title = status === "rejected" ? "Recommendation rejected" :
+      status === "completed" ? "Experiment completed" :
+      status === "active" ? "Experiment started" :
+      "Recommendation proposed";
+    return {
+      id: `timeline_${nonEmptyString(row.recommendationId) || "entry"}_${generatedAt}`,
+      date: generatedAt,
+      dateKey: utcDateKeyFromEpochMillis(generatedAt),
+      type,
+      title,
+      summary: nonEmptyString(row.notes) || recommendationTitleFromId(recommendationId),
+      ownerAction: nonEmptyString(row.ownerAction) || "",
+      expectedImpact,
+      actualImpact,
+      confidenceAtStart: Number.isFinite(Number(row.confidenceAtStart)) ? Number(row.confidenceAtStart) : null,
+      learnings: nonEmptyString(actualImpact?.learnings) || "",
+      recommendationId,
+      recommendationType,
+      lifecycleId: nonEmptyString(row.lifecycleId) || "",
+      severity,
+      affectedPlans,
+      affectedSurfaces,
+      links: {
+        recommendationId,
+        lifecycleId: nonEmptyString(row.lifecycleId) || "",
+      },
+      rerunDraft: {
+        recommendationId,
+        recommendationType,
+        hypothesis: `Re-run ${recommendationType} with adjusted threshold/copy based on prior learnings.`,
+      },
+    };
+  });
+}
+
+function applyTimelineFilters(entries, filters) {
+  const types = normalizedStringArray(filters.types);
+  const plans = normalizedStringArray(filters.plans);
+  const severities = normalizedStringArray(filters.severities);
+  return entries.filter((entry) => {
+    if (types.length > 0 && !types.includes(nonEmptyString(entry.type)?.toLowerCase())) return false;
+    if (plans.length > 0) {
+      const entryPlans = Array.isArray(entry.affectedPlans) ? entry.affectedPlans.map((value) => nonEmptyString(value)?.toLowerCase()).filter(Boolean) : [];
+      if (!entryPlans.some((plan) => plans.includes(plan))) return false;
+    }
+    if (severities.length > 0 && !severities.includes(nonEmptyString(entry.severity)?.toLowerCase())) return false;
+    return true;
+  });
+}
+
+async function authorizeAiUsage({
+  auth,
+  kind,
+  provider = "firebase_functions",
+  model = "",
+  estimatedCostMicros = null,
+  eventType = "",
+  featureClass = "",
+  requestWeight = 1,
+  sourceRoute = "ai",
+  functionName = "authorizeAiUsage",
+  requestId = "",
+  resultType = "text",
+  allowDegrade = true,
+}) {
   if (!Object.values(AI_USAGE_KINDS).includes(kind)) {
     throw new HttpsError("invalid-argument", "Unbekannte KI-Aktion.");
   }
 
-  const {profile} = await assertAiAccess(auth);
+  const {profile, effectiveEntitlement} = await assertAiAccess(auth);
   const runtimeSettings = await loadAiRuntimeSettings();
+  const normalizedProvider = nonEmptyString(provider)?.toLowerCase() || "firebase_functions";
+  const normalizedModel = nonEmptyString(model) || "";
+  const normalizedFeatureClass = resolveFeatureClass(kind, featureClass);
+  const normalizedEventType = nonEmptyString(eventType) || `${kind}_request`;
+  const normalizedRequestId = nonEmptyString(requestId) || `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const normalizedWeight = Number.isFinite(Number(requestWeight)) ? Math.max(1, Math.floor(Number(requestWeight))) : 1;
+  const plan = effectiveEntitlement.plan || USER_QUOTA_PLANS.free;
+  const routingPolicy = resolvePlanRoutingPolicy(runtimeSettings, plan);
+  const normalizedEstimatedCostMicros = resolveEstimatedCostMicros({
+    runtimeSettings,
+    featureClass: normalizedFeatureClass,
+    provider: normalizedProvider,
+    model: normalizedModel,
+    requestWeight: normalizedWeight,
+    estimatedCostMicros,
+  });
+
+  const denyAndRecord = async (denyReason) => {
+    const hints = buildGuardrailHints({
+      denyReason,
+      allowDegrade: allowDegrade && runtimeSettings.costGuardrails.enableDegradeMode,
+      plan,
+    });
+    await recordUsageEventV2({
+      uid: auth.uid,
+      plan,
+      entitlementStatus: effectiveEntitlement.status,
+      eventType: normalizedEventType,
+      kind,
+      featureClass: normalizedFeatureClass,
+      provider: normalizedProvider,
+      model: normalizedModel,
+      requestWeight: normalizedWeight,
+      estimatedCostMicros: normalizedEstimatedCostMicros,
+      success: false,
+      denyReason,
+      sourceRoute,
+      functionName,
+      resultType,
+      requestId: normalizedRequestId,
+    });
+    throw new HttpsError("resource-exhausted", hints.userFacingReason, {
+      denyReason,
+      ...hints,
+      allow: false,
+      degrade: allowDegrade && runtimeSettings.costGuardrails.enableDegradeMode,
+      requestId: normalizedRequestId,
+    });
+  };
+
+  if (!featureAllowedByCapability(effectiveEntitlement.capabilities, normalizedFeatureClass)) {
+    await denyAndRecord("plan_feature_not_allowed");
+  }
+
+  if (!routingPolicy.providers.includes(normalizedProvider)) {
+    await denyAndRecord("plan_provider_not_allowed");
+  }
+
+  if (normalizedEstimatedCostMicros > routingPolicy.maxEstimatedCostMicros) {
+    await denyAndRecord("plan_cost_cap_exceeded");
+  }
+
+  if (normalizedFeatureClass === AI_FEATURE_CLASSES.workflow && routingPolicy.allowWorkflow !== true) {
+    await denyAndRecord("workflow_not_allowed_for_plan");
+  }
 
   const dateKey = aiUsageDateKey();
+  const monthKey = aiUsageMonthKey(dateKey);
   const usageRef = admin.firestore().doc(`users/${auth.uid}/aiUsage/${dateKey}`);
   const globalUsageRef = admin.firestore()
       .collection(AI_USAGE_METRICS_COLLECTION)
       .doc(aiUsageMetricsDocumentId(dateKey));
+  const monthlyUsageRef = admin.firestore()
+      .collection(AI_USAGE_METRICS_COLLECTION)
+      .doc(aiUsageMonthlyMetricsDocumentId(monthKey));
+  const burnGuardRef = admin.firestore()
+      .collection(AI_GUARDRAILS_COLLECTION)
+      .doc(aiDailyBurnDocumentId(dateKey));
 
-  const usageSummary = await admin.firestore().runTransaction(async (transaction) => {
-    const [userSnapshot, globalSnapshot] = await Promise.all([
+  let denyReasonInTransaction = "";
+  let usageSummary = null;
+  try {
+    usageSummary = await admin.firestore().runTransaction(async (transaction) => {
+      const [userSnapshot, globalSnapshot, monthlySnapshot, burnSnapshot] = await Promise.all([
       transaction.get(usageRef),
       transaction.get(globalUsageRef),
+      transaction.get(monthlyUsageRef),
+      transaction.get(burnGuardRef),
     ]);
     const currentData = userSnapshot.exists ? (userSnapshot.data() || {}) : {};
     const currentGlobalData = globalSnapshot.exists ? (globalSnapshot.data() || {}) : {};
+    const currentMonthlyData = monthlySnapshot.exists ? (monthlySnapshot.data() || {}) : {};
+    const currentBurnData = burnSnapshot.exists ? (burnSnapshot.data() || {}) : {};
     const counterField = aiUsageCounterField(kind);
     const currentCount = Number(currentData[counterField]) || 0;
     const currentTotal = Number(currentData.totalRequests) || 0;
@@ -1594,6 +3526,7 @@ async function authorizeAiUsage({auth, kind}) {
       baseLimit;
 
     if (currentCount >= limit) {
+      denyReasonInTransaction = "hard_limit_reached";
       throw new HttpsError("resource-exhausted", aiLimitReachedMessage(kind, limit));
     }
 
@@ -1604,7 +3537,28 @@ async function authorizeAiUsage({auth, kind}) {
       Number.isFinite(globalLimit) &&
       globalLimit > 0 &&
       currentGlobalCount >= globalLimit) {
+      denyReasonInTransaction = "global_hard_limit_reached";
       throw new HttpsError("resource-exhausted", aiGlobalLimitReachedMessage(kind, globalLimit));
+    }
+
+    const lastConsumedAtMillis = currentData.lastConsumedAt?.toMillis ?
+      currentData.lastConsumedAt.toMillis() :
+      0;
+    const windowMs = runtimeSettings.costGuardrails.suspiciousSpikeWindowSeconds * 1000;
+    const burstCount = Number(currentData.recentBurstCount) || 0;
+    const nextBurstCount = Date.now() - lastConsumedAtMillis <= windowMs ? burstCount + 1 : 1;
+    if (nextBurstCount >= runtimeSettings.costGuardrails.suspiciousSpikeRequestThreshold) {
+      denyReasonInTransaction = "suspicious_spike";
+      throw new HttpsError("resource-exhausted", "Anfragen treffen gerade zu schnell ein.");
+    }
+
+    const currentBurnMicros = Number(currentBurnData.totalEstimatedCostMicros) || 0;
+    const nextBurnMicros = currentBurnMicros + (normalizedEstimatedCostMicros * normalizedWeight);
+    if (runtimeSettings.costGuardEnabled &&
+      runtimeSettings.costGuardrails.dailyBurnCapMicros > 0 &&
+      nextBurnMicros > runtimeSettings.costGuardrails.dailyBurnCapMicros) {
+      denyReasonInTransaction = "daily_burn_cap_reached";
+      throw new HttpsError("resource-exhausted", "Tagesbudget fuer AI ist derzeit ausgelastet.");
     }
 
     const nextCount = currentCount + 1;
@@ -1617,6 +3571,36 @@ async function authorizeAiUsage({auth, kind}) {
     const nextGlobalText = counterField === "textRequests" ? nextGlobalCount : (Number(currentGlobalData.textRequests) || 0);
     const nextGlobalVisual = counterField === "visualRequests" ? nextGlobalCount : (Number(currentGlobalData.visualRequests) || 0);
     const nextGlobalAgent = counterField === "agentRequests" ? nextGlobalCount : (Number(currentGlobalData.agentRequests) || 0);
+    const nextCostMicros = (Number(currentData.totalEstimatedCostMicros) || 0) +
+      (normalizedEstimatedCostMicros * normalizedWeight);
+    const nextGlobalCostMicros = (Number(currentGlobalData.totalEstimatedCostMicros) || 0) +
+      (normalizedEstimatedCostMicros * normalizedWeight);
+    const nextMonthlyCostMicros = (Number(currentMonthlyData.totalEstimatedCostMicros) || 0) +
+      (normalizedEstimatedCostMicros * normalizedWeight);
+    const featureKey = aiMetricKey(normalizedFeatureClass);
+    const providerKey = aiMetricKey(normalizedProvider);
+    const modelKey = aiMetricKey(normalizedModel || "default");
+    const planKey = aiMetricKey(plan);
+    const byFeature = {...(currentMonthlyData.byFeatureClass || {})};
+    byFeature[featureKey] = (Number(byFeature[featureKey]) || 0) + normalizedWeight;
+    const byProvider = {...(currentMonthlyData.byProvider || {})};
+    byProvider[providerKey] = (Number(byProvider[providerKey]) || 0) + normalizedWeight;
+    const byPlan = {...(currentMonthlyData.byPlan || {})};
+    byPlan[planKey] = (Number(byPlan[planKey]) || 0) + normalizedWeight;
+    const byModel = {...(currentMonthlyData.byModel || {})};
+    byModel[modelKey] = (Number(byModel[modelKey]) || 0) + normalizedWeight;
+    const byPlanCostMicros = {...(currentMonthlyData.byPlanCostMicros || {})};
+    byPlanCostMicros[planKey] = (Number(byPlanCostMicros[planKey]) || 0) +
+      (normalizedEstimatedCostMicros * normalizedWeight);
+    const byFeatureClassCostMicros = {...(currentMonthlyData.byFeatureClassCostMicros || {})};
+    byFeatureClassCostMicros[featureKey] = (Number(byFeatureClassCostMicros[featureKey]) || 0) +
+      (normalizedEstimatedCostMicros * normalizedWeight);
+    const byProviderCostMicros = {...(currentMonthlyData.byProviderCostMicros || {})};
+    byProviderCostMicros[providerKey] = (Number(byProviderCostMicros[providerKey]) || 0) +
+      (normalizedEstimatedCostMicros * normalizedWeight);
+    const byModelCostMicros = {...(currentMonthlyData.byModelCostMicros || {})};
+    byModelCostMicros[modelKey] = (Number(byModelCostMicros[modelKey]) || 0) +
+      (normalizedEstimatedCostMicros * normalizedWeight);
 
     transaction.set(usageRef, {
       dateKey,
@@ -1625,6 +3609,13 @@ async function authorizeAiUsage({auth, kind}) {
       visualRequests: nextVisualCount,
       agentRequests: nextAgentCount,
       totalRequests: nextTotal,
+      totalEstimatedCostMicros: nextCostMicros,
+      recentBurstCount: nextBurstCount,
+      lastEventType: normalizedEventType,
+      lastProvider: normalizedProvider,
+      lastModel: normalizedModel || admin.firestore.FieldValue.delete(),
+      lastEstimatedCostMicros: normalizedEstimatedCostMicros,
+      lastRequestId: normalizedRequestId,
       lastConsumedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, {merge: true});
 
@@ -1634,13 +3625,53 @@ async function authorizeAiUsage({auth, kind}) {
       visualRequests: nextGlobalVisual,
       agentRequests: nextGlobalAgent,
       totalRequests: nextGlobalTotal,
+      totalEstimatedCostMicros: nextGlobalCostMicros,
+      lastEventType: normalizedEventType,
+      lastProvider: normalizedProvider,
+      lastModel: normalizedModel || admin.firestore.FieldValue.delete(),
+      lastEstimatedCostMicros: normalizedEstimatedCostMicros,
+      lastRequestId: normalizedRequestId,
       lastConsumedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, {merge: true});
 
+    transaction.set(monthlyUsageRef, {
+      monthKey,
+      totalRequests: (Number(currentMonthlyData.totalRequests) || 0) + normalizedWeight,
+      totalEstimatedCostMicros: nextMonthlyCostMicros,
+      byFeatureClass: byFeature,
+      byProvider,
+      byPlan,
+      byModel,
+      byPlanCostMicros,
+      byFeatureClassCostMicros,
+      byProviderCostMicros,
+      byModelCostMicros,
+      lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    transaction.set(burnGuardRef, {
+      dateKey,
+      totalEstimatedCostMicros: nextBurnMicros,
+      lastRequestId: normalizedRequestId,
+      lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    const usagePercent = limit > 0 ? Math.floor((nextCount / limit) * 100) : 0;
+    let warningLevel = "ok";
+    if (usagePercent >= runtimeSettings.costGuardrails.criticalThresholdPercent) {
+      warningLevel = "critical";
+    } else if (usagePercent >= runtimeSettings.costGuardrails.warningThresholdPercent) {
+      warningLevel = "warning";
+    }
+
     return {
       dateKey,
+      monthKey,
       role: profile.role,
       kind,
+      featureClass: normalizedFeatureClass,
+      requestId: normalizedRequestId,
+      requestWeight: normalizedWeight,
       remainingForKind: Math.max(limit - nextCount, 0),
       limitForKind: limit,
       textRemaining: Math.max(
@@ -1666,19 +3697,147 @@ async function authorizeAiUsage({auth, kind}) {
         null,
       globalLimitForKind: runtimeSettings.costGuardEnabled ? globalLimit : null,
       historyRetentionDays: profile.aiLimits.historyRetentionDays,
+      effectiveEntitlement: {
+        plan: effectiveEntitlement.plan || null,
+        status: effectiveEntitlement.status,
+        provider: effectiveEntitlement.provider || null,
+        source: effectiveEntitlement.source || null,
+      },
+      provider: normalizedProvider,
+      model: normalizedModel || null,
+      estimatedCostMicros: normalizedEstimatedCostMicros,
+      eventType: normalizedEventType,
+      sourceRoute,
+      functionName,
+      resultType,
+      warningLevel,
+      guardrailHints: buildGuardrailHints({
+        warningLevel,
+        remainingForKind: Math.max(limit - nextCount, 0),
+        limitForKind: limit,
+        allowDegrade: allowDegrade && runtimeSettings.costGuardrails.enableDegradeMode,
+        plan,
+      }),
+      decision: {
+        allow: true,
+        deny: false,
+        degrade: warningLevel === "critical" && runtimeSettings.costGuardrails.enableDegradeMode,
+      },
     };
+    });
+  } catch (error) {
+    const denyReason = denyReasonInTransaction || "authorization_denied";
+    const hints = buildGuardrailHints({
+      denyReason,
+      allowDegrade: allowDegrade && runtimeSettings.costGuardrails.enableDegradeMode,
+      plan,
+    });
+    await recordUsageEventV2({
+      uid: auth.uid,
+      plan,
+      entitlementStatus: effectiveEntitlement.status,
+      eventType: normalizedEventType,
+      kind,
+      featureClass: normalizedFeatureClass,
+      provider: normalizedProvider,
+      model: normalizedModel,
+      requestWeight: normalizedWeight,
+      estimatedCostMicros: normalizedEstimatedCostMicros,
+      success: false,
+      denyReason,
+      sourceRoute,
+      functionName,
+      resultType,
+      requestId: normalizedRequestId,
+    });
+    if (error instanceof HttpsError) {
+      throw new HttpsError(error.code, hints.userFacingReason, {
+        denyReason,
+        ...hints,
+        allow: false,
+        requestId: normalizedRequestId,
+      });
+    }
+    throw error;
+  }
+
+  await recordUsageEventV2({
+    uid: auth.uid,
+    plan,
+    entitlementStatus: effectiveEntitlement.status,
+    eventType: normalizedEventType,
+    kind,
+    featureClass: normalizedFeatureClass,
+    provider: normalizedProvider,
+    model: normalizedModel,
+    requestWeight: normalizedWeight,
+    estimatedCostMicros: normalizedEstimatedCostMicros,
+    success: true,
+    denyReason: "",
+    sourceRoute,
+    functionName,
+    resultType,
+    requestId: normalizedRequestId,
   });
 
   logger.info("AI usage authorized.", {
     uid: auth.uid,
     role: usageSummary.role,
     kind,
+    featureClass: usageSummary.featureClass,
     remainingForKind: usageSummary.remainingForKind,
     globalRemainingForKind: usageSummary.globalRemainingForKind,
     dateKey,
+    requestId: usageSummary.requestId,
+    warningLevel: usageSummary.warningLevel,
   });
 
   return usageSummary;
+}
+
+/**
+ * Server-only audit trail for Agent runs (no prompt/reply body — lengths only).
+ * Clients may read their own documents; writes are Functions-only via Admin SDK.
+ */
+async function persistAgentRunSummary({
+  uid,
+  mode,
+  agentProvider,
+  providerFallbackUsed,
+  automation,
+  promptText,
+  replyText,
+}) {
+  if (!nonEmptyString(uid)) {
+    return null;
+  }
+  try {
+    const runRef = admin.firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("agentRuns")
+        .doc();
+    const runId = runRef.id;
+    const prompt = typeof promptText === "string" ? promptText : "";
+    const reply = typeof replyText === "string" ? replyText : "";
+    await runRef.set({
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      mode: nonEmptyString(mode) || "release",
+      agentProvider: nonEmptyString(agentProvider) || "unknown",
+      providerFallbackUsed: providerFallbackUsed === true,
+      automationAttempted: automation && automation.attempted === true,
+      automationTriggered: automation && automation.triggered === true,
+      promptChars: Math.min(Math.max(prompt.length, 0), 100000),
+      replyChars: Math.min(Math.max(reply.length, 0), 500000),
+    });
+    return runId;
+  } catch (error) {
+    logger.warn("agentRuns write failed.", {
+      uid,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    return null;
+  }
 }
 
 function composeAssetLibraryPromptContext(promptSettings) {
@@ -2007,6 +4166,8 @@ async function loadPaymentMethodSettings() {
       iosAppAppleId: Number(aiSubscriptions.iosAppAppleId || 0),
       androidCreatorProductId: nonEmptyString(aiSubscriptions.androidCreatorProductId) || "",
       androidStudioProductId: nonEmptyString(aiSubscriptions.androidStudioProductId) || "",
+      revenueCatEntitlementCreator: nonEmptyString(aiSubscriptions.revenueCatEntitlementCreator) || "skyos_ai_creator",
+      revenueCatEntitlementStudio: nonEmptyString(aiSubscriptions.revenueCatEntitlementStudio) || "skyos_ai_studio",
     },
   };
 }
@@ -2050,6 +4211,89 @@ function buildIosAiSubscriptionProductMap(paymentSettings) {
 function resolveIosAiAppAppleId(paymentSettings) {
   const appAppleId = Number(paymentSettings?.aiSubscriptions?.iosAppAppleId || 0);
   return Number.isFinite(appAppleId) && appAppleId > 0 ? Math.floor(appAppleId) : 0;
+}
+
+function buildAndroidAiSubscriptionProductMap(paymentSettings) {
+  const config = paymentSettings?.aiSubscriptions || {};
+  if (config.enabled !== true) {
+    return {};
+  }
+
+  const mapping = {};
+  const creatorProductId = nonEmptyString(config.androidCreatorProductId);
+  const studioProductId = nonEmptyString(config.androidStudioProductId);
+  if (creatorProductId) {
+    mapping[creatorProductId] = USER_QUOTA_PLANS.creator;
+  }
+  if (studioProductId) {
+    mapping[studioProductId] = USER_QUOTA_PLANS.studio;
+  }
+  return mapping;
+}
+
+function buildRevenueCatEntitlementPlanMap(paymentSettings) {
+  const config = paymentSettings?.aiSubscriptions || {};
+  if (config.enabled !== true) {
+    return {};
+  }
+  const mapping = {};
+  const creatorEntitlement = nonEmptyString(config.revenueCatEntitlementCreator) || "skyos_ai_creator";
+  const studioEntitlement = nonEmptyString(config.revenueCatEntitlementStudio) || "skyos_ai_studio";
+  mapping[creatorEntitlement] = USER_QUOTA_PLANS.creator;
+  mapping[studioEntitlement] = USER_QUOTA_PLANS.studio;
+  return mapping;
+}
+
+function buildUnifiedAiProductPlanMap(paymentSettings) {
+  return {
+    ...buildIosAiSubscriptionProductMap(paymentSettings),
+    ...buildAndroidAiSubscriptionProductMap(paymentSettings),
+  };
+}
+
+function normalizeRevenueCatEntitlementEvent(data, paymentSettings) {
+  const payload = data && typeof data === "object" ? data : {};
+  const eventType = nonEmptyString(payload.event)?.toLowerCase() || "unknown";
+  const appUserId = nonEmptyString(payload.app_user_id) || "";
+  const productId = nonEmptyString(payload.product_id) || "";
+  const entitlementId = nonEmptyString(payload.entitlement_id) || "";
+  const entitlementMap = buildRevenueCatEntitlementPlanMap(paymentSettings);
+  const productMap = buildUnifiedAiProductPlanMap(paymentSettings);
+  const plan = entitlementMap[entitlementId] || productMap[productId] || null;
+  const expirationAtMs = Number(payload.expiration_at_ms || 0);
+  const purchasedAtMs = Number(payload.purchased_at_ms || 0);
+  const isActiveEvent = ["initial_purchase", "renewal", "product_change", "uncancellation", "non_renewing_purchase"]
+      .includes(eventType);
+  const status = isActiveEvent ? "active" : (
+    ["cancellation", "billing_issue", "expiration", "subscription_paused"].includes(eventType) ?
+      "inactive" :
+      "inactive"
+  );
+  return {
+    uid: appUserId,
+    eventType,
+    externalEventId: nonEmptyString(payload.id) || "",
+    productId,
+    plan,
+    status,
+    periodStartEpochSeconds: Number.isFinite(purchasedAtMs) && purchasedAtMs > 0 ? Math.floor(purchasedAtMs / 1000) : 0,
+    periodEndEpochSeconds: Number.isFinite(expirationAtMs) && expirationAtMs > 0 ? Math.floor(expirationAtMs / 1000) : 0,
+    environment: nonEmptyString(payload.environment)?.toLowerCase() || "",
+    purchaseReference:
+      nonEmptyString(payload.transaction_id) ||
+      nonEmptyString(payload.original_transaction_id) ||
+      "",
+    originalTransactionId: nonEmptyString(payload.original_transaction_id) || "",
+    source: nonEmptyString(payload.store)?.toLowerCase() || "revenuecat",
+    provider: "revenuecat",
+    metadata: {
+      entitlementId,
+      aliases: Array.isArray(payload.aliases) ? payload.aliases : [],
+      presentedOfferingId: nonEmptyString(payload.presented_offering_id) || "",
+      priceInPurchasedCurrency: payload.price_in_purchased_currency ?? null,
+      currency: nonEmptyString(payload.currency) || "",
+    },
+  };
 }
 
 async function loadCommerceSettings() {
@@ -3966,6 +6210,138 @@ exports.configureStripeBackendSecrets = onCall({
   };
 });
 
+exports.syncAndroidAiSubscriptionStatus = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "syncAndroidAiSubscriptionStatus");
+
+  const uid = assertAuthenticatedUser(
+      request.auth,
+      "Bitte melde dich an, um dein Play-Store-Abo zu synchronisieren.",
+  );
+  const userData = await loadUserData(uid);
+  if (!userData) {
+    throw new HttpsError("not-found", "Konto wurde nicht gefunden.");
+  }
+
+  const paymentSettings = await loadPaymentMethodSettings();
+  if (paymentSettings?.aiSubscriptions?.enabled !== true) {
+    throw new HttpsError("failed-precondition", "KI-Abos sind serverseitig noch nicht live geschaltet.");
+  }
+
+  const androidProductIdToPlan = buildAndroidAiSubscriptionProductMap(paymentSettings);
+  if (Object.keys(androidProductIdToPlan).length < 2) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Die Android-Produkt-IDs fuer Creator und Studio fehlen noch im Payment-Setup.",
+    );
+  }
+
+  const productId = nonEmptyString(request.data?.productId);
+  const purchaseToken = nonEmptyString(request.data?.purchaseToken);
+  const packageName = nonEmptyString(request.data?.packageName) || "";
+  const orderId = nonEmptyString(request.data?.orderId) || "";
+  if (!productId || !purchaseToken) {
+    throw new HttpsError("invalid-argument", "productId und purchaseToken sind erforderlich.");
+  }
+
+  const resolvedPlan = androidProductIdToPlan[productId] || null;
+  if (!resolvedPlan) {
+    throw new HttpsError("invalid-argument", "Unbekanntes Android-Abo-Produkt.");
+  }
+
+  // MVP scaffold: entitlement stays unchanged until purchase token verification is wired.
+  // This keeps billing source-of-truth server-only and avoids trusting client assertions.
+  const syncEvent = await saveCanonicalAiEntitlement(uid, resolveLegacyAiEntitlement(userData), {
+    externalEventId: `android_${productId}_${purchaseToken.slice(-12)}`,
+    eventType: "android_sync_pending",
+    eventSource: "syncAndroidAiSubscriptionStatus",
+    metadata: {
+      status: "verification_pending",
+      requestedPlan: resolvedPlan,
+      packageName,
+      orderId,
+      purchaseTokenPreview: purchaseToken.slice(-8),
+      productId,
+    },
+    rawRef: "play_purchase_token",
+  });
+
+  logger.info("Android AI subscription sync requested.", {
+    uid,
+    productId,
+    plan: resolvedPlan,
+    packageName: packageName || null,
+  });
+
+  return {
+    status: "verification_pending",
+    provider: "play_store",
+    plan: resolvedPlan,
+    eventId: syncEvent.eventId,
+  };
+});
+
+exports.ingestRevenueCatAiEntitlementEvent = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "ingestRevenueCatAiEntitlementEvent");
+  await assertOwner(request.auth);
+
+  const paymentSettings = await loadPaymentMethodSettings();
+  if (paymentSettings?.aiSubscriptions?.enabled !== true) {
+    throw new HttpsError("failed-precondition", "KI-Abos sind serverseitig noch nicht live geschaltet.");
+  }
+
+  const normalized = normalizeRevenueCatEntitlementEvent(request.data, paymentSettings);
+  if (!normalized.uid) {
+    throw new HttpsError("invalid-argument", "RevenueCat Event enthaelt keine gueltige app_user_id.");
+  }
+  if (!normalized.plan) {
+    throw new HttpsError("failed-precondition", "RevenueCat Event konnte keinem SkyOS Plan zugeordnet werden.");
+  }
+
+  const targetUserData = await loadUserData(normalized.uid);
+  const role = resolveUserRole(
+      targetUserData?.role,
+      targetUserData?.isAdmin === true,
+      targetUserData?.email,
+  );
+  const saveResult = await saveCanonicalAiEntitlement(normalized.uid, {
+    plan: normalized.plan,
+    status: normalized.status,
+    provider: normalized.provider,
+    source: normalized.source,
+    productId: normalized.productId,
+    periodStartEpochSeconds: normalized.periodStartEpochSeconds,
+    periodEndEpochSeconds: normalized.periodEndEpochSeconds,
+    environment: normalized.environment,
+    originalTransactionId: normalized.originalTransactionId,
+    purchaseReference: normalized.purchaseReference,
+    capabilities: resolveAiCapabilities({
+      plan: normalized.plan,
+      status: normalized.status,
+      role,
+    }),
+  }, {
+    externalEventId: normalized.externalEventId || `${normalized.eventType}_${normalized.uid}`,
+    eventType: `revenuecat_${normalized.eventType}`,
+    eventSource: "revenuecat",
+    metadata: normalized.metadata,
+    rawRef: "revenuecat_webhook_payload",
+  });
+
+  return {
+    uid: normalized.uid,
+    plan: normalized.plan,
+    status: normalized.status,
+    eventId: saveResult.eventId,
+    duplicated: saveResult.duplicated,
+  };
+});
+
 exports.submitMerchOrder = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
@@ -4299,6 +6675,34 @@ exports.syncIosAiSubscriptionStatus = onCall({
   }
 
   await userRef.set(updates, {merge: true});
+  await saveCanonicalAiEntitlement(uid, {
+    plan: resolvedState.plan || null,
+    status: resolvedState.status || "inactive",
+    provider: "app_store",
+    source: resolvedState.sourcePlatform || "ios",
+    productId: resolvedState.productId || "",
+    periodEndEpochSeconds: resolvedState.currentPeriodEndEpochSeconds || 0,
+    environment: resolvedState.environment || "",
+    originalTransactionId: resolvedState.originalTransactionId || "",
+    purchaseReference: resolvedState.transactionId || "",
+    capabilities: resolveAiCapabilities({
+      plan: resolvedState.plan || null,
+      status: resolvedState.status || "inactive",
+      role,
+    }),
+  }, {
+    externalEventId:
+      nonEmptyString(resolvedState.transactionId) ||
+      nonEmptyString(resolvedState.originalTransactionId) ||
+      `ios_${uid}_${Date.now()}`,
+    eventType: "ios_sync",
+    eventSource: "syncIosAiSubscriptionStatus",
+    metadata: {
+      matchedTransactionCount: decodeResult.decodedTransactions.length,
+      sourcePlatform: resolvedState.sourcePlatform || "ios",
+    },
+    rawRef: "app_store_server_validation",
+  });
 
   logger.info("iOS AI subscription status synced.", {
     uid,
@@ -4562,7 +6966,1071 @@ exports.authorizeAiUsage = onCall({
   return authorizeAiUsage({
     auth: request.auth,
     kind,
+    provider: "firebase_functions",
+    eventType: "authorize_preview",
+    sourceRoute: "callable.authorizeAiUsage",
+    functionName: "authorizeAiUsage",
+    featureClass: kind === AI_USAGE_KINDS.visual ? AI_FEATURE_CLASSES.image : AI_FEATURE_CLASSES.text,
+    requestId: nonEmptyString(request.data?.requestId) || "",
   });
+});
+
+exports.reconcileAiUsageCost = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "reconcileAiUsageCost");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Kostenabgleich ausfuehren.");
+  }
+
+  const requestId = nonEmptyString(request.data?.requestId);
+  const actualCostMicros = Number(request.data?.actualCostMicros);
+  const reconciliationSource = nonEmptyString(request.data?.reconciliationSource) || "provider_invoice";
+  if (!requestId) {
+    throw new HttpsError("invalid-argument", "requestId fehlt.");
+  }
+  if (!Number.isFinite(actualCostMicros) || actualCostMicros < 0) {
+    throw new HttpsError("invalid-argument", "actualCostMicros fehlt oder ist ungueltig.");
+  }
+
+  const eventRef = admin.firestore().collection(AI_USAGE_EVENTS_COLLECTION).doc(requestId);
+  const reconcileResult = await admin.firestore().runTransaction(async (transaction) => {
+    const eventSnapshot = await transaction.get(eventRef);
+    if (!eventSnapshot.exists) {
+      throw new HttpsError("not-found", "Usage Event wurde nicht gefunden.");
+    }
+    const event = eventSnapshot.data() || {};
+    const dateKey = nonEmptyString(event.dateKey) || aiUsageDateKey();
+    const monthKey = nonEmptyString(event.monthKey) || aiUsageMonthKey(dateKey);
+    const uid = nonEmptyString(event.uid);
+    if (!uid) {
+      throw new HttpsError("failed-precondition", "Usage Event ohne uid kann nicht reconciled werden.");
+    }
+
+    const estimated = Number(event.estimatedCostMicros) || 0;
+    const currentActual = Number(event.actualCostMicros);
+    const previousActual = Number.isFinite(currentActual) ? currentActual : null;
+    const nextActual = Math.max(0, Math.floor(actualCostMicros));
+    const deltaActual = nextActual - (previousActual || 0);
+    const varianceMicros = nextActual - estimated;
+    const varianceRatio = estimated > 0 ? Number((nextActual / estimated).toFixed(4)) : null;
+    const featureKey = aiMetricKey(event.featureClass || "unknown");
+    const providerKey = aiMetricKey(event.provider || "unknown");
+    const modelKey = aiMetricKey(event.model || "default");
+    const planKey = aiMetricKey(event.plan || USER_QUOTA_PLANS.free);
+
+    const usageRef = admin.firestore().doc(`users/${uid}/aiUsage/${dateKey}`);
+    const dailyRef = admin.firestore().collection(AI_USAGE_METRICS_COLLECTION).doc(aiUsageMetricsDocumentId(dateKey));
+    const monthlyRef = admin.firestore().collection(AI_USAGE_METRICS_COLLECTION).doc(aiUsageMonthlyMetricsDocumentId(monthKey));
+
+    const [usageSnapshot, dailySnapshot, monthlySnapshot] = await Promise.all([
+      transaction.get(usageRef),
+      transaction.get(dailyRef),
+      transaction.get(monthlyRef),
+    ]);
+    const usageData = usageSnapshot.exists ? (usageSnapshot.data() || {}) : {};
+    const dailyData = dailySnapshot.exists ? (dailySnapshot.data() || {}) : {};
+    const monthlyData = monthlySnapshot.exists ? (monthlySnapshot.data() || {}) : {};
+
+    const nextUsageActual = Math.max(0, (Number(usageData.totalActualCostMicros) || 0) + deltaActual);
+    const nextDailyActual = Math.max(0, (Number(dailyData.totalActualCostMicros) || 0) + deltaActual);
+    const nextMonthlyActual = Math.max(0, (Number(monthlyData.totalActualCostMicros) || 0) + deltaActual);
+    const nextMonthlyVariance = (Number(monthlyData.totalVarianceMicros) || 0) + (varianceMicros - (Number(event.varianceMicros) || 0));
+    const reconciledEvents = (Number(monthlyData.reconciledEvents) || 0) + (previousActual == null ? 1 : 0);
+    const estimatedEvents = Number(monthlyData.totalRequests) || 0;
+
+    const byProviderVariance = {...(monthlyData.byProviderVarianceMicros || {})};
+    byProviderVariance[providerKey] = (Number(byProviderVariance[providerKey]) || 0) +
+      (varianceMicros - (Number(event.varianceMicros) || 0));
+    const byModelVariance = {...(monthlyData.byModelVarianceMicros || {})};
+    byModelVariance[modelKey] = (Number(byModelVariance[modelKey]) || 0) +
+      (varianceMicros - (Number(event.varianceMicros) || 0));
+    const byFeatureVariance = {...(monthlyData.byFeatureClassVarianceMicros || {})};
+    byFeatureVariance[featureKey] = (Number(byFeatureVariance[featureKey]) || 0) +
+      (varianceMicros - (Number(event.varianceMicros) || 0));
+    const byPlanActual = {...(monthlyData.byPlanActualCostMicros || {})};
+    byPlanActual[planKey] = Math.max(0, (Number(byPlanActual[planKey]) || 0) + deltaActual);
+    const byProviderActual = {...(monthlyData.byProviderActualCostMicros || {})};
+    byProviderActual[providerKey] = Math.max(0, (Number(byProviderActual[providerKey]) || 0) + deltaActual);
+    const byModelActual = {...(monthlyData.byModelActualCostMicros || {})};
+    byModelActual[modelKey] = Math.max(0, (Number(byModelActual[modelKey]) || 0) + deltaActual);
+    const byFeatureActual = {...(monthlyData.byFeatureClassActualCostMicros || {})};
+    byFeatureActual[featureKey] = Math.max(0, (Number(byFeatureActual[featureKey]) || 0) + deltaActual);
+
+    transaction.set(eventRef, {
+      actualCostMicros: nextActual,
+      costStatus: "reconciled",
+      reconciliationSource,
+      reconciledAt: admin.firestore.FieldValue.serverTimestamp(),
+      varianceMicros,
+      varianceRatio,
+    }, {merge: true});
+
+    transaction.set(usageRef, {
+      dateKey,
+      totalActualCostMicros: nextUsageActual,
+      lastReconciledRequestId: requestId,
+      lastReconciledAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    transaction.set(dailyRef, {
+      dateKey,
+      totalActualCostMicros: nextDailyActual,
+      lastReconciledRequestId: requestId,
+      lastReconciledAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    transaction.set(monthlyRef, {
+      monthKey,
+      totalActualCostMicros: nextMonthlyActual,
+      totalVarianceMicros: nextMonthlyVariance,
+      reconciledEvents,
+      reconciliationCoverage: estimatedEvents > 0 ? Number((reconciledEvents / estimatedEvents).toFixed(4)) : 0,
+      byProviderVarianceMicros: byProviderVariance,
+      byModelVarianceMicros: byModelVariance,
+      byFeatureClassVarianceMicros: byFeatureVariance,
+      byPlanActualCostMicros: byPlanActual,
+      byProviderActualCostMicros: byProviderActual,
+      byModelActualCostMicros: byModelActual,
+      byFeatureClassActualCostMicros: byFeatureActual,
+      lastReconciledAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    return {
+      requestId,
+      estimatedCostMicros: estimated,
+      actualCostMicros: nextActual,
+      varianceMicros,
+      varianceRatio,
+      monthKey,
+      dailyDateKey: dateKey,
+      reconciliationCoverage: estimatedEvents > 0 ? Number((reconciledEvents / estimatedEvents).toFixed(4)) : 0,
+    };
+  });
+
+  return reconcileResult;
+});
+
+exports.recordAiMembershipEvent = onCall({
+  region: "us-central1",
+  timeoutSeconds: 20,
+}, async (request) => {
+  await assertCallableSecurity(request, "recordAiMembershipEvent");
+  const uid = nonEmptyString(request.auth?.uid);
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Anmeldung erforderlich.");
+  }
+
+  const eventName = normalizeMembershipEventName(request.data?.eventName || request.data?.event);
+  if (!eventName) {
+    throw new HttpsError("invalid-argument", "Unbekanntes Membership Event.");
+  }
+
+  const createdAtEpochMillis = Date.now();
+  const eventId = nonEmptyString(request.data?.eventId) || `mbr_${uid}_${createdAtEpochMillis}_${Math.random().toString(36).slice(2, 8)}`;
+  const payload = {
+    eventId,
+    uid,
+    eventName,
+    platform: aiMetricKey(nonEmptyString(request.data?.platform) || "unknown", "unknown"),
+    reason: normalizeMembershipReason(request.data?.reason),
+    plan: normalizeMembershipPlan(request.data?.plan),
+    annual: asBoolean(request.data?.annual, false),
+    surface: normalizeMembershipSurface(request.data?.surface),
+    currentPlan: normalizeMembershipPlan(request.data?.currentPlan),
+    source: aiMetricKey(nonEmptyString(request.data?.source) || "client", "client"),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAtEpochMillis,
+    dateKey: aiUsageDateKey(),
+    monthKey: aiUsageMonthKey(),
+  };
+
+  await admin.firestore()
+      .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
+      .doc(eventId)
+      .set(payload, {merge: true});
+
+  return {
+    status: "recorded",
+    eventId,
+    eventName,
+  };
+});
+
+exports.getAiMembershipDashboard = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "getAiMembershipDashboard");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Membership-Metriken sehen.");
+  }
+
+  const nowMs = Date.now();
+  const range7 = rollingWindowRange(7);
+  const range30 = rollingWindowRange(30);
+  const prev7 = {days: 7, startMs: range7.startMs - (7 * 24 * 60 * 60 * 1000), endMs: range7.startMs};
+  const prev30 = {days: 30, startMs: range30.startMs - (30 * 24 * 60 * 60 * 1000), endMs: range30.startMs};
+  const queryStart = Math.min(prev30.startMs, prev7.startMs);
+
+  const [membershipEventsSnapshot, usageMonthlySnapshot] = await Promise.all([
+    admin.firestore()
+        .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
+        .where("createdAtEpochMillis", ">=", queryStart)
+        .orderBy("createdAtEpochMillis", "desc")
+        .limit(10000)
+        .get(),
+    admin.firestore()
+        .collection(AI_USAGE_METRICS_COLLECTION)
+        .doc(aiUsageMonthlyMetricsDocumentId(aiUsageMonthKey()))
+        .get(),
+  ]);
+  const docs = membershipEventsSnapshot.docs;
+  const summary7 = summarizeMembershipWindow(range7, docs);
+  const summary30 = summarizeMembershipWindow(range30, docs);
+  const previousSummary7 = summarizeMembershipWindow(prev7, docs);
+  const previousSummary30 = summarizeMembershipWindow(prev30, docs);
+
+  const alerts = [];
+  if (previousSummary7.cvr > 0 && summary7.cvr < previousSummary7.cvr * 0.8) {
+    alerts.push({type: "cvr_drop", severity: "high", detail: "7d CVR liegt mehr als 20% unter der Vorwoche."});
+  }
+  if (previousSummary30.annualShare > 0 && summary30.annualShare < previousSummary30.annualShare * 0.85) {
+    alerts.push({type: "annual_share_drop", severity: "medium", detail: "Annual Share faellt deutlich gegen Vorperiode."});
+  }
+  if (summary30.creatorTakeRate < 0.2 && summary30.purchaseSuccess >= 10) {
+    alerts.push({type: "creator_stagnation", severity: "medium", detail: "Creator Take Rate bleibt niedrig bei aktivem Funnel."});
+  }
+  if (summary30.rawCounts.upgradeAfterDeny >= 10 && summary30.upgradeAfterDenyCvr < 0.15) {
+    alerts.push({type: "deny_high_low_upgrade", severity: "high", detail: "Viele Deny-Upgradesignale, aber schwache Conversion."});
+  }
+  if (summary7.membershipOpens >= 20 && summary7.purchaseSuccess === 0) {
+    alerts.push({type: "many_opens_no_purchases", severity: "high", detail: "Viele Opens in 7d ohne Purchase Success."});
+  }
+  if (previousSummary7.cancelRate > 0 && summary7.cancelRate > previousSummary7.cancelRate * 1.5) {
+    alerts.push({type: "purchase_cancel_spike", severity: "medium", detail: "Cancel Rate ist stark gegen Vorwoche gestiegen."});
+  }
+
+  const monthlyUsage = usageMonthlySnapshot.data() || {};
+  const byPlanActual = monthlyUsage.byPlanActualCostMicros || monthlyUsage.byPlanCostMicros || {};
+  const freeBurnMicros = Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.free)] || 0);
+  const proBurnMicros = Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.creator)] || 0);
+  const creatorBurnMicros = Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.studio)] || 0);
+
+  return {
+    generatedAtEpochMillis: nowMs,
+    windows: {
+      d7: summary7,
+      d30: summary30,
+    },
+    baselines: {
+      previous7d: previousSummary7,
+      previous30d: previousSummary30,
+    },
+    alerts,
+    costOverlay: {
+      burnByPlanMicros: {
+        free: freeBurnMicros,
+        pro: proBurnMicros,
+        creator: creatorBurnMicros,
+      },
+      marginStressByPlan: {
+        free: freeBurnMicros,
+        pro: proBurnMicros,
+        creator: creatorBurnMicros,
+      },
+      creatorProfitabilitySignal: summary30.creatorTakeRate > 0 ? Number((creatorBurnMicros / Math.max(summary30.creatorTakeRate, 0.0001)).toFixed(2)) : null,
+      freePlanLoadRatio: (freeBurnMicros + proBurnMicros + creatorBurnMicros) > 0 ?
+        Number((freeBurnMicros / (freeBurnMicros + proBurnMicros + creatorBurnMicros)).toFixed(4)) :
+        0,
+    },
+    dataNotes: {
+      membershipEventSource: AI_MEMBERSHIP_EVENTS_COLLECTION,
+      warning: "Dashboard basiert auf serverseitig gespiegelten Membership Events.",
+    },
+  };
+});
+
+exports.getAiMembershipDashboardTimeseries = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "getAiMembershipDashboardTimeseries");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Membership-Trends sehen.");
+  }
+
+  const requestedWindow = Number(request.data?.windowDays);
+  const normalizedWindow = [7, 30, 90].includes(requestedWindow) ? requestedWindow : 90;
+  const range90 = rollingWindowRange(90);
+  const range30 = rollingWindowRange(30);
+  const range7 = rollingWindowRange(7);
+  const prev30 = {days: 30, startMs: range30.startMs - (30 * 24 * 60 * 60 * 1000), endMs: range30.startMs};
+  const prev7 = {days: 7, startMs: range7.startMs - (7 * 24 * 60 * 60 * 1000), endMs: range7.startMs};
+  const queryStart = Math.min(range90.startMs, prev30.startMs, prev7.startMs);
+
+  const membershipEventsSnapshot = await admin.firestore()
+      .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
+      .where("createdAtEpochMillis", ">=", queryStart)
+      .orderBy("createdAtEpochMillis", "desc")
+      .limit(15000)
+      .get();
+  const docs = membershipEventsSnapshot.docs;
+
+  const summary7 = summarizeMembershipWindow(range7, docs);
+  const summary30 = summarizeMembershipWindow(range30, docs);
+  const previousSummary7 = summarizeMembershipWindow(prev7, docs);
+  const previousSummary30 = summarizeMembershipWindow(prev30, docs);
+  const series7 = buildMembershipDailySeries(7, docs);
+  const series30 = buildMembershipDailySeries(30, docs);
+  const series90 = buildMembershipDailySeries(90, docs);
+  const activeSeries = normalizedWindow === 7 ? series7 : normalizedWindow === 30 ? series30 : series90;
+  const trendSignals = buildTimeseriesTrendSignals(series30, summary7, previousSummary7);
+
+  return {
+    generatedAtEpochMillis: Date.now(),
+    selectedWindowDays: normalizedWindow,
+    timeseries: {
+      d7: series7,
+      d30: series30,
+      d90: series90,
+      selected: activeSeries,
+    },
+    trendSignals,
+    compareWindows: {
+      last7dVsPrevious7d: compareWindowSummary(summary7, previousSummary7),
+      last30dVsPrevious30d: compareWindowSummary(summary30, previousSummary30),
+    },
+    summaries: {
+      d7: summary7,
+      d30: summary30,
+      previous7d: previousSummary7,
+      previous30d: previousSummary30,
+    },
+    dataNotes: {
+      membershipEventSource: AI_MEMBERSHIP_EVENTS_COLLECTION,
+      coverageDays: 90,
+    },
+  };
+});
+
+exports.getAiMembershipTrendRecommendations = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "getAiMembershipTrendRecommendations");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Revenue-Ops Empfehlungen sehen.");
+  }
+
+  const range90 = rollingWindowRange(90);
+  const range30 = rollingWindowRange(30);
+  const range7 = rollingWindowRange(7);
+  const prev30 = {days: 30, startMs: range30.startMs - (30 * 24 * 60 * 60 * 1000), endMs: range30.startMs};
+  const prev7 = {days: 7, startMs: range7.startMs - (7 * 24 * 60 * 60 * 1000), endMs: range7.startMs};
+  const queryStart = Math.min(range90.startMs, prev30.startMs, prev7.startMs);
+
+  const [membershipEventsSnapshot, usageMonthlySnapshot, lifecycleSnapshot, runtimeSettings] = await Promise.all([
+    admin.firestore()
+        .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
+        .where("createdAtEpochMillis", ">=", queryStart)
+        .orderBy("createdAtEpochMillis", "desc")
+        .limit(15000)
+        .get(),
+    admin.firestore()
+        .collection(AI_USAGE_METRICS_COLLECTION)
+        .doc(aiUsageMonthlyMetricsDocumentId(aiUsageMonthKey()))
+        .get(),
+    admin.firestore()
+        .collection(AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION)
+        .where("generatedAt", ">=", queryStart)
+        .orderBy("generatedAt", "desc")
+        .limit(5000)
+        .get(),
+    loadAiRuntimeSettings(),
+  ]);
+  const docs = membershipEventsSnapshot.docs;
+  const summary7 = summarizeMembershipWindow(range7, docs);
+  const summary30 = summarizeMembershipWindow(range30, docs);
+  const previousSummary7 = summarizeMembershipWindow(prev7, docs);
+  const previousSummary30 = summarizeMembershipWindow(prev30, docs);
+  const series30 = buildMembershipDailySeries(30, docs);
+  const trendSignals = buildTimeseriesTrendSignals(series30, summary7, previousSummary7);
+  const compareWindows = {
+    last7dVsPrevious7d: compareWindowSummary(summary7, previousSummary7),
+    last30dVsPrevious30d: compareWindowSummary(summary30, previousSummary30),
+  };
+
+  const alerts = [];
+  if (previousSummary7.cvr > 0 && summary7.cvr < previousSummary7.cvr * 0.8) {
+    alerts.push({type: "cvr_drop", severity: "high"});
+  }
+  if (previousSummary30.annualShare > 0 && summary30.annualShare < previousSummary30.annualShare * 0.85) {
+    alerts.push({type: "annual_share_drop", severity: "medium"});
+  }
+  if (summary30.creatorTakeRate < 0.2 && summary30.purchaseSuccess >= 10) {
+    alerts.push({type: "creator_stagnation", severity: "medium"});
+  }
+  if (summary30.rawCounts.upgradeAfterDeny >= 10 && summary30.upgradeAfterDenyCvr < 0.15) {
+    alerts.push({type: "deny_high_low_upgrade", severity: "high"});
+  }
+  if (summary7.membershipOpens >= 20 && summary7.purchaseSuccess === 0) {
+    alerts.push({type: "many_opens_no_purchases", severity: "high"});
+  }
+  if (previousSummary7.cancelRate > 0 && summary7.cancelRate > previousSummary7.cancelRate * 1.5) {
+    alerts.push({type: "purchase_cancel_spike", severity: "medium"});
+  }
+
+  const monthlyUsage = usageMonthlySnapshot.data() || {};
+  const byPlanActual = monthlyUsage.byPlanActualCostMicros || monthlyUsage.byPlanCostMicros || {};
+  const costOverlay = {
+    burnByPlanMicros: {
+      free: Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.free)] || 0),
+      pro: Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.creator)] || 0),
+      creator: Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.studio)] || 0),
+    },
+  };
+  const totalBurn = costOverlay.burnByPlanMicros.free + costOverlay.burnByPlanMicros.pro + costOverlay.burnByPlanMicros.creator;
+  costOverlay.freePlanLoadRatio = totalBurn > 0 ?
+    Number((costOverlay.burnByPlanMicros.free / totalBurn).toFixed(4)) :
+    0;
+
+  const baseRecommendations = buildMembershipTrendRecommendations({
+    summary7,
+    summary30,
+    previousSummary7,
+    previousSummary30,
+    trendSignals,
+    compareWindows,
+    alerts,
+    costOverlay,
+  });
+  const lifecycleRows = lifecycleSnapshot.docs.map((doc) => ({lifecycleId: doc.id, ...(doc.data() || {})}));
+  const recommendations = applyRecommendationHygiene({
+    recommendations: baseRecommendations,
+    lifecycleRows,
+    hygieneConfig: runtimeSettings.membershipHygiene || DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene,
+    nowMs: Date.now(),
+  });
+  await appendProposedRecommendationsToTimeline(
+      recommendations.filter((entry) => entry.suppressed !== true),
+      Date.now(),
+  );
+
+  return {
+    generatedAtEpochMillis: Date.now(),
+    recommendations,
+    diagnostics: {
+      trendSignals,
+      compareWindows,
+      alerts,
+      summary7,
+      summary30,
+      previousSummary7,
+      previousSummary30,
+      costOverlay,
+      activeHygieneParameters: runtimeSettings.membershipHygiene || DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene,
+    },
+    guardrails: {
+      autoApply: false,
+      darkPatternsAllowed: false,
+      recommendationOnly: true,
+    },
+  };
+});
+
+exports.simulateAiMembershipOpsImpact = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "simulateAiMembershipOpsImpact");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Impact-Simulationen sehen.");
+  }
+
+  const horizonDays = parseHorizonDays(request.data?.timeHorizonDays);
+  const requestedRecommendationIds = Array.isArray(request.data?.recommendationIds) ?
+    request.data.recommendationIds.map((value) => nonEmptyString(value)).filter(Boolean) :
+    [];
+
+  const range90 = rollingWindowRange(90);
+  const range30 = rollingWindowRange(30);
+  const range7 = rollingWindowRange(7);
+  const prev30 = {days: 30, startMs: range30.startMs - (30 * 24 * 60 * 60 * 1000), endMs: range30.startMs};
+  const prev7 = {days: 7, startMs: range7.startMs - (7 * 24 * 60 * 60 * 1000), endMs: range7.startMs};
+  const queryStart = Math.min(range90.startMs, prev30.startMs, prev7.startMs);
+
+  const [membershipEventsSnapshot, usageMonthlySnapshot] = await Promise.all([
+    admin.firestore()
+        .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
+        .where("createdAtEpochMillis", ">=", queryStart)
+        .orderBy("createdAtEpochMillis", "desc")
+        .limit(15000)
+        .get(),
+    admin.firestore()
+        .collection(AI_USAGE_METRICS_COLLECTION)
+        .doc(aiUsageMonthlyMetricsDocumentId(aiUsageMonthKey()))
+        .get(),
+  ]);
+  const docs = membershipEventsSnapshot.docs;
+  const summary7 = summarizeMembershipWindow(range7, docs);
+  const summary30 = summarizeMembershipWindow(range30, docs);
+  const previousSummary7 = summarizeMembershipWindow(prev7, docs);
+  const previousSummary30 = summarizeMembershipWindow(prev30, docs);
+  const series30 = buildMembershipDailySeries(30, docs);
+  const trendSignals = buildTimeseriesTrendSignals(series30, summary7, previousSummary7);
+  const compareWindows = {
+    last7dVsPrevious7d: compareWindowSummary(summary7, previousSummary7),
+    last30dVsPrevious30d: compareWindowSummary(summary30, previousSummary30),
+  };
+  const alerts = [];
+  if (previousSummary7.cvr > 0 && summary7.cvr < previousSummary7.cvr * 0.8) {
+    alerts.push({type: "cvr_drop", severity: "high"});
+  }
+  if (previousSummary30.annualShare > 0 && summary30.annualShare < previousSummary30.annualShare * 0.85) {
+    alerts.push({type: "annual_share_drop", severity: "medium"});
+  }
+  if (summary30.creatorTakeRate < 0.2 && summary30.purchaseSuccess >= 10) {
+    alerts.push({type: "creator_stagnation", severity: "medium"});
+  }
+  if (summary30.rawCounts.upgradeAfterDeny >= 10 && summary30.upgradeAfterDenyCvr < 0.15) {
+    alerts.push({type: "deny_high_low_upgrade", severity: "high"});
+  }
+  if (summary7.membershipOpens >= 20 && summary7.purchaseSuccess === 0) {
+    alerts.push({type: "many_opens_no_purchases", severity: "high"});
+  }
+  if (previousSummary7.cancelRate > 0 && summary7.cancelRate > previousSummary7.cancelRate * 1.5) {
+    alerts.push({type: "purchase_cancel_spike", severity: "medium"});
+  }
+  const monthlyUsage = usageMonthlySnapshot.data() || {};
+  const byPlanActual = monthlyUsage.byPlanActualCostMicros || monthlyUsage.byPlanCostMicros || {};
+  const costOverlay = {
+    burnByPlanMicros: {
+      free: Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.free)] || 0),
+      pro: Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.creator)] || 0),
+      creator: Number(byPlanActual[aiMetricKey(USER_QUOTA_PLANS.studio)] || 0),
+    },
+  };
+  const totalBurn = costOverlay.burnByPlanMicros.free + costOverlay.burnByPlanMicros.pro + costOverlay.burnByPlanMicros.creator;
+  costOverlay.freePlanLoadRatio = totalBurn > 0 ?
+    Number((costOverlay.burnByPlanMicros.free / totalBurn).toFixed(4)) :
+    0;
+
+  const recommendations = buildMembershipTrendRecommendations({
+    summary7,
+    summary30,
+    previousSummary7,
+    previousSummary30,
+    trendSignals,
+    compareWindows,
+    alerts,
+    costOverlay,
+  });
+  const filteredRecommendations = requestedRecommendationIds.length > 0 ?
+    recommendations.filter((item) => requestedRecommendationIds.includes(item.id)) :
+    recommendations;
+
+  const simulations = filteredRecommendations.map((recommendation) => simulateRecommendationImpact(recommendation, {
+    eventCount: docs.length,
+    horizonDays,
+    summary7,
+    summary30,
+    trendSignals,
+    compareWindows,
+  })).sort((a, b) => (Number(b.priorityScore) || 0) - (Number(a.priorityScore) || 0));
+  const topNextActions = simulations.slice(0, 3).map((entry) => ({
+    recommendationId: entry.recommendationId,
+    priorityScore: entry.priorityScore,
+    expectedTimeToSignalDays: entry.expectedTimeToSignalDays,
+    rationale: entry.rationale,
+  }));
+
+  return {
+    generatedAtEpochMillis: Date.now(),
+    timeHorizonDays: horizonDays,
+    simulations,
+    topNextActions,
+    scoringModel: {
+      formula: "impact x confidence x low complexity x low risk",
+      conservativeRangesOnly: true,
+      noAutoExecution: true,
+    },
+    diagnostics: {
+      recommendationCount: recommendations.length,
+      simulatedCount: simulations.length,
+      eventCount: docs.length,
+      trendSignals,
+      compareWindows,
+    },
+  };
+});
+
+exports.startMembershipExperiment = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "startMembershipExperiment");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Experimente starten.");
+  }
+
+  const recommendationId = nonEmptyString(request.data?.recommendationId);
+  const recommendationType = aiMetricKey(nonEmptyString(request.data?.recommendationType) || "unknown");
+  if (!recommendationId) {
+    throw new HttpsError("invalid-argument", "recommendationId fehlt.");
+  }
+
+  const lifecycleId = nonEmptyString(request.data?.lifecycleId) || `lifecycle_${recommendationId}_${Date.now()}`;
+  const now = Date.now();
+  const expectedImpactInput = request.data?.expectedImpact || {};
+  const expectedImpact = {
+    cvrRange: normalizeImpactRange(expectedImpactInput.cvrRange, 0, 0),
+    annualShareRange: normalizeImpactRange(expectedImpactInput.annualShareRange, 0, 0),
+    creatorTakeRateRange: normalizeImpactRange(expectedImpactInput.creatorTakeRateRange, 0, 0),
+    cancelReductionRange: normalizeImpactRange(expectedImpactInput.cancelReductionRange, 0, 0),
+    riskLevel: nonEmptyString(expectedImpactInput.riskLevel) || "medium",
+    executionComplexity: nonEmptyString(expectedImpactInput.executionComplexity) || "medium",
+    expectedTimeToSignalDays: Number.isFinite(Number(expectedImpactInput.expectedTimeToSignalDays)) ?
+      Math.max(1, Math.floor(Number(expectedImpactInput.expectedTimeToSignalDays))) :
+      14,
+  };
+  const confidenceAtStart = Number.isFinite(Number(request.data?.confidenceAtStart)) ?
+    Math.max(0, Math.min(1, Number(request.data.confidenceAtStart))) :
+    0.35;
+
+  const payload = {
+    recommendationId,
+    recommendationType,
+    startedAt: admin.firestore.FieldValue.serverTimestamp(),
+    startedAtEpochMillis: now,
+    completedAt: null,
+    status: "active",
+    expectedImpact,
+    actualImpact: null,
+    confidenceAtStart,
+    simulationAccuracy: null,
+    notes: nonEmptyString(request.data?.notes) || "",
+    ownerAction: nonEmptyString(request.data?.ownerAction) || "start_experiment",
+    generatedAt: now,
+    affectedPlans: Array.isArray(request.data?.affectedPlans) ? request.data.affectedPlans : [],
+    affectedSurfaces: Array.isArray(request.data?.affectedSurfaces) ? request.data.affectedSurfaces : [],
+    experimentMeta: {
+      hypothesis: nonEmptyString(request.data?.hypothesis) || "",
+      experimentDesign: nonEmptyString(request.data?.experimentDesign) || "",
+      observedWindowDays: Number.isFinite(Number(request.data?.observedWindowDays)) ?
+        Math.max(1, Math.floor(Number(request.data.observedWindowDays))) :
+        expectedImpact.expectedTimeToSignalDays,
+    },
+  };
+
+  await admin.firestore()
+      .collection(AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION)
+      .doc(lifecycleId)
+      .set(payload, {merge: true});
+
+  return {
+    status: "active",
+    lifecycleId,
+    recommendationId,
+    recommendationType,
+    confidenceAtStart,
+    generatedAt: now,
+  };
+});
+
+exports.completeMembershipExperiment = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "completeMembershipExperiment");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Experimente abschliessen.");
+  }
+
+  const lifecycleId = nonEmptyString(request.data?.lifecycleId);
+  if (!lifecycleId) {
+    throw new HttpsError("invalid-argument", "lifecycleId fehlt.");
+  }
+
+  const lifecycleRef = admin.firestore()
+      .collection(AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION)
+      .doc(lifecycleId);
+  const snapshot = await lifecycleRef.get();
+  if (!snapshot.exists) {
+    throw new HttpsError("not-found", "Lifecycle-Eintrag nicht gefunden.");
+  }
+  const existing = snapshot.data() || {};
+  const expectedImpact = existing.expectedImpact || {};
+  const actualImpact = normalizeActualImpact(request.data?.actualImpact || {});
+  const simulationAccuracy = simulationAccuracyFromExpectedActual(expectedImpact, actualImpact);
+  const status = "completed";
+
+  await lifecycleRef.set({
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    completedAtEpochMillis: Date.now(),
+    status,
+    actualImpact,
+    simulationAccuracy,
+    notes: nonEmptyString(request.data?.notes) || nonEmptyString(existing.notes) || "",
+    ownerAction: nonEmptyString(request.data?.ownerAction) || "complete_experiment",
+  }, {merge: true});
+
+  return {
+    lifecycleId,
+    status,
+    recommendationId: nonEmptyString(existing.recommendationId) || "",
+    actualImpact,
+    simulationAccuracy,
+    success: actualImpact.success,
+    generatedAt: Date.now(),
+  };
+});
+
+exports.rejectMembershipRecommendation = onCall({
+  region: "us-central1",
+  timeoutSeconds: 20,
+}, async (request) => {
+  await assertCallableSecurity(request, "rejectMembershipRecommendation");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Empfehlungen verwerfen.");
+  }
+
+  const lifecycleId = nonEmptyString(request.data?.lifecycleId) ||
+    `lifecycle_reject_${nonEmptyString(request.data?.recommendationId) || "unknown"}_${Date.now()}`;
+  const recommendationId = nonEmptyString(request.data?.recommendationId) || "";
+  if (!recommendationId) {
+    throw new HttpsError("invalid-argument", "recommendationId fehlt.");
+  }
+
+  const payload = {
+    recommendationId,
+    recommendationType: aiMetricKey(nonEmptyString(request.data?.recommendationType) || "unknown"),
+    startedAt: null,
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    completedAtEpochMillis: Date.now(),
+    status: "rejected",
+    expectedImpact: request.data?.expectedImpact || null,
+    actualImpact: null,
+    confidenceAtStart: Number.isFinite(Number(request.data?.confidenceAtStart)) ?
+      Math.max(0, Math.min(1, Number(request.data.confidenceAtStart))) :
+      null,
+    simulationAccuracy: null,
+    notes: nonEmptyString(request.data?.notes) || "",
+    ownerAction: nonEmptyString(request.data?.ownerAction) || "reject_recommendation",
+    generatedAt: Date.now(),
+    affectedPlans: Array.isArray(request.data?.affectedPlans) ? request.data.affectedPlans : [],
+    affectedSurfaces: Array.isArray(request.data?.affectedSurfaces) ? request.data.affectedSurfaces : [],
+  };
+
+  await admin.firestore()
+      .collection(AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION)
+      .doc(lifecycleId)
+      .set(payload, {merge: true});
+
+  return {
+    status: "rejected",
+    lifecycleId,
+    recommendationId,
+    generatedAt: Date.now(),
+  };
+});
+
+exports.getMembershipLearningInsights = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "getMembershipLearningInsights");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Learning Insights sehen.");
+  }
+
+  const lookbackDays = Math.max(30, Math.min(365, Number(request.data?.lookbackDays) || 180));
+  const startMs = Date.now() - (lookbackDays * 24 * 60 * 60 * 1000);
+  const lifecycleSnapshot = await admin.firestore()
+      .collection(AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION)
+      .where("generatedAt", ">=", startMs)
+      .orderBy("generatedAt", "desc")
+      .limit(5000)
+      .get();
+  const insights = summarizeLearningInsights(lifecycleSnapshot.docs);
+  const dataStrength = insights.completedExperiments >= 20 ? "strong" :
+    insights.completedExperiments >= 8 ? "moderate" : "weak";
+  const recommendedConfidenceMode = dataStrength === "strong" ? "normal" :
+    dataStrength === "moderate" ? "conservative" : "very_conservative";
+
+  return {
+    generatedAtEpochMillis: Date.now(),
+    lookbackDays,
+    dataStrength,
+    recommendedConfidenceMode,
+    insights,
+    transparency: {
+      autoRollout: false,
+      fakeAttribution: false,
+      note: "Insights basieren auf Lifecycle-Eintraegen und beobachteten Experiment-Resultaten.",
+    },
+  };
+});
+
+exports.getMembershipLifecycleTimeline = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "getMembershipLifecycleTimeline");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf die Membership Timeline sehen.");
+  }
+
+  const rangeDays = parseTimelineRange(request.data?.range);
+  const startMs = Date.now() - (rangeDays * 24 * 60 * 60 * 1000);
+  const filters = {
+    types: request.data?.types,
+    plans: request.data?.plans,
+    severities: request.data?.severities,
+  };
+
+  const [lifecycleSnapshot, membershipEventsSnapshot] = await Promise.all([
+    admin.firestore()
+        .collection(AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION)
+        .where("generatedAt", ">=", startMs)
+        .orderBy("generatedAt", "desc")
+        .limit(5000)
+        .get(),
+    admin.firestore()
+        .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
+        .where("createdAtEpochMillis", ">=", startMs)
+        .orderBy("createdAtEpochMillis", "desc")
+        .limit(5000)
+        .get(),
+  ]);
+
+  const lifecycleRows = lifecycleSnapshot.docs.map((doc) => ({
+    lifecycleId: doc.id,
+    ...(doc.data() || {}),
+  }));
+  const lifecycleEntries = buildLifecycleTimelineEntries(lifecycleRows);
+
+  const range7 = rollingWindowRange(7);
+  const prev7 = {days: 7, startMs: range7.startMs - (7 * 24 * 60 * 60 * 1000), endMs: range7.startMs};
+  const docs = membershipEventsSnapshot.docs;
+  const summary7 = summarizeMembershipWindow(range7, docs);
+  const previousSummary7 = summarizeMembershipWindow(prev7, docs);
+  const compare = compareWindowSummary(summary7, previousSummary7);
+  const trendSignals = buildTimeseriesTrendSignals(buildMembershipDailySeries(30, docs), summary7, previousSummary7);
+
+  const systemEntries = [];
+  const now = Date.now();
+  if (Math.abs(Number(compare.cvrDelta) || 0) >= 0.03) {
+    systemEntries.push({
+      id: `timeline_kpi_shift_${now}`,
+      date: now,
+      dateKey: utcDateKeyFromEpochMillis(now),
+      type: "significant_kpi_shift",
+      title: "Significant KPI shift",
+      summary: `CVR shift detected (${compare.cvrDelta}).`,
+      ownerAction: "",
+      expectedImpact: null,
+      actualImpact: {cvrDelta: compare.cvrDelta},
+      confidenceAtStart: null,
+      learnings: "",
+      recommendationId: "",
+      recommendationType: "system_signal",
+      lifecycleId: "",
+      severity: Math.abs(compare.cvrDelta) >= 0.05 ? "high" : "medium",
+      affectedPlans: ["free", "creator", "studio"],
+      affectedSurfaces: [],
+      links: {},
+      rerunDraft: null,
+    });
+  }
+  if ((trendSignals.cancelSpikeDates || []).length > 0) {
+    systemEntries.push({
+      id: `timeline_alert_cancel_${now}`,
+      date: now - 1,
+      dateKey: utcDateKeyFromEpochMillis(now - 1),
+      type: "alert_triggered",
+      title: "Alert triggered",
+      summary: "Cancel spike detected in Membership funnel.",
+      ownerAction: "",
+      expectedImpact: null,
+      actualImpact: {cancelSpikeDates: trendSignals.cancelSpikeDates},
+      confidenceAtStart: null,
+      learnings: "",
+      recommendationId: "",
+      recommendationType: "system_alert",
+      lifecycleId: "",
+      severity: "medium",
+      affectedPlans: ["creator", "studio"],
+      affectedSurfaces: [],
+      links: {},
+      rerunDraft: null,
+    });
+  }
+
+  const filtered = applyTimelineFilters(
+      [...lifecycleEntries, ...systemEntries].sort((a, b) => (Number(b.date) || 0) - (Number(a.date) || 0)),
+      filters,
+  );
+
+  return {
+    generatedAtEpochMillis: now,
+    range: request.data?.range || "30d",
+    entries: filtered,
+    counts: {
+      total: filtered.length,
+      lifecycle: lifecycleEntries.length,
+      system: systemEntries.length,
+    },
+  };
+});
+
+exports.setMembershipHygieneControls = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "setMembershipHygieneControls");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Hygiene Controls verwalten.");
+  }
+
+  const resetToDefaults = request.data?.resetToDefaults === true;
+  const runtimeRef = admin.firestore().collection(AI_RUNTIME_CONFIG_COLLECTION).doc(AI_RUNTIME_CONFIG_DOCUMENT);
+  const runtimeSnapshot = await runtimeRef.get();
+  const current = resolveAiRuntimeSettings(runtimeSnapshot.data() || {});
+  const nextHygiene = resetToDefaults ?
+    DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene :
+    resolveMembershipHygieneSettings(request.data?.membershipHygiene || current.membershipHygiene);
+
+  await runtimeRef.set({
+    membershipHygiene: nextHygiene,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  return {
+    status: "ok",
+    membershipHygiene: nextHygiene,
+    profile: membershipHygieneProfile(nextHygiene),
+  };
+});
+
+exports.getMembershipHygieneControls = onCall({
+  region: "us-central1",
+  timeoutSeconds: 20,
+}, async (request) => {
+  await assertCallableSecurity(request, "getMembershipHygieneControls");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Hygiene Controls sehen.");
+  }
+  const runtime = await loadAiRuntimeSettings();
+  const hygiene = runtime.membershipHygiene || DEFAULT_AI_RUNTIME_SETTINGS.membershipHygiene;
+  return {
+    membershipHygiene: hygiene,
+    profile: membershipHygieneProfile(hygiene),
+  };
+});
+
+exports.getAiProfitDashboard = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "getAiProfitDashboard");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf Profit-Metriken sehen.");
+  }
+
+  const dateKey = aiUsageDateKey();
+  const monthKey = aiUsageMonthKey(dateKey);
+  const [dailySnapshot, monthlySnapshot, burnSnapshot] = await Promise.all([
+    admin.firestore().collection(AI_USAGE_METRICS_COLLECTION).doc(aiUsageMetricsDocumentId(dateKey)).get(),
+    admin.firestore().collection(AI_USAGE_METRICS_COLLECTION).doc(aiUsageMonthlyMetricsDocumentId(monthKey)).get(),
+    admin.firestore().collection(AI_GUARDRAILS_COLLECTION).doc(aiDailyBurnDocumentId(dateKey)).get(),
+  ]);
+  const daily = dailySnapshot.data() || {};
+  const monthly = monthlySnapshot.data() || {};
+  const burn = burnSnapshot.data() || {};
+
+  const recentDeniedSnapshot = await admin.firestore()
+      .collection(AI_USAGE_EVENTS_COLLECTION)
+      .where("denied", "==", true)
+      .orderBy("createdAtEpochMillis", "desc")
+      .limit(300)
+      .get();
+  const deniedByReason = {};
+  for (const doc of recentDeniedSnapshot.docs) {
+    const denyReason = aiMetricKey(doc.data()?.denyReason || "unknown");
+    deniedByReason[denyReason] = (Number(deniedByReason[denyReason]) || 0) + 1;
+  }
+
+  const topMarginStressSignals = [
+    ...collectTopEntries(monthly.byProviderVarianceMicros || {}, 3).map((entry) => ({
+      type: "provider_variance",
+      key: entry.key,
+      varianceMicros: entry.value,
+    })),
+    ...collectTopEntries(monthly.byModelVarianceMicros || {}, 3).map((entry) => ({
+      type: "model_variance",
+      key: entry.key,
+      varianceMicros: entry.value,
+    })),
+    ...collectTopEntries(monthly.byFeatureClassVarianceMicros || {}, 3).map((entry) => ({
+      type: "feature_variance",
+      key: entry.key,
+      varianceMicros: entry.value,
+    })),
+  ].sort((a, b) => b.varianceMicros - a.varianceMicros).slice(0, 8);
+
+  const currentRuntime = await loadAiRuntimeSettings();
+  const dailyBurnCapMicros = Number(currentRuntime.costGuardrails.dailyBurnCapMicros) || 0;
+  const currentDailyBurnMicros = Number(burn.totalEstimatedCostMicros || 0);
+
+  return {
+    dateKey,
+    monthKey,
+    freeBurnMicros: Number(monthly.byPlanActualCostMicros?.[aiMetricKey(USER_QUOTA_PLANS.free)] || 0),
+    proBurnMicros: Number(monthly.byPlanActualCostMicros?.[aiMetricKey(USER_QUOTA_PLANS.creator)] || 0),
+    creatorBurnMicros: Number(monthly.byPlanActualCostMicros?.[aiMetricKey(USER_QUOTA_PLANS.studio)] || 0),
+    burnByFeatureClass: monthly.byFeatureClassActualCostMicros || monthly.byFeatureClassCostMicros || {},
+    burnByProvider: monthly.byProviderActualCostMicros || monthly.byProviderCostMicros || {},
+    burnByModel: monthly.byModelActualCostMicros || monthly.byModelCostMicros || {},
+    deniedRequestsByReason: deniedByReason,
+    topMarginStressSignals,
+    reconciliationCoverage: Number(monthly.reconciliationCoverage || 0),
+    currentDailyBurnMicros,
+    dailyBurnCapMicros,
+    burnCapUsageRatio: dailyBurnCapMicros > 0 ? Number((currentDailyBurnMicros / dailyBurnCapMicros).toFixed(4)) : null,
+    dailyEstimatedCostMicros: Number(daily.totalEstimatedCostMicros || 0),
+    dailyActualCostMicros: Number(daily.totalActualCostMicros || 0),
+    monthlyEstimatedCostMicros: Number(monthly.totalEstimatedCostMicros || 0),
+    monthlyActualCostMicros: Number(monthly.totalActualCostMicros || 0),
+    monthlyVarianceMicros: Number(monthly.totalVarianceMicros || 0),
+  };
 });
 
 exports.generateAiText = onCall({
@@ -4578,6 +8046,16 @@ exports.generateAiText = onCall({
   const usage = await authorizeAiUsage({
     auth: request.auth,
     kind: AI_USAGE_KINDS.text,
+    provider: "google_vertex",
+    model: "gemini-2.5-flash-lite",
+    eventType: "bot_text_generation",
+    sourceRoute: "callable.generateAiText",
+    functionName: "generateAiText",
+    featureClass: AI_FEATURE_CLASSES.text,
+    resultType: "text",
+    requestWeight: 1,
+    estimatedCostMicros: 12_000,
+    requestId: nonEmptyString(request.data?.requestId) || "",
   });
   const reply = await generateAiTextReply({
     prompt: input.prompt,
@@ -4588,6 +8066,16 @@ exports.generateAiText = onCall({
     reply,
     mode: input.mode,
     historyRetentionDays: usage.historyRetentionDays,
+    usage: {
+      kind: usage.kind,
+      featureClass: usage.featureClass,
+      remainingForKind: usage.remainingForKind,
+      limitForKind: usage.limitForKind,
+      warningLevel: usage.warningLevel || "ok",
+      guardrailHints: usage.guardrailHints || {},
+      effectiveEntitlement: usage.effectiveEntitlement || null,
+      decision: usage.decision || null,
+    },
   };
 });
 
@@ -4605,12 +8093,31 @@ exports.generateAiVisual = onCall({
     const usage = await authorizeAiUsage({
       auth: request.auth,
       kind: AI_USAGE_KINDS.visual,
+      provider: "google_vertex",
+      eventType: "bot_visual_generation",
+      sourceRoute: "callable.generateAiVisual",
+      functionName: "generateAiVisual",
+      featureClass: AI_FEATURE_CLASSES.image,
+      resultType: "image",
+      requestWeight: 2,
+      estimatedCostMicros: 95_000,
+      requestId: nonEmptyString(request.data?.requestId) || "",
     });
     const visual = await generateAiVisualResult(input.prompt);
 
     return {
       ...visual,
       historyRetentionDays: usage.historyRetentionDays,
+      usage: {
+        kind: usage.kind,
+        featureClass: usage.featureClass,
+        remainingForKind: usage.remainingForKind,
+        limitForKind: usage.limitForKind,
+        warningLevel: usage.warningLevel || "ok",
+        guardrailHints: usage.guardrailHints || {},
+        effectiveEntitlement: usage.effectiveEntitlement || null,
+        decision: usage.decision || null,
+      },
     };
   } catch (error) {
     if (error instanceof HttpsError) {
@@ -5158,6 +8665,109 @@ async function runManusAgent({
   };
 }
 
+function buildGrokChatMessages({systemInstruction, workspaceContext, history, prompt, mode}) {
+  const framework = responseFrameworkHint(mode, prompt);
+  const systemParts = [
+    nonEmptyString(systemInstruction) || "",
+    workspaceContext && workspaceContext.trim() ?
+      `Workspace-Kontext:\n${workspaceContext.trim()}` :
+      "",
+    framework ? `Antwort-Rahmen:\n${framework}` : "",
+  ].filter(Boolean);
+
+  const systemContent = systemParts.join("\n\n").trim().slice(0, 12000);
+  const messages = [];
+
+  if (Array.isArray(history)) {
+    for (const turn of history) {
+      const role = turn?.role === "assistant" ? "assistant" : "user";
+      const text = nonEmptyString(turn?.text)?.trim();
+      if (!text) {
+        continue;
+      }
+      messages.push({
+        role,
+        content: text.slice(0, 4000),
+      });
+    }
+  }
+
+  messages.push({
+    role: "user",
+    content: nonEmptyString(prompt)?.trim()?.slice(0, 4000) || "",
+  });
+
+  return {
+    system: systemContent,
+    messages,
+  };
+}
+
+async function runGrokAgent({
+  input,
+  systemInstruction,
+  workspaceContext,
+  apiKey,
+}) {
+  const {system, messages} = buildGrokChatMessages({
+    systemInstruction,
+    workspaceContext,
+    history: input.history,
+    prompt: input.prompt,
+    mode: input.mode,
+  });
+
+  const payloadMessages = [];
+  if (system) {
+    payloadMessages.push({role: "system", content: system});
+  }
+  payloadMessages.push(...messages);
+
+  const response = await fetch(XAI_CHAT_COMPLETIONS_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROK_AGENT_MODEL,
+      temperature: 0.65,
+      max_tokens: 2048,
+      messages: payloadMessages,
+    }),
+  });
+
+  const rawBody = await response.text();
+  if (!response.ok) {
+    logger.error("Grok chat completion failed.", {
+      status: response.status,
+      bodyPreview: rawBody.slice(0, 800),
+    });
+    throw new HttpsError(
+        "internal",
+        "Grok Agent konnte keine Antwort erzeugen.",
+    );
+  }
+
+  let data;
+  try {
+    data = JSON.parse(rawBody);
+  } catch (error) {
+    logger.error("Grok response was not JSON.", {bodyPreview: rawBody.slice(0, 400)});
+    throw new HttpsError("internal", "Grok Agent lieferte eine ungueltige Antwort.");
+  }
+
+  const text = nonEmptyString(data?.choices?.[0]?.message?.content)?.trim();
+  if (!text) {
+    logger.error("Grok response missing content.", {
+      keys: data && typeof data === "object" ? Object.keys(data) : [],
+    });
+    throw new HttpsError("internal", "Grok hat keine Antwort geliefert.");
+  }
+
+  return text;
+}
+
 const skydownAgentFlow = ai.defineFlow({
   name: "skydownAgentFlow",
   inputSchema: agentFlowRequestSchema,
@@ -5200,7 +8810,7 @@ const skydownAgentFlow = ai.defineFlow({
 exports.skydownAgent = onCall({
   region: "us-central1",
   timeoutSeconds: 90,
-  secrets: [manusApiKey],
+  secrets: [manusApiKey, xaiApiKey],
 }, async (request) => {
   await assertCallableSecurity(request, "skydownAgent");
   const input = parseCallableInput(
@@ -5211,6 +8821,15 @@ exports.skydownAgent = onCall({
   const usage = await authorizeAiUsage({
     auth: request.auth,
     kind: AI_USAGE_KINDS.agent,
+    provider: AI_AGENT_PROVIDERS.grok,
+    eventType: "agent_generation",
+    sourceRoute: "callable.skydownAgent",
+    functionName: "skydownAgent",
+    featureClass: input.executeAutomation ? AI_FEATURE_CLASSES.workflow : AI_FEATURE_CLASSES.agent,
+    resultType: input.executeAutomation ? "workflow" : "text",
+    requestWeight: input.executeAutomation ? 3 : 2,
+    estimatedCostMicros: input.executeAutomation ? 260_000 : 110_000,
+    requestId: nonEmptyString(request.data?.requestId) || "",
   });
   const promptSettings = await loadAiPromptSettings();
   const personalAgentProfile = await loadPersonalAgentProfileSettingsForUser(request.auth?.uid);
@@ -5229,7 +8848,7 @@ exports.skydownAgent = onCall({
       personalAgentProfile,
   );
   let reply = "";
-  let agentProvider = AI_AGENT_PROVIDERS.gemini;
+  let agentProvider = runtimeSettings.agentProvider;
   let providerFallbackUsed = false;
   let providerNotice = "";
 
@@ -5258,6 +8877,40 @@ exports.skydownAgent = onCall({
     }
   }
 
+  if (!reply && runtimeSettings.agentProvider === AI_AGENT_PROVIDERS.grok) {
+    const apiKey = (xaiApiKey.value() || "").trim();
+    if (apiKey) {
+      try {
+        reply = await runGrokAgent({
+          input,
+          systemInstruction: effectiveAgentSystemInstruction,
+          workspaceContext,
+          apiKey,
+        });
+        agentProvider = AI_AGENT_PROVIDERS.grok;
+      } catch (error) {
+        if (runtimeSettings.fallbackAgentProvider === AI_AGENT_PROVIDERS.gemini) {
+          providerFallbackUsed = true;
+          providerNotice = providerNotice ||
+            "Grok war nicht verfuegbar. Antwort wurde ueber Gemini erstellt.";
+          logger.warn("Grok agent failed. Falling back to Gemini.", {
+            uid: request.auth?.uid || null,
+            error: error instanceof Error ? error.message : `${error}`,
+          });
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      providerFallbackUsed = true;
+      providerNotice = providerNotice ||
+        "Grok-API-Key fehlt serverseitig. Antwort wurde ueber Gemini erstellt.";
+      logger.warn("Grok selected but XAI_API_KEY is empty. Falling back to Gemini.", {
+        uid: request.auth?.uid || null,
+      });
+    }
+  }
+
   if (!reply) {
     reply = await skydownAgentFlow({
       prompt: input.prompt,
@@ -5280,6 +8933,16 @@ exports.skydownAgent = onCall({
     }) :
     {attempted: false, triggered: false};
 
+  const agentRunId = await persistAgentRunSummary({
+    uid: request.auth.uid,
+    mode: input.mode,
+    agentProvider,
+    providerFallbackUsed,
+    automation,
+    promptText: input.prompt,
+    replyText: reply,
+  });
+
   return {
     reply,
     mode: input.mode,
@@ -5291,6 +8954,33 @@ exports.skydownAgent = onCall({
     providerFallbackUsed,
     providerNotice,
     historyRetentionDays: usage.historyRetentionDays,
+    agentRunId: agentRunId || "",
+    resultType: automation.triggered === true || automation.attempted === true ? "workflow" : "text",
+    results: [
+      {
+        type: "text",
+        text: reply,
+      },
+      ...(automation.triggered === true || automation.attempted === true ? [{
+        type: "workflow",
+        workflowName: nonEmptyString(automation.workflowName) || "n8n Workflow",
+        status: automation.triggered === true ? "queued" : "failed",
+        summary: nonEmptyString(automation.message) || (
+          automation.triggered === true ? "Workflow wurde gestartet." : "Workflow konnte nicht gestartet werden."
+        ),
+        runId: agentRunId || "",
+      }] : []),
+    ],
+    usage: {
+      kind: usage.kind,
+      featureClass: usage.featureClass,
+      remainingForKind: usage.remainingForKind,
+      limitForKind: usage.limitForKind,
+      warningLevel: usage.warningLevel || "ok",
+      guardrailHints: usage.guardrailHints || {},
+      effectiveEntitlement: usage.effectiveEntitlement || null,
+      decision: usage.decision || null,
+    },
   };
 });
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
     @ObservedObject private var authManager: AuthManager
     @StateObject private var viewModel: UserProfileViewModel
+    @ObservedObject private var legalContentStore = LegalContentStore.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
@@ -11,10 +12,12 @@ struct ProfileView: View {
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-ui_test")
         || ProcessInfo.processInfo.arguments.contains("-ui_test_role_matrix")
         || ProcessInfo.processInfo.arguments.contains("-ui_test_profile_crud")
+    private let onOpenSettings: (() -> Void)?
 
     init(
         authManager: AuthManager,
-        startsInEditMode: Bool = false
+        startsInEditMode: Bool = false,
+        onOpenSettings: (() -> Void)? = nil
     ) {
         _authManager = ObservedObject(wrappedValue: authManager)
         _viewModel = StateObject(
@@ -23,6 +26,7 @@ struct ProfileView: View {
                 startsInEditMode: startsInEditMode
             )
         )
+        self.onOpenSettings = onOpenSettings
     }
 
     var body: some View {
@@ -30,6 +34,9 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     profileHeader
+                    personalDashboardSection
+                    quickActionsSection
+                    personalHistorySection
 
                     if let uploadStatus = currentUploadStatus {
                         ProfileUploadStatusCard(
@@ -40,6 +47,7 @@ struct ProfileView: View {
                     }
 
                     mediaSection
+                    trustSection
 
                     if viewModel.isEditing && viewModel.canEditCurrentProfile {
                         editSection
@@ -204,6 +212,45 @@ struct ProfileView: View {
         }
 
         return nil
+    }
+
+    private func localized(_ key: String, _ fallback: String) -> String {
+        AppLocalized.text(key, fallback: fallback)
+    }
+
+    private var aiSystemStatusTitle: String {
+        guard let user = viewModel.currentUser else { return "Gastmodus" }
+        if !user.aiAccessEnabled { return "KI pausiert" }
+        if user.hasActiveAISubscription { return "Premium aktiv" }
+        return "Basis aktiv"
+    }
+
+    private var membershipStatusTitle: String {
+        guard let user = viewModel.currentUser else { return "Nicht angemeldet" }
+        if let plan = user.resolvedAISubscriptionPlan {
+            return "Plan \(plan.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)"
+        }
+        return "Plan \(planTitle)"
+    }
+
+    private var latestGalleryDateLabel: String {
+        guard let latest = viewModel.filteredItems.sorted(by: { $0.createdAt > $1.createdAt }).first else {
+            return "Noch keine Aktivitaet"
+        }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = Locale(identifier: "de_DE")
+        return formatter.string(from: latest.createdAt)
+    }
+
+    private var registrationDateLabel: String {
+        guard let user = viewModel.currentUser else { return "-" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = Locale(identifier: "de_DE")
+        return formatter.string(from: user.registrationDate)
     }
 
     private var profileHeader: some View {
@@ -483,6 +530,187 @@ struct ProfileView: View {
         )
     }
 
+    private var personalDashboardSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localized("profile.dashboard.title", "Personal Dashboard"))
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(localized("profile.dashboard.subtitle", "Your current system status at a glance."))
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 10) {
+                ProfileMetricCard(title: localized("profile.dashboard.membership", "Membership"), value: membershipStatusTitle, colorScheme: colorScheme)
+                ProfileMetricCard(title: localized("profile.dashboard.ai", "AI"), value: aiSystemStatusTitle, colorScheme: colorScheme)
+            }
+            HStack(spacing: 10) {
+                ProfileMetricCard(title: localized("profile.dashboard.gallery", "Gallery"), value: "\(viewModel.imageCount) \(localized("profile.images", "images"))", colorScheme: colorScheme)
+                ProfileMetricCard(title: localized("profile.dashboard.role", "Role"), value: roleTitle, colorScheme: colorScheme)
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accent(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 8,
+            shadowYOffset: 4
+        )
+    }
+
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localized("profile.quick_actions.title", "Quick Actions"))
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(localized("profile.quick_actions.subtitle", "Your most important personal actions in one calm block."))
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 10) {
+                quickActionButton(
+                    title: viewModel.isEditing ? localized("profile.done", "Done") : localized("profile.edit", "Edit profile"),
+                    systemImage: "square.and.pencil",
+                    emphasis: .primary
+                ) {
+                    viewModel.setEditing(!viewModel.isEditing)
+                }
+                quickActionButton(
+                    title: localized("profile.upload_image", "Upload image"),
+                    systemImage: "photo.badge.plus",
+                    emphasis: .primary
+                ) {
+                    pendingImagePickerTarget = .gallery
+                }
+            }
+
+            HStack(spacing: 10) {
+                quickActionButton(
+                    title: localized("profile.membership", "Membership"),
+                    systemImage: "sparkles",
+                    emphasis: .secondary
+                ) {
+                    onOpenSettings?()
+                    dismiss()
+                }
+                quickActionButton(
+                    title: localized("profile.settings", "Settings"),
+                    systemImage: "gearshape.fill",
+                    emphasis: .secondary
+                ) {
+                    onOpenSettings?()
+                    dismiss()
+                }
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentMystic(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 8,
+            shadowYOffset: 4
+        )
+    }
+
+    private var personalHistorySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localized("profile.history.title", "Personal History"))
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(localized("profile.history.subtitle", "A compact view of your latest profile and content activity."))
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            ProfileHistoryRow(title: localized("profile.history.latest_created", "Latest created"), value: latestGalleryDateLabel, colorScheme: colorScheme)
+            ProfileHistoryRow(title: localized("profile.history.member_since", "Member since"), value: registrationDateLabel, colorScheme: colorScheme)
+            ProfileHistoryRow(title: localized("profile.history.current_plan", "Current plan"), value: membershipStatusTitle, colorScheme: colorScheme)
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentHighlight(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 8,
+            shadowYOffset: 4
+        )
+    }
+
+    private var trustSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localized("profile.trust.title", "Trust / Account"))
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(localized("profile.trust.subtitle", "Support, privacy and account controls in one place."))
+                .font(.footnote.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Button {
+                let support = legalContentStore.settings.resolvedSupportEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !support.isEmpty, let url = URL(string: "mailto:\(support)") else { return }
+                openURL(url)
+            } label: {
+                Label(localized("profile.support_contact", "Contact support"), systemImage: "envelope.fill")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .skydownInteractiveFeedback()
+
+            quickActionButton(
+                title: localized("profile.privacy_account", "Privacy & account"),
+                systemImage: "lock.shield.fill",
+                emphasis: .secondary
+            ) {
+                onOpenSettings?()
+                dismiss()
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentMystic(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 8,
+            shadowYOffset: 4
+        )
+    }
+
+    private enum QuickActionEmphasis {
+        case primary
+        case secondary
+    }
+
+    private func quickActionButton(
+        title: String,
+        systemImage: String,
+        emphasis: QuickActionEmphasis,
+        action: @escaping () -> Void
+    ) -> some View {
+        Group {
+            if emphasis == .primary {
+                Button(action: action) {
+                    Label(title, systemImage: systemImage)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accent(for: colorScheme))
+                .skydownInteractiveFeedback()
+            } else {
+                Button(action: action) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColors.accent(for: colorScheme))
+                .skydownInteractiveFeedback()
+            }
+        }
+    }
+
     private var editSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
@@ -666,6 +894,47 @@ private struct ProfileUploadStatusCard: View {
             shadowRadius: 10,
             shadowYOffset: 6
         )
+    }
+}
+
+private struct ProfileMetricCard: View {
+    let title: String
+    let value: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(AppColors.cardBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct ProfileHistoryRow: View {
+    let title: String
+    let value: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            Spacer()
+            Text(value)
+                .font(.footnote.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+        }
+        .padding(.vertical, 4)
     }
 }
 

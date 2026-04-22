@@ -10,6 +10,7 @@ data class AiGeneratedVisualResult(
     val imageBytes: ByteArray,
     val mimeType: String,
     val historyRetentionDays: Int,
+    val usage: AiUsageSnapshot? = null,
 )
 
 open class AiImageClient(
@@ -56,6 +57,7 @@ open class AiImageClient(
             imageBytes = imageBytes,
             mimeType = (data["mimeType"] as? String)?.takeIf { it.isNotBlank() } ?: "image/png",
             historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
+            usage = parseAiUsageSnapshot(data["usage"]),
         )
     }
 }

@@ -26,6 +26,7 @@ struct SettingsView: View {
     @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @ObservedObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @ObservedObject private var membershipOpsStore = MembershipOpsCommandCenterStore.shared
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @ObservedObject private var stripeBackendSecretsStore = StripeBackendSecretsStore.shared
     @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
@@ -51,6 +52,7 @@ struct SettingsView: View {
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastStyle: ToastStyle = .success
+    @State private var isRunningControlCenterCheck = false
     @State private var activeEditableImageUploadTarget: SettingsEditableImageTarget?
     @State private var activeAdminWorkspace: SettingsAdminWorkspaceSection?
     @State private var showingMailOptions = false
@@ -129,7 +131,7 @@ struct SettingsView: View {
     @State private var aiAssetLibraryLinkDraft = ""
     @State private var aiAssetReferenceNotesDraft = ""
     @State private var aiCostGuardEnabledDraft = true
-    @State private var aiAgentProviderDraft: AIRuntimeAgentProvider = .gemini
+    @State private var aiAgentProviderDraft: AIRuntimeAgentProvider = .grok
     @State private var aiFallbackAgentProviderDraft: AIRuntimeAgentProvider = .gemini
     @State private var aiManusEnabledDraft = false
     @State private var aiManusRequestTimeoutMsDraft = ""
@@ -408,10 +410,15 @@ struct SettingsView: View {
                         appearance: currentAppearanceLabel
                     )
 
-                    SettingsSectionCard(title: "Konto", colorScheme: effectiveColorScheme) {
+                    controlCenterSectionCard
+
+                    SettingsSectionCard(title: AppLocalized.text("settings.section.profile_account", fallback: "Profile / Account"), colorScheme: effectiveColorScheme) {
                         if let user = authManager.userSession {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Angemeldet als \(user.username)")
+                                Text(AppLocalized.text("settings.profile_account.subtitle", fallback: "Personal identity, login status and account security."))
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                Text("\(AppLocalized.text("settings.logged_in_as", fallback: "Signed in as")) \(user.username)")
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
@@ -422,7 +429,7 @@ struct SettingsView: View {
                                 Button {
                                     presentSheet(.profileEditor)
                                 } label: {
-                                    Label("Profil bearbeiten", systemImage: "person.crop.circle")
+                                    Label(AppLocalized.text("settings.profile.edit", fallback: "Edit profile"), systemImage: "person.crop.circle")
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -430,32 +437,7 @@ struct SettingsView: View {
                                 .tint(AppColors.accent(for: effectiveColorScheme))
                                 .accessibilityIdentifier("settings.open_profile_editor")
 
-                                if canUseAISelfPaySubscription {
-                                    NativeAISubscriptionStatusCard(
-                                        colorScheme: effectiveColorScheme,
-                                        user: user,
-                                        products: aiSubscriptionStore.products,
-                                        isStorefrontReady: aiSubscriptionStore.isStorefrontReady,
-                                        isLoadingProducts: aiSubscriptionStore.isLoadingProducts,
-                                        isSyncing: aiSubscriptionStore.isSyncing,
-                                        activePurchasePlan: aiSubscriptionStore.activePurchasePlan,
-                                        lastErrorMessage: aiSubscriptionStore.lastErrorMessage,
-                                        statusLine: aiSubscriptionStatusLine(for: user),
-                                        detailLine: aiSubscriptionDetailLine(for: user),
-                                        purchaseDisabledReason: aiSubscriptionPurchaseBlockedReason(for: user),
-                                        onPurchase: { plan in
-                                            purchaseAISubscription(plan)
-                                        },
-                                        onRestore: {
-                                            restoreAISubscriptionPurchases()
-                                        },
-                                        onManage: {
-                                            manageAISubscription()
-                                        }
-                                    )
-                                }
-
-                                Text("Kontoaktionen")
+                                Text(AppLocalized.text("settings.account_actions", fallback: "Account actions"))
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -463,7 +445,7 @@ struct SettingsView: View {
                                     Button(role: .destructive) {
                                         activeAlert = .logout
                                     } label: {
-                                        Label("Abmelden", systemImage: "person.crop.circle.badge.xmark")
+                                        Label(AppLocalized.text("settings.logout", fallback: "Log out"), systemImage: "person.crop.circle.badge.xmark")
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.borderedProminent)
@@ -478,7 +460,7 @@ struct SettingsView: View {
                                             }
                                         }
                                     } label: {
-                                        Text("Anderes Konto")
+                                        Text(AppLocalized.text("settings.switch_account", fallback: "Switch account"))
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.bordered)
@@ -488,7 +470,7 @@ struct SettingsView: View {
                                     Button(role: .destructive) {
                                         activeAlert = .deleteAccount
                                     } label: {
-                                        Label("Konto loeschen", systemImage: "person.fill.xmark")
+                                        Label(AppLocalized.text("settings.delete_account", fallback: "Delete account"), systemImage: "person.fill.xmark")
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.bordered)
@@ -497,14 +479,14 @@ struct SettingsView: View {
                             }
                         } else {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Anmelden für Bestellungen & Profil.")
+                                Text(AppLocalized.text("settings.signin_prompt", fallback: "Sign in for orders and profile."))
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 Button {
                                     presentSheet(.login)
                                 } label: {
-                                    Label("Anmelden", systemImage: "person.crop.circle.fill.badge.plus")
+                                    Label(AppLocalized.text("auth.sign_in", fallback: "Sign in"), systemImage: "person.crop.circle.fill.badge.plus")
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -515,7 +497,7 @@ struct SettingsView: View {
                                 Button {
                                     presentSheet(.registration)
                                 } label: {
-                                    Label("Registrieren", systemImage: "person.crop.circle.badge.plus")
+                                    Label(AppLocalized.text("auth.register", fallback: "Register"), systemImage: "person.crop.circle.badge.plus")
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.bordered)
@@ -526,14 +508,19 @@ struct SettingsView: View {
                         }
                     }
 
+                    membershipSectionCard
+
                     adminWorkspaceSectionCard
 
                     if authManager.userSession != nil {
                         personalAgentServiceSectionCard
                     }
 
-                    SettingsSectionCard(title: "Allgemein", colorScheme: effectiveColorScheme) {
+                    SettingsSectionCard(title: AppLocalized.text("settings.section.system", fallback: "System"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 12) {
+                            Text(AppLocalized.text("settings.system.subtitle", fallback: "Language, notifications and system behavior."))
+                                .font(.footnote)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             HStack {
                                 Text(
                                     AppLocalized.text(
@@ -566,9 +553,9 @@ struct SettingsView: View {
                         }
                     }
 
-                    SettingsSectionCard(title: "Anzeige", colorScheme: effectiveColorScheme) {
+                    SettingsSectionCard(title: AppLocalized.text("settings.section.theme", fallback: "Theme"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Aktuell: \(currentAppearanceLabel)")
+                            Text("\(AppLocalized.text("settings.current", fallback: "Current")): \(currentAppearanceLabel)")
                                 .font(.subheadline)
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -584,45 +571,60 @@ struct SettingsView: View {
                         }
                     }
 
-                    SettingsSectionCard(title: "App-Info", colorScheme: effectiveColorScheme) {
+                    SettingsSectionCard(title: AppLocalized.text("settings.section.privacy_legal_help", fallback: "Privacy / Legal / Help"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Version \(appVersion)")
+                            Text(AppLocalized.text("settings.legal.subtitle", fallback: "Legal, help and trust in one clear sequence."))
+                                .font(.footnote)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                            Text("\(AppLocalized.text("settings.version", fallback: "Version")) \(appVersion)")
                                 .font(.headline)
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                            Button("README / App Guide") {
+                            Button(AppLocalized.text("settings.faq_guide", fallback: "FAQ / Guide")) {
                                 presentSheet(.appGuide)
                             }
                             .buttonStyle(.bordered)
                             .skydownInteractiveFeedback()
 
-                            Button("AGB") {
+                            Button(AppLocalized.text("settings.terms_local", fallback: "Terms (local)")) {
                                 presentSheet(.termsAndConditions)
                             }
                             .buttonStyle(.bordered)
                             .skydownInteractiveFeedback()
 
-                            Button("Datenschutzbestimmungen") {
+                            Button(AppLocalized.text("settings.privacy", fallback: "Privacy")) {
                                 presentSheet(.privacyPolicy)
                             }
                             .buttonStyle(.bordered)
                             .skydownInteractiveFeedback()
 
-                            Button("Nutzungsbedingungen") {
+                            Button(AppLocalized.text("settings.terms", fallback: "Terms")) {
                                 presentSheet(.termsOfService)
                             }
                             .buttonStyle(.bordered)
                             .skydownInteractiveFeedback()
 
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Support")
-                                    .font(.headline)
-                                    .foregroundColor(AppColors.text(for: effectiveColorScheme))
-
-                                Text(legalContentStore.settings.resolvedSupportEmail)
-                                    .font(.subheadline)
-                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                            Button("Subscription Terms") {
+                                presentSheet(.subscriptionTerms)
                             }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+
+                            Button("AI Usage Notice") {
+                                presentSheet(.aiUsageNotice)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+
+                            Button("Impressum / Company Info") {
+                                presentSheet(.imprintInfo)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+
+                            Text(legalContentStore.settings.resolvedSupportEmail)
+                                .font(.subheadline)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                             Button {
                                 #if targetEnvironment(simulator)
@@ -639,7 +641,7 @@ struct SettingsView: View {
                                 }
                                 #endif
                             } label: {
-                                Label("Support-Anfrage senden", systemImage: "envelope.fill")
+                                Label(AppLocalized.text("settings.support.send", fallback: "Send support request"), systemImage: "envelope.fill")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
@@ -648,11 +650,11 @@ struct SettingsView: View {
 
                             if isOwnerUser {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text("Rechtliches (Owner)")
+                                    Text(AppLocalized.text("settings.legal.owner_title", fallback: "Legal (owner)"))
                                         .font(.headline)
                                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                                    Text("AGB, Datenschutz, Nutzungsbedingungen — ohne Release pflegen.")
+                                    Text(AppLocalized.text("settings.legal.owner_subtitle", fallback: "Maintain terms, privacy, and usage conditions without a release."))
                                         .font(.footnote)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -738,7 +740,7 @@ struct SettingsView: View {
                                     )
 
                                     Button(action: saveLegalContentSettings) {
-                                        Label("Rechtliches speichern", systemImage: "doc.text.fill")
+                                        Label(AppLocalized.text("settings.legal.save", fallback: "Save legal content"), systemImage: "doc.text.fill")
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.borderedProminent)
@@ -747,7 +749,7 @@ struct SettingsView: View {
                                 }
                             }
 
-                            Text("README, Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.")
+                            Text(AppLocalized.text("settings.legal.availability_note", fallback: "All help and legal texts are directly available."))
                                 .font(.footnote)
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                         }
@@ -758,14 +760,14 @@ struct SettingsView: View {
                 .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .scrollIndicators(.hidden)
-            .navigationTitle("Einstellungen")
+            .navigationTitle(AppLocalized.text("settings.title", fallback: "Settings"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
                     } label: {
-                        Label("Schliessen", systemImage: "xmark")
+                        Label(AppLocalized.text("common.close", fallback: "Close"), systemImage: "xmark")
                     }
                 }
             }
@@ -784,11 +786,11 @@ struct SettingsView: View {
             settingsSheetContent(for: sheet)
         }
         .confirmationDialog(
-            "Support-Anfrage senden",
+            AppLocalized.text("settings.support.send", fallback: "Send support request"),
             isPresented: $showingMailOptions,
             titleVisibility: .visible
         ) {
-            Button("In-App senden") {
+            Button(AppLocalized.text("settings.support.send_in_app", fallback: "Send in app")) {
                 if canPresentInAppMailComposer {
                     presentSheet(.mailComposer)
                 } else {
@@ -796,28 +798,28 @@ struct SettingsView: View {
                 }
             }
 
-            Button("Mail-App oeffnen") {
+            Button(AppLocalized.text("settings.support.open_mail_app", fallback: "Open Mail app")) {
                 openMailAppFallback()
             }
 
-            Button("Abbrechen", role: .cancel) {}
+            Button(AppLocalized.text("common.cancel", fallback: "Cancel"), role: .cancel) {}
         }
         .alert(item: $activeAlert) { alert in
             switch alert {
             case .logout:
                 return Alert(
-                    title: Text("Abmelden"),
-                    message: Text("Moechten Sie sich wirklich abmelden?"),
-                    primaryButton: .destructive(Text("Abmelden")) {
+                    title: Text(AppLocalized.text("settings.logout", fallback: "Log out")),
+                    message: Text(AppLocalized.text("settings.logout.confirm", fallback: "Do you really want to log out?")),
+                    primaryButton: .destructive(Text(AppLocalized.text("settings.logout", fallback: "Log out"))) {
                         Task { await authManager.signOut() }
                     },
                     secondaryButton: .cancel()
                 )
             case .deleteAccount:
                 return Alert(
-                    title: Text("Konto loeschen"),
-                    message: Text("Moechten Sie Ihr Konto unwiderruflich loeschen?"),
-                    primaryButton: .destructive(Text("Konto loeschen")) {
+                    title: Text(AppLocalized.text("settings.delete_account", fallback: "Delete account")),
+                    message: Text(AppLocalized.text("settings.delete_account.confirm", fallback: "Do you want to permanently delete your account?")),
+                    primaryButton: .destructive(Text(AppLocalized.text("settings.delete_account", fallback: "Delete account"))) {
                         Task {
                             do {
                                 try await authManager.deleteAccount()
@@ -1128,47 +1130,163 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var adminWorkspaceSectionCard: some View {
-        SettingsSectionCard(title: "Owner", colorScheme: effectiveColorScheme) {
+    private var controlCenterSectionCard: some View {
+        SettingsSectionCard(title: "System Control", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isOwnerUser ? "Systemsteuerung (Owner-only)." : "Owner-only Systemsteuerung.")
+                SettingsInlineStatusStrip(
+                    icon: "slider.horizontal.3",
+                    title: "Control Center aktiv",
+                    message: "Konto, KI-Service, Zahlungen und Sicherheit zentral steuerbar.",
+                    detail: [
+                        authManager.userSession == nil ? "Gastmodus" : "Konto aktiv",
+                        aiRuntimeSettingsStore.settings.costGuardEnabled ? "KI Guard aktiv" : "KI Guard pruefen",
+                        "\(visiblePaymentMethodCount) Checkout-Routen"
+                    ].joined(separator: " · "),
+                    accent: AppColors.accentMystic(for: effectiveColorScheme),
+                    colorScheme: effectiveColorScheme
+                )
+
+                VStack(spacing: 10) {
+                    Button {
+                        Task { await runControlCenterHealthCheck() }
+                    } label: {
+                        Label(
+                            isRunningControlCenterCheck ? "System wird geprueft ..." : "System pruefen",
+                            systemImage: "waveform.path.ecg"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .skydownInteractiveFeedback()
+                    .tint(AppColors.accentMystic(for: effectiveColorScheme))
+                    .disabled(isRunningControlCenterCheck)
+
+                    Button {
+                        if authManager.userSession == nil {
+                            presentSheet(.login)
+                        } else {
+                            presentSheet(.adminWorkspace(.automation))
+                        }
+                    } label: {
+                        Label(
+                            authManager.userSession == nil ? "Anmelden und Agent-Service starten" : "Agent-Service oeffnen",
+                            systemImage: "bolt.horizontal.circle"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .skydownInteractiveFeedback()
+                    .tint(AppColors.accent(for: effectiveColorScheme))
+
+                    SettingsUtilityRow(
+                        colorScheme: effectiveColorScheme,
+                        actions: [
+                            SettingsUtilityAction(
+                                title: isOwnerUser ? "Zahlungen" : "Support",
+                                systemImage: isOwnerUser ? "creditcard.fill" : "envelope.fill",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                action: {
+                                    if isOwnerUser {
+                                        presentSheet(.adminWorkspace(.payments))
+                                    } else {
+                                        presentSheet(.mailComposer)
+                                    }
+                                }
+                            ),
+                            SettingsUtilityAction(
+                                title: "Datenschutz",
+                                systemImage: "lock.shield",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                action: { presentSheet(.privacyPolicy) }
+                            ),
+                            SettingsUtilityAction(
+                                title: "Orders",
+                                systemImage: "shippingbox.fill",
+                                accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                                action: { presentSheet(.orders) }
+                            )
+                        ]
+                    )
+                }
+            }
+        }
+        .accessibilityIdentifier("settings.control_center")
+    }
+
+    @ViewBuilder
+    private var membershipSectionCard: some View {
+        SettingsSectionCard(title: "Membership", colorScheme: effectiveColorScheme) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalized.text("settings.membership.subtitle", fallback: "Current plan, billing clarity, and restore in one place."))
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                if let user = authManager.userSession {
+                    if canUseAISelfPaySubscription {
+                        NativeAISubscriptionStatusCard(
+                            colorScheme: effectiveColorScheme,
+                            user: user,
+                            products: aiSubscriptionStore.products,
+                            isStorefrontReady: aiSubscriptionStore.isStorefrontReady,
+                            isLoadingProducts: aiSubscriptionStore.isLoadingProducts,
+                            isSyncing: aiSubscriptionStore.isSyncing,
+                            activePurchasePlan: aiSubscriptionStore.activePurchasePlan,
+                            lastErrorMessage: aiSubscriptionStore.lastErrorMessage,
+                            statusLine: aiSubscriptionStatusLine(for: user),
+                            detailLine: aiSubscriptionDetailLine(for: user),
+                            purchaseDisabledReason: aiSubscriptionPurchaseBlockedReason(for: user),
+                            onPurchase: { plan in purchaseAISubscription(plan) },
+                            onRestore: { restoreAISubscriptionPurchases() },
+                            onManage: { manageAISubscription() }
+                        )
+                    } else {
+                        SettingsLockedHintCard(
+                            colorScheme: effectiveColorScheme,
+                            text: "Membership wird fuer dieses Konto zentral serverseitig verwaltet."
+                        )
+                    }
+                } else {
+                    Text(AppLocalized.text("settings.membership.signin_prompt", fallback: "Sign in to view your plan and manage billing."))
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var adminWorkspaceSectionCard: some View {
+        SettingsSectionCard(title: "System Control", colorScheme: effectiveColorScheme) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(isOwnerUser ? "Operator-Bereich fuer Revenue, Nutzer und Runtime-Steuerung." : "Geschuetzter Operator-Bereich.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                OwnerCommandCenterCard(
-                    colorScheme: effectiveColorScheme,
-                    isOwner: isOwnerUser,
-                    paymentStatus: "\(visiblePaymentMethodCount) Checkout-Routen",
-                    userStatus: "\(adminUserManagementStore.users.count) Konten",
-                    headerStatus: "\(configuredScreenHeaderCount) Header",
-                    aiStatus: aiRuntimeSettingsStore.settings.costGuardEnabled ? "Cost Guard aktiv" : "Cost Guard pruefen",
-                    onOpenUsers: { presentSheet(.adminWorkspace(.users)) },
-                    onOpenPayments: { presentSheet(.adminWorkspace(.payments)) },
-                    onOpenHeaders: { presentSheet(.adminWorkspace(.headers)) },
-                    onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
-                )
-                .accessibilityIdentifier("settings.owner.command_center")
-
-                Button {
-                    presentSheet(.orders)
-                } label: {
-                    Label("Bestellungen oeffnen", systemImage: "suitcase.cart")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .skydownInteractiveFeedback()
-                .disabled(!isOwnerUser)
-                .accessibilityIdentifier("settings.owner.open_orders")
-
-                if !isOwnerUser {
-                    SettingsLockedHintCard(
-                        colorScheme: effectiveColorScheme,
-                        text: "Owner-only. Melde dich als Owner an."
-                    )
-                    .accessibilityIdentifier("settings.owner.locked_hint")
-                }
-
                 if isOwnerUser {
+                    OwnerCommandCenterCard(
+                        colorScheme: effectiveColorScheme,
+                        isOwner: isOwnerUser,
+                        paymentStatus: "\(visiblePaymentMethodCount) Zahlungsrouten",
+                        userStatus: "\(adminUserManagementStore.users.count) Konten",
+                        headerStatus: "\(configuredScreenHeaderCount) Header",
+                        aiStatus: aiRuntimeSettingsStore.settings.costGuardEnabled ? "AI Guard aktiv" : "AI Guard pruefen",
+                        onOpenUsers: { presentSheet(.adminWorkspace(.users)) },
+                        onOpenPayments: { presentSheet(.adminWorkspace(.payments)) },
+                        onOpenHeaders: { presentSheet(.adminWorkspace(.headers)) },
+                        onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
+                    )
+                    .accessibilityIdentifier("settings.owner.command_center")
+
+                    Button {
+                        presentSheet(.orders)
+                    } label: {
+                        Label(AppLocalized.text("settings.orders.open", fallback: "Open orders"), systemImage: "suitcase.cart")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .skydownInteractiveFeedback()
+                    .accessibilityIdentifier("settings.owner.open_orders")
+
                     VStack(spacing: 10) {
                         ForEach(SettingsAdminWorkspaceSection.allCases) { section in
                             SettingsAdminWorkspaceListRow(
@@ -1181,6 +1299,12 @@ struct SettingsView: View {
                             .accessibilityIdentifier("settings.owner.workspace.\(section.accessibilityKey)")
                         }
                     }
+                } else {
+                    SettingsLockedHintCard(
+                        colorScheme: effectiveColorScheme,
+                        text: "Nicht verfuegbar fuer dieses Konto."
+                    )
+                    .accessibilityIdentifier("settings.owner.locked_hint")
                 }
             }
         }
@@ -1189,9 +1313,9 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var personalAgentServiceSectionCard: some View {
-        SettingsSectionCard(title: "Mein Agent-Service", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: "AI Control", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Verbinde n8n, Agent-Skills und optional Manus fuer dein Konto.")
+                    Text(AppLocalized.text("settings.ai_control.subtitle", fallback: "Control bot, agent, and workflow defaults in one place."))
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1218,7 +1342,7 @@ struct SettingsView: View {
                 Button {
                     presentSheet(.adminWorkspace(.automation))
                 } label: {
-                    Label("Agent-Service verwalten", systemImage: "bolt.horizontal.circle")
+                    Label(AppLocalized.text("settings.agent_service.manage", fallback: "Manage agent service"), systemImage: "bolt.horizontal.circle")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1239,7 +1363,7 @@ struct SettingsView: View {
             switch section {
             case .users:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Rollen, KI an/aus, Tageslimits — Bot, Visuals, Agent pro Konto.")
+                    Text(AppLocalized.text("settings.system_control.roles_limits", fallback: "Roles, AI enablement, and daily limits per account."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1329,171 +1453,171 @@ struct SettingsView: View {
                     }
 
                     EditableImageField(
-                        title: "Home Header",
+                        title: AppLocalized.text("settings.admin.headers.home_header", fallback: "Home header"),
                         imageURL: $homeHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .homeHeader,
-                        uploadStatusText: "Home Header wird uebernommen.",
+                        uploadStatusText: AppLocalized.text("settings.admin.headers.home_header.uploading", fallback: "Home header is being applied."),
                         onPickImage: { presentSheet(.editableImage(.homeHeader)) },
                         onRemoveImage: { removeEditableImage(for: .homeHeader) }
                     )
 
                     SettingsInputField(
-                        title: "Home Eyebrow",
+                        title: AppLocalized.text("settings.admin.headers.home_eyebrow", fallback: "Home eyebrow"),
                         text: $homeHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Willkommen bei SkyOS"
+                        placeholder: AppLocalized.text("settings.admin.headers.home_eyebrow.placeholder", fallback: "e.g. Welcome to SkyOS")
                     )
 
                     SettingsInputField(
-                        title: "Home Titel",
+                        title: AppLocalized.text("settings.admin.headers.home_title", fallback: "Home title"),
                         text: $homeHeaderTitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Dein Space fuer Musik, Store und Visuals"
+                        placeholder: AppLocalized.text("settings.admin.headers.home_title.placeholder", fallback: "e.g. Your space for music, store, and visuals")
                     )
 
                     SettingsMultilineInputField(
-                        title: "Home Untertitel",
+                        title: AppLocalized.text("settings.admin.headers.home_subtitle", fallback: "Home subtitle"),
                         text: $homeHeaderSubtitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Kurze, klare Positionierung fuer neue und bestehende User.",
+                        placeholder: AppLocalized.text("settings.admin.headers.home_subtitle.placeholder", fallback: "Short, clear positioning for new and returning users."),
                         minHeight: 88
                     )
 
                     SettingsMultilineInputField(
-                        title: "Home Detail / Willkommenstext",
+                        title: AppLocalized.text("settings.admin.headers.home_detail", fallback: "Home detail / welcome text"),
                         text: $homeHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Laengerer Einstiegstext mit Mehrwert, Orientierung und naechstem Schritt.",
+                        placeholder: AppLocalized.text("settings.admin.headers.home_detail.placeholder", fallback: "Longer intro copy with value, orientation, and next step."),
                         minHeight: 104
                     )
 
                     EditableImageField(
-                        title: "Music Hub Header",
+                        title: AppLocalized.text("settings.admin.headers.music_header", fallback: "Music hub header"),
                         imageURL: $musicHubHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .musicHubHeader,
-                        uploadStatusText: "Music Hub Header wird uebernommen.",
+                        uploadStatusText: AppLocalized.text("settings.admin.headers.music_header.uploading", fallback: "Music hub header is being applied."),
                         onPickImage: { presentSheet(.editableImage(.musicHubHeader)) },
                         onRemoveImage: { removeEditableImage(for: .musicHubHeader) }
                     )
 
                     SettingsInputField(
-                        title: "Music Hub Eyebrow",
+                        title: AppLocalized.text("settings.admin.headers.music_eyebrow", fallback: "Music hub eyebrow"),
                         text: $musicHubHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Music"
+                        placeholder: AppLocalized.text("settings.admin.headers.music_eyebrow.placeholder", fallback: "e.g. Music")
                     )
 
                     SettingsInputField(
-                        title: "Music Hub Titel",
+                        title: AppLocalized.text("settings.admin.headers.music_title", fallback: "Music hub title"),
                         text: $musicHubHeaderTitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Music"
+                        placeholder: AppLocalized.text("settings.admin.headers.music_title.placeholder", fallback: "e.g. Music")
                     )
 
                     SettingsMultilineInputField(
-                        title: "Music Hub Untertitel",
+                        title: AppLocalized.text("settings.admin.headers.music_subtitle", fallback: "Music hub subtitle"),
                         text: $musicHubHeaderSubtitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Releases, Artists und Studio an einem Ort.",
+                        placeholder: AppLocalized.text("settings.admin.headers.music_subtitle.placeholder", fallback: "Releases, artists, and studio in one place."),
                         minHeight: 88
                     )
 
                     SettingsMultilineInputField(
-                        title: "Music Hub Detail",
+                        title: AppLocalized.text("settings.admin.headers.music_detail", fallback: "Music hub detail"),
                         text: $musicHubHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Klarer Einstieg in Songs, Beats, Artists und Studio.",
+                        placeholder: AppLocalized.text("settings.admin.headers.music_detail.placeholder", fallback: "Clear entry into songs, beats, artists, and studio."),
                         minHeight: 96
                     )
 
                     EditableImageField(
-                        title: "Shop Header",
+                        title: AppLocalized.text("settings.admin.headers.shop_header", fallback: "Shop header"),
                         imageURL: $shopHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .shopHeader,
-                        uploadStatusText: "Shop Header wird uebernommen.",
+                        uploadStatusText: AppLocalized.text("settings.admin.headers.shop_header.uploading", fallback: "Shop header is being applied."),
                         onPickImage: { presentSheet(.editableImage(.shopHeader)) },
                         onRemoveImage: { removeEditableImage(for: .shopHeader) }
                     )
 
                     SettingsInputField(
-                        title: "Shop Eyebrow",
+                        title: AppLocalized.text("settings.admin.headers.shop_eyebrow", fallback: "Shop eyebrow"),
                         text: $shopHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Store"
+                        placeholder: AppLocalized.text("settings.admin.headers.shop_eyebrow.placeholder", fallback: "e.g. Store")
                     )
 
                     SettingsInputField(
-                        title: "Shop Titel",
+                        title: AppLocalized.text("settings.admin.headers.shop_title", fallback: "Shop title"),
                         text: $shopHeaderTitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Shop"
+                        placeholder: AppLocalized.text("settings.admin.headers.shop_title.placeholder", fallback: "e.g. Shop")
                     )
 
                     SettingsMultilineInputField(
-                        title: "Shop Untertitel",
+                        title: AppLocalized.text("settings.admin.headers.shop_subtitle", fallback: "Shop subtitle"),
                         text: $shopHeaderSubtitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Produkte direkt in der App.",
+                        placeholder: AppLocalized.text("settings.admin.headers.shop_subtitle.placeholder", fallback: "Products directly in the app."),
                         minHeight: 88
                     )
 
                     SettingsMultilineInputField(
-                        title: "Shop Detail",
+                        title: AppLocalized.text("settings.admin.headers.shop_detail", fallback: "Shop detail"),
                         text: $shopHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Kurz erklaeren, was User im Shop finden und warum es sich lohnt.",
+                        placeholder: AppLocalized.text("settings.admin.headers.shop_detail.placeholder", fallback: "Briefly explain what users find in the shop and why it matters."),
                         minHeight: 96
                     )
 
                     EditableImageField(
-                        title: "Video Header",
+                        title: AppLocalized.text("settings.admin.headers.video_header", fallback: "Video header"),
                         imageURL: $videoHeaderImageURLDraft,
                         colorScheme: effectiveColorScheme,
                         isUploading: activeEditableImageUploadTarget == .videoHeader,
-                        uploadStatusText: "Video Header wird uebernommen.",
+                        uploadStatusText: AppLocalized.text("settings.admin.headers.video_header.uploading", fallback: "Video header is being applied."),
                         onPickImage: { presentSheet(.editableImage(.videoHeader)) },
                         onRemoveImage: { removeEditableImage(for: .videoHeader) }
                     )
 
                     SettingsInputField(
-                        title: "Video Eyebrow",
+                        title: AppLocalized.text("settings.admin.headers.video_eyebrow", fallback: "Video eyebrow"),
                         text: $videoHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Video"
+                        placeholder: AppLocalized.text("settings.admin.headers.video_eyebrow.placeholder", fallback: "e.g. Video")
                     )
 
                     SettingsInputField(
-                        title: "Video Titel",
+                        title: AppLocalized.text("settings.admin.headers.video_title", fallback: "Video title"),
                         text: $videoHeaderTitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. Video"
+                        placeholder: AppLocalized.text("settings.admin.headers.video_title.placeholder", fallback: "e.g. Video")
                     )
 
                     SettingsMultilineInputField(
-                        title: "Video Untertitel",
+                        title: AppLocalized.text("settings.admin.headers.video_subtitle", fallback: "Video subtitle"),
                         text: $videoHeaderSubtitleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Clips, Visuals und starke Kollaborationen.",
+                        placeholder: AppLocalized.text("settings.admin.headers.video_subtitle.placeholder", fallback: "Clips, visuals, and strong collaborations."),
                         minHeight: 88
                     )
 
                     SettingsMultilineInputField(
-                        title: "Video Detail",
+                        title: AppLocalized.text("settings.admin.headers.video_detail", fallback: "Video detail"),
                         text: $videoHeaderDetailDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Einordnung fuer Clips, Visuals und aktuelle Kollaborationen.",
+                        placeholder: AppLocalized.text("settings.admin.headers.video_detail.placeholder", fallback: "Context for clips, visuals, and current collaborations."),
                         minHeight: 96
                     )
 
-                    Text("Leer = System-Gradient.")
+                    Text(AppLocalized.text("settings.admin.headers.empty_gradient", fallback: "Empty = system gradient."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     Button(action: saveScreenHeaderSettings) {
-                        Label("Header speichern", systemImage: "photo.on.rectangle.angled")
+                        Label(AppLocalized.text("settings.admin.headers.save", fallback: "Save headers"), systemImage: "photo.on.rectangle.angled")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -2338,6 +2462,14 @@ struct SettingsView: View {
                     .buttonStyle(.bordered)
                     .skydownInteractiveFeedback()
                 }
+
+            case .membershipOps:
+                SettingsMembershipCommandCenterView(
+                    store: membershipOpsStore,
+                    colorScheme: effectiveColorScheme
+                ) { message, style in
+                    showToastMessage(message, style: style)
+                }
             }
         }
     }
@@ -2375,6 +2507,8 @@ struct SettingsView: View {
             return aiPromptSettingsStore.settings.assetLibraryLink.isEmpty ?
                 "Text \(aiPromptSettingsStore.settings.textInstruction.count)" :
                 "Assets + Prompts"
+        case .membershipOps:
+            return membershipOpsStore.isLoading ? "Command Center laedt" : "Revenue Ops bereit"
         }
     }
 
@@ -2433,6 +2567,30 @@ struct SettingsView: View {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+
+    private func runControlCenterHealthCheck() async {
+        guard !isRunningControlCenterCheck else { return }
+        isRunningControlCenterCheck = true
+        defer { isRunningControlCenterCheck = false }
+
+        await notificationPermissionStore.refresh()
+        _ = await authManager.refreshCurrentUser()
+
+        if canUseAISelfPaySubscription {
+            await aiSubscriptionStore.prepareStorefront(for: authManager.userSession)
+        }
+
+        if isOwnerUser {
+            await shopifyAdminSettingsStore.refreshAvailableCollections(force: true)
+        }
+
+        let accountState = authManager.userSession == nil ? "Gast" : "aktiv"
+        let notificationState = notificationPermissionStore.notificationsEnabled ? "Push an" : "Push aus"
+        showToastMessage(
+            "System geprueft: Konto \(accountState), \(notificationState).",
+            style: .success
+        )
     }
 
     private func applyEditableImageURL(_ url: String, for target: SettingsEditableImageTarget) {
@@ -2755,6 +2913,12 @@ struct SettingsView: View {
             PolicyView(title: "Datenschutzbestimmungen", text: legalContentStore.settings.privacyPolicyText)
         case .termsOfService:
             PolicyView(title: "Nutzungsbedingungen", text: legalContentStore.settings.termsOfServiceText)
+        case .subscriptionTerms:
+            PolicyView(title: "Subscription Terms", text: legalContentStore.settings.subscriptionTermsText)
+        case .aiUsageNotice:
+            PolicyView(title: "AI Usage Notice", text: legalContentStore.settings.aiUsageNoticeText)
+        case .imprintInfo:
+            PolicyView(title: "Impressum / Company Info", text: legalContentStore.settings.imprintInfoText)
         case .adminWorkspace(let section):
             NavigationStack {
                 ScrollView {
@@ -4568,6 +4732,99 @@ private struct SettingsLockedHintCard: View {
     }
 }
 
+private struct SettingsInlineStatusStrip: View {
+    let icon: String
+    let title: String
+    let message: String
+    let detail: String?
+    let accent: Color
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(accent)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
+            }
+
+            Text(message)
+                .font(.caption.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            if let detail, !detail.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 5))
+                    Text(detail)
+                        .lineLimit(1)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundColor(accent.opacity(0.88))
+                .padding(.top, 1)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(accent.opacity(0.12), lineWidth: 1)
+        )
+    }
+}
+
+private struct SettingsUtilityAction {
+    let title: String
+    let systemImage: String
+    let accent: Color
+    let action: () -> Void
+}
+
+private struct SettingsUtilityRow: View {
+    let colorScheme: ColorScheme
+    let actions: [SettingsUtilityAction]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
+                Button(action: item.action) {
+                    HStack(spacing: 6) {
+                        Image(systemName: item.systemImage)
+                            .font(.caption2.weight(.bold))
+                        Text(item.title)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(item.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(item.accent.opacity(colorScheme == .dark ? 0.16 : 0.12))
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(item.accent.opacity(0.22), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .skydownInteractiveFeedback()
+            }
+        }
+        .padding(.top, 2)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+
 private struct SettingsStatusCard: View {
     let style: ToastStyle
     let title: String
@@ -4683,6 +4940,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
     case visuals = "Visuals"
     case automation = "Automation"
     case aiPrompts = "KI Prompts"
+    case membershipOps = "Membership Ops"
 
     var id: String { rawValue }
 
@@ -4706,6 +4964,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
             return "automation"
         case .aiPrompts:
             return "aiPrompts"
+        case .membershipOps:
+            return "membershipOps"
         }
     }
 
@@ -4729,6 +4989,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
             return "bolt.fill"
         case .aiPrompts:
             return "sparkles"
+        case .membershipOps:
+            return "chart.xyaxis.line"
         }
     }
 
@@ -4752,6 +5014,8 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
             return "Persoenlichen n8n-Service und optionalen Manus-BYOS-Key pro Konto anbinden."
         case .aiPrompts:
             return "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen."
+        case .membershipOps:
+            return "KPI, Trends, Recommendations und Experiments fuer Revenue Operations steuern."
         }
     }
 }
@@ -5639,6 +5903,9 @@ private enum SettingsPresentedSheet: Identifiable, Equatable {
     case termsAndConditions
     case privacyPolicy
     case termsOfService
+    case subscriptionTerms
+    case aiUsageNotice
+    case imprintInfo
     case adminWorkspace(SettingsAdminWorkspaceSection)
     case mailComposer
     case editableImage(SettingsEditableImageTarget)
@@ -5661,6 +5928,12 @@ private enum SettingsPresentedSheet: Identifiable, Equatable {
             return "privacyPolicy"
         case .termsOfService:
             return "termsOfService"
+        case .subscriptionTerms:
+            return "subscriptionTerms"
+        case .aiUsageNotice:
+            return "aiUsageNotice"
+        case .imprintInfo:
+            return "imprintInfo"
         case .adminWorkspace(let section):
             return "adminWorkspace-\(section.rawValue)"
         case .mailComposer:

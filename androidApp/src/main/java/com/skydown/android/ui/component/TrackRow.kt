@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,9 +46,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,6 +71,7 @@ fun TrackRow(
     onPlayToggle: () -> Unit,
 ) {
     val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
     var showSpotifyPlayer by rememberSaveable(track.trackId) { mutableStateOf(false) }
     val hasPreview = !track.previewUrl.isNullOrBlank()
     val hasExternalLink = !track.externalUrl.isNullOrBlank()
@@ -153,14 +157,14 @@ fun TrackRow(
                     )
                     Text(
                         text = when {
-                            hasPreview && hasDirectSpotifyTrack -> "Preview hier oder Spotify Player direkt in der App."
+                            hasPreview && hasDirectSpotifyTrack -> "Preview ruhig hier oder direkt weiter in Spotify."
                             hasPreview && hasSpotifyArtistLink -> "Preview hier oder direkt zum Artist auf Spotify."
-                            hasPreview && hasSpotifySearch -> "Preview hier oder den Song in Spotify suchen."
+                            hasPreview && hasSpotifySearch -> "Preview hier oder den Track in Spotify suchen."
                             hasPreview -> "Preview direkt in der App."
                             hasDirectSpotifyTrack -> "Spotify Player direkt in der App."
                             hasSpotifyArtistLink -> "Direkt zum Artist auf Spotify."
-                            hasSpotifySearch -> "Song in Spotify suchen."
-                            else -> "Aktuell kein Spotify-Link verfuegbar."
+                            hasSpotifySearch -> "Track in Spotify suchen."
+                            else -> "Gerade kein externer Link verfuegbar."
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = contentColor.copy(alpha = 0.72f),
@@ -219,12 +223,15 @@ fun TrackRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         if (hasPreview) {
-                            FilledTonalButton(
-                                onClick = onPlayToggle,
+                            Button(
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onPlayToggle()
+                                },
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                                    contentColor = MaterialTheme.colorScheme.primary,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
                                 ),
                             ) {
                                 Icon(
@@ -232,8 +239,8 @@ fun TrackRow(
                                     contentDescription = null,
                                 )
                                 Text(
-                                    text = if (isPlaying) "Pause" else "Preview",
-                                    modifier = Modifier.padding(start = 8.dp),
+                                    text = if (isPlaying) "Pause" else "Anhoeren",
+                                    modifier = Modifier.padding(start = 6.dp),
                                 )
                             }
                         }
@@ -241,6 +248,7 @@ fun TrackRow(
                         if (hasDirectSpotifyTrack) {
                             OutlinedButton(
                                 onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     showSpotifyPlayer = true
                                 },
                                 modifier = if (hasPreview) {
@@ -259,18 +267,15 @@ fun TrackRow(
                                     contentColor = SpotifyGreen,
                                 ),
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                )
                                 Text(
-                                    text = "Spotify Player",
-                                    modifier = Modifier.padding(start = 8.dp),
+                                    text = "In Spotify weiter",
+                                    style = MaterialTheme.typography.labelLarge,
                                 )
                             }
                         } else if (hasSpotifyArtistLink || hasSpotifySearch) {
                             OutlinedButton(
                                 onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     openTrackInSpotify(
                                         context = context,
                                         spotifyArtistId = track.spotifyArtistId,
@@ -284,13 +289,9 @@ fun TrackRow(
                                     contentColor = SpotifyGreen,
                                 ),
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription = null,
-                                )
                                 Text(
                                     text = if (hasSpotifyArtistLink) "Spotify Artist" else "Spotify Suche",
-                                    modifier = Modifier.padding(start = 8.dp),
+                                    style = MaterialTheme.typography.labelLarge,
                                 )
                             }
                         }
@@ -311,7 +312,7 @@ fun TrackRow(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             )
                             Text(
-                                text = "Aktuell keine Vorschau verfuegbar",
+                                text = "Gerade keine Preview verfuegbar",
                                 color = contentColor.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.labelLarge,
                             )

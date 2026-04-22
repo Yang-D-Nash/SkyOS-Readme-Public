@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const API_KEY = "AIzaSyAnvWKU9EOK9pVB46LmNKq6IRnYUTAUKc4";
+const API_KEY = process.env.SKYDOWN_FIREBASE_WEB_API_KEY || "";
 const PROJECT_ID = "skydown-a6add";
 const REGION = "us-central1";
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -11,6 +11,9 @@ const OWNER_PASSWORD = process.env.SKYDOWN_OWNER_PASSWORD || "";
 function requireOwnerCredentials() {
   if (!OWNER_EMAIL || !OWNER_PASSWORD) {
     throw new Error("Missing SKYDOWN_OWNER_EMAIL or SKYDOWN_OWNER_PASSWORD.");
+  }
+  if (!API_KEY) {
+    throw new Error("Missing SKYDOWN_FIREBASE_WEB_API_KEY.");
   }
 }
 

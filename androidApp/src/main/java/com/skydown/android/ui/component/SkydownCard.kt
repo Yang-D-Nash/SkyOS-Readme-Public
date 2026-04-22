@@ -52,8 +52,8 @@ fun SkydownCard(
             .fillMaxWidth()
             .skydownPanelSurface(
                 cornerRadius = SkydownUiTokens.cardCornerRadius,
-                shadowRadius = 14.dp,
-                shadowYOffset = 8.dp,
+                shadowRadius = 10.dp,
+                shadowYOffset = 5.dp,
             )
             .padding(contentPadding),
         content = content,

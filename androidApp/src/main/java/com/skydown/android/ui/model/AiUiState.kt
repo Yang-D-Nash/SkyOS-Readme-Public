@@ -1,5 +1,7 @@
 package com.skydown.android.ui.model
 
+import com.skydown.android.data.AiUsageSnapshot
+
 enum class AiComposerMode {
     Text,
     Visual,
@@ -22,7 +24,7 @@ data class AiVisualPrompt(
 data class AiUiState(
     val messages: List<AiMessage> = emptyList(),
     val draft: String = "",
-    val isSending: Boolean = false,
+    val botPhase: BotInteractionPhase = BotInteractionPhase.Idle,
     val isAiEnabled: Boolean = true,
     val errorMessage: String? = null,
     val composerMode: AiComposerMode = AiComposerMode.Text,
@@ -46,6 +48,8 @@ data class AiUiState(
             prompt = "Generiere ein starkes 9:16 Story-Visual fuer einen neuen SkyOS Drop, street, cinematic, klarer Fokus und wenig Text im Bild.",
         ),
     ),
+    val usageSnapshot: AiUsageSnapshot? = null,
+    val planLabel: String = "Free",
 )
 
 fun aiQuickPromptsFor(mode: AiTextMode): List<String> = when (mode) {

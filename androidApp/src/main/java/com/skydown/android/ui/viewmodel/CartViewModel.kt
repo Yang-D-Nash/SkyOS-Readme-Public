@@ -175,7 +175,7 @@ class CartViewModel : ViewModel() {
                     successMessage = null,
                 )
             }
-            return Result.failure(IllegalStateException("Merchandise-Store pausiert."))
+            return Result.failure(IllegalStateException("Store pausiert."))
         }
         val mixedFulfillmentError = mixedFulfillmentError(state)
         if (mixedFulfillmentError != null) {
@@ -250,7 +250,7 @@ class CartViewModel : ViewModel() {
                     successMessage = null,
                 )
             }
-            return Result.failure(IllegalStateException("Merchandise-Store pausiert."))
+            return Result.failure(IllegalStateException("Store pausiert."))
         }
         val mixedFulfillmentError = mixedFulfillmentError(state)
         if (mixedFulfillmentError != null) {
@@ -283,7 +283,7 @@ class CartViewModel : ViewModel() {
                     successMessage = null,
                 )
             }
-            return Result.failure(IllegalArgumentException("Hosted Checkout nicht verfuegbar."))
+            return Result.failure(IllegalArgumentException("Checkout nicht verfuegbar."))
         }
         val paymentLine = "Gewuenschte Zahlart: $paymentMethod\n\n"
         val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->

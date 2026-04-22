@@ -14,6 +14,22 @@ data class AgentResponse(
     val automationAttempted: Boolean,
     val automationMessage: String,
     val workflowName: String,
+    val agentProvider: String = "",
+    val providerFallbackUsed: Boolean = false,
+    val providerNotice: String = "",
+    val agentRunId: String = "",
+    val resultType: String = "text",
+    val results: List<AgentResultEntry> = emptyList(),
+    val usage: AiUsageSnapshot? = null,
+)
+
+data class AgentResultEntry(
+    val type: String,
+    val text: String = "",
+    val workflowName: String = "",
+    val status: String = "",
+    val summary: String = "",
+    val runId: String = "",
 )
 
 class AgentClient {
@@ -61,6 +77,14 @@ class AgentClient {
                 automationAttempted = false,
                 automationMessage = "",
                 workflowName = "",
+                resultType = "text",
+                results = listOf(
+                    AgentResultEntry(
+                        type = "text",
+                        text = data,
+                    ),
+                ),
+                usage = null,
             )
             is Map<*, *> -> AgentResponse(
                 reply = (data["reply"] as? String)?.takeIf { it.isNotBlank() }
@@ -70,6 +94,23 @@ class AgentClient {
                 automationAttempted = data["automationAttempted"] as? Boolean ?: false,
                 automationMessage = (data["automationMessage"] as? String).orEmpty(),
                 workflowName = (data["workflowName"] as? String).orEmpty(),
+                agentProvider = (data["agentProvider"] as? String).orEmpty(),
+                providerFallbackUsed = data["providerFallbackUsed"] as? Boolean ?: false,
+                providerNotice = (data["providerNotice"] as? String).orEmpty(),
+                agentRunId = (data["agentRunId"] as? String).orEmpty(),
+                resultType = (data["resultType"] as? String).orEmpty().ifBlank { "text" },
+                results = (data["results"] as? List<*>)?.mapNotNull { raw ->
+                    val entry = raw as? Map<*, *> ?: return@mapNotNull null
+                    AgentResultEntry(
+                        type = (entry["type"] as? String).orEmpty().ifBlank { "text" },
+                        text = (entry["text"] as? String).orEmpty(),
+                        workflowName = (entry["workflowName"] as? String).orEmpty(),
+                        status = (entry["status"] as? String).orEmpty(),
+                        summary = (entry["summary"] as? String).orEmpty(),
+                        runId = (entry["runId"] as? String).orEmpty(),
+                    )
+                }.orEmpty(),
+                usage = parseAiUsageSnapshot(data["usage"]),
             )
             else -> error("Der SkyOS Agent hat keine Antwort geliefert.")
         }

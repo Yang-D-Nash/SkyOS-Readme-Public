@@ -57,6 +57,7 @@ object AppContainer {
     val shopifyAdminSettingsRepository: ShopifyAdminSettingsRepository by lazy { ShopifyAdminSettingsRepository() }
     val adminUserManagementRepository: AdminUserManagementRepository by lazy { AdminUserManagementRepository() }
     val merchStoreStatusRepository: MerchStoreStatusRepository by lazy { MerchStoreStatusRepository() }
+    val membershipOpsAdminRepository: MembershipOpsAdminRepository by lazy { MembershipOpsAdminRepository() }
 
     private val defaultAuthRepository: AuthRepository by lazy { AndroidAuthRepository() }
     private val defaultMerchandiseRepository: MerchandiseRepository by lazy { AndroidMerchandiseRepository() }

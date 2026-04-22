@@ -11,6 +11,7 @@ import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
+import com.skydown.android.ui.model.BotInteractionPhase
 import com.skydown.android.ui.model.AiComposerMode
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
@@ -44,6 +45,12 @@ class AiViewModel : ViewModel() {
                     user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays,
                 )
                 val userKey = normalizeUserKey(user)
+                val planLabel = when (user?.quotaPlan?.lowercase()) {
+                    "studio" -> "Creator"
+                    "creator" -> "Pro"
+                    else -> "Free"
+                }
+                _uiState.update { it.copy(planLabel = planLabel) }
                 if (userKey != currentUserKey) {
                     currentUserKey = userKey
                     restoreHistory()
@@ -88,12 +95,12 @@ class AiViewModel : ViewModel() {
         }
         if (!_uiState.value.isAiEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der SkyOS Bot ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.")
             }
             return
         }
-        if (trimmedPrompt.isBlank() || _uiState.value.isSending) return
-        _uiState.update { it.copy(isSending = true, errorMessage = null) }
+        if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
+        _uiState.update { it.copy(botPhase = BotInteractionPhase.GeneratingText, errorMessage = null) }
 
         viewModelScope.launch {
             val assistantMessage = AiMessage(
@@ -113,7 +120,7 @@ class AiViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         draft = "",
-                        isSending = true,
+                        botPhase = BotInteractionPhase.GeneratingText,
                         errorMessage = null,
                         messages = it.messages + userMessage + assistantMessage,
                     )
@@ -128,6 +135,7 @@ class AiViewModel : ViewModel() {
                 )
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                _uiState.update { it.copy(usageSnapshot = result.usage) }
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = result.text,
@@ -139,7 +147,7 @@ class AiViewModel : ViewModel() {
                     prompt = trimmedPrompt,
                     response = result.text,
                 )
-                _uiState.update { it.copy(isSending = false) }
+                _uiState.update { it.copy(botPhase = BotInteractionPhase.Idle) }
             }.onFailure { error ->
                 val assistantText = userFacingErrorMessage(error)
                 updateAssistantMessage(
@@ -155,7 +163,7 @@ class AiViewModel : ViewModel() {
                 )
                 _uiState.update {
                     it.copy(
-                        isSending = false,
+                        botPhase = BotInteractionPhase.Idle,
                         errorMessage = userFacingErrorMessage(error),
                     )
                 }
@@ -175,12 +183,12 @@ class AiViewModel : ViewModel() {
         }
         if (!_uiState.value.isAiEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der SkyOS Bot ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.")
             }
             return
         }
-        if (trimmedPrompt.isBlank() || _uiState.value.isSending) return
-        _uiState.update { it.copy(isSending = true, errorMessage = null) }
+        if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
+        _uiState.update { it.copy(botPhase = BotInteractionPhase.GeneratingVisual, errorMessage = null) }
 
         viewModelScope.launch {
             val assistantMessage = AiMessage(
@@ -198,7 +206,7 @@ class AiViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         draft = "",
-                        isSending = true,
+                        botPhase = BotInteractionPhase.GeneratingVisual,
                         errorMessage = null,
                         messages = it.messages + userMessage + assistantMessage,
                     )
@@ -207,6 +215,7 @@ class AiViewModel : ViewModel() {
                 aiImageClient.generateVisual(buildVisualPrompt(trimmedPrompt))
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                _uiState.update { it.copy(usageSnapshot = result.usage) }
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = result.text,
@@ -220,7 +229,7 @@ class AiViewModel : ViewModel() {
                     prompt = trimmedPrompt,
                     response = result.text,
                 )
-                _uiState.update { it.copy(isSending = false) }
+                _uiState.update { it.copy(botPhase = BotInteractionPhase.Idle) }
             }.onFailure { error ->
                 val assistantText = userFacingErrorMessage(error)
                 updateAssistantMessage(
@@ -236,7 +245,7 @@ class AiViewModel : ViewModel() {
                 )
                 _uiState.update {
                     it.copy(
-                        isSending = false,
+                        botPhase = BotInteractionPhase.Idle,
                         errorMessage = userFacingErrorMessage(error),
                     )
                 }
@@ -361,11 +370,11 @@ class AiViewModel : ViewModel() {
         is FirebaseFunctionsException -> when (error.code) {
             FirebaseFunctionsException.Code.NOT_FOUND,
             FirebaseFunctionsException.Code.UNIMPLEMENTED,
-            -> "Der SkyOS Bot ist fuer diese Funktion gerade noch nicht verfuegbar."
+            -> "Dieser Bot-Bereich wird gerade vorbereitet."
             FirebaseFunctionsException.Code.UNAVAILABLE ->
-                "Der SkyOS Bot ist gerade nicht erreichbar."
+                "Der SkyOS Bot ist gerade kurz nicht erreichbar."
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
-                "Der SkyOS Bot hat zu lange fuer die Antwort gebraucht."
+                "Die Antwort dauert gerade laenger als gewohnt."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges KI-Limit ist erreicht."
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
@@ -374,28 +383,28 @@ class AiViewModel : ViewModel() {
                 "Bitte melde dich erneut an und versuch es noch einmal."
             FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
                 if (error.localizedMessage?.contains("App Check", ignoreCase = true) == true) {
-                    "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                    "Der Sicherheitscheck laeuft noch. Bitte kurz erneut versuchen."
                 } else {
-                    error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Die KI ist noch nicht vollstaendig eingerichtet."
+                    error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Die KI ist noch nicht voll bereit."
                 }
             FirebaseFunctionsException.Code.INVALID_ARGUMENT ->
-                "Die KI-Anfrage konnte so nicht gestartet werden."
+                "Die Anfrage braucht noch etwas mehr Kontext."
             FirebaseFunctionsException.Code.INTERNAL ->
                 if (error.localizedMessage?.contains("server responded with an error", ignoreCase = true) == true) {
-                    "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                    "Der Visual-Server antwortet gerade unruhig. Bitte kurz erneut versuchen."
                 } else {
                     error.localizedMessage?.takeIf { it.isNotBlank() }
-                        ?: "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                        ?: "Der Visual-Server antwortet gerade unruhig. Bitte kurz erneut versuchen."
                 }
             else ->
-                "Der SkyOS Bot ist gerade nicht verfuegbar."
+                "Der SkyOS Bot ist gerade kurz pausiert."
         }
         else -> {
             val message = error.message?.takeIf { it.isNotBlank() }
             if (message?.contains("server responded with an error", ignoreCase = true) == true) {
-                "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                "Der Visual-Server antwortet gerade unruhig. Bitte kurz erneut versuchen."
             } else {
-                message ?: "Der SkyOS Bot ist gerade nicht verfuegbar."
+                message ?: "Der SkyOS Bot ist gerade kurz pausiert."
             }
         }
     }

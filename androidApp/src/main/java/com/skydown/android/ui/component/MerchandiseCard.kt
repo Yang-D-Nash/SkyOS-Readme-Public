@@ -35,10 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.skydown.android.ui.theme.SpotifyGreen
-import com.skydown.android.ui.theme.SpotifyGreenContainer
-import com.skydown.android.ui.theme.YouTubeDeepRed
-import com.skydown.android.ui.theme.YouTubeRedContainer
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.hasCuratedMerchCategory
 import com.skydown.shared.model.merchCategorySubtitle
@@ -52,15 +48,16 @@ fun MerchandiseCard(
     onTap: (MerchandiseItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accentColor = when {
-        item.source == "shopify" || !item.shopifyProductId.isNullOrBlank() -> SpotifyGreen
-        item.featured -> YouTubeDeepRed
-        else -> MaterialTheme.colorScheme.secondary
+    // SkyOS retail accents only — never third-party brand colors for catalog source.
+    val accentColor = if (item.featured) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        MaterialTheme.colorScheme.primary
     }
-    val accentContainer = when {
-        item.source == "shopify" || !item.shopifyProductId.isNullOrBlank() -> SpotifyGreenContainer
-        item.featured -> YouTubeRedContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
+    val accentContainer = if (item.featured) {
+        MaterialTheme.colorScheme.tertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
     }
     val displayImageUrls = remember(item.imageUrls, item.customImageOverride) {
         item.customImageOverride.takeIf { it.isNotBlank() }

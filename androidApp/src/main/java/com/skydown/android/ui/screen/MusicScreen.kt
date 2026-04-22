@@ -1,5 +1,6 @@
 package com.skydown.android.ui.screen
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,7 +73,9 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -139,6 +142,7 @@ fun MusicScreen(
     val artistPages by ArtistPagesStore.pages.collectAsState()
 
     val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     val player = remember(mediaContext) {
         ExoPlayer.Builder(mediaContext).build().apply {
@@ -151,9 +155,22 @@ fun MusicScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
+    val selectedTrackQueuePosition = remember(uiState.tracks, selectedTrackId) {
+        uiState.tracks.indexOfFirst { it.trackId == selectedTrackId }
+            .takeIf { it >= 0 }
+            ?.plus(1)
+    }
+    val queueContextText = remember(uiState.tracks, selectedTrackQueuePosition) {
+        when {
+            uiState.tracks.isEmpty() -> "Queue wird vorbereitet"
+            selectedTrackQueuePosition != null -> "Queue $selectedTrackQueuePosition/${uiState.tracks.size}"
+            else -> "Queue ${uiState.tracks.size} Tracks"
+        }
+    }
     val hasShortcutHub = onOpenBeatHub != null || onOpenStudio != null
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
+    val spotlightSectionIndex = 1
     val artistSectionIndex = if (hasShortcutHub) 3 else 2
     val spotifyStatusSectionIndex = if (hasShortcutHub) 5 else 4
     val tracksSectionIndex = if (uiState.tracks.isNotEmpty()) {
@@ -391,6 +408,11 @@ fun MusicScreen(
                             onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
                                 { openArtistPage(uiState.selectedArtist) }
                             },
+                            onOpenSpotlight = {
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(spotlightSectionIndex)
+                                }
+                            },
                             onOpenArtistHub = {
                                 coroutineScope.launch {
                                     listState.animateScrollToItem(artistSectionIndex)
@@ -416,12 +438,14 @@ fun MusicScreen(
                             artistPage = selectedArtistPage,
                             isPreviewPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
                             onPlayPreview = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 selectedTrack?.let(viewModel::togglePreview)
                             },
                             onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
                                 { openArtistPage(uiState.selectedArtist) }
                             },
                             onOpenSpotify = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 openTrackInSpotify(
                                     context = context,
                                     spotifyArtistId = selectedTrack?.spotifyArtistId,
@@ -430,15 +454,6 @@ fun MusicScreen(
                                 )
                             },
                         )
-                    }
-
-                    if (onOpenBeatHub != null || onOpenStudio != null) {
-                        item {
-                            MusicShortcutHubCard(
-                                onOpenStudio = onOpenStudio,
-                                onOpenBeatHub = onOpenBeatHub,
-                            )
-                        }
                     }
 
                     item {
@@ -452,29 +467,20 @@ fun MusicScreen(
                     }
 
                     item {
-                        MusicInstagramHubCard(
-                            destinations = uiState.instagramHubDestinations,
-                            onOpenLink = { url ->
-                                openExternalLink(context, url)
-                            },
-                        )
-                    }
-
-                    item {
                         when {
                             uiState.isLoading -> {
                                 MusicStatusCard(
-                                    title = "Tracks laden",
-                                    body = uiState.selectedArtist,
+                                    title = "Tracks werden vorbereitet",
+                                    body = "Wir richten den Fokus fuer ${uiState.selectedArtist} ein.",
                                     loading = true,
                                 )
                             }
 
                             !uiState.errorMessage.isNullOrBlank() -> {
                                 MusicStatusCard(
-                                    title = "Tracks fehlen",
-                                    body = uiState.errorMessage.orEmpty(),
-                                    actionLabel = "Erneut laden",
+                                    title = "Tracks gerade nicht erreichbar",
+                                    body = "Der Katalog antwortet gerade nicht ruhig genug. Ein neuer Versuch reicht meist sofort.",
+                                    actionLabel = "Erneut versuchen",
                                     onAction = {
                                         viewModel.clearSpotifyError()
                                         viewModel.selectArtist(uiState.selectedArtist)
@@ -484,8 +490,8 @@ fun MusicScreen(
 
                             uiState.tracks.isEmpty() -> {
                                 MusicStatusCard(
-                                    title = "Keine Tracks",
-                                    body = uiState.selectedArtist,
+                                    title = "Noch keine Tracks im Fokus",
+                                    body = "Fuer ${uiState.selectedArtist} ist gerade noch nichts live.",
                                 )
                             }
                         }
@@ -495,7 +501,7 @@ fun MusicScreen(
                         item {
                             BrandSectionBanner(
                                 title = "Tracks",
-                                subtitle = "${uiState.tracks.size} Tracks im aktuellen Artist-Set.",
+                                subtitle = "$queueContextText im aktuellen Artist-Set.",
                                 accent = SpotifyGreen,
                                 icon = Icons.Default.MusicNote,
                                 tag = "LIST",
@@ -508,7 +514,30 @@ fun MusicScreen(
                                 isPlaying = uiState.currentlyPlayingId == track.trackId,
                                 isSelected = selectedTrackId == track.trackId,
                                 onSelectTrack = { selectedTrackId = track.trackId },
-                                onPlayToggle = { viewModel.togglePreview(track) },
+                                onPlayToggle = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.togglePreview(track)
+                                },
+                            )
+                        }
+                    }
+
+                    if (uiState.instagramHubDestinations.isNotEmpty()) {
+                        item {
+                            MusicInstagramHubCard(
+                                destinations = uiState.instagramHubDestinations,
+                                onOpenLink = { url ->
+                                    openExternalLink(context, url)
+                                },
+                            )
+                        }
+                    }
+
+                    if (onOpenBeatHub != null || onOpenStudio != null) {
+                        item {
+                            MusicShortcutHubCard(
+                                onOpenStudio = onOpenStudio,
+                                onOpenBeatHub = onOpenBeatHub,
                             )
                         }
                     }
@@ -527,7 +556,7 @@ private fun MusicInstagramHubCard(
     SkydownCard {
         BrandSectionBanner(
             title = "Instagram",
-            subtitle = "Artist-Links und direkte Wege in den Social Feed.",
+            subtitle = "Social-Links fuer den aktuellen Artist-Fokus.",
             accent = InstagramOrange,
             icon = Icons.Default.CameraAlt,
             tag = "SOCIAL",
@@ -600,7 +629,7 @@ private fun MusicShortcutHubCard(
     SkydownCard {
         BrandSectionBanner(
             title = "Quick Access",
-            subtitle = "Die wichtigsten Wege bleiben direkt auf der Music-Seite sichtbar.",
+            subtitle = "Optionaler Schnellzugriff fuer Studio und Beat Hub.",
             accent = beatAccent,
             icon = Icons.Default.AutoAwesome,
             tag = "LINKS",
@@ -747,7 +776,7 @@ private fun MusicPlayerCard(
 
         BrandSectionBanner(
             title = "Now Playing",
-            subtitle = "Preview und Spotify-Link fuer den aktuellen Track.",
+            subtitle = "Preview und Handover bleiben ruhig im gleichen Listening-Flow.",
             accent = playerAccent,
             icon = Icons.Default.MusicNote,
             tag = "LIVE",
@@ -791,10 +820,10 @@ private fun MusicPlayerCard(
                         }
                         Text(
                             text = when {
-                                hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
+                                hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier. Bei Bedarf geht es nahtlos zu Spotify weiter."
                                 hasPreview -> "Der Track hat eine direkte Preview in der App."
                                 hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
-                                    "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
+                                    "Gerade keine lokale Preview, aber Spotify bleibt direkt erreichbar."
                                 else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Hub bereit."
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -838,10 +867,10 @@ private fun MusicPlayerCard(
                         }
                         Text(
                             text = when {
-                                hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier und springt bei Bedarf weiter zu Spotify."
+                                hasPreview && hasDirectSpotifyTrack -> "Preview laeuft direkt hier. Bei Bedarf geht es nahtlos zu Spotify weiter."
                                 hasPreview -> "Der Track hat eine direkte Preview in der App."
                                 hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch ->
-                                    "Keine lokale Preview, aber Spotify bleibt direkt erreichbar."
+                                    "Gerade keine lokale Preview, aber Spotify bleibt direkt erreichbar."
                                 else -> "Dieser Track liegt als Eintrag im aktuellen Artist-Hub bereit."
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -859,7 +888,7 @@ private fun MusicPlayerCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             MusicBadge(
-                text = if (hasPreview) "Preview" else "No Preview",
+                text = if (hasPreview) "Preview" else "Warten auf Preview",
                 imageVector = if (hasPreview) Icons.Default.PlayArrow else Icons.Default.Refresh,
                 isActive = hasPreview,
                 onClick = if (hasPreview) onPlayToggle else null,
@@ -889,7 +918,7 @@ private fun MusicPlayerCard(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (hasPreview) {
                         BrandActionButton(
-                            text = if (isPlaying) "Stop" else "Preview",
+                            text = if (isPlaying) "Pause" else "Anhoeren",
                             onClick = onPlayToggle,
                             accent = playerAccent,
                             modifier = Modifier.fillMaxWidth(),
@@ -924,7 +953,7 @@ private fun MusicPlayerCard(
                 ) {
                     if (hasPreview) {
                         BrandActionButton(
-                            text = if (isPlaying) "Stop" else "Preview",
+                            text = if (isPlaying) "Pause" else "Anhoeren",
                             onClick = onPlayToggle,
                             accent = playerAccent,
                             modifier = Modifier.weight(1f),
@@ -962,6 +991,7 @@ private fun MusicOverviewCard(
     uiState: MusicUiState,
     compactVisualDensity: Boolean,
     onOpenArtistPage: (() -> Unit)?,
+    onOpenSpotlight: () -> Unit,
     onOpenArtistHub: () -> Unit,
     onOpenTracks: () -> Unit,
     onOpenSpotifyStatus: () -> Unit,
@@ -975,9 +1005,9 @@ private fun MusicOverviewCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Artists, Releases und Spotify im SkyOS Sound-Flow." },
+        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Atmosphaere, Artist-Fokus und Premium Listening in einem ruhigen Flow." },
         detail = screenHeaderSettings.musicHubDetail.ifBlank {
-            "${uiState.selectedArtist} und alle Artists direkt im Katalog."
+            "${uiState.selectedArtist} im Fokus - Featured Drop und direkte Wiedergabe."
         },
         backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
         accent = SpotifyGreen,
@@ -996,6 +1026,11 @@ private fun MusicOverviewCard(
                     onClick = onOpenArtistHub,
                 )
                 BrandPill(
+                    text = "Featured Drop",
+                    tint = beatAccent,
+                    onClick = onOpenSpotlight,
+                )
+                BrandPill(
                     text = trackLabel,
                     tint = beatAccent,
                     onClick = onOpenTracks,
@@ -1010,6 +1045,31 @@ private fun MusicOverviewCard(
                 BrandPill(
                     text = if (uiState.isSpotifyConnected) "Spotify live" else "Preview ready",
                     tint = statusAccent,
+                    onClick = onOpenSpotifyStatus,
+                )
+            }
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MusicListeningModeChip(
+                    title = "Focus",
+                    accent = SpotifyGreen,
+                    onClick = onOpenSpotlight,
+                )
+                MusicListeningModeChip(
+                    title = "Discovery",
+                    accent = beatAccent,
+                    onClick = onOpenTracks,
+                )
+                MusicListeningModeChip(
+                    title = "Artist Hub",
+                    accent = colorScheme.skydownAccentHighlight(),
+                    onClick = onOpenArtistHub,
+                )
+                MusicListeningModeChip(
+                    title = "Live Link",
+                    accent = statusAccent,
                     onClick = onOpenSpotifyStatus,
                 )
             }
@@ -1079,6 +1139,30 @@ private fun MusicOverviewCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MusicListeningModeChip(
+    title: String,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.30f)),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = accent,
+            containerColor = accent.copy(alpha = 0.10f),
+        ),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -1197,6 +1281,7 @@ private fun MusicSpotlightDeckCard(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
+                .animateContentSize()
         ) {
             val stackHero = maxWidth < 380.dp
 
@@ -1330,6 +1415,7 @@ private fun MusicSpotlightDeckCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
+                
         ) {
             val stackMetrics = maxWidth < 420.dp
 
@@ -1383,9 +1469,9 @@ private fun MusicSpotlightDeckCard(
 
         Text(
             text = if (!selectedTrack?.collectionName.isNullOrBlank()) {
-                "Aktuell aus ${selectedTrack.collectionName.orEmpty()}. Preview, Spotify und Artist-Page bleiben direkt in Reichweite."
+                "Aktuell aus ${selectedTrack.collectionName.orEmpty()}. Ruhige Preview, klarer Queue-Fokus und direkter Spotify-Handover."
             } else {
-                "Preview, Spotify und Artist-Page bleiben direkt in Reichweite, ohne aus dem Music-Flow zu springen."
+                "Preview, Spotify und Artist-Page bleiben direkt in Reichweite, ohne den Listening-Flow zu brechen."
             },
             style = SkydownEditorialCaptionTextStyle,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -1404,7 +1490,7 @@ private fun MusicSpotlightDeckCard(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (hasPreview) {
                             BrandActionButton(
-                                text = if (isPreviewPlaying) "Preview stoppen" else "Preview starten",
+                                text = if (isPreviewPlaying) "Preview pausieren" else "Preview anhoeren",
                                 onClick = onPlayPreview,
                                 accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.fillMaxWidth(),
@@ -1430,7 +1516,7 @@ private fun MusicSpotlightDeckCard(
                     ) {
                         if (hasPreview) {
                             BrandActionButton(
-                                text = if (isPreviewPlaying) "Preview stoppen" else "Preview starten",
+                                text = if (isPreviewPlaying) "Preview pausieren" else "Preview anhoeren",
                                 onClick = onPlayPreview,
                                 accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f),
@@ -2354,7 +2440,7 @@ private fun MusicStatusCard(
                     strokeWidth = 2.5.dp,
                 )
                 Text(
-                    text = "Ladevorgang laeuft ...",
+                    text = "Wird ruhig geladen ...",
                     style = MaterialTheme.typography.labelLarge,
                 )
             }

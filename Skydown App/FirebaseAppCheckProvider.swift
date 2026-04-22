@@ -7,8 +7,7 @@ final class SkydownAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
 #if targetEnvironment(simulator)
         return AppCheckDebugProvider(app: app)
 #else
-        // Real devices must use a production provider even in Debug builds,
-        // otherwise installed test builds break as soon as App Check is enforced.
+        // Release-safe default until App Attest capability rollout is fully verified.
         return DeviceCheckProvider(app: app)
 #endif
     }

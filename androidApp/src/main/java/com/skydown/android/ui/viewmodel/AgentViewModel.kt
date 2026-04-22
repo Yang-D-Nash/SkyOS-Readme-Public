@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skydown.android.R
 import com.google.firebase.functions.FirebaseFunctionsException
+import com.skydown.android.data.AiRuntimeAgentProvider
 import com.skydown.android.data.AgentHistoryTurn
 import com.skydown.android.data.AiConversationHistorySource
 import com.skydown.android.data.AiConversationHistoryStore
@@ -17,10 +18,13 @@ import com.skydown.android.data.ManusByosPreferences
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
+import com.skydown.android.ui.model.AgentInteractionPhase
 import com.skydown.android.ui.model.AgentExecutionMode
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
+import com.skydown.android.ui.model.AgentResultType
 import com.skydown.android.ui.model.AgentUiState
+import com.skydown.android.ui.model.AgentWorkflowSummary
 import com.skydown.android.ui.model.agentQuickPromptsFor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,6 +82,12 @@ class AgentViewModel : ViewModel() {
                     )
                 }
                 val userKey = normalizeUserKey(user)
+                val planLabel = when (user?.quotaPlan?.lowercase()) {
+                    "studio" -> "Creator"
+                    "creator" -> "Pro"
+                    else -> "Free"
+                }
+                _uiState.update { it.copy(planLabel = planLabel) }
                 ManusByosPreferences.setUserMode(user?.id)
                 if (userKey != currentUserKey) {
                     currentUserKey = userKey
@@ -126,16 +136,16 @@ class AgentViewModel : ViewModel() {
         }
         if (!_uiState.value.isAgentEnabled) {
             _uiState.update {
-                it.copy(errorMessage = "Der SkyOS Agent ist gerade deaktiviert.")
+                it.copy(errorMessage = "Der SkyOS Agent ist gerade pausiert.")
             }
             return
         }
-        if (trimmedPrompt.isBlank() || _uiState.value.isSending) return
+        if (trimmedPrompt.isBlank() || _uiState.value.agentPhase.shouldBlockSend) return
         if (!AppNetworkMonitor.isOnline.value) {
             enqueuePromptForRetry(trimmedPrompt)
             return
         }
-        _uiState.update { it.copy(isSending = true, errorMessage = null) }
+        _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Processing, errorMessage = null) }
 
         viewModelScope.launch {
             var assistantMessageId: String? = null
@@ -151,6 +161,7 @@ class AgentViewModel : ViewModel() {
                     role = AgentMessageRole.Assistant,
                     text = "",
                     isStreaming = true,
+                    resultType = AgentResultType.Progress,
                 )
                 assistantMessageId = assistantMessage.id
                 val history = buildHistory(_uiState.value.messages + userMessage)
@@ -159,7 +170,7 @@ class AgentViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         draft = "",
-                        isSending = true,
+                        agentPhase = AgentInteractionPhase.Processing,
                         errorMessage = null,
                         messages = it.messages + userMessage + assistantMessage,
                     )
@@ -174,12 +185,19 @@ class AgentViewModel : ViewModel() {
                 )
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                _uiState.update { it.copy(usageSnapshot = result.usage) }
                 val replyText = augmentedReply(result)
                 assistantMessageId?.let { messageId ->
                     updateAssistantMessage(
                         messageId = messageId,
                         text = replyText,
                         isStreaming = false,
+                        resultType = if (result.automationTriggered || result.automationAttempted) {
+                            AgentResultType.Workflow
+                        } else {
+                            AgentResultType.Text
+                        },
+                        workflowSummary = buildWorkflowSummary(result),
                     )
                     AiConversationHistoryStore.saveEntry(
                         userKey = currentUserKey,
@@ -188,14 +206,25 @@ class AgentViewModel : ViewModel() {
                         response = replyText,
                     )
                 }
-                if (result.automationTriggered) {
-                    _uiState.update {
-                        it.copy(errorMessage = null)
-                    }
-                } else if (result.automationAttempted && result.automationMessage.isNotBlank()) {
-                    _uiState.update { it.copy(errorMessage = result.automationMessage) }
+                val trimmedNotice = result.providerNotice.trim()
+                val effectiveNotice = when {
+                    trimmedNotice.isNotEmpty() -> trimmedNotice
+                    result.providerFallbackUsed -> "Provider-Fallback aktiv."
+                    else -> ""
                 }
-                _uiState.update { it.copy(isSending = false) }
+                _uiState.update { state ->
+                    val nextError = when {
+                        result.automationTriggered -> null
+                        result.automationAttempted && result.automationMessage.isNotBlank() -> result.automationMessage
+                        else -> null
+                    }
+                    state.copy(
+                        agentPhase = AgentInteractionPhase.Idle,
+                        errorMessage = nextError,
+                        lastAgentProvider = AiRuntimeAgentProvider.resolve(result.agentProvider),
+                        lastProviderNotice = effectiveNotice,
+                    )
+                }
             }.onFailure { error ->
                 val pendingAssistantMessageId = assistantMessageId
                 if (pendingAssistantMessageId != null && isOfflineError(error)) {
@@ -214,8 +243,11 @@ class AgentViewModel : ViewModel() {
                         messageId = pendingAssistantMessageId,
                         text = AppTextResolver.string(R.string.agent_queue_placeholder),
                         isStreaming = false,
+                        resultType = AgentResultType.Progress,
                     )
-                    _uiState.update { it.copy(isSending = false, errorMessage = null) }
+                    _uiState.update {
+                        it.copy(agentPhase = AgentInteractionPhase.WaitingReconnect, errorMessage = null)
+                    }
                     return@launch
                 }
 
@@ -225,6 +257,7 @@ class AgentViewModel : ViewModel() {
                         messageId = messageId,
                         text = errorMessage,
                         isStreaming = false,
+                        resultType = AgentResultType.Error,
                     )
                     AiConversationHistoryStore.saveEntry(
                         userKey = currentUserKey,
@@ -235,7 +268,7 @@ class AgentViewModel : ViewModel() {
                 }
                 _uiState.update {
                     it.copy(
-                        isSending = false,
+                        agentPhase = AgentInteractionPhase.Idle,
                         errorMessage = errorMessage,
                     )
                 }
@@ -279,6 +312,7 @@ class AgentViewModel : ViewModel() {
             role = AgentMessageRole.Assistant,
             text = AppTextResolver.string(R.string.agent_queue_placeholder),
             isStreaming = false,
+            resultType = AgentResultType.Progress,
         )
         val history = buildHistory(_uiState.value.messages + userMessage)
 
@@ -297,7 +331,7 @@ class AgentViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 draft = "",
-                isSending = false,
+                agentPhase = AgentInteractionPhase.WaitingReconnect,
                 errorMessage = null,
                 messages = it.messages + userMessage + assistantMessage,
             )
@@ -311,7 +345,7 @@ class AgentViewModel : ViewModel() {
 
         isProcessingPendingQueue = true
         viewModelScope.launch {
-            _uiState.update { it.copy(isSending = true) }
+            _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Processing) }
             while (AppNetworkMonitor.isOnline.value && pendingRequests.isNotEmpty()) {
                 val request = pendingRequests.removeFirst()
                 runCatching {
@@ -324,11 +358,18 @@ class AgentViewModel : ViewModel() {
                     )
                 }.onSuccess { result ->
                     AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                    _uiState.update { it.copy(usageSnapshot = result.usage) }
                     val replyText = augmentedReply(result)
                     updateAssistantMessage(
                         messageId = request.assistantMessageId,
                         text = replyText,
                         isStreaming = false,
+                        resultType = if (result.automationTriggered || result.automationAttempted) {
+                            AgentResultType.Workflow
+                        } else {
+                            AgentResultType.Text
+                        },
+                        workflowSummary = buildWorkflowSummary(result),
                     )
                     AiConversationHistoryStore.saveEntry(
                         userKey = currentUserKey,
@@ -336,8 +377,23 @@ class AgentViewModel : ViewModel() {
                         prompt = request.prompt,
                         response = replyText,
                     )
-                    if (result.automationAttempted && result.automationMessage.isNotBlank()) {
-                        _uiState.update { it.copy(errorMessage = result.automationMessage) }
+                    val trimmedNotice = result.providerNotice.trim()
+                    val effectiveNotice = when {
+                        trimmedNotice.isNotEmpty() -> trimmedNotice
+                        result.providerFallbackUsed -> "Provider-Fallback aktiv."
+                        else -> ""
+                    }
+                    _uiState.update { state ->
+                        val nextError = when {
+                            result.automationTriggered -> null
+                            result.automationAttempted && result.automationMessage.isNotBlank() -> result.automationMessage
+                            else -> null
+                        }
+                        state.copy(
+                            errorMessage = nextError,
+                            lastAgentProvider = AiRuntimeAgentProvider.resolve(result.agentProvider),
+                            lastProviderNotice = effectiveNotice,
+                        )
                     }
                     persistPendingRequests()
                 }.onFailure { error ->
@@ -348,6 +404,7 @@ class AgentViewModel : ViewModel() {
                             messageId = request.assistantMessageId,
                             text = AppTextResolver.string(R.string.agent_queue_placeholder),
                             isStreaming = false,
+                            resultType = AgentResultType.Progress,
                         )
                         break
                     }
@@ -357,6 +414,7 @@ class AgentViewModel : ViewModel() {
                         messageId = request.assistantMessageId,
                         text = message,
                         isStreaming = false,
+                        resultType = AgentResultType.Error,
                     )
                     AiConversationHistoryStore.saveEntry(
                         userKey = currentUserKey,
@@ -369,7 +427,15 @@ class AgentViewModel : ViewModel() {
                 }
             }
 
-            _uiState.update { it.copy(isSending = false) }
+            _uiState.update {
+                it.copy(
+                    agentPhase = if (pendingRequests.isEmpty()) {
+                        AgentInteractionPhase.Idle
+                    } else {
+                        AgentInteractionPhase.WaitingReconnect
+                    },
+                )
+            }
             isProcessingPendingQueue = false
         }
     }
@@ -391,6 +457,8 @@ class AgentViewModel : ViewModel() {
         messageId: String,
         text: String,
         isStreaming: Boolean,
+        resultType: AgentResultType = AgentResultType.Text,
+        workflowSummary: AgentWorkflowSummary? = null,
     ) {
         _uiState.update { state ->
             state.copy(
@@ -399,6 +467,8 @@ class AgentViewModel : ViewModel() {
                         message.copy(
                             text = text,
                             isStreaming = isStreaming,
+                            resultType = resultType,
+                            workflowSummary = workflowSummary,
                         )
                     } else {
                         message
@@ -457,12 +527,20 @@ class AgentViewModel : ViewModel() {
                     id = request.assistantMessageId,
                     role = AgentMessageRole.Assistant,
                     text = AppTextResolver.string(R.string.agent_queue_placeholder),
+                    resultType = AgentResultType.Progress,
                 ),
             )
         }
 
         _uiState.update { currentState ->
-            currentState.copy(messages = restoredHistoryMessages + pendingMessages)
+            currentState.copy(
+                messages = restoredHistoryMessages + pendingMessages,
+                agentPhase = if (pendingRequests.isEmpty()) {
+                    AgentInteractionPhase.Idle
+                } else {
+                    AgentInteractionPhase.WaitingReconnect
+                },
+            )
         }
     }
 
@@ -495,29 +573,50 @@ class AgentViewModel : ViewModel() {
         return "${result.reply}\n\nn8n:\n$automationMessage"
     }
 
+    private fun buildWorkflowSummary(result: com.skydown.android.data.AgentResponse): AgentWorkflowSummary? {
+        val structuredWorkflow = result.results.firstOrNull { it.type == "workflow" }
+        if (!result.automationTriggered && !result.automationAttempted && structuredWorkflow == null) {
+            return null
+        }
+        val workflowLabel = (structuredWorkflow?.workflowName ?: result.workflowName).trim().ifBlank { "n8n Workflow" }
+        val structuredSummary = structuredWorkflow?.summary.orEmpty().trim()
+        val statusText = when {
+            structuredSummary.isNotEmpty() -> structuredSummary
+            result.automationMessage.isNotBlank() -> result.automationMessage.trim()
+            result.automationTriggered -> "Workflow wurde gestartet."
+            else -> "Workflow konnte nicht gestartet werden."
+        }
+        val runId = (structuredWorkflow?.runId ?: result.agentRunId).trim().ifBlank { null }
+        return AgentWorkflowSummary(
+            workflowName = workflowLabel,
+            statusText = statusText,
+            runId = runId,
+        )
+    }
+
     private fun userFacingErrorMessage(error: Throwable): String = when (error) {
         is FirebaseFunctionsException -> when (error.code) {
             FirebaseFunctionsException.Code.NOT_FOUND,
             FirebaseFunctionsException.Code.UNIMPLEMENTED,
-            -> "Der SkyOS Agent ist fuer diese Funktion gerade noch nicht verfuegbar."
-            FirebaseFunctionsException.Code.UNAVAILABLE -> "Der SkyOS Agent ist gerade nicht erreichbar."
-            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Der SkyOS Agent hat zu lange fuer die Antwort gebraucht."
+            -> "Dieser Agent-Bereich wird gerade vorbereitet."
+            FirebaseFunctionsException.Code.UNAVAILABLE -> "Der SkyOS Agent ist gerade kurz nicht erreichbar."
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Die Agent-Antwort dauert gerade laenger als gewohnt."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges Agent-Limit ist erreicht."
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
             FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
                 if (error.localizedMessage?.contains("App Check", ignoreCase = true) == true) {
-                    "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                    "Der Sicherheitscheck laeuft noch. Bitte kurz erneut versuchen."
                 } else {
-                    error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist noch nicht vollstaendig eingerichtet."
+                    error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist noch nicht voll bereit."
                 }
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
                 error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist fuer dein Konto gerade nicht freigeschaltet."
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
-            else -> "Der SkyOS Agent konnte gerade nicht antworten."
+            else -> "Der SkyOS Agent ist gerade kurz pausiert."
         }
 
         else -> error.message?.takeIf { it.isNotBlank() }
-            ?: "Der SkyOS Agent konnte gerade nicht antworten."
+            ?: "Der SkyOS Agent ist gerade kurz pausiert."
     }
 }

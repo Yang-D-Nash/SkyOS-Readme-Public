@@ -1,10 +1,12 @@
 package com.skydown.android.ui.screen
 
 import android.content.Context
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -78,22 +82,22 @@ fun CartScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pricing = cartPricingSummary(uiState)
     val checkoutReadinessTitle = when {
-        uiState.isSubmitting -> "Senden"
-        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Ready"
-        !uiState.isLoggedIn -> "Login"
-        !(uiState.isStoreOpen || uiState.isAdmin) -> "Pause"
-        !viewModel.isFormValid() -> "Form"
-        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Zahlart"
-        else -> "Check"
+        uiState.isSubmitting -> "Wird vorbereitet"
+        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Alles bereit"
+        !uiState.isLoggedIn -> "Anmeldung fehlt"
+        !(uiState.isStoreOpen || uiState.isAdmin) -> "Kurz pausiert"
+        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Zahlart offen"
+        !viewModel.isFormValid() -> "Angaben offen"
+        else -> "Kurz pruefen"
     }
     val checkoutReadinessDetail = when {
-        uiState.isSubmitting -> "Bestellung wird vorbereitet"
-        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Direkt abschickbar"
-        !uiState.isLoggedIn -> "Konto fehlt"
-        !(uiState.isStoreOpen || uiState.isAdmin) -> "Store pausiert"
-        !viewModel.isFormValid() -> "Pflichtfelder offen"
-        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Route waehlen"
-        else -> "Kurz pruefen"
+        uiState.isSubmitting -> "Wir pruefen jetzt sicher alle Angaben."
+        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Du kannst jetzt sicher fortfahren."
+        !uiState.isLoggedIn -> "Bitte zuerst anmelden."
+        !(uiState.isStoreOpen || uiState.isAdmin) -> "Der Checkout startet wieder nach der Oeffnung."
+        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Bitte eine Zahlart waehlen."
+        !viewModel.isFormValid() -> "Bitte fehlende Pflichtfelder ergaenzen."
+        else -> "Ein kurzer Check, dann weiter."
     }
     val checkoutPaymentTitle = uiState.selectedPaymentMethod.ifBlank {
         if (uiState.paymentMethods.checkoutMethodLabels.isEmpty()) "Rueckkontakt" else "Waehlen"
@@ -124,7 +128,7 @@ fun CartScreen(
                 title = {
                     SkydownTopBarTitle(
                         title = "Warenkorb",
-                        subtitle = "Produkte und Checkout.",
+                        subtitle = "Ruhig pruefen, sicher abschliessen.",
                     )
                 },
                 navigationIcon = if (onBack != null) {
@@ -211,7 +215,7 @@ fun CartScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Login,
@@ -247,11 +251,16 @@ fun CartScreen(
                         }
                     } else {
                         item {
-                            SkydownCard {
-                                SectionHeader("Checkout pausiert")
+                            CartInlineStatusStrip(
+                                icon = Icons.Default.PauseCircle,
+                                title = "Checkout pausiert",
+                            ) {
                                 Text(
                                     text = "Der Merchandise-Store ist gerade pausiert. Deine Auswahl bleibt sichtbar, aber neue Bestellungen werden erst wieder freigeschaltet, sobald der Store geoeffnet ist.",
-                                    modifier = Modifier.padding(top = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                                Text(
+                                    text = "Versuche es spaeter erneut oder kontaktiere den Support in den Einstellungen.",
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                 )
                             }
@@ -288,7 +297,7 @@ fun CartScreen(
                         SkydownCard {
                             SectionHeader("Kontaktdaten")
                             Text(
-                                text = "Diese Angaben helfen uns beim Rueckkontakt zu deiner Bestellung.",
+                                text = "Damit wir dich schnell zu deiner Bestellung erreichen.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -300,7 +309,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                             OutlinedTextField(
                                 value = uiState.email,
@@ -310,7 +319,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                             OutlinedTextField(
                                 value = uiState.whatsApp,
@@ -320,7 +329,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                         }
                     }
@@ -341,7 +350,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingAddressExtra,
@@ -351,7 +360,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingPostalCode,
@@ -361,7 +370,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingCity,
@@ -371,7 +380,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingCountry,
@@ -381,7 +390,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                         }
                     }
@@ -390,7 +399,7 @@ fun CartScreen(
                         SkydownCard {
                             SectionHeader("Nachricht")
                             Text(
-                                text = "Optional fuer Hinweise zu Lieferung, Verfuegbarkeit oder Sonderwuenschen.",
+                                text = "Optional: Hinweise zu Lieferung, Erreichbarkeit oder Sonderwuenschen helfen dem Team bei der schnellen Zuordnung.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -402,7 +411,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
                                 minLines = 4,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             )
                         }
                     }
@@ -461,15 +470,15 @@ fun CartScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(20.dp),
                             ) {
                                 Text(
                                     if (uiState.isSubmitting) {
-                                        "Sende Bestellung..."
+                                        "Wird vorbereitet..."
                                     } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                        "Zum sicheren Checkout"
+                                        "Sicher fortfahren"
                                     } else {
-                                        "Bestellung abschicken"
+                                        "Bestellung pruefen"
                                     },
                                 )
                             }
@@ -481,12 +490,15 @@ fun CartScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(top = 10.dp),
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(20.dp),
                                 ) {
                                     Text("Fuege zuerst Artikel hinzu")
                                 }
                             }
                         }
+                    }
+                    item {
+                        CheckoutSafetyZone()
                     }
                 }
             }
@@ -520,12 +532,12 @@ private fun CartOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "Bereit zum Checkout",
+                    text = "Warenkorb",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Der Warenkorb folgt jetzt derselben klaren Material-3-Struktur wie Music, Shop und Settings.",
+                    text = "Ruhig pruefen, sicher abschliessen.",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -674,7 +686,7 @@ private fun PaymentMethodSelectionCard(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                             Text(
-                                text = if (isSelected) "Aktive Route" else "Verfuegbare Route",
+                                text = if (isSelected) "Ausgewaehlt" else "Verfuegbar",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -685,7 +697,7 @@ private fun PaymentMethodSelectionCard(
                     FilledTonalButton(
                         onClick = { onSelect(method) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                     ) {
                         content()
                     }
@@ -693,7 +705,7 @@ private fun PaymentMethodSelectionCard(
                     OutlinedButton(
                         onClick = { onSelect(method) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                     ) {
                         content()
                     }
@@ -705,6 +717,35 @@ private fun PaymentMethodSelectionCard(
             Text(
                 text = "Klarna oeffnet nach dem Absenden einen sicheren Live-Checkout ueber Stripe.",
                 modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckoutSafetyZone() {
+    SkydownCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Sicherheit vor dem Checkout",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+            Text(
+                text = "Sichere Zahlwege und klare Weiterleitung im naechsten Schritt.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+            Text(
+                text = "Daten und Gesamtpreis werden vor dem Senden noch einmal geprueft.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+            Text(
+                text = "Support ist jederzeit in den Einstellungen erreichbar.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         }
@@ -725,8 +766,8 @@ private fun CheckoutPulseCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             CheckoutSignalCard(
                 title = "Status",
@@ -735,7 +776,7 @@ private fun CheckoutPulseCard(
                 modifier = Modifier.weight(1f),
             )
             CheckoutSignalCard(
-                title = "Payment",
+                title = "Zahlung",
                 value = paymentTitle,
                 detail = paymentDetail,
                 modifier = Modifier.weight(1f),
@@ -751,6 +792,42 @@ private fun CheckoutPulseCard(
 }
 
 @Composable
+private fun CartInlineStatusStrip(
+    icon: ImageVector,
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                RoundedCornerShape(20.dp),
+            )
+            .animateContentSize()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        content()
+    }
+}
+
+@Composable
 private fun CheckoutSignalCard(
     title: String,
     value: String,
@@ -759,10 +836,10 @@ private fun CheckoutSignalCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f))
-            .padding(horizontal = 12.dp, vertical = 11.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = title.uppercase(),
@@ -772,7 +849,7 @@ private fun CheckoutSignalCard(
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
         )
@@ -921,7 +998,7 @@ private fun CartItemCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
         ) {
             Icon(
                 imageVector = Icons.Default.DeleteOutline,
@@ -942,6 +1019,7 @@ private fun CartInfoPill(text: String) {
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+            .animateContentSize()
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
         Text(

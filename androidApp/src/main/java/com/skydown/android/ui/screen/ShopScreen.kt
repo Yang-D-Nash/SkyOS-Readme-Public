@@ -3,6 +3,7 @@ package com.skydown.android.ui.screen
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
@@ -88,8 +89,6 @@ import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.ShopUiState
-import com.skydown.android.ui.theme.SpotifyGreen
-import com.skydown.android.ui.theme.YouTubeDeepRed
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.hasCuratedMerchCategory
@@ -137,6 +136,20 @@ fun ShopScreen(
             resolvedCount
         }
     }
+    val featuredDropItem = remember(uiState.items) {
+        uiState.items.firstOrNull { it.featured && it.available }
+            ?: uiState.items.firstOrNull { it.available }
+            ?: uiState.items.firstOrNull()
+    }
+    val editorialPickItems = remember(uiState.items) {
+        uiState.items
+            .sortedWith(
+                compareByDescending<MerchandiseItem> { it.featured }
+                    .thenBy { it.sortOrder }
+                    .thenBy { it.name.lowercase() },
+            )
+            .take(5)
+    }
 
     LaunchedEffect(uiState.toastMessage) {
         if (!uiState.toastMessage.isNullOrBlank()) {
@@ -154,12 +167,12 @@ fun ShopScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
+                TopAppBar(
                 title = {
                     SkydownTopBarTitle(
                         "Shop",
                         "SkyOS Store.",
-                        accent = SpotifyGreen,
+                        accent = MaterialTheme.colorScheme.tertiary,
                     )
                 },
                 actions = {
@@ -189,7 +202,7 @@ fun ShopScreen(
                 .background(
                     skydownScreenBrush(
                         primaryColor = MaterialTheme.colorScheme.primary,
-                        secondaryColor = SpotifyGreen,
+                        secondaryColor = MaterialTheme.colorScheme.tertiary,
                         primaryAlpha = 0.070f,
                         secondaryAlpha = 0.048f,
                     ),
@@ -208,6 +221,16 @@ fun ShopScreen(
                         uiState = uiState,
                         laneCount = laneCount,
                     )
+                }
+
+                if (editorialPickItems.isNotEmpty()) {
+                    item {
+                        ShopLandingCuratedModule(
+                            featuredItem = featuredDropItem,
+                            editorialPicks = editorialPickItems,
+                            onOpenItem = viewModel::selectItem,
+                        )
+                    }
                 }
 
                 if (uiState.isAdmin) {
@@ -233,7 +256,7 @@ fun ShopScreen(
                 if (!uiState.isStoreOpen && !uiState.isAdmin) {
                     item {
                         ShopMessageCard(
-                            title = "Merch Store pausiert",
+                            title = "Merch-Store pausiert",
                             body = "Produkte bleiben sichtbar. Checkout ist kurz pausiert.",
                             icon = Icons.Default.Close,
                             accent = MaterialTheme.colorScheme.secondary,
@@ -264,7 +287,7 @@ fun ShopScreen(
                                 }
                             },
                             icon = if (isSyncing) Icons.Default.Sync else Icons.Default.ShoppingBag,
-                            accent = if (isSyncing) MaterialTheme.colorScheme.primary else SpotifyGreen,
+                            accent = MaterialTheme.colorScheme.primary,
                             tag = if (isSyncing) "SYNC" else "MERCH",
                         )
                     }
@@ -411,8 +434,8 @@ private fun ShopOverviewCard(
             }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
-        accent = SpotifyGreen,
-        secondaryAccent = YouTubeDeepRed,
+        accent = MaterialTheme.colorScheme.primary,
+        secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Combined),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -420,9 +443,9 @@ private fun ShopOverviewCard(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                BrandPill(text = pieceLabel, tint = SpotifyGreen)
+                BrandPill(text = pieceLabel, tint = MaterialTheme.colorScheme.primary)
                 BrandPill(
-                    text = if (uiState.isStoreOpen) "Checkout live" else "Checkout pausiert",
+                    text = if (uiState.isStoreOpen) "Checkout aktiv" else "Checkout pausiert",
                     tint = if (uiState.isStoreOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                 )
                 if (laneCount > 0) {
@@ -445,7 +468,7 @@ private fun ShopOverviewCard(
                     label = "Pieces",
                     value = if (uiState.isCatalogLoading || uiState.isSyncingCatalog) "Sync" else uiState.items.size.toString(),
                     icon = Icons.Default.ShoppingBag,
-                    accent = SpotifyGreen,
+                    accent = MaterialTheme.colorScheme.primary,
                     isActive = uiState.isCatalogLoading || uiState.isSyncingCatalog || uiState.items.isNotEmpty(),
                     modifier = Modifier.weight(1f),
                 )
@@ -461,9 +484,124 @@ private fun ShopOverviewCard(
                     label = "Access",
                     value = if (uiState.isLoggedIn) "Account" else "Gast",
                     icon = Icons.Default.Person,
-                    accent = YouTubeDeepRed,
+                    accent = MaterialTheme.colorScheme.tertiary,
                     isActive = uiState.isLoggedIn,
                     modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopLandingCuratedModule(
+    featuredItem: MerchandiseItem?,
+    editorialPicks: List<MerchandiseItem>,
+    onOpenItem: (MerchandiseItem) -> Unit,
+) {
+    val moodAreas = remember {
+        listOf("SkyOS Drops", "Studio Picks", "Tech Selects", "Limited Finds")
+    }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandStatusChip(
+                text = "Today’s Selection",
+                accent = MaterialTheme.colorScheme.tertiary,
+                isActive = true,
+            )
+            Text(
+                text = "Kuratiert",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        featuredItem?.let { item ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    .clickable { onOpenItem(item) }
+                    .padding(horizontal = 12.dp, vertical = 11.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Featured Drop",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "EUR ${"%.2f".format(item.price)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            editorialPicks.forEach { item ->
+                Box(
+                    modifier = Modifier
+                        .width(156.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.86f))
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        .clickable { onOpenItem(item) }
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "EUR ${"%.2f".format(item.price)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            moodAreas.forEach { mood ->
+                BrandPill(
+                    text = mood,
+                    tint = MaterialTheme.colorScheme.secondary,
                 )
             }
         }
@@ -527,7 +665,7 @@ private fun ShopAdminControlsCard(
             BrandActionButton(
                 text = if (uiState.isSyncingCatalog) "Store laedt..." else "Store aktualisieren",
                 onClick = onSyncShopify,
-                accent = SpotifyGreen,
+                accent = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Sync,
                 enabled = !uiState.isSyncingCatalog,
@@ -542,20 +680,54 @@ private fun ShopMessageCard(
     title: String,
     body: String,
     icon: ImageVector = Icons.Default.ShoppingBag,
-    accent: Color = SpotifyGreen,
+    accent: Color? = null,
     tag: String? = null,
 ) {
-    SkydownCard {
-        BrandSectionBanner(
-            title = title,
-            accent = accent,
-            icon = icon,
-            tag = tag,
-        )
+    val bannerAccent = accent ?: MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
+            .border(
+                width = 1.dp,
+                color = bannerAccent.copy(alpha = 0.20f),
+                shape = shape,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = bannerAccent,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            tag?.takeIf { it.isNotBlank() }?.let { label ->
+                BrandStatusChip(
+                    text = label,
+                    accent = bannerAccent,
+                    isActive = true,
+                )
+            }
+        }
         Text(
             text = body,
-            modifier = Modifier.padding(top = 10.dp),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
     }
@@ -933,7 +1105,7 @@ private fun ShopCollabSelectionCard(
                     title = "Share",
                     value = coverageLabel,
                     detail = if (lane.itemCount == totalItemCount) "Gesamter Katalog" else "des sichtbaren Katalogs",
-                    accent = SpotifyGreen,
+                    accent = MaterialTheme.colorScheme.tertiary,
                 )
                 ShopLaneMetricCard(
                     title = "Pieces",
@@ -1151,7 +1323,7 @@ private fun MerchandiseDetailSheet(
         }
     }
     val readinessTitle = when {
-        item.available && canCheckout && selectedSize.isNotBlank() -> "Ready"
+        item.available && canCheckout && selectedSize.isNotBlank() -> "Bereit"
         !isStoreOpen -> "Store pausiert"
         !item.available -> "Nicht live"
         else -> "Auswahl pruefen"
@@ -1163,8 +1335,15 @@ private fun MerchandiseDetailSheet(
         else -> "Bitte Variante vervollstaendigen"
     }
     val addToCartLabel = remember(item.price) {
-        "In den Warenkorb • EUR ${String.format(java.util.Locale.US, "%.2f", item.price)}"
+        "Jetzt sichern • EUR ${String.format(java.util.Locale.US, "%.2f", item.price)}"
     }
+    val availabilityTrustLine = when {
+        item.available && isStoreOpen -> "Drop aktuell verfuegbar."
+        !isStoreOpen -> "Drop sichtbar, Checkout pausiert."
+        else -> "Drop aktuell nicht verfuegbar."
+    }
+    val shippingTrustLine = "Versandstatus und finale Kosten siehst du vor dem Absenden im Checkout."
+    val supportTrustLine = "Support ist jederzeit in den Einstellungen erreichbar."
 
     LaunchedEffect(item.id, colorOptions) {
         if (selectedColor.isNotBlank() && colorOptions.any { it.equals(selectedColor, ignoreCase = true) }) {
@@ -1331,7 +1510,7 @@ private fun MerchandiseDetailSheet(
 
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -1349,7 +1528,7 @@ private fun MerchandiseDetailSheet(
                 BoxWithConstraints {
                     val wideCards = maxWidth >= 520.dp
                     if (wideCards) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             MerchDetailSignalCard(
                                 title = readinessTitle,
                                 detail = readinessDetail,
@@ -1359,18 +1538,18 @@ private fun MerchandiseDetailSheet(
                             MerchDetailSignalCard(
                                 title = selectionSummary,
                                 detail = optionSummary,
-                                accent = SpotifyGreen,
+                                accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.weight(1f),
                             )
                             MerchDetailSignalCard(
-                                title = if (isStoreOpen) "Checkout in App" else "Store Flow",
-                                detail = if (isStoreOpen) "Schliessen, weiterstoebern und spaeter direkt bestellen" else "Der Produkt-Flow bleibt sichtbar und klar lesbar",
-                                accent = YouTubeDeepRed,
+                                title = if (isStoreOpen) "Checkout in der App" else "Store-Ablauf",
+                                detail = if (isStoreOpen) "Schliessen, weiterstoebern und spaeter direkt bestellen" else "Der Produktablauf bleibt sichtbar und klar lesbar",
+                                accent = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.weight(1f),
                             )
                         }
                     } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             MerchDetailSignalCard(
                                 title = readinessTitle,
                                 detail = readinessDetail,
@@ -1380,13 +1559,13 @@ private fun MerchandiseDetailSheet(
                             MerchDetailSignalCard(
                                 title = selectionSummary,
                                 detail = optionSummary,
-                                accent = SpotifyGreen,
+                                accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             MerchDetailSignalCard(
-                                title = if (isStoreOpen) "Checkout in App" else "Store Flow",
-                                detail = if (isStoreOpen) "Schliessen, weiterstoebern und spaeter direkt bestellen" else "Der Produkt-Flow bleibt sichtbar und klar lesbar",
-                                accent = YouTubeDeepRed,
+                                title = if (isStoreOpen) "Checkout in der App" else "Store-Ablauf",
+                                detail = if (isStoreOpen) "Schliessen, weiterstoebern und spaeter direkt bestellen" else "Der Produktablauf bleibt sichtbar und klar lesbar",
+                                accent = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
@@ -1422,6 +1601,12 @@ private fun MerchandiseDetailSheet(
                         isActive = false,
                     )
                 }
+
+                MerchDetailTrustModule(
+                    availability = availabilityTrustLine,
+                    shipping = shippingTrustLine,
+                    support = supportTrustLine,
+                )
 
                 if (!canCheckout) {
                     Text(
@@ -1464,7 +1649,7 @@ private fun MerchandiseDetailSheet(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -1491,7 +1676,7 @@ private fun MerchandiseDetailSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
                     onClick = onDismiss,
@@ -1508,6 +1693,18 @@ private fun MerchandiseDetailSheet(
                     enabled = item.available && canCheckout && selectedSize.isNotBlank(),
                 )
             }
+            Text(
+                text = if (item.available && canCheckout && selectedSize.isNotBlank()) {
+                    "Sicher kaufen · $selectionSummary"
+                } else {
+                    "Vor dem Kauf: Auswahl und Status pruefen"
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            )
 
             Box(modifier = Modifier.height(2.dp))
         }
@@ -1532,7 +1729,7 @@ private fun MerchDetailSignalCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -1541,12 +1738,12 @@ private fun MerchDetailSignalCard(
                     ),
                 ),
             )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold,
             maxLines = 2,
@@ -1558,6 +1755,69 @@ private fun MerchDetailSignalCard(
             color = accent.copy(alpha = 0.90f),
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun MerchDetailTrustModule(
+    availability: String,
+    shipping: String,
+    support: String,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+                shape = shape,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ShopBadge(
+                text = "Trust",
+                icon = Icons.Default.CheckCircle,
+                isActive = true,
+            )
+            Text(
+                text = "Kaufklarheit",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        TrustRow(availability)
+        TrustRow(shipping)
+        TrustRow(support)
+    }
+}
+
+@Composable
+private fun TrustRow(text: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier
+                .size(14.dp)
+                .padding(top = 1.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
     }
 }

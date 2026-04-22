@@ -5,9 +5,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +32,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -693,10 +697,10 @@ private fun VideoHubHeroCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Clips, eigene Videos und Collabs im visuellen SkyOS-Flow." },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Visuals, Collabs und direkter Cinematic Flow." },
         detail = screenHeaderSettings.videoHubDetail.ifBlank {
             if (isAdmin) {
-                "$videoCount Clips und $collabCount Collabs live."
+                "$videoCount Clips und $collabCount Collabs im Live-Hub."
             } else {
                 "$videoCount Clips und $collabCount Collabs im Visual Hub."
             }
@@ -706,7 +710,10 @@ private fun VideoHubHeroCard(
         secondaryAccent = highlightAccent,
         marks = listOf(BrandArtwork.Skydown),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             BrandPill(
                 text = "$videoCount Clips",
                 tint = mysticAccent,
@@ -918,7 +925,7 @@ private fun VideoCollaborationsCard(
 
         if (items.isEmpty()) {
             Text(
-                text = "Noch keine Featured Collabs hinterlegt.",
+                text = "Featured Collabs folgen. Der Bereich bleibt bereit und wird laufend ergaenzt.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),
@@ -962,7 +969,7 @@ private fun VideoEquipmentCard(
 
         if (items.isEmpty()) {
             Text(
-                text = "Noch kein Equipment hinterlegt.",
+                text = "Equipment wird aktuell vorbereitet und erscheint hier in Kuerze.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),
@@ -1874,7 +1881,7 @@ private fun VideoPlayerCard(
 
         if (video == null) {
             Text(
-                text = "Noch kein Video ausgewaehlt. Sobald Uploads live sind, kannst du sie hier direkt abspielen.",
+                text = "Noch kein Fokus-Video aktiv. Waehle einen Clip aus der Library oder aktualisiere den Hub.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 modifier = Modifier.padding(top = 12.dp),
@@ -1943,57 +1950,46 @@ private fun VideoPlayerCard(
                         ),
                 )
 
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    VideoPill(
-                        text = if (video.usesEmbeddedPreview) "Embed" else if (video.nativePlaybackUrl.isNotBlank()) "Native" else "Link",
-                        isActive = true,
-                    )
-                    if (video.isHomeFeatured) {
-                        VideoPill(text = "Home", isActive = true)
-                    }
-                }
-
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        VideoPill(text = "Video", isActive = true)
-                        VideoPill(text = video.projectName, isActive = false)
-                        VideoPill(text = video.providerBadge, isActive = false)
-                    }
                     Text(
                         text = video.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = buildString {
+                            append(video.projectName)
+                            append(" · ")
+                            append(video.providerBadge)
+                            append(" · ")
+                            append(formatVideoDate(video.createdAtMillis))
+                            if (video.isHomeFeatured) {
+                                append(" · Home")
+                            }
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.76f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     if (video.notes.isNotBlank()) {
                         Text(
                             text = video.notes,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            VideoPill(text = formatVideoDate(video.createdAtMillis), isActive = true)
-            VideoPill(text = video.projectName, isActive = false)
-            if (video.isHomeFeatured) {
-                VideoPill(text = "Home active", isActive = true)
             }
         }
 
@@ -2055,13 +2051,6 @@ private fun VideoLibraryCard(
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        if (uiState.videos.isNotEmpty()) {
-            VideoLibraryOverviewSection(
-                videos = uiState.videos,
-                selectedVideoId = selectedVideoId,
-            )
-        }
-
         when {
             uiState.isLoadingVideos -> {
                 Row(
@@ -2073,13 +2062,13 @@ private fun VideoLibraryCard(
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.5.dp,
                     )
-                    Text("Videos werden geladen ...")
+                    Text("Videos werden ruhig vorbereitet ...")
                 }
             }
 
             uiState.videos.isEmpty() -> {
                 Text(
-                    text = "Noch keine Videos sichtbar. Sobald ein Clip hochgeladen ist, taucht er hier auf.",
+                    text = "Aktuell sind noch keine Videos sichtbar. Bitte spaeter erneut pruefen.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 16.dp),
@@ -2106,165 +2095,6 @@ private fun VideoLibraryCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun VideoLibraryOverviewSection(
-    videos: List<VideoHubItem>,
-    selectedVideoId: String?,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val clipsAccent = colorScheme.skydownAccent()
-    val directAccent = colorScheme.skydownAccentMystic()
-    val homeAccent = colorScheme.skydownAccentHighlight()
-    val featuredCount = videos.count { it.isHomeFeatured }
-    val directCount = videos.count { it.opensOriginalInApp || it.supportsInlinePlayback }
-    val focusVideo = videos.firstOrNull { it.id == selectedVideoId } ?: videos.firstOrNull()
-
-    Column(
-        modifier = Modifier.padding(top = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "Video Pulse",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = "Alle Clips auf einen Blick mit Fokus, Direktzugang und Home-Status, bevor du in die Library gehst.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-        )
-
-        BoxWithConstraints {
-            val wideMetrics = maxWidth >= 420.dp
-            if (wideMetrics) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VideoLibraryMetricCard(
-                        title = "Clips",
-                        value = videos.size.toString(),
-                        accent = clipsAccent,
-                        modifier = Modifier.weight(1f),
-                    )
-                    VideoLibraryMetricCard(
-                        title = "Direct",
-                        value = directCount.toString(),
-                        accent = directAccent,
-                        modifier = Modifier.weight(1f),
-                    )
-                    VideoLibraryMetricCard(
-                        title = "Home",
-                        value = featuredCount.toString(),
-                        accent = homeAccent,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VideoLibraryMetricCard(
-                        title = "Clips",
-                        value = videos.size.toString(),
-                        accent = clipsAccent,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    VideoLibraryMetricCard(
-                        title = "Direct",
-                        value = directCount.toString(),
-                        accent = directAccent,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    VideoLibraryMetricCard(
-                        title = "Home",
-                        value = featuredCount.toString(),
-                        accent = homeAccent,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        }
-
-        focusVideo?.let { video ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                videoHubProviderAccent(video).copy(alpha = 0.14f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                            ),
-                        ),
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = videoHubProviderAccent(video).copy(alpha = 0.18f),
-                        shape = RoundedCornerShape(18.dp),
-                    )
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = "Im Fokus",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = videoHubProviderAccent(video),
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = video.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "${video.projectName} • ${video.directOpenActionLabel}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun VideoLibraryMetricCard(
-    title: String,
-    value: String,
-    accent: Color,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        accent.copy(alpha = 0.14f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(18.dp),
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelSmall,
-            color = accent.copy(alpha = 0.88f),
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Black,
-        )
     }
 }
 
@@ -2348,46 +2178,44 @@ private fun VideoLibraryRow(
                     text = video.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${video.projectName} • ${formatVideoDate(video.createdAtMillis)}",
+                    text = buildString {
+                        append(video.projectName)
+                        append(" · ")
+                        append(video.providerBadge)
+                        append(" · ")
+                        append(formatVideoDate(video.createdAtMillis))
+                        if (isAdmin) {
+                            append(" · ")
+                            append(if (video.isPublic) "Public" else "Private")
+                            if (video.isHomeFeatured) {
+                                append(" · Home")
+                            }
+                        }
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
+                if (isAdmin && video.fileName.isNotBlank()) {
+                    Text(
+                        text = video.fileName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        maxLines = 1,
+                    )
+                }
                 if (video.notes.isNotBlank()) {
                     Text(
                         text = video.notes,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            VideoPill(
-                text = if (isSelected) "Im Player" else "Auswaehlen",
-                isActive = isSelected,
-            )
-            VideoPill(text = if (video.isPublic) "Public" else "Private", isActive = video.isPublic)
-            VideoPill(
-                text = video.providerBadge,
-                isActive = false,
-            )
-            VideoPill(
-                text = if (video.opensOriginalInApp) {
-                    if (video.supportsInlinePlayback) "Direkt" else "Original"
-                } else if (video.supportsInlinePlayback) {
-                    "Reel"
-                } else {
-                    "Link"
-                },
-                isActive = video.opensOriginalInApp || video.supportsInlinePlayback,
-            )
-            if (isAdmin && video.isHomeFeatured) {
-                VideoPill(text = "Home", isActive = true)
-            } else if (!isAdmin) {
-                VideoPill(text = "Clip", isActive = false)
             }
         }
 
@@ -2399,6 +2227,8 @@ private fun VideoLibraryRow(
             ),
             style = MaterialTheme.typography.bodySmall,
             color = videoHubProviderAccent(video).copy(alpha = 0.92f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
 
         if (isAdmin) {
@@ -2509,7 +2339,7 @@ private fun videoLibraryInteractionHint(
         if (video.supportsInlinePlayback) {
             return "Dieser Clip laeuft direkt im In-App-Reel ohne Browser-Zwischenweg."
         }
-        return "Aktuell bleibt hier nur der externe Oeffnen-Flow."
+            return "Aktuell steht hier nur der externe Aufruf zur Verfuegung."
     }
 
     if (video.opensOriginalInApp) {
@@ -2522,7 +2352,7 @@ private fun videoLibraryInteractionHint(
     if (video.supportsInlinePlayback) {
         return "Ein Tap startet die direkte Videoansicht sofort im Feed-Flow."
     }
-    return "Dieses Video oeffnet aktuell nur ueber einen externen Link."
+    return "Dieses Video wird derzeit ueber einen externen Link geoeffnet."
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -2548,10 +2378,12 @@ private fun VideoReelViewerDialog(
         initialPage = initialPage,
         pageCount = { videos.size.coerceAtLeast(1) },
     )
+    var isTransitioning by remember { mutableStateOf(true) }
 
     LaunchedEffect(pagerState.currentPage, videos) {
         val video = videos.getOrNull(pagerState.currentPage)
         video?.let(onSelectVideo)
+        isTransitioning = true
         val url = video?.nativePlaybackUrl
         if (url.isNullOrBlank()) {
             reelPlayer.stop()
@@ -2561,6 +2393,8 @@ private fun VideoReelViewerDialog(
             reelPlayer.prepare()
             reelPlayer.play()
         }
+        delay(220)
+        isTransitioning = false
     }
 
     DisposableEffect(reelPlayer) {
@@ -2661,25 +2495,27 @@ private fun VideoReelViewerDialog(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(horizontal = 22.dp, vertical = 30.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
                                 text = it.projectName.uppercase(),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.66f),
                             )
                             Text(
                                 text = it.title,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             if (it.notes.isNotBlank()) {
                                 Text(
                                     text = it.notes,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
-                                    maxLines = 4,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                                    maxLines = 3,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
@@ -2745,20 +2581,20 @@ private fun VideoReelViewerDialog(
                                 if (video.usesEmbeddedPreview) "SkyOS Preview" else "SkyOS Reel"
                             }
                             ?: "SkyOS Video",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f),
                     )
                     Text(
                         text = "${pagerState.currentPage + 1} von ${videos.size}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.70f),
                     )
                     if (videos.size > 1) {
                         Text(
                             text = "Wische vertikal durch alle Clips",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.62f),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.58f),
                         )
                     }
                 }
@@ -2771,6 +2607,32 @@ private fun VideoReelViewerDialog(
                     filled = false,
                     compact = true,
                 )
+            }
+
+            AnimatedVisibility(
+                visible = isTransitioning,
+                modifier = Modifier.align(Alignment.Center),
+                enter = fadeIn(),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.48f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Text(
+                        text = "Clip wird vorbereitet ...",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.90f),
+                    )
+                }
             }
         }
     }

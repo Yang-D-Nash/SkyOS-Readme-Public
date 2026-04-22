@@ -9,6 +9,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -48,6 +51,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -99,6 +103,8 @@ import com.skydown.android.data.AiRuntimeAgentProvider
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
 import com.skydown.android.data.LegalContentSettings
+import com.skydown.android.data.MembershipOpsExperimentDraft
+import com.skydown.android.data.MembershipOpsRecommendation
 import com.skydown.android.data.NotificationPermissionCoordinator
 import com.skydown.android.data.ScreenHeaderSettings
 import com.skydown.android.ui.component.EditableImageFieldCard
@@ -259,6 +265,7 @@ fun SettingsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
+    val membershipOpsRepository = remember { AppContainer.membershipOpsAdminRepository }
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -331,7 +338,7 @@ fun SettingsScreen(
     var aiAssetLibraryLinkDraft by rememberSaveable { mutableStateOf("") }
     var aiAssetReferenceNotesDraft by rememberSaveable { mutableStateOf("") }
     var aiCostGuardEnabledDraft by rememberSaveable { mutableStateOf(true) }
-    var aiAgentProviderDraft by rememberSaveable { mutableStateOf(AiRuntimeAgentProvider.Gemini.rawValue) }
+    var aiAgentProviderDraft by rememberSaveable { mutableStateOf(AiRuntimeAgentProvider.Grok.rawValue) }
     var aiFallbackAgentProviderDraft by rememberSaveable { mutableStateOf(AiRuntimeAgentProvider.Gemini.rawValue) }
     var aiManusEnabledDraft by rememberSaveable { mutableStateOf(false) }
     var aiManusRequestTimeoutMsDraft by rememberSaveable { mutableStateOf("") }
@@ -391,6 +398,33 @@ fun SettingsScreen(
     var showAdminWorkspaceSheet by rememberSaveable(initialAdminWorkspaceKey) {
         mutableStateOf(initialAdminWorkspaceKey != null)
     }
+    var membershipOpsTab by rememberSaveable { mutableStateOf(MembershipOpsTab.Dashboard.name) }
+    var membershipOpsLoading by rememberSaveable { mutableStateOf(false) }
+    var membershipOpsError by rememberSaveable { mutableStateOf("") }
+    var membershipDashboard by remember { mutableStateOf<Map<String, Any?>>(emptyMap()) }
+    var membershipTimeseries by remember { mutableStateOf<Map<String, Any?>>(emptyMap()) }
+    var membershipLearnings by remember { mutableStateOf<Map<String, Any?>>(emptyMap()) }
+    var membershipRecommendations by remember { mutableStateOf<List<MembershipOpsRecommendation>>(emptyList()) }
+    var membershipSimulations by remember { mutableStateOf<Map<String, Any?>>(emptyMap()) }
+    var membershipTimeline by remember { mutableStateOf<Map<String, Any?>>(emptyMap()) }
+    var membershipTimelineRange by rememberSaveable { mutableStateOf("30d") }
+    var hygieneCooldownCompletedDraft by rememberSaveable { mutableStateOf("10") }
+    var hygieneCooldownRejectedDraft by rememberSaveable { mutableStateOf("21") }
+    var hygieneCooldownProposedDraft by rememberSaveable { mutableStateOf("7") }
+    var hygieneSimilarityStrictnessDraft by rememberSaveable { mutableStateOf("balanced") }
+    var hygieneRecurringPenaltyDraft by rememberSaveable { mutableStateOf("0.18") }
+    var hygieneFreshnessFloorDraft by rememberSaveable { mutableStateOf("0.20") }
+    var hygieneDuplicateMergeWindowDraft by rememberSaveable { mutableStateOf("14") }
+    var hygieneProfileLabel by rememberSaveable { mutableStateOf("balanced") }
+    var selectedRecommendationId by rememberSaveable { mutableStateOf("") }
+    var experimentLifecycleIdDraft by rememberSaveable { mutableStateOf("") }
+    var experimentNotesDraft by rememberSaveable { mutableStateOf("") }
+    var experimentLearningsDraft by rememberSaveable { mutableStateOf("") }
+    var experimentCvrDeltaDraft by rememberSaveable { mutableStateOf("0.00") }
+    var experimentAnnualDeltaDraft by rememberSaveable { mutableStateOf("0.00") }
+    var experimentCreatorDeltaDraft by rememberSaveable { mutableStateOf("0.00") }
+    var experimentCancelDeltaDraft by rememberSaveable { mutableStateOf("0.00") }
+    var experimentObservedDaysDraft by rememberSaveable { mutableStateOf("14") }
     var pendingHeaderImageTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
     var activeHeaderImageUploadTarget by remember { mutableStateOf<SettingsHeaderImageTarget?>(null) }
     val visiblePaymentMethodCount = listOf(
@@ -586,6 +620,59 @@ fun SettingsScreen(
             delay(3000)
             feedbackMessage = null
         }
+    }
+
+    LaunchedEffect(activeAdminWorkspace, uiState.isOwner) {
+        if (!uiState.isOwner || activeAdminWorkspace != AdminWorkspaceSection.MembershipOps) {
+            return@LaunchedEffect
+        }
+        membershipOpsLoading = true
+        membershipOpsError = ""
+        runCatching {
+            val dashboard = membershipOpsRepository.loadDashboard()
+            val timeseries = membershipOpsRepository.loadTimeseries(windowDays = 30)
+            val recommendations = membershipOpsRepository.loadRecommendations()
+            val learnings = membershipOpsRepository.loadLearningInsights()
+            val timeline = membershipOpsRepository.loadTimeline(range = membershipTimelineRange)
+            val hygiene = membershipOpsRepository.loadHygieneControls()
+            val simulations = if (recommendations.isNotEmpty()) {
+                membershipOpsRepository.simulateImpact(
+                    recommendationIds = recommendations.take(6).map { it.id },
+                    horizonDays = 14,
+                )
+            } else {
+                emptyMap()
+            }
+            MembershipOpsDataBundle(
+                dashboard = dashboard,
+                timeseries = timeseries,
+                recommendations = recommendations,
+                learnings = learnings,
+                simulations = simulations,
+                timeline = timeline,
+                hygiene = hygiene,
+            )
+        }.onSuccess { bundle ->
+            membershipDashboard = bundle.dashboard
+            membershipTimeseries = bundle.timeseries
+            membershipRecommendations = bundle.recommendations
+            membershipLearnings = bundle.learnings
+            membershipSimulations = bundle.simulations
+            membershipTimeline = bundle.timeline
+            val hygiene = bundle.hygiene["membershipHygiene"] as? Map<*, *> ?: emptyMap<Any, Any>()
+            hygieneCooldownCompletedDraft = (hygiene["cooldownDaysCompleted"] as? Number)?.toInt()?.toString() ?: "10"
+            hygieneCooldownRejectedDraft = (hygiene["cooldownDaysRejected"] as? Number)?.toInt()?.toString() ?: "21"
+            hygieneCooldownProposedDraft = (hygiene["cooldownDaysProposed"] as? Number)?.toInt()?.toString() ?: "7"
+            hygieneSimilarityStrictnessDraft = (hygiene["similarityStrictness"] as? String) ?: "balanced"
+            hygieneRecurringPenaltyDraft = (hygiene["recurringPenalty"] as? Number)?.toDouble()?.toString() ?: "0.18"
+            hygieneFreshnessFloorDraft = (hygiene["freshnessFloor"] as? Number)?.toDouble()?.toString() ?: "0.20"
+            hygieneDuplicateMergeWindowDraft = (hygiene["duplicateMergeWindowDays"] as? Number)?.toInt()?.toString() ?: "14"
+            hygieneProfileLabel = (bundle.hygiene["profile"] as? String ?: "balanced")
+            selectedRecommendationId = bundle.recommendations.firstOrNull()?.id.orEmpty()
+        }.onFailure { error ->
+            membershipOpsError = error.localizedMessage ?: "Membership Command Center konnte nicht geladen werden."
+        }
+        membershipOpsLoading = false
     }
 
     val currentHeaderImageUrl: (SettingsHeaderImageTarget) -> String = { target ->
@@ -810,7 +897,7 @@ fun SettingsScreen(
                     title = "Home Header",
                     imageUrl = homeHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.Home,
-                    uploadStatusText = "Home Header wird uebernommen.",
+                    uploadStatusText = stringResource(R.string.settings_admin_headers_home_header_uploading),
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.Home
                         headerImagePicker.launch(
@@ -836,8 +923,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Home Eyebrow") },
-                    placeholder = { Text("z. B. Willkommen bei SkyOS") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_home_eyebrow)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_home_eyebrow_placeholder)) },
                     singleLine = true,
                 )
 
@@ -847,8 +934,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Home Titel") },
-                    placeholder = { Text("z. B. Dein Space fuer Musik, Store und Visuals") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_home_title)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_home_title_placeholder)) },
                     singleLine = true,
                 )
 
@@ -858,8 +945,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Home Untertitel") },
-                    placeholder = { Text("Kurze, klare Positionierung fuer neue und bestehende User.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_home_subtitle)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_home_subtitle_placeholder)) },
                     minLines = 2,
                 )
 
@@ -869,15 +956,15 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Home Detail / Willkommenstext") },
-                    placeholder = { Text("Laengerer Einstiegstext mit Mehrwert, Orientierung und naechstem Schritt.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_home_detail)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_home_detail_placeholder)) },
                     minLines = 3,
                 )
                 EditableImageFieldCard(
                     title = "Music Hub Header",
                     imageUrl = musicHubHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.MusicHub,
-                    uploadStatusText = "Music Hub Header wird uebernommen.",
+                    uploadStatusText = stringResource(R.string.settings_admin_headers_music_header_uploading),
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.MusicHub
                         headerImagePicker.launch(
@@ -902,8 +989,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Music Hub Eyebrow") },
-                    placeholder = { Text("z. B. Music") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_music_eyebrow)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_music_eyebrow_placeholder)) },
                 )
 
                 OutlinedTextField(
@@ -912,8 +999,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Music Hub Titel") },
-                    placeholder = { Text("z. B. Music") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_music_title)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_music_title_placeholder)) },
                 )
 
                 OutlinedTextField(
@@ -922,8 +1009,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Music Hub Untertitel") },
-                    placeholder = { Text("Releases, Artists und Studio an einem Ort.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_music_subtitle)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_music_subtitle_placeholder)) },
                     minLines = 2,
                 )
 
@@ -933,15 +1020,15 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Music Hub Detail") },
-                    placeholder = { Text("Klarer Einstieg in Songs, Beats, Artists und Studio.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_music_detail)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_music_detail_placeholder)) },
                     minLines = 3,
                 )
                 EditableImageFieldCard(
                     title = "Shop Header",
                     imageUrl = shopHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.Shop,
-                    uploadStatusText = "Shop Header wird uebernommen.",
+                    uploadStatusText = stringResource(R.string.settings_admin_headers_shop_header_uploading),
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.Shop
                         headerImagePicker.launch(
@@ -966,8 +1053,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Shop Eyebrow") },
-                    placeholder = { Text("z. B. Store") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_shop_eyebrow)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_shop_eyebrow_placeholder)) },
                 )
 
                 OutlinedTextField(
@@ -976,8 +1063,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Shop Titel") },
-                    placeholder = { Text("z. B. Shop") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_shop_title)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_shop_title_placeholder)) },
                 )
 
                 OutlinedTextField(
@@ -986,8 +1073,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Shop Untertitel") },
-                    placeholder = { Text("Produkte direkt in der App.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_shop_subtitle)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_shop_subtitle_placeholder)) },
                     minLines = 2,
                 )
 
@@ -997,15 +1084,15 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Shop Detail") },
-                    placeholder = { Text("Kurz erklaeren, was User im Shop finden und warum es sich lohnt.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_shop_detail)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_shop_detail_placeholder)) },
                     minLines = 3,
                 )
                 EditableImageFieldCard(
                     title = "Video Header",
                     imageUrl = videoHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.VideoHub,
-                    uploadStatusText = "Video Header wird uebernommen.",
+                    uploadStatusText = stringResource(R.string.settings_admin_headers_video_header_uploading),
                     onPickImage = {
                         pendingHeaderImageTarget = SettingsHeaderImageTarget.VideoHub
                         headerImagePicker.launch(
@@ -1030,8 +1117,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Video Eyebrow") },
-                    placeholder = { Text("z. B. Video") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_video_eyebrow)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_video_eyebrow_placeholder)) },
                 )
 
                 OutlinedTextField(
@@ -1040,8 +1127,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Video Titel") },
-                    placeholder = { Text("z. B. Video") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_video_title)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_video_title_placeholder)) },
                 )
 
                 OutlinedTextField(
@@ -1050,8 +1137,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Video Untertitel") },
-                    placeholder = { Text("Reels, Visuals und starke Kollaborationen.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_video_subtitle)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_video_subtitle_placeholder)) },
                     minLines = 2,
                 )
 
@@ -1061,13 +1148,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Video Detail") },
-                    placeholder = { Text("Einordnung fuer Clips, Visuals und aktuelle Kollaborationen.") },
+                    label = { Text(stringResource(R.string.settings_admin_headers_video_detail)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_video_detail_placeholder)) },
                     minLines = 3,
                 )
 
                 Text(
-                    text = "Leere Felder lassen den jeweiligen Screen wieder auf den nativen Farbverlauf zurueckfallen.",
+                    text = stringResource(R.string.settings_admin_headers_empty_gradient),
                     modifier = Modifier.padding(top = 10.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -1075,7 +1162,7 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         if (!uiState.isOwner) {
-                            feedbackMessage = "Nur der Owner darf Header-Bilder verwalten."
+                            feedbackMessage = context.getString(R.string.settings_admin_headers_owner_only)
                             feedbackType = ToastType.Error
                         } else {
                             coroutineScope.launch {
@@ -2437,7 +2524,453 @@ fun SettingsScreen(
                         .padding(top = 14.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("KI Runtime speichern")
+                    Text(stringResource(R.string.settings_ai_runtime_save))
+                }
+            }
+
+            AdminWorkspaceSection.MembershipOps -> {
+                Text(
+                    text = stringResource(R.string.settings_membership_ops_subtitle),
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+
+                if (membershipOpsError.isNotBlank()) {
+                    Text(
+                        text = membershipOpsError,
+                        modifier = Modifier.padding(top = 12.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+
+                LazyRow(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(MembershipOpsTab.entries.toList()) { tab ->
+                        val selected = membershipOpsTab == tab.name
+                        OutlinedButton(
+                            onClick = { membershipOpsTab = tab.name },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (selected) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text(tab.label, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+
+                if (membershipOpsLoading) {
+                    Row(
+                        modifier = Modifier.padding(top = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(stringResource(R.string.settings_membership_ops_loading))
+                    }
+                } else {
+                    when (MembershipOpsTab.fromKey(membershipOpsTab)) {
+                        MembershipOpsTab.Dashboard -> {
+                            val windows = membershipDashboard["windows"] as? Map<*, *> ?: emptyMap<Any, Any>()
+                            val d7 = windows["d7"] as? Map<*, *> ?: emptyMap<Any, Any>()
+                            val alerts = membershipDashboard["alerts"] as? List<*> ?: emptyList<Any>()
+                            val costOverlay = membershipDashboard["costOverlay"] as? Map<*, *> ?: emptyMap<Any, Any>()
+                            Text(
+                                text = "7d Opens: ${(d7["membershipOpens"] as? Number)?.toInt() ?: 0} · Purchases: ${(d7["purchaseSuccess"] as? Number)?.toInt() ?: 0} · CVR: ${(d7["cvr"] as? Number)?.toDouble() ?: 0.0}",
+                                modifier = Modifier.padding(top = 14.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Text(
+                                text = "Alerts: ${alerts.size} · Free Load Ratio: ${(costOverlay["freePlanLoadRatio"] as? Number)?.toDouble() ?: 0.0}",
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+
+                        MembershipOpsTab.Recommendations -> {
+                            if (membershipRecommendations.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.settings_membership_ops_empty_recommendations),
+                                    modifier = Modifier.padding(top = 14.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier.padding(top = 12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    membershipRecommendations.forEach { recommendation ->
+                                        SkydownCard {
+                                            Text(recommendation.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                            Text(
+                                                recommendation.summary,
+                                                modifier = Modifier.padding(top = 6.dp),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                            )
+                                            Text(
+                                                "Type: ${recommendation.recommendationType} · Confidence ${(recommendation.confidenceScore * 100).toInt()}% · ${recommendation.severity}",
+                                                modifier = Modifier.padding(top = 6.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
+                                            Row(
+                                                modifier = Modifier.padding(top = 10.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        coroutineScope.launch {
+                                                            val lifecycleId = "lifecycle_${recommendation.id}_${System.currentTimeMillis()}"
+                                                            membershipOpsRepository.startExperiment(
+                                                                MembershipOpsExperimentDraft(
+                                                                    lifecycleId = lifecycleId,
+                                                                    recommendationId = recommendation.id,
+                                                                    recommendationType = recommendation.recommendationType,
+                                                                    notes = "Started from Android Membership Command Center",
+                                                                ),
+                                                            )
+                                                            experimentLifecycleIdDraft = lifecycleId
+                                                            selectedRecommendationId = recommendation.id
+                                                            feedbackMessage = context.getString(R.string.settings_membership_ops_experiment_started)
+                                                            feedbackType = ToastType.Success
+                                                        }
+                                                    },
+                                                    shape = RoundedCornerShape(12.dp),
+                                                ) { Text(stringResource(R.string.settings_membership_ops_start_experiment)) }
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        coroutineScope.launch {
+                                                            membershipOpsRepository.rejectRecommendation(
+                                                                recommendationId = recommendation.id,
+                                                                recommendationType = recommendation.recommendationType,
+                                                                notes = "Rejected from Android Membership Command Center",
+                                                            )
+                                                            feedbackMessage = context.getString(R.string.settings_membership_ops_recommendation_rejected)
+                                                            feedbackType = ToastType.Warning
+                                                        }
+                                                    },
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                ) { Text(stringResource(R.string.settings_membership_ops_reject)) }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        MembershipOpsTab.Experiments -> {
+                            Text(
+                                text = stringResource(R.string.settings_membership_ops_complete_title),
+                                modifier = Modifier.padding(top = 14.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            OutlinedTextField(
+                                value = experimentLifecycleIdDraft,
+                                onValueChange = { experimentLifecycleIdDraft = it },
+                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                                label = { Text("Lifecycle ID") },
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = experimentLearningsDraft,
+                                onValueChange = { experimentLearningsDraft = it.take(1000) },
+                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                                label = { Text(stringResource(R.string.settings_membership_ops_learnings)) },
+                                minLines = 2,
+                                maxLines = 5,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+                                OutlinedTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("CVR Δ") }, singleLine = true)
+                                OutlinedTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("Annual Δ") }, singleLine = true)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+                                OutlinedTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("Creator Δ") }, singleLine = true)
+                                OutlinedTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("Cancel Δ") }, singleLine = true)
+                            }
+                            OutlinedTextField(
+                                value = experimentObservedDaysDraft,
+                                onValueChange = { experimentObservedDaysDraft = it },
+                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                                label = { Text("Observed Window Days") },
+                                singleLine = true,
+                            )
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        runCatching {
+                                            membershipOpsRepository.completeExperiment(
+                                                lifecycleId = experimentLifecycleIdDraft.trim(),
+                                                cvrDelta = experimentCvrDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                annualDelta = experimentAnnualDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                creatorDelta = experimentCreatorDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                cancelDelta = experimentCancelDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                observedWindowDays = experimentObservedDaysDraft.toIntOrNull() ?: 14,
+                                                success = (experimentCvrDeltaDraft.toDoubleOrNull() ?: 0.0) > 0,
+                                                learnings = experimentLearningsDraft,
+                                            )
+                                        }.onSuccess {
+                                            feedbackMessage = context.getString(R.string.settings_membership_ops_experiment_completed)
+                                            feedbackType = ToastType.Success
+                                        }.onFailure { error ->
+                                            feedbackMessage = error.localizedMessage ?: "Experiment konnte nicht abgeschlossen werden."
+                                            feedbackType = ToastType.Error
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                                shape = RoundedCornerShape(14.dp),
+                            ) {
+                                Text(stringResource(R.string.settings_membership_ops_complete_experiment))
+                            }
+                        }
+
+                        MembershipOpsTab.Learnings -> {
+                            val insights = membershipLearnings["insights"] as? Map<*, *> ?: emptyMap<Any, Any>()
+                            val dataStrength = membershipLearnings["dataStrength"] as? String ?: "unknown"
+                            Text(
+                                text = "Data strength: $dataStrength",
+                                modifier = Modifier.padding(top = 14.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Text(
+                                text = "Calibration: ${(insights["confidenceCalibrationScore"] as? Number)?.toDouble() ?: 0.0} · Simulation Accuracy: ${(insights["simulationAccuracyTrend"] as? Number)?.toDouble() ?: 0.0}",
+                                modifier = Modifier.padding(top = 8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                            val topSurfaces = insights["bestConvertingSurfaces"] as? List<*> ?: emptyList<Any>()
+                            Text(
+                                text = "Top Surfaces: ${topSurfaces.take(3).joinToString { ((it as? Map<*, *>)?.get("surface") as? String).orEmpty() }}",
+                                modifier = Modifier.padding(top = 8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+
+                            SkydownCard(modifier = Modifier.padding(top = 14.dp)) {
+                                Text(stringResource(R.string.settings_membership_ops_hygiene_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    text = "${stringResource(R.string.settings_membership_ops_hygiene_profile)}: $hygieneProfileLabel",
+                                    modifier = Modifier.padding(top = 6.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                                )
+                                OutlinedTextField(
+                                    value = hygieneCooldownCompletedDraft,
+                                    onValueChange = { hygieneCooldownCompletedDraft = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                                    label = { Text("cooldownDaysCompleted") },
+                                    supportingText = { Text("Laenger = weniger Recommendation-Rotation nach completed.") },
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = hygieneCooldownRejectedDraft,
+                                    onValueChange = { hygieneCooldownRejectedDraft = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    label = { Text("cooldownDaysRejected") },
+                                    supportingText = { Text("Erhoehen bei wiederholten No-Fit-Recommendations.") },
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = hygieneCooldownProposedDraft,
+                                    onValueChange = { hygieneCooldownProposedDraft = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    label = { Text("cooldownDaysProposed") },
+                                    supportingText = { Text("Verhindert Spam bei frisch vorgeschlagenen Ideen.") },
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = hygieneSimilarityStrictnessDraft,
+                                    onValueChange = { hygieneSimilarityStrictnessDraft = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    label = { Text("similarityStrictness") },
+                                    supportingText = { Text("strict | balanced | loose.") },
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = hygieneRecurringPenaltyDraft,
+                                    onValueChange = { hygieneRecurringPenaltyDraft = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    label = { Text("recurringPenalty") },
+                                    supportingText = { Text("Hoeher = staerkerer Prioritaetsabzug fuer Wiederholungen.") },
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = hygieneFreshnessFloorDraft,
+                                    onValueChange = { hygieneFreshnessFloorDraft = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    label = { Text("freshnessFloor") },
+                                    supportingText = { Text("Mindest-Freshness, darunter wird suppress/downgrade wahrscheinlicher.") },
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = hygieneDuplicateMergeWindowDraft,
+                                    onValueChange = { hygieneDuplicateMergeWindowDraft = it },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    label = { Text("duplicateMergeWindowDays") },
+                                    supportingText = { Text("Fenster fuer Duplicate-Kompression.") },
+                                    singleLine = true,
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                runCatching {
+                                                    membershipOpsRepository.saveHygieneControls(
+                                                        values = mapOf(
+                                                            "cooldownDaysCompleted" to (hygieneCooldownCompletedDraft.toIntOrNull() ?: 10),
+                                                            "cooldownDaysRejected" to (hygieneCooldownRejectedDraft.toIntOrNull() ?: 21),
+                                                            "cooldownDaysProposed" to (hygieneCooldownProposedDraft.toIntOrNull() ?: 7),
+                                                            "similarityStrictness" to hygieneSimilarityStrictnessDraft.trim(),
+                                                            "recurringPenalty" to (hygieneRecurringPenaltyDraft.toDoubleOrNull() ?: 0.18),
+                                                            "freshnessFloor" to (hygieneFreshnessFloorDraft.toDoubleOrNull() ?: 0.20),
+                                                            "duplicateMergeWindowDays" to (hygieneDuplicateMergeWindowDraft.toIntOrNull() ?: 14),
+                                                        ),
+                                                    )
+                                                }.onSuccess { result ->
+                                                    hygieneProfileLabel = result["profile"] as? String ?: hygieneProfileLabel
+                                                    feedbackMessage = context.getString(R.string.settings_membership_ops_hygiene_saved)
+                                                    feedbackType = ToastType.Success
+                                                }.onFailure { error ->
+                                                    feedbackMessage = error.localizedMessage ?: context.getString(R.string.settings_membership_ops_hygiene_save_failed)
+                                                    feedbackType = ToastType.Error
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                    ) { Text(stringResource(R.string.common_save)) }
+                                    OutlinedButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                runCatching {
+                                                    membershipOpsRepository.saveHygieneControls(
+                                                        values = emptyMap(),
+                                                        resetToDefaults = true,
+                                                    )
+                                                }.onSuccess { result ->
+                                                    val hygiene = result["membershipHygiene"] as? Map<*, *> ?: emptyMap<Any, Any>()
+                                                    hygieneCooldownCompletedDraft = (hygiene["cooldownDaysCompleted"] as? Number)?.toInt()?.toString() ?: "10"
+                                                    hygieneCooldownRejectedDraft = (hygiene["cooldownDaysRejected"] as? Number)?.toInt()?.toString() ?: "21"
+                                                    hygieneCooldownProposedDraft = (hygiene["cooldownDaysProposed"] as? Number)?.toInt()?.toString() ?: "7"
+                                                    hygieneSimilarityStrictnessDraft = (hygiene["similarityStrictness"] as? String) ?: "balanced"
+                                                    hygieneRecurringPenaltyDraft = (hygiene["recurringPenalty"] as? Number)?.toDouble()?.toString() ?: "0.18"
+                                                    hygieneFreshnessFloorDraft = (hygiene["freshnessFloor"] as? Number)?.toDouble()?.toString() ?: "0.20"
+                                                    hygieneDuplicateMergeWindowDraft = (hygiene["duplicateMergeWindowDays"] as? Number)?.toInt()?.toString() ?: "14"
+                                                    hygieneProfileLabel = result["profile"] as? String ?: "balanced"
+                                                    feedbackMessage = context.getString(R.string.settings_membership_ops_hygiene_defaults_restored)
+                                                    feedbackType = ToastType.Success
+                                                }.onFailure { error ->
+                                                    feedbackMessage = error.localizedMessage ?: "Reset auf Defaults fehlgeschlagen."
+                                                    feedbackType = ToastType.Error
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    ) { Text(stringResource(R.string.settings_membership_ops_reset_defaults)) }
+                                }
+                            }
+                        }
+
+                        MembershipOpsTab.Timeline -> {
+                            LazyRow(
+                                modifier = Modifier.padding(top = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                items(listOf("7d", "30d", "90d", "all")) { range ->
+                                    val selected = membershipTimelineRange == range
+                                    OutlinedButton(
+                                        onClick = {
+                                            membershipTimelineRange = range
+                                            coroutineScope.launch {
+                                                runCatching {
+                                                    membershipOpsRepository.loadTimeline(range = range)
+                                                }.onSuccess { timeline ->
+                                                    membershipTimeline = timeline
+                                                }.onFailure { error ->
+                                                    feedbackMessage = error.localizedMessage ?: context.getString(R.string.settings_membership_ops_timeline_load_failed)
+                                                    feedbackType = ToastType.Error
+                                                }
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    ) { Text(range) }
+                                }
+                            }
+
+                            val entries = membershipTimeline["entries"] as? List<*> ?: emptyList<Any>()
+                            if (entries.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.settings_membership_ops_timeline_empty),
+                                    modifier = Modifier.padding(top = 14.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier.padding(top = 12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    entries.take(40).forEach { row ->
+                                        val item = row as? Map<*, *> ?: emptyMap<Any, Any>()
+                                        val dateKey = item["dateKey"] as? String ?: "-"
+                                        val type = item["type"] as? String ?: "event"
+                                        val title = item["title"] as? String ?: type
+                                        val summary = item["summary"] as? String ?: ""
+                                        val ownerAction = item["ownerAction"] as? String ?: ""
+                                        val recommendationId = item["recommendationId"] as? String ?: ""
+                                        val learnings = item["learnings"] as? String ?: ""
+                                        SkydownCard {
+                                            Text("$dateKey · $type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+                                            Text(title, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                            if (summary.isNotBlank()) {
+                                                Text(summary, modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f))
+                                            }
+                                            if (ownerAction.isNotBlank()) {
+                                                Text("${stringResource(R.string.settings_membership_ops_owner_action)}: $ownerAction", modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                            if (learnings.isNotBlank()) {
+                                                Text("${stringResource(R.string.settings_membership_ops_learnings)}: $learnings", modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f))
+                                            }
+                                            if (recommendationId.isNotBlank()) {
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        selectedRecommendationId = recommendationId
+                                                        experimentLifecycleIdDraft = "lifecycle_${recommendationId}_${System.currentTimeMillis()}"
+                                                        experimentLearningsDraft = "Re-run based on timeline learnings: $title"
+                                                        membershipOpsTab = MembershipOpsTab.Experiments.name
+                                                    },
+                                                    modifier = Modifier.padding(top = 10.dp),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                ) {
+                                                    Text(stringResource(R.string.settings_membership_ops_rerun))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2490,8 +3023,34 @@ fun SettingsScreen(
                 }
 
                 item {
+                    SettingsUtilityRow(
+                        isOwner = uiState.isOwner,
+                        onOpenPayments = {
+                            if (uiState.isOwner) {
+                                activeAdminWorkspaceKey = AdminWorkspaceSection.Payments.name
+                                showAdminWorkspaceSheet = true
+                            } else {
+                                openSupportEmail(
+                                    context = context,
+                                    userEmail = uiState.email,
+                                    userName = uiState.username,
+                                    supportEmail = uiState.legalContentSettings.resolvedSupportEmail,
+                                )
+                            }
+                        },
+                        onOpenPrivacy = { activeLegalDocument.value = SettingsLegalDocumentType.PrivacyPolicy },
+                        onOpenOrders = onOpenOrders,
+                    )
+                }
+
+                item {
                     SkydownCard {
-                        SectionHeader("Konto")
+                        SectionHeader("Profile / Account")
+                        Text(
+                            text = "Persoenliche Identitaet, Login-Status und Kontosicherheit.",
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
                         if (uiState.isLoggedIn) {
                             Text(
                                 text = "Angemeldet als ${uiState.username}",
@@ -2620,54 +3179,118 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard {
-                        SectionHeader("Owner")
+                        SectionHeader("Membership")
+                        Text(
+                            text = "Aktueller Plan, Billing-Klarheit und Restore an einem Ort.",
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                        if (uiState.isLoggedIn) {
+                            val membershipState = if (uiState.aiAccessEnabled) "Aktiv" else "Eingeschraenkt"
+                            Text(
+                                text = "Status: $membershipState",
+                                modifier = Modifier.padding(top = 10.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        if (uiState.isOwner) {
+                                            activeAdminWorkspaceKey = AdminWorkspaceSection.MembershipOps.name
+                                            showAdminWorkspaceSheet = true
+                                        } else {
+                                            openSupportEmail(
+                                                context = context,
+                                                userEmail = uiState.email,
+                                                userName = uiState.username,
+                                                supportEmail = uiState.legalContentSettings.resolvedSupportEmail,
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                ) {
+                                    Text(if (uiState.isOwner) "Plan verwalten" else "Billing-Hilfe")
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        openSupportEmail(
+                                            context = context,
+                                            userEmail = uiState.email,
+                                            userName = uiState.username,
+                                            supportEmail = uiState.legalContentSettings.resolvedSupportEmail,
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                ) {
+                                    Text("Restore pruefen")
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "Melde dich an, um Membership-Status und Billing zu sehen.",
+                                modifier = Modifier.padding(top = 10.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    SkydownCard {
+                        SectionHeader("System Control")
                         Text(
                             text = if (uiState.isOwner) {
-                                "Diese Systembereiche gehoeren jetzt allein zum Owner-Konto. Shopify, Zahlarten, Versand und Nutzerrollen laufen damit bewusst ueber eine zentrale Hand."
+                                "Operator-Bereich fuer Revenue, Nutzer und Runtime-Steuerung."
                             } else {
-                                "Die Systembereiche sind nur fuer das feste Owner-Konto aktiv."
+                                "Geschuetzter Operator-Bereich."
                             },
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
-                        OwnerCommandCenterCard(
-                            isOwner = uiState.isOwner,
-                            paymentStatus = "$visiblePaymentMethodCount Checkout-Routen",
-                            userStatus = "${uiState.managedUsers.size} Konten",
-                            headerStatus = "${screenHeaderSettings.configuredCount} Header",
-                            aiStatus = if (uiState.aiRuntimeSettings.costGuardEnabled) "Cost Guard aktiv" else "Cost Guard pruefen",
-                            onOpenUsers = {
-                                activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
-                                showAdminWorkspaceSheet = true
-                            },
-                            onOpenPayments = {
-                                activeAdminWorkspaceKey = AdminWorkspaceSection.Payments.name
-                                showAdminWorkspaceSheet = true
-                            },
-                            onOpenHeaders = {
-                                activeAdminWorkspaceKey = AdminWorkspaceSection.Headers.name
-                                showAdminWorkspaceSheet = true
-                            },
-                            onOpenAi = {
-                                activeAdminWorkspaceKey = AdminWorkspaceSection.AiPrompts.name
-                                showAdminWorkspaceSheet = true
-                            },
-                            modifier = Modifier.padding(top = 14.dp),
-                        )
-                        OutlinedButton(
-                            onClick = onOpenOrders,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                            enabled = uiState.isOwner,
-                            shape = RoundedCornerShape(18.dp),
-                        ) {
-                            Text("Bestellungen oeffnen")
-                        }
-
-                        if (!uiState.isOwner) {
+                        if (uiState.isOwner) {
+                            OwnerCommandCenterCard(
+                                isOwner = uiState.isOwner,
+                                paymentStatus = "$visiblePaymentMethodCount Zahlungsrouten",
+                                userStatus = "${uiState.managedUsers.size} Konten",
+                                headerStatus = "${screenHeaderSettings.configuredCount} Header",
+                                aiStatus = if (uiState.aiRuntimeSettings.costGuardEnabled) "AI Guard aktiv" else "AI Guard pruefen",
+                                onOpenUsers = {
+                                    activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
+                                    showAdminWorkspaceSheet = true
+                                },
+                                onOpenPayments = {
+                                    activeAdminWorkspaceKey = AdminWorkspaceSection.Payments.name
+                                    showAdminWorkspaceSheet = true
+                                },
+                                onOpenHeaders = {
+                                    activeAdminWorkspaceKey = AdminWorkspaceSection.Headers.name
+                                    showAdminWorkspaceSheet = true
+                                },
+                                onOpenAi = {
+                                    activeAdminWorkspaceKey = AdminWorkspaceSection.AiPrompts.name
+                                    showAdminWorkspaceSheet = true
+                                },
+                                modifier = Modifier.padding(top = 14.dp),
+                            )
+                            OutlinedButton(
+                                onClick = onOpenOrders,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text("Bestellungen oeffnen")
+                            }
+                        } else {
                             SettingsLockedHint(
-                                text = "Owner-Bereiche sind fuer dieses Konto gesperrt. Melde dich mit dem Owner-Konto an, um Rollen und System-Workspaces zu bearbeiten.",
+                                text = "Nicht verfuegbar fuer dieses Konto.",
                                 modifier = Modifier.padding(top = 10.dp),
                             )
                         }
@@ -2701,9 +3324,9 @@ fun SettingsScreen(
                 if (uiState.isLoggedIn) {
                     item {
                         SkydownCard {
-                            SectionHeader("Mein Agent-Service")
+                            SectionHeader("AI Control")
                             Text(
-                                text = "Verbinde n8n, Agent-Skills und optional Manus fuer dein Konto.",
+                                text = "Bot-, Agent- und Workflow-Defaults zentral steuern.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -2778,7 +3401,7 @@ fun SettingsScreen(
                         val notificationsEnableInSettingsToast = stringResource(R.string.settings_notifications_toast_enable_in_settings)
                         val notificationsManageInSettingsToast = stringResource(R.string.settings_notifications_toast_manage_in_settings)
 
-                        SectionHeader(stringResource(R.string.settings_general_section))
+                        SectionHeader("System")
                         Text(
                             text = stringResource(R.string.settings_system_language_value, uiState.language),
                             modifier = Modifier.padding(top = 8.dp),
@@ -2819,7 +3442,7 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard {
-                        SectionHeader("Anzeige")
+                        SectionHeader("Theme")
                         Text(
                             text = "Aktuell: ${uiState.colorScheme.label}",
                             modifier = Modifier.padding(top = 8.dp),
@@ -2838,10 +3461,15 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard {
-                        SectionHeader("App-Info")
+                        SectionHeader("Privacy / Legal / Help")
+                        Text(
+                            text = "Recht, Hilfe und Vertrauen in einer klaren Reihe.",
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
                         Text(
                             text = "Version ${uiState.appVersion}",
-                            modifier = Modifier.padding(top = 8.dp),
+                            modifier = Modifier.padding(top = 10.dp),
                         )
                         OutlinedButton(
                             onClick = {
@@ -2852,7 +3480,7 @@ fun SettingsScreen(
                                 .padding(top = 12.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("README / App Guide")
+                            Text("FAQ / Guide")
                         }
                         OutlinedButton(
                             onClick = {
@@ -2874,7 +3502,7 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("Datenschutzbestimmungen")
+                            Text("Datenschutz")
                         }
                         OutlinedButton(
                             onClick = {
@@ -2885,16 +3513,44 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("Nutzungsbedingungen")
+                            Text("Terms")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                activeLegalDocument.value = SettingsLegalDocumentType.SubscriptionTerms
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("Subscription Terms")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                activeLegalDocument.value = SettingsLegalDocumentType.AiUsageNotice
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("AI Usage Notice")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                activeLegalDocument.value = SettingsLegalDocumentType.ImprintInfo
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("Impressum / Company Info")
                         }
                         Text(
-                            text = "Support",
-                            modifier = Modifier.padding(top = 12.dp),
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        Text(
                             text = uiState.legalContentSettings.resolvedSupportEmail,
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier.padding(top = 12.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         Button(
@@ -2914,7 +3570,7 @@ fun SettingsScreen(
                             Text("Support-Anfrage senden")
                         }
                         Text(
-                            text = "README, Rechtstexte und Support-Infos sind hier direkt aus der App erreichbar.",
+                            text = "Alle Hilfe- und Rechtstexte sind direkt verfuegbar.",
                             modifier = Modifier.padding(top = 10.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -3563,46 +4219,46 @@ private fun ProfileEditorCard(
 private fun SettingsOverviewCard(
     uiState: SettingsUiState,
 ) {
-    SkydownCard {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                shape = shape,
+            )
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = if (uiState.isLoggedIn) uiState.username else "SkyOS Einstellungen",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Android zieht hier mit iOS gleich: Konto, Rechtliches, Anzeige und Support bleiben in einem klaren Flow gebuendelt.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = if (uiState.isLoggedIn) "${uiState.username} · Einstellungen aktiv" else "SkyOS Einstellungen",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.weight(1f))
         }
 
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        Text(
+            text = "Konto, Rechtliches, Anzeige und Support bleiben in einem klaren Flow gebuendelt.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SettingsBadge(
                 text = if (uiState.isLoggedIn) "Konto aktiv" else "Gast",
                 icon = Icons.Default.Person,
@@ -3628,6 +4284,75 @@ private fun SettingsOverviewCard(
                 modifier = Modifier.padding(top = 10.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun SettingsUtilityRow(
+    isOwner: Boolean,
+    onOpenPayments: () -> Unit,
+    onOpenPrivacy: () -> Unit,
+    onOpenOrders: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SettingsUtilityChip(
+            label = if (isOwner) "Zahlungen" else "Support",
+            icon = if (isOwner) Icons.Default.CreditCard else Icons.Default.Email,
+            accent = MaterialTheme.colorScheme.primary,
+            onClick = onOpenPayments,
+            modifier = Modifier.weight(1f),
+        )
+        SettingsUtilityChip(
+            label = "Datenschutz",
+            icon = Icons.Default.Lock,
+            accent = MaterialTheme.colorScheme.secondary,
+            onClick = onOpenPrivacy,
+            modifier = Modifier.weight(1f),
+        )
+        SettingsUtilityChip(
+            label = "Orders",
+            icon = Icons.Default.LocalShipping,
+            accent = MaterialTheme.colorScheme.tertiary,
+            onClick = onOpenOrders,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun SettingsUtilityChip(
+    label: String,
+    icon: ImageVector,
+    accent: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(999.dp)
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = shape,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.24f)),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = accent.copy(alpha = 0.12f),
+            contentColor = accent,
+        ),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(13.dp),
+        )
+        Spacer(modifier = Modifier.size(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+        )
     }
 }
 
@@ -4111,6 +4836,11 @@ private enum class AdminWorkspaceSection(
         subtitle = "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen.",
         icon = Icons.Default.Settings,
     ),
+    MembershipOps(
+        label = "Membership Ops",
+        subtitle = "Revenue Command Center mit KPIs, Trends, Experiments und Learnings.",
+        icon = Icons.Default.Bolt,
+    ),
 
     ;
 
@@ -4157,6 +4887,7 @@ private fun adminWorkspaceStatusText(
         } else {
             "Assets + Prompts"
         }
+        AdminWorkspaceSection.MembershipOps -> "Revenue Ops"
     }
 }
 
@@ -4165,6 +4896,31 @@ private enum class SettingsHeaderImageTarget {
     MusicHub,
     Shop,
     VideoHub,
+}
+
+private data class MembershipOpsDataBundle(
+    val dashboard: Map<String, Any?>,
+    val timeseries: Map<String, Any?>,
+    val recommendations: List<MembershipOpsRecommendation>,
+    val learnings: Map<String, Any?>,
+    val simulations: Map<String, Any?>,
+    val timeline: Map<String, Any?>,
+    val hygiene: Map<String, Any?>,
+)
+
+private enum class MembershipOpsTab(val label: String) {
+    Dashboard("Dashboard"),
+    Recommendations("Recommendations"),
+    Experiments("Experiments"),
+    Learnings("Learnings"),
+    Timeline("Timeline"),
+    ;
+
+    companion object {
+        fun fromKey(raw: String): MembershipOpsTab {
+            return entries.firstOrNull { it.name == raw } ?: Dashboard
+        }
+    }
 }
 
 @Composable

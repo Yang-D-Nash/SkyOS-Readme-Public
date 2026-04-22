@@ -5,6 +5,7 @@ import com.google.firebase.functions.FirebaseFunctions
 data class AiGeneratedTextResult(
     val text: String,
     val historyRetentionDays: Int,
+    val usage: AiUsageSnapshot? = null,
 )
 
 class AiChatClient(
@@ -29,6 +30,7 @@ class AiChatClient(
         return AiGeneratedTextResult(
             text = reply?.takeIf { it.isNotBlank() } ?: error("Die Bot-Antwort fehlt."),
             historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
+            usage = parseAiUsageSnapshot(data["usage"]),
         )
     }
 }

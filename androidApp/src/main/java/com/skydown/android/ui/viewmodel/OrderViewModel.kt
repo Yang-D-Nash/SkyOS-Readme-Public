@@ -108,12 +108,18 @@ class OrderViewModel : ViewModel() {
             it.copy(
                 isLoading = false,
                 orders = result.getOrDefault(emptyList()),
-                errorMessage = result.exceptionOrNull()?.message ?: it.errorMessage,
+                errorMessage = result.exceptionOrNull()?.message,
             )
         }
     }
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
+    fun refreshOrders() {
+        viewModelScope.launch {
+            loadOrders()
+        }
     }
 }

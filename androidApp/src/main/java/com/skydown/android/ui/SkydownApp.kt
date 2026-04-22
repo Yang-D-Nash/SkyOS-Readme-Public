@@ -430,6 +430,8 @@ fun SkydownApp(
                         composable("profile") {
                             ProfileScreen(
                                 onBack = { navController.popBackStack() },
+                                onOpenSettings = openSettings,
+                                onOpenOrders = { showOrders = true },
                             )
                         }
                     }

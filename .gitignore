@@ -4,7 +4,12 @@
 .kotlin/
 build/
 **/build/
+DerivedData/
+**/DerivedData/
 dist/
+backup/
+node_modules/
+**/node_modules/
 local.properties
 keystore.properties
 *.jks
@@ -12,6 +17,8 @@ keystore.properties
 firebase-debug.log
 functions/firestore-debug.log
 *.xcarchive
+.env
+.env.*
 
 .idea/
 

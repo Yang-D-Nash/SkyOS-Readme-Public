@@ -26,6 +26,13 @@ struct MerchandiseItemView: View {
         displayImageURLs.isEmpty ? [""] : displayImageURLs
     }
 
+    /// Featured drops use aurora highlight; core catalog uses primary slate accent.
+    private var priceAccentColor: Color {
+        item.featured
+            ? AppColors.accentHighlight(for: colorScheme)
+            : AppColors.accent(for: colorScheme)
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             imagePager
@@ -41,7 +48,7 @@ struct MerchandiseItemView: View {
 
                 Text("EUR \(item.price, specifier: "%.2f")")
                     .font(AppTypography.metricLabel)
-                    .foregroundColor(AppColors.accent(for: colorScheme))
+                    .foregroundColor(priceAccentColor)
 
                 if !item.description.isEmpty {
                     Text(item.description)
@@ -61,7 +68,7 @@ struct MerchandiseItemView: View {
                     Label("Details", systemImage: "chevron.right")
                         .font(AppTypography.buttonLabel)
                         .labelStyle(.titleAndIcon)
-                        .foregroundColor(AppColors.accent(for: colorScheme))
+                        .foregroundColor(priceAccentColor)
                         .lineLimit(1)
                 }
             }
@@ -93,19 +100,13 @@ struct MerchandiseItemView: View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedImageIndex) {
                 ForEach(Array(safeImageURLs.enumerated()), id: \.offset) { index, urlString in
-                    AsyncImage(url: URL(string: urlString)) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: imageWidth, height: imageHeight)
-                            .clipped()
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(AppColors.secondaryBackground(for: colorScheme))
-                            .overlay {
-                                ProgressView()
-                            }
-                    }
+                    MerchCatalogThumbImage(
+                        urlString: urlString,
+                        colorScheme: colorScheme,
+                        width: imageWidth,
+                        height: imageHeight
+                    )
+                    .id("\(item.id)-\(index)-\(urlString)")
                     .tag(index)
                 }
             }
@@ -163,7 +164,8 @@ struct MerchandiseItemView: View {
                 MerchInfoBadge(
                     text: item.available ? "Drop live" : "Sold out",
                     colorScheme: colorScheme,
-                    isAccent: item.available
+                    isAccent: item.available,
+                    featured: item.featured
                 )
                 if item.hasCuratedMerchCategory {
                     MerchInfoBadge(
@@ -191,6 +193,97 @@ struct MerchandiseItemView: View {
     }
 }
 
+private func merchImageURL(_ raw: String) -> URL? {
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, let url = URL(string: trimmed) else { return nil }
+    return url
+}
+
+/// List / card thumbnail: no implicit crossfade, static placeholder (no spinner) for calmer scroll.
+private struct MerchCatalogThumbImage: View {
+    let urlString: String
+    let colorScheme: ColorScheme
+    let width: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        Group {
+            if let url = merchImageURL(urlString) {
+                AsyncImage(url: url, transaction: Transaction(animation: nil)) { phase in
+                    switch phase {
+                    case .empty:
+                        thumbPlaceholder
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: width, height: height)
+                            .clipped()
+                    case .failure:
+                        thumbPlaceholder
+                    @unknown default:
+                        thumbPlaceholder
+                    }
+                }
+            } else {
+                thumbPlaceholder
+            }
+        }
+        .transaction { $0.animation = nil }
+    }
+
+    private var thumbPlaceholder: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(AppColors.secondaryBackground(for: colorScheme))
+            .overlay {
+                Image(systemName: "photo")
+                    .font(.title3)
+                    .foregroundStyle(AppColors.secondaryText(for: colorScheme).opacity(0.35))
+            }
+            .frame(width: width, height: height)
+    }
+}
+
+/// Fullscreen gallery: same no-fade policy; light spinner only while loading large asset.
+private struct MerchGalleryImage: View {
+    let urlString: String
+
+    var body: some View {
+        Group {
+            if let url = merchImageURL(urlString) {
+                AsyncImage(url: url, transaction: Transaction(animation: nil)) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .tint(.white)
+                            .scaleEffect(0.9)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 40)
+                    case .failure:
+                        galleryPlaceholder
+                    @unknown default:
+                        galleryPlaceholder
+                    }
+                }
+            } else {
+                galleryPlaceholder
+            }
+        }
+        .transaction { $0.animation = nil }
+    }
+
+    private var galleryPlaceholder: some View {
+        Image(systemName: "photo")
+            .font(.largeTitle)
+            .foregroundStyle(.white.opacity(0.35))
+    }
+}
+
 private struct MerchandiseFullscreenGalleryView: View {
     let itemName: String
     let imageURLs: [String]
@@ -208,17 +301,7 @@ private struct MerchandiseFullscreenGalleryView: View {
                         Color.black
                             .ignoresSafeArea()
 
-                        AsyncImage(url: URL(string: urlString)) { image in
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 40)
-                        } placeholder: {
-                            ProgressView()
-                                .tint(.white)
-                        }
+                        MerchGalleryImage(urlString: urlString)
                     }
                     .tag(index)
                 }
@@ -258,12 +341,15 @@ private struct MerchInfoBadge: View {
     let text: String
     let colorScheme: ColorScheme
     let isAccent: Bool
+    var featured: Bool = false
 
     var body: some View {
         SkydownMetaLabel(
             text: text,
             tint: isAccent
-                ? AppColors.accent(for: colorScheme)
+                ? (featured
+                    ? AppColors.accentHighlight(for: colorScheme)
+                    : AppColors.accent(for: colorScheme))
                 : AppColors.secondaryText(for: colorScheme)
         )
     }

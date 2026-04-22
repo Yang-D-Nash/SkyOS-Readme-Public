@@ -144,14 +144,28 @@ struct AIChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class AIChatViewModel: ObservableObject {
+    struct RevenueUsageState {
+        let planTitle: String
+        let remaining: Int
+        let limit: Int
+        let warningLevel: String
+        let userFacingReason: String
+        let suggestedUpgrade: String
+        let resetHint: String
+        let retryAfterSeconds: Int
+        let lowerCostOption: String
+    }
+
     @Published var messages: [AIChatMessage] = []
     @Published var draft = ""
     @Published var composerMode: AIComposerMode = .text
     @Published var textMode: AITextMode = .general
-    @Published var isSending = false
+    /// Bot-only lifecycle (text vs visual). Use `phase.isBusy` instead of a shared `isSending` flag.
+    @Published private(set) var phase: BotInteractionPhase = .idle
     @Published var showToast = false
     @Published var toastMessage = ""
     @Published var toastStyle: ToastStyle = .info
+    @Published private(set) var revenueUsage: RevenueUsageState?
 
     var quickPrompts: [String] {
         textMode.quickPrompts
@@ -179,6 +193,7 @@ final class AIChatViewModel: ObservableObject {
     private let service: AIChatServicing
     private let historyStore: AIScriptHistoryStore
     private var currentUserKey: String?
+    private var currentPlanTitle: String = "Free"
 
     init(
         service: AIChatServicing = FirebaseFunctionsAIChatService()
@@ -189,6 +204,15 @@ final class AIChatViewModel: ObservableObject {
 
     func configureUser(user: User?) {
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
+        if let user {
+            switch user.resolvedQuotaPlan {
+            case .studio: currentPlanTitle = "Creator"
+            case .creator: currentPlanTitle = "Pro"
+            default: currentPlanTitle = "Free"
+            }
+        } else {
+            currentPlanTitle = "Free"
+        }
         historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
         guard normalizedUserKey != currentUserKey else { return }
         currentUserKey = normalizedUserKey
@@ -206,8 +230,8 @@ final class AIChatViewModel: ObservableObject {
 
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPrompt.isEmpty, !isSending else { return }
-        isSending = true
+        guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
+        phase = .generatingText
 
         var appendedAssistantID: UUID?
         Task {
@@ -224,6 +248,7 @@ final class AIChatViewModel: ObservableObject {
                     mode: textMode.rawValue
                 )
                 historyStore.updateRetentionDays(result.historyRetentionDays)
+                applyUsage(result.usage)
 
                 updateAssistantMessage(
                     id: assistantID,
@@ -236,9 +261,9 @@ final class AIChatViewModel: ObservableObject {
                     prompt: trimmedPrompt,
                     response: result.text
                 )
-                isSending = false
+                phase = .idle
             } catch {
-                isSending = false
+                phase = .idle
                 let assistantText = userFacingErrorMessage(for: error)
                 if let assistantID = appendedAssistantID {
                     updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
@@ -256,8 +281,8 @@ final class AIChatViewModel: ObservableObject {
 
     func generateVisual(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPrompt.isEmpty, !isSending else { return }
-        isSending = true
+        guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
+        phase = .generatingVisual
 
         var appendedAssistantID: UUID?
         Task {
@@ -270,6 +295,7 @@ final class AIChatViewModel: ObservableObject {
 
                 let result = try await service.generateVisual(prompt: buildVisualPrompt(for: trimmedPrompt))
                 historyStore.updateRetentionDays(result.historyRetentionDays)
+                applyUsage(result.usage)
                 updateAssistantMessage(
                     id: assistantID,
                     text: result.text,
@@ -283,9 +309,9 @@ final class AIChatViewModel: ObservableObject {
                     response: result.text,
                     imageData: result.imageData
                 )
-                isSending = false
+                phase = .idle
             } catch {
-                isSending = false
+                phase = .idle
                 let assistantText = userFacingErrorMessage(for: error)
                 if let assistantID = appendedAssistantID {
                     updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
@@ -377,6 +403,25 @@ final class AIChatViewModel: ObservableObject {
         showToast = true
     }
 
+    func showToastMessage(_ message: String, style: ToastStyle) {
+        showUserToast(message, style: style)
+    }
+
+    private func applyUsage(_ usage: AIUsageSnapshot?) {
+        guard let usage else { return }
+        revenueUsage = RevenueUsageState(
+            planTitle: currentPlanTitle,
+            remaining: max(usage.remainingForKind, 0),
+            limit: max(usage.limitForKind, 0),
+            warningLevel: usage.warningLevel,
+            userFacingReason: usage.userFacingReason,
+            suggestedUpgrade: usage.suggestedUpgrade,
+            resetHint: usage.resetHint,
+            retryAfterSeconds: usage.retryAfterSeconds,
+            lowerCostOption: usage.lowerCostOption
+        )
+    }
+
     private func userFacingErrorMessage(for error: Error) -> String {
         let nsError = error as NSError
 
@@ -384,42 +429,38 @@ final class AIChatViewModel: ObservableObject {
            let code = FunctionsErrorCode(rawValue: nsError.code) {
             switch code {
             case .notFound, .unimplemented:
-                return "Der SkyOS Bot ist fuer diesen Bereich gerade noch nicht verfuegbar."
+                return "Dieser Bot-Bereich wird gerade vorbereitet."
             case .unavailable:
-                return "Der SkyOS Bot ist gerade nicht erreichbar."
+                return "Der SkyOS Bot ist gerade kurz nicht erreichbar."
             case .deadlineExceeded:
-                return "Der SkyOS Bot hat zu lange fuer die Antwort gebraucht."
+                return "Die Antwort dauert gerade laenger als gewohnt."
             case .resourceExhausted:
-                return nsError.localizedDescription.isEmpty ? "Dein heutiges KI-Limit ist erreicht." : nsError.localizedDescription
+                return "Dein heutiges KI-Limit ist erreicht. Bitte spaeter erneut versuchen."
             case .failedPrecondition:
                 if nsError.localizedDescription.localizedCaseInsensitiveContains("App Check") {
-                    return "Sicherheitscheck laeuft noch. Bitte die App kurz neu oeffnen und erneut versuchen."
+                    return "Der Sicherheitscheck laeuft noch. Bitte kurz erneut versuchen."
                 }
-                return nsError.localizedDescription.isEmpty ? "Die KI ist noch nicht vollstaendig eingerichtet." : nsError.localizedDescription
+                return "Die KI ist gerade noch nicht voll bereit. Bitte in einem Moment erneut versuchen."
             case .permissionDenied:
-                return nsError.localizedDescription.isEmpty ? "Die KI ist fuer dein Konto gerade nicht freigeschaltet." : nsError.localizedDescription
+                return "Die KI ist fuer dein Konto gerade nicht freigeschaltet."
             case .unauthenticated:
                 return "Bitte melde dich erneut an und versuch es noch einmal."
             case .invalidArgument:
-                return "Die KI-Anfrage konnte so nicht gestartet werden."
+                return "Die Anfrage braucht noch etwas mehr Kontext."
             case .internal:
                 if nsError.localizedDescription.localizedCaseInsensitiveContains("server responded with an error") {
-                    return "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+                    return "Der Visual-Server antwortet gerade unruhig. Bitte kurz erneut versuchen."
                 }
-                return nsError.localizedDescription.isEmpty
-                    ? "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
-                    : nsError.localizedDescription
+                return "Der Visual-Server antwortet gerade unruhig. Bitte kurz erneut versuchen."
             default:
                 break
             }
         }
 
         if nsError.localizedDescription.localizedCaseInsensitiveContains("server responded with an error") {
-            return "Der Visual-Server hat gerade nicht sauber geantwortet. Bitte direkt noch einmal versuchen."
+            return "Der Visual-Server antwortet gerade unruhig. Bitte kurz erneut versuchen."
         }
 
-        return error.localizedDescription.isEmpty
-            ? "Der SkyOS Bot ist gerade nicht verfuegbar."
-            : error.localizedDescription
+        return "Der SkyOS Bot ist gerade kurz pausiert. Bitte in einem Moment erneut versuchen."
     }
 }

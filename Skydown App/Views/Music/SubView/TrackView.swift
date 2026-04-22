@@ -109,10 +109,12 @@ struct TrackView: View {
                 if track.previewUrl != nil {
                     Button {
                         onSelect()
-                        audioManager.playPreview(for: track)
+                        withAnimation(.easeInOut(duration: 0.20)) {
+                            audioManager.playPreview(for: track)
+                        }
                     } label: {
                         Label(
-                            isPlaying ? "Preview stoppen" : "Preview abspielen",
+                            isPlaying ? "Preview pausieren" : "Preview anhoeren",
                             systemImage: isPlaying ? "pause.fill" : "play.fill"
                         )
                         .font(AppTypography.buttonLabel)
@@ -122,6 +124,7 @@ struct TrackView: View {
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                    .skydownTactileAction()
                 }
 
                 if hasDirectSpotifyTrack {
@@ -129,18 +132,19 @@ struct TrackView: View {
                         onSelect()
                         showSpotifyPlayer = true
                     } label: {
-                            Label("In App", systemImage: "music.note.tv")
-                                .font(AppTypography.buttonLabel)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(AppColors.spotifySurface(for: colorScheme))
-                                .foregroundColor(AppColors.spotify(for: colorScheme))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        Text("In Spotify weiter")
+                            .font(AppTypography.buttonLabel)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(AppColors.spotifySurface(for: colorScheme))
+                            .foregroundColor(AppColors.spotify(for: colorScheme))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(AppColors.spotify(for: colorScheme).opacity(0.24), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                    .skydownTactileAction()
                 } else if hasSpotifyArtistLink || hasSpotifySearch {
                     Button {
                         onSelect()
@@ -148,18 +152,19 @@ struct TrackView: View {
                             openURL(url)
                         }
                     } label: {
-                        Label(hasSpotifyArtistLink ? "Artist" : "Spotify", systemImage: "arrow.up.forward.square")
+                        Text(hasSpotifyArtistLink ? "Zum Artist" : "In Spotify suchen")
                             .font(AppTypography.buttonLabel)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 10)
                             .background(AppColors.spotifySurface(for: colorScheme))
                             .foregroundColor(AppColors.spotify(for: colorScheme))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(AppColors.spotify(for: colorScheme).opacity(0.28), lineWidth: 1)
+                                    .stroke(AppColors.spotify(for: colorScheme).opacity(0.24), lineWidth: 1)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                    .skydownTactileAction()
                 }
             }
         }
@@ -173,6 +178,8 @@ struct TrackView: View {
             shadowYOffset: 5
         )
         .onTapGesture(perform: onSelect)
+        .animation(.easeInOut(duration: 0.20), value: isPlaying)
+        .animation(.easeInOut(duration: 0.20), value: isSelected)
         .sheet(isPresented: $showSpotifyPlayer) {
             SpotifyEmbedPlayerView(track: track)
         }

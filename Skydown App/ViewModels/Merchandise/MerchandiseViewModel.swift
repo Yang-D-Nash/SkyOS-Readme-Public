@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
 
 @MainActor
 final class MerchandiseViewModel: ObservableObject {
@@ -72,6 +73,7 @@ final class MerchandiseViewModel: ObservableObject {
 
             switch result {
             case .success(let items):
+                self.errorMessage = nil
                 self.allItems = items
                 self.merchandiseItems = self.filterVisibleItems(items)
                 if self.shouldLoadShopifyFallback(for: items) {
@@ -83,11 +85,12 @@ final class MerchandiseViewModel: ObservableObject {
                 Task { @MainActor in
                     let loadedFallback = await self.loadPublicCatalogFallback(showToast: false)
                     if loadedFallback {
+                        self.errorMessage = nil
                         return
                     }
 
                     skydownDebugLog("Dev Fehler fetchData:", error.localizedDescription)
-                    self.showUserToast("Fehler beim Laden der Artikel: \(error.localizedDescription)", style: .error)
+                    self.errorMessage = Self.userFacingMerchandiseLoadError(error)
                     self.merchandiseItems = []
                     self.allItems = []
                 }
@@ -109,7 +112,10 @@ final class MerchandiseViewModel: ObservableObject {
             try await merchStoreStatusService.updateStoreOpen(nextState)
             showUserToast(nextState ? "Merch Store geoeffnet." : "Merch Store geschlossen.", style: .success)
         } catch {
-            showUserToast("Store-Status konnte nicht aktualisiert werden: \(error.localizedDescription)", style: .error)
+            showUserToast(
+                "Store-Status konnte nicht aktualisiert werden. Bitte später erneut.",
+                style: .error
+            )
         }
     }
 
@@ -132,7 +138,10 @@ final class MerchandiseViewModel: ObservableObject {
         } catch {
             let loadedFallback = await loadPublicCatalogFallback(showToast: automatic == false)
             if !loadedFallback {
-                showUserToast("Shopify-Sync fehlgeschlagen: \(error.localizedDescription)", style: .error)
+                showUserToast(
+                    "Shopify-Sync konnte nicht abgeschlossen werden. Bitte später erneut.",
+                    style: .error
+                )
             }
         }
     }
@@ -153,7 +162,11 @@ final class MerchandiseViewModel: ObservableObject {
             case .success(let status):
                 self.isStoreOpen = status.isOpen
             case .failure(let error):
-                self.showUserToast("Store-Status konnte nicht geladen werden: \(error.localizedDescription)", style: .error)
+                skydownDebugLog("Merch store status observe:", error.localizedDescription)
+                self.showUserToast(
+                    "Store-Status konnte nicht geladen werden. Shop bleibt sichtbar.",
+                    style: .error
+                )
             }
         }
     }
@@ -245,6 +258,25 @@ final class MerchandiseViewModel: ObservableObject {
         }
     }
 
+    /// No raw `NSError` strings in UI — release-safe copy for shoppers.
+    private static func userFacingMerchandiseLoadError(_ error: Error) -> String {
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            switch ns.code {
+            case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorTimedOut, -1009:
+                return "Keine Verbindung. Bitte WLAN oder Mobilfunk prüfen und erneut versuchen."
+            default:
+                break
+            }
+        }
+        let desc = ns.localizedDescription
+        if desc.localizedCaseInsensitiveContains("permission")
+            || desc.localizedCaseInsensitiveContains("insufficient") {
+            return "Zugriff auf den Shop verweigert. Bitte neu anmelden oder es später erneut versuchen."
+        }
+        return "Der Shop konnte gerade nicht geladen werden. Bitte in Kürze erneut versuchen."
+    }
+
     deinit {
         stopObservingItems?()
         stopObservingStoreStatus?()
@@ -321,6 +353,15 @@ final class HomeViewModel: ObservableObject {
     @Published var homeTrackMessage: String?
     @Published var homeBeatMessage: String?
     @Published var homeVideoMessage: String?
+    @Published var aiUsageWarning: String?
+    @Published var creatorLimitZone = false
+    @Published var agentRunning = false
+    @Published var workflowWaiting = false
+    @Published var commerceSignal: String?
+    @Published var syncPaused = false
+    @Published var recoverableError: String?
+    @Published var newDataAvailable = false
+    @Published var contentSignal: String?
 
     private let musicService: MusicServicing
     private let firestore = Firestore.firestore()
@@ -336,6 +377,7 @@ final class HomeViewModel: ObservableObject {
                 group.addTask { .track(await self.loadLatestTrack()) }
                 group.addTask { .beat(await self.loadLatestBeat()) }
                 group.addTask { .video(await self.loadLatestVideo()) }
+                group.addTask { .signals(await self.loadRuntimeSignals()) }
 
                 for await result in group {
                     switch result {
@@ -354,10 +396,110 @@ final class HomeViewModel: ObservableObject {
                         homeVideoMessage = video == nil
                             ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
                             : nil
+                    case .signals(let signals):
+                        aiUsageWarning = signals.aiUsageWarning
+                        creatorLimitZone = signals.creatorLimitZone
+                        agentRunning = signals.agentRunning
+                        workflowWaiting = signals.workflowWaiting
+                        commerceSignal = signals.commerceSignal
+                        syncPaused = signals.syncPaused
+                        recoverableError = signals.recoverableError
+                        newDataAvailable = signals.newDataAvailable
+                        contentSignal = signals.contentSignal
                     }
                 }
             }
         }
+    }
+
+    private func loadRuntimeSignals() async -> HomeRuntimeSignals {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return HomeRuntimeSignals(contentSignal: buildContentSignal())
+        }
+        var signals = HomeRuntimeSignals(contentSignal: buildContentSignal())
+
+        if let usageData = try? await firestore.collection("users")
+            .document(uid)
+            .collection("aiUsage")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 1)
+            .getDocuments()
+            .documents
+            .first?
+            .data() {
+            let warningLevel = (usageData["warningLevel"] as? String)?.lowercased() ?? ""
+            if warningLevel == "warning" || warningLevel == "critical" {
+                signals.aiUsageWarning = "Usage level: \(warningLevel.uppercased())."
+            }
+            let remaining = usageData["remainingForKind"] as? Int ?? -1
+            let limit = usageData["limitForKind"] as? Int ?? -1
+            if limit > 0 && remaining >= 0 {
+                let usedRatio = Double(limit - remaining) / Double(limit)
+                signals.creatorLimitZone = usedRatio >= 0.8
+            }
+        }
+
+        if let runData = try? await firestore.collection("users")
+            .document(uid)
+            .collection("agentRuns")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 1)
+            .getDocuments()
+            .documents
+            .first?
+            .data() {
+            let status = (runData["status"] as? String ?? "").lowercased()
+            signals.agentRunning = status == "running" || status == "processing"
+            signals.workflowWaiting = status == "queued" || status == "waiting"
+        }
+
+        if let userData = try? await firestore.collection("users").document(uid).getDocument().data(),
+           (userData["role"] as? String)?.lowercased() == "owner",
+           let orderData = try? await firestore.collection("orders")
+            .order(by: "timestamp", descending: true)
+            .limit(to: 1)
+            .getDocuments()
+            .documents
+            .first?
+            .data() {
+            let paymentStatus = orderData["paymentStatus"] as? String ?? ""
+            let fulfillmentStatus = orderData["fulfillmentStatus"] as? String ?? ""
+            if paymentStatus.lowercased() == "pending" {
+                signals.commerceSignal = "Open payment requires review."
+            } else if !fulfillmentStatus.isEmpty {
+                signals.commerceSignal = "Shipping update: \(fulfillmentStatus)"
+            } else {
+                signals.commerceSignal = "New order activity available."
+            }
+        }
+
+        if let runtimeData = try? await firestore.collection("system").document("runtimeConfig").getDocument().data() {
+            let lockdown = runtimeData["lockdown"] as? Bool ?? false
+            let uploadsEnabled = runtimeData["uploadsEnabled"] as? Bool ?? true
+            let userWritesEnabled = runtimeData["userWritesEnabled"] as? Bool ?? true
+            let registrationsEnabled = runtimeData["registrationsEnabled"] as? Bool ?? true
+            let pausedCount = [uploadsEnabled, userWritesEnabled, registrationsEnabled].filter { !$0 }.count
+            signals.newDataAvailable = !lockdown && pausedCount == 0
+            signals.syncPaused = pausedCount > 0
+            if pausedCount > 0 {
+                signals.recoverableError = "System in reduced mode."
+            }
+        }
+        signals.contentSignal = buildContentSignal()
+        return signals
+    }
+
+    private func buildContentSignal() -> String? {
+        if let track = featuredTrack {
+            return "New drop active: \(track.trackName)"
+        }
+        if let video = featuredVideo {
+            return "Video activity: \(video.title)"
+        }
+        if let beat = featuredBeat {
+            return "Music progress: \(beat.title)"
+        }
+        return nil
     }
 
     private func loadLatestTrack() async -> Track? {
@@ -565,4 +707,17 @@ private enum HomeRefreshResult {
     case track(Track?)
     case beat(FeaturedHomeBeat?)
     case video(FeaturedHomeVideo?)
+    case signals(HomeRuntimeSignals)
+}
+
+private struct HomeRuntimeSignals {
+    var aiUsageWarning: String? = nil
+    var creatorLimitZone: Bool = false
+    var agentRunning: Bool = false
+    var workflowWaiting: Bool = false
+    var commerceSignal: String? = nil
+    var syncPaused: Bool = false
+    var recoverableError: String? = nil
+    var newDataAvailable: Bool = false
+    var contentSignal: String? = nil
 }

@@ -82,19 +82,9 @@ struct MainTabView: View {
         featureFlags.allowsAIAccess(for: authManager.userSession)
     }
 
+    /// Single SkyOS chrome accent for tab bar + `.accentColor` — avoids per-tab Spotify/YouTube retail colors reading as five separate products.
     private var selectedTabAccent: Color {
-        switch selectedTab {
-        case .merch:
-            return AppColors.accentHighlight(for: currentScheme)
-        case .zweizwei:
-            return AppColors.spotify(for: currentScheme)
-        case .hub:
-            return AppColors.accent(for: currentScheme)
-        case .skydown:
-            return AppColors.youtube(for: currentScheme)
-        case .tools:
-            return AppColors.accentMystic(for: currentScheme)
-        }
+        AppColors.accentMystic(for: currentScheme)
     }
 
     private func localized(_ key: String, _ fallback: String) -> String {
@@ -258,7 +248,10 @@ struct MainTabView: View {
                 initialAdminWorkspaceRawValue: settingsInitialAdminWorkspaceRawValue
             )
         case .profile:
-            ProfileView(authManager: services.authManager)
+            ProfileView(
+                authManager: services.authManager,
+                onOpenSettings: { presentSettings() }
+            )
         case .cart:
             CartView(
                 onOpenProfile: { presentModal(.profile) },

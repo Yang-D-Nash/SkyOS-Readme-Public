@@ -12,6 +12,11 @@ struct SubmitSectionView: View {
     @Binding var isSubmitting: Bool
     @Binding var showConfirmationDialog: Bool
     var submitAction: () async -> Void  // async closure
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var submitEnabled: Bool {
+        isFormValid && !isSubmitting
+    }
 
     var body: some View {
         Section {
@@ -19,11 +24,29 @@ struct SubmitSectionView: View {
                 showConfirmationDialog = true
             } label: {
                 Text(isSubmitting ? "Sende Bestellung..." : "Bestellung abschicken")
+                    .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(isFormValid && !isSubmitting ? Color.blue : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .background(
+                        submitEnabled
+                            ? AppColors.accent(for: colorScheme)
+                            : AppColors.secondaryBackground(for: colorScheme)
+                    )
+                    .foregroundColor(
+                        submitEnabled
+                            ? .white
+                            : AppColors.secondaryText(for: colorScheme)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(
+                                submitEnabled
+                                    ? Color.clear
+                                    : AppColors.accent(for: colorScheme).opacity(0.12),
+                                lineWidth: 1
+                            )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
             .disabled(!isFormValid || isSubmitting)
             .confirmationDialog(

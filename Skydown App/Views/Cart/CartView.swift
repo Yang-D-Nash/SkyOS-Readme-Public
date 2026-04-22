@@ -20,6 +20,7 @@ struct CartView: View {
     @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @ObservedObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
+    @AppStorage("orders.postCheckoutHighlight") private var postCheckoutHighlight = ""
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
 
@@ -39,12 +40,17 @@ struct CartView: View {
     @State private var shippingPostalCode = ""
     @State private var shippingCity = ""
     @State private var shippingCountry = "Deutschland"
-    @State private var message = "Ich interessiere mich für die Artikel in meinem Warenkorb."
-    @State private var showConfirmationDialog = false
+    @State private var message = "Ich interessiere mich fuer die Artikel in meinem Warenkorb."
+    @State private var showCheckoutConfirmSheet = false
     @State private var isSubmitting = false
     @State private var activePresentedSheet: CartPresentedSheet?
     @State private var queuedPresentedSheet: CartPresentedSheet?
     @State private var selectedPaymentMethod = ""
+    @State private var showOptionalContactFields = false
+    @State private var showOptionalAddressFields = false
+    @State private var showOptionalMessageField = false
+
+    private let defaultMessageText = "Ich interessiere mich fuer die Artikel in meinem Warenkorb."
 
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -75,6 +81,10 @@ struct CartView: View {
 
     private var isHostedCheckoutSelection: Bool {
         ["Stripe", "Klarna"].contains(selectedPaymentMethod)
+    }
+
+    private var hasCustomMessage: Bool {
+        message.trimmingCharacters(in: .whitespacesAndNewlines) != defaultMessageText
     }
 
     private var canPresentInAppMailComposer: Bool {
@@ -114,58 +124,28 @@ struct CartView: View {
             includedTax: includedTax,
             total: total,
             zoneLabel: shippingQuote.zone.rawValue,
-            shippingError: shippingQuote.countryCode == "--" ? "Land noch unklar." : nil
+            shippingError: shippingQuote.countryCode == "--" ? "Lieferland bitte kurz ergaenzen, damit Versand und Gesamtpreis exakt berechnet werden." : nil
         )
     }
 
     private var checkoutReadinessTitle: String {
-        if canSubmitOrder { return "Ready" }
-        if authManager.userSession == nil { return "Login" }
-        if !isCheckoutAvailable { return "Pause" }
-        if !isFormValid { return "Form" }
-        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Zahlart" }
-        return "Check"
-    }
-
-    private var checkoutReadinessDetail: String {
-        if canSubmitOrder { return "Direkt abschickbar" }
-        if authManager.userSession == nil { return "Konto fehlt" }
-        if !isCheckoutAvailable { return "Store pausiert" }
-        if !isFormValid { return "Pflichtfelder offen" }
-        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Route waehlen" }
+        if canSubmitOrder { return "Alles bereit" }
+        if authManager.userSession == nil { return "Anmeldung fehlt" }
+        if !isCheckoutAvailable { return "Kurz pausiert" }
+        if !isFormValid { return "Angaben offen" }
+        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Zahlart offen" }
         return "Kurz pruefen"
     }
 
-    private var checkoutPaymentTitle: String {
-        if selectedPaymentMethod.isEmpty {
-            return availableCheckoutMethods.isEmpty ? "Rueckkontakt" : "Waehlen"
-        }
-        return selectedPaymentMethod
+    private var checkoutReadinessDetail: String {
+        if canSubmitOrder { return "Du kannst jetzt sicher fortfahren." }
+        if authManager.userSession == nil { return "Bitte zuerst anmelden." }
+        if !isCheckoutAvailable { return "Der Checkout startet wieder nach der Oeffnung." }
+        if !isFormValid { return "Bitte fehlende Pflichtfelder ergaenzen." }
+        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Bitte eine Zahlart waehlen." }
+        return "Ein kurzer Check, dann weiter."
     }
 
-    private var checkoutPaymentDetail: String {
-        switch selectedPaymentMethod {
-        case "Stripe":
-            return "Live-Checkout"
-        case "Klarna":
-            return "Via Stripe"
-        case "PayPal":
-            return "Manuell"
-        case "Bankueberweisung":
-            return "Ohne Gateway"
-        default:
-            return availableCheckoutMethods.isEmpty ? "Rückkontakt" : "—"
-        }
-    }
-
-    private var checkoutTotalTitle: String {
-        pricingSummary.total > 0 ? String(format: "EUR %.2f", pricingSummary.total) : "Leer"
-    }
-
-    private var checkoutTotalDetail: String {
-        pricingSummary.total > 0 ? "\(pricingSummary.zoneLabel) · inkl. Versand" : "Leer"
-    }
-    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -177,25 +157,13 @@ struct CartView: View {
                         isLoggedIn: authManager.userSession != nil
                     )
 
-                    CheckoutPulseCard(
-                        colorScheme: colorScheme,
-                        readinessTitle: checkoutReadinessTitle,
-                        readinessDetail: checkoutReadinessDetail,
-                        paymentTitle: checkoutPaymentTitle,
-                        paymentDetail: checkoutPaymentDetail,
-                        totalTitle: checkoutTotalTitle,
-                        totalDetail: checkoutTotalDetail
-                    )
-
-                    CartSectionCard(
-                        title: "Zahlungsarten",
-                        colorScheme: colorScheme
-                    ) {
-                        PaymentMethodsCheckoutInfo(
+                    if let handover = cartVM.handoverContext, !cartVM.items.isEmpty {
+                        CartHandoverStrip(
                             colorScheme: colorScheme,
-                            settings: paymentMethodSettingsStore.settings,
-                            isCheckoutAvailable: isCheckoutAvailable
+                            itemName: handover.itemName,
+                            variantSummary: handover.variantSummary
                         )
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
 
                     if authManager.userSession == nil {
@@ -203,7 +171,7 @@ struct CartView: View {
                             title: "Konto erforderlich",
                             colorScheme: colorScheme
                         ) {
-                            Text("Anmelden — Warenkorb speichern & bestellen.")
+                            Text("Bitte anmelden, damit wir deine Bestellung sicher zuordnen koennen.")
                                 .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -224,48 +192,87 @@ struct CartView: View {
                             colorScheme: colorScheme
                         ) {
                             if cartVM.items.isEmpty {
-                                Text("Noch leer — Artikel erscheinen als Karten.")
-                                    .font(.body)
-                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Dein Warenkorb ist noch leer.")
+                                        .font(.body.weight(.semibold))
+                                        .foregroundColor(AppColors.text(for: colorScheme))
+                                    Text("Waehle im Shop einen Artikel und komme danach direkt hierher zum Abschluss.")
+                                        .font(.footnote)
+                                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    Button("Weiter shoppen") {
+                                        SkydownHaptics.selection()
+                                        dismiss()
+                                    }
+                                    .font(.subheadline.weight(.semibold))
+                                    .buttonStyle(.bordered)
+                                    .padding(.top, 2)
+                                }
                             } else {
                                 ForEach(cartVM.items) { cartItem in
                                     CartItemCard(
                                         cartItem: cartItem,
                                         colorScheme: colorScheme
-                                    ) {
+                                    ) { delta in
+                                        cartVM.updateQuantity(for: cartItem, delta: delta)
+                                        SkydownHaptics.selection()
+                                    } onRemove: {
                                         cartVM.removeItem(cartItem)
+                                        SkydownHaptics.selection()
                                     }
                                 }
                             }
                         }
 
                         CartSectionCard(
+                            title: "Bestellsumme",
+                            colorScheme: colorScheme
+                        ) {
+                            PricingSummaryCard(
+                                colorScheme: colorScheme,
+                                summary: pricingSummary,
+                                shippingNote: commerceSettingsStore.settings.shipping.shippingNotes,
+                                companyName: commerceSettingsStore.settings.invoice.companyName
+                            )
+                        }
+
+                        CartSectionCard(
                             title: "Kontaktdaten",
                             colorScheme: colorScheme
                         ) {
-                            Text("Für Rückmeldung zur Bestellung.")
-                                .font(.body)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
                             VStack(spacing: 10) {
-                                CartInputField(
-                                    title: "Name*",
-                                    text: $name,
-                                    colorScheme: colorScheme
-                                )
-                                CartInputField(
-                                    title: "E-Mail*",
-                                    text: $email,
-                                    colorScheme: colorScheme,
-                                    keyboard: .emailAddress,
-                                    autocapitalization: .never
-                                )
-                                CartInputField(
-                                    title: "WhatsApp (optional)",
-                                    text: $whatsApp,
-                                    colorScheme: colorScheme,
-                                    keyboard: .phonePad
-                                )
+                                HStack(spacing: 10) {
+                                    CartInputField(
+                                        title: "Name*",
+                                        text: $name,
+                                        colorScheme: colorScheme
+                                    )
+                                    CartInputField(
+                                        title: "E-Mail*",
+                                        text: $email,
+                                        colorScheme: colorScheme,
+                                        keyboard: .emailAddress,
+                                        autocapitalization: .never
+                                    )
+                                }
+
+                                if showOptionalContactFields || !whatsApp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    CartInputField(
+                                        title: "WhatsApp (optional)",
+                                        text: $whatsApp,
+                                        colorScheme: colorScheme,
+                                        keyboard: .phonePad
+                                    )
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                                } else {
+                                    Button("WhatsApp hinzufügen") {
+                                        SkydownHaptics.selection()
+                                        withAnimation(.easeInOut(duration: 0.18)) {
+                                            showOptionalContactFields = true
+                                        }
+                                    }
+                                    .font(.caption.weight(.semibold))
+                                    .buttonStyle(.bordered)
+                                }
                             }
                             .padding(.top, 4)
                         }
@@ -274,19 +281,10 @@ struct CartView: View {
                             title: "Lieferadresse",
                             colorScheme: colorScheme
                         ) {
-                            Text("Für Versand & Abwicklung.")
-                                .font(.body)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
                             VStack(spacing: 10) {
                                 CartInputField(
-                                    title: "Strasse und Hausnummer*",
+                                    title: "Strasse, Hausnr.*",
                                     text: $shippingStreet,
-                                    colorScheme: colorScheme
-                                )
-                                CartInputField(
-                                    title: "Adresszusatz (optional)",
-                                    text: $shippingAddressExtra,
                                     colorScheme: colorScheme
                                 )
                                 HStack(spacing: 10) {
@@ -302,6 +300,23 @@ struct CartView: View {
                                         colorScheme: colorScheme
                                     )
                                 }
+                                if showOptionalAddressFields || !shippingAddressExtra.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    CartInputField(
+                                        title: "Adresszusatz (optional)",
+                                        text: $shippingAddressExtra,
+                                        colorScheme: colorScheme
+                                    )
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                                } else {
+                                    Button("Adresszusatz hinzufügen") {
+                                        SkydownHaptics.selection()
+                                        withAnimation(.easeInOut(duration: 0.18)) {
+                                            showOptionalAddressFields = true
+                                        }
+                                    }
+                                    .font(.caption.weight(.semibold))
+                                    .buttonStyle(.bordered)
+                                }
                                 CartInputField(
                                     title: "Land",
                                     text: $shippingCountry,
@@ -311,27 +326,34 @@ struct CartView: View {
                             .padding(.top, 4)
                         }
 
-                        CartSectionCard(
-                            title: "Bestellsumme",
-                            colorScheme: colorScheme
-                        ) {
-                            PricingSummaryCard(
-                                colorScheme: colorScheme,
-                                summary: pricingSummary,
-                                shippingNote: commerceSettingsStore.settings.shipping.shippingNotes,
-                                companyName: commerceSettingsStore.settings.invoice.companyName
-                            )
-                        }
-
                         if !isCheckoutAvailable {
-                            CartSectionCard(
-                                title: "Checkout pausiert",
-                                colorScheme: colorScheme
+                            CartInlineStatusStrip(
+                                colorScheme: colorScheme,
+                                icon: "pause.circle.fill",
+                                title: "Checkout pausiert"
                             ) {
-                                Text("Store pausiert — Auswahl bleibt, Bestellungen wenn wieder offen.")
-                                    .font(.body)
-                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Der Checkout ist kurz pausiert. Deine Auswahl bleibt sicher gespeichert.")
+                                        .font(.footnote.weight(.medium))
+                                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    HStack(spacing: 8) {
+                                        Button("Einstellungen") {
+                                            SkydownHaptics.selection()
+                                            onOpenSettings()
+                                        }
+                                        .font(.caption.weight(.semibold))
+                                        .buttonStyle(.bordered)
+                                        Button("Shop ansehen") {
+                                            SkydownHaptics.selection()
+                                            dismiss()
+                                        }
+                                        .font(.caption.weight(.semibold))
+                                        .buttonStyle(.bordered)
+                                    }
+                                }
                             }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         } else if !availableCheckoutMethods.isEmpty {
                             CartSectionCard(
                                 title: "Zahlart waehlen",
@@ -362,21 +384,33 @@ struct CartView: View {
                             title: "Nachricht",
                             colorScheme: colorScheme
                         ) {
-                            Text("Optional: Lieferung, Verfügbarkeit, Wünsche.")
-                                .font(.body)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                            TextEditor(text: $message)
-                                .frame(minHeight: 120)
-                                .padding(12)
-                                .background(AppColors.secondaryBackground(for: colorScheme))
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18)
-                                        .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
-                                )
-                                .padding(.top, 4)
+                            if showOptionalMessageField || hasCustomMessage {
+                                TextEditor(text: $message)
+                                    .frame(minHeight: 108)
+                                    .padding(14)
+                                    .background(AppColors.secondaryBackground(for: colorScheme))
+                                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                                    )
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                            } else {
+                                Button("Hinweis hinzufügen (optional)") {
+                                    SkydownHaptics.selection()
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        showOptionalMessageField = true
+                                    }
+                                }
+                                .font(.caption.weight(.semibold))
+                                .buttonStyle(.bordered)
+                            }
                         }
+
+                        CartCheckoutSafetyZone(
+                            colorScheme: colorScheme,
+                            supportMailbox: supportMailbox
+                        )
                     }
                 }
                 .padding(.horizontal, 20)
@@ -409,19 +443,28 @@ struct CartView: View {
                 if authManager.userSession != nil {
                     CartSubmitBar(
                         colorScheme: colorScheme,
+                        itemCount: cartVM.items.count,
                         totalPrice: pricingSummary.total,
-                        title: isHostedCheckoutSelection ? "Sicherer Checkout" : "Bestellung abschicken",
-                        buttonTitle: isHostedCheckoutSelection ? "Zum Checkout" : "Senden",
-                        isFormValid: canSubmitOrder,
+                        readinessTitle: checkoutReadinessTitle,
+                        readinessDetail: checkoutReadinessDetail,
+                        buttonTitle: isHostedCheckoutSelection ? "Sicher fortfahren" : "Bestellung pruefen",
+                        trustHint: isHostedCheckoutSelection
+                            ? "Sichere Weiterleitung mit klarer Rueckmeldung."
+                            : "Sichere Uebermittlung, Support ist erreichbar.",
+                        isReady: canSubmitOrder,
                         isSubmitting: isSubmitting
                     ) {
-                        showConfirmationDialog = true
+                        SkydownHaptics.selection()
+                        showCheckoutConfirmSheet = true
                     }
                 }
             }
             .onAppear {
                 populateContactDetails()
                 syncSelectedPaymentMethod(with: availableCheckoutMethods)
+                showOptionalContactFields = !whatsApp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                showOptionalAddressFields = !shippingAddressExtra.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                showOptionalMessageField = hasCustomMessage
             }
             .onReceive(paymentMethodSettingsStore.$settings) { settings in
                 syncSelectedPaymentMethod(with: settings.checkoutMethodLabels)
@@ -431,14 +474,18 @@ struct CartView: View {
 
                 switch event.status {
                 case .success:
-                    cartVM.showUserToast("Checkout abgeschlossen. Zahlung wird jetzt synchronisiert.", style: .success)
+                    cartVM.showUserToast("Checkout abgeschlossen. Wir bestaetigen die Zahlung jetzt im Hintergrund.", style: .success)
+                    postCheckoutHighlight = "Dein Checkout war erfolgreich. Wir halten dich hier ueber den naechsten Status auf dem Laufenden."
                 case .cancel:
-                    cartVM.showUserToast("Checkout abgebrochen. Die Bestellung bleibt unbezahlt.", style: .info)
+                    cartVM.showUserToast("Checkout beendet. Deine Auswahl bleibt fuer den naechsten Schritt erhalten.", style: .info)
                 }
 
                 hostedCheckoutRedirectStore.clear()
             }
         }
+        .animation(.easeInOut(duration: 0.22), value: isCheckoutAvailable)
+        .animation(.easeInOut(duration: 0.22), value: availableCheckoutMethods.count)
+        .animation(.easeInOut(duration: 0.22), value: cartVM.handoverContext)
         .sheet(item: $activePresentedSheet) { sheet in
             switch sheet {
             case .login:
@@ -452,23 +499,28 @@ struct CartView: View {
                 )
             }
         }
-        .confirmationDialog(
-            isHostedCheckoutSelection ? "Zum sicheren Checkout" : "Bestellung abschicken",
-            isPresented: $showConfirmationDialog,
-            titleVisibility: .visible
-        ) {
-            Button("Einverstanden") {
-                Task {
-                    await submitOrderAsync()
+        .sheet(isPresented: $showCheckoutConfirmSheet) {
+            CartCheckoutConfirmSheet(
+                colorScheme: colorScheme,
+                items: cartVM.items,
+                totalPrice: pricingSummary.total,
+                isHostedCheckout: isHostedCheckoutSelection,
+                isSubmitting: isSubmitting,
+                onCancel: {
+                    showCheckoutConfirmSheet = false
+                },
+                onConfirm: {
+                    Task {
+                        let didSubmit = await submitOrderAsync()
+                        if didSubmit {
+                            showCheckoutConfirmSheet = false
+                        }
+                    }
                 }
-            }
-            Button("Abbrechen", role: .cancel) {}
-        } message: {
-            Text(
-                isHostedCheckoutSelection
-                    ? "Du wirst jetzt zu Stripe Checkout weitergeleitet und schliesst die Zahlung dort sicher ab."
-                    : "Sie werden in den naechsten Minuten per E-Mail oder WhatsApp kontaktiert."
             )
+            .presentationDetents([.height(420), .medium])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
         }
         .fancyToast(isPresented: $cartVM.showToast,
                     message: cartVM.toastMessage,
@@ -492,19 +544,25 @@ struct CartView: View {
         activePresentedSheet = sheet
     }
 
-    private func submitOrderAsync() async {
-        guard !isSubmitting else { return }
-        isSubmitting = true
+    private func submitOrderAsync() async -> Bool {
+        guard !isSubmitting else { return false }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isSubmitting = true
+        }
 
         guard availableCheckoutMethods.isEmpty || !selectedPaymentMethod.isEmpty else {
-            cartVM.showUserToast("Bitte waehle zuerst eine Zahlart aus.", style: .error)
-            isSubmitting = false
-            return
+            cartVM.showUserToast("Bitte waehle zuerst eine Zahlart.", style: .error)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isSubmitting = false
+            }
+            return false
         }
         if let shippingError = pricingSummary.shippingError {
             cartVM.showUserToast(shippingError, style: .error)
-            isSubmitting = false
-            return
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isSubmitting = false
+            }
+            return false
         }
 
         let shippingAddress = composedShippingAddress
@@ -525,10 +583,17 @@ struct CartView: View {
                 isCheckoutAvailable: isCheckoutAvailable
             ) {
                 openURL(session.checkoutURL)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isSubmitting = false
+                }
+                postCheckoutHighlight = "Checkout gestartet. Nach der Zahlungsbestaetigung siehst du hier direkt den aktuellen Status."
+                return true
             }
 
-            isSubmitting = false
-            return
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isSubmitting = false
+            }
+            return false
         }
 
         let draft = makeOrderMailDraft(items: cartVM.items)
@@ -550,9 +615,13 @@ struct CartView: View {
 
         if didSubmit {
             presentOrderMailDraft(draft)
+            postCheckoutHighlight = "Bestellung uebermittelt. Das Team bestaetigt jetzt Zahlung und Versandschritt."
         }
 
-        isSubmitting = false
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isSubmitting = false
+        }
+        return didSubmit
     }
 
     private func populateContactDetails() {
@@ -651,13 +720,13 @@ struct CartView: View {
         let encodedSubject = draft.subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = draft.body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         guard let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)") else {
-            cartVM.showUserToast("Mail-App konnte nicht vorbereitet werden.", style: .error)
+            cartVM.showUserToast("Die Mail-App konnte nicht vorbereitet werden.", style: .error)
             return
         }
 
         openURL(url) { accepted in
             if !accepted {
-                cartVM.showUserToast("Mail-App konnte nicht geoeffnet werden.", style: .error)
+                cartVM.showUserToast("Die Mail-App konnte nicht geoeffnet werden.", style: .error)
             }
         }
     }
@@ -667,46 +736,6 @@ struct CartView: View {
             selectedPaymentMethod = ""
         } else if !methods.contains(selectedPaymentMethod) {
             selectedPaymentMethod = methods.first ?? ""
-        }
-    }
-}
-
-private struct PaymentMethodsCheckoutInfo: View {
-    let colorScheme: ColorScheme
-    let settings: PaymentMethodSettings
-    let isCheckoutAvailable: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !isCheckoutAvailable {
-                Text("Store pausiert — Zahlarten & Checkout folgen mit Öffnung.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            } else if settings.checkoutMethodLabels.isEmpty {
-                Text("Keine Zahlart sichtbar — Checkout auf Anfrage.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            } else {
-                Text("Aktiv:")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                HStack(spacing: 8) {
-                    ForEach(settings.checkoutMethodLabels, id: \.self) { method in
-                        CartBadge(text: method, colorScheme: colorScheme)
-                    }
-                }
-
-                if settings.bankTransfer.enabled && settings.bankTransfer.isConfigured {
-                    Text("Bankdaten nach Bestätigung vom Team.")
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                } else {
-                    Text("Stripe/Klarna live — PayPal/Bank manuell (Owner).")
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-            }
         }
     }
 }
@@ -729,9 +758,16 @@ private struct PricingSummaryCard: View {
             pricingLine("Gesamt", summary.total, isEmphasized: true)
 
             if let shippingError = summary.shippingError {
-                Text(shippingError)
-                    .font(.footnote)
-                    .foregroundColor(.red)
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                        .padding(.top, 1)
+                    Text(shippingError)
+                        .font(.footnote.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             if !shippingNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -780,43 +816,51 @@ private struct PaymentMethodSelectionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Zahlart für diese Bestellung.")
-                .font(.body)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            HStack(spacing: 8) {
+                Image(systemName: "lock.shield")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                Text("Sichere Zahlungswahl")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
 
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 132), spacing: 10, alignment: .leading)],
+                columns: [GridItem(.adaptive(minimum: 132), spacing: 12, alignment: .leading)],
                 alignment: .leading,
-                spacing: 10
+                spacing: 12
             ) {
                 ForEach(methods, id: \.self) { method in
                     Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
                         selectedMethod = method
+                        }
+                        SkydownHaptics.selection()
                     } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 8) {
-                                Image(systemName: selectedMethod == method ? "checkmark.circle.fill" : "circle")
+                        let isSelected = selectedMethod == method
+                        VStack(alignment: .leading, spacing: 9) {
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: isSelected ? "checkmark.seal.fill" : "circle")
                                     .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(isSelected ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme))
                                 Text(method)
                                     .font(.subheadline.weight(.semibold))
-                                    .lineLimit(1)
+                                    .lineLimit(2)
+                                Spacer(minLength: 0)
+                                if isSelected {
+                                    Text("Ausgewählt")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundColor(AppColors.accent(for: colorScheme))
+                                }
                             }
 
                             Text(paymentRouteDetail(for: method))
-                                .font(.caption)
+                                .font(.caption.weight(.medium))
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                 .lineLimit(2)
-
-                            Text(selectedMethod == method ? "Aktive Route" : "Verfuegbare Route")
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(
-                                    selectedMethod == method
-                                        ? AppColors.accent(for: colorScheme)
-                                        : AppColors.secondaryText(for: colorScheme)
-                                )
                         }
                         .foregroundColor(
-                            selectedMethod == method
+                            isSelected
                                 ? AppColors.text(for: colorScheme)
                                 : AppColors.secondaryText(for: colorScheme)
                         )
@@ -824,48 +868,51 @@ private struct PaymentMethodSelectionCard: View {
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 18)
+                            RoundedRectangle(cornerRadius: 20)
                                 .fill(
-                                    selectedMethod == method
+                                    isSelected
                                         ? AppColors.accent(for: colorScheme).opacity(0.14)
                                         : AppColors.secondaryBackground(for: colorScheme)
                                 )
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 18)
+                            RoundedRectangle(cornerRadius: 20)
                                 .stroke(
-                                    selectedMethod == method
+                                    isSelected
                                         ? AppColors.accent(for: colorScheme)
                                         : AppColors.accent(for: colorScheme).opacity(0.10),
-                                    lineWidth: 1
+                                    lineWidth: isSelected ? 1.4 : 1
                                 )
                         )
                     }
                     .buttonStyle(.plain)
                     .skydownTactileAction()
+                    .animation(.easeInOut(duration: 0.18), value: selectedMethod)
                 }
             }
 
-            if selectedMethod == "Klarna" {
-                Text("Klarna → sicherer Checkout (Stripe).")
-                    .font(.footnote)
+            if !selectedMethod.isEmpty {
+                Text("Deine Zahlungswahl wird im naechsten Schritt sicher fortgefuehrt.")
+                    .font(.caption.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .animation(.easeInOut(duration: 0.18), value: selectedMethod)
     }
 
     private func paymentRouteDetail(for method: String) -> String {
         switch method {
         case "Stripe":
-            return "Karte — Live-Checkout."
+            return "Karten-Checkout"
         case "Klarna":
-            return "Klarna via Stripe."
+            return "Klarna via Stripe"
         case "PayPal":
-            return "PayPal — manuell (Owner)."
+            return "PayPal Rueckmeldung"
         case "Bankueberweisung":
-            return "Überweisung — Kontodaten hinterlegt."
+            return "Direkte Ueberweisung"
         default:
-            return "Route für diese Bestellung."
+            return "Verfuegbare Zahlungsroute"
         }
     }
 }
@@ -877,14 +924,23 @@ private struct SelectedPaymentMethodInfoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.shield")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                Text(paymentTrustLine)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
             switch selectedMethod {
             case "PayPal":
-                Text("PayPal — manuell. PayPal.Me im Admin für direkten Flow.")
-                    .font(.body)
+                Text("PayPal startet nach kurzer Bestaetigung durch das Team.")
+                    .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 if settings.paypal.accountHint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Kein PayPal.Me / Business-Mail im Admin.")
+                    Text("PayPal-Link wird bei der Rueckmeldung geteilt.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else {
@@ -892,8 +948,8 @@ private struct SelectedPaymentMethodInfoCard: View {
                 }
 
             case "Bankueberweisung":
-                Text("Überweisung — ohne Gateway. Daten für diese Bestellung.")
-                    .font(.body)
+                Text("Ueberweisung mit klaren Bankdaten fuer diese Bestellung.")
+                    .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -915,18 +971,29 @@ private struct SelectedPaymentMethodInfoCard: View {
                 }
 
             case "Stripe":
-                Text("Stripe — sicherer Karten-Checkout nach Absenden.")
-                    .font(.body)
+                Text("Stripe startet danach den sicheren Karten-Checkout.")
+                    .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             case "Klarna":
-                Text("Klarna (Stripe) — Zahlung bestätigt im Backend.")
-                    .font(.body)
+                Text("Klarna wird danach sicher ueber Stripe fortgefuehrt.")
+                    .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             default:
                 EmptyView()
             }
+        }
+    }
+
+    private var paymentTrustLine: String {
+        switch selectedMethod {
+        case "Stripe", "Klarna":
+            return "Sicherer Checkout mit geschuetzter Weiterleitung."
+        case "PayPal", "Bankueberweisung":
+            return "Klare Zahlungsroute mit direkter Rueckmeldung."
+        default:
+            return "Sichere Zahlungsabwicklung."
         }
     }
 
@@ -1008,13 +1075,13 @@ private struct CartHeroCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Gleiche Karten-Sections wie im Rest der App.")
+                Text("Ruhig pruefen, sicher abschliessen.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             ZStack {
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 20)
                     .fill(AppColors.accent(for: colorScheme).opacity(0.16))
                     .frame(width: 58, height: 58)
 
@@ -1032,7 +1099,7 @@ private struct CartHeroCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 26))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 12, y: 5)
         .overlay(alignment: .bottomLeading) {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 CartBadge(text: "\(itemCount) Artikel", colorScheme: colorScheme)
                 CartBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
                 if itemCount > 0 {
@@ -1056,78 +1123,40 @@ private struct CartHeroCard: View {
     }
 }
 
-private struct CheckoutPulseCard: View {
+private struct CartHandoverStrip: View {
     let colorScheme: ColorScheme
-    let readinessTitle: String
-    let readinessDetail: String
-    let paymentTitle: String
-    let paymentDetail: String
-    let totalTitle: String
-    let totalDetail: String
+    let itemName: String
+    let variantSummary: String
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                CartFlowSignalCard(
-                    title: "Status",
-                    value: readinessTitle,
-                    detail: readinessDetail,
-                    accent: AppColors.accent(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-                CartFlowSignalCard(
-                    title: "Payment",
-                    value: paymentTitle,
-                    detail: paymentDetail,
-                    accent: AppColors.accentMystic(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-                CartFlowSignalCard(
-                    title: "Total",
-                    value: totalTitle,
-                    detail: totalDetail,
-                    accent: AppColors.spotify(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-            }
-        }
-    }
-}
-
-private struct CartFlowSignalCard: View {
-    let title: String
-    let value: String
-    let detail: String
-    let accent: Color
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title.uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            Text(value)
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
                 .font(.subheadline.weight(.bold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-                .lineLimit(1)
-
-            Text(detail)
-                .font(.caption)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                .lineLimit(1)
+                .foregroundColor(AppColors.accent(for: colorScheme))
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Gerade hinzugefuegt")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Text(itemName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(2)
+                Text(variantSummary)
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(width: 150, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(accent.opacity(0.16), lineWidth: 1)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -1137,14 +1166,14 @@ private struct CartSectionCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             content
         }
-        .padding(18)
+        .padding(20)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
             RoundedRectangle(cornerRadius: 24)
@@ -1154,44 +1183,124 @@ private struct CartSectionCard<Content: View>: View {
     }
 }
 
-private struct CartItemCard: View {
-    let cartItem: CartItem
+private struct CartInlineStatusStrip<Content: View>: View {
     let colorScheme: ColorScheme
-    let onRemove: () -> Void
+    let icon: String
+    let title: String
+    @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+            }
+
+            content
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .animation(.easeInOut(duration: 0.2), value: title)
+    }
+}
+
+private struct CartItemCard: View {
+    let cartItem: CartItem
+    let colorScheme: ColorScheme
+    let onQuantityChange: (Int) -> Void
+    let onRemove: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(cartItem.item.name)
-                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(2)
 
                     HStack(spacing: 8) {
-                        CartBadge(text: "Größe \(cartItem.size)", colorScheme: colorScheme)
+                        CartBadge(text: cartItem.size, colorScheme: colorScheme)
                         if let color = cartItem.color?.takeIfNotBlank() {
                             CartBadge(text: color, colorScheme: colorScheme)
                         }
-                        CartBadge(text: "x\(cartItem.quantity)", colorScheme: colorScheme)
+                        CartBadge(text: "x\(cartItem.quantity)", colorScheme: colorScheme, isEmphasized: true)
                     }
                 }
 
                 Spacer()
 
-                Text(String(format: "EUR %.2f", cartItem.effectiveUnitPrice * Double(cartItem.quantity)))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppColors.accent(for: colorScheme))
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(String(format: "EUR %.2f", cartItem.effectiveUnitPrice * Double(cartItem.quantity)))
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                    Text(String(format: "EUR %.2f / Stk", cartItem.effectiveUnitPrice))
+                        .font(.caption2)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
             }
 
-            Button(role: .destructive, action: onRemove) {
-                Label("Entfernen", systemImage: "trash")
-                    .frame(maxWidth: .infinity)
+            HStack(spacing: 10) {
+                quantityStepperButton(systemName: "minus") {
+                    onQuantityChange(-1)
+                }
+                Text("\(cartItem.quantity)")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .frame(minWidth: 24)
+                quantityStepperButton(systemName: "plus") {
+                    onQuantityChange(1)
+                }
+                Spacer()
+                Button(action: onRemove) {
+                    Label("Entfernen", systemImage: "trash")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Artikel entfernen")
+                .accessibilityHint("Entfernt den Artikel aus dem Warenkorb")
             }
-            .buttonStyle(.bordered)
         }
-        .padding(14)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func quantityStepperButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.caption.weight(.bold))
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .background(
+            Circle()
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            Circle()
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .foregroundColor(AppColors.text(for: colorScheme))
+        .accessibilityLabel(systemName == "minus" ? "Menge reduzieren" : "Menge erhoehen")
     }
 }
 
@@ -1213,9 +1322,9 @@ private struct CartInputField: View {
                 .textInputAutocapitalization(autocapitalization)
                 .padding(14)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: 20)
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                 )
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1223,27 +1332,198 @@ private struct CartInputField: View {
     }
 }
 
+private struct CartCheckoutConfirmSheet: View {
+    let colorScheme: ColorScheme
+    let items: [CartItem]
+    let totalPrice: Double
+    let isHostedCheckout: Bool
+    let isSubmitting: Bool
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+
+    private var totalQuantity: Int {
+        items.reduce(0) { $0 + $1.quantity }
+    }
+
+    private var summaryItems: [CartItem] {
+        Array(items.prefix(3))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Bestellung bestaetigen")
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(isHostedCheckout ? "Du wirst danach sicher zum Checkout weitergeleitet." : "Danach uebermitteln wir deine Bestellung sicher an das Team.")
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("\(items.count) Artikel")
+                    Spacer()
+                    Text("\(totalQuantity)x Gesamtmenge")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                ForEach(summaryItems) { item in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(item.item.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .lineLimit(2)
+                        Spacer(minLength: 8)
+                        Text("x\(item.quantity) · \(String(format: "EUR %.2f", item.effectiveUnitPrice * Double(item.quantity)))")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
+
+                if items.count > summaryItems.count {
+                    Text("+\(items.count - summaryItems.count) weitere Artikel")
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Divider()
+                    .overlay(AppColors.accent(for: colorScheme).opacity(0.12))
+
+                HStack {
+                    Text("Gesamt")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Spacer()
+                    Text(String(format: "EUR %.2f", totalPrice))
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+            }
+            .padding(14)
+            .background(AppColors.secondaryBackground(for: colorScheme))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            Text("Sicherer Ablauf, klare Rueckmeldung und Support bei Bedarf.")
+                .font(.caption.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(spacing: 10) {
+                Button("Abbrechen", action: onCancel)
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 46)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .disabled(isSubmitting)
+
+                Button(action: onConfirm) {
+                    if isSubmitting {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                    } else {
+                        Text(isHostedCheckout ? "Sicher fortfahren" : "Bestellung senden")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                    }
+                }
+                .background(AppColors.accent(for: colorScheme))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .disabled(isSubmitting)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 16)
+        .background(AppColors.cardBackground(for: colorScheme))
+    }
+}
+
+private struct CartCheckoutSafetyZone: View {
+    let colorScheme: ColorScheme
+    let supportMailbox: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            safetyLine("lock.shield.fill", "Sichere Zahlwege und klare Weiterleitung im naechsten Schritt.")
+            safetyLine("doc.text.magnifyingglass", "Daten und Gesamtpreis pruefen wir vor dem Senden noch einmal.")
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "message.badge.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                    .padding(.top, 2)
+                    Text("Support direkt erreichbar: \(supportMailbox)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.74))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func safetyLine(_ icon: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.accent(for: colorScheme))
+                .padding(.top, 2)
+            Text(text)
+                .font(.caption.weight(.medium))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
 private struct CartSubmitBar: View {
     let colorScheme: ColorScheme
+    let itemCount: Int
     let totalPrice: Double
-    let title: String
+    let readinessTitle: String
+    let readinessDetail: String
     let buttonTitle: String
-    let isFormValid: Bool
+    let trustHint: String
+    let isReady: Bool
     let isSubmitting: Bool
     let onSubmit: () -> Void
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Divider()
                 .overlay(AppColors.accent(for: colorScheme).opacity(0.12))
 
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline)
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Checkout")
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text(totalPrice > 0 ? String(format: "EUR %.2f", totalPrice) : "Noch leer")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                    Text(itemCount > 0 ? "\(itemCount) Artikel · \(readinessTitle)" : readinessTitle)
+                        .font(.caption.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(totalPrice > 0 ? String(format: "EUR %.2f gesamt", totalPrice) : "Warenkorb aktuell leer")
-                        .font(.subheadline)
+                    Text(readinessDetail)
+                        .font(.caption2)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
 
@@ -1251,35 +1531,84 @@ private struct CartSubmitBar: View {
 
                 Button(action: onSubmit) {
                     if isSubmitting {
-                        ProgressView()
-                            .tint(.white)
-                            .frame(minWidth: 110)
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .tint(.white)
+                                .scaleEffect(0.9)
+                            Text("Wird vorbereitet")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .frame(minWidth: 132, minHeight: 44)
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     } else {
                         Text(buttonTitle)
-                            .font(.headline)
-                            .frame(minWidth: 110)
+                            .font(.subheadline.weight(.bold))
+                            .frame(minWidth: 132, minHeight: 44)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(AppColors.accent(for: colorScheme))
-                .disabled(!isFormValid || isSubmitting)
+                .disabled(!isReady || isSubmitting)
+                .controlSize(.large)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .animation(.easeInOut(duration: 0.2), value: isSubmitting)
+                .accessibilityLabel(isSubmitting ? "Checkout wird vorbereitet" : buttonTitle)
+                .accessibilityHint(isSubmitting ? "Bitte kurz warten" : "Oeffnet die finale Bestaetigung")
             }
             .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                Text(isSubmitting ? "Wir pruefen jetzt sicher die Daten und den naechsten Schritt." : trustHint)
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
+            .transition(.opacity)
         }
         .background(AppColors.cardBackground(for: colorScheme).opacity(0.98))
+        .animation(.easeInOut(duration: 0.2), value: isSubmitting)
     }
 }
 
 private struct CartBadge: View {
     let text: String
     let colorScheme: ColorScheme
+    var isEmphasized: Bool = false
 
     var body: some View {
-        SkydownMetaLabel(
-            text: text,
-            tint: AppColors.accent(for: colorScheme)
-        )
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundColor(
+                isEmphasized
+                    ? AppColors.accent(for: colorScheme)
+                    : AppColors.secondaryText(for: colorScheme)
+            )
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(
+                        isEmphasized
+                            ? AppColors.accent(for: colorScheme).opacity(0.14)
+                            : AppColors.cardBackground(for: colorScheme)
+                    )
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(
+                        isEmphasized
+                            ? AppColors.accent(for: colorScheme).opacity(0.3)
+                            : AppColors.accent(for: colorScheme).opacity(0.10),
+                        lineWidth: 1
+                    )
+            )
+            .animation(.easeInOut(duration: 0.18), value: text)
     }
 }

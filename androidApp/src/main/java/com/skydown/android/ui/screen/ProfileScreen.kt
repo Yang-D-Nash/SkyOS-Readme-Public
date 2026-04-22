@@ -64,9 +64,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.skydown.android.R
 import com.skydown.android.ui.component.BrandActionButton
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
@@ -86,12 +88,17 @@ import com.skydown.shared.model.UserQuotaPlan
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedQuotaPlan
 import com.skydown.shared.model.resolvedRole
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    onOpenOrders: () -> Unit = {},
     viewModel: ProfileViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -207,6 +214,23 @@ fun ProfileScreen(
                     },
                 )
 
+                ProfileDashboardCard(uiState = uiState)
+
+                ProfileQuickActionsCard(
+                    isEditing = uiState.isEditing,
+                    canEdit = uiState.canEditCurrentProfile,
+                    onToggleEdit = { viewModel.setEditing(!uiState.isEditing) },
+                    onPickImage = {
+                        imagePicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onOpenMembership = onOpenSettings,
+                    onOpenSettings = onOpenSettings,
+                )
+
+                ProfileHistoryCard(uiState = uiState)
+
                 if (uiState.isUploadingAvatar || uiState.isUploadingMedia) {
                     ProfileUploadStatusCard(
                         title = if (uiState.isUploadingAvatar) {
@@ -237,6 +261,13 @@ fun ProfileScreen(
                     } else {
                         null
                     },
+                )
+
+                ProfileTrustCard(
+                    supportEmail = uiState.currentUser?.email.orEmpty(),
+                    onSupport = onOpenSettings,
+                    onOpenOrders = onOpenOrders,
+                    onOpenSettings = onOpenSettings,
                 )
 
                 if (uiState.isEditing && uiState.canEditCurrentProfile) {
@@ -581,6 +612,157 @@ private fun ProfileGalleryCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProfileDashboardCard(
+    uiState: com.skydown.android.ui.viewmodel.ProfileUiState,
+) {
+    val user = uiState.currentUser
+    val membership = user?.resolvedQuotaPlan?.rawValue?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "Free"
+    val aiStatus = when {
+        user == null -> "Gastmodus"
+        !user.aiAccessEnabled -> "KI pausiert"
+        !user.aiSubscriptionProvider.isNullOrBlank() -> "Premium verbunden"
+        else -> "Basis aktiv"
+    }
+
+    SkydownCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.profile_dashboard_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                stringResource(R.string.profile_dashboard_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ProfileDashboardMetric(stringResource(R.string.profile_membership), membership, Modifier.weight(1f))
+                ProfileDashboardMetric(stringResource(R.string.profile_ai), aiStatus, Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ProfileDashboardMetric(stringResource(R.string.profile_gallery), "${uiState.imageCount} ${stringResource(R.string.profile_images)}", Modifier.weight(1f))
+                ProfileDashboardMetric(stringResource(R.string.profile_role), profileRoleTitle(user), Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileQuickActionsCard(
+    isEditing: Boolean,
+    canEdit: Boolean,
+    onToggleEdit: () -> Unit,
+    onPickImage: () -> Unit,
+    onOpenMembership: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    SkydownCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.profile_quick_actions_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                stringResource(R.string.profile_quick_actions_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (canEdit) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(onClick = onToggleEdit, modifier = Modifier.weight(1f)) {
+                        Text(if (isEditing) stringResource(R.string.profile_done) else stringResource(R.string.profile_edit))
+                    }
+                    Button(onClick = onPickImage, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.profile_upload_image))
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onOpenMembership, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.profile_membership))
+                }
+                OutlinedButton(onClick = onOpenSettings, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.profile_settings))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileHistoryCard(
+    uiState: com.skydown.android.ui.viewmodel.ProfileUiState,
+) {
+    val latest = uiState.filteredItems.maxByOrNull { it.createdAtEpochMillis }?.createdAtEpochMillis
+    val latestLabel = latest?.let { formatProfileDate(it) } ?: "Noch keine Aktivitaet"
+    val memberSince = uiState.currentUser?.registrationDateEpochMillis?.let(::formatProfileDate) ?: "-"
+
+    SkydownCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.profile_history_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                stringResource(R.string.profile_history_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ProfileHistoryRow(stringResource(R.string.profile_history_latest_created), latestLabel)
+            ProfileHistoryRow(stringResource(R.string.profile_history_member_since), memberSince)
+            ProfileHistoryRow(stringResource(R.string.profile_history_current_plan), profilePlanTitle(uiState.currentUser))
+        }
+    }
+}
+
+@Composable
+private fun ProfileTrustCard(
+    supportEmail: String,
+    onSupport: () -> Unit,
+    onOpenOrders: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    SkydownCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.profile_trust_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                stringResource(R.string.profile_trust_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (supportEmail.isNotBlank()) {
+                Text(
+                    supportEmail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onSupport, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.profile_support)) }
+                OutlinedButton(onClick = onOpenOrders, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.profile_orders)) }
+            }
+            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.profile_privacy_account)) }
+        }
+    }
+}
+
+@Composable
+private fun ProfileDashboardMetric(title: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun ProfileHistoryRow(title: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -966,4 +1148,10 @@ private fun profilePlanTitle(user: User?): String {
         UserQuotaPlan.Studio -> "Studio"
         else -> "Free"
     }
+}
+
+private fun formatProfileDate(epochMillis: Long): String {
+    return runCatching {
+        SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date(epochMillis))
+    }.getOrDefault("-")
 }

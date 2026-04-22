@@ -9,8 +9,14 @@ import Foundation
 
 @MainActor
 class CartViewModel: ObservableObject {
+    struct CartHandoverContext: Equatable {
+        let itemName: String
+        let variantSummary: String
+    }
+
     @Published var items: [CartItem] = []
     @Published var userEmail: String = ""
+    @Published var handoverContext: CartHandoverContext?
     
     @Published var toastMessage = ""
     @Published var showToast = false
@@ -65,11 +71,33 @@ class CartViewModel: ObservableObject {
             )
         }
         let colorSuffix = normalizedColor.map { " / \($0)" } ?? ""
+        let variantSummary = [size, normalizedColor, "x\(quantity)"]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+        handoverContext = CartHandoverContext(
+            itemName: item.name,
+            variantSummary: variantSummary
+        )
         showUserToast("\(item.name) \(size)\(colorSuffix) x\(quantity) in Warenkorb gelegt", style: .success)
     }
 
     func removeItem(_ cartItem: CartItem) {
         items.removeAll { $0.id == cartItem.id }
+    }
+
+    func updateQuantity(for cartItem: CartItem, delta: Int) {
+        guard delta != 0 else { return }
+        guard let index = items.firstIndex(where: {
+            $0.item.id == cartItem.item.id &&
+            $0.size == cartItem.size &&
+            $0.color?.lowercased() == cartItem.color?.lowercased()
+        }) else {
+            return
+        }
+
+        let nextQuantity = max(1, min(10, items[index].quantity + delta))
+        guard nextQuantity != items[index].quantity else { return }
+        items[index].quantity = nextQuantity
     }
 
     func clearCart() {
@@ -91,19 +119,19 @@ class CartViewModel: ObservableObject {
         isCheckoutAvailable: Bool,
     ) async -> Bool {
         guard !items.isEmpty else {
-            showUserToast("Warenkorb ist leer.", style: .error)
+            showUserToast("Dein Warenkorb ist leer. Fuege zuerst einen Artikel hinzu.", style: .error)
             return false
         }
         guard isCheckoutAvailable || authManager.userSession?.isPlatformOwner == true else {
-            showUserToast("Der Merchandise-Store ist gerade pausiert.", style: .error)
+            showUserToast("Der Store ist gerade pausiert. Deine Auswahl bleibt gespeichert.", style: .error)
             return false
         }
         guard let email = authManager.userSession?.email else {
-            showUserToast("Benutzer nicht angemeldet.", style: .error)
+            showUserToast("Bitte melde dich an, damit wir die Bestellung sicher zuordnen koennen.", style: .error)
             return false
         }
         if hasMixedFulfillmentProviders {
-            showUserToast("Bitte trenne Shopify-Merch und interne Legacy-Artikel in zwei Bestellungen.", style: .error)
+            showUserToast("Bitte trenne unterschiedliche Fulfillment-Typen in zwei Bestellungen.", style: .error)
             return false
         }
 
@@ -111,7 +139,11 @@ class CartViewModel: ObservableObject {
         do {
             countryCode = try ShippingService.resolveCountryCode(from: shippingAddressCountryName(from: shippingAddress))
         } catch {
-            showUserToast(error.localizedDescription, style: .error)
+            skydownDebugLog("Shipping country resolve:", error.localizedDescription)
+            showUserToast(
+                "Das Lieferland ist noch unklar. Bitte pruefe kurz die Adresse.",
+                style: .error
+            )
             return false
         }
 
@@ -128,7 +160,11 @@ class CartViewModel: ObservableObject {
                 subtotal: subtotal
             )
         } catch {
-            showUserToast(error.localizedDescription, style: .error)
+            skydownDebugLog("Shipping quote:", error.localizedDescription)
+            showUserToast(
+                "Versand ist gerade noch nicht eindeutig. Bitte pruefe Adresse oder Auswahl.",
+                style: .error
+            )
             return false
         }
 
@@ -141,7 +177,7 @@ class CartViewModel: ObservableObject {
             guard abs(subtotalAmount - subtotal) < 0.01,
                   abs(shippingAmount - shippingQuote.price) < 0.01,
                   abs(totalAmount - (subtotal + shippingQuote.price)) < 0.01 else {
-                showUserToast("Die Bestellsumme ist nicht mehr aktuell. Bitte pruefe den Warenkorb noch einmal.", style: .error)
+                showUserToast("Die Bestellsumme hat sich geaendert. Bitte kurz bestaetigen und erneut fortfahren.", style: .error)
                 return false
             }
             _ = try await orderService.submitOrder(
@@ -165,11 +201,11 @@ class CartViewModel: ObservableObject {
                 fulfillmentProvider: deriveFulfillmentProvider()
             )
             clearCart()
-            showUserToast("Bestellung erfolgreich abgeschickt!", style: .success)
+            showUserToast("Bestellung ist eingegangen. Wir melden uns mit dem naechsten Schritt.", style: .success)
             return true
         } catch {
             skydownDebugLog("Dev Fehler submitCartAsOrder:", error.localizedDescription)
-            showUserToast("Fehler beim Absenden der Bestellung.", style: .error)
+            showUserToast("Absenden war gerade nicht moeglich. Bitte in einem Moment erneut versuchen.", style: .error)
             return false
         }
     }
@@ -190,19 +226,19 @@ class CartViewModel: ObservableObject {
         platform: String = "ios"
     ) async -> HostedCheckoutSession? {
         guard !items.isEmpty else {
-            showUserToast("Warenkorb ist leer.", style: .error)
+            showUserToast("Dein Warenkorb ist leer. Fuege zuerst einen Artikel hinzu.", style: .error)
             return nil
         }
         guard isCheckoutAvailable || authManager.userSession?.isPlatformOwner == true else {
-            showUserToast("Der Merchandise-Store ist gerade pausiert.", style: .error)
+            showUserToast("Der Store ist gerade pausiert. Deine Auswahl bleibt gespeichert.", style: .error)
             return nil
         }
         guard let email = authManager.userSession?.email else {
-            showUserToast("Benutzer nicht angemeldet.", style: .error)
+            showUserToast("Bitte melde dich an, damit wir die Bestellung sicher zuordnen koennen.", style: .error)
             return nil
         }
         if hasMixedFulfillmentProviders {
-            showUserToast("Bitte trenne Shopify-Merch und interne Legacy-Artikel in zwei Bestellungen.", style: .error)
+            showUserToast("Bitte trenne unterschiedliche Fulfillment-Typen in zwei Bestellungen.", style: .error)
             return nil
         }
 
@@ -210,7 +246,11 @@ class CartViewModel: ObservableObject {
         do {
             countryCode = try ShippingService.resolveCountryCode(from: shippingAddressCountryName(from: shippingAddress))
         } catch {
-            showUserToast(error.localizedDescription, style: .error)
+            skydownDebugLog("Hosted checkout country resolve:", error.localizedDescription)
+            showUserToast(
+                "Das Lieferland ist noch unklar. Bitte pruefe kurz die Adresse.",
+                style: .error
+            )
             return nil
         }
 
@@ -227,7 +267,11 @@ class CartViewModel: ObservableObject {
                 subtotal: subtotal
             )
         } catch {
-            showUserToast(error.localizedDescription, style: .error)
+            skydownDebugLog("Hosted checkout shipping quote:", error.localizedDescription)
+            showUserToast(
+                "Versand ist gerade noch nicht eindeutig. Bitte pruefe Adresse oder Auswahl.",
+                style: .error
+            )
             return nil
         }
 
@@ -240,7 +284,7 @@ class CartViewModel: ObservableObject {
             guard abs(subtotalAmount - subtotal) < 0.01,
                   abs(shippingAmount - shippingQuote.price) < 0.01,
                   abs(totalAmount - (subtotal + shippingQuote.price)) < 0.01 else {
-                showUserToast("Die Bestellsumme ist nicht mehr aktuell. Bitte pruefe den Warenkorb noch einmal.", style: .error)
+                showUserToast("Die Bestellsumme hat sich geaendert. Bitte kurz bestaetigen und erneut fortfahren.", style: .error)
                 return nil
             }
 
@@ -265,11 +309,11 @@ class CartViewModel: ObservableObject {
                 platform: platform
             )
             clearCart()
-            showUserToast("Checkout geoeffnet. Zahlung jetzt sicher abschliessen.", style: .success)
+            showUserToast("Sicherer Checkout ist geoeffnet. Du kannst die Zahlung jetzt abschliessen.", style: .success)
             return session
         } catch {
             skydownDebugLog("Dev Fehler startHostedCheckout:", error.localizedDescription)
-            showUserToast("Stripe Checkout konnte nicht gestartet werden.", style: .error)
+            showUserToast("Checkout startet gerade nicht. Bitte in einem Moment erneut versuchen.", style: .error)
             return nil
         }
     }

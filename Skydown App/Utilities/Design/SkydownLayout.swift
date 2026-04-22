@@ -14,12 +14,12 @@ enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 16
     static let screenTopPadding: CGFloat = 12
     static let screenBottomPadding: CGFloat = 16
-    static let sectionSpacing: CGFloat = 14
-    static let cardPadding: CGFloat = 14
+    static let sectionSpacing: CGFloat = 12
+    static let cardPadding: CGFloat = 12
     static let heroPadding: CGFloat = 17
-    static let cardCornerRadius: CGFloat = 24
+    static let cardCornerRadius: CGFloat = 20
     static let heroCornerRadius: CGFloat = 30
-    static let buttonCornerRadius: CGFloat = 18
+    static let buttonCornerRadius: CGFloat = 16
 }
 
 enum SkydownMotion {
@@ -716,8 +716,8 @@ extension View {
         colorScheme: ColorScheme,
         accent: Color? = nil,
         cornerRadius: CGFloat = SkydownLayout.cardCornerRadius,
-        shadowRadius: CGFloat = 14,
-        shadowYOffset: CGFloat = 8
+        shadowRadius: CGFloat = 10,
+        shadowYOffset: CGFloat = 5
     ) -> some View {
         modifier(
             SkydownPanelSurfaceModifier(

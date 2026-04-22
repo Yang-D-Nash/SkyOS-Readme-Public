@@ -8,9 +8,12 @@ struct AgentView: View {
     @ObservedObject private var workflowAutomationSettingsStore = WorkflowAutomationSettingsStore.shared
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @EnvironmentObject private var authManager: AuthManager
+    @EnvironmentObject private var aiSubscriptionStore: NativeAISubscriptionStore
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
     private let showsNavigation: Bool
+    @StateObject private var membershipCoordinator = AIMembershipCoordinator.shared
+    @State private var autoPresentedUpgradeHint = false
 
     init(
         agentChatService: AgentChatServicing = FirebaseFunctionsAgentService(),
@@ -27,11 +30,7 @@ struct AgentView: View {
     var body: some View {
         Group {
             if showsNavigation {
-                NavigationStack {
-                    content
-                        .navigationTitle("Agent")
-                        .skydownNavigationChrome(colorScheme: colorScheme)
-                }
+                navigationContent
             } else {
                 content
             }
@@ -39,7 +38,7 @@ struct AgentView: View {
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Fertig") {
+                Button(AppLocalized.text("common.done", fallback: "Done")) {
                     isComposerFocused = false
                 }
             }
@@ -51,10 +50,12 @@ struct AgentView: View {
         )
         .task {
             viewModel.configureUser(user: authManager.userSession)
+            membershipCoordinator.cacheCurrentPlan(currentUserQuotaPlan)
             configureIntegrationObservations(for: authManager.userSession)
         }
         .onChange(of: authManager.userSession?.id) { _, _ in
             viewModel.configureUser(user: authManager.userSession)
+            membershipCoordinator.cacheCurrentPlan(currentUserQuotaPlan)
             configureIntegrationObservations(for: authManager.userSession)
         }
         .onChange(of: featureFlags.isAIEnabled) { _, isEnabled in
@@ -67,6 +68,123 @@ struct AgentView: View {
         .onDisappear {
             isComposerFocused = false
         }
+        .sheet(
+            isPresented: Binding(
+                get: { membershipCoordinator.isPresented },
+                set: { if !$0 { membershipCoordinator.closeMembership() } }
+            )
+        ) {
+            membershipSheet
+        }
+        .task {
+            await aiSubscriptionStore.prepareStorefront(for: authManager.userSession)
+        }
+        .onChange(of: authManager.userSession?.id) { _, _ in
+            Task { await aiSubscriptionStore.prepareStorefront(for: authManager.userSession) }
+        }
+        .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
+            handleCriticalUsageWarning(level)
+        }
+    }
+
+    private var membershipSheet: some View {
+        AgentMembershipSheet(
+                colorScheme: colorScheme,
+                isLoadingProducts: aiSubscriptionStore.isLoadingProducts,
+                isSyncing: aiSubscriptionStore.isSyncing,
+                activePurchasePlan: aiSubscriptionStore.activePurchasePlan,
+                onSelectPlan: { plan in
+                    Task {
+                        membershipCoordinator.track("plan_selected", ["plan": plan.rawValue])
+                        membershipCoordinator.track("purchase_started", ["plan": plan.rawValue])
+                        MembershipAnalyticsTracker().track(
+                            "plan_selected",
+                            reason: membershipCoordinator.lastOpenReason.rawValue,
+                            plan: plan.rawValue,
+                            surface: membershipCoordinator.surface,
+                            currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                        )
+                        MembershipAnalyticsTracker().track(
+                            "purchase_started",
+                            reason: membershipCoordinator.lastOpenReason.rawValue,
+                            plan: plan.rawValue,
+                            surface: membershipCoordinator.surface,
+                            currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                        )
+                        do {
+                            let outcome = try await aiSubscriptionStore.purchase(plan: plan)
+                            switch outcome {
+                            case .success:
+                                membershipCoordinator.track("purchase_success", ["plan": plan.rawValue])
+                                MembershipAnalyticsTracker().track(
+                                    "purchase_success",
+                                    reason: membershipCoordinator.lastOpenReason.rawValue,
+                                    plan: plan.rawValue,
+                                    surface: membershipCoordinator.surface,
+                                    currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                                )
+                                await membershipCoordinator.postPurchaseRefresh(plan: plan) {
+                                    await MainActor.run {
+                                        viewModel.configureUser(user: authManager.userSession)
+                                    }
+                                }
+                                viewModel.showToastMessage(AppLocalized.text("membership.upgrade.success", fallback: "Upgrade activated successfully."), style: .success)
+                            case .pending:
+                                viewModel.showToastMessage(AppLocalized.text("membership.purchase.pending", fallback: "Purchase is pending App Store approval."), style: .info)
+                            case .cancelled:
+                                membershipCoordinator.track("purchase_cancelled", ["plan": plan.rawValue])
+                                MembershipAnalyticsTracker().track(
+                                    "purchase_cancelled",
+                                    reason: membershipCoordinator.lastOpenReason.rawValue,
+                                    plan: plan.rawValue,
+                                    surface: membershipCoordinator.surface,
+                                    currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                                )
+                                viewModel.showToastMessage(AppLocalized.text("membership.purchase.cancelled", fallback: "Purchase cancelled."), style: .info)
+                            }
+                        } catch {
+                            viewModel.showToastMessage("\(AppLocalized.text("membership.upgrade.failed", fallback: "Could not start upgrade")): \(error.localizedDescription)", style: .error)
+                        }
+                    }
+                },
+                onRestore: {
+                    Task {
+                        do {
+                            let shouldForceEmptySync = authManager.userSession?.normalizedAISubscriptionProvider == "app_store"
+                            try await aiSubscriptionStore.restorePurchases(forceEmptySync: shouldForceEmptySync)
+                            await membershipCoordinator.restore {
+                                await MainActor.run {
+                                    viewModel.configureUser(user: authManager.userSession)
+                                }
+                            }
+                            viewModel.showToastMessage(AppLocalized.text("membership.restore.success", fallback: "App Store purchases synced."), style: .success)
+                        } catch {
+                            viewModel.showToastMessage("\(AppLocalized.text("membership.restore.failed", fallback: "Sync failed")): \(error.localizedDescription)", style: .error)
+                        }
+                    }
+                },
+                onManage: {
+                    Task {
+                        do {
+                            try await aiSubscriptionStore.manageSubscriptions()
+                        } catch {
+                            viewModel.showToastMessage(AppLocalized.text("membership.manage.failed", fallback: "Could not open subscription management."), style: .error)
+                        }
+                    }
+                }
+            )
+            .presentationDetents([.medium, .large])
+    }
+
+    private func handleCriticalUsageWarning(_ level: String?) {
+        guard !autoPresentedUpgradeHint else { return }
+        guard level == "critical" else { return }
+        autoPresentedUpgradeHint = true
+        membershipCoordinator.openMembership(reason: .criticalUsage, surface: "agent_chat")
+    }
+
+    private var currentUserQuotaPlan: UserQuotaPlan? {
+        UserQuotaPlan(rawValue: authManager.userSession?.quotaPlan ?? "")
     }
 
     private var content: some View {
@@ -77,6 +195,23 @@ struct AgentView: View {
                         Spacer(minLength: showsNavigation ? 8 : 4)
 
                         AgentEmptyStateHeader(colorScheme: colorScheme)
+                        if let usage = viewModel.revenueUsage {
+                            AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
+                                .onTapGesture {
+                                    if usage.userFacingReason != nil {
+                                        MembershipAnalyticsTracker().track(
+                                            "upgrade_after_deny",
+                                            reason: membershipCoordinator.lastOpenReason.rawValue,
+                                            surface: "agent_empty",
+                                            currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                                        )
+                                    }
+                                    membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty")
+                                }
+                        } else {
+                            AgentPlanPreviewCard(colorScheme: colorScheme)
+                                .onTapGesture { membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty") }
+                        }
                         serviceStatusCard
 
                         AgentQuickPromptCard(
@@ -97,6 +232,20 @@ struct AgentView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 10) {
+                                if let usage = viewModel.revenueUsage {
+                                    AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
+                                        .onTapGesture {
+                                            if usage.userFacingReason != nil {
+                                                MembershipAnalyticsTracker().track(
+                                                    "upgrade_after_deny",
+                                                    reason: membershipCoordinator.lastOpenReason.rawValue,
+                                                    surface: "agent_chat",
+                                                    currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                                                )
+                                            }
+                                            membershipCoordinator.openMembership(reason: .manual, surface: "agent_chat")
+                                        }
+                                }
                                 serviceStatusCard
 
                                 ForEach(viewModel.messages) { message in
@@ -148,7 +297,7 @@ struct AgentView: View {
                     shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
                     canTriggerAutomation: viewModel.canTriggerAutomation,
                     isFocused: $isComposerFocused,
-                    isSending: viewModel.isSending,
+                    interactionPhase: viewModel.phase,
                     onReset: viewModel.resetConversation,
                     onSend: viewModel.sendDraft
                 )
@@ -180,7 +329,8 @@ struct AgentView: View {
             manusSettings: manusByosStore.settings,
             lastAgentProvider: viewModel.lastAgentProvider,
             providerNotice: viewModel.lastProviderNotice,
-            integrationIssue: viewModel.lastIntegrationIssue
+            integrationIssue: viewModel.lastIntegrationIssue,
+            lastAgentRunId: viewModel.lastAgentRunId
         )
     }
 
@@ -191,6 +341,225 @@ struct AgentView: View {
             userID: userID?.isEmpty == true ? nil : userID
         )
         aiRuntimeSettingsStore.setObservationEnabled(featureFlags.isAIEnabled)
+    }
+}
+
+private extension AgentView {
+    var navigationContent: some View {
+        NavigationStack {
+            content
+                .navigationTitle("Agent")
+                .skydownNavigationChrome(colorScheme: colorScheme)
+        }
+    }
+}
+
+private struct AgentPlanPreviewCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(AppLocalized.text("ai.membership.plans.title_short", fallback: "AI Membership"))
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            Text(AppLocalized.text("ai.membership.plans.tiers", fallback: "Free, Pro, Creator"))
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(AppLocalized.text("agent.membership.caption", fallback: "Creator unlocks workflows and premium output."))
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct AgentRevenueUsageCard: View {
+    let usage: AgentChatViewModel.RevenueUsageState
+    let colorScheme: ColorScheme
+
+    private var progress: Double {
+        guard usage.limit > 0 else { return 0 }
+        return max(0, min(1, Double(usage.limit - usage.remaining) / Double(usage.limit)))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("\(AppLocalized.text("ai.membership.current_plan", fallback: "Plan")): \(usage.planTitle)")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                Spacer()
+                Text("\(usage.remaining)/\(usage.limit) \(AppLocalized.text("ai.membership.open", fallback: "open"))")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+            ProgressView(value: progress)
+                .tint(usage.warningLevel == "critical" ? .red : AppColors.accentHighlight(for: colorScheme))
+            if usage.warningLevel != "ok" {
+                Text(
+                    usage.warningLevel == "critical"
+                        ? AppLocalized.text("agent.usage.warning.critical", fallback: "Close to the limit. Upgrade keeps workflows steady.")
+                        : AppLocalized.text("agent.usage.warning.high", fallback: "High usage detected. Everything is stable, but monitored.")
+                )
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+            if !usage.userFacingReason.isEmpty {
+                CalmUpgradeCard(reason: usage.userFacingReason, colorScheme: colorScheme)
+            }
+            if !usage.lowerCostOption.isEmpty {
+                LowerCostOptionCard(option: usage.lowerCostOption, colorScheme: colorScheme)
+            }
+            if usage.retryAfterSeconds > 0 {
+                RetryLaterCard(retryAfterSeconds: usage.retryAfterSeconds, colorScheme: colorScheme)
+            }
+            if !usage.suggestedUpgrade.isEmpty {
+                Text("\(AppLocalized.text("ai.membership.next_step", fallback: "Next step")): \(usage.suggestedUpgrade.uppercased())")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+            }
+            if !usage.resetHint.isEmpty {
+                Text(usage.resetHint)
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+        }
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.15), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct CalmUpgradeCard: View {
+    let reason: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(reason)
+            .font(.caption2.weight(.semibold))
+            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColors.accent(for: colorScheme).opacity(0.06))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct LowerCostOptionCard: View {
+    let option: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(option)
+            .font(.caption2)
+            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColors.accentHighlight(for: colorScheme).opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct RetryLaterCard: View {
+    let retryAfterSeconds: Int
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text("\(AppLocalized.text("ai.retry_in", fallback: "Please retry in about")) \(retryAfterSeconds)s.")
+            .font(.caption2)
+            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct AgentMembershipSheet: View {
+    let colorScheme: ColorScheme
+    let isLoadingProducts: Bool
+    let isSyncing: Bool
+    let activePurchasePlan: UserQuotaPlan?
+    let onSelectPlan: (UserQuotaPlan) -> Void
+    let onRestore: () -> Void
+    let onManage: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalized.text("ai.membership.sheet.title", fallback: "SkyOS AI Membership"))
+                    .font(.title3.weight(.black))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(AppLocalized.text("agent.membership.sheet.subtitle", fallback: "Upgrade as progress, never as pressure."))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                AgentPlanTile(title: AppLocalized.text("membership.plan.free", fallback: "Free"), detail: AppLocalized.text("ai.membership.free_detail", fallback: "Core bot, fewer images, light agent"), colorScheme: colorScheme)
+                AgentPlanTile(title: AppLocalized.text("membership.plan.pro", fallback: "Pro"), detail: AppLocalized.text("ai.membership.pro_detail", fallback: "More reach, stronger agent, creator daily flow"), colorScheme: colorScheme)
+                AgentPlanTile(title: AppLocalized.text("membership.plan.creator", fallback: "Creator"), detail: AppLocalized.text("ai.membership.creator_detail", fallback: "Workflow depth, premium outputs, priority"), colorScheme: colorScheme)
+                Text(AppLocalized.text("ai.membership.annual_coming", fallback: "Annual option is coming next in native billing."))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                Button(activePurchasePlan == .creator ? AppLocalized.text("membership.pro.starting", fallback: "Starting Pro...") : AppLocalized.text("membership.pro.activate", fallback: "Activate Pro")) {
+                    onSelectPlan(.creator)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isLoadingProducts || isSyncing)
+
+                Button(activePurchasePlan == .studio ? AppLocalized.text("membership.creator.starting", fallback: "Starting Creator...") : AppLocalized.text("membership.creator.activate", fallback: "Activate Creator")) {
+                    onSelectPlan(.studio)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isLoadingProducts || isSyncing)
+
+                Button(AppLocalized.text("membership.restore", fallback: "Restore purchases")) { onRestore() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                Button(AppLocalized.text("membership.manage", fallback: "Manage subscription")) { onManage() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+            .padding()
+        }
+        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+    }
+}
+
+private struct AgentPlanTile: View {
+    let title: String
+    let detail: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(detail)
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -207,12 +576,13 @@ private struct AgentServiceStatusCard: View {
     let lastAgentProvider: AIRuntimeAgentProvider
     let providerNotice: String
     let integrationIssue: String
+    let lastAgentRunId: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 8) {
                 Image(systemName: "bolt.horizontal.circle")
-                    .font(.subheadline.weight(.bold))
+                    .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
                 Text("Agent-Verbindung")
                     .font(.subheadline.weight(.bold))
@@ -253,6 +623,26 @@ private struct AgentServiceStatusCard: View {
                 }
             }
 
+            if !lastAgentRunId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Letzter Lauf")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text(lastAgentRunId)
+                        .font(.caption)
+                        .monospaced()
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .textSelection(.enabled)
+                        .accessibilityIdentifier("agent.lastRun.id")
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.72))
+                )
+            }
+
             if let detail = statusDetailMessage {
                 Text(detail)
                     .font(.footnote.weight(.semibold))
@@ -264,13 +654,15 @@ private struct AgentServiceStatusCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(SkydownLayout.cardPadding)
-        .background(AppColors.cardBackground(for: colorScheme))
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .animation(SkydownMotion.statusTransition, value: statusDetailMessage ?? "")
     }
 
     private var providerLabel: String {
@@ -294,7 +686,7 @@ private struct AgentServiceStatusCard: View {
 
     private var manusLabel: String {
         if runtimeSettings.agentProvider != .manus {
-            return "Manus: aus (Gemini aktiv)"
+            return "Manus: aus (\(runtimeSettings.agentProvider.displayTitle) aktiv)"
         }
         if !runtimeSettings.manus.isEnabled {
             return "Manus: runtime aus"
@@ -527,35 +919,40 @@ private struct AgentDisabledCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.14))
-                        .frame(width: 50, height: 50)
-
-                    Image(systemName: "lock.fill")
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("SkyOS Agent pausiert")
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-
-                    Text("Voruebergehend nicht verfuegbar")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                Text(AppLocalized.text("agent.paused", fallback: "SkyOS Agent paused"))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
+                Text(AppLocalized.text("common.status.idle", fallback: "Idle"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+                    )
             }
+
+            Text(AppLocalized.text("agent.paused.detail", fallback: "The rest of the app stays available. The agent continues once re-enabled."))
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(SkydownLayout.cardPadding)
-        .background(AppColors.cardBackground(for: colorScheme))
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .animation(SkydownMotion.statusTransition, value: colorScheme)
     }
 }
 
@@ -565,14 +962,26 @@ private struct AgentQuickPromptCard: View {
     let onPromptSelected: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Schnell planen")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-            Text("Starte mit einer konkreten Aufgabe und lass dir direkt Struktur bauen.")
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("Agent")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Schnell planen")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text("Starte mit einer konkreten Aufgabe und lass dir direkt Struktur bauen.")
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -596,13 +1005,7 @@ private struct AgentQuickPromptCard: View {
                 }
             }
         }
-        .padding(SkydownLayout.cardPadding)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+        .padding(.vertical, 2)
     }
 }
 
@@ -625,16 +1028,24 @@ private struct AgentMessageBubble: View {
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accentMystic(for: colorScheme))
 
-                if message.isStreaming && message.text.isEmpty {
+                if message.resultType == .progress {
                     HStack(spacing: 10) {
                         ProgressView()
                             .tint(AppColors.accentMystic(for: colorScheme))
 
-                        Text("SkyOS Agent plant gerade...")
+                        Text("SkyOS Agent strukturiert gerade die Antwort...")
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 } else {
+                    if !isUser, let workflowSummary = message.workflowSummary {
+                        AgentWorkflowResultCard(
+                            summary: workflowSummary,
+                            isError: message.resultType == .error,
+                            colorScheme: colorScheme
+                        )
+                    }
+
                     Text(message.text)
                         .font(.body)
                         .foregroundColor(isUser ? .white : AppColors.text(for: colorScheme))
@@ -708,6 +1119,44 @@ private struct AgentMessageBubble: View {
     }
 }
 
+private struct AgentWorkflowResultCard: View {
+    let summary: AgentWorkflowSummary
+    let isError: Bool
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(isError ? .red : AppColors.accentMystic(for: colorScheme))
+                Text(summary.workflowName)
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
+            }
+
+            Text(summary.statusText)
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            if let runID = summary.runID {
+                Text("Run: \(runID)")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .textSelection(.enabled)
+            }
+        }
+        .padding(10)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
 private struct AgentComposerBar: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
@@ -715,7 +1164,7 @@ private struct AgentComposerBar: View {
     @Binding var shouldTriggerAutomation: Bool
     let canTriggerAutomation: Bool
     let isFocused: FocusState<Bool>.Binding
-    let isSending: Bool
+    let interactionPhase: AgentInteractionPhase
     let onReset: () -> Void
     let onSend: () -> Void
     @StateObject private var keyboardObserver = SkydownKeyboardObserver()
@@ -730,6 +1179,16 @@ private struct AgentComposerBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if let status = interactionPhase.composerStatusLabel {
+                HStack {
+                    Text(status)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+            }
             if !AgentExecutionMode.allCases.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -850,7 +1309,7 @@ private struct AgentComposerBar: View {
                     }
                     .buttonStyle(.plain)
                     .skydownTactileAction()
-                    .disabled(isSending)
+                    .disabled(interactionPhase.shouldBlockComposerChrome)
 
                     Button(action: {
                         isFocused.wrappedValue = false
@@ -876,8 +1335,8 @@ private struct AgentComposerBar: View {
                     })
                     .buttonStyle(.plain)
                     .skydownTactileAction()
-                    .disabled(trimmedDraft.isEmpty || isSending)
-                    .opacity(trimmedDraft.isEmpty || isSending ? 0.6 : 1)
+                    .disabled(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend)
+                    .opacity(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend ? 0.6 : 1)
                 }
                 .animation(.easeOut(duration: 0.16), value: isFocused.wrappedValue)
             }

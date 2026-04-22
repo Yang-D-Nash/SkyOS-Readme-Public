@@ -27,6 +27,7 @@ class OrderViewModel: ObservableObject {
 
     func fetchOrders() {
         isLoading = true
+        errorMessage = nil
         stopObservingOrders?()
 
         stopObservingOrders = orderService.observeOrders { [weak self] result in
@@ -35,11 +36,12 @@ class OrderViewModel: ObservableObject {
 
             switch result {
             case .success(let orders):
+                self.errorMessage = nil
                 self.orders = orders
             case .failure(let error):
                 skydownDebugLog("Dev Fehler fetchOrders:", error.localizedDescription)
-                self.showUserToast("Fehler beim Laden: \(error.localizedDescription)", style: .error)
                 self.orders = []
+                self.errorMessage = Self.userFacingListLoadError(error)
             }
         }
     }
@@ -53,9 +55,10 @@ class OrderViewModel: ObservableObject {
             showUserToast(msg, style: .success)
         } catch {
             skydownDebugLog("Dev Fehler toggleCompleted:", error.localizedDescription)
-            let msg = "Update fehlgeschlagen: \(error.localizedDescription)"
-            errorMessage = msg
-            showUserToast(msg, style: .error)
+            showUserToast(
+                "Status konnte nicht aktualisiert werden. Bitte spaeter erneut.",
+                style: .error
+            )
         }
     }
 
@@ -64,18 +67,19 @@ class OrderViewModel: ObservableObject {
 
         do {
             try await orderService.deleteOrder(orderID: id)
-            showUserToast("Bestellung gelöscht", style: .success)
+            showUserToast("Bestellung entfernt.", style: .success)
         } catch {
             skydownDebugLog("Dev Fehler deleteOrder:", error.localizedDescription)
-            let msg = "Löschen fehlgeschlagen: \(error.localizedDescription)"
-            errorMessage = msg
-            showUserToast(msg, style: .error)
+            showUserToast(
+                "Bestellung konnte nicht entfernt werden. Bitte spaeter erneut.",
+                style: .error
+            )
         }
     }
 
     func confirmPayment(for order: Order) async {
         guard let id = order.id else { return }
-        guard order.paymentStatus != "confirmed" else {
+        guard !Self.hasFinalPaymentStatus(order.paymentStatus) else {
             showUserToast("Diese Bestellung ist bereits als bezahlt markiert.", style: .info)
             return
         }
@@ -89,11 +93,13 @@ class OrderViewModel: ObservableObject {
                 paymentMethod: order.paymentMethod,
                 paymentReference: nil
             )
-            showUserToast("Zahlung bestaetigt. Shopify und Fulfillment werden jetzt vorbereitet.", style: .success)
+            showUserToast("Zahlung bestaetigt. Der naechste Versandschritt folgt jetzt.", style: .success)
         } catch {
-            let msg = "Zahlung konnte nicht bestaetigt werden: \(error.localizedDescription)"
-            errorMessage = msg
-            showUserToast(msg, style: .error)
+            skydownDebugLog("Dev Fehler confirmPayment:", error.localizedDescription)
+            showUserToast(
+                "Zahlung konnte gerade nicht bestaetigt werden. Bitte in einem Moment erneut versuchen.",
+                style: .error
+            )
         }
     }
 
@@ -101,6 +107,26 @@ class OrderViewModel: ObservableObject {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+
+    private static func userFacingListLoadError(_ error: Error) -> String {
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            switch ns.code {
+            case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorTimedOut, -1009:
+                return "Keine Verbindung. Bestellungen koennen gerade nicht geladen werden."
+            default:
+                break
+            }
+        }
+        return "Bestellungen konnten gerade nicht geladen werden. Bitte spaeter erneut."
+    }
+
+    private static func hasFinalPaymentStatus(_ status: String?) -> Bool {
+        guard let normalized = status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !normalized.isEmpty else {
+            return false
+        }
+        return ["confirmed", "paid", "success", "succeeded"].contains(normalized)
     }
 
     deinit {

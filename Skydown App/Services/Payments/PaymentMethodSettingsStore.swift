@@ -32,6 +32,16 @@ struct AISubscriptionPricingSettings: Equatable {
     var iosAppAppleID: String = ""
     var androidCreatorProductID: String = ""
     var androidStudioProductID: String = ""
+    var iosCreatorYearlyProductID: String = ""
+    var iosStudioYearlyProductID: String = ""
+    var androidCreatorYearlyProductID: String = ""
+    var androidStudioYearlyProductID: String = ""
+    var annualDiscountCopy: String = ""
+    var planOrder: [String] = ["free", "pro", "creator"]
+    var defaultAnnualToggle: Bool = false
+    var highlightedPlan: String = "creator"
+    var warningThresholdPercent: Int = 70
+    var criticalThresholdPercent: Int = 90
 
     var isConfigured: Bool {
         !creatorPriceID.trimmed.isEmpty && !studioPriceID.trimmed.isEmpty
@@ -164,7 +174,17 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
             iosStudioProductID: data?["iosStudioProductId"] as? String ?? "",
             iosAppAppleID: iosAppAppleID,
             androidCreatorProductID: data?["androidCreatorProductId"] as? String ?? "",
-            androidStudioProductID: data?["androidStudioProductId"] as? String ?? ""
+            androidStudioProductID: data?["androidStudioProductId"] as? String ?? "",
+            iosCreatorYearlyProductID: data?["iosCreatorYearlyProductId"] as? String ?? "",
+            iosStudioYearlyProductID: data?["iosStudioYearlyProductId"] as? String ?? "",
+            androidCreatorYearlyProductID: data?["androidCreatorYearlyProductId"] as? String ?? "",
+            androidStudioYearlyProductID: data?["androidStudioYearlyProductId"] as? String ?? "",
+            annualDiscountCopy: data?["annualDiscountCopy"] as? String ?? "",
+            planOrder: (data?["planOrder"] as? [String]) ?? ["free", "pro", "creator"],
+            defaultAnnualToggle: data?["defaultAnnualToggle"] as? Bool ?? false,
+            highlightedPlan: data?["highlightedPlan"] as? String ?? "creator",
+            warningThresholdPercent: min(max((data?["warningThresholdPercent"] as? Int) ?? 70, 1), 99),
+            criticalThresholdPercent: min(max((data?["criticalThresholdPercent"] as? Int) ?? 90, 1), 100)
         )
     }
 
@@ -201,7 +221,17 @@ final class FirestorePaymentMethodSettingsService: PaymentMethodSettingsServicin
                 "iosStudioProductId": settings.aiSubscriptions.iosStudioProductID.trimmed,
                 "iosAppAppleId": settings.aiSubscriptions.iosAppAppleID.trimmed,
                 "androidCreatorProductId": settings.aiSubscriptions.androidCreatorProductID.trimmed,
-                "androidStudioProductId": settings.aiSubscriptions.androidStudioProductID.trimmed
+                "androidStudioProductId": settings.aiSubscriptions.androidStudioProductID.trimmed,
+                "iosCreatorYearlyProductId": settings.aiSubscriptions.iosCreatorYearlyProductID.trimmed,
+                "iosStudioYearlyProductId": settings.aiSubscriptions.iosStudioYearlyProductID.trimmed,
+                "androidCreatorYearlyProductId": settings.aiSubscriptions.androidCreatorYearlyProductID.trimmed,
+                "androidStudioYearlyProductId": settings.aiSubscriptions.androidStudioYearlyProductID.trimmed,
+                "annualDiscountCopy": settings.aiSubscriptions.annualDiscountCopy.trimmed,
+                "planOrder": settings.aiSubscriptions.planOrder,
+                "defaultAnnualToggle": settings.aiSubscriptions.defaultAnnualToggle,
+                "highlightedPlan": settings.aiSubscriptions.highlightedPlan.trimmed,
+                "warningThresholdPercent": settings.aiSubscriptions.warningThresholdPercent,
+                "criticalThresholdPercent": settings.aiSubscriptions.criticalThresholdPercent
             ],
             "updatedAt": FieldValue.serverTimestamp()
         ]

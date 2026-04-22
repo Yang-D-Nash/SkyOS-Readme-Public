@@ -1,23 +1,33 @@
 package com.skydown.android.ui.screen
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -29,7 +39,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -125,42 +137,84 @@ fun OrderScreen(
 
                 if (uiState.isLoading && uiState.orders.isEmpty()) {
                     item {
-                        SkydownCard {
+                        OrdersInlineStatusStrip(
+                            icon = Icons.Default.Sync,
+                            title = "Synchronisierung laeuft",
+                        ) {
                             Text(
-                                text = "Bestellungen werden geladen...",
+                                text = "Bestellungen werden aktualisiert...",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "Die aktuelle Uebersicht wird gerade aktualisiert.",
+                                text = "Die Uebersicht wird sicher aktualisiert.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                         }
                     }
+                } else if (uiState.errorMessage != null && uiState.orders.isEmpty()) {
+                    item {
+                        OrdersInlineStatusStrip(
+                            icon = Icons.Default.Sync,
+                            title = "Bestellungen gerade nicht verfuegbar",
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "Bestellungen konnten nicht geladen werden.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                            )
+                            Text(
+                                text = "Bitte kurz erneut laden.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            )
+                            OutlinedButton(
+                                onClick = viewModel::refreshOrders,
+                                modifier = Modifier.padding(top = 12.dp),
+                                shape = RoundedCornerShape(16.dp),
+                            ) {
+                                Text("Erneut laden")
+                            }
+                        }
+                    }
                 } else if (uiState.orders.isEmpty()) {
                     item {
-                        SkydownCard {
+                        OrdersInlineStatusStrip(
+                            icon = Icons.Default.ShoppingBag,
+                            title = "Noch keine Bestellung",
+                        ) {
                             Text(
-                                text = "Keine Bestellungen vorhanden",
+                                text = "Noch keine Bestellung",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "Sobald neue Orders eingehen, erscheinen sie hier direkt als Karten.",
+                                text = "Neue Bestellungen erscheinen hier automatisch mit aktuellem Status.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                         }
                     }
                 } else {
-                    items(uiState.orders, key = { it.id.orEmpty() }) { order ->
+                    itemsIndexed(
+                        items = uiState.orders,
+                        key = { index, order -> order.id ?: "order-fallback-$index" },
+                    ) { _, order ->
+                        val hasOrderId = !order.id.isNullOrBlank()
                         OrderCard(
                             order = order,
                             isConfirmingPayment = uiState.confirmingPaymentOrderIds.contains(order.id.orEmpty()),
-                            onConfirmPayment = { viewModel.confirmPayment(order.id.orEmpty()) },
-                            onToggleCompleted = { viewModel.toggleCompleted(order.id.orEmpty()) },
-                            onDelete = { viewModel.deleteOrder(order.id.orEmpty()) },
+                            hasActionableId = hasOrderId,
+                            onConfirmPayment = {
+                                order.id?.let(viewModel::confirmPayment)
+                            },
+                            onToggleCompleted = {
+                                order.id?.let(viewModel::toggleCompleted)
+                            },
+                            onDelete = {
+                                order.id?.let(viewModel::deleteOrder)
+                            },
                         )
                     }
                 }
@@ -192,23 +246,82 @@ private fun OrdersOverviewCard(
     orderCount: Int,
     completedOrders: Int,
 ) {
-    SkydownCard(contentPadding = PaddingValues(20.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                shape = shape,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(9.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Default.Inventory2,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp),
+            )
             Text(
-                text = "Owner Queue",
-                style = MaterialTheme.typography.headlineSmall,
+                text = "Bestelluebersicht",
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
             )
-            Text(
-                text = "Kontakt, Status und Rueckstand liegen direkt auf den Karten, damit du Orders als Owner ohne Umwege pruefen kannst.",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OrderStatusPill(text = "$orderCount Orders")
-                OrderStatusPill(text = "$completedOrders erledigt")
-                OrderStatusPill(text = "${(orderCount - completedOrders).coerceAtLeast(0)} offen")
-            }
         }
+        Text(
+            text = "Status und Rueckstand liegen kompakt bereit, damit du Auftraege schneller pruefst.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OrderStatusPill(text = if (orderCount == 1) "1 Bestellung" else "$orderCount Bestellungen")
+            OrderStatusPill(text = "$completedOrders erledigt")
+            OrderStatusPill(text = "${(orderCount - completedOrders).coerceAtLeast(0)} offen")
+        }
+    }
+}
+
+@Composable
+private fun OrdersInlineStatusStrip(
+    icon: ImageVector,
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                RoundedCornerShape(20.dp),
+            )
+            .animateContentSize()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        content()
     }
 }
 
@@ -216,6 +329,7 @@ private fun OrdersOverviewCard(
 private fun OrderCard(
     order: Order,
     isConfirmingPayment: Boolean,
+    hasActionableId: Boolean,
     onConfirmPayment: () -> Unit,
     onToggleCompleted: () -> Unit,
     onDelete: () -> Unit,
@@ -226,15 +340,15 @@ private fun OrderCard(
     val shippingAddress = order.shippingAddress?.takeIf { it.isNotBlank() }
     val paymentMethod = order.paymentMethod?.takeIf { it.isNotBlank() }
     val paymentProvider = order.paymentProvider?.takeIf { it.isNotBlank() }
-    val paymentStatus = order.paymentStatus?.takeIf { it.isNotBlank() }
+    val paymentStatus = order.paymentStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
     val paymentReference = order.paymentReference?.takeIf { it.isNotBlank() }
     val shippingZone = order.shippingZone?.takeIf { it.isNotBlank() }
     val fulfillmentProvider = order.fulfillmentProvider?.takeIf { it.isNotBlank() }
-    val fulfillmentStatus = order.fulfillmentStatus?.takeIf { it.isNotBlank() }
+    val fulfillmentStatus = order.fulfillmentStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
     val shopifyOrderId = order.shopifyOrderId?.takeIf { it.isNotBlank() }
     val shopifyOrderName = order.shopifyOrderName?.takeIf { it.isNotBlank() }
-    val shopifySyncStatus = order.shopifySyncStatus?.takeIf { it.isNotBlank() }
-    val stripeCheckoutStatus = order.stripeCheckoutStatus?.takeIf { it.isNotBlank() }
+    val shopifySyncStatus = order.shopifySyncStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
+    val stripeCheckoutStatus = order.stripeCheckoutStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
     val stripeCheckoutSessionId = order.stripeCheckoutSessionId?.takeIf { it.isNotBlank() }
     val stripePaymentIntentId = order.stripePaymentIntentId?.takeIf { it.isNotBlank() }
     val message = order.message?.takeIf { it.isNotBlank() }
@@ -289,7 +403,7 @@ private fun OrderCard(
 
         Column(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OrderMetaRow(
                 label = "Kontakt",
@@ -319,7 +433,7 @@ private fun OrderCard(
 
             paymentProvider?.let { value ->
                 OrderMetaRow(
-                    label = "Provider",
+                    label = "Zahlanbieter",
                     value = value,
                 )
             }
@@ -347,63 +461,63 @@ private fun OrderCard(
 
             fulfillmentProvider?.let { value ->
                 OrderMetaRow(
-                    label = "Fulfillment",
+                    label = "Versanddienst",
                     value = value,
                 )
             }
 
             fulfillmentStatus?.let { value ->
                 OrderMetaRow(
-                    label = "Fulfillment-Status",
+                    label = "Versandstatus",
                     value = value,
                 )
             }
 
             shopifyOrderName?.let { value ->
                 OrderMetaRow(
-                    label = "Shopify Order",
+                    label = "Shop-Bestellnummer",
                     value = value,
                 )
             }
 
             shopifyOrderId?.let { value ->
                 OrderMetaRow(
-                    label = "Shopify ID",
+                    label = "Shop-Referenz",
                     value = value,
                 )
             }
 
             shopifySyncStatus?.let { value ->
                 OrderMetaRow(
-                    label = "Shopify Sync",
+                    label = "Shop-Synchronisierung",
                     value = value,
                 )
             }
 
             stripeCheckoutStatus?.let { value ->
                 OrderMetaRow(
-                    label = "Stripe Checkout",
+                    label = "Checkout-Status",
                     value = value,
                 )
             }
 
             stripeCheckoutSessionId?.let { value ->
                 OrderMetaRow(
-                    label = "Stripe Session",
+                    label = "Checkout-Referenz",
                     value = value,
                 )
             }
 
             stripePaymentIntentId?.let { value ->
                 OrderMetaRow(
-                    label = "Stripe Payment",
+                    label = "Zahlungsreferenz",
                     value = value,
                 )
             }
 
             if (order.userEmail != contactEmail) {
                 OrderMetaRow(
-                    label = "Login-Mail",
+                    label = "Kontomail",
                     value = order.userEmail,
                 )
             }
@@ -414,10 +528,10 @@ private fun OrderCard(
                         .fillMaxWidth()
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(18.dp),
+                            RoundedCornerShape(20.dp),
                         )
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = "Nachricht",
@@ -443,9 +557,9 @@ private fun OrderCard(
                         .fillMaxWidth()
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(18.dp),
+                            RoundedCornerShape(20.dp),
                         )
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
@@ -470,7 +584,7 @@ private fun OrderCard(
 
         Column(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             order.items.forEach { item ->
                 Row(
@@ -520,44 +634,96 @@ private fun OrderCard(
             }
         }
 
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(top = 18.dp),
         ) {
-            if (paymentStatus != "confirmed") {
-                FilledTonalButton(
-                    onClick = onConfirmPayment,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isConfirmingPayment,
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Text(
-                        text = if (isConfirmingPayment) "Bestaetige..." else "Zahlung bestaetigen",
-                    )
-                }
-            }
+            val compactActions = maxWidth < 460.dp
 
-            FilledTonalButton(
-                onClick = onToggleCompleted,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
-                    contentDescription = null,
-                )
-                Text(
-                    text = if (order.isCompleted) "Wieder oeffnen" else "Als erledigt markieren",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-            TextButton(
-                onClick = onDelete,
-                modifier = Modifier.weight(1f),
-            ) {
-                Text("Loeschen")
+            if (compactActions) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (!order.paymentStatus.hasFinalPaymentStatus()) {
+                        FilledTonalButton(
+                            onClick = onConfirmPayment,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = hasActionableId && !isConfirmingPayment,
+                            shape = RoundedCornerShape(20.dp),
+                        ) {
+                            Text(
+                                text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                            )
+                        }
+                    }
+
+                    FilledTonalButton(
+                        onClick = onToggleCompleted,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = hasActionableId,
+                        shape = RoundedCornerShape(20.dp),
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+
+                    TextButton(
+                        onClick = onDelete,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = hasActionableId,
+                    ) {
+                        Text("Entfernen")
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    if (!order.paymentStatus.hasFinalPaymentStatus()) {
+                        FilledTonalButton(
+                            onClick = onConfirmPayment,
+                            modifier = Modifier.weight(1f),
+                            enabled = hasActionableId && !isConfirmingPayment,
+                            shape = RoundedCornerShape(20.dp),
+                        ) {
+                            Text(
+                                text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                            )
+                        }
+                    }
+
+                    FilledTonalButton(
+                        onClick = onToggleCompleted,
+                        modifier = Modifier.weight(1f),
+                        enabled = hasActionableId,
+                        shape = RoundedCornerShape(20.dp),
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                    TextButton(
+                        onClick = onDelete,
+                        modifier = Modifier.weight(1f),
+                        enabled = hasActionableId,
+                    ) {
+                        Text("Entfernen")
+                    }
+                }
             }
         }
     }
@@ -573,10 +739,10 @@ private fun OrderMetaRow(
             .fillMaxWidth()
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                RoundedCornerShape(18.dp),
+                RoundedCornerShape(20.dp),
             )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Text(
@@ -612,7 +778,8 @@ private fun OrderStatusPill(
     Box(
         modifier = Modifier
             .background(background, RoundedCornerShape(999.dp))
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .animateContentSize()
+            .padding(horizontal = 13.dp, vertical = 8.dp),
     ) {
         Text(
             text = text,
@@ -620,4 +787,27 @@ private fun OrderStatusPill(
             color = content,
         )
     }
+}
+
+private fun String.asUserFacingOrderStatus(): String {
+    return when (trim().lowercase()) {
+        "pending" -> "In Klaerung"
+        "open" -> "Offen"
+        "confirmed" -> "Bestaetigt"
+        "paid" -> "Bezahlt"
+        "processing" -> "In Bearbeitung"
+        "fulfilled" -> "Versendet"
+        "unfulfilled" -> "Nicht versendet"
+        "success", "succeeded" -> "Abgeschlossen"
+        "failed" -> "Nicht erfolgreich"
+        "expired" -> "Abgelaufen"
+        "canceled", "cancelled" -> "Storniert"
+        else -> replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    }
+}
+
+private fun String?.hasFinalPaymentStatus(): Boolean {
+    val normalized = this?.trim()?.lowercase().orEmpty()
+    if (normalized.isBlank()) return false
+    return normalized in setOf("confirmed", "paid", "success", "succeeded")
 }

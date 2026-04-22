@@ -93,6 +93,18 @@ struct LegalContentSettings: Codable, Equatable {
     var appGuideText: String {
         LegalTextTemplateFactory.appGuide(using: self)
     }
+
+    var subscriptionTermsText: String {
+        LegalTextTemplateFactory.subscriptionTerms(using: self)
+    }
+
+    var aiUsageNoticeText: String {
+        LegalTextTemplateFactory.aiUsageNotice(using: self)
+    }
+
+    var imprintInfoText: String {
+        LegalTextTemplateFactory.imprintInfo(using: self)
+    }
 }
 
 protocol LegalContentServicing {

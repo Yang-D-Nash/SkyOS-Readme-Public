@@ -37,12 +37,12 @@ object SkydownUiTokens {
     val screenHorizontalPadding = 16.dp
     val screenTopPadding = 14.dp
     val screenBottomPadding = 22.dp
-    val cardPadding = 14.dp
+    val cardPadding = 12.dp
     val heroPadding = 17.dp
-    val cardCornerRadius = 24.dp
+    val cardCornerRadius = 20.dp
     val heroCornerRadius = 30.dp
-    val buttonCornerRadius = 18.dp
-    val screenSectionSpacing = 16.dp
+    val buttonCornerRadius = 16.dp
+    val screenSectionSpacing = 14.dp
     val compactScreenSectionSpacing = 12.dp
 }
 
