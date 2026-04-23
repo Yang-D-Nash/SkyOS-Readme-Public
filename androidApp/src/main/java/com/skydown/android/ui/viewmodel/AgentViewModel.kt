@@ -145,7 +145,7 @@ class AgentViewModel : ViewModel() {
             enqueuePromptForRetry(trimmedPrompt)
             return
         }
-        _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Processing, errorMessage = null) }
+        _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Planning, errorMessage = null) }
 
         viewModelScope.launch {
             var assistantMessageId: String? = null
@@ -170,7 +170,7 @@ class AgentViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         draft = "",
-                        agentPhase = AgentInteractionPhase.Processing,
+                        agentPhase = AgentInteractionPhase.Executing,
                         errorMessage = null,
                         messages = it.messages + userMessage + assistantMessage,
                     )
@@ -219,7 +219,7 @@ class AgentViewModel : ViewModel() {
                         else -> null
                     }
                     state.copy(
-                        agentPhase = AgentInteractionPhase.Idle,
+                        agentPhase = resolveTerminalPhase(result.decision, pendingRequests.isNotEmpty()),
                         errorMessage = nextError,
                         lastAgentProvider = AiRuntimeAgentProvider.resolve(result.agentProvider),
                         lastProviderNotice = effectiveNotice,
@@ -345,7 +345,7 @@ class AgentViewModel : ViewModel() {
 
         isProcessingPendingQueue = true
         viewModelScope.launch {
-            _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Processing) }
+            _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Executing) }
             while (AppNetworkMonitor.isOnline.value && pendingRequests.isNotEmpty()) {
                 val request = pendingRequests.removeFirst()
                 runCatching {
@@ -568,9 +568,9 @@ class AgentViewModel : ViewModel() {
         if (!result.automationTriggered) {
             return result.reply
         }
-        val workflowLabel = result.workflowName.trim().ifBlank { "n8n" }
+        val workflowLabel = result.workflowName.trim().ifBlank { "Workflow" }
         val automationMessage = result.automationMessage.trim().ifBlank { "An $workflowLabel uebergeben." }
-        return "${result.reply}\n\nn8n:\n$automationMessage"
+        return "${result.reply}\n\nWorkflow:\n$automationMessage"
     }
 
     private fun buildWorkflowSummary(result: com.skydown.android.data.AgentResponse): AgentWorkflowSummary? {
@@ -578,7 +578,7 @@ class AgentViewModel : ViewModel() {
         if (!result.automationTriggered && !result.automationAttempted && structuredWorkflow == null) {
             return null
         }
-        val workflowLabel = (structuredWorkflow?.workflowName ?: result.workflowName).trim().ifBlank { "n8n Workflow" }
+        val workflowLabel = (structuredWorkflow?.workflowName ?: result.workflowName).trim().ifBlank { "External Workflow" }
         val structuredSummary = structuredWorkflow?.summary.orEmpty().trim()
         val statusText = when {
             structuredSummary.isNotEmpty() -> structuredSummary
@@ -618,5 +618,34 @@ class AgentViewModel : ViewModel() {
 
         else -> error.message?.takeIf { it.isNotBlank() }
             ?: "Der SkyOS Agent ist gerade kurz pausiert."
+    }
+}
+
+private fun resolveTerminalPhase(
+    decision: com.skydown.android.data.AgentDecision?,
+    hasPendingQueue: Boolean,
+): AgentInteractionPhase {
+    if (decision?.ownerDiagnosticActive == true) {
+        return AgentInteractionPhase.OwnerDiagnostic
+    }
+    return when (decision?.state.orEmpty()) {
+        "planning" -> AgentInteractionPhase.Planning
+        "webhook_pending" -> AgentInteractionPhase.WebhookPending
+        "external_running" -> AgentInteractionPhase.ExternalRunning
+        "awaiting_external_auth" -> AgentInteractionPhase.AwaitingExternalAuth
+        "external_failed" -> AgentInteractionPhase.ExternalFailed
+        "external_completed" -> AgentInteractionPhase.ExternalCompleted
+        "fallback_internal" -> AgentInteractionPhase.FallbackInternal
+        "awaiting_confirmation" -> AgentInteractionPhase.AwaitingConfirmation
+        "executing" -> AgentInteractionPhase.Executing
+        "tool_pending" -> AgentInteractionPhase.ToolPending
+        "completed" -> AgentInteractionPhase.Completed
+        "partial" -> AgentInteractionPhase.Partial
+        "blocked" -> AgentInteractionPhase.Blocked
+        "failed" -> AgentInteractionPhase.Failed
+        "retryable" -> AgentInteractionPhase.Retryable
+        "cancelled" -> AgentInteractionPhase.Cancelled
+        "idle" -> if (hasPendingQueue) AgentInteractionPhase.WaitingReconnect else AgentInteractionPhase.Idle
+        else -> if (hasPendingQueue) AgentInteractionPhase.WaitingReconnect else AgentInteractionPhase.Completed
     }
 }

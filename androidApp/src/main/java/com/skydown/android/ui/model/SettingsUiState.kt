@@ -42,6 +42,8 @@ data class SettingsUiState(
     val legalContentSettings: LegalContentSettings = LegalContentSettings(),
     val workflowAutomationSettings: WorkflowAutomationSettings = WorkflowAutomationSettings(),
     val manusByosSettings: ManusByosSettings = ManusByosSettings(),
+    val manusValidationStatus: String = "unvalidated",
+    val manusValidationMessage: String = "Noch nicht geprueft.",
     val commerceSettings: CommerceSettings = CommerceSettings(),
     val shopifyAdminSettings: ShopifyAdminSettings = ShopifyAdminSettings(),
     val availableShopifyCollections: List<ShopifyCollectionOption> = emptyList(),

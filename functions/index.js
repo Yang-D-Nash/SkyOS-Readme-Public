@@ -11,6 +11,7 @@ const {defineSecret} = require("firebase-functions/params");
 const {genkit, z} = require("genkit");
 const {vertexAI} = require("@genkit-ai/google-genai");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 const {assertAppCheck} = require("./src/security/app-check");
 const {
   BILLING_LOCKDOWN_REASON_PREFIX,
@@ -81,6 +82,7 @@ const SHOPIFY_PRIVATE_CONFIG_COLLECTION = "adminConfig";
 const SHOPIFY_PRIVATE_CONFIG_DOCUMENT = "shopifyMerchPrivate";
 const AUTOMATION_CONFIG_COLLECTION = "adminConfig";
 const AUTOMATION_CONFIG_DOCUMENT = "automationN8n";
+const AGENT_EXTERNAL_AUDIT_COLLECTION = "agentExternalBridgeAudit";
 const PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX = "agentProfile_";
 const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
@@ -195,6 +197,7 @@ const agentRequestSchema = z.object({
   history: z.array(agentTurnSchema).max(24).default([]),
   mode: z.enum(["release", "briefing", "content", "merch", "automation"]).default("release"),
   executeAutomation: z.boolean().default(false),
+  confirmedByUser: z.boolean().default(false),
   manusApiKeyOverride: z.string().trim().min(16).max(1024).optional(),
 });
 
@@ -714,6 +717,40 @@ const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
       upgradeHintProToCreatorText: "Deine Nutzung ist hoch. Creator kann dir mehr Workflow-Tiefe und Reserve geben.",
       faqPriorityMode: "live_owner_generic",
       promptVersionAlias: "bot-max-v1",
+    },
+    agentCore: {
+      allowedTasks: ["support_recovery", "commerce_order", "owner_ops"],
+      blockedTasks: [],
+      toolPolicy: {
+        allowedTools: ["knowledge_lookup", "order_lookup", "membership_lookup", "owner_runtime"],
+        allowWorkflowAutomation: true,
+      },
+      confirmationPolicy: {
+        requireConfirmationForCommerce: true,
+        requireConfirmationForOwnerOps: true,
+      },
+      safetyPolicy: {
+        blockWhenKillSwitchEnabled: true,
+        blockUnknownTasks: true,
+      },
+      fallbackPolicy: {
+        blockedState: "blocked",
+        retryableState: "retryable",
+        partialState: "partial",
+      },
+      externalPolicy: {
+        activepiecesEnabled: true,
+        n8nEnabled: true,
+        manusEnabled: true,
+        allowedExternalTaskTypes: ["support_recovery", "commerce_order", "owner_ops"],
+        providerPriority: ["activepieces", "n8n"],
+        maxExternalCallsPerRequest: 1,
+        externalTimeoutMs: 12000,
+        externalRetryAttempts: 2,
+      },
+      diagnosticsMode: "owner_only",
+      ownerMode: "standard",
+      killSwitch: false,
     },
   },
 });
@@ -1758,6 +1795,111 @@ function resolveAiBotActionLayer(raw) {
   };
 }
 
+function resolveAiBotAgentCore(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const allowedTasksRaw = Array.isArray(source.allowedTasks) ? source.allowedTasks : [];
+  const blockedTasksRaw = Array.isArray(source.blockedTasks) ? source.blockedTasks : [];
+  const allowedTasks = [...new Set(allowedTasksRaw
+      .map((entry) => nonEmptyString(entry))
+      .filter(Boolean))]
+      .filter((task) => ["support_recovery", "commerce_order", "owner_ops"].includes(task));
+  const blockedTasks = [...new Set(blockedTasksRaw
+      .map((entry) => nonEmptyString(entry))
+      .filter(Boolean))]
+      .filter((task) => ["support_recovery", "commerce_order", "owner_ops"].includes(task));
+  const toolPolicy = source.toolPolicy && typeof source.toolPolicy === "object" && !Array.isArray(source.toolPolicy) ?
+    source.toolPolicy : {};
+  const confirmationPolicy = source.confirmationPolicy && typeof source.confirmationPolicy === "object" && !Array.isArray(source.confirmationPolicy) ?
+    source.confirmationPolicy : {};
+  const safetyPolicy = source.safetyPolicy && typeof source.safetyPolicy === "object" && !Array.isArray(source.safetyPolicy) ?
+    source.safetyPolicy : {};
+  const fallbackPolicy = source.fallbackPolicy && typeof source.fallbackPolicy === "object" && !Array.isArray(source.fallbackPolicy) ?
+    source.fallbackPolicy : {};
+  const defaultCore = DEFAULT_AI_RUNTIME_SETTINGS.bot.agentCore;
+  const allowedToolsRaw = Array.isArray(toolPolicy.allowedTools) ? toolPolicy.allowedTools : [];
+  return {
+    allowedTasks: allowedTasks.length ? allowedTasks : defaultCore.allowedTasks,
+    blockedTasks,
+    toolPolicy: {
+      allowedTools: [...new Set(allowedToolsRaw
+          .map((entry) => nonEmptyString(entry))
+          .filter(Boolean))].slice(0, 10),
+      allowWorkflowAutomation: toolPolicy.allowWorkflowAutomation !== false,
+    },
+    confirmationPolicy: {
+      requireConfirmationForCommerce: confirmationPolicy.requireConfirmationForCommerce !== false,
+      requireConfirmationForOwnerOps: confirmationPolicy.requireConfirmationForOwnerOps !== false,
+    },
+    safetyPolicy: {
+      blockWhenKillSwitchEnabled: safetyPolicy.blockWhenKillSwitchEnabled !== false,
+      blockUnknownTasks: safetyPolicy.blockUnknownTasks !== false,
+    },
+    fallbackPolicy: {
+      blockedState: resolveBotSettingValue(
+          fallbackPolicy.blockedState,
+          defaultCore.fallbackPolicy.blockedState,
+          ["blocked", "failed", "cancelled"],
+      ),
+      retryableState: resolveBotSettingValue(
+          fallbackPolicy.retryableState,
+          defaultCore.fallbackPolicy.retryableState,
+          ["retryable", "failed", "partial"],
+      ),
+      partialState: resolveBotSettingValue(
+          fallbackPolicy.partialState,
+          defaultCore.fallbackPolicy.partialState,
+          ["partial", "completed"],
+      ),
+    },
+    externalPolicy: {
+      activepiecesEnabled: source.externalPolicy?.activepiecesEnabled !== false,
+      n8nEnabled: source.externalPolicy?.n8nEnabled !== false,
+      manusEnabled: source.externalPolicy?.manusEnabled !== false,
+      allowedExternalTaskTypes: [...new Set((Array.isArray(source.externalPolicy?.allowedExternalTaskTypes) ?
+          source.externalPolicy.allowedExternalTaskTypes :
+          defaultCore.externalPolicy.allowedExternalTaskTypes)
+          .map((entry) => nonEmptyString(entry))
+          .filter(Boolean))]
+          .filter((task) => ["support_recovery", "commerce_order", "owner_ops"].includes(task)),
+      providerPriority: [...new Set((Array.isArray(source.externalPolicy?.providerPriority) ?
+          source.externalPolicy.providerPriority :
+          defaultCore.externalPolicy.providerPriority)
+          .map((entry) => nonEmptyString(entry))
+          .filter(Boolean))]
+          .filter((provider) => ["activepieces", "n8n"].includes(provider)),
+      maxExternalCallsPerRequest: clampIntegerSetting(
+          source.externalPolicy?.maxExternalCallsPerRequest,
+          defaultCore.externalPolicy.maxExternalCallsPerRequest,
+          0,
+          3,
+      ),
+      externalTimeoutMs: clampIntegerSetting(
+          source.externalPolicy?.externalTimeoutMs,
+          defaultCore.externalPolicy.externalTimeoutMs,
+          2000,
+          30000,
+      ),
+      externalRetryAttempts: clampIntegerSetting(
+          source.externalPolicy?.externalRetryAttempts,
+          defaultCore.externalPolicy.externalRetryAttempts,
+          0,
+          4,
+      ),
+    },
+    diagnosticsMode: resolveBotSettingValue(
+        source.diagnosticsMode,
+        defaultCore.diagnosticsMode,
+        ["off", "owner_only", "verbose"],
+    ),
+    ownerMode: resolveBotSettingValue(
+        source.ownerMode,
+        defaultCore.ownerMode,
+        ["standard", "diagnostic"],
+    ),
+    killSwitch: source.killSwitch === true,
+  };
+}
+
 function resolveAiBotRuntime(raw) {
   const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   return {
@@ -1808,6 +1950,7 @@ function resolveAiBotRuntime(raw) {
     fallbackPolicy: resolveAiBotFallbackPolicy(source.fallbackPolicy),
     safetyPolicy: resolveAiBotSafetyPolicy(source.safetyPolicy),
     actionLayer: resolveAiBotActionLayer(source.actionLayer),
+    agentCore: resolveAiBotAgentCore(source.agentCore),
   };
 }
 
@@ -2562,8 +2705,10 @@ async function loadWorkflowAutomationSettingsForUser(userId) {
 }
 
 function decodeWorkflowAutomationSettings(data = {}) {
+  const provider = nonEmptyString(data.provider) || "activepieces";
+  const normalizedProvider = ["activepieces", "n8n"].includes(provider) ? provider : "activepieces";
   return {
-    provider: nonEmptyString(data.provider) || "n8n",
+    provider: normalizedProvider,
     isEnabled: data.isEnabled === true,
     sendsUserContext: data.sendsUserContext !== false,
     workflowName: nonEmptyString(data.workflowName) || "Skydown Automation",
@@ -2571,8 +2716,62 @@ function decodeWorkflowAutomationSettings(data = {}) {
     webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
     authHeaderName: nonEmptyString(data.authHeaderName) || "",
     authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
+    signingEnabled: data.signingEnabled === true,
+    signatureHeaderName: nonEmptyString(data.signatureHeaderName) || "x-skydown-signature",
+    signingSecret: nonEmptyString(data.signingSecret) || "",
+    timeoutMs: clampIntegerSetting(data.timeoutMs, 12000, 2000, 30000),
+    retryAttempts: clampIntegerSetting(data.retryAttempts, 2, 0, 4),
+    retryBackoffMs: clampIntegerSetting(data.retryBackoffMs, 1200, 200, 5000),
     knowledgeContext: nonEmptyString(data.knowledgeContext) || "",
   };
+}
+
+function signAutomationPayload(payloadText, signingSecret) {
+  const secret = nonEmptyString(signingSecret) || "";
+  if (!secret) {
+    return "";
+  }
+  return crypto.createHmac("sha256", secret).update(payloadText, "utf8").digest("hex");
+}
+
+async function createAgentExternalAuditEntry({
+  requestId = "",
+  uid = "",
+  provider = "activepieces",
+  route = "external",
+  trigger = "",
+  source = "",
+  workflowName = "",
+  status = "",
+  state = "",
+  reason = "",
+  httpStatus = 0,
+  durationMs = 0,
+}) {
+  try {
+    await admin.firestore()
+        .collection(AGENT_EXTERNAL_AUDIT_COLLECTION)
+        .add({
+          requestId: nonEmptyString(requestId) || null,
+          uid: nonEmptyString(uid) || null,
+          provider: nonEmptyString(provider) || "activepieces",
+          route: nonEmptyString(route) || "external",
+          trigger: nonEmptyString(trigger) || null,
+          source: nonEmptyString(source) || null,
+          workflowName: nonEmptyString(workflowName) || null,
+          status: nonEmptyString(status) || "unknown",
+          state: nonEmptyString(state) || null,
+          reason: nonEmptyString(reason) || null,
+          httpStatus: Number.isFinite(Number(httpStatus)) ? Number(httpStatus) : null,
+          durationMs: Number.isFinite(Number(durationMs)) ? Number(durationMs) : null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+  } catch (error) {
+    logger.warn("Agent external audit write failed.", {
+      requestId: nonEmptyString(requestId) || null,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
 }
 
 function decodePersonalAgentProfileSettings(data = {}) {
@@ -2642,26 +2841,28 @@ function extractAutomationResponseMessage(bodyText, workflowName) {
   return trimmed.length > 160 ? `Test an ${workflowName} gesendet.` : trimmed;
 }
 
-async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {}}) {
+async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {}, runtimePolicy = {}}) {
   const settings = await loadWorkflowAutomationSettingsForUser(auth?.uid);
 
-  if (settings.provider !== "n8n") {
-    throw new HttpsError("failed-precondition", "Automation ist nicht auf n8n gestellt.");
+  if (!["activepieces", "n8n"].includes(settings.provider)) {
+    throw new HttpsError("failed-precondition", "Automation-Provider ist ungueltig.");
   }
 
   if (!settings.isEnabled) {
-    throw new HttpsError("failed-precondition", "n8n ist aktuell nicht aktiviert.");
+    throw new HttpsError("failed-precondition", "Externer Workflow ist aktuell nicht aktiviert.");
   }
 
   const webhookUrl = buildAutomationWebhookUrl(settings.baseURL, settings.webhookPath);
   if (!webhookUrl) {
-    throw new HttpsError("failed-precondition", "n8n ist noch nicht vollstaendig konfiguriert.");
+    throw new HttpsError("failed-precondition", "Externer Workflow ist noch nicht vollstaendig konfiguriert.");
   }
 
   const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
   const knowledgeContext = nonEmptyString(settings.knowledgeContext) || "";
+  const requestId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const payload = {
-    provider: "n8n",
+    provider: settings.provider,
+    requestId,
     workflowName: settings.workflowName,
     trigger,
     source,
@@ -2677,47 +2878,144 @@ async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {
     payload.user = await loadAutomationCaller(auth);
   }
 
+  const payloadText = JSON.stringify(payload);
   const headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
+    "x-skydown-request-id": requestId,
   };
 
   if (settings.authHeaderName && settings.authHeaderValue) {
     headers[settings.authHeaderName] = settings.authHeaderValue;
   }
+  if (settings.signingEnabled) {
+    const signature = signAutomationPayload(payloadText, settings.signingSecret);
+    if (!signature) {
+      throw new HttpsError("failed-precondition", "Webhook Signing ist aktiv, aber signingSecret fehlt.");
+    }
+    headers[settings.signatureHeaderName] = `sha256=${signature}`;
+  }
 
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
+  const effectiveTimeoutMs = clampIntegerSetting(
+      runtimePolicy.externalTimeoutMs,
+      settings.timeoutMs,
+      2000,
+      30000,
+  );
+  const effectiveRetryAttempts = clampIntegerSetting(
+      runtimePolicy.externalRetryAttempts,
+      settings.retryAttempts,
+      0,
+      4,
+  );
 
-  const responseBody = await response.text().catch(() => "");
+  let response = null;
+  let responseBody = "";
+  let lastError = null;
+  const startedAt = Date.now();
+  const attempts = Math.max(1, effectiveRetryAttempts + 1);
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), effectiveTimeoutMs);
+      try {
+        response = await fetch(webhookUrl, {
+          method: "POST",
+          headers,
+          body: payloadText,
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutHandle);
+      }
+      responseBody = await response.text().catch(() => "");
+      if (response.ok || attempt >= attempts || (response.status < 500 && response.status !== 429)) {
+        break;
+      }
+      await waitForMs(settings.retryBackoffMs * attempt);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) {
+        break;
+      }
+      await waitForMs(settings.retryBackoffMs * attempt);
+    }
+  }
+
+  const durationMs = Date.now() - startedAt;
+
+  if (!response) {
+    await createAgentExternalAuditEntry({
+      requestId,
+      uid: auth?.uid || "",
+      provider: settings.provider,
+      route: "external",
+      trigger,
+      source,
+      workflowName: settings.workflowName,
+      status: "network_error",
+      state: "external_failed",
+      reason: lastError instanceof Error ? lastError.message : "network_error",
+      durationMs,
+    });
+    throw new HttpsError("internal", `${settings.provider} Netzwerkfehler: Webhook nicht erreichbar.`);
+  }
 
   if (!response.ok) {
-    logger.error("n8n webhook trigger failed.", {
+    logger.error("External workflow webhook trigger failed.", {
       trigger,
       source,
       workflowName: settings.workflowName,
       status: response.status,
       statusText: response.statusText,
       responseBody: responseBody.slice(0, 500),
+      requestId,
     });
-    throw new HttpsError("internal", `n8n Fehler (${response.status} ${response.statusText}).`);
+    await createAgentExternalAuditEntry({
+      requestId,
+      uid: auth?.uid || "",
+      provider: settings.provider,
+      route: "external",
+      trigger,
+      source,
+      workflowName: settings.workflowName,
+      status: "http_error",
+      state: "external_failed",
+      reason: `${response.status} ${response.statusText}`,
+      httpStatus: response.status,
+      durationMs,
+    });
+    throw new HttpsError("internal", `${settings.provider} Fehler (${response.status} ${response.statusText}).`);
   }
 
-  logger.info("n8n webhook triggered.", {
+  logger.info("External workflow webhook triggered.", {
     trigger,
     source,
     workflowName: settings.workflowName,
     status: response.status,
     sendsUserContext: settings.sendsUserContext,
+    requestId,
+  });
+  await createAgentExternalAuditEntry({
+    requestId,
+    uid: auth?.uid || "",
+    provider: settings.provider,
+    route: "external",
+    trigger,
+    source,
+    workflowName: settings.workflowName,
+    status: "ok",
+    state: "external_completed",
+    httpStatus: response.status,
+    durationMs,
   });
 
   return {
     message: extractAutomationResponseMessage(responseBody, settings.workflowName),
     workflowName: settings.workflowName,
     status: response.status,
+    provider: settings.provider,
+    requestId,
   };
 }
 
@@ -9329,6 +9627,63 @@ exports.triggerWorkflowAutomation = onCall({
   });
 });
 
+exports.debugTriggerWorkflowAutomation = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "debugTriggerWorkflowAutomation");
+  assertAuthenticatedUser(
+      request.auth,
+      "Bitte melde dich an, um den Workflow-Debug-Trigger zu starten.",
+  );
+
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf den Workflow-Debug-Trigger ausfuehren.");
+  }
+
+  const trigger = nonEmptyString(request.data?.trigger) || "owner_debug_test";
+  const source = nonEmptyString(request.data?.source) || "owner_debug";
+  const data = request.data?.data && typeof request.data.data === "object" && !Array.isArray(request.data.data) ?
+    request.data.data :
+    {};
+
+  const startedAt = Date.now();
+  try {
+    const response = await triggerWorkflowAutomationWebhook({
+      trigger,
+      source,
+      auth: request.auth,
+      data,
+    });
+    return {
+      success: true,
+      state: "external_completed",
+      provider: nonEmptyString(response?.provider) || "activepieces",
+      responseTimeMs: Date.now() - startedAt,
+      requestId: nonEmptyString(response?.requestId) || "",
+      workflowName: nonEmptyString(response?.workflowName) || "",
+      status: Number(response?.status) || 0,
+      message: nonEmptyString(response?.message) || "Debug trigger erfolgreich.",
+      auditExpected: true,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `${error}`;
+    return {
+      success: false,
+      state: "external_failed",
+      provider: "external",
+      responseTimeMs: Date.now() - startedAt,
+      requestId: "",
+      workflowName: "",
+      status: 0,
+      message,
+      auditExpected: true,
+    };
+  }
+});
+
 exports.authorizeAiUsage = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
@@ -11268,7 +11623,7 @@ async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProf
   return context.slice(0, 12000);
 }
 
-async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history}) {
+async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, runtimeSettings}) {
   if (!auth?.uid) {
     return {attempted: false, triggered: false};
   }
@@ -11278,6 +11633,7 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history})
       trigger: `agent_${mode}`,
       source: "agent",
       auth,
+      runtimePolicy: runtimeSettings?.bot?.agentCore?.externalPolicy || {},
       data: {
         mode,
         prompt,
@@ -11289,14 +11645,20 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history})
     return {
       attempted: true,
       triggered: true,
-      message: nonEmptyString(automationResult.message) || "An n8n gesendet.",
+      message: nonEmptyString(automationResult.message) || "An externen Workflow gesendet.",
       workflowName: nonEmptyString(automationResult.workflowName) || "",
+      requestId: nonEmptyString(automationResult.requestId) || "",
+      externalState: "external_completed",
+      route: nonEmptyString(automationResult.provider) || "activepieces",
     };
   } catch (error) {
     return {
       attempted: true,
       triggered: false,
       message: error instanceof Error ? error.message : `${error}`,
+      requestId: "",
+      externalState: "external_failed",
+      route: "external",
     };
   }
 }
@@ -11684,6 +12046,39 @@ const skydownAgentFlow = ai.defineFlow({
   return finalText;
 });
 
+exports.validateManusApiKey = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "validateManusApiKey");
+  const rawKey = nonEmptyString(request.data?.apiKey) || "";
+  if (!rawKey) {
+    throw new HttpsError("invalid-argument", "Bitte gib einen Manus API Key an.");
+  }
+
+  try {
+    await callManusApi({
+      apiKey: rawKey,
+      endpoint: "task.list",
+      method: "GET",
+      query: {limit: 1},
+      timeoutMs: 8000,
+    });
+    return {
+      valid: true,
+      status: "ok",
+      message: "Manus-Key ist gueltig und erreichbar.",
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Manus-Key konnte nicht verifiziert werden.";
+    return {
+      valid: false,
+      status: "failed",
+      message,
+    };
+  }
+});
+
 exports.skydownAgent = onCall({
   region: "us-central1",
   timeoutSeconds: 90,
@@ -11719,6 +12114,241 @@ exports.skydownAgent = onCall({
     agentSystemInstruction: effectiveAgentSystemInstruction,
   };
   const runtimeSettings = await loadAiRuntimeSettings();
+  const agentCore = runtimeSettings.bot.agentCore || resolveAiBotAgentCore({});
+  const requestedTask = input.mode === "automation" || input.mode === "merch" ?
+    "commerce_order" :
+    (input.mode === "briefing" ? "owner_ops" : "support_recovery");
+  const stateByFallback = agentCore.fallbackPolicy || {};
+  const blockedState = nonEmptyString(stateByFallback.blockedState) || "blocked";
+  const retryableState = nonEmptyString(stateByFallback.retryableState) || "retryable";
+  const partialState = nonEmptyString(stateByFallback.partialState) || "partial";
+  const allowedTasks = Array.isArray(agentCore.allowedTasks) ? agentCore.allowedTasks : [];
+  const blockedTasks = Array.isArray(agentCore.blockedTasks) ? agentCore.blockedTasks : [];
+  const isTaskAllowed = allowedTasks.includes(requestedTask) && !blockedTasks.includes(requestedTask);
+  const requiresConfirmation = (
+    (requestedTask === "commerce_order" && agentCore.confirmationPolicy?.requireConfirmationForCommerce === true) ||
+    (requestedTask === "owner_ops" && agentCore.confirmationPolicy?.requireConfirmationForOwnerOps === true)
+  );
+  const ownerDiagnosticActive = agentCore.ownerMode === "diagnostic" && (
+    agentCore.diagnosticsMode === "verbose" ||
+    (agentCore.diagnosticsMode === "owner_only" && resolveRoleFromAuthClaims(request.auth) === USER_ROLES.owner)
+  );
+  const allowedExternalTaskTypes = agentCore.externalPolicy?.allowedExternalTaskTypes || [];
+  const canUseActivepieces = agentCore.externalPolicy?.activepiecesEnabled !== false &&
+    allowedExternalTaskTypes.includes(requestedTask);
+  const canUseN8n = agentCore.externalPolicy?.n8nEnabled !== false &&
+    allowedExternalTaskTypes.includes(requestedTask);
+  const canUseAnyExternalWorkflow = canUseActivepieces || canUseN8n;
+  const canUseManus = agentCore.externalPolicy?.manusEnabled !== false &&
+    allowedExternalTaskTypes.includes(requestedTask);
+  const manusKeyAvailable = nonEmptyString(input.manusApiKeyOverride) || nonEmptyString(manusApiKey.value());
+
+  const buildAgentDecision = ({
+    state = "completed",
+    route = "internal",
+    selectedExternal = "",
+    blocked = false,
+    blockReason = "",
+    retryable = false,
+    retryReason = "",
+    confirmationRequired = false,
+    confirmationReason = "",
+    summary = "",
+    policy = "agent_core_v1",
+  } = {}) => ({
+    state,
+    requestedTask,
+    route,
+    selectedExternal,
+    allowedTasks,
+    blockedTasks,
+    allowedTools: agentCore.toolPolicy?.allowedTools || [],
+    policy,
+    diagnosticsMode: agentCore.diagnosticsMode || "owner_only",
+    ownerMode: agentCore.ownerMode || "standard",
+    killSwitch: runtimeSettings.bot.killSwitchEnabled || agentCore.killSwitch === true,
+    blocked,
+    blockReason,
+    retryable,
+    retryReason,
+    confirmationRequired,
+    confirmationReason,
+    summary: nonEmptyString(summary) || "Agent-Entscheidung ausgefuehrt.",
+    ownerDiagnosticActive,
+  });
+
+  if ((runtimeSettings.bot.killSwitchEnabled || agentCore.killSwitch === true) &&
+    agentCore.safetyPolicy?.blockWhenKillSwitchEnabled !== false) {
+    return {
+      reply: "Agent ist aktuell per Kill Switch pausiert.",
+      mode: input.mode,
+      automationTriggered: false,
+      automationAttempted: false,
+      automationMessage: "",
+      workflowName: "",
+      agentProvider: runtimeSettings.agentProvider,
+      providerFallbackUsed: false,
+      providerNotice: "",
+      historyRetentionDays: usage.historyRetentionDays,
+      agentRunId: "",
+      resultType: "text",
+      results: [{type: "text", text: "Agent ist aktuell per Kill Switch pausiert."}],
+      usage: {
+        kind: usage.kind,
+        featureClass: usage.featureClass,
+        remainingForKind: usage.remainingForKind,
+        limitForKind: usage.limitForKind,
+        warningLevel: usage.warningLevel || "ok",
+        guardrailHints: usage.guardrailHints || {},
+        effectiveEntitlement: usage.effectiveEntitlement || null,
+        decision: usage.decision || null,
+      },
+      agentDecision: buildAgentDecision({
+        state: blockedState,
+        blocked: true,
+        blockReason: "kill_switch_enabled",
+        summary: "Kill Switch blockiert Agent-Anfragen.",
+      }),
+    };
+  }
+
+  if (!isTaskAllowed && agentCore.safetyPolicy?.blockUnknownTasks !== false) {
+    return {
+      reply: "Diese Agent-Aufgabe ist aktuell nicht freigeschaltet.",
+      mode: input.mode,
+      automationTriggered: false,
+      automationAttempted: false,
+      automationMessage: "",
+      workflowName: "",
+      agentProvider: runtimeSettings.agentProvider,
+      providerFallbackUsed: false,
+      providerNotice: "",
+      historyRetentionDays: usage.historyRetentionDays,
+      agentRunId: "",
+      resultType: "text",
+      results: [{type: "text", text: "Diese Agent-Aufgabe ist aktuell nicht freigeschaltet."}],
+      usage: {
+        kind: usage.kind,
+        featureClass: usage.featureClass,
+        remainingForKind: usage.remainingForKind,
+        limitForKind: usage.limitForKind,
+        warningLevel: usage.warningLevel || "ok",
+        guardrailHints: usage.guardrailHints || {},
+        effectiveEntitlement: usage.effectiveEntitlement || null,
+        decision: usage.decision || null,
+      },
+      agentDecision: buildAgentDecision({
+        state: blockedState,
+        blocked: true,
+        blockReason: "task_not_allowed",
+        summary: "Task ist nicht in allowedTasks oder in blockedTasks.",
+      }),
+    };
+  }
+
+  if (input.executeAutomation && !agentCore.toolPolicy?.allowWorkflowAutomation) {
+    return {
+      reply: "Workflow-Automation ist fuer den Agent aktuell deaktiviert.",
+      mode: input.mode,
+      automationTriggered: false,
+      automationAttempted: false,
+      automationMessage: "",
+      workflowName: "",
+      agentProvider: runtimeSettings.agentProvider,
+      providerFallbackUsed: false,
+      providerNotice: "",
+      historyRetentionDays: usage.historyRetentionDays,
+      agentRunId: "",
+      resultType: "text",
+      results: [{type: "text", text: "Workflow-Automation ist fuer den Agent aktuell deaktiviert."}],
+      usage: {
+        kind: usage.kind,
+        featureClass: usage.featureClass,
+        remainingForKind: usage.remainingForKind,
+        limitForKind: usage.limitForKind,
+        warningLevel: usage.warningLevel || "ok",
+        guardrailHints: usage.guardrailHints || {},
+        effectiveEntitlement: usage.effectiveEntitlement || null,
+        decision: usage.decision || null,
+      },
+      agentDecision: buildAgentDecision({
+        state: blockedState,
+        blocked: true,
+        blockReason: "tool_policy_block_workflow_automation",
+        summary: "Tool Policy blockiert Workflow-Automation.",
+      }),
+    };
+  }
+
+  if (input.executeAutomation && !canUseAnyExternalWorkflow) {
+    return {
+      reply: "Externe Workflow-Ausfuehrung ist fuer diesen Task aktuell nicht erlaubt.",
+      mode: input.mode,
+      automationTriggered: false,
+      automationAttempted: false,
+      automationMessage: "",
+      workflowName: "",
+      agentProvider: runtimeSettings.agentProvider,
+      providerFallbackUsed: false,
+      providerNotice: "",
+      historyRetentionDays: usage.historyRetentionDays,
+      agentRunId: "",
+      resultType: "text",
+      results: [{type: "text", text: "Externe Workflow-Ausfuehrung ist fuer diesen Task aktuell nicht erlaubt."}],
+      usage: {
+        kind: usage.kind,
+        featureClass: usage.featureClass,
+        remainingForKind: usage.remainingForKind,
+        limitForKind: usage.limitForKind,
+        warningLevel: usage.warningLevel || "ok",
+        guardrailHints: usage.guardrailHints || {},
+        effectiveEntitlement: usage.effectiveEntitlement || null,
+        decision: usage.decision || null,
+      },
+      agentDecision: buildAgentDecision({
+        state: blockedState,
+        route: "external",
+        selectedExternal: "activepieces",
+        blocked: true,
+        blockReason: "external_task_type_not_allowed",
+        summary: "External Task-Type ist in externalPolicy nicht erlaubt.",
+      }),
+    };
+  }
+
+  if (input.executeAutomation && requiresConfirmation && input.confirmedByUser !== true) {
+    return {
+      reply: "Bitte bestaetige diese Aktion explizit, bevor der Agent Automation ausfuehrt.",
+      mode: input.mode,
+      automationTriggered: false,
+      automationAttempted: false,
+      automationMessage: "",
+      workflowName: "",
+      agentProvider: runtimeSettings.agentProvider,
+      providerFallbackUsed: false,
+      providerNotice: "",
+      historyRetentionDays: usage.historyRetentionDays,
+      agentRunId: "",
+      resultType: "text",
+      results: [{type: "text", text: "Bitte bestaetige diese Aktion explizit, bevor der Agent Automation ausfuehrt."}],
+      usage: {
+        kind: usage.kind,
+        featureClass: usage.featureClass,
+        remainingForKind: usage.remainingForKind,
+        limitForKind: usage.limitForKind,
+        warningLevel: usage.warningLevel || "ok",
+        guardrailHints: usage.guardrailHints || {},
+        effectiveEntitlement: usage.effectiveEntitlement || null,
+        decision: usage.decision || null,
+      },
+      agentDecision: buildAgentDecision({
+        state: "awaiting_confirmation",
+        confirmationRequired: true,
+        confirmationReason: "automation_confirmation_required",
+        summary: "Automation wartet auf User-Confirmation.",
+      }),
+    };
+  }
   const workspaceContext = await loadAgentWorkspaceContext(
       request.auth,
       promptSettings,
@@ -11730,6 +12360,51 @@ exports.skydownAgent = onCall({
   let providerNotice = "";
 
   if (runtimeSettings.agentProvider === AI_AGENT_PROVIDERS.manus) {
+    if (!canUseManus) {
+      providerFallbackUsed = true;
+      providerNotice = "Manus ist fuer diesen Task laut externalPolicy nicht freigeschaltet. Interner Fallback aktiv.";
+    } else if (!manusKeyAvailable) {
+      if (runtimeSettings.fallbackAgentProvider !== AI_AGENT_PROVIDERS.gemini) {
+        return {
+          reply: "Manus benoetigt einen API Key. Bitte verbinde deinen Manus-Key oder nutze den internen Agent.",
+          mode: input.mode,
+          automationTriggered: false,
+          automationAttempted: false,
+          automationMessage: "",
+          workflowName: "",
+          agentProvider: AI_AGENT_PROVIDERS.manus,
+          providerFallbackUsed: false,
+          providerNotice: "",
+          historyRetentionDays: usage.historyRetentionDays,
+          agentRunId: "",
+          resultType: "text",
+          results: [{type: "text", text: "Manus benoetigt einen API Key. Bitte verbinde deinen Manus-Key oder nutze den internen Agent."}],
+          usage: {
+            kind: usage.kind,
+            featureClass: usage.featureClass,
+            remainingForKind: usage.remainingForKind,
+            limitForKind: usage.limitForKind,
+            warningLevel: usage.warningLevel || "ok",
+            guardrailHints: usage.guardrailHints || {},
+            effectiveEntitlement: usage.effectiveEntitlement || null,
+            decision: usage.decision || null,
+          },
+          agentDecision: buildAgentDecision({
+            state: "awaiting_external_auth",
+            route: "manus",
+            selectedExternal: "manus",
+            confirmationRequired: true,
+            confirmationReason: "manus_key_missing",
+            summary: "Manus wartet auf BYOS-API-Key.",
+          }),
+        };
+      }
+      providerFallbackUsed = true;
+      providerNotice = "Manus-Key fehlt. Interner Fallback auf Gemini aktiv.";
+    }
+  }
+
+  if (runtimeSettings.agentProvider === AI_AGENT_PROVIDERS.manus && !providerFallbackUsed) {
     try {
       const manusResult = await runManusAgent({
         input,
@@ -11807,6 +12482,7 @@ exports.skydownAgent = onCall({
       prompt: input.prompt,
       reply,
       history: input.history,
+      runtimeSettings,
     }) :
     {attempted: false, triggered: false};
 
@@ -11840,8 +12516,8 @@ exports.skydownAgent = onCall({
       },
       ...(automation.triggered === true || automation.attempted === true ? [{
         type: "workflow",
-        workflowName: nonEmptyString(automation.workflowName) || "n8n Workflow",
-        status: automation.triggered === true ? "queued" : "failed",
+        workflowName: nonEmptyString(automation.workflowName) || "External Workflow",
+        status: automation.triggered === true ? "completed" : "failed",
         summary: nonEmptyString(automation.message) || (
           automation.triggered === true ? "Workflow wurde gestartet." : "Workflow konnte nicht gestartet werden."
         ),
@@ -11858,6 +12534,22 @@ exports.skydownAgent = onCall({
       effectiveEntitlement: usage.effectiveEntitlement || null,
       decision: usage.decision || null,
     },
+    agentDecision: buildAgentDecision({
+      state: input.executeAutomation ?
+        (automation.triggered === true ? "external_completed" : "external_failed") :
+        (providerFallbackUsed ? "fallback_internal" : "completed"),
+      route: input.executeAutomation ? (automation.route || "external") : (providerFallbackUsed ? "hybrid" : "internal"),
+      selectedExternal: input.executeAutomation ? (automation.route || "activepieces") : "",
+      retryable: providerFallbackUsed,
+      retryReason: providerFallbackUsed ? "provider_fallback_used" : "",
+      summary: input.executeAutomation ?
+        (automation.triggered === true ?
+          "Externer Workflow erfolgreich abgeschlossen." :
+          "Externer Workflow fehlgeschlagen.") :
+        (providerFallbackUsed ?
+          "Antwort mit Fallback erstellt (fallback_internal)." :
+          "Agent-Run erfolgreich abgeschlossen."),
+    }),
   };
 });
 

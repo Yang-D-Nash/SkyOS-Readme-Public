@@ -227,7 +227,7 @@ final class AgentChatViewModel: ObservableObject {
             return
         }
 
-        phase = .processing
+        phase = .planning
 
         var appendedAssistantID: UUID?
         let modeAtSend = selectedMode.rawValue
@@ -291,7 +291,7 @@ final class AgentChatViewModel: ObservableObject {
                 } else {
                     lastIntegrationIssue = ""
                 }
-                phase = pendingRequests.isEmpty ? .idle : .waitingReconnect
+                phase = resolvedTerminalPhase(for: result.decision, hasPendingQueue: !pendingRequests.isEmpty)
             } catch {
                 if let assistantID = appendedAssistantID, isOfflineError(error) {
                     pendingRequests.append(
@@ -481,8 +481,8 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     private func retryPendingRequestsIfNeeded() async {
-        guard phase != .processing, !pendingRequests.isEmpty else { return }
-        phase = .processing
+        guard phase != .executing, !pendingRequests.isEmpty else { return }
+        phase = .executing
         defer {
             phase = pendingRequests.isEmpty ? .idle : .waitingReconnect
         }
@@ -536,6 +536,7 @@ final class AgentChatViewModel: ObservableObject {
                     )
                 }
                 persistPendingRequests()
+                phase = resolvedTerminalPhase(for: result.decision, hasPendingQueue: !pendingRequests.isEmpty)
             } catch {
                 if isOfflineError(error) || !NetworkStatusMonitor.shared.isOnline {
                     pendingRequests.insert(request, at: 0)
@@ -594,10 +595,10 @@ final class AgentChatViewModel: ObservableObject {
     private func augmentedReplyText(from response: AgentChatResponse) -> String {
         guard response.automationTriggered else { return response.reply }
         let workflowLabel = response.workflowName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let automationLabel = workflowLabel.isEmpty ? "n8n" : workflowLabel
+        let automationLabel = workflowLabel.isEmpty ? "Workflow" : workflowLabel
         let message = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         let suffix = message.isEmpty ? "An \(automationLabel) uebergeben." : message
-        return "\(response.reply)\n\nn8n:\n\(suffix)"
+        return "\(response.reply)\n\nWorkflow:\n\(suffix)"
     }
 
     private func buildWorkflowSummary(from response: AgentChatResponse) -> AgentWorkflowSummary? {
@@ -606,7 +607,7 @@ final class AgentChatViewModel: ObservableObject {
         let workflowLabel = response.workflowName.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedWorkflowLabel = (structuredWorkflow?.workflowName ?? workflowLabel)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty ? "n8n Workflow" : (structuredWorkflow?.workflowName ?? workflowLabel)
+            .isEmpty ? "External Workflow" : (structuredWorkflow?.workflowName ?? workflowLabel)
         let statusText: String
         if let structuredSummary = structuredWorkflow?.summary, !structuredSummary.isEmpty {
             statusText = structuredSummary
@@ -671,6 +672,53 @@ final class AgentChatViewModel: ObservableObject {
 
         let trimmedRun = response.agentRunId.trimmingCharacters(in: .whitespacesAndNewlines)
         lastAgentRunId = trimmedRun
+    }
+
+    private func resolvedTerminalPhase(for decision: AgentDecision?, hasPendingQueue: Bool) -> AgentInteractionPhase {
+        guard let decision else {
+            return hasPendingQueue ? .waitingReconnect : .completed
+        }
+        if decision.ownerDiagnosticActive {
+            return .ownerDiagnostic
+        }
+        switch decision.state {
+        case "planning":
+            return .planning
+        case "webhook_pending":
+            return .webhookPending
+        case "external_running":
+            return .externalRunning
+        case "awaiting_external_auth":
+            return .awaitingExternalAuth
+        case "external_failed":
+            return .externalFailed
+        case "external_completed":
+            return .externalCompleted
+        case "fallback_internal":
+            return .fallbackInternal
+        case "awaiting_confirmation":
+            return .awaitingConfirmation
+        case "executing":
+            return .executing
+        case "tool_pending":
+            return .toolPending
+        case "completed":
+            return .completed
+        case "partial":
+            return .partial
+        case "blocked":
+            return .blocked
+        case "failed":
+            return .failed
+        case "retryable":
+            return .retryable
+        case "cancelled":
+            return .cancelled
+        case "idle":
+            return hasPendingQueue ? .waitingReconnect : .idle
+        default:
+            return hasPendingQueue ? .waitingReconnect : .completed
+        }
     }
 
     private func isOfflineError(_ error: Error) -> Bool {

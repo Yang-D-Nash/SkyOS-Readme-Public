@@ -21,6 +21,7 @@ data class AgentResponse(
     val resultType: String = "text",
     val results: List<AgentResultEntry> = emptyList(),
     val usage: AiUsageSnapshot? = null,
+    val decision: AgentDecision? = null,
 )
 
 data class AgentResultEntry(
@@ -30,6 +31,28 @@ data class AgentResultEntry(
     val status: String = "",
     val summary: String = "",
     val runId: String = "",
+)
+
+data class AgentDecision(
+    val state: String,
+    val requestedTask: String,
+    val route: String,
+    val selectedExternal: String,
+    val allowedTasks: List<String>,
+    val blockedTasks: List<String>,
+    val allowedTools: List<String>,
+    val policy: String,
+    val diagnosticsMode: String,
+    val ownerMode: String,
+    val killSwitch: Boolean,
+    val blocked: Boolean,
+    val blockReason: String,
+    val retryable: Boolean,
+    val retryReason: String,
+    val confirmationRequired: Boolean,
+    val confirmationReason: String,
+    val summary: String,
+    val ownerDiagnosticActive: Boolean,
 )
 
 class AgentClient {
@@ -85,6 +108,7 @@ class AgentClient {
                     ),
                 ),
                 usage = null,
+                decision = null,
             )
             is Map<*, *> -> AgentResponse(
                 reply = (data["reply"] as? String)?.takeIf { it.isNotBlank() }
@@ -111,8 +135,34 @@ class AgentClient {
                     )
                 }.orEmpty(),
                 usage = parseAiUsageSnapshot(data["usage"]),
+                decision = parseAgentDecision(data["agentDecision"]),
             )
             else -> error("Der SkyOS Agent hat keine Antwort geliefert.")
         }
     }
+}
+
+private fun parseAgentDecision(payload: Any?): AgentDecision? {
+    val decision = payload as? Map<*, *> ?: return null
+    return AgentDecision(
+        state = (decision["state"] as? String).orEmpty().ifBlank { "completed" },
+        requestedTask = (decision["requestedTask"] as? String).orEmpty(),
+        route = (decision["route"] as? String).orEmpty().ifBlank { "internal" },
+        selectedExternal = (decision["selectedExternal"] as? String).orEmpty(),
+        allowedTasks = (decision["allowedTasks"] as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+        blockedTasks = (decision["blockedTasks"] as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+        allowedTools = (decision["allowedTools"] as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+        policy = (decision["policy"] as? String).orEmpty(),
+        diagnosticsMode = (decision["diagnosticsMode"] as? String).orEmpty(),
+        ownerMode = (decision["ownerMode"] as? String).orEmpty(),
+        killSwitch = decision["killSwitch"] as? Boolean ?: false,
+        blocked = decision["blocked"] as? Boolean ?: false,
+        blockReason = (decision["blockReason"] as? String).orEmpty(),
+        retryable = decision["retryable"] as? Boolean ?: false,
+        retryReason = (decision["retryReason"] as? String).orEmpty(),
+        confirmationRequired = decision["confirmationRequired"] as? Boolean ?: false,
+        confirmationReason = (decision["confirmationReason"] as? String).orEmpty(),
+        summary = (decision["summary"] as? String).orEmpty(),
+        ownerDiagnosticActive = decision["ownerDiagnosticActive"] as? Boolean ?: false,
+    )
 }

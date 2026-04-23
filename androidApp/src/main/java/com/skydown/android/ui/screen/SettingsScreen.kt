@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -1877,13 +1878,13 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Automation -> {
                 Text(
-                    text = "Mein Agent-Service (n8n + Manus)",
+                    text = "Mein Agent-Service (Activepieces + Manus, n8n optional)",
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 SettingsToggleRow(
-                    title = "n8n aktiv",
+                    title = "External Workflow aktiv",
                     body = "Die App bleibt normal ueber Firebase eingeloggt. Dieser Workflow gilt nur fuer dein aktuelles Konto.",
                     checked = automationEnabledDraft,
                     onCheckedChange = { automationEnabledDraft = it },
@@ -1891,7 +1892,7 @@ fun SettingsScreen(
                 )
                 SettingsToggleRow(
                     title = "App-User-Kontext mitsenden",
-                    body = "UID, E-Mail und Username werden serverseitig geprueft und an n8n uebergeben.",
+                    body = "UID, E-Mail und Username werden serverseitig geprueft und an den externen Workflow uebergeben.",
                     checked = automationSendsUserContextDraft,
                     onCheckedChange = { automationSendsUserContextDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -1912,8 +1913,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("n8n Base URL") },
-                    placeholder = { Text("https://n8n.deinedomain.de") },
+                    label = { Text("Activepieces Base URL") },
+                    placeholder = { Text("https://cloud.activepieces.com") },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -2060,6 +2061,19 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
+                SettingsBadge(
+                    text = "Validate: ${resolveManusValidationLabel(uiState.manusValidationStatus)}",
+                    icon = Icons.Default.Security,
+                    isActive = uiState.manusValidationStatus == "key_valid",
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Text(
+                    text = uiState.manusValidationMessage,
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2090,6 +2104,17 @@ fun SettingsScreen(
                     ) {
                         Text("Key entfernen")
                     }
+                }
+
+                OutlinedButton(
+                    onClick = { viewModel.validateManusByosKey(manusByosApiKeyDraft) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    enabled = manusByosApiKeyDraft.isNotBlank() || uiState.manusByosSettings.hasApiKey,
+                ) {
+                    Text("Validate Manus Key")
                 }
 
                 Text(
@@ -5748,8 +5773,8 @@ private fun adminWorkspaceStatusText(
                 uiState.manusByosSettings.isEnabled &&
                 uiState.manusByosSettings.hasApiKey -> "Workflow + Skills + Manus"
             uiState.workflowAutomationSettings.isPrepared && uiState.agentProfileSettings.isConfigured -> "Workflow + Skills bereit"
-            uiState.workflowAutomationSettings.isPrepared && uiState.manusByosSettings.hasApiKey -> "n8n + Manus bereit"
-            uiState.workflowAutomationSettings.isPrepared -> "n8n bereit"
+            uiState.workflowAutomationSettings.isPrepared && uiState.manusByosSettings.hasApiKey -> "Workflow + Manus bereit"
+            uiState.workflowAutomationSettings.isPrepared -> "Workflow bereit"
             uiState.agentProfileSettings.isConfigured && uiState.manusByosSettings.hasApiKey -> "Skills + Manus bereit"
             uiState.agentProfileSettings.isConfigured -> "Skills bereit"
             uiState.manusByosSettings.hasApiKey -> "Manus bereit"
@@ -6776,6 +6801,17 @@ private fun resolveAutomationDraftWebhookUrl(
 
     val trimmedPath = webhookPath.trim().trim('/')
     return if (trimmedPath.isBlank()) normalizedBaseUrl else "$normalizedBaseUrl/$trimmedPath"
+}
+
+private fun resolveManusValidationLabel(status: String): String {
+    return when (status) {
+        "key_valid" -> "key valid"
+        "key_invalid" -> "key invalid"
+        "awaiting_external_auth" -> "awaiting external auth"
+        "fallback_internal" -> "fallback internal"
+        "external_failed" -> "external failed"
+        else -> "fallback internal"
+    }
 }
 
 private fun openSupportEmail(

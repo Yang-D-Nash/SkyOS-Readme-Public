@@ -23,6 +23,7 @@ struct AgentChatResponse {
     let resultType: String
     let results: [AgentResultEntry]
     let usage: AIUsageSnapshot?
+    let decision: AgentDecision?
 }
 
 struct AgentResultEntry {
@@ -32,6 +33,28 @@ struct AgentResultEntry {
     let status: String
     let summary: String
     let runId: String
+}
+
+struct AgentDecision: Equatable {
+    let state: String
+    let requestedTask: String
+    let route: String
+    let selectedExternal: String
+    let allowedTasks: [String]
+    let blockedTasks: [String]
+    let allowedTools: [String]
+    let policy: String
+    let diagnosticsMode: String
+    let ownerMode: String
+    let killSwitch: Bool
+    let blocked: Bool
+    let blockReason: String
+    let retryable: Bool
+    let retryReason: String
+    let confirmationRequired: Bool
+    let confirmationReason: String
+    let summary: String
+    let ownerDiagnosticActive: Bool
 }
 
 protocol AgentChatServicing {
@@ -111,7 +134,8 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                         runId: ""
                     )
                 ],
-                usage: nil
+                usage: nil,
+                decision: nil
             )
         }
 
@@ -141,7 +165,8 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                         runId: (entry["runId"] as? String) ?? ""
                     )
                 },
-                usage: parseUsage(payload["usage"] as? [String: Any])
+                usage: parseUsage(payload["usage"] as? [String: Any]),
+                decision: parseDecision(payload["agentDecision"] as? [String: Any])
             )
         }
 
@@ -160,6 +185,31 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             resetHint: (hints?["resetHint"] as? String) ?? "",
             retryAfterSeconds: (hints?["retryAfterSeconds"] as? NSNumber)?.intValue ?? 0,
             lowerCostOption: (hints?["lowerCostOption"] as? String) ?? ""
+        )
+    }
+
+    private func parseDecision(_ payload: [String: Any]?) -> AgentDecision? {
+        guard let payload else { return nil }
+        return AgentDecision(
+            state: (payload["state"] as? String) ?? "completed",
+            requestedTask: (payload["requestedTask"] as? String) ?? "",
+            route: (payload["route"] as? String) ?? "internal",
+            selectedExternal: (payload["selectedExternal"] as? String) ?? "",
+            allowedTasks: payload["allowedTasks"] as? [String] ?? [],
+            blockedTasks: payload["blockedTasks"] as? [String] ?? [],
+            allowedTools: payload["allowedTools"] as? [String] ?? [],
+            policy: (payload["policy"] as? String) ?? "",
+            diagnosticsMode: (payload["diagnosticsMode"] as? String) ?? "",
+            ownerMode: (payload["ownerMode"] as? String) ?? "",
+            killSwitch: payload["killSwitch"] as? Bool ?? false,
+            blocked: payload["blocked"] as? Bool ?? false,
+            blockReason: (payload["blockReason"] as? String) ?? "",
+            retryable: payload["retryable"] as? Bool ?? false,
+            retryReason: (payload["retryReason"] as? String) ?? "",
+            confirmationRequired: payload["confirmationRequired"] as? Bool ?? false,
+            confirmationReason: (payload["confirmationReason"] as? String) ?? "",
+            summary: (payload["summary"] as? String) ?? "",
+            ownerDiagnosticActive: payload["ownerDiagnosticActive"] as? Bool ?? false
         )
     }
 

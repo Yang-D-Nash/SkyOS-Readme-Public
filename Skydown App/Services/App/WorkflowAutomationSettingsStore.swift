@@ -3,7 +3,7 @@ import FirebaseFirestore
 import FirebaseFunctions
 
 struct WorkflowAutomationSettings: Equatable {
-    var provider: String = "n8n"
+    var provider: String = "activepieces"
     var isEnabled: Bool = false
     var sendsUserContext: Bool = true
     var workflowName: String = "SkyOS Automation"
@@ -93,7 +93,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
             throw NSError(
                 domain: "WorkflowAutomationSettingsStore",
                 code: -1009,
-                userInfo: [NSLocalizedDescriptionKey: "Du bist offline. Der n8n-Test braucht eine aktive Internetverbindung."]
+                userInfo: [NSLocalizedDescriptionKey: "Du bist offline. Der Workflow-Test braucht eine aktive Internetverbindung."]
             )
         }
 
@@ -113,7 +113,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
             return message
         }
 
-        return "Test an n8n gesendet."
+        return "Test an externen Workflow gesendet."
     }
 
     private func documentName(for userID: String) -> String {
@@ -122,7 +122,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
 
     private static func decode(_ data: [String: Any]) -> WorkflowAutomationSettings {
         WorkflowAutomationSettings(
-            provider: (data["provider"] as? String)?.trimmedNonEmpty ?? "n8n",
+            provider: (data["provider"] as? String)?.trimmedNonEmpty ?? "activepieces",
             isEnabled: data["isEnabled"] as? Bool ?? false,
             sendsUserContext: data["sendsUserContext"] as? Bool ?? true,
             workflowName: (data["workflowName"] as? String)?.trimmedNonEmpty ?? "SkyOS Automation",
@@ -136,7 +136,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
 
     private static func encode(_ settings: WorkflowAutomationSettings) -> [String: Any] {
         [
-            "provider": "n8n",
+            "provider": settings.provider.trimmedNonEmpty ?? "activepieces",
             "isEnabled": settings.isEnabled,
             "sendsUserContext": settings.sendsUserContext,
             "workflowName": settings.workflowName.trimmedNonEmpty ?? "SkyOS Automation",
@@ -191,7 +191,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
 
     func save(_ settings: WorkflowAutomationSettings) async throws {
         guard let currentUserID else {
-            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer n8n-Konfiguration verfuegbar."])
+            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer Workflow-Konfiguration verfuegbar."])
         }
 
         try await service.updateSettings(settings, userID: currentUserID)
@@ -199,7 +199,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
 
     func triggerTest() async throws -> String {
         guard let currentUserID else {
-            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer n8n-Test verfuegbar."])
+            throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer Workflow-Test verfuegbar."])
         }
 
         return try await service.triggerTest(userID: currentUserID)

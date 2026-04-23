@@ -99,6 +99,28 @@ struct AIRuntimeBotActionLayer: Equatable {
     var promptVersionAlias: String = "bot-max-v1"
 }
 
+struct AIRuntimeBotAgentCore: Equatable {
+    var allowedTasks: [String] = ["support_recovery", "commerce_order", "owner_ops"]
+    var blockedTasks: [String] = []
+    var allowedTools: [String] = ["knowledge_lookup", "order_lookup", "membership_lookup", "owner_runtime"]
+    var allowWorkflowAutomation: Bool = true
+    var requireConfirmationForCommerce: Bool = true
+    var requireConfirmationForOwnerOps: Bool = true
+    var blockWhenKillSwitchEnabled: Bool = true
+    var blockUnknownTasks: Bool = true
+    var activepiecesEnabled: Bool = true
+    var n8nEnabled: Bool = true
+    var manusEnabled: Bool = true
+    var allowedExternalTaskTypes: [String] = ["support_recovery", "commerce_order", "owner_ops"]
+    var providerPriority: [String] = ["activepieces", "n8n"]
+    var maxExternalCallsPerRequest: Int = 1
+    var externalTimeoutMs: Int = 12_000
+    var externalRetryAttempts: Int = 2
+    var diagnosticsMode: String = "owner_only"
+    var ownerMode: String = "standard"
+    var killSwitch: Bool = false
+}
+
 struct AIRuntimeBotSettings: Equatable {
     var promptVersion: String = "bot-max-v1"
     var qualityMode: String = "balanced"
@@ -115,6 +137,7 @@ struct AIRuntimeBotSettings: Equatable {
     var fallbackPolicy: AIRuntimeBotFallbackPolicy = AIRuntimeBotFallbackPolicy()
     var safetyPolicy: AIRuntimeBotSafetyPolicy = AIRuntimeBotSafetyPolicy()
     var actionLayer: AIRuntimeBotActionLayer = AIRuntimeBotActionLayer()
+    var agentCore: AIRuntimeBotAgentCore = AIRuntimeBotAgentCore()
 }
 
 struct AIRuntimeSettings: Equatable {
@@ -278,6 +301,11 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
         let botFallback = botData["fallbackPolicy"] as? [String: Any] ?? [:]
         let botSafety = botData["safetyPolicy"] as? [String: Any] ?? [:]
         let botActionLayer = botData["actionLayer"] as? [String: Any] ?? [:]
+        let botAgentCore = botData["agentCore"] as? [String: Any] ?? [:]
+        let botAgentToolPolicy = botAgentCore["toolPolicy"] as? [String: Any] ?? [:]
+        let botAgentConfirmationPolicy = botAgentCore["confirmationPolicy"] as? [String: Any] ?? [:]
+        let botAgentSafetyPolicy = botAgentCore["safetyPolicy"] as? [String: Any] ?? [:]
+        let botAgentExternalPolicy = botAgentCore["externalPolicy"] as? [String: Any] ?? [:]
         return AIRuntimeSettings(
             costGuardEnabled: data["costGuardEnabled"] as? Bool ?? true,
             agentProvider: decodeProvider(data["agentProvider"], fallback: .grok),
@@ -460,6 +488,65 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
                         botActionLayer["promptVersionAlias"] as? String,
                         fallback: AIRuntimeSettings.default.bot.actionLayer.promptVersionAlias
                     )
+                ),
+                agentCore: AIRuntimeBotAgentCore(
+                    allowedTasks: normalizeRuntimeStringArray(
+                        botAgentCore["allowedTasks"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.allowedTasks
+                    ),
+                    blockedTasks: normalizeRuntimeStringArray(
+                        botAgentCore["blockedTasks"],
+                        fallback: []
+                    ),
+                    allowedTools: normalizeRuntimeStringArray(
+                        botAgentToolPolicy["allowedTools"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.allowedTools
+                    ),
+                    allowWorkflowAutomation: botAgentToolPolicy["allowWorkflowAutomation"] as? Bool ?? true,
+                    requireConfirmationForCommerce: botAgentConfirmationPolicy["requireConfirmationForCommerce"] as? Bool ?? true,
+                    requireConfirmationForOwnerOps: botAgentConfirmationPolicy["requireConfirmationForOwnerOps"] as? Bool ?? true,
+                    blockWhenKillSwitchEnabled: botAgentSafetyPolicy["blockWhenKillSwitchEnabled"] as? Bool ?? true,
+                    blockUnknownTasks: botAgentSafetyPolicy["blockUnknownTasks"] as? Bool ?? true,
+                    activepiecesEnabled: botAgentExternalPolicy["activepiecesEnabled"] as? Bool ?? true,
+                    n8nEnabled: botAgentExternalPolicy["n8nEnabled"] as? Bool ?? true,
+                    manusEnabled: botAgentExternalPolicy["manusEnabled"] as? Bool ?? true,
+                    allowedExternalTaskTypes: normalizeRuntimeStringArray(
+                        botAgentExternalPolicy["allowedExternalTaskTypes"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.allowedExternalTaskTypes
+                    ),
+                    providerPriority: normalizeRuntimeStringArray(
+                        botAgentExternalPolicy["providerPriority"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.providerPriority
+                    ),
+                    maxExternalCallsPerRequest: clampInt(
+                        botAgentExternalPolicy["maxExternalCallsPerRequest"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.maxExternalCallsPerRequest,
+                        min: 0,
+                        max: 3
+                    ),
+                    externalTimeoutMs: clampInt(
+                        botAgentExternalPolicy["externalTimeoutMs"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.externalTimeoutMs,
+                        min: 2_000,
+                        max: 30_000
+                    ),
+                    externalRetryAttempts: clampInt(
+                        botAgentExternalPolicy["externalRetryAttempts"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.externalRetryAttempts,
+                        min: 0,
+                        max: 4
+                    ),
+                    diagnosticsMode: normalizeAllowedString(
+                        botAgentCore["diagnosticsMode"] as? String,
+                        allowed: ["off", "owner_only", "verbose"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.diagnosticsMode
+                    ),
+                    ownerMode: normalizeAllowedString(
+                        botAgentCore["ownerMode"] as? String,
+                        allowed: ["standard", "diagnostic"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.ownerMode
+                    ),
+                    killSwitch: botAgentCore["killSwitch"] as? Bool ?? false
                 )
             )
         )
@@ -600,6 +687,73 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
                         settings.bot.actionLayer.promptVersionAlias,
                         fallback: AIRuntimeSettings.default.bot.actionLayer.promptVersionAlias
                     )
+                ],
+                "agentCore": [
+                    "allowedTasks": normalizeRuntimeStringArray(
+                        settings.bot.agentCore.allowedTasks,
+                        fallback: AIRuntimeSettings.default.bot.agentCore.allowedTasks
+                    ),
+                    "blockedTasks": normalizeRuntimeStringArray(
+                        settings.bot.agentCore.blockedTasks,
+                        fallback: []
+                    ),
+                    "toolPolicy": [
+                        "allowedTools": normalizeRuntimeStringArray(
+                            settings.bot.agentCore.allowedTools,
+                            fallback: AIRuntimeSettings.default.bot.agentCore.allowedTools
+                        ),
+                        "allowWorkflowAutomation": settings.bot.agentCore.allowWorkflowAutomation
+                    ],
+                    "confirmationPolicy": [
+                        "requireConfirmationForCommerce": settings.bot.agentCore.requireConfirmationForCommerce,
+                        "requireConfirmationForOwnerOps": settings.bot.agentCore.requireConfirmationForOwnerOps
+                    ],
+                    "safetyPolicy": [
+                        "blockWhenKillSwitchEnabled": settings.bot.agentCore.blockWhenKillSwitchEnabled,
+                        "blockUnknownTasks": settings.bot.agentCore.blockUnknownTasks
+                    ],
+                    "externalPolicy": [
+                        "activepiecesEnabled": settings.bot.agentCore.activepiecesEnabled,
+                        "n8nEnabled": settings.bot.agentCore.n8nEnabled,
+                        "manusEnabled": settings.bot.agentCore.manusEnabled,
+                        "allowedExternalTaskTypes": normalizeRuntimeStringArray(
+                            settings.bot.agentCore.allowedExternalTaskTypes,
+                            fallback: AIRuntimeSettings.default.bot.agentCore.allowedExternalTaskTypes
+                        ),
+                        "providerPriority": normalizeRuntimeStringArray(
+                            settings.bot.agentCore.providerPriority,
+                            fallback: AIRuntimeSettings.default.bot.agentCore.providerPriority
+                        ),
+                        "maxExternalCallsPerRequest": clampInt(
+                            settings.bot.agentCore.maxExternalCallsPerRequest,
+                            fallback: AIRuntimeSettings.default.bot.agentCore.maxExternalCallsPerRequest,
+                            min: 0,
+                            max: 3
+                        ),
+                        "externalTimeoutMs": clampInt(
+                            settings.bot.agentCore.externalTimeoutMs,
+                            fallback: AIRuntimeSettings.default.bot.agentCore.externalTimeoutMs,
+                            min: 2_000,
+                            max: 30_000
+                        ),
+                        "externalRetryAttempts": clampInt(
+                            settings.bot.agentCore.externalRetryAttempts,
+                            fallback: AIRuntimeSettings.default.bot.agentCore.externalRetryAttempts,
+                            min: 0,
+                            max: 4
+                        )
+                    ],
+                    "diagnosticsMode": normalizeAllowedString(
+                        settings.bot.agentCore.diagnosticsMode,
+                        allowed: ["off", "owner_only", "verbose"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.diagnosticsMode
+                    ),
+                    "ownerMode": normalizeAllowedString(
+                        settings.bot.agentCore.ownerMode,
+                        allowed: ["standard", "diagnostic"],
+                        fallback: AIRuntimeSettings.default.bot.agentCore.ownerMode
+                    ),
+                    "killSwitch": settings.bot.agentCore.killSwitch
                 ]
             ],
             "updatedAt": FieldValue.serverTimestamp()
@@ -661,6 +815,17 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
         let normalized = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !normalized.isEmpty else { return fallback }
         return String(normalized.prefix(maxLength))
+    }
+
+    private static func normalizeRuntimeStringArray(_ value: Any?, fallback: [String]) -> [String] {
+        guard let list = value as? [Any] else { return fallback }
+        let sanitized = list.compactMap { entry -> String? in
+            guard let raw = (entry as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !raw.isEmpty else { return nil }
+            return String(raw.prefix(80))
+        }
+        let unique = Array(Set(sanitized)).sorted()
+        return unique.isEmpty ? fallback : unique
     }
 }
 

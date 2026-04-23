@@ -10,6 +10,7 @@
 
 import SwiftUI
 import MessageUI
+import FirebaseFunctions
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
@@ -126,6 +127,9 @@ struct SettingsView: View {
     @State private var automationInlineFeedbackTimestamp: Date?
     @State private var manusByosEnabledDraft = false
     @State private var manusByosAPIKeyDraft = ""
+    @State private var isValidatingManusKey = false
+    @State private var manusValidationStatus = "unvalidated"
+    @State private var manusValidationMessage = "Noch nicht geprueft."
     @State private var aiTextInstructionDraft = ""
     @State private var aiVisualInstructionDraft = ""
     @State private var aiAgentSystemInstructionDraft = ""
@@ -312,9 +316,9 @@ struct SettingsView: View {
 
         if automationEnabledDraft {
             if automationBaseURLTrimmed.isEmpty {
-                messages.append("n8n Base URL fehlt.")
+                messages.append("Activepieces Base URL fehlt.")
             } else if automationNormalizedBaseURLDraft == nil {
-                messages.append("n8n Base URL ist ungueltig.")
+                messages.append("Activepieces Base URL ist ungueltig.")
             }
         }
 
@@ -337,7 +341,7 @@ struct SettingsView: View {
         }
 
         if !automationEnabledDraft && (!automationBaseURLTrimmed.isEmpty || !automationWebhookPathTrimmed.isEmpty) {
-            messages.append("n8n ist gerade deaktiviert. Speichern aktiviert dieses Setup erst beim naechsten Einschalten.")
+            messages.append("Workflow ist gerade deaktiviert. Speichern aktiviert dieses Setup erst beim naechsten Einschalten.")
         }
 
         return messages
@@ -347,10 +351,10 @@ struct SettingsView: View {
         var reasons: [String] = []
 
         if isSavingAutomationSettings {
-            reasons.append("n8n wird gerade gespeichert.")
+            reasons.append("Workflow wird gerade gespeichert.")
         }
         if isRunningAutomationTest {
-            reasons.append("Ein n8n-Test laeuft bereits.")
+            reasons.append("Ein Workflow-Test laeuft bereits.")
         }
         if !automationHasUnsavedChanges {
             reasons.append("Keine ungespeicherten Aenderungen.")
@@ -364,13 +368,13 @@ struct SettingsView: View {
         var reasons: [String] = []
 
         if isRunningAutomationTest {
-            reasons.append("Ein n8n-Test laeuft bereits.")
+            reasons.append("Ein Workflow-Test laeuft bereits.")
         }
         if isSavingAutomationSettings {
             reasons.append("Bitte warten, bis Speichern abgeschlossen ist.")
         }
         if !automationEnabledDraft {
-            reasons.append("n8n ist deaktiviert.")
+            reasons.append("Workflow ist deaktiviert.")
         }
 
         reasons.append(contentsOf: automationBlockingValidationMessages)
@@ -397,7 +401,7 @@ struct SettingsView: View {
         if automationHasUnsavedChanges {
             return "Aenderungen noch nicht gespeichert"
         }
-        return automationEnabledDraft ? "n8n ist einsatzbereit" : "n8n ist deaktiviert"
+        return automationEnabledDraft ? "External Workflow ist einsatzbereit" : "External Workflow ist deaktiviert"
     }
 
     private var automationStatusMessage: String {
@@ -2150,11 +2154,11 @@ struct SettingsView: View {
 
             case .automation:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Firebase-Login bleibt. Hier: n8n-Webhook + optional Knowledge.")
+                    Text("Firebase-Login bleibt. Primaer: Activepieces-Webhook. n8n bleibt optional sidelined.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    Toggle("n8n aktiv", isOn: $automationEnabledDraft)
+                    Toggle("External Workflow aktiv", isOn: $automationEnabledDraft)
 
                     Toggle("App-User-Kontext mitsenden", isOn: $automationSendsUserContextDraft)
 
@@ -2166,10 +2170,10 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
-                        title: "n8n Base URL",
+                        title: "Activepieces Base URL",
                         text: $automationBaseURLDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "https://n8n.deinedomain.de",
+                        placeholder: "https://cloud.activepieces.com",
                         keyboardType: .URL
                     )
 
@@ -2236,7 +2240,7 @@ struct SettingsView: View {
                     HStack(spacing: 10) {
                         Button(action: saveAutomationSettings) {
                             Label(
-                                isSavingAutomationSettings ? "Speichert..." : "n8n speichern",
+                                isSavingAutomationSettings ? "Speichert..." : "Workflow speichern",
                                 systemImage: isSavingAutomationSettings ? "arrow.triangle.2.circlepath.circle.fill" : "bolt.circle.fill"
                             )
                                 .frame(maxWidth: .infinity)
@@ -2292,6 +2296,15 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
+                    SettingsBadge(
+                        text: "Validate: \(manusValidationLabel())",
+                        colorScheme: effectiveColorScheme
+                    )
+
+                    Text(manusValidationMessage)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
                     HStack(spacing: 10) {
                         Button(action: saveManusBYOSSettings) {
                             Label("Manus speichern", systemImage: "lock.shield")
@@ -2309,6 +2322,17 @@ struct SettingsView: View {
                         .skydownInteractiveFeedback()
                         .disabled(!manusByosStore.settings.hasAPIKey && manusByosAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
+
+                    Button(action: validateManusBYOSKey) {
+                        Label(
+                            isValidatingManusKey ? "Prueft..." : "Validate Manus Key",
+                            systemImage: "checkmark.shield"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .skydownInteractiveFeedback()
+                    .disabled(isValidatingManusKey || resolveEffectiveManusKey().isEmpty)
                 }
 
             case .aiPrompts:
@@ -2933,10 +2957,10 @@ struct SettingsView: View {
             if workflowAutomationSettings.settings.isPrepared &&
                 manusByosStore.settings.isEnabled &&
                 manusByosStore.settings.hasAPIKey {
-                return "n8n + Manus bereit"
+                return "Workflow + Manus bereit"
             }
             if workflowAutomationSettings.settings.isPrepared {
-                return "n8n bereit"
+                return "Workflow bereit"
             }
             if manusByosStore.settings.hasAPIKey {
                 return "Manus bereit"
@@ -3193,7 +3217,7 @@ struct SettingsView: View {
         let workflowName = settings.workflowName.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return WorkflowAutomationSettings(
-            provider: provider.isEmpty ? "n8n" : provider,
+            provider: provider.isEmpty ? "activepieces" : provider,
             isEnabled: settings.isEnabled,
             sendsUserContext: settings.sendsUserContext,
             workflowName: workflowName.isEmpty ? WorkflowAutomationSettings.default.workflowName : workflowName,
@@ -3240,6 +3264,16 @@ struct SettingsView: View {
 
     private func syncManusBYOSDrafts(with settings: ManusBYOSSettings) {
         manusByosEnabledDraft = settings.isEnabled
+        if settings.isEnabled && settings.hasAPIKey && manusValidationStatus == "unvalidated" {
+            manusValidationStatus = "fallback_internal"
+            manusValidationMessage = "Noch nicht validiert. Agent nutzt aktuell BYOS oder faellt intern zurueck."
+        } else if !settings.hasAPIKey {
+            manusValidationStatus = "awaiting_external_auth"
+            manusValidationMessage = "Kein Key gespeichert. Externer Lauf wartet auf Auth."
+        } else if !settings.isEnabled {
+            manusValidationStatus = "fallback_internal"
+            manusValidationMessage = "BYOS pausiert. Agent nutzt internen Fallback."
+        }
     }
 
     private func syncAIPromptDrafts(with settings: AIPromptSettings) {
@@ -3598,8 +3632,8 @@ struct SettingsView: View {
     private func saveAutomationSettings() {
         guard automationSaveDisabledReasons.isEmpty else {
             if let firstReason = automationSaveDisabledReasons.first {
-                updateAutomationInlineFeedback("n8n nicht gespeichert: \(firstReason)", style: .warning)
-                showToastMessage("n8n nicht gespeichert: \(firstReason)", style: .warning)
+                updateAutomationInlineFeedback("Workflow nicht gespeichert: \(firstReason)", style: .warning)
+                showToastMessage("Workflow nicht gespeichert: \(firstReason)", style: .warning)
             }
             return
         }
@@ -3625,8 +3659,8 @@ struct SettingsView: View {
             } catch {
                 await MainActor.run {
                     isSavingAutomationSettings = false
-                    updateAutomationInlineFeedback("n8n konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
-                    showToastMessage("n8n konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+                    updateAutomationInlineFeedback("Workflow konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+                    showToastMessage("Workflow konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
                 }
             }
         }
@@ -3832,8 +3866,8 @@ struct SettingsView: View {
     private func runAutomationTest() {
         guard automationTestDisabledReasons.isEmpty else {
             if let firstReason = automationTestDisabledReasons.first {
-                updateAutomationInlineFeedback("n8n-Test nicht gestartet: \(firstReason)", style: .warning)
-                showToastMessage("n8n-Test nicht gestartet: \(firstReason)", style: .warning)
+                updateAutomationInlineFeedback("Workflow-Test nicht gestartet: \(firstReason)", style: .warning)
+                showToastMessage("Workflow-Test nicht gestartet: \(firstReason)", style: .warning)
             }
             return
         }
@@ -3854,8 +3888,8 @@ struct SettingsView: View {
             } catch {
                 await MainActor.run {
                     isRunningAutomationTest = false
-                    updateAutomationInlineFeedback("n8n-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
-                    showToastMessage("n8n-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
+                    updateAutomationInlineFeedback("Workflow-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
+                    showToastMessage("Workflow-Test fehlgeschlagen: \(error.localizedDescription)", style: .error)
                 }
             }
         }
@@ -3887,7 +3921,71 @@ struct SettingsView: View {
     private func clearManusBYOSAPIKey() {
         manusByosStore.clearAPIKey()
         manusByosAPIKeyDraft = ""
+        manusValidationStatus = "awaiting_external_auth"
+        manusValidationMessage = "Key entfernt. Externer Manus-Run wartet auf Auth oder nutzt internen Fallback."
         showToastMessage("Manus API Key lokal entfernt. BYOS ist fuer dieses Konto aus.", style: .success)
+    }
+
+    private func validateManusBYOSKey() {
+        let key = resolveEffectiveManusKey()
+        guard !key.isEmpty else {
+            manusValidationStatus = "awaiting_external_auth"
+            manusValidationMessage = "Kein Manus-Key vorhanden. Externer Lauf wartet auf Auth oder faellt intern zurueck."
+            showToastMessage("Bitte hinterlege zuerst einen Manus API Key.", style: .warning)
+            return
+        }
+
+        isValidatingManusKey = true
+        Task {
+            do {
+                let result = try await Functions.functions(region: "us-central1").invokeCallable(
+                    "validateManusApiKey",
+                    payload: ["apiKey": key]
+                )
+                let payload = result.data as? [String: Any]
+                let valid = payload?["valid"] as? Bool ?? false
+                let message = (payload?["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                await MainActor.run {
+                    isValidatingManusKey = false
+                    manusValidationStatus = valid ? "key_valid" : "key_invalid"
+                    manusValidationMessage = message?.isEmpty == false ? message! :
+                        (valid ? "Manus-Key ist gueltig." : "Manus-Key ist ungueltig oder nicht erreichbar.")
+                    showToastMessage(manusValidationMessage, style: valid ? .success : .error)
+                }
+            } catch {
+                await MainActor.run {
+                    isValidatingManusKey = false
+                    manusValidationStatus = "external_failed"
+                    manusValidationMessage = "Validierung fehlgeschlagen: \(error.localizedDescription)"
+                    showToastMessage(manusValidationMessage, style: .error)
+                }
+            }
+        }
+    }
+
+    private func resolveEffectiveManusKey() -> String {
+        let draft = manusByosAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !draft.isEmpty {
+            return draft
+        }
+        return ManusBYOSStore.shared.currentAPIKeyOrNil() ?? ""
+    }
+
+    private func manusValidationLabel() -> String {
+        switch manusValidationStatus {
+        case "key_valid":
+            return "key valid"
+        case "key_invalid":
+            return "key invalid"
+        case "awaiting_external_auth":
+            return "awaiting external auth"
+        case "fallback_internal":
+            return "fallback internal"
+        case "external_failed":
+            return "external failed"
+        default:
+            return manusByosStore.settings.hasAPIKey ? "fallback internal" : "awaiting external auth"
+        }
     }
 
     private func saveAISubscriptionPricing() {
@@ -5596,7 +5694,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
         case .visuals:
             return "Drive-Link, Namensschema und Referenzhinweise fuer Visual-Prompts pflegen."
         case .automation:
-            return "Persoenlichen n8n-Service und optionalen Manus-BYOS-Key pro Konto anbinden."
+            return "Persoenlichen Workflow-Service (Activepieces primaer, n8n optional) und Manus-BYOS-Key pro Konto anbinden."
         case .aiPrompts:
             return "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen."
         case .membershipOps:

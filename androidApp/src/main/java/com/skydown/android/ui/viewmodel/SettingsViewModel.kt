@@ -14,9 +14,11 @@ import com.skydown.android.data.ManusByosPreferences
 import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.WorkflowAutomationPreferences
+import com.skydown.android.data.callWithAppCheckRetry
 import com.skydown.shared.model.User
 import com.skydown.shared.model.ProfileUpdateInput
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.functions.FirebaseFunctions
 import com.skydown.android.ui.model.SettingsUiState
 import com.skydown.android.ui.theme.AppearanceMode
 import com.skydown.shared.model.isPlatformOwner
@@ -44,6 +46,7 @@ class SettingsViewModel : ViewModel() {
     private var aiRuntimeSettingsListener: ListenerRegistration? = null
     private var shopifyAdminSettingsListener: ListenerRegistration? = null
     private var adminUsersListener: ListenerRegistration? = null
+    private val functions = FirebaseFunctions.getInstance("us-central1")
     private val _uiState = MutableStateFlow(
         SettingsUiState(),
     )
@@ -130,7 +133,24 @@ class SettingsViewModel : ViewModel() {
 
         viewModelScope.launch {
             ManusByosPreferences.settings.collect { settings ->
-                _uiState.update { it.copy(manusByosSettings = settings) }
+                _uiState.update { current ->
+                    val validationStatus = when {
+                        !settings.hasApiKey -> "awaiting_external_auth"
+                        !settings.isEnabled -> "fallback_internal"
+                        current.manusValidationStatus == "unvalidated" -> "fallback_internal"
+                        else -> current.manusValidationStatus
+                    }
+                    val validationMessage = when (validationStatus) {
+                        "awaiting_external_auth" -> "Kein Key gespeichert. Externer Lauf wartet auf Auth."
+                        "fallback_internal" -> "BYOS pausiert oder ungeprueft. Agent nutzt internen Fallback."
+                        else -> current.manusValidationMessage
+                    }
+                    current.copy(
+                        manusByosSettings = settings,
+                        manusValidationStatus = validationStatus,
+                        manusValidationMessage = validationMessage,
+                    )
+                }
             }
         }
 
@@ -275,6 +295,16 @@ class SettingsViewModel : ViewModel() {
                 updateEnabledResult.getOrNull()?.let { settings ->
                     _uiState.update { it.copy(manusByosSettings = settings) }
                 }
+                _uiState.update {
+                    it.copy(
+                        manusValidationStatus = "fallback_internal",
+                        manusValidationMessage = if (enabled) {
+                            "Noch nicht validiert. Agent nutzt BYOS oder faellt intern zurueck."
+                        } else {
+                            "BYOS pausiert. Agent nutzt internen Fallback."
+                        },
+                    )
+                }
                 showPaymentFeedback(
                     message = if (enabled) {
                         "Manus BYOS aktiv. Der Agent nutzt jetzt deinen persoenlichen Key."
@@ -308,6 +338,12 @@ class SettingsViewModel : ViewModel() {
                 result.getOrNull()?.let { settings ->
                     _uiState.update { it.copy(manusByosSettings = settings) }
                 }
+                _uiState.update {
+                    it.copy(
+                        manusValidationStatus = "awaiting_external_auth",
+                        manusValidationMessage = "Key entfernt. Externer Lauf wartet auf Auth oder faellt intern zurueck.",
+                    )
+                }
                 showPaymentFeedback(
                     message = "Manus API Key lokal entfernt. BYOS ist fuer dieses Konto aus.",
                     isError = false,
@@ -318,6 +354,54 @@ class SettingsViewModel : ViewModel() {
                         ?: "Manus API Key konnte nicht entfernt werden.",
                     isError = true,
                 )
+            }
+        }
+    }
+
+    fun validateManusByosKey(apiKeyDraft: String) {
+        val effectiveKey = apiKeyDraft.trim().ifBlank { ManusByosPreferences.currentManusApiKeyOrNull().orEmpty() }
+        if (effectiveKey.isBlank()) {
+            _uiState.update {
+                it.copy(
+                    manusValidationStatus = "awaiting_external_auth",
+                    manusValidationMessage = "Kein Manus-Key vorhanden. Externer Lauf wartet auf Auth oder nutzt internen Fallback.",
+                )
+            }
+            showPaymentFeedback(
+                message = "Bitte hinterlege zuerst einen Manus API Key.",
+                isError = true,
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                functions.callWithAppCheckRetry(
+                    functionName = "validateManusApiKey",
+                    payload = mapOf("apiKey" to effectiveKey),
+                )
+            }.onSuccess { result ->
+                val payload = result.data as? Map<*, *> ?: emptyMap<String, Any>()
+                val valid = payload["valid"] as? Boolean ?: false
+                val message = (payload["message"] as? String).orEmpty().ifBlank {
+                    if (valid) "Manus-Key ist gueltig." else "Manus-Key ist ungueltig oder nicht erreichbar."
+                }
+                _uiState.update {
+                    it.copy(
+                        manusValidationStatus = if (valid) "key_valid" else "key_invalid",
+                        manusValidationMessage = message,
+                    )
+                }
+                showPaymentFeedback(message = message, isError = !valid)
+            }.onFailure { error ->
+                val message = "Validierung fehlgeschlagen: ${error.localizedMessage ?: "Unbekannter Fehler"}"
+                _uiState.update {
+                    it.copy(
+                        manusValidationStatus = "external_failed",
+                        manusValidationMessage = message,
+                    )
+                }
+                showPaymentFeedback(message = message, isError = true)
             }
         }
     }

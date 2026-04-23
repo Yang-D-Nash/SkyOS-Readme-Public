@@ -106,6 +106,28 @@ data class AiRuntimeBotActionLayer(
     val promptVersionAlias: String = "bot-max-v1",
 )
 
+data class AiRuntimeBotAgentCore(
+    val allowedTasks: List<String> = listOf("support_recovery", "commerce_order", "owner_ops"),
+    val blockedTasks: List<String> = emptyList(),
+    val allowedTools: List<String> = listOf("knowledge_lookup", "order_lookup", "membership_lookup", "owner_runtime"),
+    val allowWorkflowAutomation: Boolean = true,
+    val requireConfirmationForCommerce: Boolean = true,
+    val requireConfirmationForOwnerOps: Boolean = true,
+    val blockWhenKillSwitchEnabled: Boolean = true,
+    val blockUnknownTasks: Boolean = true,
+    val activepiecesEnabled: Boolean = true,
+    val n8nEnabled: Boolean = true,
+    val manusEnabled: Boolean = true,
+    val allowedExternalTaskTypes: List<String> = listOf("support_recovery", "commerce_order", "owner_ops"),
+    val providerPriority: List<String> = listOf("activepieces", "n8n"),
+    val maxExternalCallsPerRequest: Int = 1,
+    val externalTimeoutMs: Int = 12000,
+    val externalRetryAttempts: Int = 2,
+    val diagnosticsMode: String = "owner_only",
+    val ownerMode: String = "standard",
+    val killSwitch: Boolean = false,
+)
+
 data class AiRuntimeBotSettings(
     val promptVersion: String = "bot-max-v1",
     val qualityMode: String = "balanced",
@@ -122,6 +144,7 @@ data class AiRuntimeBotSettings(
     val fallbackPolicy: AiRuntimeBotFallbackPolicy = AiRuntimeBotFallbackPolicy(),
     val safetyPolicy: AiRuntimeBotSafetyPolicy = AiRuntimeBotSafetyPolicy(),
     val actionLayer: AiRuntimeBotActionLayer = AiRuntimeBotActionLayer(),
+    val agentCore: AiRuntimeBotAgentCore = AiRuntimeBotAgentCore(),
 )
 
 data class AiRuntimeSettings(
@@ -170,6 +193,11 @@ private fun Map<String, Any>.toAiRuntimeSettings(): AiRuntimeSettings {
     val botFallbackMap = botMap["fallbackPolicy"].asStringKeyedMap()
     val botSafetyMap = botMap["safetyPolicy"].asStringKeyedMap()
     val botActionLayerMap = botMap["actionLayer"].asStringKeyedMap()
+    val botAgentCoreMap = botMap["agentCore"].asStringKeyedMap()
+    val botAgentToolPolicyMap = botAgentCoreMap["toolPolicy"].asStringKeyedMap()
+    val botAgentConfirmationPolicyMap = botAgentCoreMap["confirmationPolicy"].asStringKeyedMap()
+    val botAgentSafetyPolicyMap = botAgentCoreMap["safetyPolicy"].asStringKeyedMap()
+    val botAgentExternalPolicyMap = botAgentCoreMap["externalPolicy"].asStringKeyedMap()
     return AiRuntimeSettings(
         costGuardEnabled = this["costGuardEnabled"] as? Boolean ?: true,
         agentProvider = AiRuntimeAgentProvider.resolve(this["agentProvider"] as? String),
@@ -353,6 +381,65 @@ private fun Map<String, Any>.toAiRuntimeSettings(): AiRuntimeSettings {
                     fallback = AiRuntimeBotActionLayer().promptVersionAlias,
                 ),
             ),
+            agentCore = AiRuntimeBotAgentCore(
+                allowedTasks = normalizeRuntimeStringList(
+                    botAgentCoreMap["allowedTasks"],
+                    fallback = AiRuntimeBotAgentCore().allowedTasks,
+                ),
+                blockedTasks = normalizeRuntimeStringList(
+                    botAgentCoreMap["blockedTasks"],
+                    fallback = emptyList(),
+                ),
+                allowedTools = normalizeRuntimeStringList(
+                    botAgentToolPolicyMap["allowedTools"],
+                    fallback = AiRuntimeBotAgentCore().allowedTools,
+                ),
+                allowWorkflowAutomation = botAgentToolPolicyMap["allowWorkflowAutomation"] as? Boolean ?: true,
+                requireConfirmationForCommerce = botAgentConfirmationPolicyMap["requireConfirmationForCommerce"] as? Boolean ?: true,
+                requireConfirmationForOwnerOps = botAgentConfirmationPolicyMap["requireConfirmationForOwnerOps"] as? Boolean ?: true,
+                blockWhenKillSwitchEnabled = botAgentSafetyPolicyMap["blockWhenKillSwitchEnabled"] as? Boolean ?: true,
+                blockUnknownTasks = botAgentSafetyPolicyMap["blockUnknownTasks"] as? Boolean ?: true,
+                activepiecesEnabled = botAgentExternalPolicyMap["activepiecesEnabled"] as? Boolean ?: true,
+                n8nEnabled = botAgentExternalPolicyMap["n8nEnabled"] as? Boolean ?: true,
+                manusEnabled = botAgentExternalPolicyMap["manusEnabled"] as? Boolean ?: true,
+                allowedExternalTaskTypes = normalizeRuntimeStringList(
+                    botAgentExternalPolicyMap["allowedExternalTaskTypes"],
+                    fallback = AiRuntimeBotAgentCore().allowedExternalTaskTypes,
+                ),
+                providerPriority = normalizeRuntimeStringList(
+                    botAgentExternalPolicyMap["providerPriority"],
+                    fallback = AiRuntimeBotAgentCore().providerPriority,
+                ),
+                maxExternalCallsPerRequest = parseRuntimeInt(
+                    botAgentExternalPolicyMap["maxExternalCallsPerRequest"],
+                    fallback = AiRuntimeBotAgentCore().maxExternalCallsPerRequest,
+                    min = 0,
+                    max = 3,
+                ),
+                externalTimeoutMs = parseRuntimeInt(
+                    botAgentExternalPolicyMap["externalTimeoutMs"],
+                    fallback = AiRuntimeBotAgentCore().externalTimeoutMs,
+                    min = 2000,
+                    max = 30000,
+                ),
+                externalRetryAttempts = parseRuntimeInt(
+                    botAgentExternalPolicyMap["externalRetryAttempts"],
+                    fallback = AiRuntimeBotAgentCore().externalRetryAttempts,
+                    min = 0,
+                    max = 4,
+                ),
+                diagnosticsMode = normalizeAllowedRuntimeString(
+                    botAgentCoreMap["diagnosticsMode"] as? String,
+                    allowed = setOf("off", "owner_only", "verbose"),
+                    fallback = AiRuntimeBotAgentCore().diagnosticsMode,
+                ),
+                ownerMode = normalizeAllowedRuntimeString(
+                    botAgentCoreMap["ownerMode"] as? String,
+                    allowed = setOf("standard", "diagnostic"),
+                    fallback = AiRuntimeBotAgentCore().ownerMode,
+                ),
+                killSwitch = botAgentCoreMap["killSwitch"] as? Boolean ?: false,
+            ),
         ),
     )
 }
@@ -450,6 +537,58 @@ private fun AiRuntimeSettings.toMap(): Map<String, Any> {
                     fallback = AiRuntimeBotActionLayer().promptVersionAlias,
                 ),
             ),
+            "agentCore" to mapOf(
+                "allowedTasks" to normalizeRuntimeStringList(
+                    bot.agentCore.allowedTasks,
+                    fallback = AiRuntimeBotAgentCore().allowedTasks,
+                ),
+                "blockedTasks" to normalizeRuntimeStringList(
+                    bot.agentCore.blockedTasks,
+                    fallback = emptyList(),
+                ),
+                "toolPolicy" to mapOf(
+                    "allowedTools" to normalizeRuntimeStringList(
+                        bot.agentCore.allowedTools,
+                        fallback = AiRuntimeBotAgentCore().allowedTools,
+                    ),
+                    "allowWorkflowAutomation" to bot.agentCore.allowWorkflowAutomation,
+                ),
+                "confirmationPolicy" to mapOf(
+                    "requireConfirmationForCommerce" to bot.agentCore.requireConfirmationForCommerce,
+                    "requireConfirmationForOwnerOps" to bot.agentCore.requireConfirmationForOwnerOps,
+                ),
+                "safetyPolicy" to mapOf(
+                    "blockWhenKillSwitchEnabled" to bot.agentCore.blockWhenKillSwitchEnabled,
+                    "blockUnknownTasks" to bot.agentCore.blockUnknownTasks,
+                ),
+                "externalPolicy" to mapOf(
+                    "activepiecesEnabled" to bot.agentCore.activepiecesEnabled,
+                    "n8nEnabled" to bot.agentCore.n8nEnabled,
+                    "manusEnabled" to bot.agentCore.manusEnabled,
+                    "allowedExternalTaskTypes" to normalizeRuntimeStringList(
+                        bot.agentCore.allowedExternalTaskTypes,
+                        fallback = AiRuntimeBotAgentCore().allowedExternalTaskTypes,
+                    ),
+                    "providerPriority" to normalizeRuntimeStringList(
+                        bot.agentCore.providerPriority,
+                        fallback = AiRuntimeBotAgentCore().providerPriority,
+                    ),
+                    "maxExternalCallsPerRequest" to bot.agentCore.maxExternalCallsPerRequest.coerceIn(0, 3),
+                    "externalTimeoutMs" to bot.agentCore.externalTimeoutMs.coerceIn(2000, 30000),
+                    "externalRetryAttempts" to bot.agentCore.externalRetryAttempts.coerceIn(0, 4),
+                ),
+                "diagnosticsMode" to normalizeAllowedRuntimeString(
+                    bot.agentCore.diagnosticsMode,
+                    allowed = setOf("off", "owner_only", "verbose"),
+                    fallback = AiRuntimeBotAgentCore().diagnosticsMode,
+                ),
+                "ownerMode" to normalizeAllowedRuntimeString(
+                    bot.agentCore.ownerMode,
+                    allowed = setOf("standard", "diagnostic"),
+                    fallback = AiRuntimeBotAgentCore().ownerMode,
+                ),
+                "killSwitch" to bot.agentCore.killSwitch,
+            ),
         ),
         "updatedAt" to FieldValue.serverTimestamp(),
     )
@@ -505,4 +644,21 @@ private fun normalizeRuntimeString(
 ): String {
     val normalized = value?.trim().orEmpty()
     return if (normalized.isBlank()) fallback else normalized.take(maxLength)
+}
+
+private fun normalizeRuntimeStringList(
+    value: Any?,
+    fallback: List<String>,
+): List<String> {
+    val entries = when (value) {
+        is List<*> -> value.mapNotNull { it as? String }
+        else -> return fallback
+    }
+    val normalized = entries
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .map { it.take(80) }
+        .distinct()
+        .sorted()
+    return if (normalized.isEmpty()) fallback else normalized
 }

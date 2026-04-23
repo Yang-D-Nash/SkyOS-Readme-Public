@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
 data class WorkflowAutomationSettings(
-    val provider: String = "n8n",
+    val provider: String = "activepieces",
     val isEnabled: Boolean = false,
     val sendsUserContext: Boolean = true,
     val workflowName: String = "SkyOS Automation",
@@ -59,7 +59,7 @@ object WorkflowAutomationPreferences {
 
     suspend fun saveSettings(settings: WorkflowAutomationSettings): Result<Unit> {
         return runCatching {
-            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer n8n-Konfiguration verfuegbar." }
+            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer Workflow-Konfiguration verfuegbar." }
             firestore.collection(collectionName).document(documentName(userId)).set(
                 settings.toMap(),
                 SetOptions.merge(),
@@ -70,9 +70,9 @@ object WorkflowAutomationPreferences {
 
     suspend fun triggerTest(): Result<String> {
         return runCatching {
-            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer n8n-Test verfuegbar." }
+            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer Workflow-Test verfuegbar." }
             require(AppNetworkMonitor.isOnline.value) {
-                "Du bist offline. Der n8n-Test braucht eine aktive Internetverbindung."
+                "Du bist offline. Der Workflow-Test braucht eine aktive Internetverbindung."
             }
             val result = functions
                 .getHttpsCallable("triggerWorkflowAutomation")
@@ -89,7 +89,7 @@ object WorkflowAutomationPreferences {
                 is String -> data
                 is Map<*, *> -> data["message"] as? String
                 else -> null
-            }?.takeIf { it.isNotBlank() } ?: "Test an n8n gesendet."
+            }?.takeIf { it.isNotBlank() } ?: "Test an externen Workflow gesendet."
         }
     }
 
@@ -120,7 +120,7 @@ object WorkflowAutomationPreferences {
 
 private fun Map<String, Any>.toWorkflowAutomationSettings(): WorkflowAutomationSettings {
     return WorkflowAutomationSettings(
-        provider = (this["provider"] as? String).orEmpty().trim().ifBlank { "n8n" },
+        provider = (this["provider"] as? String).orEmpty().trim().ifBlank { "activepieces" },
         isEnabled = this["isEnabled"] as? Boolean ?: false,
         sendsUserContext = this["sendsUserContext"] as? Boolean ?: true,
         workflowName = (this["workflowName"] as? String).orEmpty().trim().ifBlank { "SkyOS Automation" },
@@ -134,7 +134,7 @@ private fun Map<String, Any>.toWorkflowAutomationSettings(): WorkflowAutomationS
 
 private fun WorkflowAutomationSettings.toMap(): Map<String, Any> {
     return mapOf(
-        "provider" to "n8n",
+        "provider" to provider.trim().ifBlank { "activepieces" },
         "isEnabled" to isEnabled,
         "sendsUserContext" to sendsUserContext,
         "workflowName" to workflowName.trim().ifBlank { "SkyOS Automation" },
