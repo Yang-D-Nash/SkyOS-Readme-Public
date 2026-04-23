@@ -87,12 +87,35 @@ function firestorePatchBodyForRole(role) {
     role === "admin" ? "internal_team" :
     role === "subadmin" ? "creator" :
     "free";
+  const aiTextRequestsPerDay =
+    role === "owner" ? 5000 :
+    role === "admin" ? 240 :
+    role === "subadmin" ? 120 :
+    30;
+  const aiVisualRequestsPerDay =
+    role === "owner" ? 1200 :
+    role === "admin" ? 40 :
+    role === "subadmin" ? 20 :
+    4;
+  const aiAgentRequestsPerDay =
+    role === "owner" ? 3000 :
+    role === "admin" ? 140 :
+    role === "subadmin" ? 70 :
+    18;
+  const aiHistoryRetentionDays =
+    role === "owner" || role === "admin" ? 30 :
+    role === "subadmin" ? 7 :
+    3;
 
   return {
     fields: {
       role: {stringValue: role},
       isAdmin: {booleanValue: isAdmin},
       quotaPlan: {stringValue: quotaPlan},
+      aiTextRequestsPerDay: {integerValue: String(aiTextRequestsPerDay)},
+      aiVisualRequestsPerDay: {integerValue: String(aiVisualRequestsPerDay)},
+      aiAgentRequestsPerDay: {integerValue: String(aiAgentRequestsPerDay)},
+      aiHistoryRetentionDays: {integerValue: String(aiHistoryRetentionDays)},
       canManageMusicCatalog: {booleanValue: role === "admin"},
       canManageVideoCatalog: {booleanValue: role === "admin"},
       canModerateProfiles: {booleanValue: role === "admin"},
@@ -132,6 +155,10 @@ async function patchRoleViaFirestore(uid, role, idToken) {
     "role",
     "isAdmin",
     "quotaPlan",
+    "aiTextRequestsPerDay",
+    "aiVisualRequestsPerDay",
+    "aiAgentRequestsPerDay",
+    "aiHistoryRetentionDays",
     "canManageMusicCatalog",
     "canManageVideoCatalog",
     "canModerateProfiles",

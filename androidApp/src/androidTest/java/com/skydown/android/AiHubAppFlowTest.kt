@@ -29,7 +29,7 @@ class AiHubAppFlowTest {
     @Test
     fun aiHubVisualPromptShowsGeneratedImageFromAppFlow() {
         val visualModeButton = waitForNode(timeoutMillis = 15_000) { node ->
-            node.text?.toString() == "Visual"
+            node.text?.toString() == "Visual" && node.findClickableNode() != null
         }
         assertNotNull("Visual mode button should be visible", visualModeButton)
         assertTrue(
@@ -54,7 +54,7 @@ class AiHubAppFlowTest {
         )
 
         val generateButton = waitForNode(timeoutMillis = 15_000) { node ->
-            node.contentDescription?.toString() == "Visual generieren"
+            node.text?.toString() == "Rendern" && node.findClickableNode() != null
         }
         assertNotNull("Generate visual button should be visible", generateButton)
         assertTrue(
@@ -68,8 +68,8 @@ class AiHubAppFlowTest {
         }
         assertNotNull("Generated visual should be visible", generatedVisual)
 
-        val saveButton = waitForNode(timeoutMillis = 15_000) { node ->
-            node.text?.toString() == "Bild speichern"
+        val saveButton = waitForNodeWithScroll(timeoutMillis = 15_000) { node ->
+            node.text?.toString() == "Speichern" && node.findClickableNode() != null
         }
         assertNotNull("Save image button should be visible", saveButton)
     }
@@ -91,6 +91,29 @@ class AiHubAppFlowTest {
         return null
     }
 
+    private fun waitForNodeWithScroll(
+        timeoutMillis: Long,
+        predicate: (AccessibilityNodeInfo) -> Boolean,
+    ): AccessibilityNodeInfo? {
+        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val deadline = SystemClock.uptimeMillis() + timeoutMillis
+        var nextScrollAt = 0L
+
+        while (SystemClock.uptimeMillis() < deadline) {
+            val root = uiAutomation.rootInActiveWindow
+            root?.findMatchingNode(predicate)?.let { return it }
+
+            val now = SystemClock.uptimeMillis()
+            if (now >= nextScrollAt) {
+                root?.findScrollableNode()?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                nextScrollAt = now + 600
+            }
+            SystemClock.sleep(250)
+        }
+
+        return null
+    }
+
     private fun AccessibilityNodeInfo.findMatchingNode(
         predicate: (AccessibilityNodeInfo) -> Boolean,
     ): AccessibilityNodeInfo? {
@@ -98,6 +121,16 @@ class AiHubAppFlowTest {
 
         for (index in 0 until childCount) {
             getChild(index)?.findMatchingNode(predicate)?.let { return it }
+        }
+
+        return null
+    }
+
+    private fun AccessibilityNodeInfo.findScrollableNode(): AccessibilityNodeInfo? {
+        if (isScrollable) return this
+
+        for (index in 0 until childCount) {
+            getChild(index)?.findScrollableNode()?.let { return it }
         }
 
         return null

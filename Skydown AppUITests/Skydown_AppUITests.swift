@@ -164,6 +164,7 @@ final class Skydown_AppUITests: XCTestCase {
         )
 
         let merchRow = app.descendants(matching: .any)["shop.merch.row"].firstMatch
+        scroll(shopRoot, untilVisible: merchRow, maxSwipes: 8)
         XCTAssertTrue(
             merchRow.waitForExistence(timeout: 20),
             "Mindestens ein Merch-Item sollte im UI-Test-Katalog sichtbar sein."
@@ -483,6 +484,167 @@ final class Skydown_AppUITests: XCTestCase {
         // Back to non-edit state
         XCTAssertTrue(editOpen.waitForExistence(timeout: 45), "After saving, artist page should exit edit mode.")
     }
+
+    @MainActor
+    func testSessionRestore_UserLive() throws {
+        let user = loadRoleCredentials("USER")
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui_test",
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+        ]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        openSettings(app: app)
+        ensureLoggedIn(app: app, email: user.email, password: user.password)
+
+        app.terminate()
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        openSettings(app: app)
+
+        XCTAssertTrue(
+            waitForSignedInSettingsState(app: app, timeout: 30),
+            "After relaunch, the saved session should restore and expose signed-in account actions."
+        )
+    }
+
+    @MainActor
+    func testProfileGalleryCRUD_UserLive() throws {
+        let user = loadRoleCredentials("USER")
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui_test",
+            "-ui_test_profile_crud",
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+        ]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        openSettings(app: app)
+        ensureLoggedIn(app: app, email: user.email, password: user.password)
+        openProfileFromSettings(app: app)
+
+        let uploadGallery = app.buttons["ui_test.profile.upload_gallery_fixture"].firstMatch
+        scrollToElementIfNeeded(uploadGallery, in: app, maxSwipes: 10)
+        XCTAssertTrue(
+            uploadGallery.waitForExistence(timeout: 20),
+            "Gallery fixture upload should be visible in UI-test profile mode."
+        )
+        tapElementReliably(
+            uploadGallery,
+            in: app,
+            timeout: 10,
+            failureMessage: "Gallery fixture upload should be tappable."
+        )
+
+        let deleteButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "profile.gallery.delete.")
+        ).firstMatch
+        XCTAssertTrue(
+            deleteButton.waitForExistence(timeout: 60),
+            "A gallery delete button should appear after the server-backed upload finishes."
+        )
+        deleteButton.tap()
+
+        XCTAssertTrue(
+            waitForNonExistence(of: deleteButton, timeout: 30),
+            "Deleting the uploaded gallery item should remove it from the live profile."
+        )
+    }
+
+    @MainActor
+    func testOwnerMembershipOpsLoadsLive() throws {
+        let owner = loadRoleCredentials("OWNER")
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui_test",
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+        ]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        openSettings(app: app)
+        ensureLoggedIn(app: app, email: owner.email, password: owner.password)
+
+        let currentEmail = app.staticTexts["settings.current_email"].firstMatch
+        XCTAssertEqual(
+            currentEmail.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            owner.email.lowercased(),
+            "Owner live test should run under the canonical owner account."
+        )
+
+        let ownerSection = app.descendants(matching: .any)["settings.owner.section"].firstMatch
+        XCTAssertTrue(ownerSection.waitForExistence(timeout: 20), "Owner section should load for the owner account.")
+        XCTAssertFalse(
+            app.descendants(matching: .any)["settings.owner.locked_hint"].firstMatch.exists,
+            "Owner account should not render the locked owner-workspace hint."
+        )
+
+        let membershipOps = app.buttons["settings.owner.command.membershipOps"].firstMatch
+        tapElementReliably(
+            membershipOps,
+            in: app,
+            timeout: 20,
+            failureMessage: "Membership Ops should be directly reachable from the owner command center."
+        )
+
+        XCTAssertTrue(
+            app.staticTexts["Membership Command Center"].firstMatch.waitForExistence(timeout: 30),
+            "Membership Command Center should load on the physical device for the owner account."
+        )
+    }
+
+    @MainActor
+    func testAgentLiveBackend_Admin() throws {
+        let admin = loadRoleCredentials("ADMIN")
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-ui_test",
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US",
+        ]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        openSettings(app: app)
+        ensureLoggedIn(app: app, email: admin.email, password: admin.password)
+
+        dismissSettingsIfNeeded(app: app)
+
+        tapTab(app: app, index: 4)
+
+        let agentMode = app.buttons["tools.mode.agent"].firstMatch
+        tapElementReliably(
+            agentMode,
+            in: app,
+            timeout: 20,
+            failureMessage: "Agent mode switch should be visible in the Tools workspace."
+        )
+
+        let quickPrompt = app.buttons["Baue mir einen 7-Tage-Release-Plan mit Assets, Deadlines und Ownern."].firstMatch
+        tapElementReliably(
+            quickPrompt,
+            in: app,
+            timeout: 20,
+            failureMessage: "A live agent quick prompt should be available for the admin QA account."
+        )
+
+        let runID = app.descendants(matching: .any)["agent.lastRun.id"].firstMatch
+        XCTAssertTrue(
+            runID.waitForExistence(timeout: 90),
+            "Live agent execution should record a backend run id on the physical device."
+        )
+        XCTAssertFalse(
+            runID.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            "Recorded live agent run id should not be empty."
+        )
+    }
 }
 
 private extension Skydown_AppUITests {
@@ -520,39 +682,82 @@ private extension Skydown_AppUITests {
     func ensureLoggedIn(app: XCUIApplication, email: String, password: String) {
         let openLogin = app.buttons["settings.open_login"].firstMatch
         let switchAccount = app.buttons["settings.switch_account"].firstMatch
+        let logout = app.buttons["settings.logout"].firstMatch
+        let loginRoot = app.descendants(matching: .any)["login.root"].firstMatch
+        let currentEmail = app.staticTexts["settings.current_email"].firstMatch
+
+        if currentEmail.waitForExistence(timeout: 1),
+           currentEmail.label.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(email) == .orderedSame,
+           !loginRoot.exists {
+            return
+        }
 
         if switchAccount.waitForExistence(timeout: 1) {
             switchAccount.tap()
-        } else if openLogin.waitForExistence(timeout: 2) {
+            if !loginRoot.waitForExistence(timeout: 5) && logout.waitForExistence(timeout: 3) {
+                logout.tap()
+            }
+        }
+
+        if !loginRoot.exists, openLogin.waitForExistence(timeout: 2) {
             openLogin.tap()
         }
 
         let emailField = app.textFields["login.email"].firstMatch
+        XCTAssertTrue(loginRoot.waitForExistence(timeout: 20), "Login sheet should be visible before entering credentials.")
         XCTAssertTrue(emailField.waitForExistence(timeout: 20), "Login email field should be visible.")
-        emailField.tap()
-        emailField.typeText(email)
+        replaceText(in: emailField, with: email)
 
         let passwordField = app.secureTextFields["login.password"].firstMatch
         XCTAssertTrue(passwordField.waitForExistence(timeout: 10), "Login password field should be visible.")
-        passwordField.tap()
-        passwordField.typeText(password)
+        replaceText(in: passwordField, with: password)
 
         let submit = app.buttons["login.submit"].firstMatch
         XCTAssertTrue(submit.waitForExistence(timeout: 10), "Login submit button should exist.")
         submit.tap()
 
-        // Login sheet should dismiss back to settings
         XCTAssertTrue(
-            app.descendants(matching: .any)["settings.root"].firstMatch.waitForExistence(timeout: 45),
-            "After login, settings should be visible again."
+            waitForNonExistence(of: loginRoot, timeout: 45),
+            "Login sheet should dismiss after a successful sign-in."
         )
-        let switchAccountVisible = app.buttons["settings.switch_account"].firstMatch.waitForExistence(timeout: 8)
-        let logoutVisible = app.buttons["settings.logout"].firstMatch.waitForExistence(timeout: 8)
-        let openProfileVisible = app.buttons["settings.open_profile_editor"].firstMatch.waitForExistence(timeout: 8)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["settings.root"].firstMatch.waitForExistence(timeout: 20),
+            "After login, settings should remain visible."
+        )
+        let switchAccountVisible = waitForSignedInSettingsState(app: app, timeout: 30)
+        let logoutVisible = app.buttons["settings.logout"].firstMatch.exists
+        let openProfileVisible = app.buttons["settings.open_profile_editor"].firstMatch.exists
         XCTAssertTrue(
             switchAccountVisible || logoutVisible || openProfileVisible,
             "After login, account actions should be available."
         )
+        XCTAssertTrue(currentEmail.waitForExistence(timeout: 20), "Signed-in settings state should show the current account email.")
+        XCTAssertEqual(
+            currentEmail.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            "The physical device should be signed in with the requested QA account."
+        )
+    }
+
+    @MainActor
+    func waitForSignedInSettingsState(app: XCUIApplication, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        let switchAccount = app.buttons["settings.switch_account"].firstMatch
+        let logout = app.buttons["settings.logout"].firstMatch
+        let openProfile = app.buttons["settings.open_profile_editor"].firstMatch
+        let openLogin = app.buttons["settings.open_login"].firstMatch
+
+        while Date() < deadline {
+            if switchAccount.exists || logout.exists || openProfile.exists {
+                return true
+            }
+            if !openLogin.exists && (switchAccount.exists || logout.exists || openProfile.exists) {
+                return true
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+        }
+
+        return switchAccount.exists || logout.exists || openProfile.exists
     }
 
     func loadRoleCredentials(_ key: String) -> (email: String, password: String) {
@@ -568,8 +773,18 @@ private extension Skydown_AppUITests {
             return fallback
         }
 
+        for resourceName in [
+            "skydown-e2e-accounts.local",
+            "skydown-e2e-accounts",
+        ] {
+            if let resourceURL = Bundle(for: type(of: self)).url(forResource: resourceName, withExtension: "json"),
+               let fallback = loadRoleCredentialsFromJSON(path: resourceURL.path, key: key) {
+                return fallback
+            }
+        }
+
         XCTFail(
-            "Missing test credentials for \(key). Set SKYDOWN_TEST_\(key)_EMAIL/PASSWORD or provide \(fallbackPath)."
+            "Missing test credentials for \(key). Set SKYDOWN_TEST_\(key)_EMAIL/PASSWORD, provide \(fallbackPath), or add a local bundle credentials JSON."
         )
         return ("", "")
     }
@@ -604,6 +819,14 @@ private extension Skydown_AppUITests {
     }
 
     @MainActor
+    func scroll(_ container: XCUIElement, untilVisible element: XCUIElement, maxSwipes: Int) {
+        guard container.waitForExistence(timeout: 5) else { return }
+        for _ in 0..<maxSwipes where !element.exists {
+            container.swipeUp()
+        }
+    }
+
+    @MainActor
     func waitForUISettle() {
         RunLoop.current.run(until: Date().addingTimeInterval(1.8))
     }
@@ -621,6 +844,7 @@ private extension Skydown_AppUITests {
         ).firstMatch
         return lockCopy.exists
     }
+
 
     @MainActor
     func assertNonOwnerSeesOwnerWorkspaceLock(in app: XCUIApplication) {
@@ -651,10 +875,51 @@ private extension Skydown_AppUITests {
             failureMessage: "Profile editor entry should be visible in settings."
         )
 
-        let closeProfile = app.buttons["Schliessen"].firstMatch
+        let profileRoot = app.descendants(matching: .any)["profile.root"].firstMatch
         XCTAssertTrue(
-            closeProfile.waitForExistence(timeout: 30),
-            "Profile screen should open and expose close action."
+            profileRoot.waitForExistence(timeout: 30),
+            "Profile screen should open cleanly."
+        )
+    }
+
+    @MainActor
+    func scrollToElementIfNeeded(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int) {
+        guard !element.exists else { return }
+        for _ in 0..<maxSwipes {
+            if element.exists {
+                return
+            }
+            app.swipeUp()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+    }
+
+    @MainActor
+    func dismissSettingsIfNeeded(app: XCUIApplication) {
+        let settingsRoot = app.descendants(matching: .any)["settings.root"].firstMatch
+        guard settingsRoot.waitForExistence(timeout: 10) else { return }
+
+        let closeSettings = app.buttons["settings.close"].firstMatch
+        if closeSettings.waitForExistence(timeout: 5) {
+            closeSettings.tap()
+        }
+
+        if waitForNonExistence(of: settingsRoot, timeout: 6) {
+            return
+        }
+
+        app.swipeDown()
+        if waitForNonExistence(of: settingsRoot, timeout: 6) {
+            return
+        }
+
+        if closeSettings.exists {
+            closeSettings.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+
+        XCTAssertTrue(
+            waitForNonExistence(of: settingsRoot, timeout: 10),
+            "Settings sheet should be dismissed before the Tools workspace is opened."
         )
     }
 
@@ -694,6 +959,20 @@ private extension Skydown_AppUITests {
         }
 
         XCTFail("Element exists but could not be tapped reliably: \(element)")
+    }
+
+    @MainActor
+    func replaceText(in element: XCUIElement, with text: String) {
+        element.tap()
+
+        if let existingValue = element.value as? String,
+           !existingValue.isEmpty,
+           existingValue != element.label {
+            let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
+            element.typeText(deleteSequence)
+        }
+
+        element.typeText(text)
     }
 
     @MainActor

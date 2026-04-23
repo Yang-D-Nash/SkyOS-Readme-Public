@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -34,6 +35,7 @@ class MerchFlowTest {
     @Test
     fun merchFullscreenCanBeClosedAndReturnsToShop() {
         waitForTag("shop.root")
+        composeRule.onNodeWithTag("shop.root").performScrollToNode(hasTestTag("shop.merch.row"))
         waitForTag("shop.merch.row")
 
         composeRule.onNodeWithTag("shop.merch.row").performClick()

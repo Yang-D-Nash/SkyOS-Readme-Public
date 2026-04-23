@@ -10,12 +10,16 @@ const {
   assertSucceeds,
 } = require("@firebase/rules-unit-testing");
 const {
+  collection,
   doc,
   deleteDoc,
   getDoc,
   setDoc,
   updateDoc,
+  getDocs,
+  query,
   Timestamp,
+  where,
 } = require("firebase/firestore");
 const {
   deleteObject,
@@ -397,6 +401,73 @@ test("user darf keine globalen Owner-adminConfig Dokumente schreiben", async () 
     textInstruction: "Nope",
     updatedAt: Timestamp.now(),
   }));
+});
+
+test("user darf eigene Orders lesen, aber nicht verwalten", async () => {
+  await seedUser("alice");
+  await seedUser("bob");
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "orders", "order_alice"), {
+      orderOwnerUid: "alice",
+      userEmail: "alice@example.com",
+      customerName: "Alice",
+      items: [],
+      isCompleted: false,
+      timestamp: Timestamp.fromDate(new Date("2026-04-20T12:00:00.000Z")),
+    });
+    await setDoc(doc(context.firestore(), "orders", "order_bob"), {
+      orderOwnerUid: "bob",
+      userEmail: "bob@example.com",
+      customerName: "Bob",
+      items: [],
+      isCompleted: false,
+      timestamp: Timestamp.fromDate(new Date("2026-04-20T12:00:00.000Z")),
+    });
+  });
+
+  const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
+
+  await assertSucceeds(getDoc(doc(aliceDb, "orders", "order_alice")));
+  await assertFails(getDoc(doc(aliceDb, "orders", "order_bob")));
+  await assertFails(updateDoc(doc(aliceDb, "orders", "order_alice"), {
+    isCompleted: true,
+  }));
+  await assertFails(deleteDoc(doc(aliceDb, "orders", "order_alice")));
+
+  await assertSucceeds(getDocs(query(
+      collection(aliceDb, "orders"),
+      where("orderOwnerUid", "==", "alice"),
+  )));
+});
+
+test("owner darf Orders global lesen und verwalten", async () => {
+  await seedUser("owner", {
+    email: "nash.lioncorna@gmail.com",
+    isAdmin: true,
+    role: "owner",
+    quotaPlan: "owner_unlimited",
+  });
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "orders", "order_alice"), {
+      orderOwnerUid: "alice",
+      userEmail: "alice@example.com",
+      customerName: "Alice",
+      items: [],
+      isCompleted: false,
+      timestamp: Timestamp.fromDate(new Date("2026-04-20T12:00:00.000Z")),
+    });
+  });
+
+  const ownerDb = testEnv.authenticatedContext("owner", {
+    email: "nash.lioncorna@gmail.com",
+    role: "owner",
+  }).firestore();
+
+  await assertSucceeds(getDoc(doc(ownerDb, "orders", "order_alice")));
+  await assertSucceeds(updateDoc(doc(ownerDb, "orders", "order_alice"), {
+    isCompleted: true,
+  }));
+  await assertSucceeds(deleteDoc(doc(ownerDb, "orders", "order_alice")));
 });
 
 test("lockdown blockiert User-Schreibzugriffe", async () => {
