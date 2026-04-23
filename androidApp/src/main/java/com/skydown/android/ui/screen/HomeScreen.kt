@@ -80,6 +80,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
@@ -347,7 +348,8 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(contentWidthFraction)
-                        .align(Alignment.TopCenter),
+                        .align(Alignment.TopCenter)
+                        .testTag("home.root"),
                     state = listState,
                     contentPadding = skydownContentPadding(innerPadding),
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),

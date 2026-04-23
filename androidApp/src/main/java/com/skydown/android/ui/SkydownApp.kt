@@ -681,6 +681,7 @@ private fun SkydownFloatingBottomDock(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .padding(horizontal = 1.dp, vertical = 4.dp)
+                                .testTag("bottomDock.${destination.route}")
                                 .clip(itemShape)
                                 .background(
                                     if (selected) {

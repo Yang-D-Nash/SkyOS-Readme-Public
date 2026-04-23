@@ -29,6 +29,12 @@ final class AppServices: ObservableObject {
         musicService: MusicServicing = SpotifyMusicService()
     ) {
         let launchArguments = ProcessInfo.processInfo.arguments
+        let resolvedAuthService: AuthServicing = {
+            if launchArguments.contains("-ui_test_signed_in") {
+                return UITestAuthService()
+            }
+            return authService
+        }()
         let resolvedMerchandiseService = merchandiseService ?? {
             if launchArguments.contains("-ui_test_merch_flow") {
                 return UITestMerchandiseService()
@@ -36,7 +42,7 @@ final class AppServices: ObservableObject {
             return FirebaseMerchandiseService()
         }()
 
-        self.authService = authService
+        self.authService = resolvedAuthService
         self.aiChatService = aiChatService
         self.agentChatService = agentChatService
         self.featureFlags = FeatureFlagsService()
@@ -47,7 +53,7 @@ final class AppServices: ObservableObject {
         self.networkStatusMonitor = NetworkStatusMonitor.shared
         self.notificationPermissionStore = NotificationPermissionStore.shared
 
-        let authManager = AuthManager(authService: authService)
+        let authManager = AuthManager(authService: resolvedAuthService)
         self.authManager = authManager
         self.aiSubscriptionStore = NativeAISubscriptionStore(
             onSubscriptionSynced: { [weak authManager] in

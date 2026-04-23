@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -122,7 +123,8 @@ fun AiHubScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(skydownContentPadding(innerPadding)),
+                    .padding(skydownContentPadding(innerPadding))
+                    .testTag("ai.hub.root"),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
@@ -316,14 +318,18 @@ private fun AiHubCompactHeader(
                 isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
                 onClick = { onSelectMode(AiHubMode.Bot) },
                 compactVisualDensity = compactVisualDensity,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("ai.hub.mode.bot"),
             )
             AiHubModeButton(
                 mode = AiHubMode.Agent,
                 isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
                 onClick = { onSelectMode(AiHubMode.Agent) },
                 compactVisualDensity = compactVisualDensity,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("ai.hub.mode.agent"),
             )
         }
         AiHubWorkflowButton(
@@ -331,9 +337,11 @@ private fun AiHubCompactHeader(
             onClick = onToggleWorkflow,
             compactVisualDensity = compactVisualDensity,
             modifier = if (compactVisualDensity) {
-                Modifier.fillMaxWidth()
-            } else {
                 Modifier
+                    .fillMaxWidth()
+                    .testTag("ai.hub.workflow")
+            } else {
+                Modifier.testTag("ai.hub.workflow")
             },
         )
     }

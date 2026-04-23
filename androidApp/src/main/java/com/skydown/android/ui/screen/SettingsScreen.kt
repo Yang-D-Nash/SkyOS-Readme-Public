@@ -89,6 +89,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Shape
@@ -3928,7 +3929,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(contentWidthFraction)
-                        .align(Alignment.TopCenter),
+                        .align(Alignment.TopCenter)
+                        .testTag("settings.root"),
                     contentPadding = skydownContentPadding(innerPadding),
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
@@ -4092,7 +4094,9 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SkydownCard {
+                    SkydownCard(
+                        modifier = Modifier.testTag("settings.membership.section"),
+                    ) {
                         SectionHeader("Membership")
                         Text(
                             text = "Aktueller Plan, Billing-Klarheit und Restore an einem Ort.",

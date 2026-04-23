@@ -7,6 +7,7 @@ build/
 DerivedData/
 **/DerivedData/
 dist/
+store-assets/
 backup/
 node_modules/
 **/node_modules/

@@ -174,8 +174,8 @@ class MainActivity : ComponentActivity() {
     private fun createUiTestSignedInUser(): User {
         return User(
             id = "ui-test-user",
-            email = "ui-test@skydown.app",
-            username = "UI Test",
+            email = "creator@skydown.app",
+            username = "SkyOS Creator",
             registrationDateEpochMillis = 1_710_000_000_000,
             isAdmin = false,
             role = UserRole.User.rawValue,

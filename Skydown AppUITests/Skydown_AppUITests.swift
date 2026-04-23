@@ -108,44 +108,59 @@ final class Skydown_AppUITests: XCTestCase {
             "(en)",
             "-AppleLocale",
             "en_US",
+            "-ui_test_signed_in",
+            "-ui_test_merch_flow",
         ]
         app.launch()
 
         enterMainShellIfNeeded(app: app)
 
-        // 01 Merch
-        tapTab(app: app, index: 0)
-        waitForUISettle()
-        saveScreenshot(name: "01-merch")
-
-        // 02 Music
-        tapTab(app: app, index: 1)
-        waitForUISettle()
-        saveScreenshot(name: "02-music")
-
-        // 03 Home
+        // 01 Home
         tapTab(app: app, index: 2)
         waitForUISettle()
-        saveScreenshot(name: "03-home")
+        saveScreenshot(name: "01-home")
 
-        // 04 Video
-        tapTab(app: app, index: 3)
-        waitForUISettle()
-        saveScreenshot(name: "04-video")
-
-        // 05 AI
+        // 02 AI
         tapTab(app: app, index: 4)
         waitForUISettle()
-        saveScreenshot(name: "05-ai")
+        saveScreenshot(name: "02-ai")
 
-        // 06 Settings
-        let settingsButton = app.buttons["app.open_settings"].firstMatch
-        XCTAssertTrue(settingsButton.waitForExistence(timeout: 20), "Settings button should be visible in shell.")
-        settingsButton.tap()
-        let settingsRoot = app.descendants(matching: .any)["settings.root"].firstMatch
-        XCTAssertTrue(settingsRoot.waitForExistence(timeout: 30), "Settings screen should open.")
+        // 03 Agent
+        let agentMode = app.buttons["tools.mode.agent"].firstMatch
+        tapElementReliably(
+            agentMode,
+            in: app,
+            timeout: 20,
+            failureMessage: "Agent mode should be available for store screenshots."
+        )
         waitForUISettle()
-        saveScreenshot(name: "06-settings")
+        saveScreenshot(name: "03-agent")
+
+        // 04 Music
+        tapTab(app: app, index: 1)
+        waitForUISettle()
+        saveScreenshot(name: "04-music")
+
+        // 05 Video
+        tapTab(app: app, index: 3)
+        waitForUISettle()
+        saveScreenshot(name: "05-video")
+
+        // 06 Merch
+        tapTab(app: app, index: 0)
+        waitForUISettle()
+        saveScreenshot(name: "06-merch")
+
+        // 07 Membership
+        openSettings(app: app)
+        let membershipSection = app.descendants(matching: .any)["settings.membership.section"].firstMatch
+        scrollToElementIfNeeded(membershipSection, in: app, maxSwipes: 10)
+        XCTAssertTrue(
+            membershipSection.waitForExistence(timeout: 20),
+            "Membership section should be visible for store screenshots."
+        )
+        waitForUISettle()
+        saveScreenshot(name: "07-membership")
     }
 
     @MainActor

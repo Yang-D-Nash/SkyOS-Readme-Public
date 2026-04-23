@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -169,6 +170,7 @@ fun RowScope.AppTopBarSessionActions(
             onClick = onOpenCart,
             imageVector = Icons.Default.ShoppingCart,
             contentDescription = "Warenkorb",
+            testTag = "app.topbar.cart",
             compactLayout = compactLayout,
             dense = dense,
             accentColor = MaterialTheme.colorScheme.secondary,
@@ -179,6 +181,7 @@ fun RowScope.AppTopBarSessionActions(
         onClick = onOpenSettings,
         imageVector = Icons.Default.Settings,
         contentDescription = "Einstellungen",
+        testTag = "app.topbar.settings",
         compactLayout = compactLayout,
         dense = dense,
         accentColor = MaterialTheme.colorScheme.tertiary,
@@ -190,6 +193,7 @@ private fun SessionIconAction(
     onClick: () -> Unit,
     imageVector: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
+    testTag: String,
     compactLayout: Boolean,
     dense: Boolean,
     accentColor: androidx.compose.ui.graphics.Color,
@@ -203,14 +207,16 @@ private fun SessionIconAction(
     ) {
         IconButton(
             onClick = onClick,
-            modifier = Modifier.size(
-                when {
-                    dense && compactLayout -> 30.dp
-                    dense -> 32.dp
-                    compactLayout -> 34.dp
-                    else -> 36.dp
-                },
-            ),
+            modifier = Modifier
+                .size(
+                    when {
+                        dense && compactLayout -> 30.dp
+                        dense -> 32.dp
+                        compactLayout -> 34.dp
+                        else -> 36.dp
+                    },
+                )
+                .testTag(testTag),
             interactionSource = interactionSource,
         ) {
             Icon(
