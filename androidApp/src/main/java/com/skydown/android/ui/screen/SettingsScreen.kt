@@ -3941,7 +3941,7 @@ private fun StripeBackendSecretsAdminCard(
                 )
             }
             SettingsBadge(
-                text = if (status.isReady) "Live bereit" else "Setup fehlt",
+                text = if (status.isReady) "Backend bereit" else "Setup fehlt",
                 icon = Icons.Default.CheckCircle,
                 isActive = status.isReady,
             )
@@ -3964,7 +3964,7 @@ private fun StripeBackendSecretsAdminCard(
         }
 
         Text(
-            text = "Die Werte werden nur serverseitig gespeichert. Leere Felder lassen bestehende Secrets unveraendert.",
+            text = "Die Werte werden nur serverseitig gespeichert. Live- oder Test-Keys sind moeglich, leere Felder lassen bestehende Secrets unveraendert.",
             modifier = Modifier.padding(top = 12.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -3976,7 +3976,7 @@ private fun StripeBackendSecretsAdminCard(
                 .fillMaxWidth()
                 .padding(top = 12.dp),
             label = { Text("Stripe Secret Key") },
-            placeholder = { Text("sk_live_... oder rk_live_...") },
+            placeholder = { Text("sk_live_..., rk_live_..., sk_test_... oder rk_test_...") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
         )

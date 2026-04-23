@@ -187,9 +187,8 @@ async function createHostedCheckoutSession({
   }
 
   const stripePaymentMethod = HOSTED_CHECKOUT_METHODS[normalizedMethod];
-  params.append("payment_method_types[0]", stripePaymentMethod);
-
   if (normalizedMethod === "Klarna") {
+    params.append("payment_method_types[0]", stripePaymentMethod);
     params.append("payment_method_options[klarna][preferred_locale]", "de-DE");
   }
 
@@ -506,6 +505,7 @@ function renderCheckoutReturnPage({platform, status, orderId, sessionId}) {
 }
 
 module.exports = {
+  buildReturnPageUrl,
   createAiSubscriptionCheckoutSession,
   createHostedCheckoutSession,
   deriveStripeCheckoutStatus,

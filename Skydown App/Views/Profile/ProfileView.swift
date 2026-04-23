@@ -70,9 +70,11 @@ struct ProfileView: View {
                     Button("Schliessen") {
                         dismiss()
                     }
+                    .accessibilityIdentifier("profile.close")
                 }
             }
         }
+        .accessibilityIdentifier("profile.root")
         .fancyToast(
             isPresented: $viewModel.showToast,
             message: viewModel.toastMessage,

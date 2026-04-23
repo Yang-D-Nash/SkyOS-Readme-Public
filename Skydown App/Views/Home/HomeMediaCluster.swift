@@ -7,99 +7,42 @@ struct HomeMediaCluster: View {
     @ObservedObject var playbackManager: AudioPlayerManager
     @ObservedObject var beatPlaybackManager: BeatPlaybackManager
     @ObservedObject var videoPlaybackManager: HomeInlineVideoPlaybackManager
-    let primaryTarget: String
-    let onOpenBeatHub: () -> Void
     let onOpenVideoHub: (FeaturedHomeVideo) -> Void
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
-    @Environment(\.openURL) private var openURL
 
     var body: some View {
-        Group {
-            if primaryTarget == "track" {
-                HomeLatestReleaseCard(viewModel: viewModel, playbackManager: playbackManager, colorScheme: colorScheme) { track in
-                    beatPlaybackManager.stop()
-                    videoPlaybackManager.stop()
-                    playbackManager.playPreview(for: track)
-                }
-            } else if primaryTarget == "beat" {
-                HomeLatestBeatCard(viewModel: viewModel, playbackManager: beatPlaybackManager, colorScheme: colorScheme) { beat in
-                    playbackManager.stop()
-                    videoPlaybackManager.stop()
-                    beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
-                }
-            } else {
-                HomeLatestVideoCard(viewModel: viewModel, playbackManager: videoPlaybackManager, colorScheme: colorScheme) { video in
-                    beatPlaybackManager.stop()
-                    playbackManager.stop()
-                    videoPlaybackManager.stop()
-                    onOpenVideoHub(video)
-                } onOpenOriginal: { video in
-                    onOpenOriginal(video)
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            HomeLatestReleaseCard(viewModel: viewModel, playbackManager: playbackManager, colorScheme: colorScheme) { track in
+                beatPlaybackManager.stop()
+                videoPlaybackManager.stop()
+                playbackManager.playPreview(for: track)
             }
-        }
+            .id("release")
 
-        let secondaryTargets = ["track", "beat", "video"].filter { $0 != primaryTarget }
-        HStack(spacing: 10) {
-            ForEach(secondaryTargets, id: \.self) { target in
-                HomeCompactMediaSignalCard(colorScheme: colorScheme, target: target, viewModel: viewModel) {
-                    switch target {
-                    case "track":
-                        if let track = viewModel.featuredTrack, let url = homeSpotifyTargetURL(for: track) { openURL(url) }
-                    case "beat":
-                        if viewModel.featuredBeat != nil { onOpenBeatHub() }
-                    default:
-                        if let video = viewModel.featuredVideo { onOpenVideoHub(video) }
-                    }
-                }
+            HomeLatestBeatCard(viewModel: viewModel, playbackManager: beatPlaybackManager, colorScheme: colorScheme) { beat in
+                playbackManager.stop()
+                videoPlaybackManager.stop()
+                beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
             }
-        }
-        .padding(.top, 10)
-    }
-}
+            .id("beat")
 
-private struct HomeCompactMediaSignalCard: View {
-    let colorScheme: ColorScheme
-    let target: String
-    @ObservedObject var viewModel: HomeViewModel
-    let onOpen: () -> Void
-
-    private var accent: Color {
-        switch target {
-        case "track": return AppColors.accent(for: colorScheme)
-        case "beat": return AppColors.accentMystic(for: colorScheme)
-        default: return AppColors.accentHighlight(for: colorScheme)
-        }
-    }
-    private var title: String { target == "track" ? "Music" : (target == "beat" ? "Beats" : "Visuals") }
-    private var line: String {
-        switch target {
-        case "track": return viewModel.featuredTrack?.trackName ?? "No live release."
-        case "beat": return viewModel.featuredBeat?.title ?? "No live beat."
-        default: return viewModel.featuredVideo?.title ?? "No live visual."
-        }
-    }
-    private var isActionAvailable: Bool {
-        switch target {
-        case "track": return viewModel.featuredTrack != nil
-        case "beat": return viewModel.featuredBeat != nil
-        default: return viewModel.featuredVideo != nil
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title).font(.caption.weight(.semibold)).foregroundColor(accent)
-            Text(line).font(.footnote).lineLimit(2).foregroundColor(AppColors.secondaryText(for: colorScheme))
-            if isActionAvailable {
-                Button("Open", action: onOpen).buttonStyle(.bordered).controlSize(.small).tint(accent)
+            HomeLatestVideoCard(viewModel: viewModel, playbackManager: videoPlaybackManager, colorScheme: colorScheme) { video in
+                beatPlaybackManager.stop()
+                playbackManager.stop()
+                videoPlaybackManager.togglePlayback(for: video)
+            } onOpenVideoHub: { video in
+                beatPlaybackManager.stop()
+                playbackManager.stop()
+                videoPlaybackManager.stop()
+                onOpenVideoHub(video)
+            } onOpenOriginal: { video in
+                beatPlaybackManager.stop()
+                playbackManager.stop()
+                videoPlaybackManager.stop()
+                onOpenOriginal(video)
             }
+            .id("video")
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.cardBackground(for: colorScheme).opacity(0.66))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(accent.opacity(0.14), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -193,6 +136,7 @@ private struct HomeLatestVideoCard: View {
     @ObservedObject var viewModel: HomeViewModel
     @ObservedObject var playbackManager: HomeInlineVideoPlaybackManager
     let colorScheme: ColorScheme
+    let onPlayToggle: (FeaturedHomeVideo) -> Void
     let onOpenVideoHub: (FeaturedHomeVideo) -> Void
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
@@ -208,7 +152,14 @@ private struct HomeLatestVideoCard: View {
                         .onAppear { playbackManager.prepare(video: video) }
                         .onChange(of: video.id) { _, _ in playbackManager.prepare(video: video) }
                 }
-                if !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if !video.downloadURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    HomeActionButton(
+                        title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "Stoppen" : "Abspielen",
+                        icon: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "stop.fill" : "play.rectangle.fill",
+                        colorScheme: colorScheme,
+                        isPrimary: playbackManager.isPlaying && playbackManager.currentVideoID == video.id
+                    ) { onPlayToggle(video) }
+                } else if !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     HomeActionButton(title: video.supportsInlinePlayback ? "Video direkt oeffnen" : video.provider.originalVideoActionTitle, icon: video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square", colorScheme: colorScheme, isPrimary: true) { onOpenOriginal(video) }
                 } else if video.supportsInlinePlayback {
                     HomeActionButton(title: "Im Video ansehen", icon: "rectangle.portrait.and.arrow.right", colorScheme: colorScheme, isPrimary: true) { onOpenVideoHub(video) }

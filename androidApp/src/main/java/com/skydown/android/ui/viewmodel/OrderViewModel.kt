@@ -2,8 +2,12 @@ package com.skydown.android.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AppSessionStore
+import com.skydown.android.data.repository.AndroidOrderRepository
 import com.skydown.android.ui.model.OrderUiState
+import com.skydown.shared.model.isPlatformOwner
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,12 +17,18 @@ import kotlinx.coroutines.launch
 class OrderViewModel : ViewModel() {
     private val orderService = AppContainer.orderService
     private val merchOrderPaymentClient = AppContainer.merchOrderPaymentClient
+    private val liveOrderRepository = AppContainer.orderRepository as? AndroidOrderRepository
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
+    private var ordersListener: ListenerRegistration? = null
 
     init {
-        viewModelScope.launch {
-            loadOrders()
+        if (liveOrderRepository != null) {
+            observeOrders()
+        } else {
+            viewModelScope.launch {
+                loadOrders()
+            }
         }
     }
 
@@ -102,14 +112,33 @@ class OrderViewModel : ViewModel() {
     }
 
     private suspend fun loadOrders() {
-        _uiState.update { it.copy(isLoading = true) }
+        val canManageOrders = AppSessionStore.currentUser.value?.isPlatformOwner == true
+        _uiState.update { it.copy(isLoading = true, canManageOrders = canManageOrders) }
         val result = orderService.loadOrders()
         _uiState.update {
             it.copy(
                 isLoading = false,
                 orders = result.getOrDefault(emptyList()),
+                canManageOrders = canManageOrders,
                 errorMessage = result.exceptionOrNull()?.message,
             )
+        }
+    }
+
+    private fun observeOrders() {
+        ordersListener?.remove()
+        val canManageOrders = AppSessionStore.currentUser.value?.isPlatformOwner == true
+        _uiState.update { it.copy(isLoading = true, canManageOrders = canManageOrders, errorMessage = null) }
+        ordersListener = liveOrderRepository?.observeOrders { result ->
+            val currentCanManageOrders = AppSessionStore.currentUser.value?.isPlatformOwner == true
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    orders = result.getOrDefault(emptyList()),
+                    canManageOrders = currentCanManageOrders,
+                    errorMessage = result.exceptionOrNull()?.message,
+                )
+            }
         }
     }
 
@@ -121,5 +150,11 @@ class OrderViewModel : ViewModel() {
         viewModelScope.launch {
             loadOrders()
         }
+    }
+
+    override fun onCleared() {
+        ordersListener?.remove()
+        ordersListener = null
+        super.onCleared()
     }
 }

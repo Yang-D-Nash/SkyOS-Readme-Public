@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 import FirebaseFunctions
 
@@ -34,20 +35,40 @@ protocol OrderServicing {
 }
 
 final class FirebaseOrderService: OrderServicing {
+    private let auth: Auth
     private let firestore: Firestore
     private let functions: Functions
 
     init(
+        auth: Auth = Auth.auth(),
         firestore: Firestore = Firestore.firestore(),
         functions: Functions = Functions.functions(region: "us-central1")
     ) {
+        self.auth = auth
         self.firestore = firestore
         self.functions = functions
     }
 
     func observeOrders(_ onChange: @escaping @MainActor (Result<[Order], Error>) -> Void) -> () -> Void {
-        let listener = firestore.collection("orders")
-            .order(by: "timestamp", descending: true)
+        guard let currentUser = auth.currentUser else {
+            Task { @MainActor in
+                onChange(.failure(NSError(
+                    domain: "OrderService",
+                    code: 401,
+                    userInfo: [NSLocalizedDescriptionKey: "Bitte melde dich an, um Bestellungen zu laden."]
+                )))
+            }
+            return {}
+        }
+
+        let currentEmail = currentUser.email?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        let query: Query = currentEmail == UserRole.ownerEmail
+            ? firestore.collection("orders").order(by: "timestamp", descending: true)
+            : firestore.collection("orders").whereField("orderOwnerUid", isEqualTo: currentUser.uid)
+
+        let listener = query
             .addSnapshotListener { snapshot, error in
                 Task { @MainActor in
                     if let error {
@@ -65,9 +86,9 @@ final class FirebaseOrderService: OrderServicing {
                         return
                     }
 
-                    let orders = snapshot?.documents.compactMap { document in
+                    let orders = (snapshot?.documents.compactMap { document in
                         self.mapOrder(document: document)
-                    } ?? []
+                    } ?? []).sorted { $0.timestamp > $1.timestamp }
 
                     onChange(.success(orders))
                 }

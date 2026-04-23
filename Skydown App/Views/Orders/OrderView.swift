@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OrderView: View {
     @StateObject private var viewModel = OrderViewModel()
+    @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @AppStorage("orders.postCheckoutHighlight") private var postCheckoutHighlight = ""
@@ -110,6 +111,7 @@ struct OrderView: View {
                                 order: order,
                                 colorScheme: colorScheme,
                                 isConfirmingPayment: viewModel.confirmingPaymentOrderIDs.contains(order.id ?? ""),
+                                canManageOrders: canManageOrders,
                                 onConfirmPayment: {
                                     Task { await viewModel.confirmPayment(for: order) }
                                 },
@@ -164,6 +166,10 @@ struct OrderView: View {
         .fancyToast(isPresented: $viewModel.showToast,
                     message: viewModel.toastMessage,
                     style: viewModel.toastStyle)
+    }
+
+    private var canManageOrders: Bool {
+        authManager.userSession?.isPlatformOwner == true
     }
 
     private var backgroundGradient: LinearGradient {
@@ -321,6 +327,7 @@ private struct OrdersOrderCard: View {
     let order: Order
     let colorScheme: ColorScheme
     let isConfirmingPayment: Bool
+    let canManageOrders: Bool
     let onConfirmPayment: () -> Void
     let onToggleCompleted: () -> Void
     let onDelete: () -> Void
@@ -615,83 +622,85 @@ private struct OrdersOrderCard: View {
                 .accessibilityHint("Zeigt weitere Bestellinformationen")
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Button(action: onToggleCompleted) {
-                    Label(
-                        order.isCompleted ? "Bestellung wieder oeffnen" : "Bestellung als erledigt markieren",
-                        systemImage: order.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle.fill"
-                    )
-                    .frame(minHeight: 44)
-                    .frame(maxWidth: .infinity)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accent(for: colorScheme))
-                .controlSize(.large)
-                .accessibilityHint(order.isCompleted ? "Markiert die Bestellung wieder als offen" : "Markiert die Bestellung als abgeschlossen")
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) {
-                        if !order.hasFinalPaymentStatus {
-                            Button(action: onConfirmPayment) {
-                                Label(
-                                isConfirmingPayment ? "Wird bestaetigt..." : "Zahlung als eingegangen markieren",
-                                    systemImage: "creditcard.and.123"
-                                )
-                                .frame(minHeight: 44)
-                                .frame(maxWidth: .infinity)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(isConfirmingPayment)
-                            .controlSize(.regular)
-                            .accessibilityHint("Bestaetigt den Zahlungseingang fuer diese Bestellung")
-                        }
-
-                        Button(action: onDelete) {
-                            Label("Aus Liste entfernen", systemImage: "trash")
-                                .frame(minHeight: 44)
-                                .frame(maxWidth: .infinity)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .contentShape(Rectangle())
-                        .accessibilityHint("Entfernt die Bestellung aus deiner Liste")
+            if canManageOrders {
+                VStack(alignment: .leading, spacing: 10) {
+                    Button(action: onToggleCompleted) {
+                        Label(
+                            order.isCompleted ? "Bestellung wieder oeffnen" : "Bestellung als erledigt markieren",
+                            systemImage: order.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle.fill"
+                        )
+                        .frame(minHeight: 44)
+                        .frame(maxWidth: .infinity)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: colorScheme))
+                    .controlSize(.large)
+                    .accessibilityHint(order.isCompleted ? "Markiert die Bestellung wieder als offen" : "Markiert die Bestellung als abgeschlossen")
 
-                    VStack(spacing: 8) {
-                        if !order.hasFinalPaymentStatus {
-                            Button(action: onConfirmPayment) {
-                                Label(
-                                    isConfirmingPayment ? "Wird bestaetigt..." : "Zahlung bestaetigen",
-                                    systemImage: "creditcard.and.123"
-                                )
-                                .frame(minHeight: 44)
-                                .frame(maxWidth: .infinity)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) {
+                            if !order.hasFinalPaymentStatus {
+                                Button(action: onConfirmPayment) {
+                                    Label(
+                                        isConfirmingPayment ? "Wird bestaetigt..." : "Zahlung als eingegangen markieren",
+                                        systemImage: "creditcard.and.123"
+                                    )
+                                    .frame(minHeight: 44)
+                                    .frame(maxWidth: .infinity)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(isConfirmingPayment)
+                                .controlSize(.regular)
+                                .accessibilityHint("Bestaetigt den Zahlungseingang fuer diese Bestellung")
                             }
-                            .buttonStyle(.bordered)
-                            .disabled(isConfirmingPayment)
-                            .controlSize(.regular)
-                            .accessibilityHint("Bestaetigt den Zahlungseingang fuer diese Bestellung")
+
+                            Button(action: onDelete) {
+                                Label("Aus Liste entfernen", systemImage: "trash")
+                                    .frame(minHeight: 44)
+                                    .frame(maxWidth: .infinity)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .contentShape(Rectangle())
+                            .accessibilityHint("Entfernt die Bestellung aus deiner Liste")
                         }
 
-                        Button(action: onDelete) {
-                            Label("Aus Liste entfernen", systemImage: "trash")
-                                .frame(minHeight: 44)
-                                .frame(maxWidth: .infinity)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
+                        VStack(spacing: 8) {
+                            if !order.hasFinalPaymentStatus {
+                                Button(action: onConfirmPayment) {
+                                    Label(
+                                        isConfirmingPayment ? "Wird bestaetigt..." : "Zahlung bestaetigen",
+                                        systemImage: "creditcard.and.123"
+                                    )
+                                    .frame(minHeight: 44)
+                                    .frame(maxWidth: .infinity)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(isConfirmingPayment)
+                                .controlSize(.regular)
+                                .accessibilityHint("Bestaetigt den Zahlungseingang fuer diese Bestellung")
+                            }
+
+                            Button(action: onDelete) {
+                                Label("Aus Liste entfernen", systemImage: "trash")
+                                    .frame(minHeight: 44)
+                                    .frame(maxWidth: .infinity)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .contentShape(Rectangle())
+                            .accessibilityHint("Entfernt die Bestellung aus deiner Liste")
                         }
-                        .buttonStyle(.plain)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .contentShape(Rectangle())
-                        .accessibilityHint("Entfernt die Bestellung aus deiner Liste")
                     }
                 }
             }

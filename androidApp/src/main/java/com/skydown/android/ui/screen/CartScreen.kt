@@ -81,6 +81,8 @@ fun CartScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pricing = cartPricingSummary(uiState)
+    val hasOrderItems = uiState.items.isNotEmpty()
+    val isZeroCostOrder = hasOrderItems && pricing.total <= 0.01
     val checkoutReadinessTitle = when {
         uiState.isSubmitting -> "Wird vorbereitet"
         viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Alles bereit"
@@ -103,8 +105,12 @@ fun CartScreen(
         if (uiState.paymentMethods.checkoutMethodLabels.isEmpty()) "Rueckkontakt" else "Waehlen"
     }
     val checkoutPaymentDetail = paymentRouteDetail(uiState.selectedPaymentMethod.ifBlank { "Rueckkontakt" })
-    val checkoutTotalTitle = if (pricing.total > 0) "EUR ${formatCurrency(pricing.total)}" else "Leer"
-    val checkoutTotalDetail = if (pricing.total > 0) "${pricing.zoneLabel} inkl. Versand" else "Warenkorb aktuell leer"
+    val checkoutTotalTitle = if (hasOrderItems) "EUR ${formatCurrency(pricing.total)}" else "Leer"
+    val checkoutTotalDetail = when {
+        !hasOrderItems -> "Warenkorb aktuell leer"
+        isZeroCostOrder -> "${pricing.zoneLabel} · kein Zahlbetrag"
+        else -> "${pricing.zoneLabel} inkl. Versand"
+    }
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
@@ -236,6 +242,7 @@ fun CartScreen(
                                 PaymentMethodSelectionCard(
                                     methods = uiState.paymentMethods.checkoutMethodLabels,
                                     selectedMethod = uiState.selectedPaymentMethod,
+                                    isZeroCostOrder = isZeroCostOrder,
                                     onSelect = viewModel::selectPaymentMethod,
                                 )
                             }
@@ -245,6 +252,7 @@ fun CartScreen(
                                     PaymentMethodDetailCard(
                                         selectedMethod = uiState.selectedPaymentMethod,
                                         settings = uiState.paymentMethods,
+                                        isZeroCostOrder = isZeroCostOrder,
                                     )
                                 }
                             }
@@ -438,7 +446,9 @@ fun CartScreen(
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        text = if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                        text = if (isZeroCostOrder && uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                            "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig."
+                                        } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
                                             "Stripe oeffnet danach den sicheren Live-Checkout."
                                         } else {
                                             "Wir melden uns danach per E-Mail oder WhatsApp."
@@ -475,6 +485,8 @@ fun CartScreen(
                                 Text(
                                     if (uiState.isSubmitting) {
                                         "Wird vorbereitet..."
+                                    } else if (isZeroCostOrder && uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                        "Bestellung bestaetigen"
                                     } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
                                         "Sicher fortfahren"
                                     } else {
@@ -586,6 +598,26 @@ private fun PaymentMethodAvailabilityCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         } else {
+            val checkoutTrustCopy = when {
+                bankTransferEnabled -> {
+                    "Bankdaten und genaue Anweisung folgen nach der Bestellbestaetigung direkt durch das Team."
+                }
+                methods.contains("Stripe") && methods.contains("Klarna") -> {
+                    "Stripe und Klarna laufen als sicherer Live-Checkout. Je nach Geraet und Stripe-Setup koennen in Stripe zusaetzlich Wallets wie Apple Pay oder Google Pay erscheinen."
+                }
+                methods.contains("Stripe") -> {
+                    "Stripe laeuft als sicherer Live-Checkout. Je nach Geraet und Stripe-Setup koennen dort Karte und Wallets wie Apple Pay oder Google Pay erscheinen."
+                }
+                methods.contains("Klarna") -> {
+                    "Klarna laeuft aktuell als sicherer Live-Checkout ueber Stripe."
+                }
+                methods.contains("PayPal") -> {
+                    "PayPal ist aktuell nur fuer Rueckkontakt und bestaetigten Handoff sichtbar."
+                }
+                else -> {
+                    "Diese Zahlarten sind aktuell aktiv."
+                }
+            }
             Text(
                 text = "Diese Zahlarten sind aktuell aktiv:",
                 modifier = Modifier.padding(top = 8.dp),
@@ -600,11 +632,7 @@ private fun PaymentMethodAvailabilityCard(
                 }
             }
             Text(
-                text = if (bankTransferEnabled) {
-                    "Bankdaten und genaue Anweisung folgen nach der Bestellbestaetigung direkt durch das Team."
-                } else {
-                    "Stripe und Klarna laufen als sicherer Live-Checkout. PayPal und Bankueberweisung bleiben manuell owner-geprueft."
-                },
+                text = checkoutTrustCopy,
                 modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -654,6 +682,7 @@ private fun PricingSummaryCard(
 private fun PaymentMethodSelectionCard(
     methods: List<String>,
     selectedMethod: String,
+    isZeroCostOrder: Boolean,
     onSelect: (String) -> Unit,
 ) {
     SkydownCard {
@@ -713,9 +742,21 @@ private fun PaymentMethodSelectionCard(
             }
         }
 
-        if (selectedMethod == "Klarna") {
+        if (isZeroCostOrder && selectedMethod in listOf("Stripe", "Klarna")) {
+            Text(
+                text = "Fuer diesen 0-EUR-Testartikel wird keine Zahlung geoeffnet.",
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        } else if (selectedMethod == "Klarna") {
             Text(
                 text = "Klarna oeffnet nach dem Absenden einen sicheren Live-Checkout ueber Stripe.",
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
+        } else if (selectedMethod == "Stripe") {
+            Text(
+                text = "Stripe zeigt auf kompatiblen Geraeten automatisch die sichersten verfuegbaren Optionen wie Karte oder Wallets.",
                 modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -866,6 +907,7 @@ private fun CheckoutSignalCard(
 private fun PaymentMethodDetailCard(
     selectedMethod: String,
     settings: com.skydown.android.data.PaymentMethodsSettings,
+    isZeroCostOrder: Boolean,
 ) {
     SkydownCard {
         SectionHeader("Zahlungsinfo")
@@ -920,10 +962,12 @@ private fun PaymentMethodDetailCard(
 
             "Stripe", "Klarna" -> {
                 Text(
-                    text = if (selectedMethod == "Klarna") {
+                    text = if (isZeroCostOrder) {
+                        "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
+                    } else if (selectedMethod == "Klarna") {
                         "Klarna startet nach dem Absenden einen sicheren Live-Checkout ueber Stripe und bestaetigt die Zahlung automatisch im Backend."
                     } else {
-                        "Stripe startet nach dem Absenden einen sicheren Live-Checkout fuer Kartenzahlungen."
+                        "Stripe startet nach dem Absenden einen sicheren Live-Checkout. Auf kompatiblen Geraeten koennen Karte und Wallets wie Apple Pay oder Google Pay erscheinen."
                     },
                     modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -1040,7 +1084,7 @@ private fun formatCurrency(value: Double, decimals: Int): String {
 
 private fun paymentRouteDetail(method: String): String {
     return when (method) {
-        "Stripe" -> "Sicherer Live-Checkout fuer Karten."
+        "Stripe" -> "Sicherer Live-Checkout fuer Karte und kompatible Wallets."
         "Klarna" -> "Klarna startet ueber den Stripe-Flow."
         "PayPal" -> "Manueller PayPal-Handoff mit Rueckkontakt."
         "Bankueberweisung" -> "Direkt und ohne Gateway-Kosten."

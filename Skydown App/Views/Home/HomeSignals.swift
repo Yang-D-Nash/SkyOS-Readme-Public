@@ -162,14 +162,14 @@ struct HomeLiveSignalSurface: View {
     let trackName: String?
     let beatName: String?
     let videoName: String?
-    let aiUsageWarning: String? = nil
-    let agentRunning: Bool? = nil
-    let commerceHint: String? = nil
-    let syncPaused: Bool? = nil
-    let creatorLimitZone: Bool? = nil
-    let workflowWaiting: Bool? = nil
-    let recoverableError: String? = nil
-    let contentSignal: String? = nil
+    let aiUsageWarning: String?
+    let agentRunning: Bool?
+    let commerceHint: String?
+    let syncPaused: Bool?
+    let creatorLimitZone: Bool?
+    let workflowWaiting: Bool?
+    let recoverableError: String?
+    let contentSignal: String?
 
     private var missingCount: Int { [hasTrackSignal, hasBeatSignal, hasVideoSignal].filter { !$0 }.count }
     private var nowText: String {

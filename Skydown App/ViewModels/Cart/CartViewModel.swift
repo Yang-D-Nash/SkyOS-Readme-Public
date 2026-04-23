@@ -25,6 +25,7 @@ class CartViewModel: ObservableObject {
     private let authManager: AuthManager
     private let orderService: OrderServicing
     private let hostedCheckoutService: HostedCheckoutServicing
+    private var pendingHostedCheckoutItems: [CartItem]?
 
     init(
         authManager: AuthManager,
@@ -169,7 +170,8 @@ class CartViewModel: ObservableObject {
         }
 
         do {
-            let paymentLine = paymentMethod?
+            let isZeroCostOrder = subtotal + shippingQuote.price <= 0.01
+            let paymentLine = isZeroCostOrder ? "" : paymentMethod?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .takeIfNotBlank()
                 .map { "Gewuenschte Zahlart: \($0)\n\n" }
@@ -201,7 +203,12 @@ class CartViewModel: ObservableObject {
                 fulfillmentProvider: deriveFulfillmentProvider()
             )
             clearCart()
-            showUserToast("Bestellung ist eingegangen. Wir melden uns mit dem naechsten Schritt.", style: .success)
+            showUserToast(
+                isZeroCostOrder
+                    ? "Bestellung ist bestaetigt. Wir aktualisieren jetzt den Status."
+                    : "Bestellung ist eingegangen. Wir melden uns mit dem naechsten Schritt.",
+                style: .success
+            )
             return true
         } catch {
             skydownDebugLog("Dev Fehler submitCartAsOrder:", error.localizedDescription)
@@ -276,7 +283,8 @@ class CartViewModel: ObservableObject {
         }
 
         do {
-            let paymentLine = paymentMethod
+            let isZeroCostOrder = subtotal + shippingQuote.price <= 0.01
+            let paymentLine = isZeroCostOrder ? "" : paymentMethod
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .takeIfNotBlank()
                 .map { "Gewuenschte Zahlart: \($0)\n\n" }
@@ -308,14 +316,34 @@ class CartViewModel: ObservableObject {
                 fulfillmentProvider: deriveFulfillmentProvider(),
                 platform: platform
             )
+            pendingHostedCheckoutItems = items
             clearCart()
-            showUserToast("Sicherer Checkout ist geoeffnet. Du kannst die Zahlung jetzt abschliessen.", style: .success)
+            showUserToast(
+                isZeroCostOrder
+                    ? "Bestellung ist bestaetigt. Wir aktualisieren jetzt den Status."
+                    : "Sicherer Checkout ist geoeffnet. Du kannst die Zahlung jetzt abschliessen.",
+                style: .success
+            )
             return session
         } catch {
             skydownDebugLog("Dev Fehler startHostedCheckout:", error.localizedDescription)
             showUserToast("Checkout startet gerade nicht. Bitte in einem Moment erneut versuchen.", style: .error)
             return nil
         }
+    }
+
+    @discardableResult
+    func handleHostedCheckoutRedirect(status: HostedCheckoutRedirectStatus) -> Bool {
+        let canRestorePendingCheckout = status == .cancel &&
+            items.isEmpty &&
+            !(pendingHostedCheckoutItems ?? []).isEmpty
+
+        if canRestorePendingCheckout, let pendingHostedCheckoutItems {
+            items = pendingHostedCheckoutItems
+        }
+
+        pendingHostedCheckoutItems = nil
+        return canRestorePendingCheckout
     }
 
     func showUserToast(_ message: String, style: ToastStyle) {

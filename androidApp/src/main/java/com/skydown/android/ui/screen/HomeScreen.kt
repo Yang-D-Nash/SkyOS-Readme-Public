@@ -359,7 +359,7 @@ fun HomeScreen(
                                     tint = heroPillTint("track"),
                                     onClick = {
                                         coroutineScope.launch {
-                                            listState.animateScrollToItem(5)
+                                            listState.animateScrollToItem(homeMediaClusterSectionIndex)
                                         }
                                     },
                                 )
@@ -372,7 +372,7 @@ fun HomeScreen(
                                     tint = heroPillTint("beat"),
                                     onClick = {
                                         coroutineScope.launch {
-                                            listState.animateScrollToItem(6)
+                                            listState.animateScrollToItem(homeMediaClusterSectionIndex)
                                         }
                                     },
                                 )
@@ -385,7 +385,7 @@ fun HomeScreen(
                                     tint = heroPillTint("video"),
                                     onClick = {
                                         coroutineScope.launch {
-                                            listState.animateScrollToItem(7)
+                                            listState.animateScrollToItem(homeMediaClusterSectionIndex)
                                         }
                                     },
                                 )
@@ -404,13 +404,13 @@ fun HomeScreen(
                             hasVideoSignal = uiState.featuredVideo != null,
                             onRefresh = viewModel::refresh,
                             onOpenRelease = {
-                                coroutineScope.launch { listState.animateScrollToItem(5) }
+                                coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
                             },
                             onOpenBeat = {
-                                coroutineScope.launch { listState.animateScrollToItem(6) }
+                                coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
                             },
                             onOpenVideo = {
-                                coroutineScope.launch { listState.animateScrollToItem(7) }
+                                coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
                             },
                         )
                     }
@@ -431,10 +431,10 @@ fun HomeScreen(
                     HomeAnimatedItem(order = 3) {
                         HomeUtilityRow(
                             onOpenAi = { onOpenWorkflow?.invoke() ?: onOpenSettings() },
-                            onOpenMusic = { coroutineScope.launch { listState.animateScrollToItem(5) } },
+                            onOpenMusic = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
                             onOpenCreate = { activeDestination = homeDestinationNicmaProducer },
                             onOpenOrders = onOpenCart,
-                            onOpenSearch = { coroutineScope.launch { listState.animateScrollToItem(5) } },
+                            onOpenSearch = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
                             onOpenSettings = onOpenSettings,
                         )
                     }
@@ -466,9 +466,9 @@ fun HomeScreen(
                     HomeAnimatedItem(order = 5) {
                         HomeMediaCluster(
                             uiState = uiState,
-                            primaryTarget = heroPriorityTarget,
                             isTrackPlaying = currentAudioKey == uiState.featuredTrack?.let(::homeTrackAudioKey),
                             isBeatPlaying = currentAudioKey == uiState.featuredBeat?.let(::homeBeatAudioKey),
+                            isVideoPlaying = currentVideoId == uiState.featuredVideo?.id,
                             player = videoPlayer,
                             onPlayTrackToggle = { track ->
                                 val previewUrl = track.previewUrl
@@ -505,6 +505,22 @@ fun HomeScreen(
                                     currentAudioKey = audioKey
                                 }
                             },
+                            onPlayVideoToggle = { video ->
+                                if (video.downloadUrl.isBlank()) return@HomeMediaCluster
+                                if (currentVideoId == video.id) {
+                                    videoPlayer.pause()
+                                    videoPlayer.seekTo(0)
+                                    currentVideoId = null
+                                } else {
+                                    audioPlayer.stop()
+                                    audioPlayer.clearMediaItems()
+                                    currentAudioKey = null
+                                    videoPlayer.setMediaItem(MediaItem.fromUri(video.downloadUrl))
+                                    videoPlayer.prepare()
+                                    videoPlayer.play()
+                                    currentVideoId = video.id
+                                }
+                            },
                             onOpenSpotify = { track ->
                                 openTrackInSpotify(
                                     context = context,
@@ -512,15 +528,6 @@ fun HomeScreen(
                                     spotifyTrackId = track.spotifyTrackId,
                                     externalUrl = track.externalUrl,
                                 )
-                            },
-                            onOpenBeatHub = {
-                                audioPlayer.stop()
-                                audioPlayer.clearMediaItems()
-                                currentAudioKey = null
-                                videoPlayer.pause()
-                                videoPlayer.seekTo(0)
-                                currentVideoId = null
-                                activeDestination = homeDestinationBeatHub
                             },
                             onOpenVideoHub = { video ->
                                 audioPlayer.stop()
@@ -711,124 +718,39 @@ private fun HomeLiveSignalSurface(
 @Composable
 private fun HomeMediaCluster(
     uiState: HomeUiState,
-    primaryTarget: String,
     isTrackPlaying: Boolean,
     isBeatPlaying: Boolean,
+    isVideoPlaying: Boolean,
     player: ExoPlayer,
     onPlayTrackToggle: (com.skydown.shared.model.Track) -> Unit,
     onPlayBeatToggle: (FeaturedBeatHighlight) -> Unit,
+    onPlayVideoToggle: (FeaturedVideoHighlight) -> Unit,
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
-    onOpenBeatHub: () -> Unit,
     onOpenVideoHub: (FeaturedVideoHighlight) -> Unit,
     onOpenOriginal: (FeaturedVideoHighlight) -> Unit,
 ) {
-    when (primaryTarget) {
-        "track" -> HomeLatestReleaseCard(
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        HomeLatestReleaseCard(
             uiState = uiState,
             isPlaying = isTrackPlaying,
             onPlayToggle = onPlayTrackToggle,
             onOpenSpotify = onOpenSpotify,
         )
-        "beat" -> HomeLatestBeatCard(
+        HomeLatestBeatCard(
             uiState = uiState,
             isPlaying = isBeatPlaying,
             onPlayToggle = onPlayBeatToggle,
         )
-        else -> HomeLatestVideoCard(
+        HomeLatestVideoCard(
             uiState = uiState,
+            isPlaying = isVideoPlaying,
             player = player,
+            onPlayToggle = onPlayVideoToggle,
             onOpenVideoHub = onOpenVideoHub,
             onOpenOriginal = onOpenOriginal,
         )
-    }
-
-    val secondaryTargets = listOf("track", "beat", "video").filterNot { it == primaryTarget }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        secondaryTargets.forEach { target ->
-            HomeCompactMediaSignalCard(
-                modifier = Modifier.weight(1f),
-                target = target,
-                uiState = uiState,
-                onOpenBeatHub = onOpenBeatHub,
-                onOpenVideoHub = onOpenVideoHub,
-                onOpenSpotify = onOpenSpotify,
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeCompactMediaSignalCard(
-    modifier: Modifier = Modifier,
-    target: String,
-    uiState: HomeUiState,
-    onOpenBeatHub: () -> Unit,
-    onOpenVideoHub: (FeaturedVideoHighlight) -> Unit,
-    onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val title: String
-    val line: String
-    val accent: Color
-    val onTap: (() -> Unit)?
-    when (target) {
-        "track" -> {
-            title = "Music"
-            val track = uiState.featuredTrack
-            line = track?.trackName ?: "No live release."
-            accent = colorScheme.skydownSpotify()
-            onTap = track?.let { { onOpenSpotify(it) } }
-        }
-        "beat" -> {
-            title = "Beats"
-            line = uiState.featuredBeat?.title ?: "No live beat."
-            accent = colorScheme.secondary
-            onTap = if (uiState.featuredBeat != null) onOpenBeatHub else null
-        }
-        else -> {
-            title = "Visuals"
-            val video = uiState.featuredVideo
-            line = video?.title ?: "No live visual."
-            accent = colorScheme.skydownAccentHighlight()
-            onTap = video?.let { { onOpenVideoHub(it) } }
-        }
-    }
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(colorScheme.surface.copy(alpha = 0.30f))
-            .border(1.dp, accent.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 10.dp, vertical = 9.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(title, style = MaterialTheme.typography.labelMedium, color = accent, fontWeight = FontWeight.SemiBold)
-        Text(
-            line,
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.74f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        onTap?.let { action ->
-            Surface(
-                onClick = action,
-                shape = RoundedCornerShape(999.dp),
-                color = accent.copy(alpha = 0.14f),
-                modifier = Modifier.align(Alignment.Start),
-            ) {
-                Text(
-                    text = "Open",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accent,
-                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                )
-            }
-        }
     }
 }
 
@@ -1485,7 +1407,9 @@ private fun HomeLatestBeatCard(
 @Composable
 private fun HomeLatestVideoCard(
     uiState: HomeUiState,
+    isPlaying: Boolean,
     player: ExoPlayer,
+    onPlayToggle: (FeaturedVideoHighlight) -> Unit,
     onOpenVideoHub: (FeaturedVideoHighlight) -> Unit,
     onOpenOriginal: (FeaturedVideoHighlight) -> Unit,
 ) {
@@ -1609,7 +1533,17 @@ private fun HomeLatestVideoCard(
             }
         }
 
-        if (video.openUrl.isNotBlank() || video.inlineEmbedUrl.isNotBlank()) {
+        if (video.downloadUrl.isNotBlank()) {
+            HomeMediaActionButton(
+                label = if (isPlaying) "Stoppen" else "Abspielen",
+                isActive = isPlaying,
+                accent = InstagramOrange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                onClick = { onPlayToggle(video) },
+            )
+        } else if (video.openUrl.isNotBlank() || video.inlineEmbedUrl.isNotBlank()) {
             HomeMediaActionButton(
                 label = if (video.supportsInlinePlayback) "Video direkt oeffnen" else video.originalActionLabel,
                 isActive = false,
@@ -2068,4 +2002,5 @@ private val homeZweizweiSocialLinks = listOf(
 private const val homeDestinationBeatHub = "home_beat_hub"
 private const val homeDestinationNicmaProducer = "home_nicma_producer"
 private const val homeDestinationVideoHub = "home_video_hub"
+private const val homeMediaClusterSectionIndex = 5
 private const val homeSignalTotal = 3

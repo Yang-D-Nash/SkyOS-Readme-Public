@@ -19,9 +19,25 @@ final class UITestMerchandiseService: MerchandiseServicing {
                         "https://example.com/ui-test-merch-2.jpg",
                     ],
                     available: true,
+                    shopifyProductId: "gid://shopify/Product/ui-test-merch",
+                    shopifyHandle: "ui-test-hoodie",
+                    variants: [
+                        MerchandiseVariant(
+                            id: "ui-test-variant-black-m",
+                            title: "Black / M",
+                            size: "M",
+                            color: "Black",
+                            shopifyVariantId: "gid://shopify/ProductVariant/ui-test-merch-black-m",
+                            sku: "SKY-TEST-HOODIE-BLK-M",
+                            price: 79.0
+                        ),
+                    ],
+                    source: "shopify",
                     featured: true,
                     customBadge: "UI Test",
-                    category: "QA Drop"
+                    category: "QA Drop",
+                    collabPartner: "Skydown",
+                    shopifyCollectionHandles: ["ui-test"]
                 ),
             ]))
         }

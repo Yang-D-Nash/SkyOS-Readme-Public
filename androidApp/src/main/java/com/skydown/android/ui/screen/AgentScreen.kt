@@ -497,6 +497,11 @@ private fun AiMembershipSheet(
     onUpgradeCreator: () -> Unit,
     onRestore: () -> Unit,
 ) {
+    val proProduct = state.products.firstOrNull { it.planLabel == "Pro" }
+    val creatorProduct = state.products.firstOrNull { it.planLabel == "Creator" }
+    val proAvailable = proProduct?.let { it.monthly != null || it.yearly != null } == true
+    val creatorAvailable = creatorProduct?.let { it.monthly != null || it.yearly != null } == true
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -524,10 +529,10 @@ private fun AiMembershipSheet(
             if (state.annualDiscountCopy.isNotBlank()) {
                 Text(state.annualDiscountCopy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
             }
-            Button(onClick = onUpgradePro, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onUpgradePro, modifier = Modifier.fillMaxWidth(), enabled = proAvailable && !state.isPurchasing) {
                 Text(stringResource(R.string.membership_pro_activate))
             }
-            Button(onClick = onUpgradeCreator, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onUpgradeCreator, modifier = Modifier.fillMaxWidth(), enabled = creatorAvailable && !state.isPurchasing) {
                 Text(stringResource(R.string.membership_creator_activate))
             }
             OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
@@ -535,6 +540,13 @@ private fun AiMembershipSheet(
             }
             OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.membership_decide_later))
+            }
+            if (!state.isLoading && state.products.isEmpty() && state.errorMessage.isBlank()) {
+                Text(
+                    text = "Play Billing ist fuer dieses Build noch nicht live konfiguriert.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             if (state.successMessage.isNotBlank()) {
                 Text(state.successMessage, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)

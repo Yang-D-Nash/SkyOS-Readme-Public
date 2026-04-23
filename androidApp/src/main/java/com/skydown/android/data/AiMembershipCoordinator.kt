@@ -186,8 +186,9 @@ class AiMembershipCoordinator(
             _uiState.update { it.copy(isPurchasing = true, errorMessage = "", successMessage = "") }
             runCatching {
                 val purchase = billing.launchSubscriptionPurchase(activity, product)
+                var syncResult: AndroidSubscriptionSyncResult? = null
                 if (purchase != null) {
-                    syncClient.requestAndroidSubscriptionSync(
+                    syncResult = syncClient.requestAndroidSubscriptionSync(
                         productId = purchase.productId,
                         purchaseToken = purchase.purchaseToken,
                         packageName = activity.packageName,
@@ -195,8 +196,8 @@ class AiMembershipCoordinator(
                     )
                     onRefreshEntitlement()
                 }
-                purchase
-            }.onSuccess { purchase ->
+                purchase to syncResult
+            }.onSuccess { (purchase, syncResult) ->
                 track(
                     if (purchase == null) "purchase_cancelled" else "purchase_success",
                     mapOf("plan" to planLabel),
@@ -212,11 +213,7 @@ class AiMembershipCoordinator(
                 _uiState.update {
                     it.copy(
                         isPurchasing = false,
-                        successMessage = if (purchase == null) {
-                            "Kauf wurde abgebrochen."
-                        } else {
-                            "Upgrade aktiv. Dein Plan wurde aktualisiert."
-                        },
+                        successMessage = purchaseSuccessMessage(purchase, syncResult),
                     )
                 }
             }.onFailure { error ->
@@ -244,7 +241,8 @@ class AiMembershipCoordinator(
             track("restore_started")
             _uiState.update { it.copy(isPurchasing = true, errorMessage = "", successMessage = "") }
             runCatching {
-                billing.queryOwnedSubscriptions().forEach { owned ->
+                val ownedSubscriptions = billing.queryOwnedSubscriptions()
+                val results = ownedSubscriptions.map { owned ->
                     syncClient.requestAndroidSubscriptionSync(
                         productId = owned.productId,
                         purchaseToken = owned.purchaseToken,
@@ -252,8 +250,11 @@ class AiMembershipCoordinator(
                         orderId = owned.orderId,
                     )
                 }
-                onRefreshEntitlement()
-            }.onSuccess {
+                if (ownedSubscriptions.isNotEmpty()) {
+                    onRefreshEntitlement()
+                }
+                results
+            }.onSuccess { results ->
                 track("restore_success")
                 analytics.track(
                     event = "restore_success",
@@ -264,7 +265,7 @@ class AiMembershipCoordinator(
                 _uiState.update {
                     it.copy(
                         isPurchasing = false,
-                        successMessage = "Kaeufe wurden synchronisiert.",
+                        successMessage = restoreSuccessMessage(results),
                     )
                 }
             }.onFailure { error ->
@@ -277,6 +278,31 @@ class AiMembershipCoordinator(
                 }
             }
         }
+    }
+
+    private fun purchaseSuccessMessage(
+        purchase: NativeSubscriptionPurchase?,
+        syncResult: AndroidSubscriptionSyncResult?,
+    ): String = when {
+        purchase == null -> "Kauf wurde abgebrochen."
+        syncResult?.status.equals("pending", ignoreCase = true) ->
+            "Der Kauf wartet noch auf die Freigabe im Play Store."
+        syncResult?.status.equals("active", ignoreCase = true) ->
+            "Upgrade aktiv. Dein Plan wurde aktualisiert."
+        syncResult?.status.equals("canceled", ignoreCase = true) ->
+            "Abo erkannt. Der Status wurde aktualisiert."
+        syncResult?.status.equals("inactive", ignoreCase = true) ->
+            "Abo erkannt, aber ohne aktive Laufzeit."
+        else -> "Abo wurde uebermittelt. Status wird aktualisiert."
+    }
+
+    private fun restoreSuccessMessage(results: List<AndroidSubscriptionSyncResult>): String = when {
+        results.isEmpty() -> "Keine Play-Store-Kaeufe gefunden."
+        results.any { it.status.equals("active", ignoreCase = true) } ->
+            "Play-Store-Kaeufe wurden synchronisiert."
+        results.any { it.status.equals("pending", ignoreCase = true) } ->
+            "Ein Kauf wartet noch auf die Freigabe im Play Store."
+        else -> "Play-Store-Status wurde aktualisiert."
     }
 
     private fun track(name: String, payload: Map<String, String> = emptyMap()) {

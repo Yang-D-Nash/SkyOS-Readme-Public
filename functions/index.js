@@ -34,6 +34,11 @@ const {
   resolveAppStoreSubscriptionState,
 } = require("./src/payments/app-store-subscriptions");
 const {
+  acknowledgeGooglePlaySubscriptionPurchase,
+  fetchGooglePlaySubscriptionPurchase,
+} = require("./src/payments/google-play-subscriptions");
+const {
+  buildReturnPageUrl,
   createAiSubscriptionCheckoutSession,
   createHostedCheckoutSession,
   deriveStripeCheckoutStatus,
@@ -63,6 +68,7 @@ const ai = genkit({
 const smtpConnectionUrl = defineSecret("SMTP_CONNECTION_URL");
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const manusApiKey = defineSecret("MANUS_API_KEY");
 const xaiApiKey = defineSecret("XAI_API_KEY");
 const OWNER_EMAIL = "nash.lioncorna@gmail.com";
@@ -4124,7 +4130,20 @@ async function loadShopifyAdminConfig() {
   };
 }
 
+function readShopifyAdminSecretToken() {
+  try {
+    return nonEmptyString(shopifyAdminAccessToken.value());
+  } catch (error) {
+    return "";
+  }
+}
+
 async function loadShopifyAdminToken() {
+  const secretToken = readShopifyAdminSecretToken();
+  if (secretToken) {
+    return secretToken;
+  }
+
   const envToken = nonEmptyString(process.env.SHOPIFY_ADMIN_ACCESS_TOKEN);
   if (envToken) {
     return envToken;
@@ -4163,9 +4182,13 @@ async function loadPaymentMethodSettings() {
       studioPriceId: nonEmptyString(aiSubscriptions.studioPriceId) || "",
       iosCreatorProductId: nonEmptyString(aiSubscriptions.iosCreatorProductId) || "",
       iosStudioProductId: nonEmptyString(aiSubscriptions.iosStudioProductId) || "",
+      iosCreatorYearlyProductId: nonEmptyString(aiSubscriptions.iosCreatorYearlyProductId) || "",
+      iosStudioYearlyProductId: nonEmptyString(aiSubscriptions.iosStudioYearlyProductId) || "",
       iosAppAppleId: Number(aiSubscriptions.iosAppAppleId || 0),
       androidCreatorProductId: nonEmptyString(aiSubscriptions.androidCreatorProductId) || "",
       androidStudioProductId: nonEmptyString(aiSubscriptions.androidStudioProductId) || "",
+      androidCreatorYearlyProductId: nonEmptyString(aiSubscriptions.androidCreatorYearlyProductId) || "",
+      androidStudioYearlyProductId: nonEmptyString(aiSubscriptions.androidStudioYearlyProductId) || "",
       revenueCatEntitlementCreator: nonEmptyString(aiSubscriptions.revenueCatEntitlementCreator) || "skyos_ai_creator",
       revenueCatEntitlementStudio: nonEmptyString(aiSubscriptions.revenueCatEntitlementStudio) || "skyos_ai_studio",
     },
@@ -4199,11 +4222,19 @@ function buildIosAiSubscriptionProductMap(paymentSettings) {
   const mapping = {};
   const creatorProductId = nonEmptyString(config.iosCreatorProductId);
   const studioProductId = nonEmptyString(config.iosStudioProductId);
+  const creatorYearlyProductId = nonEmptyString(config.iosCreatorYearlyProductId);
+  const studioYearlyProductId = nonEmptyString(config.iosStudioYearlyProductId);
   if (creatorProductId) {
     mapping[creatorProductId] = USER_QUOTA_PLANS.creator;
   }
   if (studioProductId) {
     mapping[studioProductId] = USER_QUOTA_PLANS.studio;
+  }
+  if (creatorYearlyProductId) {
+    mapping[creatorYearlyProductId] = USER_QUOTA_PLANS.creator;
+  }
+  if (studioYearlyProductId) {
+    mapping[studioYearlyProductId] = USER_QUOTA_PLANS.studio;
   }
   return mapping;
 }
@@ -4222,13 +4253,133 @@ function buildAndroidAiSubscriptionProductMap(paymentSettings) {
   const mapping = {};
   const creatorProductId = nonEmptyString(config.androidCreatorProductId);
   const studioProductId = nonEmptyString(config.androidStudioProductId);
+  const creatorYearlyProductId = nonEmptyString(config.androidCreatorYearlyProductId);
+  const studioYearlyProductId = nonEmptyString(config.androidStudioYearlyProductId);
   if (creatorProductId) {
     mapping[creatorProductId] = USER_QUOTA_PLANS.creator;
   }
   if (studioProductId) {
     mapping[studioProductId] = USER_QUOTA_PLANS.studio;
   }
+  if (creatorYearlyProductId) {
+    mapping[creatorYearlyProductId] = USER_QUOTA_PLANS.creator;
+  }
+  if (studioYearlyProductId) {
+    mapping[studioYearlyProductId] = USER_QUOTA_PLANS.studio;
+  }
   return mapping;
+}
+
+function hasConfiguredAiPlanProductMapping(productIdToPlan) {
+  const configuredPlans = new Set(
+      Object.values(productIdToPlan || {})
+          .map((value) => normalizeAiSubscriptionPlan(value))
+          .filter(Boolean),
+  );
+  return AI_SUBSCRIPTION_PLANS.every((plan) => configuredPlans.has(plan));
+}
+
+function parseIsoEpochSeconds(value) {
+  const normalizedValue = nonEmptyString(value);
+  if (!normalizedValue) {
+    return 0;
+  }
+  const parsed = Date.parse(normalizedValue);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed / 1000) : 0;
+}
+
+function resolveGooglePlaySubscriptionState({
+  purchase = {},
+  requestedProductId = "",
+  productIdToPlan = {},
+  nowEpochSeconds = Math.floor(Date.now() / 1000),
+}) {
+  const lineItems = Array.isArray(purchase.lineItems) ? purchase.lineItems : [];
+  const normalizedRequestedProductId = nonEmptyString(requestedProductId) || "";
+  const resolvedItems = lineItems
+      .map((lineItem) => {
+        const productId = nonEmptyString(lineItem?.productId) || "";
+        const plan = productIdToPlan[productId] || null;
+        if (!productId || !plan) {
+          return null;
+        }
+        return {
+          productId,
+          plan,
+          expiryEpochSeconds: parseIsoEpochSeconds(lineItem?.expiryTime),
+          latestSuccessfulOrderId: nonEmptyString(lineItem?.latestSuccessfulOrderId) || "",
+          autoRenewEnabled: lineItem?.autoRenewingPlan?.autoRenewEnabled === true,
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => right.expiryEpochSeconds - left.expiryEpochSeconds);
+
+  const matchedItem = resolvedItems.find((item) => item.productId === normalizedRequestedProductId) ||
+    resolvedItems[0] ||
+    null;
+  const subscriptionState = nonEmptyString(purchase.subscriptionState) || "";
+  const currentPeriodEndEpochSeconds = matchedItem?.expiryEpochSeconds || 0;
+  const hasFutureEntitlement = currentPeriodEndEpochSeconds > nowEpochSeconds;
+  const acknowledgementState = nonEmptyString(purchase.acknowledgementState) || "";
+  const latestOrderId =
+    nonEmptyString(purchase.latestOrderId) ||
+    matchedItem?.latestSuccessfulOrderId ||
+    "";
+  let status = "inactive";
+  let cancelAtPeriodEnd = false;
+  let shouldGrantEntitlement = false;
+
+  switch (subscriptionState) {
+    case "SUBSCRIPTION_STATE_ACTIVE":
+      status = "active";
+      shouldGrantEntitlement = true;
+      break;
+    case "SUBSCRIPTION_STATE_IN_GRACE_PERIOD":
+      status = "active";
+      shouldGrantEntitlement = true;
+      break;
+    case "SUBSCRIPTION_STATE_PENDING":
+      status = "pending";
+      break;
+    case "SUBSCRIPTION_STATE_ON_HOLD":
+      status = "past_due";
+      break;
+    case "SUBSCRIPTION_STATE_CANCELED":
+      cancelAtPeriodEnd = hasFutureEntitlement;
+      status = hasFutureEntitlement ? "active" : "canceled";
+      shouldGrantEntitlement = hasFutureEntitlement;
+      break;
+    case "SUBSCRIPTION_STATE_PAUSED":
+      status = "paused";
+      break;
+    case "SUBSCRIPTION_STATE_EXPIRED":
+      status = "inactive";
+      break;
+    default:
+      status = hasFutureEntitlement ? "active" : "inactive";
+      shouldGrantEntitlement = hasFutureEntitlement;
+      break;
+  }
+
+  return {
+    status,
+    plan: matchedItem?.plan || null,
+    productId: matchedItem?.productId || normalizedRequestedProductId,
+    provider: "play_store",
+    sourcePlatform: "android",
+    currentPeriodEndEpochSeconds,
+    purchaseReference: latestOrderId,
+    environment: purchase?.testPurchase ? "test" : "production",
+    rawState: subscriptionState,
+    linkedPurchaseToken: nonEmptyString(purchase.linkedPurchaseToken) || "",
+    acknowledgementState,
+    cancelAtPeriodEnd,
+    shouldGrantEntitlement,
+    needsAcknowledgement:
+      acknowledgementState === "ACKNOWLEDGEMENT_STATE_PENDING" &&
+      subscriptionState !== "SUBSCRIPTION_STATE_PENDING" &&
+      !!matchedItem?.productId,
+  };
 }
 
 function buildRevenueCatEntitlementPlanMap(paymentSettings) {
@@ -4383,10 +4534,11 @@ function calculateCanonicalShipping({
       shippingSettings.internationalCost;
   const freeShippingApplied = shippingSettings.freeShippingThreshold > 0 &&
     normalizedSubtotal >= shippingSettings.freeShippingThreshold;
+  const zeroSubtotalApplied = normalizedSubtotal === 0;
 
   return {
     shippingZone,
-    shippingAmount: freeShippingApplied ? 0 : roundCurrency(baseRate),
+    shippingAmount: freeShippingApplied || zeroSubtotalApplied ? 0 : roundCurrency(baseRate),
   };
 }
 
@@ -5814,6 +5966,22 @@ function buildInitialOrderState(fulfillmentProvider) {
   };
 }
 
+function isZeroCostOrder(orderData) {
+  return roundCurrency(orderData?.totalAmount) === 0;
+}
+
+function applyZeroCostOrderState(orderData) {
+  const requiresShopifySubmission = orderData.fulfillmentProvider === "podpartner";
+  return {
+    ...orderData,
+    paymentMethod: "Kostenlos",
+    paymentStatus: "confirmed",
+    paymentConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+    stripeCheckoutStatus: "not_required",
+    shopifySyncStatus: requiresShopifySubmission ? "pending_submission" : "not_required",
+  };
+}
+
 async function normalizeOrderSubmissionPayload(data, auth) {
   const authUid = nonEmptyString(auth?.uid);
   const authEmail = normalizeEmail(auth?.token?.email);
@@ -5874,7 +6042,7 @@ async function normalizeOrderSubmissionPayload(data, auth) {
     throw new HttpsError("failed-precondition", "Der Warenkorb enthaelt gemischte Waehrungen und kann nicht verarbeitet werden.");
   }
 
-  if (subtotalAmount < 0 || shippingAmount < 0 || taxRate < 0 || taxAmount < 0 || totalAmount <= 0) {
+  if (subtotalAmount < 0 || shippingAmount < 0 || taxRate < 0 || taxAmount < 0 || totalAmount < 0) {
     throw new HttpsError("invalid-argument", "Summen der Bestellung sind ungueltig.");
   }
 
@@ -6126,7 +6294,13 @@ function shouldSubmitToShopify(beforeData, afterData) {
     return false;
   }
 
-  if (beforeData?.paymentStatus === "confirmed" && beforeData?.shopifySyncStatus === afterData.shopifySyncStatus) {
+  const syncStatus = nonEmptyString(afterData.shopifySyncStatus);
+  if (syncStatus && syncStatus !== "pending_submission") {
+    return false;
+  }
+
+  const previousSyncStatus = nonEmptyString(beforeData?.shopifySyncStatus);
+  if (beforeData?.paymentStatus === "confirmed" && previousSyncStatus === syncStatus) {
     return false;
   }
 
@@ -6231,7 +6405,7 @@ exports.syncAndroidAiSubscriptionStatus = onCall({
   }
 
   const androidProductIdToPlan = buildAndroidAiSubscriptionProductMap(paymentSettings);
-  if (Object.keys(androidProductIdToPlan).length < 2) {
+  if (!hasConfiguredAiPlanProductMapping(androidProductIdToPlan)) {
     throw new HttpsError(
         "failed-precondition",
         "Die Android-Produkt-IDs fuer Creator und Studio fehlen noch im Payment-Setup.",
@@ -6251,35 +6425,174 @@ exports.syncAndroidAiSubscriptionStatus = onCall({
     throw new HttpsError("invalid-argument", "Unbekanntes Android-Abo-Produkt.");
   }
 
-  // MVP scaffold: entitlement stays unchanged until purchase token verification is wired.
-  // This keeps billing source-of-truth server-only and avoids trusting client assertions.
-  const syncEvent = await saveCanonicalAiEntitlement(uid, resolveLegacyAiEntitlement(userData), {
-    externalEventId: `android_${productId}_${purchaseToken.slice(-12)}`,
-    eventType: "android_sync_pending",
+  let purchaseData;
+  try {
+    purchaseData = await fetchGooglePlaySubscriptionPurchase({
+      packageName,
+      purchaseToken,
+    });
+  } catch (error) {
+    const message = nonEmptyString(error?.message) || "Play-Store-Abo konnte nicht verifiziert werden.";
+    if (error?.status === 403) {
+      throw new HttpsError(
+          "failed-precondition",
+          "Google Play API ist fuer dieses Projekt noch nicht mit Abo-Rechten freigeschaltet.",
+      );
+    }
+    if (error?.status === 404 || error?.status === 410) {
+      throw new HttpsError(
+          "not-found",
+          "Der Play-Store-Kauf konnte nicht gefunden oder ist nicht mehr gueltig.",
+      );
+    }
+    logger.error("Google Play subscription verification failed.", {
+      uid,
+      productId,
+      packageName,
+      status: error?.status || null,
+      message,
+    });
+    throw new HttpsError("internal", message);
+  }
+
+  const resolvedState = resolveGooglePlaySubscriptionState({
+    purchase: purchaseData,
+    requestedProductId: productId,
+    productIdToPlan: androidProductIdToPlan,
+  });
+  if (!resolvedState.plan) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Der bestaetigte Play-Store-Kauf passt zu keinem konfigurierten SkyOS KI-Plan.",
+    );
+  }
+
+  if (resolvedState.needsAcknowledgement) {
+    try {
+      await acknowledgeGooglePlaySubscriptionPurchase({
+        packageName,
+        subscriptionId: resolvedState.productId,
+        purchaseToken,
+        developerPayload: uid,
+      });
+    } catch (error) {
+      const message = nonEmptyString(error?.message) || "Play-Store-Kauf konnte nicht bestaetigt werden.";
+      logger.error("Google Play subscription acknowledge failed.", {
+        uid,
+        productId: resolvedState.productId,
+        packageName,
+        status: error?.status || null,
+        message,
+      });
+      throw new HttpsError(
+          "failed-precondition",
+          "Der Play-Store-Kauf wurde verifiziert, aber noch nicht sauber bestaetigt. Bitte pruefe die Google-Play-API-Rechte.",
+      );
+    }
+  }
+
+  const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const currentProvider = nonEmptyString(userData.aiSubscriptionProvider)?.toLowerCase() || "";
+  const userRef = admin.firestore().doc(`users/${uid}`);
+  const updates = {
+    aiSubscriptionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  if (resolvedState.shouldGrantEntitlement) {
+    Object.assign(updates, resolveAiLimitsUpdateForPlan(resolvedState.plan));
+    Object.assign(updates, {
+      aiSubscriptionStatus: resolvedState.status,
+      aiSubscriptionPlan: resolvedState.plan,
+      aiSubscriptionProvider: resolvedState.provider,
+      aiSubscriptionSourcePlatform: resolvedState.sourcePlatform,
+      aiSubscriptionProductId: resolvedState.productId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionStoreEnvironment: resolvedState.environment || admin.firestore.FieldValue.delete(),
+      aiSubscriptionOriginalTransactionId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionTransactionId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionPriceId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCurrentPeriodEndEpochSeconds:
+        resolvedState.currentPeriodEndEpochSeconds || admin.firestore.FieldValue.delete(),
+      aiSubscriptionCheckoutExpiresAtEpochSeconds: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCancelAtPeriodEnd: resolvedState.cancelAtPeriodEnd === true,
+      aiSubscriptionActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } else if (currentProvider === "play_store") {
+    Object.assign(updates, resolveAiLimitsUpdateForRole(role));
+    Object.assign(updates, {
+      aiSubscriptionStatus: resolvedState.status,
+      aiSubscriptionPlan: resolvedState.plan || admin.firestore.FieldValue.delete(),
+      aiSubscriptionProvider: resolvedState.provider || admin.firestore.FieldValue.delete(),
+      aiSubscriptionSourcePlatform: resolvedState.sourcePlatform || admin.firestore.FieldValue.delete(),
+      aiSubscriptionProductId: resolvedState.productId || admin.firestore.FieldValue.delete(),
+      aiSubscriptionStoreEnvironment: resolvedState.environment || admin.firestore.FieldValue.delete(),
+      aiSubscriptionOriginalTransactionId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionTransactionId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionPriceId: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCurrentPeriodEndEpochSeconds:
+        resolvedState.currentPeriodEndEpochSeconds || admin.firestore.FieldValue.delete(),
+      aiSubscriptionCheckoutExpiresAtEpochSeconds: admin.firestore.FieldValue.delete(),
+      aiSubscriptionCancelAtPeriodEnd: resolvedState.cancelAtPeriodEnd === true,
+    });
+  } else {
+    return {
+      status: resolvedState.status,
+      provider: resolvedState.provider,
+      plan: resolvedState.plan,
+      currentPeriodEndEpochSeconds: resolvedState.currentPeriodEndEpochSeconds || null,
+      reason: "no_play_store_entitlements",
+    };
+  }
+
+  await userRef.set(updates, {merge: true});
+  const syncEvent = await saveCanonicalAiEntitlement(uid, {
+    plan: resolvedState.plan,
+    status: resolvedState.status,
+    provider: resolvedState.provider,
+    source: resolvedState.sourcePlatform,
+    productId: resolvedState.productId,
+    periodEndEpochSeconds: resolvedState.currentPeriodEndEpochSeconds || 0,
+    environment: resolvedState.environment,
+    purchaseReference: resolvedState.purchaseReference,
+    capabilities: resolveAiCapabilities({
+      plan: resolvedState.plan,
+      status: resolvedState.status,
+      role,
+    }),
+  }, {
+    externalEventId:
+      resolvedState.purchaseReference ||
+      `android_${productId}_${purchaseToken.slice(-12)}`,
+    eventType: "android_sync",
     eventSource: "syncAndroidAiSubscriptionStatus",
     metadata: {
-      status: "verification_pending",
+      status: resolvedState.status,
+      rawState: resolvedState.rawState,
       requestedPlan: resolvedPlan,
       packageName,
-      orderId,
+      orderId: orderId || resolvedState.purchaseReference || "",
       purchaseTokenPreview: purchaseToken.slice(-8),
-      productId,
+      productId: resolvedState.productId || productId,
+      linkedPurchaseTokenPreview:
+        resolvedState.linkedPurchaseToken ? resolvedState.linkedPurchaseToken.slice(-8) : "",
+      acknowledgementState: resolvedState.acknowledgementState,
     },
     rawRef: "play_purchase_token",
   });
 
   logger.info("Android AI subscription sync requested.", {
     uid,
-    productId,
-    plan: resolvedPlan,
+    productId: resolvedState.productId || productId,
+    plan: resolvedState.plan || resolvedPlan,
     packageName: packageName || null,
+    status: resolvedState.status,
   });
 
   return {
-    status: "verification_pending",
-    provider: "play_store",
-    plan: resolvedPlan,
+    status: resolvedState.status,
+    provider: resolvedState.provider,
+    plan: resolvedState.plan || resolvedPlan,
     eventId: syncEvent.eventId,
+    currentPeriodEndEpochSeconds: resolvedState.currentPeriodEndEpochSeconds || null,
   };
 });
 
@@ -6353,14 +6666,16 @@ exports.submitMerchOrder = onCall({
   }
 
   const orderData = await normalizeOrderSubmissionPayload(request.data, request.auth);
-  const orderRef = await admin.firestore().collection("orders").add(orderData);
+  const finalOrderData = isZeroCostOrder(orderData) ? applyZeroCostOrderState(orderData) : orderData;
+  const orderRef = await admin.firestore().collection("orders").add(finalOrderData);
 
   logger.info("Merch order created.", {
     orderId: orderRef.id,
-    userEmail: orderData.userEmail,
-    itemCount: orderData.items.length,
-    fulfillmentProvider: orderData.fulfillmentProvider,
-    shippingZone: orderData.shippingZone,
+    userEmail: finalOrderData.userEmail,
+    itemCount: finalOrderData.items.length,
+    fulfillmentProvider: finalOrderData.fulfillmentProvider,
+    shippingZone: finalOrderData.shippingZone,
+    zeroCost: isZeroCostOrder(finalOrderData),
   });
 
   return {
@@ -6406,6 +6721,29 @@ exports.startMerchCheckout = onCall({
     paymentMethod,
   }, request.auth);
   const orderRef = admin.firestore().collection("orders").doc();
+
+  if (isZeroCostOrder(orderData)) {
+    const finalOrderData = applyZeroCostOrderState(orderData);
+    await orderRef.set(finalOrderData);
+
+    logger.info("Zero-cost merch order confirmed without hosted payment.", {
+      orderId: orderRef.id,
+      platform,
+      userEmail: finalOrderData.userEmail,
+      fulfillmentProvider: finalOrderData.fulfillmentProvider,
+    });
+
+    return {
+      orderId: orderRef.id,
+      checkoutUrl: buildReturnPageUrl({
+        projectId,
+        platform,
+        status: "success",
+        orderId: orderRef.id,
+      }),
+      sessionId: null,
+    };
+  }
 
   const checkoutSession = await createHostedCheckoutSession({
     secretKey,
@@ -6589,7 +6927,7 @@ exports.syncIosAiSubscriptionStatus = onCall({
   }
 
   const iosProductIdToPlan = buildIosAiSubscriptionProductMap(paymentSettings);
-  if (Object.keys(iosProductIdToPlan).length < 2) {
+  if (!hasConfiguredAiPlanProductMapping(iosProductIdToPlan)) {
     throw new HttpsError(
         "failed-precondition",
         "Die iOS-Produkt-IDs fuer Creator und Studio fehlen noch im Payment-Setup.",
@@ -7755,6 +8093,7 @@ exports.rejectMembershipRecommendation = onCall({
 exports.getMembershipLearningInsights = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
+  maxInstances: 5,
 }, async (request) => {
   await assertCallableSecurity(request, "getMembershipLearningInsights");
   const isOwner = await isOwnerAuth(request.auth);
@@ -7794,6 +8133,7 @@ exports.getMembershipLearningInsights = onCall({
 exports.getMembershipLifecycleTimeline = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
+  maxInstances: 5,
 }, async (request) => {
   await assertCallableSecurity(request, "getMembershipLifecycleTimeline");
   const isOwner = await isOwnerAuth(request.auth);
@@ -7939,6 +8279,7 @@ exports.setMembershipHygieneControls = onCall({
 exports.getMembershipHygieneControls = onCall({
   region: "us-central1",
   timeoutSeconds: 20,
+  maxInstances: 5,
 }, async (request) => {
   await assertCallableSecurity(request, "getMembershipHygieneControls");
   const isOwner = await isOwnerAuth(request.auth);
@@ -7957,6 +8298,7 @@ exports.getMembershipHygieneControls = onCall({
 exports.getAiProfitDashboard = onCall({
   region: "us-central1",
   timeoutSeconds: 60,
+  maxInstances: 5,
 }, async (request) => {
   await assertCallableSecurity(request, "getAiProfitDashboard");
   const isOwner = await isOwnerAuth(request.auth);
@@ -9112,7 +9454,10 @@ exports.applyBudgetLockdown = onMessagePublished({
   }, "billing_budget_alert");
 });
 
-exports.enforceRegistrationLockdown = functionsV1.auth.user().onCreate(async (user) => {
+exports.enforceRegistrationLockdown = functionsV1
+    .runWith({maxInstances: 10})
+    .auth.user()
+    .onCreate(async (user) => {
   const email = normalizeEmail(user.email);
   const role = email === OWNER_EMAIL ? USER_ROLES.owner : USER_ROLES.user;
   const runtimeConfig = await getRuntimeConfig({forceRefresh: true});
@@ -9141,6 +9486,7 @@ exports.enforceRegistrationLockdown = functionsV1.auth.user().onCreate(async (us
 exports.processConfirmedMerchOrders = onDocumentWritten({
   document: "orders/{orderId}",
   region: "us-central1",
+  secrets: [shopifyAdminAccessToken],
   timeoutSeconds: 120,
 }, async (event) => {
   const beforeData = event.data?.before?.data() || null;

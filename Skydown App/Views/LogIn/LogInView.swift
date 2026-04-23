@@ -8,6 +8,7 @@ import SwiftUI
 
 struct LoginView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authManager: AuthManager
     @StateObject private var viewModel = LoginViewModel()
     @State private var showingRegistrationSheet = false
     @Environment(\.colorScheme) private var colorScheme
@@ -58,7 +59,7 @@ struct LoginView: View {
                 }
                 
                 Button {
-                    Task { await viewModel.signIn() }
+                    Task { await signInAndHydrateSession() }
                 } label: {
                     if viewModel.isLoading {
                         ProgressView().progressViewStyle(.circular).tint(.white)
@@ -77,7 +78,7 @@ struct LoginView: View {
                 .accessibilityIdentifier("login.submit")
 
                 Button {
-                    Task { await viewModel.signInWithGoogle() }
+                    Task { await signInWithGoogleAndHydrateSession() }
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "globe")
@@ -120,6 +121,18 @@ struct LoginView: View {
                     message: viewModel.toastMessage,
                     style: viewModel.toastStyle)
         .accessibilityIdentifier("login.root")
+    }
+
+    private func signInAndHydrateSession() async {
+        await viewModel.signIn()
+        guard viewModel.isAuthenticated else { return }
+        _ = await authManager.refreshCurrentUser()
+    }
+
+    private func signInWithGoogleAndHydrateSession() async {
+        await viewModel.signInWithGoogle()
+        guard viewModel.isAuthenticated else { return }
+        _ = await authManager.refreshCurrentUser()
     }
 }
 

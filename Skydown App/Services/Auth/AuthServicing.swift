@@ -131,6 +131,7 @@ final class FirebaseAuthService: AuthServicing {
     func signIn(email: String, password: String) async throws {
         let result = try await auth.signIn(withEmail: email, password: password)
         await syncSessionClaimsIfPossible(for: result.user)
+        await syncUserDocumentIfPossible(for: result.user)
     }
 
     func signInWithGoogle(
@@ -597,19 +598,36 @@ final class FirebaseAuthService: AuthServicing {
             repairFields["aiConsentGiven"] = registrationConsent.aiConsentEnabled
         }
 
-        if data["aiTextRequestsPerDay"] == nil || resolvedRole == .owner {
+        let minimumTextRequestsPerDay = resolvedQuotaPlan.aiTextRequestsPerDay
+        let currentTextRequestsPerDay = (data["aiTextRequestsPerDay"] as? NSNumber)?.intValue
+        if currentTextRequestsPerDay == nil ||
+            currentTextRequestsPerDay.map({ $0 < minimumTextRequestsPerDay }) == true ||
+            resolvedRole == .owner {
             repairFields["aiTextRequestsPerDay"] = resolvedQuotaPlan.aiTextRequestsPerDay
         }
 
-        if data["aiVisualRequestsPerDay"] == nil || resolvedRole == .owner {
+        let minimumVisualRequestsPerDay = resolvedQuotaPlan.aiVisualRequestsPerDay
+        let currentVisualRequestsPerDay = (data["aiVisualRequestsPerDay"] as? NSNumber)?.intValue
+        if currentVisualRequestsPerDay == nil ||
+            currentVisualRequestsPerDay.map({ $0 < minimumVisualRequestsPerDay }) == true ||
+            resolvedRole == .owner {
             repairFields["aiVisualRequestsPerDay"] = resolvedQuotaPlan.aiVisualRequestsPerDay
         }
 
-        if data["aiAgentRequestsPerDay"] == nil || resolvedRole == .owner {
+        let minimumAgentRequestsPerDay = resolvedQuotaPlan.aiAgentRequestsPerDay
+        let currentAgentRequestsPerDay = (data["aiAgentRequestsPerDay"] as? NSNumber)?.intValue
+        if currentAgentRequestsPerDay == nil ||
+            currentAgentRequestsPerDay.map({ $0 < minimumAgentRequestsPerDay }) == true ||
+            resolvedRole == .owner {
             repairFields["aiAgentRequestsPerDay"] = resolvedQuotaPlan.aiAgentRequestsPerDay
         }
 
-        if data["aiHistoryRetentionDays"] == nil || resolvedRole == .owner {
+        let minimumHistoryRetentionDays = resolvedQuotaPlan.aiHistoryRetentionDays
+        let currentHistoryRetentionDays = (data["aiHistoryRetentionDays"] as? NSNumber)?.intValue
+        let allowedHistoryRetentionDays = [1, 3, 7, 30]
+        if currentHistoryRetentionDays == nil ||
+            currentHistoryRetentionDays.map({ !allowedHistoryRetentionDays.contains($0) || $0 < minimumHistoryRetentionDays }) == true ||
+            resolvedRole == .owner {
             repairFields["aiHistoryRetentionDays"] = resolvedQuotaPlan.aiHistoryRetentionDays
         }
 

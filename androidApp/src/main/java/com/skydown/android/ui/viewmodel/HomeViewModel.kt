@@ -27,6 +27,7 @@ class HomeViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    private var refreshGeneration: Long = 0
 
     private val featuredArtists = listOf(
         "JANNO",
@@ -41,12 +42,15 @@ class HomeViewModel : ViewModel() {
     }
 
     fun refresh() {
+        val generation = ++refreshGeneration
         viewModelScope.launch {
             supervisorScope {
                 launch {
                     val latestTrack = loadLatestTrack()
+                    if (!isCurrentRefresh(generation)) return@launch
                     _uiState.update {
-                        it.copy(
+                        if (!isCurrentRefresh(generation)) return@update it
+                        val updatedState = it.copy(
                             featuredTrack = latestTrack,
                             homeTrackMessage = if (latestTrack == null) {
                                 "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
@@ -54,13 +58,16 @@ class HomeViewModel : ViewModel() {
                                 null
                             },
                         )
+                        updatedState.copy(contentSignal = buildContentSignal(updatedState))
                     }
                 }
 
                 launch {
                     val latestBeat = loadLatestBeat()
+                    if (!isCurrentRefresh(generation)) return@launch
                     _uiState.update {
-                        it.copy(
+                        if (!isCurrentRefresh(generation)) return@update it
+                        val updatedState = it.copy(
                             featuredBeat = latestBeat,
                             homeBeatMessage = if (latestBeat == null) {
                                 "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
@@ -68,13 +75,16 @@ class HomeViewModel : ViewModel() {
                                 null
                             },
                         )
+                        updatedState.copy(contentSignal = buildContentSignal(updatedState))
                     }
                 }
 
                 launch {
                     val latestVideo = loadLatestVideo()
+                    if (!isCurrentRefresh(generation)) return@launch
                     _uiState.update {
-                        it.copy(
+                        if (!isCurrentRefresh(generation)) return@update it
+                        val updatedState = it.copy(
                             featuredVideo = latestVideo,
                             homeVideoMessage = if (latestVideo == null) {
                                 "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
@@ -82,21 +92,23 @@ class HomeViewModel : ViewModel() {
                                 null
                             },
                         )
+                        updatedState.copy(contentSignal = buildContentSignal(updatedState))
                     }
                 }
 
                 launch {
-                    loadRuntimeSignals()
+                    loadRuntimeSignals(generation)
                 }
             }
         }
     }
 
-    private suspend fun loadRuntimeSignals() {
+    private suspend fun loadRuntimeSignals(generation: Long) {
         val uid = auth.currentUser?.uid
         if (uid.isNullOrBlank()) {
             _uiState.update { state ->
-                state.copy(
+                if (!isCurrentRefresh(generation)) return@update state
+                val updatedState = state.copy(
                     aiUsageWarning = null,
                     creatorLimitZone = false,
                     agentRunning = false,
@@ -105,8 +117,8 @@ class HomeViewModel : ViewModel() {
                     syncPaused = false,
                     recoverableError = null,
                     newDataAvailable = false,
-                    contentSignal = buildContentSignal(state),
                 )
+                updatedState.copy(contentSignal = buildContentSignal(updatedState))
             }
             return
         }
@@ -186,7 +198,8 @@ class HomeViewModel : ViewModel() {
         }
 
         _uiState.update { state ->
-            state.copy(
+            if (!isCurrentRefresh(generation)) return@update state
+            val updatedState = state.copy(
                 aiUsageWarning = aiUsageWarning,
                 creatorLimitZone = creatorLimitZone,
                 agentRunning = agentRunning,
@@ -195,10 +208,12 @@ class HomeViewModel : ViewModel() {
                 syncPaused = !newDataAvailable,
                 recoverableError = recoverableError,
                 newDataAvailable = newDataAvailable,
-                contentSignal = buildContentSignal(state),
             )
+            updatedState.copy(contentSignal = buildContentSignal(updatedState))
         }
     }
+
+    private fun isCurrentRefresh(generation: Long): Boolean = generation == refreshGeneration
 
     private fun buildContentSignal(state: HomeUiState): String? {
         return when {
@@ -227,6 +242,18 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun compareTracksForHomePriority(lhs: Track, rhs: Track): Int {
+        val lhsHasPreview = !lhs.previewUrl.isNullOrBlank()
+        val rhsHasPreview = !rhs.previewUrl.isNullOrBlank()
+        if (lhsHasPreview != rhsHasPreview) {
+            return if (lhsHasPreview) -1 else 1
+        }
+
+        val lhsHasFallbackTarget = trackHasHomeFallbackTarget(lhs)
+        val rhsHasFallbackTarget = trackHasHomeFallbackTarget(rhs)
+        if (lhsHasFallbackTarget != rhsHasFallbackTarget) {
+            return if (lhsHasFallbackTarget) -1 else 1
+        }
+
         val lhsDate = parsedTrackReleaseDate(lhs.releaseDate)
         val rhsDate = parsedTrackReleaseDate(rhs.releaseDate)
 
@@ -239,13 +266,13 @@ class HomeViewModel : ViewModel() {
             }
         }
 
-        val lhsHasPlayback = !lhs.previewUrl.isNullOrBlank() || !lhs.externalUrl.isNullOrBlank()
-        val rhsHasPlayback = !rhs.previewUrl.isNullOrBlank() || !rhs.externalUrl.isNullOrBlank()
-        if (lhsHasPlayback != rhsHasPlayback) {
-            return if (lhsHasPlayback) -1 else 1
-        }
-
         return lhs.trackName.lowercase().compareTo(rhs.trackName.lowercase())
+    }
+
+    private fun trackHasHomeFallbackTarget(track: Track): Boolean {
+        return !track.spotifyTrackId.isNullOrBlank() ||
+            !track.spotifyArtistId.isNullOrBlank() ||
+            !track.externalUrl.isNullOrBlank()
     }
 
     private fun parsedTrackReleaseDate(value: String?): Long? {
@@ -262,16 +289,16 @@ class HomeViewModel : ViewModel() {
     private suspend fun loadLatestBeat(): FeaturedBeatHighlight? {
         val snapshot = firestore.collection("nicmaBeatHub")
             .whereEqualTo("isPublic", true)
-            .limit(20)
             .get()
             .await()
 
-        val latestDocument = snapshot.documents
+        val featuredBeats = snapshot.documents
             .sortedByDescending(::documentTimestamp)
-            .firstOrNull()
-            ?: return null
+            .mapNotNull(::mapFeaturedBeat)
 
-        return mapFeaturedBeat(latestDocument)
+        return featuredBeats.firstOrNull { it.supportsDirectPlayback }
+            ?: featuredBeats.firstOrNull { it.supportsExternalFallback }
+            ?: featuredBeats.firstOrNull()
     }
 
     private suspend fun loadLatestVideo(): FeaturedVideoHighlight? {
@@ -350,3 +377,9 @@ class HomeViewModel : ViewModel() {
         }
     }
 }
+
+private val FeaturedBeatHighlight.supportsDirectPlayback: Boolean
+    get() = isPlayable && downloadUrl.isNotBlank()
+
+private val FeaturedBeatHighlight.supportsExternalFallback: Boolean
+    get() = openUrl.isNotBlank()

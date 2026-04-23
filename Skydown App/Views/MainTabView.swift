@@ -1145,6 +1145,7 @@ private struct AIHubCompactHeader: View {
                     )
                 }
                 .buttonStyle(SkydownTactileButtonStyle())
+                .accessibilityIdentifier("tools.mode.\(currentMode.rawValue.lowercased())")
             }
 
             Button(action: onToggleWorkflow) {

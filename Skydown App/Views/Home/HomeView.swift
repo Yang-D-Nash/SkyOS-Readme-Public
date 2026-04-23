@@ -143,11 +143,17 @@ struct HomeViewContent: View {
                             hasVideoSignal: hasVideoSignal,
                             trackName: featuredTrack?.trackName,
                             beatName: featuredBeat?.title,
-                            videoName: featuredVideo?.title
+                            videoName: featuredVideo?.title,
+                            aiUsageWarning: viewModel.aiUsageWarning,
+                            creatorLimitZone: viewModel.creatorLimitZone,
+                            agentRunning: viewModel.agentRunning,
+                            workflowWaiting: viewModel.workflowWaiting,
+                            commerceHint: viewModel.commerceSignal,
+                            syncPaused: viewModel.syncPaused,
+                            recoverableError: viewModel.recoverableError,
+                            contentSignal: viewModel.contentSignal
                         )
                         .homeReveal(4)
-
-                        let mediaPrimaryTarget = homeMediaPrimaryTarget(viewModel)
 
                         HomeMediaClusterSection(
                             colorScheme: colorScheme,
@@ -155,16 +161,10 @@ struct HomeViewContent: View {
                             playbackManager: audioPlayerManager,
                             beatPlaybackManager: beatPlaybackManager,
                             videoPlaybackManager: videoPlaybackManager,
-                            primaryTarget: mediaPrimaryTarget,
-                            onOpenBeatHub: openBeatHubFromMediaCluster,
                             onOpenVideoHub: openVideoHubFromMediaCluster(video:),
                             onOpenOriginal: openOriginalFromMediaCluster(video:)
                         )
-                        .id(HomeSectionAnchor.release.rawValue)
                         .homeReveal(5)
-
-                        Color.clear.frame(height: 0).id(HomeSectionAnchor.beat.rawValue)
-                        Color.clear.frame(height: 0).id(HomeSectionAnchor.video.rawValue)
 
                         Text("SkyOS Home fuehrt ruhig: Signal lesen, Fokus setzen, naechsten Schritt ausfuehren.")
                             .font(.footnote)
@@ -285,11 +285,6 @@ struct HomeViewContent: View {
         videoPlaybackManager.stop()
     }
 
-    private func openBeatHubFromMediaCluster() {
-        stopAllMediaPlayback()
-        presentSheet(.beatHub)
-    }
-
     private func openVideoHubFromMediaCluster(video: FeaturedHomeVideo) {
         stopAllMediaPlayback()
         videoHubLaunchTarget = HomeVideoHubLaunchTarget(videoID: video.id)
@@ -320,19 +315,6 @@ private func homeCommandPriorityTarget(_ viewModel: HomeViewModel) -> String {
     }
 }
 
-@MainActor
-private func homeMediaPrimaryTarget(_ viewModel: HomeViewModel) -> String {
-    if viewModel.featuredTrack == nil { return "track" }
-    if viewModel.featuredBeat == nil { return "beat" }
-    if viewModel.featuredVideo == nil { return "video" }
-    let hour = Calendar.current.component(.hour, from: Date())
-    switch hour {
-    case 5..<12: return "track"
-    case 12..<18: return "beat"
-    default: return "video"
-    }
-}
-
 private enum HomePresentedSheet: String, Identifiable, Equatable {
     case beatHub
     case nicmaProducer
@@ -351,8 +333,6 @@ private struct HomeMediaClusterSection: View {
     let playbackManager: AudioPlayerManager
     let beatPlaybackManager: BeatPlaybackManager
     let videoPlaybackManager: HomeInlineVideoPlaybackManager
-    let primaryTarget: String
-    let onOpenBeatHub: () -> Void
     let onOpenVideoHub: (FeaturedHomeVideo) -> Void
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
@@ -363,8 +343,6 @@ private struct HomeMediaClusterSection: View {
             playbackManager: playbackManager,
             beatPlaybackManager: beatPlaybackManager,
             videoPlaybackManager: videoPlaybackManager,
-            primaryTarget: primaryTarget,
-            onOpenBeatHub: onOpenBeatHub,
             onOpenVideoHub: onOpenVideoHub,
             onOpenOriginal: onOpenOriginal
         )
@@ -379,6 +357,14 @@ private struct HomeLiveSignalSection: View {
     let trackName: String?
     let beatName: String?
     let videoName: String?
+    let aiUsageWarning: String?
+    let creatorLimitZone: Bool
+    let agentRunning: Bool
+    let workflowWaiting: Bool
+    let commerceHint: String?
+    let syncPaused: Bool
+    let recoverableError: String?
+    let contentSignal: String?
 
     var body: some View {
         HomeLiveSignalSurface(
@@ -388,7 +374,15 @@ private struct HomeLiveSignalSection: View {
             hasVideoSignal: hasVideoSignal,
             trackName: trackName,
             beatName: beatName,
-            videoName: videoName
+            videoName: videoName,
+            aiUsageWarning: aiUsageWarning,
+            agentRunning: agentRunning,
+            commerceHint: commerceHint,
+            syncPaused: syncPaused,
+            creatorLimitZone: creatorLimitZone,
+            workflowWaiting: workflowWaiting,
+            recoverableError: recoverableError,
+            contentSignal: contentSignal
         )
     }
 }

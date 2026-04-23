@@ -412,6 +412,10 @@ struct SettingsView: View {
 
                     controlCenterSectionCard
 
+                    if isOwnerUser {
+                        adminWorkspaceSectionCard
+                    }
+
                     SettingsSectionCard(title: AppLocalized.text("settings.section.profile_account", fallback: "Profile / Account"), colorScheme: effectiveColorScheme) {
                         if let user = authManager.userSession {
                             VStack(alignment: .leading, spacing: 12) {
@@ -425,6 +429,7 @@ struct SettingsView: View {
                                 Text(user.email)
                                     .font(.subheadline)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                    .accessibilityIdentifier("settings.current_email")
 
                                 Button {
                                     presentSheet(.profileEditor)
@@ -510,7 +515,9 @@ struct SettingsView: View {
 
                     membershipSectionCard
 
-                    adminWorkspaceSectionCard
+                    if !isOwnerUser {
+                        adminWorkspaceSectionCard
+                    }
 
                     if authManager.userSession != nil {
                         personalAgentServiceSectionCard
@@ -769,6 +776,7 @@ struct SettingsView: View {
                     } label: {
                         Label(AppLocalized.text("common.close", fallback: "Close"), systemImage: "xmark")
                     }
+                    .accessibilityIdentifier("settings.close")
                 }
             }
             .background(
@@ -1263,16 +1271,51 @@ struct SettingsView: View {
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                 if isOwnerUser {
+                    Button {
+                        presentSheet(.adminWorkspace(.membershipOps))
+                    } label: {
+                        HStack(alignment: .center, spacing: 12) {
+                            Image(systemName: "chart.xyaxis.line")
+                                .font(.headline.weight(.semibold))
+                                .foregroundColor(AppColors.accent(for: effectiveColorScheme))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Membership Ops")
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                                Text(adminWorkspaceStatusText(for: .membershipOps))
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                    .lineLimit(2)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: effectiveColorScheme))
+                    .skydownInteractiveFeedback()
+                    .accessibilityIdentifier("settings.owner.command.membershipOps")
+
                     OwnerCommandCenterCard(
                         colorScheme: effectiveColorScheme,
                         isOwner: isOwnerUser,
                         paymentStatus: "\(visiblePaymentMethodCount) Zahlungsrouten",
                         userStatus: "\(adminUserManagementStore.users.count) Konten",
                         headerStatus: "\(configuredScreenHeaderCount) Header",
+                        membershipStatus: adminWorkspaceStatusText(for: .membershipOps),
                         aiStatus: aiRuntimeSettingsStore.settings.costGuardEnabled ? "AI Guard aktiv" : "AI Guard pruefen",
                         onOpenUsers: { presentSheet(.adminWorkspace(.users)) },
                         onOpenPayments: { presentSheet(.adminWorkspace(.payments)) },
                         onOpenHeaders: { presentSheet(.adminWorkspace(.headers)) },
+                        onOpenMembershipOps: { presentSheet(.adminWorkspace(.membershipOps)) },
                         onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
                     )
                     .accessibilityIdentifier("settings.owner.command_center")
@@ -1292,11 +1335,11 @@ struct SettingsView: View {
                             SettingsAdminWorkspaceListRow(
                                 section: section,
                                 colorScheme: effectiveColorScheme,
-                                detailText: adminWorkspaceStatusText(for: section)
+                                detailText: adminWorkspaceStatusText(for: section),
+                                accessibilityIdentifier: "settings.owner.workspace.\(section.accessibilityKey)"
                             ) {
                                 presentSheet(.adminWorkspace(section))
                             }
-                            .accessibilityIdentifier("settings.owner.workspace.\(section.accessibilityKey)")
                         }
                     }
                 } else {
@@ -3356,8 +3399,14 @@ struct SettingsView: View {
         let androidStudioProductID = aiAndroidStudioProductIDDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if aiSubscriptionsEnabledDraft &&
-            (creatorPriceID.isEmpty || studioPriceID.isEmpty || iosCreatorProductID.isEmpty || iosStudioProductID.isEmpty || iosAppAppleID.isEmpty) {
-            showToastMessage("Bitte Stripe-Price-IDs, iOS-Produkt-IDs und die Apple App ID eintragen, bevor du KI-Abo aktivierst.", style: .error)
+            (creatorPriceID.isEmpty ||
+             studioPriceID.isEmpty ||
+             iosCreatorProductID.isEmpty ||
+             iosStudioProductID.isEmpty ||
+             iosAppAppleID.isEmpty ||
+             androidCreatorProductID.isEmpty ||
+             androidStudioProductID.isEmpty) {
+            showToastMessage("Bitte Stripe-Price-IDs, iOS-/Android-Produkt-IDs und die Apple App ID eintragen, bevor du KI-Abo aktivierst.", style: .error)
             return
         }
 
@@ -3924,7 +3973,7 @@ private struct StripeBackendSecretsCard: View {
                 Spacer()
 
                 SettingsBadge(
-                    text: status.isReady ? "Live bereit" : "Setup fehlt",
+                    text: status.isReady ? "Backend bereit" : "Setup fehlt",
                     colorScheme: colorScheme
                 )
             }
@@ -3940,7 +3989,7 @@ private struct StripeBackendSecretsCard: View {
                 )
             }
 
-            Text("Nur beim Speichern — nicht in Firestore. Leer = unverändert.")
+            Text("Nur beim Speichern — nicht in Firestore. Live- oder Test-Keys sind moeglich. Leer = unveraendert.")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -3948,7 +3997,7 @@ private struct StripeBackendSecretsCard: View {
                 title: "Stripe Secret Key",
                 text: $stripeSecretKey,
                 colorScheme: colorScheme,
-                placeholder: "sk_live_... oder rk_live_..."
+                placeholder: "sk_live_..., rk_live_..., sk_test_... oder rk_test_..."
             )
 
             SettingsSecureInputField(
@@ -4425,10 +4474,12 @@ private struct OwnerCommandCenterCard: View {
     let paymentStatus: String
     let userStatus: String
     let headerStatus: String
+    let membershipStatus: String
     let aiStatus: String
     let onOpenUsers: () -> Void
     let onOpenPayments: () -> Void
     let onOpenHeaders: () -> Void
+    let onOpenMembershipOps: () -> Void
     let onOpenAI: () -> Void
 
     private var columns: [GridItem] {
@@ -4460,6 +4511,14 @@ private struct OwnerCommandCenterCard: View {
             }
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                OwnerCommandSignalButton(
+                    colorScheme: colorScheme,
+                    title: "Membership Ops",
+                    detail: membershipStatus,
+                    iconName: "chart.xyaxis.line",
+                    isEnabled: isOwner,
+                    action: onOpenMembershipOps
+                )
                 OwnerCommandSignalButton(
                     colorScheme: colorScheme,
                     title: "Rollen",
@@ -4520,10 +4579,29 @@ private struct OwnerCommandSignalButton: View {
     let detail: String
     let iconName: String
     let isEnabled: Bool
+    let accessibilityIdentifier: String?
     let action: () -> Void
 
+    init(
+        colorScheme: ColorScheme,
+        title: String,
+        detail: String,
+        iconName: String,
+        isEnabled: Bool,
+        accessibilityIdentifier: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.colorScheme = colorScheme
+        self.title = title
+        self.detail = detail
+        self.iconName = iconName
+        self.isEnabled = isEnabled
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.action = action
+    }
+
     var body: some View {
-        Button(action: action) {
+        let button = Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Image(systemName: iconName)
@@ -4559,6 +4637,12 @@ private struct OwnerCommandSignalButton: View {
         .buttonStyle(.plain)
         .skydownInteractiveFeedback()
         .disabled(!isEnabled)
+
+        if let accessibilityIdentifier, !accessibilityIdentifier.isEmpty {
+            button.accessibilityIdentifier(accessibilityIdentifier)
+        } else {
+            button
+        }
     }
 }
 
@@ -5062,6 +5146,7 @@ private struct SettingsAdminWorkspaceListRow: View {
     let section: SettingsAdminWorkspaceSection
     let colorScheme: ColorScheme
     let detailText: String
+    let accessibilityIdentifier: String
     let onTap: () -> Void
 
     var body: some View {
@@ -5110,6 +5195,7 @@ private struct SettingsAdminWorkspaceListRow: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
+        .accessibilityIdentifier(accessibilityIdentifier)
         .buttonStyle(.plain)
         .skydownTactileAction()
     }

@@ -102,9 +102,13 @@ class AiNativeBillingManager(
     }
 
     private suspend fun queryProducts(productIds: List<String>): List<ProductDetails> {
-        if (productIds.isEmpty()) return emptyList()
+        val configuredProductIds = productIds
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+        if (configuredProductIds.isEmpty()) return emptyList()
         return suspendCancellableCoroutine { continuation ->
-            val queryProducts = productIds.map { id ->
+            val queryProducts = configuredProductIds.map { id ->
                 QueryProductDetailsParams.Product.newBuilder()
                     .setProductId(id)
                     .setProductType(BillingClient.ProductType.SUBS)

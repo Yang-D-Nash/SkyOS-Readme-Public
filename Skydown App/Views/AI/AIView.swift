@@ -179,7 +179,7 @@ struct AIView: View {
                         if let usage = viewModel.revenueUsage {
                             AIRevenueUsageCard(usage: usage, colorScheme: colorScheme)
                                 .onTapGesture {
-                                    if usage.userFacingReason != nil {
+                                    if !usage.userFacingReason.isEmpty {
                                         MembershipAnalyticsTracker().track(
                                             "upgrade_after_deny",
                                             reason: membershipCoordinator.lastOpenReason.rawValue,
@@ -231,7 +231,7 @@ struct AIView: View {
                                 if let usage = viewModel.revenueUsage {
                                     AIRevenueUsageCard(usage: usage, colorScheme: colorScheme)
                                         .onTapGesture {
-                                            if usage.userFacingReason != nil {
+                                            if !usage.userFacingReason.isEmpty {
                                                 MembershipAnalyticsTracker().track(
                                                     "upgrade_after_deny",
                                                     reason: membershipCoordinator.lastOpenReason.rawValue,

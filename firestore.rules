@@ -931,7 +931,9 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow create: if false;
-      allow read, update, delete: if isOwner();
+      allow read: if isOwner()
+        || (signedIn() && resource.data.orderOwnerUid == request.auth.uid);
+      allow update, delete: if isOwner();
     }
 
     match /appConfig/{documentId} {

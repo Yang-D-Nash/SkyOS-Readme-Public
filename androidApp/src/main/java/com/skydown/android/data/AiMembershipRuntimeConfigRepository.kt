@@ -4,10 +4,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
 data class AiMembershipRuntimeConfig(
-    val androidProMonthlySku: String = "com.skydown.ai.creator.monthly",
-    val androidProYearlySku: String = "com.skydown.ai.creator.yearly",
-    val androidCreatorMonthlySku: String = "com.skydown.ai.studio.monthly",
-    val androidCreatorYearlySku: String = "com.skydown.ai.studio.yearly",
+    val androidProMonthlySku: String = "",
+    val androidProYearlySku: String = "",
+    val androidCreatorMonthlySku: String = "",
+    val androidCreatorYearlySku: String = "",
     val annualDiscountCopy: String = "Mit Jahresplan sparst du und bleibst im Flow.",
     val planOrder: List<String> = listOf("free", "pro", "creator"),
     val defaultAnnualToggle: Boolean = false,
@@ -40,10 +40,10 @@ private fun Map<String, Any>.toMembershipRuntimeConfig(): AiMembershipRuntimeCon
         ?: listOf("free", "pro", "creator")
 
     return AiMembershipRuntimeConfig(
-        androidProMonthlySku = string("androidCreatorProductId", "com.skydown.ai.creator.monthly"),
-        androidProYearlySku = string("androidCreatorYearlyProductId", "com.skydown.ai.creator.yearly"),
-        androidCreatorMonthlySku = string("androidStudioProductId", "com.skydown.ai.studio.monthly"),
-        androidCreatorYearlySku = string("androidStudioYearlyProductId", "com.skydown.ai.studio.yearly"),
+        androidProMonthlySku = string("androidCreatorProductId", ""),
+        androidProYearlySku = string("androidCreatorYearlyProductId", ""),
+        androidCreatorMonthlySku = string("androidStudioProductId", ""),
+        androidCreatorYearlySku = string("androidStudioYearlyProductId", ""),
         annualDiscountCopy = string("annualDiscountCopy", "Mit Jahresplan sparst du und bleibst im Flow."),
         planOrder = planOrder,
         defaultAnnualToggle = bool("defaultAnnualToggle", false),

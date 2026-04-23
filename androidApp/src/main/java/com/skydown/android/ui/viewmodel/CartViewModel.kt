@@ -199,8 +199,9 @@ class CartViewModel : ViewModel() {
             }
             return Result.failure(error)
         }
+        val isZeroCostOrder = pricing.total <= 0.01
         val paymentLine = state.selectedPaymentMethod
-            .takeIf { it.isNotBlank() }
+            ?.takeIf { !isZeroCostOrder && it.isNotBlank() }
             ?.let { "Gewuenschte Zahlart: $it\n\n" }
             .orEmpty()
         val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
@@ -235,7 +236,11 @@ class CartViewModel : ViewModel() {
                     it.selectedPaymentMethod
                 },
                 errorMessage = result.exceptionOrNull()?.message,
-                successMessage = if (result.isSuccess) "Bestellung erfolgreich abgeschickt!" else null,
+                successMessage = if (result.isSuccess) {
+                    if (isZeroCostOrder) "Bestellung bestaetigt." else "Bestellung erfolgreich abgeschickt!"
+                } else {
+                    null
+                },
             )
         }
         return result.map { }
@@ -285,7 +290,8 @@ class CartViewModel : ViewModel() {
             }
             return Result.failure(IllegalArgumentException("Checkout nicht verfuegbar."))
         }
-        val paymentLine = "Gewuenschte Zahlart: $paymentMethod\n\n"
+        val isZeroCostOrder = pricing.total <= 0.01
+        val paymentLine = if (isZeroCostOrder) "" else "Gewuenschte Zahlart: $paymentMethod\n\n"
         val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
             _uiState.update {
                 it.copy(
@@ -322,7 +328,11 @@ class CartViewModel : ViewModel() {
                     it.selectedPaymentMethod
                 },
                 errorMessage = result.exceptionOrNull()?.message,
-                successMessage = if (result.isSuccess) "Checkout geoeffnet." else null,
+                successMessage = if (result.isSuccess) {
+                    if (isZeroCostOrder) "Bestellung bestaetigt." else "Checkout geoeffnet."
+                } else {
+                    null
+                },
             )
         }
         return result
@@ -349,7 +359,7 @@ class CartViewModel : ViewModel() {
                     com.skydown.android.data.CheckoutRedirectStatus.Success -> null
                 },
                 successMessage = when (status) {
-                    com.skydown.android.data.CheckoutRedirectStatus.Success -> "Checkout abgeschlossen. Zahlung wird jetzt synchronisiert."
+                    com.skydown.android.data.CheckoutRedirectStatus.Success -> "Checkout abgeschlossen. Wir pruefen jetzt die Zahlungsbestaetigung und aktualisieren den Status hier."
                     com.skydown.android.data.CheckoutRedirectStatus.Cancel -> null
                 },
             )

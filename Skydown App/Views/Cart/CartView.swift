@@ -83,6 +83,12 @@ struct CartView: View {
         ["Stripe", "Klarna"].contains(selectedPaymentMethod)
     }
 
+    private var isZeroCostHostedCheckout: Bool {
+        isHostedCheckoutSelection &&
+        !cartVM.items.isEmpty &&
+        pricingSummary.total <= 0.01
+    }
+
     private var hasCustomMessage: Bool {
         message.trimmingCharacters(in: .whitespacesAndNewlines) != defaultMessageText
     }
@@ -362,7 +368,8 @@ struct CartView: View {
                                 PaymentMethodSelectionCard(
                                     colorScheme: colorScheme,
                                     methods: availableCheckoutMethods,
-                                    selectedMethod: $selectedPaymentMethod
+                                    selectedMethod: $selectedPaymentMethod,
+                                    isZeroCostOrder: !cartVM.items.isEmpty && pricingSummary.total <= 0.01
                                 )
                             }
 
@@ -374,7 +381,8 @@ struct CartView: View {
                                     SelectedPaymentMethodInfoCard(
                                         colorScheme: colorScheme,
                                         settings: paymentMethodSettingsStore.settings,
-                                        selectedMethod: selectedPaymentMethod
+                                        selectedMethod: selectedPaymentMethod,
+                                        isZeroCostOrder: !cartVM.items.isEmpty && pricingSummary.total <= 0.01
                                     )
                                 }
                             }
@@ -447,10 +455,14 @@ struct CartView: View {
                         totalPrice: pricingSummary.total,
                         readinessTitle: checkoutReadinessTitle,
                         readinessDetail: checkoutReadinessDetail,
-                        buttonTitle: isHostedCheckoutSelection ? "Sicher fortfahren" : "Bestellung pruefen",
-                        trustHint: isHostedCheckoutSelection
-                            ? "Sichere Weiterleitung mit klarer Rueckmeldung."
-                            : "Sichere Uebermittlung, Support ist erreichbar.",
+                        buttonTitle: isZeroCostHostedCheckout
+                            ? "Bestellung bestaetigen"
+                            : (isHostedCheckoutSelection ? "Sicher fortfahren" : "Bestellung pruefen"),
+                        trustHint: isZeroCostHostedCheckout
+                            ? "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
+                            : (isHostedCheckoutSelection
+                                ? "Sichere Weiterleitung mit klarer Rueckmeldung."
+                                : "Sichere Uebermittlung, Support ist erreichbar."),
                         isReady: canSubmitOrder,
                         isSubmitting: isSubmitting
                     ) {
@@ -471,13 +483,19 @@ struct CartView: View {
             }
             .onChange(of: hostedCheckoutRedirectStore.latestEvent) { _, event in
                 guard let event else { return }
+                let restoredCart = cartVM.handleHostedCheckoutRedirect(status: event.status)
 
                 switch event.status {
                 case .success:
-                    cartVM.showUserToast("Checkout abgeschlossen. Wir bestaetigen die Zahlung jetzt im Hintergrund.", style: .success)
-                    postCheckoutHighlight = "Dein Checkout war erfolgreich. Wir halten dich hier ueber den naechsten Status auf dem Laufenden."
+                    cartVM.showUserToast("Checkout abgeschlossen. Wir pruefen jetzt die Zahlungsbestaetigung und aktualisieren den Status hier.", style: .success)
+                    postCheckoutHighlight = "Checkout abgeschlossen. Wir halten dich hier ueber Zahlung und Versandstatus auf dem Laufenden."
                 case .cancel:
-                    cartVM.showUserToast("Checkout beendet. Deine Auswahl bleibt fuer den naechsten Schritt erhalten.", style: .info)
+                    if restoredCart {
+                        cartVM.showUserToast("Checkout abgebrochen. Dein Warenkorb wurde wiederhergestellt.", style: .info)
+                        postCheckoutHighlight = "Checkout abgebrochen. Deine Auswahl ist wieder im Warenkorb."
+                    } else {
+                        cartVM.showUserToast("Checkout abgebrochen. Die Bestellung bleibt unbezahlt.", style: .info)
+                    }
                 }
 
                 hostedCheckoutRedirectStore.clear()
@@ -505,6 +523,7 @@ struct CartView: View {
                 items: cartVM.items,
                 totalPrice: pricingSummary.total,
                 isHostedCheckout: isHostedCheckoutSelection,
+                isZeroCostOrder: isZeroCostHostedCheckout,
                 isSubmitting: isSubmitting,
                 onCancel: {
                     showCheckoutConfirmSheet = false
@@ -586,7 +605,9 @@ struct CartView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isSubmitting = false
                 }
-                postCheckoutHighlight = "Checkout gestartet. Nach der Zahlungsbestaetigung siehst du hier direkt den aktuellen Status."
+                postCheckoutHighlight = isZeroCostHostedCheckout
+                    ? "Bestellung bestaetigt. Status und Shop-Sync erscheinen hier direkt."
+                    : "Checkout gestartet. Nach der Zahlungsbestaetigung siehst du hier direkt den aktuellen Status."
                 return true
             }
 
@@ -813,6 +834,7 @@ private struct PaymentMethodSelectionCard: View {
     let colorScheme: ColorScheme
     let methods: [String]
     @Binding var selectedMethod: String
+    let isZeroCostOrder: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -892,7 +914,11 @@ private struct PaymentMethodSelectionCard: View {
             }
 
             if !selectedMethod.isEmpty {
-                Text("Deine Zahlungswahl wird im naechsten Schritt sicher fortgefuehrt.")
+                Text(
+                    isZeroCostOrder && ["Stripe", "Klarna"].contains(selectedMethod)
+                        ? "Fuer diesen 0-EUR-Testartikel wird keine Zahlung geoeffnet."
+                        : "Deine Zahlungswahl wird im naechsten Schritt sicher fortgefuehrt."
+                )
                     .font(.caption.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -904,7 +930,7 @@ private struct PaymentMethodSelectionCard: View {
     private func paymentRouteDetail(for method: String) -> String {
         switch method {
         case "Stripe":
-            return "Karten-Checkout"
+            return "Karte, Apple Pay, Google Pay und weitere sichere Optionen"
         case "Klarna":
             return "Klarna via Stripe"
         case "PayPal":
@@ -921,6 +947,7 @@ private struct SelectedPaymentMethodInfoCard: View {
     let colorScheme: ColorScheme
     let settings: PaymentMethodSettings
     let selectedMethod: String
+    let isZeroCostOrder: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -971,12 +998,20 @@ private struct SelectedPaymentMethodInfoCard: View {
                 }
 
             case "Stripe":
-                Text("Stripe startet danach den sicheren Karten-Checkout.")
+                Text(
+                    isZeroCostOrder
+                        ? "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
+                        : "Stripe startet danach den sicheren Live-Checkout. Je nach Geraet und Verfuegbarkeit koennen Karte, Apple Pay, Google Pay oder weitere kompatible Zahlarten erscheinen."
+                )
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             case "Klarna":
-                Text("Klarna wird danach sicher ueber Stripe fortgefuehrt.")
+                Text(
+                    isZeroCostOrder
+                        ? "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
+                        : "Klarna wird danach sicher ueber Stripe fortgefuehrt."
+                )
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -987,6 +1022,9 @@ private struct SelectedPaymentMethodInfoCard: View {
     }
 
     private var paymentTrustLine: String {
+        if isZeroCostOrder && ["Stripe", "Klarna"].contains(selectedMethod) {
+            return "Kein Zahlbetrag. Direkte Bestellbestaetigung mit klarem Status."
+        }
         switch selectedMethod {
         case "Stripe", "Klarna":
             return "Sicherer Checkout mit geschuetzter Weiterleitung."
@@ -1337,6 +1375,7 @@ private struct CartCheckoutConfirmSheet: View {
     let items: [CartItem]
     let totalPrice: Double
     let isHostedCheckout: Bool
+    let isZeroCostOrder: Bool
     let isSubmitting: Bool
     let onCancel: () -> Void
     let onConfirm: () -> Void
@@ -1355,7 +1394,11 @@ private struct CartCheckoutConfirmSheet: View {
                 Text("Bestellung bestaetigen")
                     .font(.title3.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
-                Text(isHostedCheckout ? "Du wirst danach sicher zum Checkout weitergeleitet." : "Danach uebermitteln wir deine Bestellung sicher an das Team.")
+                Text(
+                    isZeroCostOrder
+                        ? "Fuer diesen 0-EUR-Testartikel wird die Bestellung direkt bestaetigt."
+                        : (isHostedCheckout ? "Du wirst danach sicher zum Checkout weitergeleitet." : "Danach uebermitteln wir deine Bestellung sicher an das Team.")
+                )
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -1432,7 +1475,11 @@ private struct CartCheckoutConfirmSheet: View {
                             .tint(.white)
                             .frame(maxWidth: .infinity, minHeight: 46)
                     } else {
-                        Text(isHostedCheckout ? "Sicher fortfahren" : "Bestellung senden")
+                        Text(
+                            isZeroCostOrder
+                                ? "Bestellung bestaetigen"
+                                : (isHostedCheckout ? "Sicher fortfahren" : "Bestellung senden")
+                        )
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity, minHeight: 46)
                     }
@@ -1516,7 +1563,7 @@ private struct CartSubmitBar: View {
                     Text("Checkout")
                         .font(.caption2.weight(.bold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    Text(totalPrice > 0 ? String(format: "EUR %.2f", totalPrice) : "Noch leer")
+                    Text(itemCount > 0 ? String(format: "EUR %.2f", totalPrice) : "Noch leer")
                         .font(.title3.weight(.bold))
                         .foregroundColor(AppColors.accent(for: colorScheme))
                     Text(itemCount > 0 ? "\(itemCount) Artikel · \(readinessTitle)" : readinessTitle)

@@ -166,8 +166,9 @@ object ShippingService {
             ShippingZone.EU -> settings.euCost
             ShippingZone.INTL -> settings.internationalCost
         }
-        val freeShippingApplied = settings.freeShippingThreshold > 0 &&
-            subtotal >= settings.freeShippingThreshold
+        val zeroSubtotalApplied = subtotal <= 0.01
+        val freeShippingApplied = zeroSubtotalApplied ||
+            (settings.freeShippingThreshold > 0 && subtotal >= settings.freeShippingThreshold)
 
         return Result.success(
             ShippingQuote(

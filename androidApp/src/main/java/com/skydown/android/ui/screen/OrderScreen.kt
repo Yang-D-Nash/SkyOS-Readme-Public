@@ -206,6 +206,7 @@ fun OrderScreen(
                             order = order,
                             isConfirmingPayment = uiState.confirmingPaymentOrderIds.contains(order.id.orEmpty()),
                             hasActionableId = hasOrderId,
+                            canManageOrders = uiState.canManageOrders,
                             onConfirmPayment = {
                                 order.id?.let(viewModel::confirmPayment)
                             },
@@ -330,6 +331,7 @@ private fun OrderCard(
     order: Order,
     isConfirmingPayment: Boolean,
     hasActionableId: Boolean,
+    canManageOrders: Boolean,
     onConfirmPayment: () -> Unit,
     onToggleCompleted: () -> Unit,
     onDelete: () -> Unit,
@@ -634,94 +636,96 @@ private fun OrderCard(
             }
         }
 
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 18.dp),
-        ) {
-            val compactActions = maxWidth < 460.dp
+        if (canManageOrders) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 18.dp),
+            ) {
+                val compactActions = maxWidth < 460.dp
 
-            if (compactActions) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    if (!order.paymentStatus.hasFinalPaymentStatus()) {
+                if (compactActions) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (!order.paymentStatus.hasFinalPaymentStatus()) {
+                            FilledTonalButton(
+                                onClick = onConfirmPayment,
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = hasActionableId && !isConfirmingPayment,
+                                shape = RoundedCornerShape(20.dp),
+                            ) {
+                                Text(
+                                    text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                                )
+                            }
+                        }
+
                         FilledTonalButton(
-                            onClick = onConfirmPayment,
+                            onClick = onToggleCompleted,
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = hasActionableId && !isConfirmingPayment,
+                            enabled = hasActionableId,
                             shape = RoundedCornerShape(20.dp),
                         ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
+                                contentDescription = null,
+                            )
                             Text(
-                                text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                                text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
+                                modifier = Modifier.padding(start = 8.dp),
                             )
                         }
-                    }
 
-                    FilledTonalButton(
-                        onClick = onToggleCompleted,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = hasActionableId,
-                        shape = RoundedCornerShape(20.dp),
-                    ) {
-                        androidx.compose.material3.Icon(
-                            imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
+                        TextButton(
+                            onClick = onDelete,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = hasActionableId,
+                        ) {
+                            Text("Entfernen")
+                        }
                     }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        if (!order.paymentStatus.hasFinalPaymentStatus()) {
+                            FilledTonalButton(
+                                onClick = onConfirmPayment,
+                                modifier = Modifier.weight(1f),
+                                enabled = hasActionableId && !isConfirmingPayment,
+                                shape = RoundedCornerShape(20.dp),
+                            ) {
+                                Text(
+                                    text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                                )
+                            }
+                        }
 
-                    TextButton(
-                        onClick = onDelete,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = hasActionableId,
-                    ) {
-                        Text("Entfernen")
-                    }
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    if (!order.paymentStatus.hasFinalPaymentStatus()) {
                         FilledTonalButton(
-                            onClick = onConfirmPayment,
+                            onClick = onToggleCompleted,
                             modifier = Modifier.weight(1f),
-                            enabled = hasActionableId && !isConfirmingPayment,
+                            enabled = hasActionableId,
                             shape = RoundedCornerShape(20.dp),
                         ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
+                                contentDescription = null,
+                            )
                             Text(
-                                text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                                text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
+                                modifier = Modifier.padding(start = 8.dp),
                             )
                         }
-                    }
-
-                    FilledTonalButton(
-                        onClick = onToggleCompleted,
-                        modifier = Modifier.weight(1f),
-                        enabled = hasActionableId,
-                        shape = RoundedCornerShape(20.dp),
-                    ) {
-                        androidx.compose.material3.Icon(
-                            imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                    TextButton(
-                        onClick = onDelete,
-                        modifier = Modifier.weight(1f),
-                        enabled = hasActionableId,
-                    ) {
-                        Text("Entfernen")
+                        TextButton(
+                            onClick = onDelete,
+                            modifier = Modifier.weight(1f),
+                            enabled = hasActionableId,
+                        ) {
+                            Text("Entfernen")
+                        }
                     }
                 }
             }

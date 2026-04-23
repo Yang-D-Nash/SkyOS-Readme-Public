@@ -366,12 +366,15 @@ final class HomeViewModel: ObservableObject {
     private let musicService: MusicServicing
     private let firestore = Firestore.firestore()
     private let featuredArtists = ["JANNO", "Yang D. Nash", "ThaDude", "MAVE", "TANGAJOE007"]
+    private var refreshGeneration: UInt = 0
 
     init(musicService: MusicServicing = SpotifyMusicService()) {
         self.musicService = musicService
     }
 
     func refresh() {
+        refreshGeneration &+= 1
+        let generation = refreshGeneration
         Task {
             await withTaskGroup(of: HomeRefreshResult.self) { group in
                 group.addTask { .track(await self.loadLatestTrack()) }
@@ -380,22 +383,26 @@ final class HomeViewModel: ObservableObject {
                 group.addTask { .signals(await self.loadRuntimeSignals()) }
 
                 for await result in group {
+                    guard generation == refreshGeneration else { continue }
                     switch result {
                     case .track(let track):
                         featuredTrack = track
                         homeTrackMessage = track == nil
                             ? "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
                             : nil
+                        contentSignal = buildContentSignal()
                     case .beat(let beat):
                         featuredBeat = beat
                         homeBeatMessage = beat == nil
                             ? "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
                             : nil
+                        contentSignal = buildContentSignal()
                     case .video(let video):
                         featuredVideo = video
                         homeVideoMessage = video == nil
                             ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
                             : nil
+                        contentSignal = buildContentSignal()
                     case .signals(let signals):
                         aiUsageWarning = signals.aiUsageWarning
                         creatorLimitZone = signals.creatorLimitZone
@@ -405,7 +412,7 @@ final class HomeViewModel: ObservableObject {
                         syncPaused = signals.syncPaused
                         recoverableError = signals.recoverableError
                         newDataAvailable = signals.newDataAvailable
-                        contentSignal = signals.contentSignal
+                        contentSignal = buildContentSignal()
                     }
                 }
             }
@@ -520,22 +527,22 @@ final class HomeViewModel: ObservableObject {
         let tracks = trackGroups.flatMap { $0 }
         guard !tracks.isEmpty else { return nil }
 
-        var bestTrack = tracks.first
-        for track in tracks.dropFirst() {
-            guard let currentBest = bestTrack else {
-                bestTrack = track
-                continue
-            }
-
-            if compareTracksForHomePriority(track, currentBest) {
-                bestTrack = track
-            }
-        }
-
-        return bestTrack
+        return tracks.sorted(by: compareTracksForHomePriority).first
     }
 
     private func compareTracksForHomePriority(_ lhs: Track, _ rhs: Track) -> Bool {
+        let lhsHasPreview = !(lhs.previewUrl ?? "").isEmpty
+        let rhsHasPreview = !(rhs.previewUrl ?? "").isEmpty
+        if lhsHasPreview != rhsHasPreview {
+            return lhsHasPreview && !rhsHasPreview
+        }
+
+        let lhsHasFallbackTarget = trackHasHomeFallbackTarget(lhs)
+        let rhsHasFallbackTarget = trackHasHomeFallbackTarget(rhs)
+        if lhsHasFallbackTarget != rhsHasFallbackTarget {
+            return lhsHasFallbackTarget && !rhsHasFallbackTarget
+        }
+
         let lhsDate = parsedTrackReleaseDate(lhs.releaseDate)
         let rhsDate = parsedTrackReleaseDate(rhs.releaseDate)
 
@@ -543,13 +550,13 @@ final class HomeViewModel: ObservableObject {
             return (lhsDate ?? .distantPast) > (rhsDate ?? .distantPast)
         }
 
-        let lhsHasPlayback = !(lhs.previewUrl ?? "").isEmpty || !(lhs.externalURL ?? "").isEmpty
-        let rhsHasPlayback = !(rhs.previewUrl ?? "").isEmpty || !(rhs.externalURL ?? "").isEmpty
-        if lhsHasPlayback != rhsHasPlayback {
-            return lhsHasPlayback && !rhsHasPlayback
-        }
-
         return lhs.trackName.localizedCaseInsensitiveCompare(rhs.trackName) == .orderedAscending
+    }
+
+    private func trackHasHomeFallbackTarget(_ track: Track) -> Bool {
+        !(track.spotifyTrackID ?? "").isEmpty ||
+        !(track.spotifyArtistID ?? "").isEmpty ||
+        !(track.externalURL ?? "").isEmpty
     }
 
     private func parsedTrackReleaseDate(_ value: String?) -> Date? {
@@ -605,15 +612,16 @@ final class HomeViewModel: ObservableObject {
         do {
             let snapshot = try await firestore.collection("nicmaBeatHub")
                 .whereField("isPublic", isEqualTo: true)
-                .limit(to: 20)
                 .getDocuments()
 
-            let latestDocument = snapshot.documents.max { lhs, rhs in
-                documentDate(lhs) < documentDate(rhs)
+            let sortedDocuments = snapshot.documents.sorted { lhs, rhs in
+                documentDate(lhs) > documentDate(rhs)
             }
+            let featuredBeats = sortedDocuments.compactMap(mapFeaturedBeat(from:))
 
-            guard let latestDocument else { return nil }
-            return mapFeaturedBeat(from: latestDocument)
+            return featuredBeats.first(where: \.supportsDirectPlayback)
+                ?? featuredBeats.first(where: \.supportsExternalFallback)
+                ?? featuredBeats.first
         } catch {
             return nil
         }
@@ -720,4 +728,14 @@ private struct HomeRuntimeSignals {
     var recoverableError: String? = nil
     var newDataAvailable: Bool = false
     var contentSignal: String? = nil
+}
+
+private extension FeaturedHomeBeat {
+    var supportsDirectPlayback: Bool {
+        isPlayable && !downloadURL.isEmpty
+    }
+
+    var supportsExternalFallback: Bool {
+        !openURLString.isEmpty
+    }
 }

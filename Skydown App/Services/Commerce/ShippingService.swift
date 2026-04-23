@@ -174,7 +174,9 @@ enum ShippingService {
             baseRate = settings.internationalCost
         }
 
-        let freeShippingApplied = settings.freeShippingThreshold > 0 && subtotal >= settings.freeShippingThreshold
+        let zeroSubtotalApplied = subtotal <= 0.01
+        let freeShippingApplied = zeroSubtotalApplied ||
+            (settings.freeShippingThreshold > 0 && subtotal >= settings.freeShippingThreshold)
         return ShippingQuote(
             zone: zone,
             countryCode: countryCode,

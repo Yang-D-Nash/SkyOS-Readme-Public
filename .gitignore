@@ -15,7 +15,9 @@ keystore.properties
 *.jks
 *.keystore
 firebase-debug.log
+firebase-debug.*.log
 functions/firestore-debug.log
+*.xcresult
 *.xcarchive
 .env
 .env.*
@@ -26,3 +28,6 @@ functions/firestore-debug.log
 xcuserdata/
 *.xcuserdatad/
 App Icon.png
+Skydown AppUITests/skydown-e2e-accounts.local.json
+.shopify/
+shopify.app*.toml
