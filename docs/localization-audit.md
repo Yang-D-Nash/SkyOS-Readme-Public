@@ -1,91 +1,93 @@
 # Localization Audit
 
-Generated: 2026-04-12 19:40:06 CEST
+Generated: 2026-04-22 22:06:36 CEST
 
 ## iOS (Localizable.strings)
 
 | Locale | Keys |
 | --- | ---: |
-| de.lproj | 38 |
-| en.lproj | 38 |
-| es.lproj | 38 |
-| fr.lproj | 38 |
+| de.lproj | 220 |
+| en.lproj | 220 |
+| es.lproj | 155 |
+| fr.lproj | 155 |
 | it.lproj | 38 |
 | ja.lproj | 38 |
 | nl.lproj | 38 |
 | pl.lproj | 38 |
-| pt.lproj | 38 |
+| pt.lproj | 155 |
 | tr.lproj | 38 |
 
-Hardcoded UI literal matches in Swift files: **704**
+Hardcoded UI literal matches in Swift files: **779**
 
 Top Swift files by hardcoded-literal matches:
+
 ```text
- 292 /Users/nash/Documents/Skydown-App/Skydown App/Views/Settings/SettingsView.swift
-  64 /Users/nash/Documents/Skydown-App/Skydown App/Views/Music/VideoHubView.swift
-  42 /Users/nash/Documents/Skydown-App/Skydown App/Views/Cart/CartView.swift
-  40 /Users/nash/Documents/Skydown-App/Skydown App/Views/Shop/ShopView.swift
-  34 /Users/nash/Documents/Skydown-App/Skydown App/Views/Music/ArtistPageView.swift
-  28 /Users/nash/Documents/Skydown-App/Skydown App/Views/Music/SubView/MusicSharedComponents.swift
-  28 /Users/nash/Documents/Skydown-App/Skydown App/Views/Music/MusicView.swift
-  24 /Users/nash/Documents/Skydown-App/Skydown App/Views/LaunchScreenView.swift
-  22 /Users/nash/Documents/Skydown-App/Skydown App/Views/MainTabView.swift
-  18 /Users/nash/Documents/Skydown-App/Skydown App/Views/Cart/SubView/ContactFormView.swift
-  16 /Users/nash/Documents/Skydown-App/Skydown App/Views/Music/BeatHubView.swift
-  15 /Users/nash/Documents/Skydown-App/Skydown App/Views/Orders/OrderView.swift
-  14 /Users/nash/Documents/Skydown-App/Skydown App/Views/AI/AIView.swift
-  13 /Users/nash/Documents/Skydown-App/Skydown App/Views/Profile/ProfileView.swift
-  12 /Users/nash/Documents/Skydown-App/Skydown App/Views/AI/AgentView.swift
-   9 /Users/nash/Documents/Skydown-App/Skydown App/Views/Music/NicmaProducerView.swift
-   8 /Users/nash/Documents/Skydown-App/Skydown App/Views/Shop/SubView/MerchandiseCollabNavigator.swift
-   7 /Users/nash/Documents/Skydown-App/Skydown App/Utilities/AI/AIShareSheet.swift
-   4 /Users/nash/Documents/Skydown-App/Skydown App/ViewModels/Music/VideoHubPublicConfig.swift
-   3 /Users/nash/Documents/Skydown-App/Skydown App/Views/Cart/SubView/SubmitSectionView.swift
+ 267 Skydown App/Views/Settings/SettingsView.swift
+  77 Skydown App/Views/Music/VideoHubView.swift
+  52 Skydown App/Views/Cart/CartView.swift
+  47 Skydown App/Views/Music/MusicView.swift
+  42 Skydown App/Views/Music/ArtistPageView.swift
+  35 Skydown App/Views/Cart/SubView/MerchandiseDetailView.swift
+  29 Skydown App/Views/LaunchScreenView.swift
+  25 Skydown App/Views/Orders/OrderView.swift
+  25 Skydown App/Views/MainTabView.swift
+  21 Skydown App/Views/Profile/ProfileView.swift
+  19 Skydown App/Views/Music/SubView/MusicSharedComponents.swift
+  16 Skydown App/Views/Music/BeatHubView.swift
+  15 Skydown App/Views/AI/AgentView.swift
+  14 Skydown App/Views/Shop/SubView/MerchandiseCollabNavigator.swift
+  14 Skydown App/Views/Settings/SubView/SettingsMembershipCommandCenterView.swift
+  11 Skydown App/Views/Shop/ShopView.swift
+  11 Skydown App/Views/AI/AIView.swift
+   9 Skydown App/Views/Music/NicmaProducerView.swift
+   9 Skydown App/Views/Home/HomeSignals.swift
+   7 Skydown App/Utilities/AI/AIShareSheet.swift
 ```
 
 ## Android (strings.xml)
 
 | Resource dir | Keys |
 | --- | ---: |
-| values-de | 50 |
-| values-es | 50 |
-| values-fr | 50 |
-| values-it | 50 |
-| values-ja | 50 |
-| values-nl | 50 |
-| values-pl | 50 |
-| values-pt | 50 |
-| values-tr | 50 |
-| values | 56 |
+| values-de | 174 |
+| values-es | 151 |
+| values-fr | 151 |
+| values-it | 56 |
+| values-ja | 56 |
+| values-nl | 56 |
+| values-pl | 56 |
+| values-pt | 151 |
+| values-tr | 56 |
+| values | 180 |
 
-Hardcoded UI literal matches in Kotlin UI files: **506**
+Hardcoded UI literal matches in Kotlin UI files: **566**
 
 Top Kotlin files by hardcoded-literal matches:
+
 ```text
- 235 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/SettingsScreen.kt
-  59 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/VideoHubScreen.kt
-  35 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/CartScreen.kt
-  20 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/OrderScreen.kt
-  20 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/MusicScreen.kt
-  17 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/ArtistPageScreen.kt
-  16 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/AiHubScreen.kt
-  15 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/BeatHubScreen.kt
-  15 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/AiScreen.kt
-  13 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/ShopScreen.kt
-  12 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/AgentScreen.kt
-   9 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/ProfileScreen.kt
-   9 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/component/TrackRow.kt
-   8 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/NicmaProducerScreen.kt
-   8 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/screen/HomeScreen.kt
-   6 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/SkydownApp.kt
-   3 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/component/YouTubePlayerDialog.kt
-   3 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/component/MerchandiseCard.kt
-   2 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/ui/component/EditableImageFieldCard.kt
-   1 /Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/data/AiUsageAuthorizationClient.kt
+ 244 androidApp/src/main/java/com/skydown/android/ui/screen/SettingsScreen.kt
+  62 androidApp/src/main/java/com/skydown/android/ui/screen/VideoHubScreen.kt
+  40 androidApp/src/main/java/com/skydown/android/ui/screen/CartScreen.kt
+  31 androidApp/src/main/java/com/skydown/android/ui/screen/MusicScreen.kt
+  27 androidApp/src/main/java/com/skydown/android/ui/screen/AiScreen.kt
+  22 androidApp/src/main/java/com/skydown/android/ui/screen/OrderScreen.kt
+  21 androidApp/src/main/java/com/skydown/android/ui/screen/ShopScreen.kt
+  16 androidApp/src/main/java/com/skydown/android/ui/screen/HomeScreen.kt
+  16 androidApp/src/main/java/com/skydown/android/ui/SkydownApp.kt
+  15 androidApp/src/main/java/com/skydown/android/ui/screen/BeatHubScreen.kt
+  14 androidApp/src/main/java/com/skydown/android/ui/screen/AgentScreen.kt
+  10 androidApp/src/main/java/com/skydown/android/ui/screen/ProfileScreen.kt
+  10 androidApp/src/main/java/com/skydown/android/ui/screen/AiHubScreen.kt
+   9 androidApp/src/main/java/com/skydown/android/ui/component/TrackRow.kt
+   8 androidApp/src/main/java/com/skydown/android/ui/screen/NicmaProducerScreen.kt
+   6 androidApp/src/main/java/com/skydown/android/ui/screen/ArtistPageScreen.kt
+   4 androidApp/src/main/java/com/skydown/android/ui/component/OriginalVideoViewerDialog.kt
+   3 androidApp/src/main/java/com/skydown/android/ui/component/YouTubePlayerDialog.kt
+   2 androidApp/src/main/java/com/skydown/android/ui/component/MerchandiseCard.kt
+   2 androidApp/src/main/java/com/skydown/android/ui/component/EditableImageFieldCard.kt
 ```
 
 ## Summary
 
 - Locale folders are present for 10 languages on iOS and Android.
 - Full UI localization is **not complete** while hardcoded literals remain in source.
-- Priority should be top files listed above, then secondary modules.
+- Priority should be Settings, AI/Agent, Cart/Orders, Shop, Home, Profile, Music, and Video release paths.
