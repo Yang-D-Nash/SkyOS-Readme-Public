@@ -206,7 +206,7 @@ struct MainTabView: View {
                     )
                     .skydownSceneActivation(isActive: selectedTab == .tools, axis: .horizontal, travel: 28)
                 }
-                .tabItem { Label(localized("tabs.tools", "Tools"), systemImage: "sparkles") }
+                .tabItem { Label(localized("tabs.tools", "AI"), systemImage: "sparkles") }
                 .tag(MainTab.tools)
             }
             .skydownTabBarChrome(colorScheme: currentScheme, accent: selectedTabAccent)
@@ -911,70 +911,82 @@ private struct AIHubView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 10) {
-                if authManager.userSession == nil {
-                    AIHubLoginCard(
-                        colorScheme: colorScheme,
-                        title: featureFlags.aiAccessMode == .adminOnly ? "KI nur fuer freigegebene Konten" : "KI nur mit Konto",
-                        message: featureFlags.aiAccessMessage(for: nil),
-                        onOpenLogin: onOpenLogin
-                    )
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                } else if !featureFlags.allowsAIAccess(for: authManager.userSession) {
-                    AIHubRestrictedCard(
-                        colorScheme: colorScheme,
-                        message: featureFlags.aiAccessMessage(for: authManager.userSession),
-                        onOpenSettings: onOpenSettings
-                    )
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                } else {
-                    AIHubCompactHeader(
-                        mode: mode,
-                        colorScheme: colorScheme,
-                        showsWorkflowWorkspace: showsWorkflowWorkspace,
-                        onSelectMode: { newMode in
-                            withAnimation(SkydownMotion.screenTransition) {
-                                showsWorkflowWorkspace = false
-                                mode = newMode
-                            }
-                        },
-                        onToggleWorkflow: {
-                            withAnimation(SkydownMotion.screenTransition) {
-                                showsWorkflowWorkspace.toggle()
-                            }
-                        }
-                    )
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, 8)
+            GeometryReader { geometry in
+                let layout = SkydownResponsiveLayout(availableWidth: geometry.size.width)
+                let contentWidth = min(
+                    layout.contentMaxWidth,
+                    max(geometry.size.width - (layout.horizontalPadding * 2), 0)
+                )
 
-                    Group {
-                        if showsWorkflowWorkspace {
-                            AIWorkflowWorkspaceCard(
-                                colorScheme: colorScheme,
-                                onOpenSettings: onOpenAutomationSettings
-                            ) {
+                VStack(spacing: 10) {
+                    if authManager.userSession == nil {
+                        AIHubLoginCard(
+                            colorScheme: colorScheme,
+                            title: featureFlags.aiAccessMode == .adminOnly ? "KI nur fuer freigegebene Konten" : "KI nur mit Konto",
+                            message: featureFlags.aiAccessMessage(for: nil),
+                            onOpenLogin: onOpenLogin
+                        )
+                        .frame(maxWidth: .infinity)
+                    } else if !featureFlags.allowsAIAccess(for: authManager.userSession) {
+                        AIHubRestrictedCard(
+                            colorScheme: colorScheme,
+                            message: featureFlags.aiAccessMessage(for: authManager.userSession),
+                            onOpenSettings: onOpenSettings
+                        )
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        AIHubCompactHeader(
+                            mode: mode,
+                            colorScheme: colorScheme,
+                            showsWorkflowWorkspace: showsWorkflowWorkspace,
+                            onSelectMode: { newMode in
                                 withAnimation(SkydownMotion.screenTransition) {
                                     showsWorkflowWorkspace = false
+                                    mode = newMode
+                                }
+                            },
+                            onToggleWorkflow: {
+                                withAnimation(SkydownMotion.screenTransition) {
+                                    showsWorkflowWorkspace.toggle()
                                 }
                             }
-                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                        } else if mode == .bot {
-                            AIView(
-                                aiChatService: aiChatService,
-                                featureFlags: featureFlags,
-                                showsNavigation: false
-                            )
-                        } else {
-                            AgentView(
-                                agentChatService: agentChatService,
-                                featureFlags: featureFlags,
-                                showsNavigation: false
-                            )
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 8)
+
+                        Group {
+                            if showsWorkflowWorkspace {
+                                AIWorkflowWorkspaceCard(
+                                    colorScheme: colorScheme,
+                                    onOpenSettings: onOpenAutomationSettings
+                                ) {
+                                    withAnimation(SkydownMotion.screenTransition) {
+                                        showsWorkflowWorkspace = false
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            } else if mode == .bot {
+                                AIView(
+                                    aiChatService: aiChatService,
+                                    featureFlags: featureFlags,
+                                    showsNavigation: false
+                                )
+                            } else {
+                                AgentView(
+                                    agentChatService: agentChatService,
+                                    featureFlags: featureFlags,
+                                    showsNavigation: false
+                                )
+                            }
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .skydownSceneMotion(trigger: motionState, axis: .horizontal, travel: 26)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .skydownSceneMotion(trigger: motionState, axis: .horizontal, travel: 26)
                 }
+                .frame(maxWidth: contentWidth, maxHeight: .infinity, alignment: .top)
+                .padding(.horizontal, layout.horizontalPadding)
+                .padding(.top, SkydownLayout.screenTopPadding * 0.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .background(
                 AppColors.screenGradient(
@@ -983,7 +995,7 @@ private struct AIHubView: View {
                 )
                 .ignoresSafeArea()
             )
-            .navigationTitle("Tools")
+            .navigationTitle("AI")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
@@ -1118,6 +1130,30 @@ private struct AIHubCompactHeader: View {
     }
 
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 7) {
+                modeSelectionStrip
+                workflowToggleButton
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+
+            VStack(spacing: 7) {
+                modeSelectionStrip
+                workflowToggleButton
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(8)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: accent,
+            cornerRadius: 18,
+            shadowRadius: 10,
+            shadowYOffset: 6
+        )
+    }
+
+    private var modeSelectionStrip: some View {
         HStack(spacing: 7) {
             ForEach(AIHubMode.allCases) { currentMode in
                 Button {
@@ -1147,45 +1183,39 @@ private struct AIHubCompactHeader: View {
                 .buttonStyle(SkydownTactileButtonStyle())
                 .accessibilityIdentifier("tools.mode.\(currentMode.rawValue.lowercased())")
             }
-
-            Button(action: onToggleWorkflow) {
-                HStack(spacing: 6) {
-                    Image(systemName: showsWorkflowWorkspace ? "xmark.circle.fill" : "bolt.horizontal.circle.fill")
-                        .font(.headline)
-                    Text(showsWorkflowWorkspace ? "Zur KI" : "Workflow")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .foregroundColor(AppColors.text(for: colorScheme))
-                .padding(.horizontal, 12)
-                .frame(height: 42)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.22),
-                                    AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.84)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
-                )
-            }
-            .buttonStyle(SkydownTactileButtonStyle())
         }
-        .padding(8)
-        .skydownPanelSurface(
-            colorScheme: colorScheme,
-            accent: accent,
-            cornerRadius: 18,
-            shadowRadius: 10,
-            shadowYOffset: 6
-        )
+    }
+
+    private var workflowToggleButton: some View {
+        Button(action: onToggleWorkflow) {
+            HStack(spacing: 6) {
+                Image(systemName: showsWorkflowWorkspace ? "xmark.circle.fill" : "bolt.horizontal.circle.fill")
+                    .font(.headline)
+                Text(showsWorkflowWorkspace ? "Zur AI" : "Automation")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundColor(AppColors.text(for: colorScheme))
+            .padding(.horizontal, 12)
+            .frame(height: 42)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.22),
+                                AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.84)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
+            )
+        }
+        .buttonStyle(SkydownTactileButtonStyle())
     }
 }
 
@@ -1196,17 +1226,17 @@ private struct AIWorkflowWorkspaceCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Workflow Cockpit")
+            Text("Automation")
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Verbinde Agent, Kontext und Aktionen so, dass auch Laien sofort wissen, was passiert.")
+            Text("Verbinde Agent, Kontext und Aktionen so, dass der naechste Schritt klar bleibt.")
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(alignment: .leading, spacing: 10) {
                 AIWorkflowStepRow(index: "01", title: "Briefing", detail: "Der Agent macht aus einer Idee einen klaren Plan.", colorScheme: colorScheme)
-                AIWorkflowStepRow(index: "02", title: "Aktion", detail: "Optional wird dein n8n-Workflow mit User-Kontext gestartet.", colorScheme: colorScheme)
+                AIWorkflowStepRow(index: "02", title: "Aktion", detail: "Optional wird dein Automationsservice mit Nutzerkontext gestartet.", colorScheme: colorScheme)
                 AIWorkflowStepRow(index: "03", title: "Rueckweg", detail: "Du bleibst in der App und kannst direkt weiterarbeiten.", colorScheme: colorScheme)
             }
 
@@ -1217,7 +1247,7 @@ private struct AIWorkflowWorkspaceCard: View {
             }
 
             Button(action: onOpenSettings) {
-                Text("Workflow einrichten")
+                Text("Automation einrichten")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -1226,7 +1256,7 @@ private struct AIWorkflowWorkspaceCard: View {
             .tint(AppColors.accentHighlight(for: colorScheme))
 
             Button(action: onClose) {
-                Text("Zur KI zurueck")
+                Text("Zur AI zurueck")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

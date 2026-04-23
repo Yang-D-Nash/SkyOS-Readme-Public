@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -82,6 +83,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -331,12 +333,25 @@ fun HomeScreen(
             HomeMapBackdrop(
                 modifier = Modifier.fillMaxSize(),
             )
-            LazyColumn(
+            BoxWithConstraints(
                 modifier = Modifier.fillMaxSize(),
-                state = listState,
-                contentPadding = skydownContentPadding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
+                val contentMaxWidth = if (maxWidth > 1040.dp) 1040.dp else Dp.Unspecified
+                val contentWidthFraction = if (contentMaxWidth != Dp.Unspecified && maxWidth > 0.dp) {
+                    contentMaxWidth.value / maxWidth.value
+                } else {
+                    1f
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(contentWidthFraction)
+                        .align(Alignment.TopCenter),
+                    state = listState,
+                    contentPadding = skydownContentPadding(innerPadding),
+                    verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                ) {
                 item {
                     HomeAnimatedItem(order = 0) {
                         BrandHeroCard(
@@ -572,6 +587,7 @@ fun HomeScreen(
                                 .padding(horizontal = 4.dp, vertical = 6.dp),
                         )
                     }
+                }
                 }
             }
 

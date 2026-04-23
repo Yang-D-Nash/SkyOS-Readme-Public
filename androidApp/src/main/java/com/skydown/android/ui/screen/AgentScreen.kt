@@ -72,6 +72,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -106,6 +107,7 @@ fun AgentScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val compactLayout = rememberIsCompactAppLayout()
+    val contentMaxWidth = if (compactLayout) 620.dp else 1040.dp
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
@@ -187,6 +189,7 @@ fun AgentScreen(
                     shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                     agentPhase = uiState.agentPhase,
                     compactLayout = compactLayout,
+                    contentMaxWidth = contentMaxWidth,
                     embeddedInTools = !showTopBar,
                     applyBottomSystemInset = showTopBar,
                     onDraftChanged = viewModel::updateDraft,
@@ -222,6 +225,7 @@ fun AgentScreen(
                     ?: "Agent · ${uiState.lastAgentProvider.displayTitle}"
                 Column(
                     modifier = Modifier
+                        .widthIn(max = contentMaxWidth)
                         .fillMaxSize()
                         .padding(
                             start = SkydownUiTokens.screenHorizontalPadding,
@@ -255,7 +259,9 @@ fun AgentScreen(
             } else {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .widthIn(max = contentMaxWidth)
+                        .fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = SkydownUiTokens.screenHorizontalPadding,
                         top = if (showTopBar) {
@@ -909,6 +915,7 @@ private fun AgentComposerBar(
     shouldTriggerAutomation: Boolean,
     agentPhase: AgentInteractionPhase,
     compactLayout: Boolean,
+    contentMaxWidth: Dp,
     embeddedInTools: Boolean,
     applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
@@ -955,12 +962,19 @@ private fun AgentComposerBar(
                 bottom = outerVerticalPadding + dockClearancePadding,
             ),
     ) {
-        SkydownCard(
-            contentPadding = PaddingValues(
-                horizontal = if (compactLayout) 10.dp else 12.dp,
-                vertical = cardVerticalPadding,
-            ),
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
         ) {
+            SkydownCard(
+                modifier = Modifier
+                    .widthIn(max = contentMaxWidth)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(
+                    horizontal = if (compactLayout) 10.dp else 12.dp,
+                    vertical = cardVerticalPadding,
+                ),
+            ) {
             agentPhase.composerStatusLabel?.let { label ->
                 Text(
                     text = label,
@@ -1081,6 +1095,7 @@ private fun AgentComposerBar(
                         contentDescription = "Senden",
                     )
                 }
+            }
             }
         }
     }

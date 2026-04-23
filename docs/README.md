@@ -1,35 +1,55 @@
-# SkyOS Docs Index
+# SkyOS Documentation
 
-This folder is the operating manual for SkyOS. It is written for real product work: users, creators, admins, owners, developers, legal reviewers, and release operators should all be able to find the document they need without reading the whole repository.
+This folder is the working foundation for SkyOS as a product, a codebase, and an operating
+system for the team behind it. The goal is simple: a developer, partner, reviewer, investor,
+support contact, or founder should be able to understand what SkyOS is, how it is built, and
+how it is operated without reverse-engineering the repository.
 
-## Product And Role Guides
+## Start Here
 
-- `USER_GUIDE.md` - everyday app usage for Home, AI, Music, Profile, Membership, Settings, Orders, and Support.
-- `CREATOR_GUIDE.md` - creator workflows for AI, content, publishing, profile, assets, and membership value.
-- `ADMIN_GUIDE.md` - support, moderation, settings operations, legal updates, user assistance, and escalation.
-- `OWNER_GUIDE.md` - membership command center, revenue ops, experiments, KPIs, recommendations, alerts, and hygiene controls.
+- [architecture.md](architecture.md) - complete product and system map
+- [backend.md](backend.md) - Firebase, Functions, rules, runtime controls, and backend authority
+- [ios.md](ios.md) - iOS setup, signing, run, and QA
+- [android.md](android.md) - Android setup, Compose build flow, and Fold testing guidance
+- [ai-system.md](ai-system.md) - AI assistant, FAQ, visual generation, agent runtime, and safety
+- [commerce.md](commerce.md) - merch, orders, checkout, shipping, payment rails, and memberships
+- [owner-admin.md](owner-admin.md) - owner workflows, controls, kill switches, and release governance
+- [deployment.md](deployment.md) - deploy flow, selective deploys, rollback basics, and post-deploy checks
+- [release-checklist.md](release-checklist.md) - release readiness gate across product, legal, analytics, and trust
+- [branding.md](branding.md) - product naming, voice, assets, and copy rules
+- [faq.md](faq.md) - user-facing operational answers and support guidance
+- [store/README.md](store/README.md) - App Store and Google Play presence, screenshots, and review prep
 
-## Technical Guides
+## Legal And Trust
 
-- `DEVELOPER_GUIDE.md` - repo structure, iOS setup, Android setup, Firebase, Functions, build commands, deploy flow, config, secrets, and QA.
-- `ARCHITECTURE.md` - app overview, data flows, entitlements, AI pipeline, analytics, membership, revenue ops, and security boundaries.
-- `LOCALIZATION_GUIDE.md` - localization system, key rules, tiers, glossary, fallback behavior, and audit process.
-
-## Legal And Release
-
-- `LEGAL_OVERVIEW.md` - legal document map, in-app binding, owner process, and external review requirements.
-- `RELEASE_CHECKLIST.md` - build, QA, legal, localization, payments, crash monitoring, store readiness, and go/no-go checks.
-- `legal/` - Terms, Privacy Policy, Subscription Terms, AI Usage Notice, and Impressum/Company Info reference texts.
+- [legal/terms.md](legal/terms.md)
+- [legal/privacy.md](legal/privacy.md)
+- [legal/imprint.md](legal/imprint.md)
+- [legal/SUBSCRIPTION_TERMS.md](legal/SUBSCRIPTION_TERMS.md)
+- [legal/AI_USAGE_NOTICE.md](legal/AI_USAGE_NOTICE.md)
+- [compliance/README.md](compliance/README.md)
 
 ## Supporting References
 
-- `localization-audit.md` - latest localization audit output.
-- `localization-terminology-glossary.md` - approved terminology for repeated product language.
-- `localization-roadmap.md` - roadmap for language expansion.
-- `compliance/` - compliance-oriented notes and references.
-- `ai-membership-funnel-metrics.md` - membership analytics and funnel metric reference.
-- `ai-subscriptions-rollout-brief.md` - rollout notes for AI and subscription behavior.
+- [design/SKYOS_EXPERIENCE_PRINCIPLES.md](design/SKYOS_EXPERIENCE_PRINCIPLES.md)
+- [localization-terminology-glossary.md](localization-terminology-glossary.md)
+- [localization-audit.md](localization-audit.md)
+- [localization-roadmap.md](localization-roadmap.md)
+- [ai-membership-funnel-metrics.md](ai-membership-funnel-metrics.md)
+- [ai-subscriptions-rollout-brief.md](ai-subscriptions-rollout-brief.md)
+- [store/app-store.md](store/app-store.md)
+- [store/google-play.md](store/google-play.md)
+- [store/screenshots.md](store/screenshots.md)
+- [store/review-prep.md](store/review-prep.md)
 
-## Operating Rule
+## Compatibility Notes
 
-Documentation is part of release readiness. If a change affects user trust, permissions, membership, billing, legal, data flow, or support behavior, update the relevant document in the same pass.
+Older upper-case docs such as `DEVELOPER_GUIDE.md`, `OWNER_GUIDE.md`, `LEGAL_OVERVIEW.md`, and
+`RELEASE_CHECKLIST.md` remain in the repository as compatibility entry points. The canonical
+versions now live in the lower-case files listed above.
+
+## Operating Standard
+
+If a change affects user trust, product behavior, permissions, billing, legal text, or release
+process, the relevant document should be updated in the same pull request or commit. SkyOS should
+not rely on tribal knowledge.

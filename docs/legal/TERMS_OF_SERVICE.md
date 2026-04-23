@@ -1,18 +1,5 @@
-# SkyOS Terms of Service
+# SkyOS Terms of Service (Compatibility Note)
 
-## Status
+The canonical terms document now lives in [terms.md](terms.md).
 
-Betriebsfassung fuer Produkt und In-App Legal Center. Vor externem Launch rechtlich final pruefen.
-
-## Kernpunkte
-
-- Nutzung nur gemaess geltendem Recht und Plattformregeln.
-- Konto- und Zugangsdaten sind vom Nutzer zu schuetzen.
-- Missbrauch, Umgehung technischer Schutzmechanismen und Rechteverletzungen sind untersagt.
-- KI- und Workflow-Funktionen sind Assistenzfunktionen, keine verbindliche Fachberatung.
-- Bei Verstoessen oder Sicherheits-/Kostenrisiken sind Einschraenkung oder Sperrung moeglich.
-- Verfuegbarkeit kann sich durch Weiterentwicklung aendern.
-
-## Kontakt
-
-Support und Rechtsanfragen ueber die in den Settings hinterlegte Kontaktadresse.
+This file remains to preserve older references.

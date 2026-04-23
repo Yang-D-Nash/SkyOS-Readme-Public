@@ -1,150 +1,57 @@
 package com.skydown.android
 
 import android.content.Intent
-import android.os.Bundle
-import android.os.SystemClock
-import android.view.accessibility.AccessibilityNodeInfo
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
+@OptIn(ExperimentalTestApi::class)
 class AiHubAppFlowTest {
     @get:Rule
-    val activityRule = ActivityScenarioRule<MainActivity>(
-        Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java).apply {
-            putExtra(MainActivity.EXTRA_UI_TEST_SKIP_INTRO, true)
-            putExtra(MainActivity.EXTRA_UI_TEST_START_ROUTE, "ai")
-            putExtra(MainActivity.EXTRA_UI_TEST_SIGNED_IN_USER, true)
-            putExtra(MainActivity.EXTRA_UI_TEST_USE_MOCK_AI_VISUAL, true)
-        },
+    val composeRule = AndroidComposeTestRule(
+        activityRule = ActivityScenarioRule<MainActivity>(
+            Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java).apply {
+                putExtra(MainActivity.EXTRA_UI_TEST_SKIP_INTRO, true)
+                putExtra(MainActivity.EXTRA_UI_TEST_START_ROUTE, "ai")
+                putExtra(MainActivity.EXTRA_UI_TEST_SIGNED_IN_USER, true)
+                putExtra(MainActivity.EXTRA_UI_TEST_USE_MOCK_AI_VISUAL, true)
+            },
+        ),
+        activityProvider = ::resolveActivity,
     )
 
     @Test
     fun aiHubVisualPromptShowsGeneratedImageFromAppFlow() {
-        val visualModeButton = waitForNode(timeoutMillis = 15_000) { node ->
-            node.text?.toString() == "Visual" && node.findClickableNode() != null
-        }
-        assertNotNull("Visual mode button should be visible", visualModeButton)
-        assertTrue(
-            "Visual mode button should be clickable",
-            visualModeButton!!.findClickableNode()
-                ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true,
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("ai.screen.root"), timeoutMillis = 15_000)
+
+        composeRule.onNodeWithTag("ai.composer.mode.visual").performClick()
+        composeRule.onNodeWithTag("ai.composer.input").performTextInput(
+            "Cinematic artist portrait with moody lighting",
         )
+        composeRule.onNodeWithTag("ai.composer.send").performClick()
 
-        val promptField = waitForNode(timeoutMillis = 15_000) { node ->
-            node.className?.toString() == "android.widget.EditText"
-        }
-        assertNotNull("Visual prompt field should be visible", promptField)
-        val inputArguments = Bundle().apply {
-            putCharSequence(
-                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
-                "Cinematic artist portrait with moody lighting",
-            )
-        }
-        assertTrue(
-            "Visual prompt field should accept text",
-            promptField!!.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, inputArguments),
-        )
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("ai.message.visual"), timeoutMillis = 15_000)
+        composeRule.onNodeWithTag("ai.message.list").performScrollToNode(hasTestTag("ai.message.save"))
 
-        val generateButton = waitForNode(timeoutMillis = 15_000) { node ->
-            node.text?.toString() == "Rendern" && node.findClickableNode() != null
-        }
-        assertNotNull("Generate visual button should be visible", generateButton)
-        assertTrue(
-            "Generate visual button should be clickable",
-            generateButton!!.findClickableNode()
-                ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true,
-        )
-
-        val generatedVisual = waitForNode(timeoutMillis = 15_000) { node ->
-            node.contentDescription?.toString() == "Generiertes Visual"
-        }
-        assertNotNull("Generated visual should be visible", generatedVisual)
-
-        val saveButton = waitForNodeWithScroll(timeoutMillis = 15_000) { node ->
-            node.text?.toString() == "Speichern" && node.findClickableNode() != null
-        }
-        assertNotNull("Save image button should be visible", saveButton)
+        composeRule.onNodeWithTag("ai.message.visual").assertIsDisplayed()
+        composeRule.onNodeWithTag("ai.message.save").assertIsDisplayed()
     }
 
-    private fun waitForNode(
-        timeoutMillis: Long,
-        predicate: (AccessibilityNodeInfo) -> Boolean,
-    ): AccessibilityNodeInfo? {
-        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        val deadline = SystemClock.uptimeMillis() + timeoutMillis
-
-        while (SystemClock.uptimeMillis() < deadline) {
-            uiAutomation.rootInActiveWindow
-                ?.findMatchingNode(predicate)
-                ?.let { return it }
-            SystemClock.sleep(250)
-        }
-
-        return null
-    }
-
-    private fun waitForNodeWithScroll(
-        timeoutMillis: Long,
-        predicate: (AccessibilityNodeInfo) -> Boolean,
-    ): AccessibilityNodeInfo? {
-        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        val deadline = SystemClock.uptimeMillis() + timeoutMillis
-        var nextScrollAt = 0L
-
-        while (SystemClock.uptimeMillis() < deadline) {
-            val root = uiAutomation.rootInActiveWindow
-            root?.findMatchingNode(predicate)?.let { return it }
-
-            val now = SystemClock.uptimeMillis()
-            if (now >= nextScrollAt) {
-                root?.findScrollableNode()?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
-                nextScrollAt = now + 600
-            }
-            SystemClock.sleep(250)
-        }
-
-        return null
-    }
-
-    private fun AccessibilityNodeInfo.findMatchingNode(
-        predicate: (AccessibilityNodeInfo) -> Boolean,
-    ): AccessibilityNodeInfo? {
-        if (predicate(this)) return this
-
-        for (index in 0 until childCount) {
-            getChild(index)?.findMatchingNode(predicate)?.let { return it }
-        }
-
-        return null
-    }
-
-    private fun AccessibilityNodeInfo.findScrollableNode(): AccessibilityNodeInfo? {
-        if (isScrollable) return this
-
-        for (index in 0 until childCount) {
-            getChild(index)?.findScrollableNode()?.let { return it }
-        }
-
-        return null
-    }
-
-    private fun AccessibilityNodeInfo.findClickableNode(): AccessibilityNodeInfo? {
-        var current: AccessibilityNodeInfo? = this
-        while (current != null) {
-            if (current.isClickable) {
-                return current
-            }
-            current = current.parent
-        }
-
-        return null
+    private fun resolveActivity(rule: ActivityScenarioRule<MainActivity>): MainActivity {
+        var activity: MainActivity? = null
+        rule.scenario.onActivity { activity = it }
+        return requireNotNull(activity)
     }
 }

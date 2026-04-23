@@ -75,7 +75,7 @@ fun AiHubScreen(
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
     val compactVisualDensity = rememberUsesCompactVisualDensity()
-    val workspaceMaxWidth = Dp.Unspecified
+    val workspaceMaxWidth = if (compactVisualDensity) Dp.Unspecified else 1040.dp
     val currentUser = LocalSessionUser.current
     val aiAccessMode by AppFeatureFlagsStore.aiAccessMode.collectAsStateWithLifecycle()
     val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
@@ -91,8 +91,8 @@ fun AiHubScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Atelier",
-                        subtitle = "Create.",
+                        title = "AI",
+                        subtitle = "Bot, Agent und Visuals.",
                         accent = MaterialTheme.colorScheme.tertiary,
                     )
                 },
@@ -129,7 +129,7 @@ fun AiHubScreen(
                 if (currentUser == null) {
                     AiHubLoginCard(
                         title = if (aiAccessMode == AiAccessMode.AdminOnly) {
-                            "Atelier freigeschaltet"
+                            "AI freigeschaltet"
                         } else {
                             "Mit Konto starten"
                         },
@@ -244,7 +244,7 @@ private fun AiHubRestrictedCard(
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "Atelier aktuell gesperrt",
+            text = "AI aktuell gesperrt",
             style = SkydownPanelTitleTextStyle,
         )
         Text(
@@ -279,7 +279,7 @@ private fun AiHubCompactHeader(
         MaterialTheme.colorScheme.primary
     }
 
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(shellShape)
@@ -304,27 +304,37 @@ private fun AiHubCompactHeader(
                 shape = shellShape,
             )
             .padding(7.dp),
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        AiHubModeButton(
-            mode = AiHubMode.Bot,
-            isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
-            onClick = { onSelectMode(AiHubMode.Bot) },
-            compactVisualDensity = compactVisualDensity,
-            modifier = Modifier.weight(1f),
-        )
-        AiHubModeButton(
-            mode = AiHubMode.Agent,
-            isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
-            onClick = { onSelectMode(AiHubMode.Agent) },
-            compactVisualDensity = compactVisualDensity,
-            modifier = Modifier.weight(1f),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AiHubModeButton(
+                mode = AiHubMode.Bot,
+                isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
+                onClick = { onSelectMode(AiHubMode.Bot) },
+                compactVisualDensity = compactVisualDensity,
+                modifier = Modifier.weight(1f),
+            )
+            AiHubModeButton(
+                mode = AiHubMode.Agent,
+                isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
+                onClick = { onSelectMode(AiHubMode.Agent) },
+                compactVisualDensity = compactVisualDensity,
+                modifier = Modifier.weight(1f),
+            )
+        }
         AiHubWorkflowButton(
             showsWorkflowWorkspace = showsWorkflowWorkspace,
             onClick = onToggleWorkflow,
             compactVisualDensity = compactVisualDensity,
+            modifier = if (compactVisualDensity) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier
+            },
         )
     }
 }
@@ -341,11 +351,11 @@ private fun WorkflowWorkspaceCard(
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "Workflow",
+            text = "Automation",
             style = SkydownPanelTitleTextStyle,
         )
         Text(
-            text = "Planen, ausfuehren, weitergehen.",
+            text = "Planen, uebergeben, weiterarbeiten.",
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -362,12 +372,12 @@ private fun WorkflowWorkspaceCard(
             WorkflowSignalRow(
                 index = "02",
                 title = "Aktion",
-                body = "Workflow starten.",
+                body = "Automationsservice starten.",
             )
             WorkflowSignalRow(
                 index = "03",
                 title = "Weiter",
-                body = "Zurueck ins Atelier.",
+                body = "Zurueck in die AI.",
             )
         }
 
@@ -381,7 +391,7 @@ private fun WorkflowWorkspaceCard(
         }
 
         BrandActionButton(
-            text = "Workflow Setup",
+            text = "Automation einrichten",
             onClick = onOpenSettings,
             accent = accent,
             modifier = Modifier
@@ -530,7 +540,7 @@ private fun AiHubWorkflowButton(
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (showsWorkflowWorkspace) "Zur KI" else "Workflow",
+            text = if (showsWorkflowWorkspace) "Zur AI" else "Automation",
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,

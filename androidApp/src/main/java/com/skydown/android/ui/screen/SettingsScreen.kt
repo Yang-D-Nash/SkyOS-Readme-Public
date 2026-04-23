@@ -14,11 +14,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -92,6 +94,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -3911,11 +3914,24 @@ fun SettingsScreen(
                     ),
                 ),
         ) {
-            LazyColumn(
+            BoxWithConstraints(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = skydownContentPadding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
+                val contentMaxWidth = if (maxWidth > 1040.dp) 1040.dp else Dp.Unspecified
+                val contentWidthFraction = if (contentMaxWidth != Dp.Unspecified && maxWidth > 0.dp) {
+                    contentMaxWidth.value / maxWidth.value
+                } else {
+                    1f
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(contentWidthFraction)
+                        .align(Alignment.TopCenter),
+                    contentPadding = skydownContentPadding(innerPadding),
+                    verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+                ) {
                 item {
                     SettingsOverviewCard(uiState = uiState)
                 }
@@ -4142,12 +4158,12 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard {
-                        SectionHeader("System Control")
+                        SectionHeader("Owner-Bereich")
                         Text(
                             text = if (uiState.isOwner) {
-                                "Operator-Bereich fuer Revenue, Nutzer und Runtime-Steuerung."
+                                "Geschuetzte Steuerung fuer Revenue, Nutzer und Runtime."
                             } else {
-                                "Geschuetzter Operator-Bereich."
+                                "Geschuetzter Owner-Bereich."
                             },
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -4222,9 +4238,9 @@ fun SettingsScreen(
                 if (uiState.isLoggedIn) {
                     item {
                         SkydownCard {
-                            SectionHeader("AI Control")
+                            SectionHeader("AI & Agent")
                             Text(
-                                text = "Bot-, Agent- und Workflow-Defaults zentral steuern.",
+                                text = "Bot, Agent und Automation zentral steuern.",
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -4233,7 +4249,7 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 SettingsBadge(
-                                    text = if (uiState.workflowAutomationSettings.isPrepared) "Workflow bereit" else "Workflow offen",
+                                    text = if (uiState.workflowAutomationSettings.isPrepared) "Automation bereit" else "Automation offen",
                                     icon = Icons.Default.Bolt,
                                     isActive = uiState.workflowAutomationSettings.isPrepared,
                                     onClick = {
@@ -4631,6 +4647,7 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
                 }
             }
 
@@ -5293,7 +5310,7 @@ private fun OwnerCommandCenterCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = if (isOwner) "Owner Command Center" else "Owner Command Center gesperrt",
+                        text = if (isOwner) "Owner-Steuerung" else "Owner-Steuerung gesperrt",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -5309,7 +5326,7 @@ private fun OwnerCommandCenterCard(
                 }
 
                 SettingsBadge(
-                    text = if (isOwner) "Root aktiv" else "Locked",
+                    text = if (isOwner) "Aktiv" else "Gesperrt",
                     icon = if (isOwner) Icons.Default.CheckCircle else Icons.Default.Lock,
                     isActive = isOwner,
                 )
@@ -5725,8 +5742,8 @@ private enum class AdminWorkspaceSection(
         icon = Icons.Default.Palette,
     ),
     Automation(
-        label = "Automation",
-        subtitle = "Persoenlichen Workflow und Agent-Skills pro Konto pflegen.",
+        label = "Agent-Service",
+        subtitle = "Persoenliche Automation und Agent-Skills pro Konto pflegen.",
         icon = Icons.Default.Bolt,
     ),
     AiPrompts(
@@ -5735,8 +5752,8 @@ private enum class AdminWorkspaceSection(
         icon = Icons.Default.Settings,
     ),
     MembershipOps(
-        label = "Membership Ops",
-        subtitle = "Revenue Command Center mit KPIs, Trends, Experiments und Learnings.",
+        label = "Membership-Steuerung",
+        subtitle = "KPIs, Trends, Experimente und Learnings fuer Revenue.",
         icon = Icons.Default.Bolt,
     ),
 
@@ -5771,10 +5788,10 @@ private fun adminWorkspaceStatusText(
             uiState.workflowAutomationSettings.isPrepared &&
                 uiState.agentProfileSettings.isConfigured &&
                 uiState.manusByosSettings.isEnabled &&
-                uiState.manusByosSettings.hasApiKey -> "Workflow + Skills + Manus"
-            uiState.workflowAutomationSettings.isPrepared && uiState.agentProfileSettings.isConfigured -> "Workflow + Skills bereit"
-            uiState.workflowAutomationSettings.isPrepared && uiState.manusByosSettings.hasApiKey -> "Workflow + Manus bereit"
-            uiState.workflowAutomationSettings.isPrepared -> "Workflow bereit"
+                uiState.manusByosSettings.hasApiKey -> "Automation + Skills + Manus"
+            uiState.workflowAutomationSettings.isPrepared && uiState.agentProfileSettings.isConfigured -> "Automation + Skills bereit"
+            uiState.workflowAutomationSettings.isPrepared && uiState.manusByosSettings.hasApiKey -> "Automation + Manus bereit"
+            uiState.workflowAutomationSettings.isPrepared -> "Automation bereit"
             uiState.agentProfileSettings.isConfigured && uiState.manusByosSettings.hasApiKey -> "Skills + Manus bereit"
             uiState.agentProfileSettings.isConfigured -> "Skills bereit"
             uiState.manusByosSettings.hasApiKey -> "Manus bereit"
@@ -5785,7 +5802,7 @@ private fun adminWorkspaceStatusText(
         } else {
             "Assets + Prompts"
         }
-        AdminWorkspaceSection.MembershipOps -> "Revenue Ops"
+        AdminWorkspaceSection.MembershipOps -> "Revenue aktiv"
     }
 }
 

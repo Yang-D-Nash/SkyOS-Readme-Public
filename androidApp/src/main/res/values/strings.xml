@@ -11,7 +11,7 @@
     <string name="tabs_music">Music</string>
     <string name="tabs_home">Home</string>
     <string name="tabs_videos">Videos</string>
-    <string name="tabs_tools">Tools</string>
+    <string name="tabs_tools">AI</string>
 
     <string name="offline_banner_title">Offline</string>
     <string name="offline_banner_message">No connection. You are seeing cached content and can continue navigating.</string>
@@ -92,7 +92,7 @@
     <string name="profile_support">Support</string>
     <string name="profile_orders">Orders</string>
     <string name="profile_privacy_account">Privacy &amp; account</string>
-    <string name="ai_topbar_title">Atelier</string>
+    <string name="ai_topbar_title">AI</string>
     <string name="ai_topbar_subtitle">Calm support for text and visuals.</string>
     <string name="agent_topbar_title">Agent</string>
     <string name="agent_topbar_subtitle">Briefing, plan, and clear execution.</string>
@@ -101,12 +101,12 @@
     <string name="ai_membership_title_short">AI Membership</string>
     <string name="agent_membership_title_short">Agent Membership</string>
     <string name="ai_membership_caption">SkyOS sells capabilities, not tokens. Upgrades unlock more reach.</string>
-    <string name="agent_membership_caption">Creator unlocks more workflow reach and prioritized agent execution.</string>
+    <string name="agent_membership_caption">Creator unlocks more reach and prioritized agent execution.</string>
     <string name="ai_available">available</string>
     <string name="ai_open">open</string>
     <string name="ai_warning_critical">Quota is almost used up. Upgrade keeps the flow steady.</string>
     <string name="ai_warning_high">High usage detected. Everything is stable and monitored.</string>
-    <string name="agent_warning_critical">Close to the limit. Creator keeps workflows stable.</string>
+    <string name="agent_warning_critical">Close to the limit. Creator keeps execution steady.</string>
     <string name="agent_warning_high">High usage detected. You can keep working in a planned way.</string>
     <string name="ai_retry_in">Please retry in about</string>
     <string name="ai_next_step">Next step</string>
@@ -115,7 +115,7 @@
     <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · capability-first instead of tokens.</string>
     <string name="ai_membership_free_detail">Free: core bot, fewer images, light agent</string>
     <string name="ai_membership_pro_detail">Pro: more reach, stronger execution</string>
-    <string name="ai_membership_creator_detail">Creator: workflow depth, premium outputs, priority</string>
+    <string name="ai_membership_creator_detail">Creator: more reach, premium outputs, priority</string>
     <string name="membership_annual_option">Annual option</string>
     <string name="membership_pro_activate">Activate Pro</string>
     <string name="membership_creator_activate">Activate Creator</string>
@@ -128,8 +128,8 @@
     <string name="common_status_idle">Idle</string>
     <string name="common_save">Save</string>
     <string name="settings_ai_runtime_save">Save AI runtime</string>
-    <string name="settings_membership_ops_subtitle">Membership Command Center for owner/admin. Control revenue ops across dashboard, recommendations, experiments, and learnings.</string>
-    <string name="settings_membership_ops_loading">Loading Membership Command Center...</string>
+    <string name="settings_membership_ops_subtitle">Membership control for owner/admin. KPIs, experiments, and learnings in one place.</string>
+    <string name="settings_membership_ops_loading">Loading membership control...</string>
     <string name="settings_membership_ops_empty_recommendations">No open recommendations.</string>
     <string name="settings_membership_ops_start_experiment">Start experiment</string>
     <string name="settings_membership_ops_reject">Reject</string>
@@ -147,7 +147,7 @@
     <string name="settings_membership_ops_reset_defaults">Reset defaults</string>
     <string name="settings_membership_ops_timeline_load_failed">Could not load timeline.</string>
     <string name="settings_membership_ops_timeline_empty">No timeline entries for the selected filter.</string>
-    <string name="settings_membership_ops_owner_action">Owner action</string>
+    <string name="settings_membership_ops_owner_action">Owner step</string>
     <string name="settings_membership_ops_rerun">Re-run similar experiment</string>
     <string name="settings_admin_headers_home_header_uploading">Home header is being applied.</string>
     <string name="settings_admin_headers_home_eyebrow">Home eyebrow</string>

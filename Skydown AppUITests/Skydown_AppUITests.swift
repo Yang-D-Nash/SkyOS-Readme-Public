@@ -133,10 +133,10 @@ final class Skydown_AppUITests: XCTestCase {
         waitForUISettle()
         saveScreenshot(name: "04-video")
 
-        // 05 Tools
+        // 05 AI
         tapTab(app: app, index: 4)
         waitForUISettle()
-        saveScreenshot(name: "05-tools")
+        saveScreenshot(name: "05-ai")
 
         // 06 Settings
         let settingsButton = app.buttons["app.open_settings"].firstMatch

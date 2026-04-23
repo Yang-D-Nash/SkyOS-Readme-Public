@@ -445,8 +445,15 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+            GeometryReader { geometry in
+                let layout = SkydownResponsiveLayout(availableWidth: geometry.size.width)
+                let contentWidth = min(
+                    layout.contentMaxWidth,
+                    max(geometry.size.width - (layout.horizontalPadding * 2), 0)
+                )
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     SettingsHeroCard(
                         colorScheme: effectiveColorScheme,
                         username: authManager.userSession?.username,
@@ -807,10 +814,14 @@ struct SettingsView: View {
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                         }
                     }
+                    }
+                    .frame(maxWidth: contentWidth, alignment: .leading)
+                    .padding(.horizontal, layout.horizontalPadding)
+                    .padding(.top, SkydownLayout.screenTopPadding)
+                    .padding(.bottom, SkydownLayout.screenBottomPadding)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                .padding(.top, SkydownLayout.screenTopPadding)
-                .padding(.bottom, SkydownLayout.screenBottomPadding)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .scrollIndicators(.hidden)
             .navigationTitle(AppLocalized.text("settings.title", fallback: "Settings"))
@@ -1185,12 +1196,12 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var controlCenterSectionCard: some View {
-        SettingsSectionCard(title: "System Control", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: "System", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
                 SettingsInlineStatusStrip(
                     icon: "slider.horizontal.3",
-                    title: "Control Center aktiv",
-                    message: "Konto, KI-Service, Zahlungen und Sicherheit zentral steuerbar.",
+                    title: "System aktiv",
+                    message: "Konto, AI-Service, Zahlungen und Sicherheit zentral im Blick.",
                     detail: [
                         authManager.userSession == nil ? "Gastmodus" : "Konto aktiv",
                         aiRuntimeSettingsStore.settings.costGuardEnabled ? "KI Guard aktiv" : "KI Guard pruefen",
@@ -1310,9 +1321,9 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var adminWorkspaceSectionCard: some View {
-        SettingsSectionCard(title: "System Control", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: "Owner-Bereich", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isOwnerUser ? "Operator-Bereich fuer Revenue, Nutzer und Runtime-Steuerung." : "Geschuetzter Operator-Bereich.")
+                Text(isOwnerUser ? "Geschuetzte Steuerung fuer Revenue, Nutzer und Runtime." : "Geschuetzter Owner-Bereich.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1326,7 +1337,7 @@ struct SettingsView: View {
                                 .foregroundColor(AppColors.accent(for: effectiveColorScheme))
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Membership Ops")
+                                Text("Membership-Steuerung")
                                     .font(.headline.weight(.semibold))
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
@@ -5008,26 +5019,57 @@ private struct SettingsHeroCard: View {
     let appearance: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(username ?? "SkyOS Einstellungen")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(AppColors.text(for: colorScheme))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(username ?? "SkyOS Einstellungen")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text("Konto, Anzeige, Support — gruppiert, nicht versteckt.")
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text("Konto, Anzeige und Support sauber an einem Ort.")
+                        .font(.body)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
+                        .frame(width: 58, height: 58)
+
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.title2)
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                }
             }
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
-                    .frame(width: 58, height: 58)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    SettingsBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
+                    SettingsBadge(text: notificationsEnabled ? "Hinweise an" : "Hinweise aus", colorScheme: colorScheme)
+                    SettingsBadge(text: appearance, colorScheme: colorScheme)
+                    if isOwner {
+                        SettingsBadge(text: "Owner aktiv", colorScheme: colorScheme)
+                    }
+                }
 
-                Image(systemName: "slider.horizontal.3")
-                    .font(.title2)
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 10) {
+                        SettingsBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
+                        SettingsBadge(text: notificationsEnabled ? "Hinweise an" : "Hinweise aus", colorScheme: colorScheme)
+                    }
+
+                    HStack(spacing: 10) {
+                        SettingsBadge(text: appearance, colorScheme: colorScheme)
+                        if isOwner {
+                            SettingsBadge(text: "Owner aktiv", colorScheme: colorScheme)
+                        }
+                    }
+                }
             }
         }
         .padding(20)
@@ -5038,21 +5080,6 @@ private struct SettingsHeroCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 26))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
-        .overlay(alignment: .bottomLeading) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
-                    SettingsBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
-                    SettingsBadge(text: notificationsEnabled ? "Hinweise an" : "Hinweise aus", colorScheme: colorScheme)
-                    SettingsBadge(text: appearance, colorScheme: colorScheme)
-                }
-
-                if isOwner {
-                    SettingsBadge(text: "Owner aktiv", colorScheme: colorScheme)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 18)
-        }
     }
 
     private var cardBackground: some View {
@@ -5092,7 +5119,7 @@ private struct OwnerCommandCenterCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(isOwner ? "Owner Command Center" : "Owner Command Center gesperrt")
+                    Text(isOwner ? "Owner-Steuerung" : "Owner-Steuerung gesperrt")
                         .font(.headline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -5104,7 +5131,7 @@ private struct OwnerCommandCenterCard: View {
                 Spacer()
 
                 SettingsBadge(
-                    text: isOwner ? "Root aktiv" : "Locked",
+                    text: isOwner ? "Aktiv" : "Gesperrt",
                     colorScheme: colorScheme
                 )
             }
@@ -5112,7 +5139,7 @@ private struct OwnerCommandCenterCard: View {
             LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
                 OwnerCommandSignalButton(
                     colorScheme: colorScheme,
-                    title: "Membership Ops",
+                    title: "Membership-Steuerung",
                     detail: membershipStatus,
                     iconName: "chart.xyaxis.line",
                     isEnabled: isOwner,

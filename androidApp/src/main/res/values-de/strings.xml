@@ -4,7 +4,7 @@
     <string name="tabs_music">Musik</string>
     <string name="tabs_home">Home</string>
     <string name="tabs_videos">Videos</string>
-    <string name="tabs_tools">Tools</string>
+    <string name="tabs_tools">AI</string>
 
     <string name="offline_banner_title">Offline</string>
     <string name="offline_banner_message">Keine Verbindung. Du siehst zwischengespeicherte Inhalte und kannst weiternavigieren.</string>
@@ -85,7 +85,7 @@
     <string name="profile_support">Support</string>
     <string name="profile_orders">Bestellungen</string>
     <string name="profile_privacy_account">Datenschutz &amp; Konto</string>
-    <string name="ai_topbar_title">Atelier</string>
+    <string name="ai_topbar_title">AI</string>
     <string name="ai_topbar_subtitle">Ruhige Hilfe fuer Text und Visuals.</string>
     <string name="agent_topbar_title">Agent</string>
     <string name="agent_topbar_subtitle">Briefing, Plan und klare Umsetzung.</string>
@@ -94,12 +94,12 @@
     <string name="ai_membership_title_short">KI Membership</string>
     <string name="agent_membership_title_short">Agent Membership</string>
     <string name="ai_membership_caption">SkyOS verkauft Faehigkeiten statt Tokens. Upgrade schaltet mehr Reichweite frei.</string>
-    <string name="agent_membership_caption">Creator bringt mehr Workflow-Reichweite und priorisierte Agent-Ausfuehrung.</string>
+    <string name="agent_membership_caption">Creator bringt mehr Reichweite und priorisierte Agent-Ausfuehrung.</string>
     <string name="ai_available">verfuegbar</string>
     <string name="ai_open">offen</string>
     <string name="ai_warning_critical">Kontingent fast aufgebraucht. Upgrade entlastet den Flow.</string>
     <string name="ai_warning_high">Erhoehte Nutzung erkannt. Alles stabil und beobachtet.</string>
-    <string name="agent_warning_critical">Nahe am Limit. Creator haelt Workflows stabil.</string>
+    <string name="agent_warning_critical">Nahe am Limit. Creator haelt die Ausfuehrung stabil.</string>
     <string name="agent_warning_high">Erhoehte Nutzung erkannt. Planbar weiterarbeiten.</string>
     <string name="ai_retry_in">Bitte in etwa erneut versuchen in</string>
     <string name="ai_next_step">Naechster Schritt</string>
@@ -108,7 +108,7 @@
     <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · Capability-first statt Tokens.</string>
     <string name="ai_membership_free_detail">Free: Bot Basis, wenig Images, leichter Agent</string>
     <string name="ai_membership_pro_detail">Pro: mehr Reichweite, staerkere Ausfuehrung</string>
-    <string name="ai_membership_creator_detail">Creator: Workflow-Tiefe, Premium Outputs, Prioritaet</string>
+    <string name="ai_membership_creator_detail">Creator: mehr Reichweite, Premium Outputs, Prioritaet</string>
     <string name="membership_annual_option">Annual Option</string>
     <string name="membership_pro_activate">Pro aktivieren</string>
     <string name="membership_creator_activate">Creator aktivieren</string>
@@ -121,8 +121,8 @@
     <string name="common_status_idle">Ruhend</string>
     <string name="common_save">Speichern</string>
     <string name="settings_ai_runtime_save">KI Runtime speichern</string>
-    <string name="settings_membership_ops_subtitle">Membership Command Center fuer Owner/Admin. Hier steuerst du Revenue Ops ueber Dashboard, Recommendations, Experiments und Learnings.</string>
-    <string name="settings_membership_ops_loading">Membership Command Center laedt...</string>
+    <string name="settings_membership_ops_subtitle">Membership-Steuerung fuer Owner/Admin. KPIs, Experimente und Learnings in einem Bereich.</string>
+    <string name="settings_membership_ops_loading">Membership-Steuerung laedt...</string>
     <string name="settings_membership_ops_empty_recommendations">Keine offenen Empfehlungen.</string>
     <string name="settings_membership_ops_start_experiment">Experiment starten</string>
     <string name="settings_membership_ops_reject">Verwerfen</string>
@@ -132,15 +132,15 @@
     <string name="settings_membership_ops_complete_experiment">Experiment abschliessen</string>
     <string name="settings_membership_ops_experiment_completed">Experiment abgeschlossen.</string>
     <string name="settings_membership_ops_learnings">Learnings</string>
-    <string name="settings_membership_ops_hygiene_title">Hygiene Controls</string>
+    <string name="settings_membership_ops_hygiene_title">Qualitaetsregeln</string>
     <string name="settings_membership_ops_hygiene_profile">Aktuelles Profil</string>
-    <string name="settings_membership_ops_hygiene_saved">Hygiene Controls gespeichert.</string>
-    <string name="settings_membership_ops_hygiene_save_failed">Hygiene Controls konnten nicht gespeichert werden.</string>
+    <string name="settings_membership_ops_hygiene_saved">Qualitaetsregeln gespeichert.</string>
+    <string name="settings_membership_ops_hygiene_save_failed">Qualitaetsregeln konnten nicht gespeichert werden.</string>
     <string name="settings_membership_ops_hygiene_defaults_restored">Default-Hygiene wiederhergestellt.</string>
     <string name="settings_membership_ops_reset_defaults">Defaults zuruecksetzen</string>
     <string name="settings_membership_ops_timeline_load_failed">Timeline konnte nicht geladen werden.</string>
     <string name="settings_membership_ops_timeline_empty">Keine Timeline-Eintraege fuer den gewaehlten Filter.</string>
-    <string name="settings_membership_ops_owner_action">Owner action</string>
+    <string name="settings_membership_ops_owner_action">Owner-Schritt</string>
     <string name="settings_membership_ops_rerun">Aehnliches Experiment neu starten</string>
     <string name="settings_admin_headers_home_header_uploading">Home Header wird uebernommen.</string>
     <string name="settings_admin_headers_home_eyebrow">Home Eyebrow</string>

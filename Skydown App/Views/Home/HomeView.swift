@@ -65,125 +65,136 @@ struct HomeViewContent: View {
 
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                        let scrollAnimation = Animation.spring(response: 0.36, dampingFraction: 0.86)
-                        let openReleaseSection = {
-                            withAnimation(scrollAnimation) {
-                                proxy.scrollTo(HomeSectionAnchor.release.rawValue, anchor: .top)
+            GeometryReader { geometry in
+                let layout = SkydownResponsiveLayout(availableWidth: geometry.size.width)
+                let contentWidth = min(
+                    layout.contentMaxWidth,
+                    max(geometry.size.width - (layout.horizontalPadding * 2), 0)
+                )
+
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
+                            let scrollAnimation = Animation.spring(response: 0.36, dampingFraction: 0.86)
+                            let openReleaseSection = {
+                                withAnimation(scrollAnimation) {
+                                    proxy.scrollTo(HomeSectionAnchor.release.rawValue, anchor: .top)
+                                }
                             }
-                        }
-                        let openBeatSection = {
-                            withAnimation(scrollAnimation) {
-                                proxy.scrollTo(HomeSectionAnchor.beat.rawValue, anchor: .top)
+                            let openBeatSection = {
+                                withAnimation(scrollAnimation) {
+                                    proxy.scrollTo(HomeSectionAnchor.beat.rawValue, anchor: .top)
+                                }
                             }
-                        }
-                        let openVideoSection = {
-                            withAnimation(scrollAnimation) {
-                                proxy.scrollTo(HomeSectionAnchor.video.rawValue, anchor: .top)
+                            let openVideoSection = {
+                                withAnimation(scrollAnimation) {
+                                    proxy.scrollTo(HomeSectionAnchor.video.rawValue, anchor: .top)
+                                }
                             }
+                            let featuredTrack = viewModel.featuredTrack
+                            let featuredBeat = viewModel.featuredBeat
+                            let featuredVideo = viewModel.featuredVideo
+                            let hasTrackSignal = featuredTrack != nil
+                            let hasBeatSignal = featuredBeat != nil
+                            let hasVideoSignal = featuredVideo != nil
+
+                            HomeHeroIntroCard(
+                                viewModel: viewModel,
+                                colorScheme: colorScheme,
+                                onOpenTrack: openReleaseSection,
+                                onOpenBeat: openBeatSection,
+                                onOpenVideo: openVideoSection
+                            )
+                            .homeReveal(0)
+
+                            MusicInstagramHubCard(
+                                selectedArtist: "Community",
+                                destinations: homeSocialDestinations,
+                                colorScheme: colorScheme
+                            )
+                            .homeReveal(1)
+
+                            HomeDailyOpsStrip(
+                                colorScheme: colorScheme,
+                                activeSignalCount: homeTrackedSignalCount(viewModel),
+                                totalSignalCount: 3,
+                                hasTrackSignal: hasTrackSignal,
+                                hasBeatSignal: hasBeatSignal,
+                                hasVideoSignal: hasVideoSignal,
+                                onRefresh: { viewModel.refresh() },
+                                onOpenRelease: openReleaseSection,
+                                onOpenBeat: openBeatSection,
+                                onOpenVideo: openVideoSection
+                            )
+                            .homeReveal(2)
+
+                            let commandPriorityTarget = homeCommandPriorityTarget(viewModel)
+
+                            HomeCommandDockStrip(
+                                colorScheme: colorScheme,
+                                priorityTarget: commandPriorityTarget,
+                                onOpenWorkflow: onOpenWorkflow,
+                                onOpenCart: onOpenCart,
+                                onOpenSettings: onOpenSettings
+                            )
+                            .homeReveal(3)
+
+                            HomeUtilityRow(
+                                colorScheme: colorScheme,
+                                onOpenAI: { (onOpenWorkflow ?? onOpenSettings)() },
+                                onOpenMusic: openReleaseSection,
+                                onOpenCreate: { presentSheet(.nicmaProducer) },
+                                onOpenOrders: onOpenCart,
+                                onOpenSearch: openReleaseSection,
+                                onOpenSettings: onOpenSettings
+                            )
+                            .homeReveal(4)
+
+                            HomeLiveSignalSection(
+                                colorScheme: colorScheme,
+                                hasTrackSignal: hasTrackSignal,
+                                hasBeatSignal: hasBeatSignal,
+                                hasVideoSignal: hasVideoSignal,
+                                trackName: featuredTrack?.trackName,
+                                beatName: featuredBeat?.title,
+                                videoName: featuredVideo?.title,
+                                aiUsageWarning: viewModel.aiUsageWarning,
+                                creatorLimitZone: viewModel.creatorLimitZone,
+                                agentRunning: viewModel.agentRunning,
+                                workflowWaiting: viewModel.workflowWaiting,
+                                commerceHint: viewModel.commerceSignal,
+                                syncPaused: viewModel.syncPaused,
+                                recoverableError: viewModel.recoverableError,
+                                contentSignal: viewModel.contentSignal
+                            )
+                            .homeReveal(5)
+
+                            HomeMediaClusterSection(
+                                colorScheme: colorScheme,
+                                viewModel: viewModel,
+                                playbackManager: audioPlayerManager,
+                                beatPlaybackManager: beatPlaybackManager,
+                                videoPlaybackManager: videoPlaybackManager,
+                                onOpenVideoHub: openVideoHubFromMediaCluster(video:),
+                                onOpenOriginal: openOriginalFromMediaCluster(video:)
+                            )
+                            .homeReveal(6)
+
+                            Text("SkyOS Home fuehrt ruhig: Signal lesen, Fokus setzen, naechsten Schritt ausfuehren.")
+                                .font(.footnote)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 6)
+                                .homeReveal(8)
                         }
-                        let featuredTrack = viewModel.featuredTrack
-                        let featuredBeat = viewModel.featuredBeat
-                        let featuredVideo = viewModel.featuredVideo
-                        let hasTrackSignal = featuredTrack != nil
-                        let hasBeatSignal = featuredBeat != nil
-                        let hasVideoSignal = featuredVideo != nil
-
-                        HomeHeroIntroCard(
-                            viewModel: viewModel,
-                            colorScheme: colorScheme,
-                            onOpenTrack: openReleaseSection,
-                            onOpenBeat: openBeatSection,
-                            onOpenVideo: openVideoSection
-                        )
-                        .homeReveal(0)
-
-                        MusicInstagramHubCard(
-                            selectedArtist: "Community",
-                            destinations: homeSocialDestinations,
-                            colorScheme: colorScheme
-                        )
-                        .homeReveal(1)
-
-                        HomeDailyOpsStrip(
-                            colorScheme: colorScheme,
-                            activeSignalCount: homeTrackedSignalCount(viewModel),
-                            totalSignalCount: 3,
-                            hasTrackSignal: hasTrackSignal,
-                            hasBeatSignal: hasBeatSignal,
-                            hasVideoSignal: hasVideoSignal,
-                            onRefresh: { viewModel.refresh() },
-                            onOpenRelease: openReleaseSection,
-                            onOpenBeat: openBeatSection,
-                            onOpenVideo: openVideoSection
-                        )
-                        .homeReveal(2)
-
-                        let commandPriorityTarget = homeCommandPriorityTarget(viewModel)
-
-                        HomeCommandDockStrip(
-                            colorScheme: colorScheme,
-                            priorityTarget: commandPriorityTarget,
-                            onOpenWorkflow: onOpenWorkflow,
-                            onOpenCart: onOpenCart,
-                            onOpenSettings: onOpenSettings
-                        )
-                        .homeReveal(3)
-
-                        HomeUtilityRow(
-                            colorScheme: colorScheme,
-                            onOpenAI: { (onOpenWorkflow ?? onOpenSettings)() },
-                            onOpenMusic: openReleaseSection,
-                            onOpenCreate: { presentSheet(.nicmaProducer) },
-                            onOpenOrders: onOpenCart,
-                            onOpenSearch: openReleaseSection,
-                            onOpenSettings: onOpenSettings
-                        )
-                        .homeReveal(4)
-
-                        HomeLiveSignalSection(
-                            colorScheme: colorScheme,
-                            hasTrackSignal: hasTrackSignal,
-                            hasBeatSignal: hasBeatSignal,
-                            hasVideoSignal: hasVideoSignal,
-                            trackName: featuredTrack?.trackName,
-                            beatName: featuredBeat?.title,
-                            videoName: featuredVideo?.title,
-                            aiUsageWarning: viewModel.aiUsageWarning,
-                            creatorLimitZone: viewModel.creatorLimitZone,
-                            agentRunning: viewModel.agentRunning,
-                            workflowWaiting: viewModel.workflowWaiting,
-                            commerceHint: viewModel.commerceSignal,
-                            syncPaused: viewModel.syncPaused,
-                            recoverableError: viewModel.recoverableError,
-                            contentSignal: viewModel.contentSignal
-                        )
-                        .homeReveal(5)
-
-                        HomeMediaClusterSection(
-                            colorScheme: colorScheme,
-                            viewModel: viewModel,
-                            playbackManager: audioPlayerManager,
-                            beatPlaybackManager: beatPlaybackManager,
-                            videoPlaybackManager: videoPlaybackManager,
-                            onOpenVideoHub: openVideoHubFromMediaCluster(video:),
-                            onOpenOriginal: openOriginalFromMediaCluster(video:)
-                        )
-                        .homeReveal(6)
-
-                        Text("SkyOS Home fuehrt ruhig: Signal lesen, Fokus setzen, naechsten Schritt ausfuehren.")
-                            .font(.footnote)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 6)
-                            .homeReveal(8)
+                        .frame(maxWidth: contentWidth, alignment: .leading)
+                        .padding(.horizontal, layout.horizontalPadding)
+                        .padding(.top, SkydownLayout.screenTopPadding * 0.5)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.top, SkydownLayout.screenTopPadding * 0.5)
-                    .padding(.bottom, SkydownLayout.screenBottomPadding)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .scrollIndicators(.hidden)
             .refreshable {

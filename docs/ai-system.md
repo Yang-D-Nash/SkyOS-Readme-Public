@@ -1,0 +1,108 @@
+# SkyOS AI System
+
+SkyOS AI is not one button. It is a layered system that combines assistant behavior, FAQ response,
+visual generation, agent execution, owner runtime controls, and plan-aware usage rules.
+
+## 1. AI Surfaces
+
+SkyOS currently ships or prepares for these AI surfaces:
+
+- bot-style text generation
+- FAQ and support-oriented answer generation
+- visual generation
+- agent-style execution for deeper structured work
+- owner review intelligence for FAQ quality and support maintenance
+
+The product intent is to make AI useful inside the SkyOS system, not to bolt a generic chatbot onto it.
+
+## 2. Backend Execution Model
+
+Critical AI callables include:
+
+- `generateAiText`
+- `generateAiVisual`
+- `skydownAgent`
+- `authorizeAiUsage`
+- `reconcileAiUsageCost`
+- `getAiFaqOwnerIntelligence`
+- recommendation and review-loop callables for FAQ and membership ops
+
+This means AI execution is part of the backend trust model. Usage, permission checks, and provider
+selection are not left only to the client.
+
+## 3. Provider Routing
+
+The current backend uses Genkit with Vertex AI and Gemini as the default execution backbone.
+The repo also includes owner-facing runtime settings for:
+
+- primary and fallback agent providers
+- hard daily caps
+- global daily caps
+- per-plan user limits
+- timeout and retry behavior
+- external automation provider order
+- optional Manus BYOS
+
+SkyOS therefore supports both direct AI execution and controlled bridge patterns into external systems.
+
+## 4. External Automation
+
+The agent layer can integrate with:
+
+- Activepieces
+- `n8n`
+- Manus BYOS
+
+Important boundary: these are optional execution routes. They should be:
+
+- scoped per account where user-owned
+- governed by owner runtime settings where system-owned
+- transparent to the user when automation is triggered
+- blocked when kill switches or confirmation policies require it
+
+## 5. Safety and Trust Controls
+
+SkyOS already contains several real safeguards:
+
+- role-derived quota defaults
+- daily limits for text, visuals, and agent requests
+- AI consent fields in user state
+- retention windows for AI history
+- runtime kill switches
+- App Check-aware callable handling
+- owner confirmation policies for sensitive categories such as commerce or owner ops
+
+AI should never silently overstep permission, billing, or privacy expectations.
+
+## 6. FAQ and Support Intelligence
+
+SkyOS includes a FAQ review loop, not only answer generation. This enables:
+
+- owner review of FAQ quality
+- preview and application of FAQ improvements
+- rollback of recent FAQ changes
+- intelligence surfaces for support blind spots or stale guidance
+
+This is part of product trust, not only internal tooling.
+
+## 7. Membership and AI Access
+
+AI in SkyOS is plan-aware. The system can:
+
+- change usage ceilings by quota plan
+- gate deeper usage behind paid capability tiers
+- surface restore and upgrade actions from AI-adjacent contexts
+- block usage during budget or abuse incidents
+
+The repo positions AI as capability-based membership, not a token shop.
+
+## 8. What AI Is Not Allowed To Be
+
+SkyOS AI should not:
+
+- impersonate legal, medical, tax, financial, or safety advice
+- silently execute owner or commerce actions without the expected confirmation path
+- invent policy, shipping, or account rules that the product does not define
+- encourage users to paste secrets into prompts
+
+Use [legal/AI_USAGE_NOTICE.md](legal/AI_USAGE_NOTICE.md) and [faq.md](faq.md) as the trust-facing companions to this document.

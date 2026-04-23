@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -74,6 +76,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -120,8 +124,18 @@ fun AiScreen(
     val baseCompactLayout = rememberIsCompactAppLayout()
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val compactLayout = baseCompactLayout || compactVisualDensity
-    val contentMaxWidth = if (compactVisualDensity) 620.dp else Dp.Unspecified
+    val contentMaxWidth = if (compactLayout) 620.dp else 1040.dp
     val listState = rememberLazyListState()
+    val lastChatItemIndex = if (uiState.messages.isEmpty()) {
+        0
+    } else {
+        val leadingItems = 3 + if (uiState.lastDecision != null) 1 else 0
+        leadingItems + uiState.messages.lastIndex
+    }
+    val conversationEndItemIndex = if (uiState.messages.isEmpty()) 0 else lastChatItemIndex + 1
+    val lastMessageRenderSignature = uiState.messages.lastOrNull()?.let { message ->
+        "${message.id}:${message.text.length}:${message.imageBytes?.size ?: 0}:${message.isStreaming}"
+    }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -138,9 +152,9 @@ fun AiScreen(
     }
     var hasAutoUpgradePrompted by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(uiState.messages.size) {
+    LaunchedEffect(conversationEndItemIndex, lastMessageRenderSignature, uiState.isAiEnabled) {
         if (uiState.isAiEnabled && uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.lastIndex + 2)
+            listState.animateScrollToItem(conversationEndItemIndex)
         }
     }
 
@@ -295,6 +309,7 @@ fun AiScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
+                            .testTag("ai.message.list")
                             .widthIn(max = contentMaxWidth)
                             .fillMaxWidth()
                             .fillMaxHeight(),
@@ -529,13 +544,13 @@ private fun AiDecisionCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            BrandStatusChip(text = "Why", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
+            BrandStatusChip(text = "Route", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
             BrandStatusChip(
                 text = when (decision.state) {
                     "faq_answer" -> "FAQ"
-                    "degraded" -> "Degraded"
-                    "blocked" -> "Blocked"
-                    "retryable" -> "Retry"
+                    "degraded" -> "Fallback"
+                    "blocked" -> "Blockiert"
+                    "retryable" -> "Erneut"
                     else -> "Live"
                 },
                 accent = MaterialTheme.colorScheme.primary,
@@ -551,7 +566,7 @@ private fun AiDecisionCard(
         )
         if (decision.selectedModel.isNotBlank()) {
             Text(
-                text = "Model: ${decision.selectedModel}",
+                text = "Modell: ${decision.selectedModel}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.padding(top = 4.dp),
@@ -559,7 +574,7 @@ private fun AiDecisionCard(
         }
         if (decision.topic.isNotBlank()) {
             Text(
-                text = "Topic: ${decision.topic}",
+                text = "Thema: ${decision.topic}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 modifier = Modifier.padding(top = 2.dp),
@@ -583,7 +598,7 @@ private fun AiDecisionCard(
         }
         if (decision.blocked && decision.blockReason.isNotBlank()) {
             Text(
-                text = "Block: ${decision.blockReason}",
+                text = "Blockiert: ${decision.blockReason}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 2.dp),
@@ -591,7 +606,7 @@ private fun AiDecisionCard(
         }
         if (decision.retryable && decision.retryReason.isNotBlank()) {
             Text(
-                text = "Retry: ${decision.retryReason}",
+                text = "Erneut: ${decision.retryReason}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 modifier = Modifier.padding(top = 2.dp),
@@ -741,7 +756,7 @@ private fun AiCommandHeroCard(
                 modifier = Modifier.size(14.dp),
             )
             Text(
-                text = "KI Atelier",
+                text = "SkyOS AI",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -749,7 +764,7 @@ private fun AiCommandHeroCard(
             Spacer(modifier = Modifier.weight(1f))
         }
         Text(
-            text = "Text. Visuals. Ideen. Dein kreativer Flow.",
+            text = "Text. Visuals. Ideen. Ein klarer kreativer Flow.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
@@ -767,11 +782,11 @@ private fun AiOverviewCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(14.dp)) {
         BrandSectionBanner(
-            title = if (isEnabled) "Atelier live" else "Atelier standby",
+            title = if (isEnabled) "AI live" else "AI pausiert",
             subtitle = "Text, Visuals und Stilentscheidungen laufen in einer privaten Session.",
             accent = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.AutoAwesome,
-            tag = if (isEnabled) "Owner Mode" else "Ruhend",
+            tag = if (isEnabled) "Private Session" else "Ruhend",
         )
         Row(
             modifier = Modifier.padding(top = 12.dp),
@@ -786,7 +801,7 @@ private fun AiOverviewCard(
             )
             BrandHeroMetricCard(
                 label = "STATUS",
-                value = if (isEnabled) "Online" else "Paused",
+                value = if (isEnabled) "Aktiv" else "Pausiert",
                 accent = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.weight(1f),
                 isActive = isEnabled,
@@ -797,12 +812,12 @@ private fun AiOverviewCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BrandStatusChip(
-                text = "Private Context",
+                text = "Privat",
                 accent = MaterialTheme.colorScheme.primary,
                 isActive = isEnabled,
             )
             BrandStatusChip(
-                text = "Visual Pipeline",
+                text = "Visuals",
                 accent = MaterialTheme.colorScheme.tertiary,
                 isActive = isEnabled,
             )
@@ -1134,6 +1149,7 @@ private fun AiPromptActionCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AiMessageBubble(
     message: AiMessage,
@@ -1182,6 +1198,12 @@ fun AiMessageBubble(
             ),
         )
     }
+    val bubbleMaxWidth = when {
+        message.imageBytes != null && compactLayout -> 372.dp
+        message.imageBytes != null -> 456.dp
+        compactLayout -> 360.dp
+        else -> 400.dp
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1189,7 +1211,7 @@ fun AiMessageBubble(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 360.dp)
+                .widthIn(max = bubbleMaxWidth)
                 .testTag("ai.message.bubble")
                 .clip(bubbleShape)
                 .background(bubbleBrush)
@@ -1204,7 +1226,7 @@ fun AiMessageBubble(
                 ),
         ) {
             Text(
-                text = if (isUser) "Du" else "Atelier",
+                text = if (isUser) "Du" else "SkyOS AI",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
@@ -1221,7 +1243,7 @@ fun AiMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "Atelier denkt...",
+                        text = "SkyOS AI antwortet...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -1245,64 +1267,67 @@ fun AiMessageBubble(
                 }
 
                 if (generatedBitmap != null) {
-                    Image(
-                        bitmap = generatedBitmap.asImageBitmap(),
-                        contentDescription = "Generiertes Visual",
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp)
                             .height(220.dp)
                             .testTag("ai.message.visual")
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = "Generiertes Visual"
+                            }
                             .clip(RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)),
-                    )
+                    ) {
+                        Image(
+                            bitmap = generatedBitmap.asImageBitmap(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
 
                 if (!isUser && !message.isStreaming) {
-                    LazyRow(
-                        modifier = Modifier.padding(top = 10.dp),
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(end = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        item {
-                            BrandStatusChip(
-                                text = "Kopieren",
-                                accent = MaterialTheme.colorScheme.primary,
-                                onClick = {
-                                    copyAiText(context, "SkyOS Bot", message.text)
-                                    onFeedback("Antwort kopiert.", ToastType.Success)
-                                },
-                            )
-                        }
+                        BrandStatusChip(
+                            text = "Kopieren",
+                            accent = MaterialTheme.colorScheme.primary,
+                            onClick = {
+                                copyAiText(context, "SkyOS Bot", message.text)
+                                onFeedback("Antwort kopiert.", ToastType.Success)
+                            },
+                        )
 
-                        item {
-                            BrandStatusChip(
-                                text = "Teilen",
-                                accent = MaterialTheme.colorScheme.secondary,
-                                onClick = {
-                                    shareAiText(context, "SkyOS Bot", message.text)
-                                    onFeedback("Share-Sheet geoeffnet.", ToastType.Info)
-                                },
-                            )
-                        }
+                        BrandStatusChip(
+                            text = "Teilen",
+                            accent = MaterialTheme.colorScheme.secondary,
+                            onClick = {
+                                shareAiText(context, "SkyOS Bot", message.text)
+                                onFeedback("Share-Sheet geoeffnet.", ToastType.Info)
+                            },
+                        )
 
                         if (message.imageBytes != null) {
-                            item {
-                                BrandStatusChip(
-                                    text = "Speichern",
-                                    accent = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.testTag("ai.message.save"),
-                                    onClick = {
-                                        saveAiImage(context, message.imageBytes, message.imageMimeType)
-                                            .onSuccess {
+                            BrandStatusChip(
+                                text = "Speichern",
+                                accent = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.testTag("ai.message.save"),
+                                onClick = {
+                                    saveAiImage(context, message.imageBytes, message.imageMimeType)
+                                        .onSuccess {
                                             onFeedback("Bild gespeichert.", ToastType.Success)
-                                            }
-                                            .onFailure {
+                                        }
+                                        .onFailure {
                                             onFeedback("Bild konnte nicht gespeichert werden.", ToastType.Error)
-                                            }
-                                    },
-                                )
-                            }
+                                        }
+                                },
+                            )
                         }
                     }
                 }
@@ -1403,7 +1428,9 @@ private fun AiComposerBar(
                         accent = MaterialTheme.colorScheme.primary,
                         filled = composerMode == AiComposerMode.Text,
                         compact = true,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("ai.composer.mode.text"),
                     )
 
                     BrandActionButton(
@@ -1412,7 +1439,9 @@ private fun AiComposerBar(
                         accent = MaterialTheme.colorScheme.tertiary,
                         filled = composerMode == AiComposerMode.Visual,
                         compact = true,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("ai.composer.mode.visual"),
                     )
 
                     BrandActionButton(
@@ -1423,7 +1452,9 @@ private fun AiComposerBar(
                         filled = false,
                         compact = true,
                         enabled = !botPhase.isBusy,
-                        modifier = Modifier.widthIn(min = if (embeddedInTools) 88.dp else 96.dp),
+                        modifier = Modifier
+                            .widthIn(min = if (embeddedInTools) 88.dp else 96.dp)
+                            .testTag("ai.composer.reset"),
                     )
                 }
 
@@ -1456,7 +1487,8 @@ private fun AiComposerBar(
                     onValueChange = onDraftChanged,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = sectionSpacing),
+                        .padding(top = sectionSpacing)
+                        .testTag("ai.composer.input"),
                     placeholder = {
                         Text(
                             if (composerMode == AiComposerMode.Text) {
@@ -1524,6 +1556,7 @@ private fun AiComposerBar(
                             compact = true,
                             enabled = draft.isNotBlank() && !botPhase.isBusy,
                             isLoading = botPhase.isBusy,
+                            modifier = Modifier.testTag("ai.composer.send"),
                         )
                     }
                 }

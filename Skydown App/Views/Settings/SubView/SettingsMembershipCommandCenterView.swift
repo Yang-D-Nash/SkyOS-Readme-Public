@@ -39,9 +39,9 @@ struct SettingsMembershipCommandCenterView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(t("settings.membership_ops.title", "Membership Command Center"))
+            Text(t("settings.membership_ops.title", "Membership Control"))
                 .font(.headline)
-            Text(t("settings.membership_ops.subtitle", "Operator-grade revenue controls for owner/admin."))
+            Text(t("settings.membership_ops.subtitle", "Owner area for KPIs, experiments, and learnings."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -57,7 +57,7 @@ struct SettingsMembershipCommandCenterView: View {
             }
 
             if store.isLoading {
-                ProgressView(t("settings.membership_ops.loading", "Loading revenue ops data..."))
+                ProgressView(t("settings.membership_ops.loading", "Loading membership control..."))
             } else {
                 switch selectedTab {
                 case .dashboard:
@@ -330,7 +330,7 @@ struct SettingsMembershipCommandCenterView: View {
                                 .font(.footnote)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             if let ownerAction = row["ownerAction"] as? String, !ownerAction.isEmpty {
-                                Text("\(t("settings.membership_ops.timeline.owner_action", "Owner action")): \(ownerAction)")
+                                Text("\(t("settings.membership_ops.timeline.owner_action", "Owner step")): \(ownerAction)")
                                     .font(.caption)
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             }
