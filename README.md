@@ -9,20 +9,20 @@
 <h1 align="center">SkyOS</h1>
 
 <p align="center">
-  <strong>AI • Creator • Commerce Platform</strong>
+  <strong>AI • Creator • Commerce Plattform</strong>
 </p>
 
 <p align="center">
-  Native iOS and Android product system for assistant-grade AI, creator media, merch commerce,
-  membership, and owner governance in one controlled platform.
+  Natives iOS- und Android-Produktsystem fuer Assistant-grade AI, Creator-Media, Merch-Commerce,
+  Membership und Owner-Governance in einer kontrollierten Plattform.
 </p>
 
 <p align="center">
-  <a href="docs/README.md">Documentation</a> •
-  <a href="docs/architecture.md">Architecture</a> •
+  <a href="docs/README.md">Dokumentation</a> •
+  <a href="docs/architecture.md">Architektur</a> •
   <a href="docs/deployment.md">Deployment</a> •
-  <a href="docs/legal/terms.md">Terms</a> •
-  <a href="docs/legal/privacy.md">Privacy</a> •
+  <a href="docs/legal/terms.md">AGB</a> •
+  <a href="docs/legal/privacy.md">Datenschutz</a> •
   <a href="https://github.com/Yang-D-Nash/SkyOs-App">Repository</a>
 </p>
 
@@ -34,64 +34,65 @@
 </p>
 
 <p align="center">
-  <img alt="Status" src="https://img.shields.io/badge/Status-Internal%20RC%20Baseline-101828?style=flat-square" />
-  <img alt="Trust" src="https://img.shields.io/badge/Trust-Security%20and%20legal%20review%20gated-475467?style=flat-square" />
+  <img alt="Status" src="https://img.shields.io/badge/Status-Interne%20RC%20Baseline-101828?style=flat-square" />
+  <img alt="Trust" src="https://img.shields.io/badge/Trust-Security%20und%20Legal%20gated-475467?style=flat-square" />
 </p>
 
-> Security-first. Firebase-backed. Native iOS + Android. Controlled AI runtime. Privacy-conscious by design. Owner governance controls.
+> Security-first. Firebase-basiert. Natives iOS + Android. Kontrollierte AI-Laufzeit. Datenschutzbewusst aufgebaut. Owner-Governance mit klaren Eingriffspunkten.
 
-SkyOS is the premium product layer of the Skydown ecosystem. It brings together a daily home
-surface, assistant and agent-grade AI, creator media, merch commerce, membership logic, and
-operator controls in one native system instead of a stack of disconnected tools.
+SkyOS ist die Premium-Produktschicht des Skydown-Oekosystems. Die Plattform verbindet eine taegliche
+Home-Oberflaeche, Assistant- und Agent-grade AI, Creator-Media, Merch-Commerce, Membership-Logik
+und operative Steuerung in einem nativen System statt in einem Stapel voneinander getrennter Tools.
 
-The intent is not feature volume. The intent is a product that feels clear, commercially credible,
-operationally governed, and releaseable on real devices.
+Das Ziel ist nicht Feature-Masse. Das Ziel ist ein Produkt, das klar wirkt, kommerziell glaubwuerdig
+ist, operativ gefuehrt werden kann und sich auf echten Geraeten release-faehig anfuehlt.
 
-## What Is SkyOS
+## Was ist SkyOS
 
-SkyOS combines:
+SkyOS kombiniert:
 
-- a native AI layer for assistant, FAQ, visual generation, and agent-style execution
-- creator media surfaces for music, video, beats, and artist presentation
-- commerce infrastructure for merch, checkout initiation, orders, and support visibility
-- membership-aware access, restore paths, and upgrade logic
-- owner/admin controls for runtime settings, legal content, revenue operations, and release hygiene
-- a Firebase-backed trust layer with rules, App Check, Cloud Functions, and operational safeguards
+- eine native AI-Schicht fuer Assistant, FAQ, Visual-Generierung und agentische Ausfuehrung
+- Creator-Media-Flaechen fuer Musik, Video, Beats und Artist-Praesenz
+- Commerce-Infrastruktur fuer Merch, Checkout-Start, Orders und Support-Sichtbarkeit
+- membership-aware Zugriff, Restore-Pfade und Upgrade-Logik
+- Owner-/Admin-Steuerung fuer Runtime-Settings, Legal-Content, Revenue-Operations und Release-Hygiene
+- eine Firebase-gestuetzte Trust-Layer mit Rules, App Check, Cloud Functions und operativen Schutzmechanismen
 
-## Why SkyOS
+## Warum SkyOS
 
-SkyOS exists to solve a product problem, not just a technical one:
+SkyOS loest ein Produktproblem, nicht nur ein technisches:
 
-- one mobile product instead of separate AI, creator, shop, and admin islands
-- recurring user value through assistant utility, media, membership, and commerce in one system
-- founder-grade control over runtime behavior, permissions, legal content, and release readiness
-- native quality on iPhone and Android instead of a lowest-common-denominator wrapper
-- a repository that works as both product surface and operating system for the team behind it
+- ein mobiles Produkt statt getrennter AI-, Creator-, Shop- und Admin-Inseln
+- wiederkehrender Nutzwert durch Assistant-Utility, Media, Membership und Commerce in einem System
+- Founder-grade Kontrolle ueber Runtime-Verhalten, Berechtigungen, Legal-Content und Release-Readiness
+- native Qualitaet auf iPhone und Android statt eines Lowest-common-denominator Wrappers
+- ein Repository, das zugleich Produktoberflaeche und Betriebssystem fuer das Team dahinter ist
 
-## Core Modules
+## Kernmodule
 
-| Module | Role | Business value |
+| Modul | Rolle | Business-Wert |
 | --- | --- | --- |
-| Home | Launch surface, entry points, signals, and product hierarchy | Makes the platform understandable from the first session |
-| AI | Bot, FAQ, visual generation, and agent workflows | Creates recurring use beyond passive content consumption |
-| Music and Video | Tracks, media, artist identity, and creator presentation | Anchors the platform in content and audience relevance |
-| Merch and Orders | Storefront, cart, checkout handoff, and order visibility | Turns attention into revenue without leaving the ecosystem |
-| Membership | Access control, restore, upgrade logic, and plan-aware limits | Supports monetization with clear value instead of clutter |
-| Owner Control | Runtime settings, legal content, revenue ops, and role management | Gives the team leverage without a separate back office |
-| Trust Layer | Security rules, App Check, support paths, and kill switches | Makes the product governable, not just demoable |
+| Home | Startflaeche, Einstiegspunkte, Signale und Produkthierarchie | Macht die Plattform ab der ersten Session verstaendlich |
+| AI | Bot, FAQ, Visual-Generierung und Agent-Workflows | Schafft wiederkehrenden Nutzen ueber passiven Content hinaus |
+| Music und Video | Tracks, Media, Artist-Identitaet und Creator-Praesentation | Verankert das Produkt in Content und Relevanz |
+| Merch und Orders | Storefront, Cart, Checkout-Handoff und Order-Sichtbarkeit | Macht aus Aufmerksamkeit Umsatz, ohne das Oekosystem zu verlassen |
+| Membership | Zugriffskontrolle, Restore, Upgrade-Logik und plan-aware Limits | Stuetzt Monetarisierung mit klarem Wert statt Clutter |
+| Owner Control | Runtime-Settings, Legal-Content, Revenue-Ops und Rollensteuerung | Gibt dem Team Hebel ohne separates Backoffice |
+| Trust Layer | Security Rules, App Check, Support-Pfade und Kill Switches | Macht das Produkt steuerbar statt nur demo-faehig |
 
-## Platforms
+## Plattformen
 
-- Native iOS app in [`Skydown App/`](<Skydown App/>)
-- Native Android app in [`androidApp/`](androidApp/)
-- Shared Kotlin Multiplatform model layer in [`shared/`](shared/)
-- Firebase backend with Auth, Firestore, Storage, Cloud Functions, rules, and App Check
-- Optional external automation paths for user-owned Activepieces or `n8n`, plus optional Manus BYOS for agent workloads
+- Native iOS-App in [`Skydown App/`](<Skydown App/>)
+- Native Android-App in [`androidApp/`](androidApp/)
+- Shared Kotlin Multiplatform Model-Layer in [`shared/`](shared/)
+- Firebase-Backend mit Auth, Firestore, Storage, Cloud Functions, Rules und App Check
+- Optionale externe Automationspfade fuer nutzereigene Activepieces- oder `n8n`-Setups sowie optionales Manus BYOS fuer Agent-Workloads
 
-## Architecture Snapshot
+## Architektur-Snapshot
 
-SkyOS is structured as two native mobile clients on top of a controlled Firebase backend with a
-shared model layer, server-authoritative privileged mutations, and owner-governed runtime controls.
+SkyOS besteht aus zwei nativen Mobile-Clients auf einer kontrollierten Firebase-Basis mit
+gemeinsamer Model-Layer, server-autoritativem Handling privilegierter Mutationen und
+owner-gesteuerten Runtime-Controls.
 
 ```mermaid
 flowchart LR
@@ -103,67 +104,67 @@ flowchart LR
     Firebase --> Firestore["Firestore"]
     Firebase --> Storage["Storage"]
     Firebase --> Functions["Cloud Functions"]
-    Functions --> AI["AI Runtime and Provider Controls"]
-    Functions --> Commerce["Commerce and Orders"]
-    Functions --> Ops["Owner and Governance Controls"]
-    Commerce --> Stripe["Stripe or enabled payment rails"]
+    Functions --> AI["AI Runtime und Provider Controls"]
+    Functions --> Commerce["Commerce und Orders"]
+    Functions --> Ops["Owner- und Governance-Control"]
+    Commerce --> Stripe["Stripe oder aktivierte Payment Rails"]
     Commerce --> Shopify["Shopify"]
     Ops --> External["Activepieces / n8n / Manus (optional)"]
-    Functions --> Stores["App Store and Play billing sync"]
+    Functions --> Stores["App Store und Play Billing Sync"]
 ```
 
-Core technical references:
+Zentrale technische Referenzen:
 
 - [docs/architecture.md](docs/architecture.md)
 - [docs/backend.md](docs/backend.md)
 - [docs/ios.md](docs/ios.md)
 - [docs/android.md](docs/android.md)
 
-## AI / Agent System
+## AI / Agent-System
 
-SkyOS AI is designed as a controlled product surface rather than an isolated chatbot.
+SkyOS AI ist als kontrollierte Produktschicht gedacht, nicht als isolierter Chatbot.
 
-- assistant, FAQ, visual generation, and agent-style flows live inside the main product shell
-- provider routing, runtime settings, and usage policy remain owner-controlled
-- AI availability is governed by account state, entitlement logic, and backend authority
-- operational safety includes rate boundaries, pause states, history retention rules, and review paths
+- Assistant, FAQ, Visual-Generierung und Agent-Flows leben direkt in der Hauptoberflaeche
+- Provider-Routing, Runtime-Settings und Usage-Policy bleiben owner-kontrolliert
+- AI-Verfuegbarkeit wird ueber Account-Zustand, Entitlement-Logik und Backend-Autoritaet gesteuert
+- operative Sicherheit umfasst Rate-Grenzen, Pause-States, History-Retention-Regeln und Review-Pfade
 
-See [docs/ai-system.md](docs/ai-system.md).
+Mehr dazu in [docs/ai-system.md](docs/ai-system.md).
 
 ## Commerce / Membership
 
-Commerce is part of the product, not a bolted-on widget.
+Commerce ist Teil des Produkts und kein angeflanschtes Widget.
 
-- merch discovery, cart behavior, checkout preparation, and order visibility sit inside the same user journey
-- membership logic controls entitlement-aware access, restore, upgrade prompts, and recurring value surfaces
-- hosted checkout, payment configuration, and live billing readiness are backend-governed and release-gated
+- Merch-Discovery, Cart-Verhalten, Checkout-Vorbereitung und Order-Sichtbarkeit liegen im selben Nutzerfluss
+- Membership-Logik steuert entitlement-aware Zugriff, Restore, Upgrade-Hinweise und wiederkehrende Value-Surfaces
+- Hosted Checkout, Payment-Konfiguration und Live-Billing-Readiness werden backend-gesteuert und release-seitig gegatet
 
-See [docs/commerce.md](docs/commerce.md).
+Mehr dazu in [docs/commerce.md](docs/commerce.md).
 
 ## Owner Control
 
-SkyOS includes owner governance surfaces for the operating team behind the product.
+SkyOS enthaelt Governance-Flaechen fuer das operative Team hinter dem Produkt.
 
-- runtime controls for AI, commerce, and account policies
-- legal content, role-sensitive settings, and release hygiene surfaces
-- revenue operations, support-sensitive flows, and kill switches for incident response
-- controlled integration points for external workflows and automation
+- Runtime-Controls fuer AI, Commerce und Account-Policies
+- Legal-Content, rollenabhaengige Settings und Release-Hygiene
+- Revenue-Operations, support-sensible Flows und Kill Switches fuer Incident Response
+- kontrollierte Integrationspunkte fuer externe Workflows und Automation
 
-See [docs/owner-admin.md](docs/owner-admin.md).
+Mehr dazu in [docs/owner-admin.md](docs/owner-admin.md).
 
-## Security Principles
+## Sicherheitsprinzipien
 
-- UI visibility is never the final permission boundary
-- privileged mutations belong in Cloud Functions and rules, not only in client code
-- Firestore and Storage default to explicit, role-aware access checks
-- production secrets belong in secure runtime stores, not in git
-- App Check, release smoke tests, and runtime locks are part of hardening, not optional polish
-- privacy-sensitive flows should collect only what is needed for the product path in scope
-- owner governance controls exist to contain incidents without shipping blind hotfixes first
+- UI-Sichtbarkeit ist nie die letzte Berechtigungsgrenze
+- privilegierte Mutationen gehoeren in Cloud Functions und Rules, nicht nur in Client-Code
+- Firestore und Storage arbeiten standardmaessig mit expliziten, rollenbewussten Zugriffspruefungen
+- produktive Secrets gehoeren in sichere Runtime-Stores, nicht in Git
+- App Check, Release-Smokes und Runtime-Locks sind Teil des Hardening, nicht optionales Polish
+- privacy-sensitive Flows sollen nur Daten erfassen, die fuer den jeweiligen Produktpfad wirklich noetig sind
+- Owner-Governance-Controls dienen dazu, Vorfaelle kontrolliert zu begrenzen, statt erst blind Hotfixes zu shippen
 
-## Documentation Index
+## Dokumentationsindex
 
-### Core docs
+### Kern-Dokumente
 
 - [docs/README.md](docs/README.md)
 - [docs/architecture.md](docs/architecture.md)
@@ -183,60 +184,60 @@ See [docs/owner-admin.md](docs/owner-admin.md).
 - [docs/store/screenshots.md](docs/store/screenshots.md)
 - [docs/store/review-prep.md](docs/store/review-prep.md)
 
-### Legal docs
+### Legal-Dokumente
 
 - [docs/legal/terms.md](docs/legal/terms.md)
 - [docs/legal/privacy.md](docs/legal/privacy.md)
 - [docs/legal/imprint.md](docs/legal/imprint.md)
 
-## Quick Start
+## Schnellstart
 
-### 1. Clone
+### 1. Klonen
 
 ```bash
 git clone https://github.com/Yang-D-Nash/SkyOs-App.git
 cd SkyOs-App
 ```
 
-### 2. Install
+### 2. Installieren
 
 ```bash
 npm ci --prefix functions
 ```
 
-### 3. Run iOS
+### 3. iOS starten
 
-Open `Skydown App.xcodeproj` in Xcode for simulator or device work, or build from the command line:
+Oeffne `Skydown App.xcodeproj` in Xcode fuer Simulator- oder Device-Arbeit oder baue ueber die Kommandozeile:
 
 ```bash
 xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Debug -destination "generic/platform=iOS Simulator" build
 ```
 
-### 4. Run Android
+### 4. Android starten
 
 ```bash
 ./gradlew :androidApp:assembleDebug
 ./gradlew :androidApp:assembleDebugAndroidTest
 ```
 
-### 5. Run Functions
+### 5. Functions starten
 
 ```bash
 npm test --prefix functions
 ```
 
-Live service paths require the expected Firebase configuration files and secure runtime secrets.
-See [docs/backend.md](docs/backend.md) and [docs/deployment.md](docs/deployment.md).
+Live-Service-Pfade benoetigen die erwarteten Firebase-Konfigurationsdateien und sichere Runtime-Secrets.
+Siehe [docs/backend.md](docs/backend.md) und [docs/deployment.md](docs/deployment.md).
 
 ## Deployment
 
-Deployment is treated as a controlled release action, not a blind sync.
+Deployment wird als kontrollierte Release-Aktion verstanden, nicht als blinder Sync.
 
-- use [docs/deployment.md](docs/deployment.md) for deploy and rollback procedure
-- use [docs/release-checklist.md](docs/release-checklist.md) for final launch gating
-- validate billing, legal content, rules, and real-device smoke before public release
+- nutze [docs/deployment.md](docs/deployment.md) fuer Deploy- und Rollback-Ablauf
+- nutze [docs/release-checklist.md](docs/release-checklist.md) fuer das finale Launch-Gating
+- validiere Billing, Legal-Content, Rules und Real-Device-Smokes vor einem oeffentlichen Release
 
-Key commands:
+Wichtige Kommandos:
 
 ```bash
 firebase deploy --only functions
@@ -244,32 +245,33 @@ firebase deploy --only firestore:rules,storage
 firebase deploy --only functions:syncShopifyMerch,functions:startAiSubscriptionCheckout
 ```
 
-## Legal
+## Rechtliches
 
-SkyOS keeps its working legal basis in-repo for product, ops, and release coordination.
+SkyOS fuehrt seine Arbeitsgrundlage fuer Legal direkt im Repository, damit Produkt, Ops und Release
+koordiniert bleiben.
 
-- [Terms](docs/legal/terms.md)
-- [Privacy](docs/legal/privacy.md)
-- [Imprint](docs/legal/imprint.md)
+- [AGB](docs/legal/terms.md)
+- [Datenschutz](docs/legal/privacy.md)
+- [Impressum](docs/legal/imprint.md)
 - [Subscription Terms](docs/legal/SUBSCRIPTION_TERMS.md)
 - [AI Usage Notice](docs/legal/AI_USAGE_NOTICE.md)
 
-These documents support the product foundation, but public launch should still pass final operator
-and market-specific legal review.
+Diese Dokumente bilden eine professionelle Foundation, ersetzen vor einem oeffentlichen Launch aber
+keine finale Betreiber- und marktspezifische Rechtspruefung.
 
 ## Status
 
-Current repository baseline:
+Aktuelle Repository-Baseline:
 
-- native iOS and Android product foundations are in place
-- Firebase backend, owner controls, merch, membership, and AI foundations exist
-- release, legal, branding, and deployment documentation live in-repo
-- the repository is structured to support product review, developer onboarding, and operating discipline
+- native iOS- und Android-Produktfundamente sind vorhanden
+- Firebase-Backend, Owner-Controls, Merch, Membership und AI-Fundamente stehen
+- Release-, Legal-, Branding- und Deployment-Dokumentation liegen im Repo
+- das Repository ist so strukturiert, dass Produktreview, Developer-Onboarding und operative Disziplin moeglich sind
 
-Still required before public release:
+Vor einem oeffentlichen Release weiter noetig:
 
-- final legal approval for the target operator and markets
-- live billing and store validation on release candidates
-- final localization and copy consistency pass
-- final real-device release regression across critical flows
-- monitoring, analytics sanity, and support readiness confirmation
+- finale rechtliche Freigabe fuer Betreiber und Zielmaerkte
+- Live-Billing- und Store-Validierung auf Release-Kandidaten
+- finaler Localization- und Copy-Consistency-Pass
+- finale Real-Device-Regression ueber kritische Kernflows
+- Monitoring-, Analytics- und Support-Readiness bestaetigen
