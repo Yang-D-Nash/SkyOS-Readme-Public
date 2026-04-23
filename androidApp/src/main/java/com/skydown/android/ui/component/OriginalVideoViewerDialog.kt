@@ -97,7 +97,6 @@ fun OriginalVideoViewerDialog(
 
     DisposableEffect(url, directVideoUrl) {
         onDispose {
-            browserView?.destroy()
             browserView = null
         }
     }
@@ -127,7 +126,7 @@ fun OriginalVideoViewerDialog(
                 )
             } else {
                 key(url) {
-                    AndroidView(
+                    ManagedAndroidWebView(
                         modifier = Modifier.fillMaxSize(),
                         factory = { webContext ->
                             WebView(webContext).apply {

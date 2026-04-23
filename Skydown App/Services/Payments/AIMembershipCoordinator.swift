@@ -14,23 +14,16 @@ final class AIMembershipCoordinator: ObservableObject {
 
     @Published private(set) var isPresented = false
     @Published private(set) var lastOpenReason: OpenReason = .manual
-    @Published private(set) var successMessage: String?
     @Published private(set) var currentPlanCache: UserQuotaPlan = .free
     @Published private(set) var surface: String = "ai_chat"
 
     private let logger = Logger(subsystem: "com.skydown.app", category: "ai-membership")
     private let analytics = MembershipAnalyticsTracker()
-    static let shared = AIMembershipCoordinator()
-
-    func analyticsSource(_ reason: OpenReason) -> String {
-        reason.rawValue
-    }
 
     func openMembership(reason: OpenReason, surface: String = "ai_chat") {
         lastOpenReason = reason
         self.surface = surface
         isPresented = true
-        successMessage = nil
         track("membership_open_reason", ["reason": reason.rawValue])
         analytics.track("membership_open", reason: reason.rawValue, surface: surface, currentPlan: currentPlanCache.rawValue)
         analytics.track("membership_reason", reason: reason.rawValue, surface: surface, currentPlan: currentPlanCache.rawValue)
@@ -51,7 +44,6 @@ final class AIMembershipCoordinator: ObservableObject {
 
     func postPurchaseRefresh(plan: UserQuotaPlan?, refresh: @escaping @Sendable () async -> Void) async {
         currentPlanCache = plan ?? currentPlanCache
-        successMessage = "Upgrade aktiv. Dein Plan wurde aktualisiert."
         await refresh()
     }
 

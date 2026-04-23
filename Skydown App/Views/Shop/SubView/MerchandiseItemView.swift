@@ -106,7 +106,7 @@ struct MerchandiseItemView: View {
                         width: imageWidth,
                         height: imageHeight
                     )
-                    .id("\(item.id)-\(index)-\(urlString)")
+                    .id("\(String(describing: item.id))-\(index)-\(urlString)")
                     .tag(index)
                 }
             }

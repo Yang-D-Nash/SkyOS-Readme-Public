@@ -27,8 +27,7 @@ struct VideoHubView: View {
     @StateObject private var playbackManager = VideoPlaybackManager()
     @State private var showingFileImporter = false
     @State private var showingUploadComposer = false
-    @State private var activePresentedSheet: VideoHubPresentedSheet?
-    @State private var queuedPresentedSheet: VideoHubPresentedSheet?
+    @State private var sheetPresentation = SkydownQueuedPresentation<VideoHubPresentedSheet>()
     @State private var showingReelViewer = false
     @State private var hasHandledInitialSelection = false
     @State private var showingAdminEditor = false
@@ -184,7 +183,7 @@ struct VideoHubView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
-        .sheet(item: $activePresentedSheet) { sheet in
+        .sheet(item: activePresentedSheetBinding) { sheet in
             switch sheet {
             case .youTube(let item):
                 YouTubeEmbedPlayerView(item: item)
@@ -231,24 +230,18 @@ struct VideoHubView: View {
                 title: target.title
             )
         }
-        .onChange(of: activePresentedSheet) { _, sheet in
-            guard sheet == nil, let queuedPresentedSheet else { return }
-            self.queuedPresentedSheet = nil
-            DispatchQueue.main.async {
-                activePresentedSheet = queuedPresentedSheet
-            }
-        }
         .skydownKeyboardDismissToolbar()
     }
 
-    private func presentSheet(_ sheet: VideoHubPresentedSheet) {
-        guard activePresentedSheet == nil else {
-            queuedPresentedSheet = sheet
-            activePresentedSheet = nil
-            return
-        }
+    private var activePresentedSheetBinding: Binding<VideoHubPresentedSheet?> {
+        Binding(
+            get: { sheetPresentation.activeItem },
+            set: { sheetPresentation.updatePresentedItem($0) }
+        )
+    }
 
-        activePresentedSheet = sheet
+    private func presentSheet(_ sheet: VideoHubPresentedSheet) {
+        sheetPresentation.request(sheet)
     }
 
     private func openOriginalVideo(_ video: SkydownVideoHubItem) {
@@ -256,7 +249,7 @@ struct VideoHubView: View {
         guard !trimmedURL.isEmpty, let url = URL(string: trimmedURL) else { return }
         playbackManager.player.pause()
 
-        activePresentedSheet = nil
+        activePresentedSheetBinding.wrappedValue = nil
         originalViewerTarget = VideoOriginalViewerTarget(
             urlString: url.absoluteString,
             title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
@@ -686,7 +679,7 @@ struct VideoHubView: View {
                 } else if selectedVideo.supportsInlinePlayback {
                     Button {
                         playbackManager.player.pause()
-                        activePresentedSheet = nil
+                        activePresentedSheetBinding.wrappedValue = nil
                         showingReelViewer = true
                     } label: {
                         Label("Im Video ansehen", systemImage: "rectangle.portrait.and.arrow.right")
@@ -756,7 +749,7 @@ struct VideoHubView: View {
                         onOpenReel: {
                             playbackManager.load(video: video)
                             playbackManager.player.pause()
-                            activePresentedSheet = nil
+                            activePresentedSheetBinding.wrappedValue = nil
                             showingReelViewer = true
                         },
                         onOpenOriginal: {

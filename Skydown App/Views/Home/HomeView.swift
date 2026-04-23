@@ -40,8 +40,7 @@ struct HomeViewContent: View {
     @StateObject private var beatPlaybackManager = BeatPlaybackManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
     @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
-    @State private var activePresentedSheet: HomePresentedSheet?
-    @State private var queuedPresentedSheet: HomePresentedSheet?
+    @State private var sheetPresentation = SkydownQueuedPresentation<HomePresentedSheet>()
     @State private var videoHubLaunchTarget: HomeVideoHubLaunchTarget?
     @State private var originalVideoViewerTarget: HomeOriginalVideoViewerTarget?
     @State private var hasLoadedInitialHomeContent = false
@@ -244,11 +243,11 @@ struct HomeViewContent: View {
                 videoPlaybackManager.stop()
             }
         }
-        .sheet(item: $activePresentedSheet) { sheet in
+        .sheet(item: activePresentedSheetBinding) { sheet in
             NavigationStack {
                 switch sheet {
-                case .beatHub: BeatHubView { activePresentedSheet = nil }
-                case .nicmaProducer: NicmaProducerView { activePresentedSheet = nil }
+                case .beatHub: BeatHubView { activePresentedSheetBinding.wrappedValue = nil }
+                case .nicmaProducer: NicmaProducerView { activePresentedSheetBinding.wrappedValue = nil }
                 }
             }
         }
@@ -264,20 +263,17 @@ struct HomeViewContent: View {
                 )
             }
         }
-        .onChange(of: activePresentedSheet) { _, sheet in
-            guard sheet == nil, let queuedPresentedSheet else { return }
-            self.queuedPresentedSheet = nil
-            DispatchQueue.main.async { activePresentedSheet = queuedPresentedSheet }
-        }
+    }
+
+    private var activePresentedSheetBinding: Binding<HomePresentedSheet?> {
+        Binding(
+            get: { sheetPresentation.activeItem },
+            set: { sheetPresentation.updatePresentedItem($0) }
+        )
     }
 
     private func presentSheet(_ sheet: HomePresentedSheet) {
-        guard activePresentedSheet == nil else {
-            queuedPresentedSheet = sheet
-            activePresentedSheet = nil
-            return
-        }
-        activePresentedSheet = sheet
+        sheetPresentation.request(sheet)
     }
 
     private func openOriginalVideo(_ video: FeaturedHomeVideo) {
@@ -290,7 +286,7 @@ struct HomeViewContent: View {
         beatPlaybackManager.stop()
         audioPlayerManager.stop()
         videoPlaybackManager.stop()
-        activePresentedSheet = nil
+        activePresentedSheetBinding.wrappedValue = nil
         originalVideoViewerTarget = HomeOriginalVideoViewerTarget(
             urlString: url.absoluteString,
             title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title

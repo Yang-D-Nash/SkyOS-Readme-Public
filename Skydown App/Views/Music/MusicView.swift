@@ -111,8 +111,7 @@ struct MusicView: View {
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @State private var selectedArtist: String
     @State private var selectedTrackID: Int?
-    @State private var activePresentedSheet: MusicPresentedSheet?
-    @State private var queuedPresentedSheet: MusicPresentedSheet?
+    @State private var sheetPresentation = SkydownQueuedPresentation<MusicPresentedSheet>()
     @State private var hasHandledInitialSelection = false
     @State private var hasAutoPresentedArtistPage = false
     @EnvironmentObject private var services: AppServices
@@ -362,7 +361,7 @@ struct MusicView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
-        .sheet(item: $activePresentedSheet) { sheet in
+        .sheet(item: activePresentedSheetBinding) { sheet in
             switch sheet {
             case .spotifyPlayer:
                 if let selectedTrack {
@@ -377,23 +376,17 @@ struct MusicView: View {
                 )
             }
         }
-        .onChange(of: activePresentedSheet) { _, sheet in
-            guard sheet == nil, let queuedPresentedSheet else { return }
-            self.queuedPresentedSheet = nil
-            DispatchQueue.main.async {
-                activePresentedSheet = queuedPresentedSheet
-            }
-        }
+    }
+
+    private var activePresentedSheetBinding: Binding<MusicPresentedSheet?> {
+        Binding(
+            get: { sheetPresentation.activeItem },
+            set: { sheetPresentation.updatePresentedItem($0) }
+        )
     }
 
     private func presentSheet(_ sheet: MusicPresentedSheet) {
-        guard activePresentedSheet == nil else {
-            queuedPresentedSheet = sheet
-            activePresentedSheet = nil
-            return
-        }
-
-        activePresentedSheet = sheet
+        sheetPresentation.request(sheet)
     }
 
     private var musicBackground: some View {

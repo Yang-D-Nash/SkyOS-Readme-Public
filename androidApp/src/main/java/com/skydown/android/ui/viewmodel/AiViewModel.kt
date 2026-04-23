@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 class AiViewModel : ViewModel() {
@@ -31,6 +33,15 @@ class AiViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AiUiState())
     val uiState: StateFlow<AiUiState> = _uiState.asStateFlow()
     private var currentUserKey: String? = null
+    private var conversationRevision = 0
+    private var activeRequestJob: Job? = null
+    private var activeRequestContext: InFlightRequestContext? = null
+
+    private data class InFlightRequestContext(
+        val requestId: String,
+        val conversationRevision: Int,
+        val userKeyAtSend: String?,
+    )
 
     init {
         viewModelScope.launch {
@@ -52,6 +63,7 @@ class AiViewModel : ViewModel() {
                 }
                 _uiState.update { it.copy(planLabel = planLabel) }
                 if (userKey != currentUserKey) {
+                    invalidateConversation(cancelActiveRequest = true)
                     currentUserKey = userKey
                     restoreHistory()
                 }
@@ -118,38 +130,41 @@ class AiViewModel : ViewModel() {
             )
         }
 
-        viewModelScope.launch {
-            val assistantMessage = AiMessage(
-                role = AiMessageRole.Assistant,
-                text = "",
-                isStreaming = true,
+        val userMessage = AiMessage(
+            role = AiMessageRole.User,
+            text = trimmedPrompt,
+        )
+        val assistantMessage = AiMessage(
+            role = AiMessageRole.Assistant,
+            text = "",
+            isStreaming = true,
+        )
+        val assistantMessageId = assistantMessage.id
+        val history = buildHistoryContext()
+        val requestContext = makeRequestContext()
+
+        _uiState.update {
+            it.copy(
+                draft = "",
+                botPhase = BotInteractionPhase.Streaming,
+                errorMessage = null,
+                messages = it.messages + userMessage + assistantMessage,
             )
-            val assistantMessageId = assistantMessage.id
+        }
 
-            runCatching {
-                val userMessage = AiMessage(
-                    role = AiMessageRole.User,
-                    text = trimmedPrompt,
-                )
-                val history = buildHistoryContext()
-
-                _uiState.update {
-                    it.copy(
-                        draft = "",
-                        botPhase = BotInteractionPhase.Streaming,
-                        errorMessage = null,
-                        messages = it.messages + userMessage + assistantMessage,
-                    )
-                }
-
-                aiChatClient.generateText(
+        activeRequestContext = requestContext
+        activeRequestJob?.cancel()
+        activeRequestJob = viewModelScope.launch {
+            try {
+                val result = aiChatClient.generateText(
                     prompt = buildPrompt(
                         userPrompt = trimmedPrompt,
                         history = history,
                     ),
                     mode = _uiState.value.textMode.rawValue,
                 )
-            }.onSuccess { result ->
+                if (!isRequestContextActive(requestContext)) return@launch
+
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
                 _uiState.update {
                     it.copy(
@@ -163,7 +178,7 @@ class AiViewModel : ViewModel() {
                     isStreaming = false,
                 )
                 AiConversationHistoryStore.saveEntry(
-                    userKey = currentUserKey,
+                    userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     prompt = trimmedPrompt,
                     response = result.text,
@@ -171,7 +186,12 @@ class AiViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(botPhase = resolveTerminalPhase(result.decision))
                 }
-            }.onFailure { error ->
+            } catch (error: Throwable) {
+                if (error is CancellationException || !isRequestContextActive(requestContext)) {
+                    clearActiveRequestIfNeeded(requestContext)
+                    return@launch
+                }
+
                 val assistantText = userFacingErrorMessage(error)
                 val decision = decisionFor(error)
                 updateAssistantMessage(
@@ -180,7 +200,7 @@ class AiViewModel : ViewModel() {
                     isStreaming = false,
                 )
                 AiConversationHistoryStore.saveEntry(
-                    userKey = currentUserKey,
+                    userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     prompt = trimmedPrompt,
                     response = assistantText,
@@ -193,6 +213,7 @@ class AiViewModel : ViewModel() {
                     )
                 }
             }
+            clearActiveRequestIfNeeded(requestContext)
         }
     }
 
@@ -221,30 +242,34 @@ class AiViewModel : ViewModel() {
             )
         }
 
-        viewModelScope.launch {
-            val assistantMessage = AiMessage(
-                role = AiMessageRole.Assistant,
-                text = "",
-                isStreaming = true,
+        val userMessage = AiMessage(
+            role = AiMessageRole.User,
+            text = trimmedPrompt,
+        )
+        val assistantMessage = AiMessage(
+            role = AiMessageRole.Assistant,
+            text = "",
+            isStreaming = true,
+        )
+        val assistantMessageId = assistantMessage.id
+        val requestContext = makeRequestContext()
+
+        _uiState.update {
+            it.copy(
+                draft = "",
+                botPhase = BotInteractionPhase.ToolPending,
+                errorMessage = null,
+                messages = it.messages + userMessage + assistantMessage,
             )
-            val assistantMessageId = assistantMessage.id
-            runCatching {
-                val userMessage = AiMessage(
-                    role = AiMessageRole.User,
-                    text = trimmedPrompt,
-                )
+        }
 
-                _uiState.update {
-                    it.copy(
-                        draft = "",
-                        botPhase = BotInteractionPhase.ToolPending,
-                        errorMessage = null,
-                        messages = it.messages + userMessage + assistantMessage,
-                    )
-                }
+        activeRequestContext = requestContext
+        activeRequestJob?.cancel()
+        activeRequestJob = viewModelScope.launch {
+            try {
+                val result = aiImageClient.generateVisual(buildVisualPrompt(trimmedPrompt))
+                if (!isRequestContextActive(requestContext)) return@launch
 
-                aiImageClient.generateVisual(buildVisualPrompt(trimmedPrompt))
-            }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
                 _uiState.update {
                     it.copy(
@@ -260,7 +285,7 @@ class AiViewModel : ViewModel() {
                     imageMimeType = result.mimeType,
                 )
                 AiConversationHistoryStore.saveEntry(
-                    userKey = currentUserKey,
+                    userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     prompt = trimmedPrompt,
                     response = result.text,
@@ -268,7 +293,12 @@ class AiViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(botPhase = resolveTerminalPhase(result.decision))
                 }
-            }.onFailure { error ->
+            } catch (error: Throwable) {
+                if (error is CancellationException || !isRequestContextActive(requestContext)) {
+                    clearActiveRequestIfNeeded(requestContext)
+                    return@launch
+                }
+
                 val assistantText = userFacingErrorMessage(error)
                 val decision = decisionFor(error)
                 updateAssistantMessage(
@@ -277,7 +307,7 @@ class AiViewModel : ViewModel() {
                     isStreaming = false,
                 )
                 AiConversationHistoryStore.saveEntry(
-                    userKey = currentUserKey,
+                    userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     prompt = trimmedPrompt,
                     response = assistantText,
@@ -290,10 +320,12 @@ class AiViewModel : ViewModel() {
                     )
                 }
             }
+            clearActiveRequestIfNeeded(requestContext)
         }
     }
 
     fun resetConversation() {
+        invalidateConversation(cancelActiveRequest = true)
         AiConversationHistoryStore.clearEntries(
             userKey = currentUserKey,
             source = AiConversationHistorySource.Bot,
@@ -318,6 +350,34 @@ class AiViewModel : ViewModel() {
 
     fun dismissError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun makeRequestContext(): InFlightRequestContext =
+        InFlightRequestContext(
+            requestId = java.util.UUID.randomUUID().toString(),
+            conversationRevision = conversationRevision,
+            userKeyAtSend = currentUserKey,
+        )
+
+    private fun isRequestContextActive(context: InFlightRequestContext): Boolean =
+        activeRequestContext == context &&
+            context.conversationRevision == conversationRevision &&
+            context.userKeyAtSend == currentUserKey
+
+    private fun clearActiveRequestIfNeeded(context: InFlightRequestContext) {
+        if (activeRequestContext == context) {
+            activeRequestContext = null
+            activeRequestJob = null
+        }
+    }
+
+    private fun invalidateConversation(cancelActiveRequest: Boolean) {
+        if (cancelActiveRequest) {
+            activeRequestJob?.cancel()
+            activeRequestJob = null
+            activeRequestContext = null
+        }
+        conversationRevision += 1
     }
 
     private fun updateAssistantMessage(

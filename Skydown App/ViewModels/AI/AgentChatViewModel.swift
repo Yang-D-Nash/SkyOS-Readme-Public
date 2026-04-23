@@ -167,6 +167,10 @@ final class AgentChatViewModel: ObservableObject {
     private var pendingRequests: [PendingAgentRequest] = []
     private var networkObserver: AnyCancellable?
     private var currentPlanTitle: String = "Free"
+    private var conversationRevision = 0
+    private var activeRequestTask: Task<Void, Never>?
+    private var pendingRetryTask: Task<Void, Never>?
+    private var activeRequestContext: InFlightRequestContext?
 
     private struct PendingAgentRequest {
         let prompt: String
@@ -175,6 +179,12 @@ final class AgentChatViewModel: ObservableObject {
         let executeAutomation: Bool
         let assistantMessageID: UUID
         let createdAt: Date
+    }
+
+    private struct InFlightRequestContext: Equatable {
+        let requestID: UUID
+        let conversationRevision: Int
+        let userKeyAtSend: String?
     }
 
     init(
@@ -188,9 +198,14 @@ final class AgentChatViewModel: ObservableObject {
             .sink { [weak self] isOnline in
                 guard isOnline else { return }
                 Task { @MainActor in
-                    await self?.retryPendingRequestsIfNeeded()
+                    self?.startPendingRetryIfNeeded()
                 }
             }
+    }
+
+    deinit {
+        activeRequestTask?.cancel()
+        pendingRetryTask?.cancel()
     }
 
     func configureUser(user: User?) {
@@ -211,8 +226,12 @@ final class AgentChatViewModel: ObservableObject {
             shouldTriggerAutomation = false
         }
         guard normalizedUserKey != currentUserKey else { return }
+        invalidateConversation(cancelActiveWork: true)
         currentUserKey = normalizedUserKey
         restoreHistory()
+        if NetworkStatusMonitor.shared.isOnline {
+            startPendingRetryIfNeeded()
+        }
     }
 
     func sendDraft() {
@@ -229,37 +248,38 @@ final class AgentChatViewModel: ObservableObject {
 
         phase = .planning
 
-        var appendedAssistantID: UUID?
         let modeAtSend = selectedMode.rawValue
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
-        var historyAtSend: [AgentHistoryTurn] = []
-        Task {
+        let assistantID = UUID()
+        let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
+        let historyAtSend = buildHistory(from: messages + [userMessage])
+        let requestContext = makeRequestContext()
+
+        messages.append(userMessage)
+        messages.append(
+            AgentChatMessage(
+                id: assistantID,
+                role: .assistant,
+                text: "",
+                isStreaming: true,
+                resultType: .progress
+            )
+        )
+        draft = ""
+
+        activeRequestContext = requestContext
+        activeRequestTask?.cancel()
+        activeRequestTask = Task { @MainActor [weak self] in
+            guard let self else { return }
             do {
-                let assistantID = UUID()
-                appendedAssistantID = assistantID
-                let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
-                let history = buildHistory(from: messages + [userMessage])
-                historyAtSend = history
-
-                messages.append(userMessage)
-                messages.append(
-                    AgentChatMessage(
-                        id: assistantID,
-                        role: .assistant,
-                        text: "",
-                        isStreaming: true,
-                        resultType: .progress
-                    )
-                )
-                draft = ""
-
                 let result = try await service.sendMessage(
                     prompt: trimmedPrompt,
-                    history: history,
+                    history: historyAtSend,
                     mode: modeAtSend,
                     executeAutomation: executeAutomationAtSend,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
+                guard isRequestContextValid(requestContext) else { return }
                 updateProviderDiagnostics(from: result)
                 applyUsage(result.usage)
                 historyStore.updateRetentionDays(result.historyRetentionDays)
@@ -272,7 +292,7 @@ final class AgentChatViewModel: ObservableObject {
                     workflowSummary: buildWorkflowSummary(from: result)
                 )
                 historyStore.saveEntry(
-                    userKey: currentUserKey,
+                    userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     prompt: trimmedPrompt,
                     response: replyText
@@ -292,8 +312,14 @@ final class AgentChatViewModel: ObservableObject {
                     lastIntegrationIssue = ""
                 }
                 phase = resolvedTerminalPhase(for: result.decision, hasPendingQueue: !pendingRequests.isEmpty)
+                clearActiveRequestIfNeeded(requestContext)
             } catch {
-                if let assistantID = appendedAssistantID, isOfflineError(error) {
+                if error is CancellationError || Task.isCancelled {
+                    clearActiveRequestIfNeeded(requestContext)
+                    return
+                }
+                guard isRequestContextValid(requestContext) else { return }
+                if isOfflineError(error) {
                     pendingRequests.append(
                         PendingAgentRequest(
                             prompt: trimmedPrompt,
@@ -326,32 +352,33 @@ final class AgentChatViewModel: ObservableObject {
                         fallback: "Du bist offline. Der Agent arbeitet weiter, sobald deine Verbindung wieder da ist."
                     )
                     phase = .waitingReconnect
+                    clearActiveRequestIfNeeded(requestContext)
                     return
                 }
 
                 let message = userFacingErrorMessage(for: error)
                 lastIntegrationIssue = message
-                if let assistantID = appendedAssistantID {
-                    updateAssistantMessage(
-                        id: assistantID,
-                        text: message,
-                        isStreaming: false,
-                        resultType: .error
-                    )
-                    historyStore.saveEntry(
-                        userKey: currentUserKey,
-                        source: .agent,
-                        prompt: trimmedPrompt,
-                        response: message
-                    )
-                }
+                updateAssistantMessage(
+                    id: assistantID,
+                    text: message,
+                    isStreaming: false,
+                    resultType: .error
+                )
+                historyStore.saveEntry(
+                    userKey: requestContext.userKeyAtSend,
+                    source: .agent,
+                    prompt: trimmedPrompt,
+                    response: message
+                )
                 showUserToast(message, style: .error)
                 phase = .idle
+                clearActiveRequestIfNeeded(requestContext)
             }
         }
     }
 
     func resetConversation() {
+        invalidateConversation(cancelActiveWork: true)
         historyStore.clearEntries(userKey: currentUserKey, source: .agent)
         pendingRequests.removeAll()
         pendingQueueStore.clearEntries(for: currentUserKey)
@@ -432,6 +459,45 @@ final class AgentChatViewModel: ObservableObject {
         messages[index].workflowSummary = workflowSummary
     }
 
+    private func makeRequestContext(
+        conversationRevision: Int? = nil,
+        userKeyAtSend: String? = nil
+    ) -> InFlightRequestContext {
+        InFlightRequestContext(
+            requestID: UUID(),
+            conversationRevision: conversationRevision ?? self.conversationRevision,
+            userKeyAtSend: userKeyAtSend ?? currentUserKey
+        )
+    }
+
+    private func isRequestContextValid(_ context: InFlightRequestContext) -> Bool {
+        activeRequestContext == context &&
+        context.conversationRevision == conversationRevision &&
+        context.userKeyAtSend == currentUserKey
+    }
+
+    private func isConversationSnapshotValid(conversationRevision: Int, userKeyAtSend: String?) -> Bool {
+        self.conversationRevision == conversationRevision &&
+        currentUserKey == userKeyAtSend
+    }
+
+    private func clearActiveRequestIfNeeded(_ context: InFlightRequestContext) {
+        guard activeRequestContext == context else { return }
+        activeRequestContext = nil
+        activeRequestTask = nil
+    }
+
+    private func invalidateConversation(cancelActiveWork: Bool) {
+        if cancelActiveWork {
+            activeRequestTask?.cancel()
+            activeRequestTask = nil
+            pendingRetryTask?.cancel()
+            pendingRetryTask = nil
+            activeRequestContext = nil
+        }
+        conversationRevision += 1
+    }
+
     private func queuePromptForRetry(_ trimmedPrompt: String) {
         let assistantID = UUID()
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
@@ -480,15 +546,52 @@ final class AgentChatViewModel: ObservableObject {
         phase = .waitingReconnect
     }
 
-    private func retryPendingRequestsIfNeeded() async {
-        guard phase != .executing, !pendingRequests.isEmpty else { return }
+    private func startPendingRetryIfNeeded() {
+        guard pendingRetryTask == nil else { return }
+        guard activeRequestTask == nil else { return }
+        guard !pendingRequests.isEmpty else { return }
+
+        let retryConversationRevision = conversationRevision
+        let retryUserKey = currentUserKey
+        pendingRetryTask = Task { @MainActor [weak self] in
+            await self?.runPendingRetryLoop(
+                conversationRevision: retryConversationRevision,
+                userKeyAtSend: retryUserKey
+            )
+        }
+    }
+
+    private func runPendingRetryLoop(
+        conversationRevision: Int,
+        userKeyAtSend: String?
+    ) async {
+        guard isConversationSnapshotValid(
+            conversationRevision: conversationRevision,
+            userKeyAtSend: userKeyAtSend
+        ) else {
+            pendingRetryTask = nil
+            return
+        }
+
         phase = .executing
         defer {
-            phase = pendingRequests.isEmpty ? .idle : .waitingReconnect
+            pendingRetryTask = nil
+            activeRequestContext = nil
         }
 
         while NetworkStatusMonitor.shared.isOnline, !pendingRequests.isEmpty {
+            guard isConversationSnapshotValid(
+                conversationRevision: conversationRevision,
+                userKeyAtSend: userKeyAtSend
+            ) else { return }
+
             let request = pendingRequests.removeFirst()
+            let requestContext = makeRequestContext(
+                conversationRevision: conversationRevision,
+                userKeyAtSend: userKeyAtSend
+            )
+            activeRequestContext = requestContext
+
             do {
                 let result = try await service.sendMessage(
                     prompt: request.prompt,
@@ -497,6 +600,8 @@ final class AgentChatViewModel: ObservableObject {
                     executeAutomation: request.executeAutomation,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
+                guard isRequestContextValid(requestContext) else { return }
+
                 updateProviderDiagnostics(from: result)
                 applyUsage(result.usage)
                 historyStore.updateRetentionDays(result.historyRetentionDays)
@@ -509,7 +614,7 @@ final class AgentChatViewModel: ObservableObject {
                     workflowSummary: buildWorkflowSummary(from: result)
                 )
                 historyStore.saveEntry(
-                    userKey: currentUserKey,
+                    userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     prompt: request.prompt,
                     response: replyText
@@ -537,7 +642,14 @@ final class AgentChatViewModel: ObservableObject {
                 }
                 persistPendingRequests()
                 phase = resolvedTerminalPhase(for: result.decision, hasPendingQueue: !pendingRequests.isEmpty)
+                activeRequestContext = nil
             } catch {
+                if error is CancellationError || Task.isCancelled {
+                    activeRequestContext = nil
+                    return
+                }
+                guard isRequestContextValid(requestContext) else { return }
+
                 if isOfflineError(error) || !NetworkStatusMonitor.shared.isOnline {
                     pendingRequests.insert(request, at: 0)
                     persistPendingRequests()
@@ -550,6 +662,7 @@ final class AgentChatViewModel: ObservableObject {
                         isStreaming: false,
                         resultType: .progress
                     )
+                    activeRequestContext = nil
                     break
                 }
 
@@ -562,14 +675,26 @@ final class AgentChatViewModel: ObservableObject {
                     resultType: .error
                 )
                 historyStore.saveEntry(
-                    userKey: currentUserKey,
+                    userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     prompt: request.prompt,
                     response: message
                 )
                 showUserToast(message, style: .error)
                 persistPendingRequests()
+                activeRequestContext = nil
             }
+        }
+
+        guard isConversationSnapshotValid(
+            conversationRevision: conversationRevision,
+            userKeyAtSend: userKeyAtSend
+        ) else { return }
+
+        if !pendingRequests.isEmpty {
+            phase = .waitingReconnect
+        } else if phase == .executing {
+            phase = .idle
         }
     }
 

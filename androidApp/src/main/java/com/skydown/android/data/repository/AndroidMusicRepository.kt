@@ -1,6 +1,7 @@
 package com.skydown.android.data.repository
 
 import android.net.Uri
+import android.util.Log
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.shared.model.Track
 import com.skydown.shared.repository.MusicRepository
@@ -18,6 +19,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class AndroidMusicRepository : MusicRepository {
+    private val logTag = "AndroidMusicRepository"
     private val json = Json { ignoreUnknownKeys = true }
     private val searchPageSize = 10
     private val searchMaxResults = 50
@@ -512,7 +514,7 @@ class AndroidMusicRepository : MusicRepository {
             )
 
             if (response.responseCode !in 200..299) {
-                println("Spotify Artist Albums Error: ${response.responseCode} ${response.payload}")
+                Log.w(logTag, "Spotify artist albums request failed with code ${response.responseCode}.")
                 error("Spotify API Fehler ${response.responseCode}: ${response.payload}")
             }
 
@@ -542,7 +544,7 @@ class AndroidMusicRepository : MusicRepository {
             )
 
             if (response.responseCode !in 200..299) {
-                println("Spotify Album Tracks Error: ${response.responseCode} ${response.payload}")
+                Log.w(logTag, "Spotify album tracks request failed with code ${response.responseCode}.")
                 error("Spotify API Fehler ${response.responseCode}: ${response.payload}")
             }
 
@@ -571,7 +573,7 @@ class AndroidMusicRepository : MusicRepository {
             )
 
             if (response.responseCode !in 200..299) {
-                println("Spotify Search Error: ${response.responseCode} ${response.payload}")
+                Log.w(logTag, "Spotify search request failed with code ${response.responseCode}.")
                 return SearchResult(
                     items = emptyList(),
                     responseCode = response.responseCode,

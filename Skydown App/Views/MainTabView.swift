@@ -54,8 +54,7 @@ struct MainTabView: View {
     @EnvironmentObject private var featureFlags: FeatureFlagsService
     @EnvironmentObject private var authManager: AuthManager
     @State private var selectedTab: MainTab = .hub
-    @State private var activeModal: MainTabModal?
-    @State private var queuedModal: MainTabModal?
+    @State private var modalPresentation = SkydownQueuedPresentation<MainTabModal>()
     @State private var showsWorkflowWorkspace = false
     @State private var settingsInitialAdminWorkspaceRawValue: String?
 
@@ -96,14 +95,14 @@ struct MainTabView: View {
             if SkydownPlatform.isDesktop {
                 rootTabView
                     .inspector(isPresented: desktopAccessoryPresented) {
-                        if let activeModal {
+                        if let activeModal = modalPresentation.activeItem {
                             modalContent(for: activeModal)
                                 .inspectorColumnWidth(min: 320, ideal: 420, max: 520)
                         }
                     }
             } else {
                 rootTabView
-                    .sheet(item: $activeModal) { modal in
+                    .sheet(item: activeModalBinding) { modal in
                         modalContent(for: modal)
                     }
             }
@@ -118,21 +117,14 @@ struct MainTabView: View {
             }
         }
         .onChange(of: selectedTab) { _, newTab in
-            if newTab == .tools {
-                Task {
-                    await featureFlags.refresh()
-                    await authManager.refreshCurrentUser()
-                }
-            } else {
+            if newTab != .tools {
                 showsWorkflowWorkspace = false
             }
         }
-        .onChange(of: activeModal) { _, modal in
-            guard modal == nil, let queuedModal else { return }
-            self.queuedModal = nil
-            DispatchQueue.main.async {
-                activeModal = queuedModal
-            }
+        .task(id: selectedTab) {
+            guard selectedTab == .tools else { return }
+            await featureFlags.refresh()
+            await authManager.refreshCurrentUser()
         }
     }
 
@@ -221,19 +213,26 @@ struct MainTabView: View {
                 withAnimation(SkydownMotion.screenTransition) {
                     selectedTab = newTab
                 }
-                if activeModal == .settings {
-                    activeModal = nil
+                if modalPresentation.activeItem == .settings {
+                    modalPresentation.updatePresentedItem(nil)
                 }
             }
         )
     }
 
+    private var activeModalBinding: Binding<MainTabModal?> {
+        Binding(
+            get: { modalPresentation.activeItem },
+            set: { modalPresentation.updatePresentedItem($0) }
+        )
+    }
+
     private var desktopAccessoryPresented: Binding<Bool> {
         Binding(
-            get: { activeModal != nil },
+            get: { modalPresentation.activeItem != nil },
             set: { isPresented in
                 if !isPresented {
-                    activeModal = nil
+                    modalPresentation.updatePresentedItem(nil)
                 }
             }
         )
@@ -263,16 +262,7 @@ struct MainTabView: View {
     }
 
     private func presentModal(_ modal: MainTabModal) {
-        guard activeModal != modal else { return }
-        guard activeModal == nil else {
-            queuedModal = modal
-            activeModal = nil
-            return
-        }
-
-        withAnimation(SkydownMotion.emphasizedTransition) {
-            activeModal = modal
-        }
+        modalPresentation.request(modal)
     }
 
     private func presentSettings(initialAdminWorkspaceRawValue: String? = nil) {
@@ -868,7 +858,12 @@ private struct AIHubView: View {
     let onOpenSettings: () -> Void
     let onOpenAutomationSettings: () -> Void
     @State private var mode: AIHubMode = .bot
+    @StateObject private var membershipCoordinator = AIMembershipCoordinator()
+    @State private var showsMembershipToast = false
+    @State private var membershipToastMessage = ""
+    @State private var membershipToastStyle: ToastStyle = .info
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var aiSubscriptionStore: NativeAISubscriptionStore
     @EnvironmentObject private var authManager: AuthManager
 
     init(
@@ -909,6 +904,22 @@ private struct AIHubView: View {
         return "mode-\(mode.rawValue)"
     }
 
+    private var membershipObservationKey: String {
+        let session = authManager.userSession
+        return [
+            session?.id ?? "guest",
+            session?.resolvedQuotaPlan.rawValue ?? UserQuotaPlan.free.rawValue,
+            String(session?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays),
+            session?.normalizedAISubscriptionProvider ?? "none",
+            String(session?.aiAccessEnabled ?? false),
+            mode.rawValue
+        ].joined(separator: "|")
+    }
+
+    private var currentUserQuotaPlan: UserQuotaPlan? {
+        authManager.userSession?.resolvedQuotaPlan
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -941,12 +952,14 @@ private struct AIHubView: View {
                             showsWorkflowWorkspace: showsWorkflowWorkspace,
                             onSelectMode: { newMode in
                                 withAnimation(SkydownMotion.screenTransition) {
+                                    membershipCoordinator.closeMembership()
                                     showsWorkflowWorkspace = false
                                     mode = newMode
                                 }
                             },
                             onToggleWorkflow: {
                                 withAnimation(SkydownMotion.screenTransition) {
+                                    membershipCoordinator.closeMembership()
                                     showsWorkflowWorkspace.toggle()
                                 }
                             }
@@ -969,12 +982,14 @@ private struct AIHubView: View {
                                 AIView(
                                     aiChatService: aiChatService,
                                     featureFlags: featureFlags,
+                                    membershipCoordinator: membershipCoordinator,
                                     showsNavigation: false
                                 )
                             } else {
                                 AgentView(
                                     agentChatService: agentChatService,
                                     featureFlags: featureFlags,
+                                    membershipCoordinator: membershipCoordinator,
                                     showsNavigation: false
                                 )
                             }
@@ -995,9 +1010,41 @@ private struct AIHubView: View {
                 )
                 .ignoresSafeArea()
             )
+            .fancyToast(
+                isPresented: $showsMembershipToast,
+                message: membershipToastMessage,
+                style: membershipToastStyle
+            )
             .navigationTitle("AI")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
+            .task(id: membershipObservationKey) {
+                membershipCoordinator.cacheCurrentPlan(currentUserQuotaPlan)
+                await aiSubscriptionStore.prepareStorefront(for: authManager.userSession)
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: { membershipCoordinator.isPresented },
+                    set: { if !$0 { membershipCoordinator.closeMembership() } }
+                )
+            ) {
+                membershipSheet
+            }
+            .onChange(of: authManager.userSession?.id) { _, userID in
+                if userID == nil {
+                    membershipCoordinator.closeMembership()
+                }
+            }
+            .onChange(of: showsWorkflowWorkspace) { _, isVisible in
+                if isVisible {
+                    membershipCoordinator.closeMembership()
+                }
+            }
+            .onChange(of: featureFlags.allowsAIAccess(for: authManager.userSession)) { _, allowed in
+                if !allowed {
+                    membershipCoordinator.closeMembership()
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(
@@ -1008,6 +1055,162 @@ private struct AIHubView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var membershipSheet: some View {
+        if mode == .bot {
+            AIMembershipSheet(
+                colorScheme: colorScheme,
+                isLoadingProducts: aiSubscriptionStore.isLoadingProducts,
+                isSyncing: aiSubscriptionStore.isSyncing,
+                activePurchasePlan: aiSubscriptionStore.activePurchasePlan,
+                onSelectPlan: { plan in
+                    Task { await purchaseMembership(plan: plan) }
+                },
+                onRestore: {
+                    Task { await restoreMembership() }
+                },
+                onManage: {
+                    Task { await manageMembership() }
+                }
+            )
+            .presentationDetents([.medium, .large])
+        } else {
+            AgentMembershipSheet(
+                colorScheme: colorScheme,
+                isLoadingProducts: aiSubscriptionStore.isLoadingProducts,
+                isSyncing: aiSubscriptionStore.isSyncing,
+                activePurchasePlan: aiSubscriptionStore.activePurchasePlan,
+                onSelectPlan: { plan in
+                    Task { await purchaseMembership(plan: plan) }
+                },
+                onRestore: {
+                    Task { await restoreMembership() }
+                },
+                onManage: {
+                    Task { await manageMembership() }
+                }
+            )
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    private func purchaseMembership(plan: UserQuotaPlan) async {
+        membershipCoordinator.track("plan_selected", ["plan": plan.rawValue])
+        membershipCoordinator.track("purchase_started", ["plan": plan.rawValue])
+        if mode == .bot {
+            membershipCoordinator.track("purchase_started_pipeline", ["surface": membershipCoordinator.surface])
+        }
+        MembershipAnalyticsTracker().track(
+            "plan_selected",
+            reason: membershipCoordinator.lastOpenReason.rawValue,
+            plan: plan.rawValue,
+            surface: membershipCoordinator.surface,
+            currentPlan: membershipCoordinator.currentPlanCache.rawValue
+        )
+        MembershipAnalyticsTracker().track(
+            "purchase_started",
+            reason: membershipCoordinator.lastOpenReason.rawValue,
+            plan: plan.rawValue,
+            surface: membershipCoordinator.surface,
+            currentPlan: membershipCoordinator.currentPlanCache.rawValue
+        )
+
+        do {
+            let outcome = try await aiSubscriptionStore.purchase(plan: plan)
+            switch outcome {
+            case .success:
+                membershipCoordinator.track("purchase_success", ["plan": plan.rawValue])
+                MembershipAnalyticsTracker().track(
+                    "purchase_success",
+                    reason: membershipCoordinator.lastOpenReason.rawValue,
+                    plan: plan.rawValue,
+                    surface: membershipCoordinator.surface,
+                    currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                )
+                await membershipCoordinator.postPurchaseRefresh(plan: plan) {
+                    _ = await authManager.refreshCurrentUser()
+                }
+                showMembershipToast(
+                    mode == .bot
+                        ? "Upgrade erfolgreich aktiviert."
+                        : AppLocalized.text("membership.upgrade.success", fallback: "Upgrade activated successfully."),
+                    style: .success
+                )
+            case .pending:
+                showMembershipToast(
+                    mode == .bot
+                        ? "Kauf wartet auf App-Store-Freigabe."
+                        : AppLocalized.text("membership.purchase.pending", fallback: "Purchase is pending App Store approval."),
+                    style: .info
+                )
+            case .cancelled:
+                membershipCoordinator.track("purchase_cancelled", ["plan": plan.rawValue])
+                MembershipAnalyticsTracker().track(
+                    "purchase_cancelled",
+                    reason: membershipCoordinator.lastOpenReason.rawValue,
+                    plan: plan.rawValue,
+                    surface: membershipCoordinator.surface,
+                    currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                )
+                showMembershipToast(
+                    mode == .bot
+                        ? "Kauf abgebrochen."
+                        : AppLocalized.text("membership.purchase.cancelled", fallback: "Purchase cancelled."),
+                    style: .info
+                )
+            }
+        } catch {
+            showMembershipToast(
+                mode == .bot
+                    ? "Upgrade konnte nicht gestartet werden: \(error.localizedDescription)"
+                    : "\(AppLocalized.text("membership.upgrade.failed", fallback: "Could not start upgrade")): \(error.localizedDescription)",
+                style: .error
+            )
+        }
+    }
+
+    private func restoreMembership() async {
+        do {
+            let shouldForceEmptySync = authManager.userSession?.normalizedAISubscriptionProvider == "app_store"
+            try await aiSubscriptionStore.restorePurchases(forceEmptySync: shouldForceEmptySync)
+            await membershipCoordinator.restore {
+                _ = await authManager.refreshCurrentUser()
+            }
+            showMembershipToast(
+                mode == .bot
+                    ? "App-Store-Kaeufe synchronisiert."
+                    : AppLocalized.text("membership.restore.success", fallback: "App Store purchases synced."),
+                style: .success
+            )
+        } catch {
+            showMembershipToast(
+                mode == .bot
+                    ? "Synchronisierung fehlgeschlagen: \(error.localizedDescription)"
+                    : "\(AppLocalized.text("membership.restore.failed", fallback: "Sync failed")): \(error.localizedDescription)",
+                style: .error
+            )
+        }
+    }
+
+    private func manageMembership() async {
+        do {
+            try await aiSubscriptionStore.manageSubscriptions()
+        } catch {
+            showMembershipToast(
+                mode == .bot
+                    ? "Abo-Verwaltung konnte nicht geoeffnet werden."
+                    : AppLocalized.text("membership.manage.failed", fallback: "Could not open subscription management."),
+                style: .error
+            )
+        }
+    }
+
+    private func showMembershipToast(_ message: String, style: ToastStyle) {
+        membershipToastMessage = message
+        membershipToastStyle = style
+        showsMembershipToast = true
     }
 }
 

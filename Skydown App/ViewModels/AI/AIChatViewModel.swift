@@ -219,12 +219,25 @@ final class AIChatViewModel: ObservableObject {
     private let historyStore: AIScriptHistoryStore
     private var currentUserKey: String?
     private var currentPlanTitle: String = "Free"
+    private var conversationRevision = 0
+    private var activeRequestTask: Task<Void, Never>?
+    private var activeRequestContext: InFlightRequestContext?
+
+    private struct InFlightRequestContext: Equatable {
+        let requestID: UUID
+        let conversationRevision: Int
+        let userKeyAtSend: String?
+    }
 
     init(
         service: AIChatServicing = FirebaseFunctionsAIChatService()
     ) {
         self.service = service
         self.historyStore = AIScriptHistoryStore.shared
+    }
+
+    deinit {
+        activeRequestTask?.cancel()
     }
 
     func configureUser(user: User?) {
@@ -240,6 +253,7 @@ final class AIChatViewModel: ObservableObject {
         }
         historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
         guard normalizedUserKey != currentUserKey else { return }
+        invalidateConversation(cancelActiveRequest: true)
         currentUserKey = normalizedUserKey
         restoreHistory()
         if messages.isEmpty && draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -262,21 +276,24 @@ final class AIChatViewModel: ObservableObject {
         phase = .sending
         lastDecision = nil
 
-        var appendedAssistantID: UUID?
-        Task {
-            do {
-                let assistantID = UUID()
-                appendedAssistantID = assistantID
-                let history = buildHistoryContext()
-                messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
-                messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
-                draft = ""
-                phase = .streaming
+        let assistantID = UUID()
+        let history = buildHistoryContext()
+        let requestContext = makeRequestContext()
+        messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
+        messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
+        draft = ""
+        phase = .streaming
 
+        activeRequestContext = requestContext
+        activeRequestTask?.cancel()
+        activeRequestTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
                 let result = try await service.generateText(
                     prompt: buildPrompt(for: trimmedPrompt, history: history),
                     mode: textMode.rawValue
                 )
+                guard isRequestContextValid(requestContext) else { return }
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 applyUsage(result.usage)
                 lastDecision = result.decision
@@ -287,26 +304,31 @@ final class AIChatViewModel: ObservableObject {
                     isStreaming: false
                 )
                 historyStore.saveEntry(
-                    userKey: currentUserKey,
+                    userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     prompt: trimmedPrompt,
                     response: result.text
                 )
                 phase = resolvedTerminalPhase(for: result.decision)
+                clearActiveRequestIfNeeded(requestContext)
             } catch {
+                if error is CancellationError || Task.isCancelled {
+                    clearActiveRequestIfNeeded(requestContext)
+                    return
+                }
+                guard isRequestContextValid(requestContext) else { return }
                 let assistantText = userFacingErrorMessage(for: error)
                 lastDecision = decision(for: error)
                 phase = resolvedTerminalPhase(for: lastDecision)
-                if let assistantID = appendedAssistantID {
-                    updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
-                }
+                updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
                 historyStore.saveEntry(
-                    userKey: currentUserKey,
+                    userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     prompt: trimmedPrompt,
                     response: assistantText
                 )
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
+                clearActiveRequestIfNeeded(requestContext)
             }
         }
     }
@@ -317,17 +339,20 @@ final class AIChatViewModel: ObservableObject {
         phase = .sending
         lastDecision = nil
 
-        var appendedAssistantID: UUID?
-        Task {
-            do {
-                let assistantID = UUID()
-                appendedAssistantID = assistantID
-                messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
-                messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
-                draft = ""
-                phase = .toolPending
+        let assistantID = UUID()
+        let requestContext = makeRequestContext()
+        messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
+        messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
+        draft = ""
+        phase = .toolPending
 
+        activeRequestContext = requestContext
+        activeRequestTask?.cancel()
+        activeRequestTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
                 let result = try await service.generateVisual(prompt: buildVisualPrompt(for: trimmedPrompt))
+                guard isRequestContextValid(requestContext) else { return }
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 applyUsage(result.usage)
                 lastDecision = result.decision
@@ -338,32 +363,38 @@ final class AIChatViewModel: ObservableObject {
                     imageData: result.imageData
                 )
                 historyStore.saveEntry(
-                    userKey: currentUserKey,
+                    userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     prompt: trimmedPrompt,
                     response: result.text,
                     imageData: result.imageData
                 )
                 phase = resolvedTerminalPhase(for: result.decision)
+                clearActiveRequestIfNeeded(requestContext)
             } catch {
+                if error is CancellationError || Task.isCancelled {
+                    clearActiveRequestIfNeeded(requestContext)
+                    return
+                }
+                guard isRequestContextValid(requestContext) else { return }
                 let assistantText = userFacingErrorMessage(for: error)
                 lastDecision = decision(for: error)
                 phase = resolvedTerminalPhase(for: lastDecision)
-                if let assistantID = appendedAssistantID {
-                    updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
-                }
+                updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
                 historyStore.saveEntry(
-                    userKey: currentUserKey,
+                    userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     prompt: trimmedPrompt,
                     response: assistantText
                 )
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
+                clearActiveRequestIfNeeded(requestContext)
             }
         }
     }
 
     func resetConversation() {
+        invalidateConversation(cancelActiveRequest: true)
         historyStore.clearEntries(userKey: currentUserKey, source: .bot)
         messages = []
         lastDecision = nil
@@ -375,6 +406,35 @@ final class AIChatViewModel: ObservableObject {
         messages[index].text = text
         messages[index].isStreaming = isStreaming
         messages[index].imageData = imageData ?? messages[index].imageData
+    }
+
+    private func makeRequestContext() -> InFlightRequestContext {
+        InFlightRequestContext(
+            requestID: UUID(),
+            conversationRevision: conversationRevision,
+            userKeyAtSend: currentUserKey
+        )
+    }
+
+    private func isRequestContextValid(_ context: InFlightRequestContext) -> Bool {
+        activeRequestContext == context &&
+        context.conversationRevision == conversationRevision &&
+        context.userKeyAtSend == currentUserKey
+    }
+
+    private func clearActiveRequestIfNeeded(_ context: InFlightRequestContext) {
+        guard activeRequestContext == context else { return }
+        activeRequestContext = nil
+        activeRequestTask = nil
+    }
+
+    private func invalidateConversation(cancelActiveRequest: Bool) {
+        if cancelActiveRequest {
+            activeRequestTask?.cancel()
+            activeRequestTask = nil
+            activeRequestContext = nil
+        }
+        conversationRevision += 1
     }
 
     private func buildPrompt(for userPrompt: String, history: String) -> String {

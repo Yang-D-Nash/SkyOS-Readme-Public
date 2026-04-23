@@ -4,17 +4,17 @@ import UIKit
 struct AIView: View {
     @StateObject private var viewModel: AIChatViewModel
     @ObservedObject private var featureFlags: FeatureFlagsService
+    @ObservedObject private var membershipCoordinator: AIMembershipCoordinator
     @EnvironmentObject private var authManager: AuthManager
-    @EnvironmentObject private var aiSubscriptionStore: NativeAISubscriptionStore
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
     private let showsNavigation: Bool
-    @StateObject private var membershipCoordinator = AIMembershipCoordinator.shared
     @State private var autoPresentedUpgradeHint = false
 
     init(
         aiChatService: AIChatServicing = FirebaseFunctionsAIChatService(),
         featureFlags: FeatureFlagsService,
+        membershipCoordinator: AIMembershipCoordinator,
         showsNavigation: Bool = true
     ) {
         self.showsNavigation = showsNavigation
@@ -22,6 +22,7 @@ struct AIView: View {
             wrappedValue: AIChatViewModel(service: aiChatService)
         )
         _featureFlags = ObservedObject(wrappedValue: featureFlags)
+        _membershipCoordinator = ObservedObject(wrappedValue: membershipCoordinator)
     }
 
     var body: some View {
@@ -37,124 +38,15 @@ struct AIView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
-        .task {
+        .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
-            membershipCoordinator.cacheCurrentPlan(currentUserQuotaPlan)
-        }
-        .onChange(of: authManager.userSession?.id) { _, _ in
-            viewModel.configureUser(user: authManager.userSession)
-            membershipCoordinator.cacheCurrentPlan(currentUserQuotaPlan)
         }
         .onDisappear {
             isComposerFocused = false
         }
-        .sheet(
-            isPresented: Binding(
-                get: { membershipCoordinator.isPresented },
-                set: { if !$0 { membershipCoordinator.closeMembership() } }
-            )
-        ) { membershipSheet }
-        .task {
-            await aiSubscriptionStore.prepareStorefront(for: authManager.userSession)
-        }
-        .onChange(of: authManager.userSession?.id) { _, _ in
-            Task {
-                await aiSubscriptionStore.prepareStorefront(for: authManager.userSession)
-            }
-        }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
         }
-    }
-
-    private var membershipSheet: some View {
-        AIMembershipSheet(
-            colorScheme: colorScheme,
-            isLoadingProducts: aiSubscriptionStore.isLoadingProducts,
-            isSyncing: aiSubscriptionStore.isSyncing,
-            activePurchasePlan: aiSubscriptionStore.activePurchasePlan,
-            onSelectPlan: { plan in
-                Task {
-                    membershipCoordinator.track("plan_selected", ["plan": plan.rawValue])
-                    membershipCoordinator.track("purchase_started", ["plan": plan.rawValue])
-                    membershipCoordinator.track("purchase_started_pipeline", ["surface": membershipCoordinator.surface])
-                    MembershipAnalyticsTracker().track(
-                        "plan_selected",
-                        reason: membershipCoordinator.lastOpenReason.rawValue,
-                        plan: plan.rawValue,
-                        surface: membershipCoordinator.surface,
-                        currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                    )
-                    MembershipAnalyticsTracker().track(
-                        "purchase_started",
-                        reason: membershipCoordinator.lastOpenReason.rawValue,
-                        plan: plan.rawValue,
-                        surface: membershipCoordinator.surface,
-                        currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                    )
-                    do {
-                        let outcome = try await aiSubscriptionStore.purchase(plan: plan)
-                        switch outcome {
-                        case .success:
-                            membershipCoordinator.track("purchase_success", ["plan": plan.rawValue])
-                            MembershipAnalyticsTracker().track(
-                                "purchase_success",
-                                reason: membershipCoordinator.lastOpenReason.rawValue,
-                                plan: plan.rawValue,
-                                surface: membershipCoordinator.surface,
-                                currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                            )
-                            await membershipCoordinator.postPurchaseRefresh(plan: plan) {
-                                await MainActor.run {
-                                    viewModel.configureUser(user: authManager.userSession)
-                                }
-                            }
-                            viewModel.showToastMessage("Upgrade erfolgreich aktiviert.", style: .success)
-                        case .pending:
-                            viewModel.showToastMessage("Kauf wartet auf App-Store-Freigabe.", style: .info)
-                        case .cancelled:
-                            membershipCoordinator.track("purchase_cancelled", ["plan": plan.rawValue])
-                            MembershipAnalyticsTracker().track(
-                                "purchase_cancelled",
-                                reason: membershipCoordinator.lastOpenReason.rawValue,
-                                plan: plan.rawValue,
-                                surface: membershipCoordinator.surface,
-                                currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                            )
-                            viewModel.showToastMessage("Kauf abgebrochen.", style: .info)
-                        }
-                    } catch {
-                        viewModel.showToastMessage("Upgrade konnte nicht gestartet werden: \(error.localizedDescription)", style: .error)
-                    }
-                }
-            },
-            onRestore: {
-                Task {
-                    do {
-                        let shouldForceEmptySync = authManager.userSession?.normalizedAISubscriptionProvider == "app_store"
-                        try await aiSubscriptionStore.restorePurchases(forceEmptySync: shouldForceEmptySync)
-                        await membershipCoordinator.restore {
-                            await MainActor.run {
-                                viewModel.configureUser(user: authManager.userSession)
-                            }
-                        }
-                        viewModel.showToastMessage("App-Store-Kaeufe synchronisiert.", style: .success)
-                    } catch {
-                        viewModel.showToastMessage("Synchronisierung fehlgeschlagen: \(error.localizedDescription)", style: .error)
-                    }
-                }
-            },
-            onManage: {
-                Task {
-                    do {
-                        try await aiSubscriptionStore.manageSubscriptions()
-                    } catch {
-                        viewModel.showToastMessage("Abo-Verwaltung konnte nicht geoeffnet werden.", style: .error)
-                    }
-                }
-            }
-        )
-        .presentationDetents([.medium, .large])
     }
 
     private func handleCriticalUsageWarning(_ level: String?) {
@@ -164,8 +56,15 @@ struct AIView: View {
         membershipCoordinator.openMembership(reason: .criticalUsage, surface: "ai_chat")
     }
 
-    private var currentUserQuotaPlan: UserQuotaPlan? {
-        UserQuotaPlan(rawValue: authManager.userSession?.quotaPlan ?? "")
+    private var sessionObservationKey: String {
+        let session = authManager.userSession
+        return [
+            session?.id ?? "guest",
+            session?.resolvedQuotaPlan.rawValue ?? UserQuotaPlan.free.rawValue,
+            String(session?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays),
+            session?.normalizedAISubscriptionProvider ?? "none",
+            String(session?.aiAccessEnabled ?? false)
+        ].joined(separator: "|")
     }
 
     private var content: some View {
@@ -310,9 +209,6 @@ struct AIView: View {
                     onSend: viewModel.sendDraft
                 )
             }
-        }
-        .task {
-            await featureFlags.refresh()
         }
         .background(backgroundGradient.ignoresSafeArea())
     }
@@ -607,7 +503,7 @@ private struct RetryLaterCard: View {
     }
 }
 
-private struct AIMembershipSheet: View {
+struct AIMembershipSheet: View {
     let colorScheme: ColorScheme
     let isLoadingProducts: Bool
     let isSyncing: Bool
@@ -1207,6 +1103,7 @@ private struct AISessionSignalCard: View {
 
     AIView(
         aiChatService: services.aiChatService,
-        featureFlags: services.featureFlags
+        featureFlags: services.featureFlags,
+        membershipCoordinator: AIMembershipCoordinator()
     )
 }

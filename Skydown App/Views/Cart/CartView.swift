@@ -43,8 +43,7 @@ struct CartView: View {
     @State private var message = "Ich interessiere mich fuer die Artikel in meinem Warenkorb."
     @State private var showCheckoutConfirmSheet = false
     @State private var isSubmitting = false
-    @State private var activePresentedSheet: CartPresentedSheet?
-    @State private var queuedPresentedSheet: CartPresentedSheet?
+    @State private var sheetPresentation = SkydownQueuedPresentation<CartPresentedSheet>()
     @State private var selectedPaymentMethod = ""
     @State private var showOptionalContactFields = false
     @State private var showOptionalAddressFields = false
@@ -504,7 +503,7 @@ struct CartView: View {
         .animation(.easeInOut(duration: 0.22), value: isCheckoutAvailable)
         .animation(.easeInOut(duration: 0.22), value: availableCheckoutMethods.count)
         .animation(.easeInOut(duration: 0.22), value: cartVM.handoverContext)
-        .sheet(item: $activePresentedSheet) { sheet in
+        .sheet(item: activePresentedSheetBinding) { sheet in
             switch sheet {
             case .login:
                 LoginView()
@@ -544,23 +543,17 @@ struct CartView: View {
         .fancyToast(isPresented: $cartVM.showToast,
                     message: cartVM.toastMessage,
                     style: cartVM.toastStyle)
-        .onChange(of: activePresentedSheet) { _, sheet in
-            guard sheet == nil, let queuedPresentedSheet else { return }
-            self.queuedPresentedSheet = nil
-            DispatchQueue.main.async {
-                activePresentedSheet = queuedPresentedSheet
-            }
-        }
+    }
+
+    private var activePresentedSheetBinding: Binding<CartPresentedSheet?> {
+        Binding(
+            get: { sheetPresentation.activeItem },
+            set: { sheetPresentation.updatePresentedItem($0) }
+        )
     }
 
     private func presentSheet(_ sheet: CartPresentedSheet) {
-        guard activePresentedSheet == nil else {
-            queuedPresentedSheet = sheet
-            activePresentedSheet = nil
-            return
-        }
-
-        activePresentedSheet = sheet
+        sheetPresentation.request(sheet)
     }
 
     private func submitOrderAsync() async -> Bool {

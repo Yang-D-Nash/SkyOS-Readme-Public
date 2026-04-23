@@ -67,6 +67,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -118,13 +119,29 @@ fun AgentScreen(
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
     var hasAutoUpgradePrompted by rememberSaveable { mutableStateOf(false) }
+    val messageRenderToken = uiState.messages.lastOrNull()?.let { message ->
+        val workflowToken = message.workflowSummary?.let { summary ->
+            listOf(
+                summary.workflowName,
+                summary.statusText,
+                summary.runId.orEmpty(),
+            ).joinToString("|")
+        } ?: "no-workflow"
+        listOf(
+            message.id,
+            message.isStreaming.toString(),
+            message.resultType.name,
+            message.text,
+            workflowToken,
+        ).joinToString("|")
+    } ?: "agent-empty"
     val dismissKeyboard: () -> Unit = {
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
         Unit
     }
 
-    LaunchedEffect(uiState.messages.size) {
+    LaunchedEffect(messageRenderToken) {
         if (uiState.isAgentEnabled && uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.lastIndex + 3)
         }
@@ -161,7 +178,7 @@ fun AgentScreen(
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
         } else {
             Modifier.fillMaxSize()
-        },
+        }.testTag("agent.screen.root"),
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = if (showTopBar) {

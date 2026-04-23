@@ -29,8 +29,7 @@ struct ArtistPageView: View {
     @State private var showToast = false
     @State private var toastStyle: ToastStyle = .success
     @State private var selectedTrackID: Int?
-    @State private var activePresentedSheet: ArtistPagePresentedSheet?
-    @State private var queuedPresentedSheet: ArtistPagePresentedSheet?
+    @State private var sheetPresentation = SkydownQueuedPresentation<ArtistPagePresentedSheet>()
     @State private var activeImageUploadTarget: ArtistPageEditableImageTarget?
     @State private var isUploadingHeroVideo = false
     @State private var editingBaseProfileImageURL = ""
@@ -226,7 +225,7 @@ struct ArtistPageView: View {
                 selectedTrackID = tracks.first?.trackId
             }
         }
-        .sheet(item: $activePresentedSheet) { sheet in
+        .sheet(item: activePresentedSheetBinding) { sheet in
             switch sheet {
             case .youTube(let item):
                 YouTubeEmbedPlayerView(item: item)
@@ -238,13 +237,6 @@ struct ArtistPageView: View {
                 SingleVideoPicker { url in
                     handleEditableVideoFile(url)
                 }
-            }
-        }
-        .onChange(of: activePresentedSheet) { _, sheet in
-            guard sheet == nil, let queuedPresentedSheet else { return }
-            self.queuedPresentedSheet = nil
-            DispatchQueue.main.async {
-                activePresentedSheet = queuedPresentedSheet
             }
         }
         .onDisappear {
@@ -262,14 +254,15 @@ struct ArtistPageView: View {
         }
     }
 
-    private func presentSheet(_ sheet: ArtistPagePresentedSheet) {
-        guard activePresentedSheet == nil else {
-            queuedPresentedSheet = sheet
-            activePresentedSheet = nil
-            return
-        }
+    private var activePresentedSheetBinding: Binding<ArtistPagePresentedSheet?> {
+        Binding(
+            get: { sheetPresentation.activeItem },
+            set: { sheetPresentation.updatePresentedItem($0) }
+        )
+    }
 
-        activePresentedSheet = sheet
+    private func presentSheet(_ sheet: ArtistPagePresentedSheet) {
+        sheetPresentation.request(sheet)
     }
 
     private func beginEditing() {
@@ -308,7 +301,7 @@ struct ArtistPageView: View {
         _ temporaryFileURL: URL?,
         for target: ArtistPageEditableImageTarget
     ) {
-        activePresentedSheet = nil
+        activePresentedSheetBinding.wrappedValue = nil
 
         guard let temporaryFileURL else {
             return
@@ -346,7 +339,7 @@ struct ArtistPageView: View {
     }
 
     private func handleEditableVideoFile(_ temporaryFileURL: URL?) {
-        activePresentedSheet = nil
+        activePresentedSheetBinding.wrappedValue = nil
 
         guard let temporaryFileURL else {
             return

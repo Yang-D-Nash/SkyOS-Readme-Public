@@ -54,7 +54,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import com.skydown.android.ui.screen.openExternalLink
@@ -458,7 +457,7 @@ private fun SpotifyEmbedDialog(
                 }
 
                 if (embedUrl != null) {
-                    AndroidView(
+                    ManagedAndroidWebView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(420.dp)

@@ -48,8 +48,7 @@ struct SettingsView: View {
     @State private var systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
 
     @State private var activeAlert: SettingsAlert?
-    @State private var activePresentedSheet: SettingsPresentedSheet?
-    @State private var queuedPresentedSheet: SettingsPresentedSheet?
+    @State private var sheetPresentation = SkydownQueuedPresentation<SettingsPresentedSheet>()
     @State private var didPresentInitialAdminWorkspace = false
     @State private var showToast = false
     @State private var toastMessage = ""
@@ -847,7 +846,7 @@ struct SettingsView: View {
             .environment(\.colorScheme, effectiveColorScheme)
             .accessibilityIdentifier("settings.root")
         }
-        .sheet(item: $activePresentedSheet) { sheet in
+        .sheet(item: activePresentedSheetBinding) { sheet in
             settingsSheetContent(for: sheet)
         }
         .confirmationDialog(
@@ -979,18 +978,12 @@ struct SettingsView: View {
         .onReceive(legalContentStore.$settings) { settings in
             syncLegalContentDrafts(with: settings)
         }
-        .onChange(of: activePresentedSheet) { _, sheet in
+        .onChange(of: activePresentedSheetBinding.wrappedValue) { _, sheet in
             switch sheet {
             case .adminWorkspace(let section):
                 activeAdminWorkspace = section
             default:
                 activeAdminWorkspace = nil
-            }
-
-            guard sheet == nil, let queuedPresentedSheet else { return }
-            self.queuedPresentedSheet = nil
-            DispatchQueue.main.async {
-                activePresentedSheet = queuedPresentedSheet
             }
         }
         .onDisappear {
@@ -1051,7 +1044,7 @@ struct SettingsView: View {
         _ temporaryFileURL: URL?,
         for target: SettingsEditableImageTarget
     ) {
-        activePresentedSheet = nil
+        activePresentedSheetBinding.wrappedValue = nil
 
         guard let temporaryFileURL else {
             return
@@ -1090,6 +1083,13 @@ struct SettingsView: View {
 
     private var isOwnerUser: Bool {
         authManager.userSession?.isPlatformOwner == true
+    }
+
+    private var activePresentedSheetBinding: Binding<SettingsPresentedSheet?> {
+        Binding(
+            get: { sheetPresentation.activeItem },
+            set: { sheetPresentation.updatePresentedItem($0) }
+        )
     }
 
     private var canUseAISelfPaySubscription: Bool {
@@ -1317,6 +1317,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .accessibilityIdentifier("settings.membership.section")
     }
 
     @ViewBuilder
@@ -3397,14 +3398,7 @@ struct SettingsView: View {
     }
 
     private func presentSheet(_ sheet: SettingsPresentedSheet) {
-        guard activePresentedSheet != sheet else { return }
-        guard activePresentedSheet == nil else {
-            queuedPresentedSheet = sheet
-            activePresentedSheet = nil
-            return
-        }
-
-        activePresentedSheet = sheet
+        sheetPresentation.request(sheet)
     }
 
     private func presentInitialAdminWorkspaceIfNeeded() {
@@ -3415,7 +3409,7 @@ struct SettingsView: View {
         }
 
         didPresentInitialAdminWorkspace = true
-        DispatchQueue.main.async {
+        Task { @MainActor in
             presentSheet(.adminWorkspace(section))
         }
     }
@@ -3470,7 +3464,7 @@ struct SettingsView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
-                            activePresentedSheet = nil
+                            activePresentedSheetBinding.wrappedValue = nil
                         } label: {
                             Label("Schliessen", systemImage: "xmark")
                         }
