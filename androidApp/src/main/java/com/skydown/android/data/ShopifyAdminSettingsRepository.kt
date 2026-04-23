@@ -67,10 +67,10 @@ class ShopifyAdminSettingsRepository(
 
     suspend fun fetchAvailableCollections(): Result<List<ShopifyCollectionOption>> {
         return runCatching {
-            val response = functions
-                .getHttpsCallable("listShopifyCollections")
-                .call(emptyMap<String, Any>())
-                .await()
+            val response = functions.callWithAppCheckRetry(
+                functionName = "listShopifyCollections",
+                payload = emptyMap<String, Any>(),
+            )
 
             val data = response.data as? Map<*, *>
             val collections = data?.get("collections") as? List<*>

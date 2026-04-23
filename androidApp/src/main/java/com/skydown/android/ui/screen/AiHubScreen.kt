@@ -17,11 +17,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -65,9 +68,11 @@ private enum class AiHubMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiHubScreen(
+    immersiveMode: Boolean = false,
     showsWorkflowWorkspace: Boolean,
     onToggleWorkflow: () -> Unit,
     onHideWorkflow: () -> Unit,
+    onExitImmersive: (() -> Unit)? = null,
     onOpenLogin: () -> Unit = {},
     onOpenCart: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
@@ -96,6 +101,18 @@ fun AiHubScreen(
                         subtitle = "Bot, Agent und Visuals.",
                         accent = MaterialTheme.colorScheme.tertiary,
                     )
+                },
+                navigationIcon = if (immersiveMode && onExitImmersive != null) {
+                    {
+                        IconButton(onClick = onExitImmersive) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Zurueck",
+                            )
+                        }
+                    }
+                } else {
+                    {}
                 },
                 actions = {
                     AppTopBarSessionActions(
@@ -190,8 +207,14 @@ fun AiHubScreen(
                                 )
                             } else {
                                 when (mode) {
-                                    AiHubMode.Bot -> AiScreen(showTopBar = false)
-                                    AiHubMode.Agent -> AgentScreen(showTopBar = false)
+                                    AiHubMode.Bot -> AiScreen(
+                                        showTopBar = false,
+                                        immersiveInTools = immersiveMode,
+                                    )
+                                    AiHubMode.Agent -> AgentScreen(
+                                        showTopBar = false,
+                                        immersiveInTools = immersiveMode,
+                                    )
                                 }
                             }
                         }

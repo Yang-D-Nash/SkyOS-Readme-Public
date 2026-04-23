@@ -105,6 +105,7 @@ import kotlinx.coroutines.delay
 fun AgentScreen(
     viewModel: AgentViewModel = viewModel(),
     showTopBar: Boolean = true,
+    immersiveInTools: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val compactLayout = rememberIsCompactAppLayout()
@@ -208,7 +209,8 @@ fun AgentScreen(
                     compactLayout = compactLayout,
                     contentMaxWidth = contentMaxWidth,
                     embeddedInTools = !showTopBar,
-                    applyBottomSystemInset = showTopBar,
+                    showDockClearance = !showTopBar && !immersiveInTools,
+                    applyBottomSystemInset = showTopBar || immersiveInTools,
                     onDraftChanged = viewModel::updateDraft,
                     onModeChanged = viewModel::updateMode,
                     onToggleAutomation = viewModel::toggleAutomation,
@@ -934,6 +936,7 @@ private fun AgentComposerBar(
     compactLayout: Boolean,
     contentMaxWidth: Dp,
     embeddedInTools: Boolean,
+    showDockClearance: Boolean,
     applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
     onModeChanged: (AgentExecutionMode) -> Unit,
@@ -948,8 +951,8 @@ private fun AgentComposerBar(
         else -> 8.dp
     }
     val dockClearancePadding = when {
-        embeddedInTools && compactLayout -> 72.dp
-        embeddedInTools -> 76.dp
+        showDockClearance && compactLayout -> 72.dp
+        showDockClearance -> 76.dp
         else -> 0.dp
     }
     val cardVerticalPadding = when {

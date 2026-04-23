@@ -119,6 +119,7 @@ import kotlinx.coroutines.delay
 fun AiScreen(
     viewModel: AiViewModel = viewModel(),
     showTopBar: Boolean = true,
+    immersiveInTools: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val baseCompactLayout = rememberIsCompactAppLayout()
@@ -219,7 +220,8 @@ fun AiScreen(
                     compactLayout = compactLayout,
                     contentMaxWidth = contentMaxWidth,
                     embeddedInTools = !showTopBar,
-                    applyBottomSystemInset = showTopBar,
+                    showDockClearance = !showTopBar && !immersiveInTools,
+                    applyBottomSystemInset = showTopBar || immersiveInTools,
                     onDraftChanged = viewModel::updateDraft,
                     onComposerModeChange = viewModel::updateComposerMode,
                     onTextModeChange = viewModel::updateTextMode,
@@ -1346,6 +1348,7 @@ private fun AiComposerBar(
     compactLayout: Boolean,
     contentMaxWidth: Dp,
     embeddedInTools: Boolean,
+    showDockClearance: Boolean,
     applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
@@ -1365,8 +1368,8 @@ private fun AiComposerBar(
         else -> 8.dp
     }
     val dockClearancePadding = when {
-        embeddedInTools && compactLayout -> 72.dp
-        embeddedInTools -> 76.dp
+        showDockClearance && compactLayout -> 72.dp
+        showDockClearance -> 76.dp
         else -> 0.dp
     }
     val cardVerticalPadding = when {

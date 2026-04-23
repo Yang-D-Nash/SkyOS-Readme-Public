@@ -1,5 +1,6 @@
 package com.skydown.android.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -315,11 +316,70 @@ fun SkydownApp(
             val startRoute = selectedEntryRoute ?: "home"
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
-            val showFloatingDock = skydownShouldShowDock()
+            val topLevelRoutes = remember(destinations) { destinations.map { it.route }.toSet() }
+            var topLevelRouteHistory by rememberSaveable(startRoute) { mutableStateOf(listOf(startRoute)) }
+            val showFloatingDock = skydownShouldShowDock(currentDestination?.route)
             val floatingDockContentPadding = if (showFloatingDock) {
                 skydownDockOverlayPadding(isCompactLayout)
             } else {
                 0.dp
+            }
+
+            fun navigateToTopLevel(route: String, recordHistory: Boolean = true) {
+                if (recordHistory && topLevelRouteHistory.lastOrNull() != route) {
+                    topLevelRouteHistory = (topLevelRouteHistory + route).takeLast(12)
+                }
+                if (navController.currentDestination?.route != route) {
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+
+            fun navigateBackWithinTopLevel(): Boolean {
+                if (topLevelRouteHistory.size <= 1) {
+                    return false
+                }
+                val previousRoute = topLevelRouteHistory[topLevelRouteHistory.lastIndex - 1]
+                topLevelRouteHistory = topLevelRouteHistory.dropLast(1)
+                navigateToTopLevel(previousRoute, recordHistory = false)
+                return true
+            }
+
+            val hasBlockingAuthSheet = authSheet != null
+            val hasOrdersSheet = showOrders
+            val canCloseWorkflowWorkspace = currentDestination?.route == "ai" && showsWorkflowWorkspace
+            val canPopNestedRoute = navController.previousBackStackEntry != null &&
+                !topLevelRoutes.contains(currentDestination?.route)
+            val canPopTopLevelRoute = topLevelRoutes.contains(currentDestination?.route) &&
+                topLevelRouteHistory.size > 1
+
+            BackHandler(
+                enabled = hasBlockingAuthSheet ||
+                    hasOrdersSheet ||
+                    canCloseWorkflowWorkspace ||
+                    canPopNestedRoute ||
+                    canPopTopLevelRoute,
+            ) {
+                when {
+                    authSheet != null -> {
+                        if (!authSheetLocked) {
+                            authSheet = null
+                        }
+                    }
+                    showOrders -> showOrders = false
+                    currentDestination?.route == "ai" && showsWorkflowWorkspace -> showsWorkflowWorkspace = false
+                    navController.previousBackStackEntry != null && !topLevelRoutes.contains(currentDestination?.route) -> {
+                        navController.popBackStack()
+                    }
+                    else -> {
+                        navigateBackWithinTopLevel()
+                    }
+                }
             }
 
             LaunchedEffect(hasAiAccess, currentDestination?.route) {
@@ -366,9 +426,7 @@ fun SkydownApp(
                                 onOpenWorkflow = if (hasAiAccess) {
                                     {
                                         showsWorkflowWorkspace = true
-                                        navController.navigate("ai") {
-                                            launchSingleTop = true
-                                        }
+                                        navigateToTopLevel("ai")
                                     }
                                 } else {
                                     null
@@ -407,9 +465,18 @@ fun SkydownApp(
                         }
                         composable("ai") {
                             AiHubScreen(
+                                immersiveMode = true,
                                 showsWorkflowWorkspace = showsWorkflowWorkspace,
                                 onToggleWorkflow = { showsWorkflowWorkspace = !showsWorkflowWorkspace },
                                 onHideWorkflow = { showsWorkflowWorkspace = false },
+                                onExitImmersive = {
+                                    if (!navigateBackWithinTopLevel()) {
+                                        navigateToTopLevel(
+                                            route = if (startRoute == "ai") "home" else startRoute,
+                                            recordHistory = false,
+                                        )
+                                    }
+                                },
                                 onOpenLogin = { authSheet = AuthSheet.Login },
                                 onOpenCart = openCart,
                                 onOpenProfile = openProfile,
@@ -456,15 +523,7 @@ fun SkydownApp(
                                     navController.popBackStack()
                                 }
 
-                                if (navController.currentDestination?.route != destination.route) {
-                                    navController.navigate(destination.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
+                                navigateToTopLevel(destination.route)
                             },
                             modifier = Modifier.align(Alignment.BottomCenter),
                         )
@@ -873,7 +932,9 @@ private val skydownOverlayRoutes = setOf("cart", "settings", "profile")
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun skydownShouldShowDock(): Boolean = !WindowInsets.isImeVisible
+private fun skydownShouldShowDock(currentRoute: String?): Boolean {
+    return !WindowInsets.isImeVisible && currentRoute != "ai"
+}
 
 private fun skydownDockOverlayPadding(isCompactLayout: Boolean) = if (isCompactLayout) 28.dp else 32.dp
 

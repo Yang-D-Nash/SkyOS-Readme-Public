@@ -47,10 +47,13 @@ class SettingsViewModel : ViewModel() {
     private var shopifyAdminSettingsListener: ListenerRegistration? = null
     private var adminUsersListener: ListenerRegistration? = null
     private val functions = FirebaseFunctions.getInstance("us-central1")
+    private val shopifyCollectionsCacheLifetimeMs = 30_000L
     private val _uiState = MutableStateFlow(
         SettingsUiState(),
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+    private var lastShopifyCollectionsRefreshAtMs: Long? = null
+    private var lastShopifyCollectionsSourceKey: String? = null
 
     init {
         _uiState.update {
@@ -190,7 +193,32 @@ class SettingsViewModel : ViewModel() {
 
         shopifyAdminSettingsListener = shopifyAdminSettingsRepository.observeSettings { result ->
             result.onSuccess { settings ->
-                _uiState.update { it.copy(shopifyAdminSettings = settings) }
+                val nextSourceKey = shopifyCollectionsSourceKey(settings)
+                _uiState.update { current ->
+                    val previousSourceKey = shopifyCollectionsSourceKey(current.shopifyAdminSettings)
+                    current.copy(
+                        shopifyAdminSettings = settings,
+                        availableShopifyCollections = if (previousSourceKey != nextSourceKey) {
+                            emptyList()
+                        } else {
+                            current.availableShopifyCollections
+                        },
+                        isLoadingShopifyCollections = if (previousSourceKey != nextSourceKey) {
+                            false
+                        } else {
+                            current.isLoadingShopifyCollections
+                        },
+                        shopifyCollectionsErrorMessage = if (previousSourceKey != nextSourceKey) {
+                            null
+                        } else {
+                            current.shopifyCollectionsErrorMessage
+                        },
+                    )
+                }
+                if (lastShopifyCollectionsSourceKey != null && lastShopifyCollectionsSourceKey != nextSourceKey) {
+                    lastShopifyCollectionsRefreshAtMs = null
+                    lastShopifyCollectionsSourceKey = null
+                }
             }.onFailure { error ->
                 showPaymentFeedback(
                     message = error.message ?: "Shopify-Einstellungen konnten nicht geladen werden.",
@@ -603,7 +631,16 @@ class SettingsViewModel : ViewModel() {
             if (_uiState.value.isLoadingShopifyCollections) {
                 return@launch
             }
-            if (!force && _uiState.value.availableShopifyCollections.isNotEmpty()) {
+            val sourceKey = shopifyCollectionsSourceKey(_uiState.value.shopifyAdminSettings)
+            val cacheIsFresh = lastShopifyCollectionsRefreshAtMs?.let { refreshedAt ->
+                System.currentTimeMillis() - refreshedAt < shopifyCollectionsCacheLifetimeMs
+            } == true
+            if (!force &&
+                _uiState.value.availableShopifyCollections.isNotEmpty() &&
+                _uiState.value.shopifyCollectionsErrorMessage == null &&
+                lastShopifyCollectionsSourceKey == sourceKey &&
+                cacheIsFresh
+            ) {
                 return@launch
             }
 
@@ -616,6 +653,8 @@ class SettingsViewModel : ViewModel() {
 
             val result = shopifyAdminSettingsRepository.fetchAvailableCollections()
             result.onSuccess { collections ->
+                lastShopifyCollectionsRefreshAtMs = System.currentTimeMillis()
+                lastShopifyCollectionsSourceKey = sourceKey
                 _uiState.update {
                     it.copy(
                         availableShopifyCollections = collections,
@@ -632,6 +671,10 @@ class SettingsViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    private fun shopifyCollectionsSourceKey(settings: ShopifyAdminSettings): String {
+        return "${settings.storeDomain.trim().lowercase()}|${settings.storefrontAccessToken.trim()}"
     }
 
     suspend fun saveManagedUser(user: User): Result<String> {

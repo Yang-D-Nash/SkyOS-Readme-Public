@@ -54,6 +54,7 @@ struct MainTabView: View {
     @EnvironmentObject private var featureFlags: FeatureFlagsService
     @EnvironmentObject private var authManager: AuthManager
     @State private var selectedTab: MainTab = .hub
+    @State private var lastNonToolsTab: MainTab = .hub
     @State private var modalPresentation = SkydownQueuedPresentation<MainTabModal>()
     @State private var showsWorkflowWorkspace = false
     @State private var settingsInitialAdminWorkspaceRawValue: String?
@@ -75,6 +76,7 @@ struct MainTabView: View {
 
     init(initialTab: MainTab = .hub) {
         _selectedTab = State(initialValue: initialTab)
+        _lastNonToolsTab = State(initialValue: initialTab == .tools ? .hub : initialTab)
     }
 
     private var hasAIAccess: Bool {
@@ -118,6 +120,7 @@ struct MainTabView: View {
         }
         .onChange(of: selectedTab) { _, newTab in
             if newTab != .tools {
+                lastNonToolsTab = newTab
                 showsWorkflowWorkspace = false
             }
         }
@@ -190,6 +193,7 @@ struct MainTabView: View {
                         agentChatService: services.agentChatService,
                         featureFlags: services.featureFlags,
                         showsWorkflowWorkspace: $showsWorkflowWorkspace,
+                        onExitImmersive: exitAITools,
                         onOpenCart: { presentModal(.cart) },
                         onOpenLogin: { presentModal(.login) },
                         onOpenProfile: { presentModal(.profile) },
@@ -197,6 +201,10 @@ struct MainTabView: View {
                         onOpenAutomationSettings: { presentSettings(initialAdminWorkspaceRawValue: "Automation") }
                     )
                     .skydownSceneActivation(isActive: selectedTab == .tools, axis: .horizontal, travel: 28)
+                    .toolbar(
+                        selectedTab == .tools && !SkydownPlatform.isDesktop ? .hidden : .visible,
+                        for: .tabBar
+                    )
                 }
                 .tabItem { Label(localized("tabs.tools", "AI"), systemImage: "sparkles") }
                 .tag(MainTab.tools)
@@ -225,6 +233,14 @@ struct MainTabView: View {
             get: { modalPresentation.activeItem },
             set: { modalPresentation.updatePresentedItem($0) }
         )
+    }
+
+    private func exitAITools() {
+        let fallbackTab = lastNonToolsTab == .tools ? .hub : lastNonToolsTab
+        withAnimation(SkydownMotion.screenTransition) {
+            showsWorkflowWorkspace = false
+            selectedTab = fallbackTab
+        }
     }
 
     private var desktopAccessoryPresented: Binding<Bool> {
@@ -852,6 +868,7 @@ private struct AIHubView: View {
     let agentChatService: AgentChatServicing
     @ObservedObject private var featureFlags: FeatureFlagsService
     @Binding var showsWorkflowWorkspace: Bool
+    let onExitImmersive: () -> Void
     let onOpenCart: () -> Void
     let onOpenLogin: () -> Void
     let onOpenProfile: () -> Void
@@ -871,6 +888,7 @@ private struct AIHubView: View {
         agentChatService: AgentChatServicing,
         featureFlags: FeatureFlagsService,
         showsWorkflowWorkspace: Binding<Bool>,
+        onExitImmersive: @escaping () -> Void,
         onOpenCart: @escaping () -> Void,
         onOpenLogin: @escaping () -> Void,
         onOpenProfile: @escaping () -> Void,
@@ -879,6 +897,7 @@ private struct AIHubView: View {
     ) {
         self.aiChatService = aiChatService
         self.agentChatService = agentChatService
+        self.onExitImmersive = onExitImmersive
         self.onOpenCart = onOpenCart
         self.onOpenLogin = onOpenLogin
         self.onOpenProfile = onOpenProfile
@@ -1046,6 +1065,14 @@ private struct AIHubView: View {
                 }
             }
             .toolbar {
+                if !SkydownPlatform.isDesktop {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: onExitImmersive) {
+                            Label("Zurueck", systemImage: "chevron.backward")
+                                .labelStyle(.titleAndIcon)
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(
                         onOpenCart: onOpenCart,

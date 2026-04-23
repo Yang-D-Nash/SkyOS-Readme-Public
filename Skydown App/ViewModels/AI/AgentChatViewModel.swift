@@ -640,8 +640,11 @@ final class AgentChatViewModel: ObservableObject {
                         style: .success
                     )
                 }
+                let hasMorePendingRequests = !pendingRequests.isEmpty
                 persistPendingRequests()
-                phase = resolvedTerminalPhase(for: result.decision, hasPendingQueue: !pendingRequests.isEmpty)
+                phase = hasMorePendingRequests
+                    ? .executing
+                    : resolvedTerminalPhase(for: result.decision, hasPendingQueue: false)
                 activeRequestContext = nil
             } catch {
                 if error is CancellationError || Task.isCancelled {

@@ -153,6 +153,9 @@ final class ShopifyAdminSettingsStore: ObservableObject {
 
     private let service: ShopifyAdminSettingsServicing
     private var stopObserving: (() -> Void)?
+    private var lastCollectionsRefreshAt: Date?
+    private var lastCollectionsSourceKey: String?
+    private let collectionsCacheLifetime: TimeInterval = 30
 
     init(service: ShopifyAdminSettingsServicing = FirestoreShopifyAdminSettingsService()) {
         self.service = service
@@ -165,7 +168,14 @@ final class ShopifyAdminSettingsStore: ObservableObject {
 
     func refreshAvailableCollections(force: Bool = false) async {
         if isLoadingCollections { return }
-        if force == false && availableCollections.isEmpty == false { return }
+        let sourceKey = collectionsSourceKey(for: settings)
+        if force == false &&
+            availableCollections.isEmpty == false &&
+            collectionsErrorMessage == nil &&
+            lastCollectionsSourceKey == sourceKey &&
+            lastCollectionsRefreshAt.map({ Date().timeIntervalSince($0) < collectionsCacheLifetime }) == true {
+            return
+        }
 
         isLoadingCollections = true
         defer { isLoadingCollections = false }
@@ -173,6 +183,8 @@ final class ShopifyAdminSettingsStore: ObservableObject {
         do {
             availableCollections = try await service.fetchAvailableCollections()
             collectionsErrorMessage = nil
+            lastCollectionsRefreshAt = Date()
+            lastCollectionsSourceKey = sourceKey
         } catch {
             collectionsErrorMessage = error.localizedDescription
         }
@@ -185,8 +197,16 @@ final class ShopifyAdminSettingsStore: ObservableObject {
 
             switch result {
             case .success(let settings):
+                let previousSourceKey = self.collectionsSourceKey(for: self.settings)
+                let nextSourceKey = self.collectionsSourceKey(for: settings)
                 self.settings = settings
                 self.lastErrorMessage = nil
+                if previousSourceKey != nextSourceKey {
+                    self.availableCollections = []
+                    self.collectionsErrorMessage = nil
+                    self.lastCollectionsRefreshAt = nil
+                    self.lastCollectionsSourceKey = nil
+                }
             case .failure(let error):
                 self.lastErrorMessage = error.localizedDescription
             }
@@ -195,6 +215,12 @@ final class ShopifyAdminSettingsStore: ObservableObject {
 
     deinit {
         stopObserving?()
+    }
+
+    private func collectionsSourceKey(for settings: ShopifyAdminSettings) -> String {
+        let normalizedDomain = settings.storeDomain.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedToken = settings.storefrontAccessToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "\(normalizedDomain)|\(normalizedToken)"
     }
 }
 

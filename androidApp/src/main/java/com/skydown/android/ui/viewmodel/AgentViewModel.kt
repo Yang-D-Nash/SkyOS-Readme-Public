@@ -423,6 +423,7 @@ class AgentViewModel : ViewModel() {
                         result.providerFallbackUsed -> "Provider-Fallback aktiv."
                         else -> ""
                     }
+                    val hasMorePendingRequests = pendingRequests.isNotEmpty()
                     _uiState.update { state ->
                         val nextError = when {
                             result.automationTriggered -> null
@@ -430,7 +431,11 @@ class AgentViewModel : ViewModel() {
                             else -> null
                         }
                         state.copy(
-                            agentPhase = resolveTerminalPhase(result.decision, pendingRequests.isNotEmpty()),
+                            agentPhase = if (hasMorePendingRequests) {
+                                AgentInteractionPhase.Executing
+                            } else {
+                                resolveTerminalPhase(result.decision, hasPendingQueue = false)
+                            },
                             errorMessage = nextError,
                             lastAgentProvider = AiRuntimeAgentProvider.resolve(result.agentProvider),
                             lastProviderNotice = effectiveNotice,
