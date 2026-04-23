@@ -136,6 +136,18 @@ final class Skydown_AppUITests: XCTestCase {
         waitForUISettle()
         saveScreenshot(name: "03-agent")
 
+        let immersiveExit = app.buttons["ai.hub.exit"].firstMatch
+        tapElementReliably(
+            immersiveExit,
+            in: app,
+            timeout: 20,
+            failureMessage: "Immersive AI workspace should provide a clear exit action."
+        )
+        XCTAssertTrue(
+            app.tabBars.firstMatch.waitForExistence(timeout: 20),
+            "Tab bar should reappear after leaving the immersive AI workspace."
+        )
+
         // 04 Music
         tapTab(app: app, index: 1)
         waitForUISettle()

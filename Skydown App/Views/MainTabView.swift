@@ -201,15 +201,15 @@ struct MainTabView: View {
                         onOpenAutomationSettings: { presentSettings(initialAdminWorkspaceRawValue: "Automation") }
                     )
                     .skydownSceneActivation(isActive: selectedTab == .tools, axis: .horizontal, travel: 28)
-                    .toolbar(
-                        selectedTab == .tools && !SkydownPlatform.isDesktop ? .hidden : .visible,
-                        for: .tabBar
-                    )
                 }
                 .tabItem { Label(localized("tabs.tools", "AI"), systemImage: "sparkles") }
                 .tag(MainTab.tools)
             }
-            .skydownTabBarChrome(colorScheme: currentScheme, accent: selectedTabAccent)
+            .skydownTabBarChrome(
+                colorScheme: currentScheme,
+                accent: selectedTabAccent,
+                isVisible: selectedTab != .tools || SkydownPlatform.isDesktop
+            )
         }
         .skydownSelectionFeedback(trigger: selectedTab)
     }
@@ -1071,6 +1071,7 @@ private struct AIHubView: View {
                             Label("Zurueck", systemImage: "chevron.backward")
                                 .labelStyle(.titleAndIcon)
                         }
+                        .accessibilityIdentifier("ai.hub.exit")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {

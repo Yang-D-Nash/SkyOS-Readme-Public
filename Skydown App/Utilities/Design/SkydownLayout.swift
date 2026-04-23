@@ -408,10 +408,14 @@ private struct SkydownLuminousSweepModifier: ViewModifier {
 private struct SkydownTabBarChromeModifier: ViewModifier {
     let colorScheme: ColorScheme
     let accent: Color
+    let isVisible: Bool
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if !isVisible {
+            content
+                .toolbar(.hidden, for: .tabBar)
+        } else if #available(iOS 26.0, *) {
             content
                 .toolbar(.visible, for: .tabBar)
                 .toolbarColorScheme(colorScheme, for: .tabBar)
@@ -708,8 +712,14 @@ extension View {
         modifier(SkydownNavigationChromeModifier(colorScheme: colorScheme))
     }
 
-    func skydownTabBarChrome(colorScheme: ColorScheme, accent: Color) -> some View {
-        modifier(SkydownTabBarChromeModifier(colorScheme: colorScheme, accent: accent))
+    func skydownTabBarChrome(colorScheme: ColorScheme, accent: Color, isVisible: Bool = true) -> some View {
+        modifier(
+            SkydownTabBarChromeModifier(
+                colorScheme: colorScheme,
+                accent: accent,
+                isVisible: isVisible
+            )
+        )
     }
 
     func skydownPanelSurface(
